@@ -218,6 +218,8 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"
 if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot identifier auto-read must consume MIR ABI runtime rows" >&2
@@ -226,6 +228,16 @@ fi
 if grep -F 'llvm_domain_slot_format_runtime_name' \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot method calls must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F 'llvm_stmt_format_runtime_name' \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM statement auto-release must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F 'is_secure ? "pgy_secure_release_" : "pgy_release_"' \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM statement auto-release must not synthesize release function names locally" >&2
     exit 1
 fi
 if grep -F '"pgy_secure_write", inner' \

@@ -432,7 +432,7 @@ require_literal "src/codegen/llvm_stmt_let_resources.c" \
 require_literal "src/codegen/llvm_stmt_let_collections.c" \
     "llvm_stmt_collection_runtime_name"
 require_literal "src/codegen/llvm_stmt.c" \
-    "llvm_stmt_format_runtime_name"
+    "mir_abi_resource_runtime_fn_by_kind"
 require_literal "src/codegen/llvm_stmt.c" \
     "llvm_stmt_format_bind_name"
 require_literal "src/codegen/llvm_stmt_let_helpers.c" \

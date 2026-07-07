@@ -3,12 +3,6 @@
 
 #include "llvm_internal.h"
 
-bool llvm_stmt_format_runtime_name(LLVMGenCtx *ctx,
-                                   ASTNode *node,
-                                   char *out,
-                                   size_t out_size,
-                                   const char *prefix,
-                                   const char *type_name);
 bool llvm_stmt_format_bind_name(LLVMGenCtx *ctx,
                                 ASTNode *node,
                                 char *out,

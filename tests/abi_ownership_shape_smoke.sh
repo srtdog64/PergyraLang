@@ -149,6 +149,7 @@ require_term "src/codegen/llvm_expr_assignment_member_projection.c" "mir_abi_res
 require_term "src/codegen/llvm_expr_assignment_member_projection.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_term "src/codegen/llvm_stmt_let_resources.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_stmt_with.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/llvm_stmt.c" "mir_abi_resource_runtime_fn_by_kind("
 reject_term "src/codegen/llvm_expr_identifier_slot_helpers.c" 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"'
 reject_term "src/codegen/llvm_expr_call_methods_domain_slice.c" "llvm_domain_slot_format_runtime_name"
 reject_term "src/codegen/llvm_expr_call_methods_domain_slice.c" '"pgy_secure_write", inner'
@@ -160,6 +161,8 @@ reject_term "src/codegen/llvm_expr_call_methods_domain_slice.c" '"pgy_release", 
 reject_term "src/codegen/llvm_expr_assignment_member_projection.c" 'is_secure ? "pgy_secure_write_%s" : "pgy_write_%s"'
 reject_term "src/codegen/llvm_stmt_let_names.c" 'is_secure ? "pgy_secure_write_%s" : "pgy_write_%s"'
 reject_term "src/codegen/llvm_stmt_with.c" 'is_secure ? "pgy_secure_release_%s" : "pgy_release_%s"'
+reject_term "src/codegen/llvm_stmt.c" "llvm_stmt_format_runtime_name"
+reject_term "src/codegen/llvm_stmt.c" 'is_secure ? "pgy_secure_release_" : "pgy_release_"'
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_write" : "pgy_write"'
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_read" : "pgy_read"'
 reject_term "src/codegen/llvm_expr_slot_device_calls.c" 'is_secure ? "pgy_secure_release" : "pgy_release"'

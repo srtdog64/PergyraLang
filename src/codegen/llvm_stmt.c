@@ -3,6 +3,7 @@
 #include "llvm_domain_role_helpers.h"
 #include "llvm_stmt_bind.h"
 #include "llvm_stmt_emit_support.h"
+#include "../compiler/mir_abi_layout.h"
 
 /* =================================================================
  * Statement emission
@@ -209,15 +210,14 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
             if (ctx->slot_vars[i].released) continue;
             const char *inner = ctx->slot_vars[i].inner_type;
             const char *vname = ctx->slot_vars[i].var_name;
-            char fn_name[64];
             bool is_secure = ctx->slot_vars[i].is_secure;
-            if (!llvm_stmt_format_runtime_name(ctx, node, fn_name,
-                    sizeof(fn_name),
-                    is_secure ? "pgy_secure_release_" : "pgy_release_",
-                    inner)) {
-                break;
-            }
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+                is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                          : MIR_RESOURCE_ABI_SLOT,
+                inner, "Release");
+            LLVMFuncEntry *fn = runtime_fn != NULL
+                ? llvm_lookup_function(ctx, runtime_fn)
+                : NULL;
             LLVMVarEntry var;
             if (!llvm_scope_lookup_snapshot(ctx, vname, &var)
                 || var.alloca != ctx->slot_vars[i].binding)
@@ -242,12 +242,17 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                 }
             } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
-                llvm_set_error_at_with_hints(ctx, node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM auto-release requires registered runtime function '%s'",
-                    fn_name);
+                if (runtime_fn != NULL) {
+                    llvm_required_runtime_function(ctx, node,
+                        is_secure ? "secure slot" : "slot",
+                        "auto-release", runtime_fn);
+                } else {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM auto-release requires MIR ABI runtime function row");
+                }
                 break;
             } else if (is_secure) {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,

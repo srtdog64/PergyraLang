@@ -59,7 +59,8 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   explicit ABI rows. The C MIR resource-op emitter and LLVM Slot/SecureSlot/
   DeviceSlot claim/read/write/release declaration registries and LLVM slot
   builtin calls, method calls, assignment writes, initializer writes, with-slot
-  cleanup releases, and identifier read emission must not synthesize
+  cleanup releases, statement auto-release cleanup, and identifier read
+  emission must not synthesize
   `pgy_read_*`, `pgy_write_*`, or `pgy_release_*` names from a type suffix. Pin
   declarations, C direct source emitters, and async device submit remain
   separate ABI projections until their rows are cut over.

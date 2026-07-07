@@ -33,36 +33,6 @@ llvm_mir_base_name_from_versioned(const char *mir_name,
 }
 
 bool
-llvm_stmt_format_runtime_name(LLVMGenCtx *ctx,
-                              ASTNode *node,
-                              char *out,
-                              size_t out_size,
-                              const char *prefix,
-                              const char *type_name)
-{
-    int written;
-
-    if (out == NULL || out_size == 0)
-        return false;
-
-    written = snprintf(out, out_size, "%s%s",
-        prefix != NULL ? prefix : "",
-        type_name != NULL ? type_name : "");
-    if (written >= 0 && (size_t)written < out_size)
-        return true;
-
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_SPEC_LIMIT,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
-            "LLVM statement runtime symbol is too long for type '%s'",
-            type_name != NULL ? type_name : "<type>");
-    }
-    return false;
-}
-
-bool
 llvm_stmt_format_bind_name(LLVMGenCtx *ctx,
                            ASTNode *node,
                            char *out,

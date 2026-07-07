@@ -416,7 +416,8 @@ Current beta closure snapshot:
   DeviceSlot claim/read/write/release declarations consume the same rows
   through `mir_abi_resource_runtime_fn_by_type_name(...)`; LLVM slot builtin
   calls, slot method calls, slot assignment writes, slot initializer writes,
-  with-slot cleanup releases, and slot identifier auto-read consume them
+  with-slot cleanup releases, statement auto-release cleanup, and slot
+  identifier auto-read consume them
   through `mir_abi_resource_runtime_fn_by_kind(...)`. Pin declarations, C
   direct source emitters, and async device submit remain separate ABI
   projections until their rows are cut over.
