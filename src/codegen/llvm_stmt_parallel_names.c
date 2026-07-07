@@ -7,6 +7,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "codegen_channel_runtime_abi.h"
 #include "llvm_stmt_parallel_names.h"
 
 bool
@@ -56,14 +57,9 @@ llvm_async_wrapper_name(LLVMGenCtx *ctx, char *out, size_t out_size,
 
 bool
 llvm_select_channel_runtime_name(LLVMGenCtx *ctx, char *out, size_t out_size,
-                                 const char *prefix, const char *inner)
+                                 const char *op, const char *inner)
 {
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s%s", prefix, inner);
-    if (written >= 0 && (size_t)written < out_size)
+    if (pgy_lane_channel_runtime_name(out, out_size, op, inner))
         return true;
     llvm_set_error(ctx, "LLVM select channel runtime name is too long");
     return false;

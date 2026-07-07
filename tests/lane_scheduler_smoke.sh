@@ -152,9 +152,12 @@ grep -Fq "pgy_lane_channel_runtime_name" \
 grep -Fq "\"try_recv_result\"" \
     "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
     || fail "LLVM TryRecv lowering does not preserve the channel lane facade op"
-grep -Fq "pgy_lane_channel_ready_" \
+grep -Fq "llvm_select_channel_runtime_name" \
     "$ROOT_DIR/src/codegen/llvm_stmt_select.c" \
-    || fail "LLVM select readiness does not consume the channel lane facade"
+    || fail "LLVM select lowering does not consume the select channel runtime name owner"
+grep -Fq "\"ready\", info->inner" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_select.c" \
+    || fail "LLVM select readiness does not preserve the channel lane facade op"
 if grep -Fq '"pgy_spawn_blocking" : "pgy_async_spawn"' \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"; then
     fail "C spawn lowering reintroduced direct executor selection"

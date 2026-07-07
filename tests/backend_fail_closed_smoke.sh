@@ -1534,5 +1534,22 @@ grep -Fq "select_channel_runtime_symbol" \
     "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "pgy_lane_channel_runtime_name(runtime_fn, sizeof(runtime_fn)," \
     "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+if grep -F 'pgy_lane_channel_try_recv_' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_select.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM select bound receive must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_ready_' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_select.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM select readiness must consume channel runtime ABI names" >&2
+    exit 1
+fi
+if grep -F 'pgy_lane_channel_recv_val_' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_select.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM select unbound consume must consume channel runtime ABI names" >&2
+    exit 1
+fi
+grep -Fq "pgy_lane_channel_runtime_name(out, out_size, op, inner)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_names.c"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

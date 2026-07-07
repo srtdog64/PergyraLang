@@ -20,7 +20,7 @@ bool llvm_async_wrapper_name(LLVMGenCtx *ctx,
 bool llvm_select_channel_runtime_name(LLVMGenCtx *ctx,
                                       char *out,
                                       size_t out_size,
-                                      const char *prefix,
+                                      const char *op,
                                       const char *inner);
 
 #endif

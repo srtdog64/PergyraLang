@@ -142,7 +142,7 @@ reject_literal "src/codegen/llvm_expr_task_channel_calls.c" \
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "llvm_select_channel_runtime_name"
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
-    "written >= 0 && (size_t)written < out_size"
+    "pgy_lane_channel_runtime_name(out, out_size, op, inner)"
 require_literal "src/runtime/slot_manager_security_stats.c" \
     "slot_security_localtime"
 require_literal "src/runtime/slot_manager_security_stats.c" \

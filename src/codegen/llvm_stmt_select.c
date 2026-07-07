@@ -132,7 +132,7 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
         return false;
     LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
     if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
-            "pgy_lane_channel_try_recv_", info->inner))
+            "try_recv", info->inner))
         return false;
     LLVMFuncEntry *try_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "receive", fn_name);
@@ -179,7 +179,7 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
 {
     char fn_name[128];
     if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
-            "pgy_lane_channel_ready_", info->inner))
+            "ready", info->inner))
         return false;
     LLVMFuncEntry *ready_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "readiness", fn_name);
@@ -198,7 +198,7 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
     {
         char recv_name[128];
         if (!llvm_select_channel_runtime_name(ctx, recv_name, sizeof(recv_name),
-                "pgy_lane_channel_recv_val_", info->inner))
+                "recv_val", info->inner))
             return false;
         LLVMFuncEntry *recv_fn = llvm_select_required_runtime_function(
             ctx, info->channel, "consume", recv_name);
