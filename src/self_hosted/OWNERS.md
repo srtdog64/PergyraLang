@@ -164,6 +164,11 @@ compiler-stage `.pgy` source to be listed here.
   forbidden-token source scan and fail-closed self-test entrypoint.
 - `src/self_hosted/tools/backend_air_access_checker/report_owner.pgy` --
   backend AIR access report schema, count rows, and finding shapes.
+- `src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy` --
+  backend ABI-layout required/forbidden source scan and fail-closed self-test
+  entrypoint.
+- `src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy`
+  -- backend ABI-layout contract report schema, count rows, and finding shapes.
 - `src/self_hosted/tools/backend_emitter_contract_checker/main.pgy` --
   backend-emitter required/forbidden source scan and fail-closed self-test
   entrypoint.

@@ -4,15 +4,7 @@
 // ABI files keep layout/runtime spelling behind MIR-owned facts.
 
 import "../../compiler/abi_layout_row_owner.pgy";
-import "../../lib/json_emit.pgy";
-
-func BackendAbiLayoutFinding(kind: String, path: String, term: String) -> String {
-    return JsonEmitObject([
-        JsonEmitFieldString("kind", kind),
-        JsonEmitFieldString("path", path),
-        JsonEmitFieldString("term", term)
-    ]);
-}
+import "report_owner.pgy";
 
 func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
     return "--self-test-missing-required";
@@ -20,27 +12,6 @@ func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
 
 func BackendAbiLayoutForbiddenHitSelfTestMode() -> String {
     return "--self-test-forbidden-hit";
-}
-
-func BackendAbiLayoutReport(
-    missing_required: Int,
-    forbidden_hits: Int,
-    findings: Array<String>,
-    schema: String
-) -> String {
-    let problem_count: Int = missing_required + forbidden_hits;
-    let counts: String = JsonEmitObject([
-        JsonEmitFieldNumber(CompilerBackendAbiLayoutRequiredCountField(), ToString(CompilerBackendAbiLayoutRequiredCount())),
-        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenCountField(), ToString(CompilerBackendAbiLayoutForbiddenCount())),
-        JsonEmitFieldNumber(CompilerBackendAbiLayoutMissingRequiredCountField(), ToString(missing_required)),
-        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenHitsCountField(), ToString(forbidden_hits))
-    ]);
-    return JsonEmitObject([
-        JsonEmitFieldString("schema", schema),
-        JsonEmitFieldBool("ok", problem_count == 0),
-        JsonEmitFieldRaw("counts", counts),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ]);
 }
 
 func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
@@ -64,6 +35,12 @@ func RunBackendAbiLayoutForbiddenHitSelfTest() -> Void {
 }
 
 func Main() -> Void {
+    if !BackendAbiLayoutReportOwnerReady() {
+        Log(CompilerBackendAbiLayoutOwnerNotReadyMessage());
+        Exit(1);
+        return;
+    }
+
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutMissingRequiredSelfTestMode() {
         RunBackendAbiLayoutMissingRequiredSelfTest();

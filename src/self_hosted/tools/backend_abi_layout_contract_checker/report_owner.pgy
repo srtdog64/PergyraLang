@@ -1,0 +1,48 @@
+// Backend ABI-layout contract checker report owner.
+//
+// Owns JSON report and finding shapes. The checker entrypoint owns backend
+// source scanning against ABI/layout contract rows.
+
+import "../../compiler/abi_layout_row_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func BackendAbiLayoutFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendAbiLayoutReport(
+    missing_required: Int,
+    forbidden_hits: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let problem_count: Int = missing_required + forbidden_hits;
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutRequiredCountField(), ToString(CompilerBackendAbiLayoutRequiredCount())),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenCountField(), ToString(CompilerBackendAbiLayoutForbiddenCount())),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutMissingRequiredCountField(), ToString(missing_required)),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenHitsCountField(), ToString(forbidden_hits))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", problem_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func BackendAbiLayoutReportOwnerReady() -> Bool {
+    let findings: Array<String> = [
+        BackendAbiLayoutFinding(
+            CompilerBackendAbiLayoutMissingRequiredFinding(),
+            CompilerBackendAbiLayoutRequiredPathAt(0),
+            CompilerBackendAbiLayoutRequiredTermAt(0))
+    ];
+    return StringIndexOf(
+        BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()),
+        CompilerBackendAbiLayoutNegativeSchema()) >= 0;
+}
