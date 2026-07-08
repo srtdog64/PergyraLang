@@ -87,7 +87,7 @@ func CompatibilityChangeRowHasCodefixStatus(row: String) -> Bool {
 }
 
 func CompatibilityChangeRowIsObsolete(row: String) -> Bool {
-    return CompatibilityChangeRowFieldAt(row, 3) == "obsolete";
+    return CompatibilityChangeRowFieldAt(row, 3) == CompilerCompatibilityObsoleteChangeKind();
 }
 
 func CompatibilityChangeRowHasMigrationEnvelope(row: String) -> Bool {

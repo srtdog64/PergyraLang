@@ -159,7 +159,8 @@ completed green with:
   than loose substring presence. The warning/error/remove version ladder is now
   a `CompatibilityEvolutionZone` owner fact consumed by the checker instead of a
   checker-local literal; diagnostic-id and migration-URL construction now flows
-  through owner constructors for the same reason. A second negative artifact
+  through owner constructors for the same reason, and change-kind vocabulary is
+  now an owner fact consumed by obsolete-row checks. A second negative artifact
   rejects an 11-field row with an invalid codefix status on both C and LLVM legs
   when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
