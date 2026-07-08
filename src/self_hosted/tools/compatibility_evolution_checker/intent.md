@@ -4,6 +4,10 @@
 
 Consume the PgyCompilerWorld compatibility-evolution owner and prove the seed
 breaking-change corpus has coverage for every compatibility surface.
+It also proves that the obsolete/migration envelope is field-owned: diagnostic
+ID, warning/error/remove versions, replacement, migration URL, and codefix
+status must appear in their canonical row positions rather than as loose
+substrings.
 
 ## Input Contract
 
@@ -15,10 +19,13 @@ is only a report/check consumer, not a second compatibility policy owner.
 ## Output Contract
 
 The checker emits one `pgy.selfhost.compatibility-corpus.v1` JSON report with
-change counts, per-surface coverage counts, and structured findings.
+change counts, per-surface coverage counts, obsolete migration-envelope counts,
+and structured findings.
 
 ## Oracle
 
 `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh` compiles
 the checker through C and LLVM, compares the report with the committed expected
 artifact, and verifies the C/LLVM tool outputs are identical.
+The same parity gate runs fail-closed negative modes for malformed change rows
+and invalid codefix statuses on C and LLVM when the LLVM backend is available.

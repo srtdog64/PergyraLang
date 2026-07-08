@@ -24,26 +24,11 @@ func CountCompatibilityChangeSurface(surface: String) -> Int {
     return count;
 }
 
-func CountCompatibilityRowsContaining(term: String) -> Int {
-    let count: Int = 0;
-    let i: Int = 0;
-    while i < CompilerCompatibilityChangeCount() {
-        if StringContains(CompilerCompatibilityChangeRowAt(i), term) {
-            count = count + 1;
-        }
-        i = i + 1;
-    }
-    return count;
-}
-
 func CountCompatibilityRowsWithCodefixStatus() -> Int {
     let count: Int = 0;
     let i: Int = 0;
     while i < CompilerCompatibilityChangeCount() {
-        let row: String = CompilerCompatibilityChangeRowAt(i);
-        if StringContains(row, CompilerCompatibilityCodefixAvailableStatus()) ||
-            StringContains(row, CompilerCompatibilityManualMigrationStatus()) ||
-            StringContains(row, CompilerCompatibilityNoCodefixStatus()) {
+        if CompatibilityChangeRowHasCodefixStatus(CompilerCompatibilityChangeRowAt(i)) {
             count = count + 1;
         }
         i = i + 1;
@@ -68,6 +53,48 @@ func CompatibilityChangeRowHasShape(row: String) -> Bool {
         CompatibilityChangeRowFieldCount(row) == 11;
 }
 
+func CompatibilityChangeRowFieldAt(row: String, index: Int) -> String {
+    let parts: Array<String> = Split(row, "|");
+    if index >= 0 && index < ArrayLength(parts) {
+        return parts[index];
+    }
+    return "";
+}
+
+func CompatibilityChangeRowHasDiagnosticId(row: String) -> Bool {
+    return StringIndexOf(CompatibilityChangeRowFieldAt(row, 7), "PGYCOMPAT") == 0;
+}
+
+func CompatibilityChangeRowHasVersionLadder(row: String) -> Bool {
+    return CompatibilityChangeRowFieldAt(row, 4) == "0.8" &&
+        CompatibilityChangeRowFieldAt(row, 5) == "0.9" &&
+        CompatibilityChangeRowFieldAt(row, 6) == "1.0";
+}
+
+func CompatibilityChangeRowHasMigrationUrl(row: String) -> Bool {
+    return StringIndexOf(CompatibilityChangeRowFieldAt(row, 9), "docs/compat/") == 0;
+}
+
+func CompatibilityChangeRowHasCodefixStatus(row: String) -> Bool {
+    let status: String = CompatibilityChangeRowFieldAt(row, 10);
+    return status == CompilerCompatibilityCodefixAvailableStatus() ||
+        status == CompilerCompatibilityManualMigrationStatus() ||
+        status == CompilerCompatibilityNoCodefixStatus();
+}
+
+func CompatibilityChangeRowIsObsolete(row: String) -> Bool {
+    return CompatibilityChangeRowFieldAt(row, 3) == "obsolete";
+}
+
+func CompatibilityChangeRowHasMigrationEnvelope(row: String) -> Bool {
+    return CompatibilityChangeRowHasShape(row) &&
+        CompatibilityChangeRowHasDiagnosticId(row) &&
+        CompatibilityChangeRowHasVersionLadder(row) &&
+        StringLength(CompatibilityChangeRowFieldAt(row, 8)) > 0 &&
+        CompatibilityChangeRowHasMigrationUrl(row) &&
+        CompatibilityChangeRowHasCodefixStatus(row);
+}
+
 func CountCompatibilityRowsWithShape() -> Int {
     let count: Int = 0;
     let i: Int = 0;
@@ -80,8 +107,74 @@ func CountCompatibilityRowsWithShape() -> Int {
     return count;
 }
 
+func CountCompatibilityRowsWithDiagnosticId() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowHasDiagnosticId(CompilerCompatibilityChangeRowAt(i)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CountCompatibilityRowsWithVersionLadder() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowHasVersionLadder(CompilerCompatibilityChangeRowAt(i)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CountCompatibilityRowsWithMigrationUrl() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowHasMigrationUrl(CompilerCompatibilityChangeRowAt(i)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CountCompatibilityObsoleteRows() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowIsObsolete(CompilerCompatibilityChangeRowAt(i)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CountCompatibilityObsoleteRowsWithMigrationEnvelope() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        let row: String = CompilerCompatibilityChangeRowAt(i);
+        if CompatibilityChangeRowIsObsolete(row) &&
+            CompatibilityChangeRowHasMigrationEnvelope(row) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
 func CompatibilityMalformedRowSelfTestMode() -> String {
     return "--self-test-malformed-row";
+}
+
+func CompatibilityInvalidCodefixSelfTestMode() -> String {
+    return "--self-test-invalid-codefix-status";
 }
 
 func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
@@ -104,6 +197,27 @@ func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
     ]);
 }
 
+func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if codefix_status_count < 1 {
+        missing = 1;
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_codefix_status")]));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("changes", "1"),
+        JsonEmitFieldNumber("row_shape", ToString(row_shape_count)),
+        JsonEmitFieldNumber("codefix_status", ToString(codefix_status_count)),
+        JsonEmitFieldNumber("missing", ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.selfhost.compatibility-corpus-negative.v1"),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
 func RunCompatibilityMalformedRowSelfTest() -> Void {
     let row_shape_count: Int = 0;
     if CompatibilityChangeRowHasShape("change|source|too_short") {
@@ -111,6 +225,22 @@ func RunCompatibilityMalformedRowSelfTest() -> Void {
     }
     Log(CompatibilityMalformedRowSelfTestReport(row_shape_count));
     if row_shape_count < 1 {
+        Exit(1);
+    }
+}
+
+func RunCompatibilityInvalidCodefixSelfTest() -> Void {
+    let row: String = "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|unknown_codefix";
+    let row_shape_count: Int = 0;
+    let codefix_status_count: Int = 0;
+    if CompatibilityChangeRowHasShape(row) {
+        row_shape_count = 1;
+    }
+    if CompatibilityChangeRowHasCodefixStatus(row) {
+        codefix_status_count = 1;
+    }
+    Log(CompatibilityInvalidCodefixSelfTestReport(codefix_status_count, row_shape_count));
+    if codefix_status_count < 1 {
         Exit(1);
     }
 }
@@ -129,7 +259,9 @@ func CompatibilityCorpusFindings(
     version_ladder_count: Int,
     migration_url_count: Int,
     codefix_status_count: Int,
-    row_shape_count: Int
+    row_shape_count: Int,
+    obsolete_count: Int,
+    obsolete_migration_count: Int
 ) -> String {
     let findings: Array<String> = [];
     if source_count == 0 {
@@ -174,6 +306,12 @@ func CompatibilityCorpusFindings(
     if row_shape_count < CompilerCompatibilityChangeCount() {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "malformed_change_row")]));
     }
+    if obsolete_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_obsolete_change")]));
+    }
+    if obsolete_migration_count < obsolete_count {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_obsolete_migration_envelope")]));
+    }
     return JsonEmitArray(findings);
 }
 
@@ -181,6 +319,10 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == CompatibilityMalformedRowSelfTestMode() {
         RunCompatibilityMalformedRowSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidCodefixSelfTestMode() {
+        RunCompatibilityInvalidCodefixSelfTest();
         return;
     }
 
@@ -193,11 +335,13 @@ func Main() -> Void {
     let runtime_trace_count: Int = CountCompatibilityChangeSurface(CompilerRuntimeTraceCompatibilitySurface());
     let capability_count: Int = CountCompatibilityChangeSurface(CompilerCapabilityProfileCompatibilitySurface());
     let stdlib_count: Int = CountCompatibilityChangeSurface(CompilerStdlibModuleCompatibilitySurface());
-    let diagnostic_id_count: Int = CountCompatibilityRowsContaining("|PGYCOMPAT");
-    let version_ladder_count: Int = CountCompatibilityRowsContaining("|0.8|0.9|1.0|");
-    let migration_url_count: Int = CountCompatibilityRowsContaining("|docs/compat/");
+    let diagnostic_id_count: Int = CountCompatibilityRowsWithDiagnosticId();
+    let version_ladder_count: Int = CountCompatibilityRowsWithVersionLadder();
+    let migration_url_count: Int = CountCompatibilityRowsWithMigrationUrl();
     let codefix_status_count: Int = CountCompatibilityRowsWithCodefixStatus();
     let row_shape_count: Int = CountCompatibilityRowsWithShape();
+    let obsolete_count: Int = CountCompatibilityObsoleteRows();
+    let obsolete_migration_count: Int = CountCompatibilityObsoleteRowsWithMigrationEnvelope();
     let missing: Int = 0;
     if source_count == 0 { missing = missing + 1; }
     if abi_count == 0 { missing = missing + 1; }
@@ -213,6 +357,8 @@ func Main() -> Void {
     if migration_url_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if codefix_status_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if row_shape_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
+    if obsolete_count == 0 { missing = missing + 1; }
+    if obsolete_migration_count < obsolete_count { missing = missing + 1; }
     let counts: String = JsonEmitObject([
         JsonEmitFieldNumber("changes", ToString(CompilerCompatibilityChangeCount())),
         JsonEmitFieldNumber("source", ToString(source_count)),
@@ -229,6 +375,8 @@ func Main() -> Void {
         JsonEmitFieldNumber("migration_url", ToString(migration_url_count)),
         JsonEmitFieldNumber("codefix_status", ToString(codefix_status_count)),
         JsonEmitFieldNumber("row_shape", ToString(row_shape_count)),
+        JsonEmitFieldNumber("obsolete", ToString(obsolete_count)),
+        JsonEmitFieldNumber("obsolete_migration", ToString(obsolete_migration_count)),
         JsonEmitFieldNumber("missing", ToString(missing))
     ]);
     let report: String = JsonEmitObject([
@@ -249,7 +397,9 @@ func Main() -> Void {
             version_ladder_count,
             migration_url_count,
             codefix_status_count,
-            row_shape_count
+            row_shape_count,
+            obsolete_count,
+            obsolete_migration_count
         ))
     ]);
     Log(report);
