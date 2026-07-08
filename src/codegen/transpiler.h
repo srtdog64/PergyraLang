@@ -174,6 +174,10 @@ typedef struct
     int   par_capture_slot_count;
     char  par_capture_typed_names[MAX_SLOT_VARS][64];
     int   par_capture_typed_count;
+    /* Per-arm snapshot mode (docs/178 Copy evidence): when set for index i,
+     * the current wrapper reads `_pctx-><name>__snap` (the pre-parallel
+     * value) instead of dereferencing the shared pointer member. */
+    bool  par_capture_typed_snapshot[MAX_SLOT_VARS];
 
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool  suppress_slot_auto_read;

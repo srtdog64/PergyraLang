@@ -1,0 +1,20 @@
+// Positive: single writer + reader arm. The reader is sequenced AFTER the
+// write by the channel, so shared-pointer semantics would force 42; the
+// snapshot makes it deterministically 1. Expected: 42 then 1.
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+    let mut x: Int = 1;
+    let mut seen: Int = -1;
+    parallel {
+        {
+            x = x + 41;
+            ch <- 1;
+        }
+        {
+            let go: Int = <- ch;
+            seen = x + go - go;
+        }
+    }
+    Log(x);
+    Log(seen);
+}

@@ -1,0 +1,9 @@
+// Negative: two arms write the same scalar -- write-write race, rejected.
+func Main() -> Void {
+    let mut x: Int = 0;
+    parallel {
+        { x = x + 1; }
+        { x = x + 10; }
+    }
+    Log(x);
+}

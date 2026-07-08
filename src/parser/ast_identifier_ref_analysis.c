@@ -418,3 +418,57 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
         return false;
     }
 }
+
+/*
+ * Does this statement (transitively) assign to `name`? An assignment counts
+ * when the target's root identifier -- through member and index projections
+ * (`x.f = v`, `x[i] = v`) -- is `name`. Shared owner for the parallel
+ * boundary's writer analysis: the semantic race/snapshot admission and both
+ * backend capture emitters must agree on who writes, so they all consume
+ * this walk (docs/177 F2, docs/178).
+ */
+bool
+ast_statement_assigns_identifier(const ASTNode *node, const char *name)
+{
+    if (node == NULL || name == NULL)
+        return false;
+    switch (node->type) {
+    case AST_ASSIGNMENT: {
+        const ASTNode *root = node->data.assignment.target;
+        while (root != NULL) {
+            if (root->type == AST_MEMBER_ACCESS)
+                root = root->data.member.object;
+            else if (root->type == AST_ARRAY_ACCESS)
+                root = root->data.array_access.array;
+            else
+                break;
+        }
+        if (root != NULL && root->type == AST_IDENTIFIER
+            && ast_name_matches(root->data.identifier.name, name))
+            return true;
+        return ast_statement_assigns_identifier(
+            node->data.assignment.value, name);
+    }
+    case AST_BLOCK: {
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            if (ast_statement_assigns_identifier(
+                    node->data.block.statements[i], name))
+                return true;
+        }
+        return false;
+    }
+    case AST_IF_STMT:
+        return ast_statement_assigns_identifier(
+                   node->data.if_stmt.then_branch, name)
+            || ast_statement_assigns_identifier(
+                   node->data.if_stmt.else_branch, name);
+    case AST_WHILE_LOOP:
+        return ast_statement_assigns_identifier(
+                   node->data.while_loop.body, name);
+    case AST_FOR_LOOP:
+        return ast_statement_assigns_identifier(
+                   node->data.for_loop.body, name);
+    default:
+        return false;
+    }
+}

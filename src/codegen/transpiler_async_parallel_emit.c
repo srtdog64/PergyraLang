@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "../parser/ast_api.h"
+#include "../parser/ast_analysis.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_mir_ssa_names.h"
@@ -97,6 +98,40 @@ transpiler_write_capture_address(TranspilerCtx *ctx, const char *name)
     free(c_name);
 }
 
+static void
+transpiler_write_capture_value(TranspilerCtx *ctx, const char *name)
+{
+    const char *ssa_name;
+    char *c_name;
+
+    if (ctx == NULL || name == NULL)
+        return;
+
+    ssa_name = transpiler_resolve_active_ssa_name(ctx, name);
+    if (ssa_name == NULL) {
+        codebuf_write(ctx->out, "%s", name);
+        return;
+    }
+
+    c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
+    codebuf_write(ctx->out, "%s", c_name != NULL ? c_name : name);
+    free(c_name);
+}
+
+/* docs/178 Copy evidence: only primitive scalars are snapshot-eligible --
+ * copying them cannot duplicate identity, ownership, or synchronization
+ * state. Must match parallel_scalar_snapshot_eligible in the checker. */
+static bool
+transpiler_parallel_snapshot_eligible_type(const char *type_name)
+{
+    return type_name != NULL
+        && (strcmp(type_name, "Int") == 0
+            || strcmp(type_name, "Long") == 0
+            || strcmp(type_name, "Float") == 0
+            || strcmp(type_name, "Double") == 0
+            || strcmp(type_name, "Bool") == 0);
+}
+
 typedef struct TranspilerParallelWrapperState {
     CodeBuf *out;
     int indent;
@@ -105,6 +140,7 @@ typedef struct TranspilerParallelWrapperState {
     int typed_count;
     char slot_names[MAX_SLOT_VARS][64];
     char typed_names[MAX_SLOT_VARS][64];
+    bool typed_snapshot[MAX_SLOT_VARS];
 } TranspilerParallelWrapperState;
 
 static void
@@ -114,7 +150,8 @@ transpiler_parallel_wrapper_state_enter(
     char capture_slot_names[MAX_SLOT_VARS][64],
     int capture_slot_count,
     char capture_typed_names[MAX_SLOT_VARS][64],
-    int capture_typed_count)
+    int capture_typed_count,
+    const bool capture_typed_snapshot[MAX_SLOT_VARS])
 {
     if (ctx == NULL || state == NULL)
         return;
@@ -128,6 +165,8 @@ transpiler_parallel_wrapper_state_enter(
            sizeof(state->slot_names));
     memcpy(state->typed_names, ctx->par_capture_typed_names,
            sizeof(state->typed_names));
+    memcpy(state->typed_snapshot, ctx->par_capture_typed_snapshot,
+           sizeof(state->typed_snapshot));
 
     ctx->out = ctx->helpers;
     ctx->indent = 1;
@@ -138,6 +177,13 @@ transpiler_parallel_wrapper_state_enter(
            sizeof(state->typed_names));
     ctx->par_capture_slot_count = capture_slot_count;
     ctx->par_capture_typed_count = capture_typed_count;
+    if (capture_typed_snapshot != NULL) {
+        memcpy(ctx->par_capture_typed_snapshot, capture_typed_snapshot,
+               sizeof(state->typed_snapshot));
+    } else {
+        memset(ctx->par_capture_typed_snapshot, 0,
+               sizeof(ctx->par_capture_typed_snapshot));
+    }
 }
 
 static void
@@ -155,6 +201,8 @@ transpiler_parallel_wrapper_state_restore(
            sizeof(state->slot_names));
     memcpy(ctx->par_capture_typed_names, state->typed_names,
            sizeof(state->typed_names));
+    memcpy(ctx->par_capture_typed_snapshot, state->typed_snapshot,
+           sizeof(state->typed_snapshot));
     ctx->par_capture_slot_count = state->slot_count;
     ctx->par_capture_typed_count = state->typed_count;
 }
@@ -186,6 +234,34 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     }
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
+
+    /* docs/178 Copy evidence: a `<name>__snap` value member is materialized
+     * for a single-writer primitive scalar that other arms read. Reader
+     * arms consume the pre-parallel value; the writer arm keeps the shared
+     * pointer (exclusive live location). The checker admits exactly this
+     * shape, so the analysis here must agree with it -- both consume
+     * ast_statement_assigns_identifier. */
+    bool capture_typed_snap_needed[MAX_SLOT_VARS] = {0};
+    for (int ci = 0; ci < capture_typed_count; ci++) {
+        TypedVarEntry *snap_entry =
+            lookup_typed_entry(ctx, capture_typed_names[ci]);
+        const char *snap_type_name =
+            snap_entry != NULL ? snap_entry->type_name : NULL;
+        size_t writer_tasks = 0;
+        size_t ref_tasks = 0;
+        if (!transpiler_parallel_snapshot_eligible_type(snap_type_name))
+            continue;
+        for (size_t t = 0; t < count; t++) {
+            ASTNode *task = ast_parallel_task(node, t);
+            if (ast_statement_assigns_identifier(task,
+                    capture_typed_names[ci]))
+                writer_tasks++;
+            if (ast_contains_free_identifier_ref(task,
+                    capture_typed_names[ci]))
+                ref_tasks++;
+        }
+        capture_typed_snap_needed[ci] = writer_tasks == 1 && ref_tasks >= 2;
+    }
 
     if (has_captures) {
         codebuf_write(ctx->helpers,
@@ -265,6 +341,11 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->helpers,
                 "    %s *%s;\n", c_type,
                 capture_typed_names[i]);
+            if (capture_typed_snap_needed[i]) {
+                codebuf_write(ctx->helpers,
+                    "    %s %s__snap;\n", c_type,
+                    capture_typed_names[i]);
+            }
         }
         codebuf_write(ctx->helpers,
             "} _pgy_par_ctx_%u;\n\n", pid);
@@ -288,9 +369,16 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         }
 
         TranspilerParallelWrapperState wrapper_state;
+        bool arm_snapshot[MAX_SLOT_VARS] = {0};
+        for (int ci = 0; ci < capture_typed_count; ci++) {
+            arm_snapshot[ci] = capture_typed_snap_needed[ci]
+                && !ast_statement_assigns_identifier(
+                       ast_parallel_task(node, i),
+                       capture_typed_names[ci]);
+        }
         transpiler_parallel_wrapper_state_enter(
             ctx, &wrapper_state, capture_slot_names, capture_slot_count,
-            capture_typed_names, capture_typed_count);
+            capture_typed_names, capture_typed_count, arm_snapshot);
 
         emit_statement(ast_parallel_task(node, i), ctx);
 
@@ -321,6 +409,10 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             if (!first) codebuf_write(ctx->out, ", ");
             transpiler_write_capture_address(ctx, capture_typed_names[i]);
             first = false;
+            if (capture_typed_snap_needed[i]) {
+                codebuf_write(ctx->out, ", ");
+                transpiler_write_capture_value(ctx, capture_typed_names[i]);
+            }
         }
         codebuf_write(ctx->out, " };\n");
     }
@@ -407,7 +499,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     TranspilerParallelWrapperState wrapper_state;
     transpiler_parallel_wrapper_state_enter(
         ctx, &wrapper_state, capture_slot_names, capture_slot_count,
-        capture_typed_names, capture_typed_count);
+        capture_typed_names, capture_typed_count, NULL);
 
     for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
         emit_statement(ast_async_block_statement(node, i), ctx);

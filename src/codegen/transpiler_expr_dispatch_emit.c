@@ -82,8 +82,14 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
             for (int i = 0; i < ctx->par_capture_typed_count; i++) {
-                if (strcmp(ctx->par_capture_typed_names[i], id_name) == 0)
+                if (strcmp(ctx->par_capture_typed_names[i], id_name) == 0) {
+                    /* Reader arm of a single-writer scalar: the arm sees
+                     * the pre-parallel snapshot member, not the live
+                     * location (docs/178 Copy evidence). */
+                    if (ctx->par_capture_typed_snapshot[i])
+                        return strdup_fmt("_pctx->%s__snap", id_name);
                     return strdup_fmt("(*_pctx->%s)", id_name);
+                }
             }
         }
         if (transpiler_current_function_has_self_receiver(ctx)

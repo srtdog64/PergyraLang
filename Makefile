@@ -2399,6 +2399,9 @@ generic-nested-failclosed-test-smoke: $(PGY)
 parallel-disjoint-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_disjoint_split_smoke.sh
 
+parallel-snapshot-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_snapshot_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 

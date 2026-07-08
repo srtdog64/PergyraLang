@@ -17,5 +17,6 @@ bool ast_contains_free_identifier_ref(const ASTNode *node,
                                       const char *name);
 bool ast_uses_intent_observability_surface(const ASTNode *node);
 bool ast_uses_thread_pool_surface(const ASTNode *node);
+bool ast_statement_assigns_identifier(const ASTNode *node, const char *name);
 
 #endif /* PERGYRA_AST_ANALYSIS_H */

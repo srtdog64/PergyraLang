@@ -5,53 +5,31 @@
 #include "type_checker_flow_internal.h"
 #include "../parser/ast_analysis.h"
 
-static ASTNode *
-parallel_assign_target_root(ASTNode *target)
-{
-    while (target != NULL) {
-        if (target->type == AST_MEMBER_ACCESS)
-            target = ast_member_object(target);
-        else if (target->type == AST_ARRAY_ACCESS)
-            target = ast_array_access_array(target);
-        else
-            break;
-    }
-    return target;
-}
-
+/* Writer analysis is owned by the AST layer (ast_statement_assigns_identifier)
+ * so this checker and both backend capture emitters agree on who writes. */
 static bool
 parallel_task_assigns_name(ASTNode *node, const char *name)
 {
-    if (node == NULL || name == NULL)
+    return ast_statement_assigns_identifier(node, name);
+}
+
+/* docs/178 Copy evidence, statement level: a reader arm of a written scalar
+ * takes a pre-parallel snapshot instead of the live location. Only primitive
+ * scalars are snapshot-eligible -- copying them cannot duplicate identity,
+ * ownership, or synchronization state. */
+static bool
+parallel_scalar_snapshot_eligible(const Symbol *sym)
+{
+    const char *tn = sym != NULL && sym->type != NULL
+        ? sym->type->name : NULL;
+
+    if (tn == NULL)
         return false;
-    switch (node->type) {
-    case AST_ASSIGNMENT: {
-        ASTNode *root =
-            parallel_assign_target_root(ast_assignment_target(node));
-        if (root != NULL && root->type == AST_IDENTIFIER) {
-            const char *tn = ast_identifier_name(root);
-            if (tn != NULL && strcmp(tn, name) == 0)
-                return true;
-        }
-        return parallel_task_assigns_name(ast_assignment_value(node), name);
-    }
-    case AST_BLOCK: {
-        size_t n = ast_block_statement_count(node);
-        for (size_t i = 0; i < n; i++)
-            if (parallel_task_assigns_name(ast_block_statement(node, i), name))
-                return true;
-        return false;
-    }
-    case AST_IF_STMT:
-        return parallel_task_assigns_name(ast_if_then_branch(node), name)
-            || parallel_task_assigns_name(ast_if_else_branch(node), name);
-    case AST_WHILE_LOOP:
-        return parallel_task_assigns_name(ast_while_body(node), name);
-    case AST_FOR_LOOP:
-        return parallel_task_assigns_name(ast_for_body(node), name);
-    default:
-        return false;
-    }
+    return strcmp(tn, "Int") == 0
+        || strcmp(tn, "Long") == 0
+        || strcmp(tn, "Float") == 0
+        || strcmp(tn, "Double") == 0
+        || strcmp(tn, "Bool") == 0;
 }
 
 /* docs/178 WO-DOP-1 rung 0: Disjointness evidence at the parallel boundary.
@@ -227,7 +205,7 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
                     refs++;
             }
 
-            if (writers >= 2 || (writers == 1 && refs >= 2)) {
+            if (writers >= 2) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
                     PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
@@ -235,18 +213,38 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
                     node,
                     "Parallel tasks share mutable variable '%s' across the worker boundary with a writer: data race.\n"
                     "Reason:\n"
-                    "- captured scalars cross the boundary by shared pointer (no copy-in), so\n"
-                    "- %s\n"
+                    "- the written location is shared, and\n"
+                    "- two or more tasks write it concurrently (write-write race)\n"
                     "Fix:\n"
                     "- send updates through a channel, or write to a disjoint Slot per task\n"
                     "- or compute in a single task and read '%s' after the parallel join",
                     sym->name,
-                    writers >= 2
-                        ? "two or more tasks write it concurrently (write-write race)"
-                        : "one task writes it while another task reads it (read-write race)",
                     sym->name);
                 return true;
             }
+            if (writers == 1 && refs >= 2
+                && !parallel_scalar_snapshot_eligible(sym)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
+                    PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    node,
+                    "Parallel tasks share mutable variable '%s': one task writes it while another reads it (read-write race).\n"
+                    "Reason:\n"
+                    "- reader arms take a pre-parallel snapshot only for primitive scalars (Int/Long/Float/Double/Bool)\n"
+                    "- '%s' is not snapshot-eligible, so the read would observe the writer through a shared pointer\n"
+                    "Fix:\n"
+                    "- send the value through a channel\n"
+                    "- or project it into a primitive local before entering parallel",
+                    sym->name,
+                    sym->name);
+                return true;
+            }
+            /* writers == 1 && refs >= 2 && snapshot-eligible: admitted.
+             * Reader arms receive the pre-parallel value by copy (Copy
+             * evidence); the writer keeps the exclusive live location
+             * (Exclusivity). Both backends materialize the snapshot in
+             * the capture context. docs/178. */
         }
     }
     return false;
@@ -346,30 +344,11 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot task_snap = {0};
         if (parallel_reject_shared_collection_capture(node, task, ctx))
             break;
-        for (Scope *dr_scope = ctx->scope; dr_scope != NULL;
-             dr_scope = dr_scope->parent) {
-            for (size_t si = 0; si < dr_scope->symbol_count; si++) {
-                Symbol *dsym = dr_scope->symbols[si];
-                const char *tname;
-                if (dsym == NULL || dsym->name == NULL)
-                    continue;
-                tname = dsym->type != NULL ? dsym->type->name : NULL;
-                if (tname != NULL && strncmp(tname, "Channel", 7) == 0)
-                    continue;
-                /* Admitted disjoint split halves are written by design;
-                 * the admission is the evidence this warning asks for. */
-                if (type_is_constructed_named(dsym->type, "Slice")
-                    && parallel_disjoint_split_admitted(node, ctx, dsym))
-                    continue;
-                if (!parallel_task_assigns_name(task, dsym->name))
-                    continue;
-                semantic_warning_code(ctx,
-                    PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
-                    task,
-                    "Parallel task writes shared captured variable '%s'; concurrent tasks mutating shared state is a data race. Send updates through a channel or give each task a disjoint owner.",
-                    dsym->name);
-            }
-        }
+        /* The old blanket "writes shared captured variable" warning is gone:
+         * after the write-race reject and the snapshot/disjoint admissions,
+         * every pattern that survives to this point is sound (single writer
+         * with exclusive location, snapshot readers, disjoint views), so
+         * each firing of that warning was a false data-race claim. */
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(task, ctx, NULL);

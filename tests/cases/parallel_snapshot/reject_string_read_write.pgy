@@ -1,0 +1,12 @@
+// Negative: String is not snapshot-eligible (only primitive scalars are),
+// so one arm writing while another reads stays a rejected read-write race.
+func Main() -> Void {
+    let mut s: String = "a";
+    let mut t: String = "-";
+    parallel {
+        { s = "b"; }
+        { t = s; }
+    }
+    Log(s);
+    Log(t);
+}

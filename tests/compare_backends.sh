@@ -557,6 +557,7 @@ main() {
         "tests/cases/backend_compare/parallel_backpressure_witness"
         "tests/cases/backend_compare/parallel_disjoint_split_write"
         "tests/cases/backend_compare/parallel_pingpong_witness"
+        "tests/cases/backend_compare/parallel_snapshot_read"
         "tests/cases/backend_compare/slot_basic"
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/slot_subject_cell"

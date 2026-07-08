@@ -174,6 +174,11 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         const char *slot_inner;
         bool future_is_remote;
         bool slot_is_secure;
+        /* docs/178 Copy evidence: single-writer primitive scalar read by
+         * other arms -- reader arms load the pre-parallel snapshot field
+         * instead of the shared pointer. */
+        bool has_snapshot;
+        unsigned snap_field;
     } CapturedVar;
     CapturedVar *captured = NULL;
     size_t capture_count = 0;
@@ -240,20 +245,73 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_lookup_future_inner(ctx, frame->entries[j].name),
                 llvm_lookup_slot_inner(ctx, frame->entries[j].name),
                 llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
-                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name)
+                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name),
+                false,
+                0
             };
         }
     }
 
+    /* docs/178 Copy evidence: a single-writer primitive scalar that other
+     * arms read gets a snapshot field appended after the pointer fields.
+     * Reader arms consume the pre-parallel value; the writer arm keeps the
+     * shared pointer. The checker admits exactly this shape via the same
+     * writer analysis (ast_statement_assigns_identifier); anything the
+     * checker admitted but this emitter cannot snapshot is a hard error,
+     * never a silent fallback to the shared pointer. */
+    size_t n_snapshots = 0;
+    for (size_t i = 0; i < n_captured; i++) {
+        LLVMTypeRef vt = captured[i].type;
+        bool eligible = vt == ctx->type_i32 || vt == ctx->type_i64
+            || vt == ctx->type_f32 || vt == ctx->type_f64
+            || vt == ctx->type_i1;
+        size_t writer_tasks = 0;
+        size_t ref_tasks = 0;
+
+        /* Runtime-synchronized transports share safely by design. */
+        if (captured[i].channel_inner != NULL
+            || captured[i].future_inner != NULL
+            || captured[i].slot_inner != NULL)
+            continue;
+        for (size_t t = 0; t < count; t++) {
+            ASTNode *task = ast_parallel_task(node, t);
+            if (ast_statement_assigns_identifier(task, captured[i].name))
+                writer_tasks++;
+            if (ast_contains_free_identifier_ref(task, captured[i].name))
+                ref_tasks++;
+        }
+        if (writer_tasks != 1 || ref_tasks < 2)
+            continue;
+        if (!eligible) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM parallel snapshot capture requires a primitive scalar lowering for '%s'",
+                captured[i].name != NULL ? captured[i].name : "<binding>");
+            return;
+        }
+        captured[i].has_snapshot = true;
+        captured[i].snap_field = (unsigned)(n_captured + n_snapshots);
+        n_snapshots++;
+    }
+
+    size_t n_ctx_fields = n_captured + n_snapshots;
+    if (n_ctx_fields > UINT_MAX) {
+        llvm_set_error(ctx,
+            "LLVM parallel capture registry exceeds LLVM struct field limit");
+        return;
+    }
+
     LLVMTypeRef *ctx_fields = NULL;
-    if (n_captured > 0) {
-        if (n_captured > SIZE_MAX / sizeof(*ctx_fields)) {
+    if (n_ctx_fields > 0) {
+        if (n_ctx_fields > SIZE_MAX / sizeof(*ctx_fields)) {
             llvm_set_error(ctx,
                 "LLVM parallel capture field allocation overflow");
             return;
         }
         ctx_fields = pgy_arena_calloc(&ctx->scratch,
-            n_captured * sizeof(*ctx_fields));
+            n_ctx_fields * sizeof(*ctx_fields));
         if (ctx_fields == NULL) {
             llvm_set_error(ctx,
                 "out of memory allocating LLVM parallel capture field types");
@@ -262,13 +320,17 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     }
     for (size_t i = 0; i < n_captured; i++)
         ctx_fields[i] = ctx->type_i8ptr;
+    for (size_t i = 0; i < n_captured; i++) {
+        if (captured[i].has_snapshot)
+            ctx_fields[captured[i].snap_field] = captured[i].type;
+    }
 
     char ctx_name[64];
     if (!llvm_parallel_counter_name(ctx, ctx_name, sizeof(ctx_name),
             "_pgy_par_ctx_", ctx->parallel_counter))
         return;
     LLVMTypeRef ctx_struct_type = LLVMStructCreateNamed(ctx->context, ctx_name);
-    LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_captured, 0);
+    LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_ctx_fields, 0);
 
     LLVMValueRef ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type,
                                                "_pctx");
@@ -277,6 +339,18 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                                                  ctx_alloca, (unsigned)i,
                                                  llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, captured[i].alloca, gep);
+    }
+    for (size_t i = 0; i < n_captured; i++) {
+        LLVMValueRef snap_gep;
+        LLVMValueRef snap_val;
+        if (!captured[i].has_snapshot)
+            continue;
+        snap_gep = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
+                                       ctx_alloca, captured[i].snap_field,
+                                       llvm_tmp_name(ctx));
+        snap_val = LLVMBuildLoad2(ctx->builder, captured[i].type,
+                                  captured[i].alloca, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, snap_val, snap_gep);
     }
 
     LLVMValueRef ctx_i8ptr = LLVMBuildBitCast(ctx->builder, ctx_alloca,
@@ -336,6 +410,26 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             LLVMPointerType(ctx_struct_type, 0), "_pctx");
 
         for (size_t c = 0; c < n_captured; c++) {
+            /* Reader arm of a snapshot-carrying scalar: materialize a local
+             * alloca holding the pre-parallel value instead of binding the
+             * shared pointer. The writer arm (and every non-snapshot
+             * capture) keeps the pointer binding below. */
+            if (captured[c].has_snapshot
+                && !ast_statement_assigns_identifier(
+                       ast_parallel_task(node, i), captured[c].name)) {
+                LLVMValueRef snap_gep = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    captured[c].snap_field, llvm_tmp_name(ctx));
+                LLVMValueRef snap_val = LLVMBuildLoad2(
+                    ctx->builder, captured[c].type, snap_gep,
+                    llvm_tmp_name(ctx));
+                LLVMValueRef snap_local = LLVMBuildAlloca(
+                    ctx->builder, captured[c].type, captured[c].name);
+                LLVMBuildStore(ctx->builder, snap_val, snap_local);
+                llvm_scope_declare(ctx, captured[c].name, snap_local,
+                    captured[c].type);
+                continue;
+            }
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(
                 ctx->builder, ctx_struct_type, ctx_ptr, (unsigned)c,
                 llvm_tmp_name(ctx));
