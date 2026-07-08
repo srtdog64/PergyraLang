@@ -21,7 +21,9 @@ pipeline, codegen bootstrap `gen2 == gen3` at 8053 generated-C lines, DRV-0/DRV-
 driver parity, LSP parity, and MIR JSON rung-0b parity over 86 fixtures. The
 owner-scoped M2 completeness refresh after adding the compatibility-evolution
 manifest completed green at `sources=172`, with lexer/parser/semantic/codegen
-and `full_pipeline` all at 172/172.
+and `full_pipeline` all at 172/172. The compatibility-evolution manifest now
+also emits seed source/ABI/diagnostic breaking-change corpus rows beside the
+surface vocabulary and obsolete-migration fields.
 
 ## Headline Number
 

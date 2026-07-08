@@ -55,9 +55,11 @@ source, ABI/binary, behavior, diagnostics, AIR evidence, MIR JSON, runtime
 trace, capability profile, and stdlib module compatibility. It also owns the
 required obsolete-migration fields (`diagnostic_id`, replacement,
 `migration_url`, warning/error/remove versions, and codefix status) so upgrade
-policy does not split between docs, diagnostics, and backend scripts. The
-`compatibility_evolution_manifest.pgy` projection emits those rows as a stable
-artifact consumed by `self-host-compatibility-evolution-parity-test-smoke`.
+policy does not split between docs, diagnostics, and backend scripts. It also
+owns the seed versioned breaking-change corpus for source, ABI/binary, and
+diagnostic compatibility. The `compatibility_evolution_manifest.pgy` projection
+emits those rows as a stable artifact consumed by
+`self-host-compatibility-evolution-parity-test-smoke`.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

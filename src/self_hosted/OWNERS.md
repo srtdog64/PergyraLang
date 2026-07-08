@@ -153,7 +153,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/target_capability_owner.pgy` -- target acceptance
   and fallback fact envelope for backend projections.
 - `src/self_hosted/compiler/compatibility_evolution_owner.pgy` -- versioned
-  compatibility surface and obsolete-migration metadata rows.
+  compatibility surface, obsolete-migration metadata, and seed
+  breaking-change corpus rows.
 - `src/self_hosted/compiler/compatibility_evolution_manifest.pgy` -- runnable
   compatibility-evolution artifact projection over the owner rows.
 - `src/self_hosted/compiler/air_evidence_owner.pgy` -- hard-rung AIR evidence

@@ -192,7 +192,10 @@ for term in \
     "func CompilerCompatibilitySurfaceCount" \
     "func CompilerCompatibilitySurfaceAt" \
     "func CompilerCompatibilityEvolutionReady" \
+    "func CompilerCompatibilityChangeCount" \
+    "func CompilerCompatibilityChangeRowAt" \
     "CompilerCompatibilitySurfaceCount() == 9" \
+    "CompilerCompatibilityChangeCount() == 3" \
     "source" \
     "abi_binary" \
     "behavior" \
@@ -211,7 +214,10 @@ for term in \
     "warning_from" \
     "error_from" \
     "remove_from" \
-    "codefix_status"; do
+    "codefix_status" \
+    "PGYCOMPAT001" \
+    "PGYCOMPAT002" \
+    "PGYCOMPAT003"; do
     require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "$term"
 done
 

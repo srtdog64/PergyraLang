@@ -256,7 +256,7 @@ SELF-HOSTING OK
 compatibility_evolution_manifest.pgy
 self-host-compatibility-evolution-parity-test-smoke
 sources=172
-one versioned production breaking-change corpus
+seed source/ABI/diagnostic breaking-change corpus
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'

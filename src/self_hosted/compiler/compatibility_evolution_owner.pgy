@@ -57,6 +57,23 @@ func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
     return "";
 }
 
+func CompilerCompatibilityChangeCount() -> Int {
+    return 3;
+}
+
+func CompilerCompatibilityChangeRowAt(index: Int) -> String {
+    if index == 0 {
+        return "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine";
+    }
+    if index == 1 {
+        return "change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership";
+    }
+    if index == 2 {
+        return "change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool";
+    }
+    return "";
+}
+
 func CompilerCompatibilityEvolutionReady() -> Bool {
     return CompilerCompatibilitySurfaceCount() == 9 &&
         CompilerCompatibilitySurfaceAt(0) == CompilerSourceCompatibilitySurface() &&
@@ -75,5 +92,9 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerObsoleteMigrationFieldAt(3) == CompilerObsoleteWarningFromField() &&
         CompilerObsoleteMigrationFieldAt(4) == CompilerObsoleteErrorFromField() &&
         CompilerObsoleteMigrationFieldAt(5) == CompilerObsoleteRemoveFromField() &&
-        CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField();
+        CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField() &&
+        CompilerCompatibilityChangeCount() == 3 &&
+        CompilerCompatibilityChangeRowAt(0) != "" &&
+        CompilerCompatibilityChangeRowAt(1) != "" &&
+        CompilerCompatibilityChangeRowAt(2) != "";
 }

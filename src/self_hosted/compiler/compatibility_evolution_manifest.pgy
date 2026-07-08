@@ -33,4 +33,10 @@ func Main() -> Void {
         Log(CompilerObsoleteMigrationManifestRowAt(obsolete_index));
         obsolete_index = obsolete_index + 1;
     }
+    Log(Concat("change_count=", ToString(CompilerCompatibilityChangeCount())));
+    let change_index: Int = 0;
+    while change_index < CompilerCompatibilityChangeCount() {
+        Log(CompilerCompatibilityChangeRowAt(change_index));
+        change_index = change_index + 1;
+    }
 }
