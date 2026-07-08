@@ -152,6 +152,10 @@ compiler-stage `.pgy` source to be listed here.
 
 ## Tools
 
+- `src/self_hosted/tools/air_graph_id_uniqueness/main.pgy` -- AIR graph node ID
+  duplicate analysis over scanner-owned AIR graph facts.
+- `src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy` -- AIR graph
+  ID uniqueness JSON schema, count rows, source rows, and finding shapes.
 - `src/self_hosted/tools/ast_read_surface_checker/main.pgy` -- AST read surface
   ratchet parsing, live source counting, and checker entrypoint.
 - `src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy` -- AST read

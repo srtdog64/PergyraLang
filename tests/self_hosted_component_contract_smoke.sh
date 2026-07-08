@@ -317,7 +317,7 @@ require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldString"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldNumber"
 require_text "src/self_hosted/lib/json_emit.pgy" "func JsonEmitFieldBool"
 for json_emit_consumer in \
-    src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
+    src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy \
     src/self_hosted/tools/air_graph_json_validator/report_owner.pgy \
     src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
     src/self_hosted/tools/air_graph_reachability/main.pgy \
@@ -2879,7 +2879,6 @@ reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "Jso
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectNumberFieldOpt(content, summary_bounds[0], summary_bounds[1], field)"
 reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "StringLength(num_str) == 0"
 for air_graph_report in \
-    src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
     src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \
     src/self_hosted/tools/air_graph_reachability/main.pgy \
     src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
@@ -2889,6 +2888,25 @@ for air_graph_report in \
     require_text "$air_graph_report" "JsonEmitArray("
     reject_text "$air_graph_report" 'let json_parts: Array<String>'
 done
+require_file "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy"
+require_max_lines "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "AirIdUniquenessReportOwnerReady()"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "AirIdUniquenessInputErrorJson"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "AirIdUniquenessDuplicateFinding"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "AirIdUniquenessReportJson"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" "pgy.selfhost.air-id-uniqueness.v1"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" "func AirIdUniquenessReportJson"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" "func AirIdUniquenessInputErrorJson"
+require_text "src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy" "func AirIdUniquenessReportOwnerReady"
+reject_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "pgy.selfhost.air-id-uniqueness.v1"
+reject_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "JsonEmitObject(report_fields)"
+reject_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" "JsonEmitArray("
+reject_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" 'import "../../lib/json_emit.pgy";'
+reject_text "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy" 'import "../../lib/json.pgy";'
 for air_graph_fact_consumer in \
     src/self_hosted/tools/air_graph_id_uniqueness/main.pgy \
     src/self_hosted/tools/air_graph_node_count_integrity/main.pgy \

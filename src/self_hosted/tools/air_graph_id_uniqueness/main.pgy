@@ -9,9 +9,8 @@
 // Cwd contract: the parity harness cd's into the repo root before running.
 // Contract: see intent.md in the same directory.
 
-import "../../lib/json.pgy";
-import "../../lib/json_emit.pgy";
 import "../air_graph_json_validator/scan_owner.pgy";
+import "report_owner.pgy";
 
 func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
     let i: Int = 0;
@@ -25,42 +24,6 @@ func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
     return false;
 }
 
-func DuplicateFinding(id_val: String) -> Option<String> {
-    let fields: Array<String> = [
-        JsonEmitFieldString("kind", "duplicate_id"),
-        JsonEmitFieldString("id", id_val)
-    ];
-    return Some(JsonEmitObject(fields));
-}
-
-func InputErrorJson(path: String) -> Option<String> {
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
-        JsonEmitFieldString("fixture_owner", path)
-    ];
-    let counts_fields: Array<String> = [
-        JsonEmitFieldNumber("ids", "0"),
-        JsonEmitFieldNumber("distinct", "0"),
-        JsonEmitFieldNumber("duplicates", "0")
-    ];
-    let finding_fields: Array<String> = [
-        JsonEmitFieldString("kind", "input_error"),
-        JsonEmitFieldString("key", path),
-        JsonEmitFieldString("location", path)
-    ];
-    let findings: Array<String> = [
-        JsonEmitObject(finding_fields)
-    ];
-    let report_fields: Array<String> = [
-        JsonEmitFieldString("schema", "pgy.selfhost.air-id-uniqueness.v1"),
-        JsonEmitFieldBool("ok", false),
-        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
-        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ];
-    return Some(JsonEmitObject(report_fields));
-}
-
 func FixturePathFromArgs(args: Array<String>) -> String {
     if ArrayLength(args) > 0 {
         return args[0];
@@ -69,10 +32,15 @@ func FixturePathFromArgs(args: Array<String>) -> String {
 }
 
 func Main() -> Void {
+    if !AirIdUniquenessReportOwnerReady() {
+        Log(UnwrapOption(AirIdUniquenessInputErrorJson("report_owner.pgy")));
+        Exit(1);
+    }
+
     let args: Array<String> = Args();
     let fixture_path: String = FixturePathFromArgs(args);
     if !FileExists(fixture_path) {
-        Log(UnwrapOption(InputErrorJson(fixture_path)));
+        Log(UnwrapOption(AirIdUniquenessInputErrorJson(fixture_path)));
         Exit(1);
     }
 
@@ -88,7 +56,7 @@ func Main() -> Void {
         let id_val: String = ids[i];
         if ArrayContainsString(seen, id_val) {
             duplicates = duplicates + 1;
-            ArrayPush(dup_findings, UnwrapOption(DuplicateFinding(id_val)));
+            ArrayPush(dup_findings, UnwrapOption(AirIdUniquenessDuplicateFinding(id_val)));
         } else {
             ArrayPush(seen, id_val);
         }
@@ -96,23 +64,13 @@ func Main() -> Void {
     }
     let distinct: Int = ArrayLength(seen);
 
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("input_schema", "pgy.air.graph.v1"),
-        JsonEmitFieldString("fixture_owner", fixture_path)
-    ];
-    let counts_fields: Array<String> = [
-        JsonEmitFieldNumber("ids", ToString(total)),
-        JsonEmitFieldNumber("distinct", ToString(distinct)),
-        JsonEmitFieldNumber("duplicates", ToString(duplicates))
-    ];
-    let report_fields: Array<String> = [
-        JsonEmitFieldString("schema", "pgy.selfhost.air-id-uniqueness.v1"),
-        JsonEmitFieldBool("ok", duplicates == 0),
-        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
-        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
-        JsonEmitFieldRaw("findings", JsonEmitArray(dup_findings))
-    ];
-    Log(JsonEmitObject(report_fields));
+    Log(AirIdUniquenessReportJson(
+        duplicates == 0,
+        fixture_path,
+        total,
+        distinct,
+        duplicates,
+        dup_findings));
 
     if duplicates > 0 {
         Exit(1);

@@ -1,0 +1,90 @@
+// AIR graph ID uniqueness report owner.
+//
+// Owns the JSON schema, source/count rows, and finding shapes. The checker
+// entrypoint owns fixture input and duplicate-ID analysis.
+
+import "../../lib/json_emit.pgy";
+
+func AirIdUniquenessSchema() -> String {
+    return "pgy.selfhost.air-id-uniqueness.v1";
+}
+
+func AirIdUniquenessInputSchema() -> String {
+    return "pgy.air.graph.v1";
+}
+
+func AirIdUniquenessDuplicateFindingKind() -> String {
+    return "duplicate_id";
+}
+
+func AirIdUniquenessInputErrorFindingKind() -> String {
+    return "input_error";
+}
+
+func AirIdUniquenessSourceJson(path: String) -> String {
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("input_schema", AirIdUniquenessInputSchema()),
+        JsonEmitFieldString("fixture_owner", path)
+    ];
+    return JsonEmitObject(source_fields);
+}
+
+func AirIdUniquenessCountsJson(ids: Int, distinct: Int, duplicates: Int) -> String {
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("ids", ToString(ids)),
+        JsonEmitFieldNumber("distinct", ToString(distinct)),
+        JsonEmitFieldNumber("duplicates", ToString(duplicates))
+    ];
+    return JsonEmitObject(counts_fields);
+}
+
+func AirIdUniquenessDuplicateFinding(id_val: String) -> Option<String> {
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", AirIdUniquenessDuplicateFindingKind()),
+        JsonEmitFieldString("id", id_val)
+    ];
+    return Some(JsonEmitObject(fields));
+}
+
+func AirIdUniquenessInputFinding(path: String) -> String {
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", AirIdUniquenessInputErrorFindingKind()),
+        JsonEmitFieldString("key", path),
+        JsonEmitFieldString("location", path)
+    ];
+    return JsonEmitObject(finding_fields);
+}
+
+func AirIdUniquenessReportJson(
+    ok: Bool,
+    path: String,
+    ids: Int,
+    distinct: Int,
+    duplicates: Int,
+    findings: Array<String>
+) -> String {
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", AirIdUniquenessSchema()),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldRaw("source", AirIdUniquenessSourceJson(path)),
+        JsonEmitFieldRaw("counts", AirIdUniquenessCountsJson(ids, distinct, duplicates)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
+}
+
+func AirIdUniquenessInputErrorJson(path: String) -> Option<String> {
+    let findings: Array<String> = [
+        AirIdUniquenessInputFinding(path)
+    ];
+    return Some(AirIdUniquenessReportJson(false, path, 0, 0, 0, findings));
+}
+
+func AirIdUniquenessReportOwnerReady() -> Bool {
+    let no_findings: Array<String> = [];
+    return AirIdUniquenessSchema() == "pgy.selfhost.air-id-uniqueness.v1" &&
+        AirIdUniquenessInputSchema() == "pgy.air.graph.v1" &&
+        AirIdUniquenessDuplicateFindingKind() == "duplicate_id" &&
+        AirIdUniquenessInputErrorFindingKind() == "input_error" &&
+        StringIndexOf(AirIdUniquenessReportJson(true, "fixture.json", 1, 1, 0, no_findings), AirIdUniquenessSchema()) >= 0;
+}

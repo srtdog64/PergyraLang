@@ -251,6 +251,11 @@ the duplicate negative verdict is the TestHarness-projected
 `expected/duplicate.json`; both are compared through `backend_output_comparator`.
 Shell remains only the process runner and duplicate-fixture `rc=1` checker.
 
+AIR ID uniqueness delta, 2026-07-08: `report_owner.pgy` now owns
+`pgy.selfhost.air-id-uniqueness.v1`, source/count row names, duplicate-ID
+findings, input-error findings, and final report shape. `main.pgy` consumes
+scanner facts and performs duplicate analysis only.
+
 ArtifactZone delta, 2026-07-06: `air_graph_node_count_integrity_parity.sh` no
 longer interprets the corrupted-summary verdict with shell `ok:false` or
 finding-kind greps. The clean output oracle is the TestHarness-projected
