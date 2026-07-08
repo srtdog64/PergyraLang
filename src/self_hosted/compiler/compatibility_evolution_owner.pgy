@@ -84,6 +84,20 @@ func CompilerCompatibilityChangeCount() -> Int {
     return 9;
 }
 
+func CompilerCompatibilityChangeRowDelimiter() -> String { return "|"; }
+func CompilerCompatibilityChangeMarker() -> String { return "change"; }
+func CompilerCompatibilityChangeFieldCount() -> Int { return 11; }
+func CompilerCompatibilityChangeSurfaceFieldIndex() -> Int { return 1; }
+func CompilerCompatibilityChangeSymbolFieldIndex() -> Int { return 2; }
+func CompilerCompatibilityChangeKindFieldIndex() -> Int { return 3; }
+func CompilerCompatibilityChangeWarningFromFieldIndex() -> Int { return 4; }
+func CompilerCompatibilityChangeErrorFromFieldIndex() -> Int { return 5; }
+func CompilerCompatibilityChangeRemoveFromFieldIndex() -> Int { return 6; }
+func CompilerCompatibilityChangeDiagnosticIdFieldIndex() -> Int { return 7; }
+func CompilerCompatibilityChangeReplacementFieldIndex() -> Int { return 8; }
+func CompilerCompatibilityChangeMigrationUrlFieldIndex() -> Int { return 9; }
+func CompilerCompatibilityChangeCodefixStatusFieldIndex() -> Int { return 10; }
+
 func CompilerCompatibilityChangeRow(
     surface: String,
     symbol: String,
@@ -94,7 +108,7 @@ func CompilerCompatibilityChangeRow(
     codefix_status: String
 ) -> String {
     let fields: Array<String> = [
-        "change",
+        CompilerCompatibilityChangeMarker(),
         surface,
         symbol,
         change_kind,
@@ -106,7 +120,7 @@ func CompilerCompatibilityChangeRow(
         migration_url,
         codefix_status
     ];
-    return StringJoin(fields, "|");
+    return StringJoin(fields, CompilerCompatibilityChangeRowDelimiter());
 }
 
 func CompilerCompatibilityChangeRowAt(index: Int) -> String {
@@ -170,6 +184,19 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityMigrationUrlPrefix() != "" &&
         CompilerCompatibilityDiagnosticId("001") != "" &&
         CompilerCompatibilityMigrationUrl("PrintLine") != "" &&
+        CompilerCompatibilityChangeRowDelimiter() != "" &&
+        CompilerCompatibilityChangeMarker() != "" &&
+        CompilerCompatibilityChangeFieldCount() == 11 &&
+        CompilerCompatibilityChangeSurfaceFieldIndex() == 1 &&
+        CompilerCompatibilityChangeSymbolFieldIndex() == 2 &&
+        CompilerCompatibilityChangeKindFieldIndex() == 3 &&
+        CompilerCompatibilityChangeWarningFromFieldIndex() == 4 &&
+        CompilerCompatibilityChangeErrorFromFieldIndex() == 5 &&
+        CompilerCompatibilityChangeRemoveFromFieldIndex() == 6 &&
+        CompilerCompatibilityChangeDiagnosticIdFieldIndex() == 7 &&
+        CompilerCompatibilityChangeReplacementFieldIndex() == 8 &&
+        CompilerCompatibilityChangeMigrationUrlFieldIndex() == 9 &&
+        CompilerCompatibilityChangeCodefixStatusFieldIndex() == 10 &&
         CompilerCompatibilityChangeCount() == 9 &&
         StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
         StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&

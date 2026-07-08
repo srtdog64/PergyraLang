@@ -1288,6 +1288,11 @@ require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func 
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMigrationUrlPrefix"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityDiagnosticId("
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMigrationUrl("
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeRowDelimiter"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeMarker"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeFieldCount"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeDiagnosticIdFieldIndex"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeCodefixStatusFieldIndex"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeRow("
 reject_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "PGYCOMPAT001"
 reject_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "docs/compat/PrintLine"
@@ -1350,7 +1355,13 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityDiagnosticIdPrefix()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMigrationUrlPrefix()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityObsoleteChangeKind()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeRowDelimiter()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeFieldCount()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeDiagnosticIdFieldIndex()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeCodefixStatusFieldIndex()"
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== "obsolete"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== 11'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"change|"'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_air_evidence_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_stdlib_module_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_codefix_status"
