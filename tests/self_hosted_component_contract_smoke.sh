@@ -1214,6 +1214,7 @@ require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy
 require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json"
 require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json"
+require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_input.json"
 require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/forbidden_hit.json"
 require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 600
 require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 600
@@ -1224,6 +1225,7 @@ require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingRequiredSelfTestMode"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingInputSelfTestMode"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutForbiddenHitSelfTestMode"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutNegativeSchema()"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutMissingInputFinding()"
@@ -1251,10 +1253,15 @@ require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"required":8'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"forbidden":5'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json" "definitely_missing_backend_abi_layout_term"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_input.json" "pgy.selfhost.backend-abi-layout-contract-negative.v1"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_input.json" "missing_input"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_input.json" "definitely_missing_backend_abi_layout_input.c"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/forbidden_hit.json" "Slot<Int>_rel"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAbiLayoutContractSuiteName"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-abi-layout-contract-paths"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAbiLayoutContractMissingInputJsonPath"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAbiLayoutContractPathAt"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "CompilerHarnessBackendAbiLayoutContractPathCount() == 5"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendAbiLayoutContractReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendAbiLayoutContractPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendAbiLayoutContractSuiteName()"
@@ -1263,13 +1270,17 @@ require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parit
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'MISSING_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
-require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'MISSING_INPUT_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "--self-test-missing-required"
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "--self-test-missing-input"
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "--self-test-forbidden-hit"
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/backend_abi_layout_contract_llvm_negative.exe"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'LLVM_MISSING_OUT="$BUILD_DIR/backend_abi_layout_contract_llvm_missing.out"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'LLVM_MISSING_INPUT_OUT="$BUILD_DIR/backend_abi_layout_contract_llvm_missing_input.out"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_abi_layout_contract_llvm_forbidden.out"'
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "missing-required LLVM self-test should fail closed"
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "missing-input LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "forbidden-hit LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy"'

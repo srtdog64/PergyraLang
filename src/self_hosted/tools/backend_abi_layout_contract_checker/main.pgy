@@ -10,6 +10,10 @@ func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
     return "--self-test-missing-required";
 }
 
+func BackendAbiLayoutMissingInputSelfTestMode() -> String {
+    return "--self-test-missing-input";
+}
+
 func BackendAbiLayoutForbiddenHitSelfTestMode() -> String {
     return "--self-test-forbidden-hit";
 }
@@ -20,6 +24,16 @@ func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
         CompilerBackendAbiLayoutMissingRequiredFinding(),
         CompilerBackendAbiLayoutRequiredPathAt(0),
         "definitely_missing_backend_abi_layout_term"));
+    Log(BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()));
+    Exit(1);
+}
+
+func RunBackendAbiLayoutMissingInputSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendAbiLayoutFinding(
+        CompilerBackendAbiLayoutMissingInputFinding(),
+        "src/compiler/definitely_missing_backend_abi_layout_input.c",
+        CompilerBackendAbiLayoutRequiredTermAt(0)));
     Log(BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
 }
@@ -44,6 +58,10 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutMissingRequiredSelfTestMode() {
         RunBackendAbiLayoutMissingRequiredSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutMissingInputSelfTestMode() {
+        RunBackendAbiLayoutMissingInputSelfTest();
         return;
     }
     if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutForbiddenHitSelfTestMode() {

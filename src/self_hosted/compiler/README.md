@@ -104,7 +104,9 @@ The native/backend ABI layout contract is intentionally tied back to the same
 `backend_abi_layout_contract_checker` consumes those rows through the
 TestHarness manifest, requires selected native MIR ABI layout and runtime
 function consumer terms, and rejects old `_rel` alias or runtime-name synthesis
-terms under `self-host-backend-abi-layout-contract-parity-test-smoke`.
+terms. Its parity gate proves clean, missing-required, missing-input, and
+forbidden-hit paths across C/LLVM-built self-host tools under
+`self-host-backend-abi-layout-contract-parity-test-smoke`.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

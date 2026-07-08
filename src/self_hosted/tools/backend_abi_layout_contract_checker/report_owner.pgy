@@ -42,7 +42,16 @@ func BackendAbiLayoutReportOwnerReady() -> Bool {
             CompilerBackendAbiLayoutRequiredPathAt(0),
             CompilerBackendAbiLayoutRequiredTermAt(0))
     ];
+    let missing_input_findings: Array<String> = [
+        BackendAbiLayoutFinding(
+            CompilerBackendAbiLayoutMissingInputFinding(),
+            "src/compiler/definitely_missing_backend_abi_layout_input.c",
+            CompilerBackendAbiLayoutRequiredTermAt(0))
+    ];
     return StringIndexOf(
         BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()),
-        CompilerBackendAbiLayoutNegativeSchema()) >= 0;
+        CompilerBackendAbiLayoutNegativeSchema()) >= 0 &&
+        StringIndexOf(
+            BackendAbiLayoutReport(1, 0, missing_input_findings, CompilerBackendAbiLayoutNegativeSchema()),
+            CompilerBackendAbiLayoutMissingInputFinding()) >= 0;
 }
