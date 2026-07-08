@@ -1,0 +1,39 @@
+// TestHarness target-capability path owner.
+//
+// Keeps target acceptance artifact paths out of shell parity scripts and out of
+// the shared tool-path owner.
+
+func CompilerHarnessTargetCapabilityEnvelopeSuiteName() -> String {
+    return "target-capability-envelope-paths";
+}
+
+func CompilerHarnessTargetCapabilityEnvelopeToolSourcePath() -> String {
+    return "src/self_hosted/compiler/target_capability_manifest.pgy";
+}
+
+func CompilerHarnessTargetCapabilityEnvelopeExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/target_capability.txt";
+}
+
+func CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/target_capability_missing_fact.json";
+}
+
+func CompilerHarnessTargetCapabilityEnvelopePathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessTargetCapabilityEnvelopePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessTargetCapabilityEnvelopeToolSourcePath(); }
+    if index == 1 { return CompilerHarnessTargetCapabilityEnvelopeExpectedPath(); }
+    if index == 2 { return CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessTargetCapabilityEnvelopeReady() -> Bool {
+    return CompilerHarnessTargetCapabilityEnvelopeSuiteName() != "" &&
+        CompilerHarnessTargetCapabilityEnvelopePathCount() == 3 &&
+        CompilerHarnessTargetCapabilityEnvelopePathAt(0) == CompilerHarnessTargetCapabilityEnvelopeToolSourcePath() &&
+        CompilerHarnessTargetCapabilityEnvelopePathAt(1) == CompilerHarnessTargetCapabilityEnvelopeExpectedPath() &&
+        CompilerHarnessTargetCapabilityEnvelopePathAt(2) == CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath();
+}

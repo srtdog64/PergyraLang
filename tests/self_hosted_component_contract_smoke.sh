@@ -764,9 +764,15 @@ require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func Compil
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetRetainedEffectFallbackReason"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetMissingAuthorityEvidenceFallbackReason"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetHostOnlySlotBoundaryFallbackReason"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetProjectionKnown"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFactKnown"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFallbackReasonKnown"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact()"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason()"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionKnown(CompilerTargetCpuCProjection())"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactKnown(CompilerTargetAuthorityEvidenceFact())"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetMissingAuthorityEvidenceFallbackReason())"
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(0) == "cpu-c"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(1) == "cpu-llvm"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(2) == "self-hosted"'
@@ -783,6 +789,25 @@ reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTarg
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(2) == "retained_effect"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(3) == "missing_authority_evidence"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetFallbackReasonAt(4) == "host_only_slot_boundary"'
+require_file "src/self_hosted/compiler/target_capability_manifest.pgy"
+require_file "src/self_hosted/compiler/expected/target_capability.txt"
+require_file "src/self_hosted/compiler/expected/target_capability_missing_fact.json"
+require_max_lines "src/self_hosted/compiler/target_capability_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/target_capability_manifest.pgy"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" 'import "target_capability_owner.pgy";'
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" 'import "../lib/json_emit.pgy";'
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityProjectionManifestRowAt"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFactManifestRowAt"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityFallbackManifestRowAt"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "CompilerTargetCapabilityMissingFactSelfTestMode"
+require_text "src/self_hosted/compiler/target_capability_manifest.pgy" "missing_required_target_fact"
+require_text "src/self_hosted/compiler/expected/target_capability.txt" "schema=pgy.selfhost.target-capability-envelope.v1"
+require_text "src/self_hosted/compiler/expected/target_capability.txt" "projection|2|self-hosted"
+require_text "src/self_hosted/compiler/expected/target_capability.txt" "fact|2|authority_evidence"
+require_text "src/self_hosted/compiler/expected/target_capability.txt" "fallback|3|missing_authority_evidence"
+require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "pgy.selfhost.target-capability-negative.v1"
+require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" '"ok":false'
+require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "missing_required_target_fact"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTypeName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCFieldName"
@@ -991,6 +1016,29 @@ require_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 
 reject_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"'
 reject_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"'
 require_text "Makefile" "self-host-runtime-call-abi-row-parity-test-smoke"
+require_file "src/self_hosted/compiler/test_harness_target_paths_owner.pgy"
+require_max_lines "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_target_paths_owner.pgy"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "func CompilerHarnessTargetCapabilityEnvelopeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "func CompilerHarnessTargetCapabilityEnvelopePathAt"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "target-capability-envelope-paths"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessTargetCapabilityEnvelopeReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_target_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitTargetCapabilityEnvelopePaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessTargetCapabilityEnvelopeSuiteName()"
+require_file "tests/self_hosted/parity/target_capability_manifest_parity.sh"
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" '"target-capability-envelope-paths"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "--self-test-missing-fact"
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" '"target_capability"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/target_capability_manifest.pgy"'
+reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/target_capability.txt"'
+require_text "Makefile" "self-host-target-capability-envelope-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/target_capability_manifest_parity.sh"
 require_file "src/self_hosted/compiler/compatibility_evolution_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/compatibility_evolution.txt"
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 600
@@ -2626,6 +2674,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAbiLayoutArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeCallAbiArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerCompatibilityEvolutionArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerTargetCapabilityArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
@@ -2636,7 +2685,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspResponseEmissionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspSessionReplayArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDocumentStoreArtifactKind"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 21"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 22"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
@@ -2655,6 +2704,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(15) == CompilerLspRequestDispatchArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()"

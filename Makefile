@@ -2167,6 +2167,7 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_comparator_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/abi_layout_row_manifest_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/target_capability_manifest_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/backend_output_tri_compare_parity.sh
@@ -2319,6 +2320,9 @@ self-host-abi-layout-row-parity-test-smoke: $(PGY)
 
 self-host-runtime-call-abi-row-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh
+
+self-host-target-capability-envelope-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/target_capability_manifest_parity.sh
 
 self-host-compatibility-evolution-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh

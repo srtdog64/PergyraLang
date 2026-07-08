@@ -1,0 +1,90 @@
+// Runnable target-capability envelope projection.
+
+import "target_capability_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func CompilerTargetCapabilityProjectionManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("projection|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerTargetProjectionAt(index));
+}
+
+func CompilerTargetCapabilityFactManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("fact|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerTargetFactAt(index));
+}
+
+func CompilerTargetCapabilityFallbackManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("fallback|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerTargetFallbackReasonAt(index));
+}
+
+func CompilerTargetCapabilityMissingFactSelfTestMode() -> String {
+    return "--self-test-missing-fact";
+}
+
+func CompilerTargetCapabilityMissingFactSelfTestReport(found_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if found_count < 1 {
+        missing = 1;
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_required_target_fact")]));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("required_fact", ToString(found_count)),
+        JsonEmitFieldNumber("missing", ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.selfhost.target-capability-negative.v1"),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func RunCompilerTargetCapabilityMissingFactSelfTest() -> Void {
+    let found_count: Int = 0;
+    if CompilerTargetFactKnown("authority_evidence_missing") {
+        found_count = 1;
+    }
+    Log(CompilerTargetCapabilityMissingFactSelfTestReport(found_count));
+    if found_count < 1 {
+        Exit(1);
+    }
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == CompilerTargetCapabilityMissingFactSelfTestMode() {
+        RunCompilerTargetCapabilityMissingFactSelfTest();
+        return;
+    }
+
+    if !CompilerTargetCapabilityEnvelopeReady() {
+        Log("TARGET_CAPABILITY ERROR: envelope owner is not ready");
+        Exit(1);
+        return;
+    }
+
+    Log(Concat("schema=", CompilerTargetCapabilitySchema()));
+    Log(Concat("projection_count=", ToString(CompilerTargetProjectionCount())));
+    let projection_index: Int = 0;
+    while projection_index < CompilerTargetProjectionCount() {
+        Log(CompilerTargetCapabilityProjectionManifestRowAt(projection_index));
+        projection_index = projection_index + 1;
+    }
+    Log(Concat("fact_count=", ToString(CompilerTargetFactCount())));
+    let fact_index: Int = 0;
+    while fact_index < CompilerTargetFactCount() {
+        Log(CompilerTargetCapabilityFactManifestRowAt(fact_index));
+        fact_index = fact_index + 1;
+    }
+    Log(Concat("fallback_count=", ToString(CompilerTargetFallbackReasonCount())));
+    let fallback_index: Int = 0;
+    while fallback_index < CompilerTargetFallbackReasonCount() {
+        Log(CompilerTargetCapabilityFallbackManifestRowAt(fallback_index));
+        fallback_index = fallback_index + 1;
+    }
+}

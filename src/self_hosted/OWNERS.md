@@ -152,6 +152,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/stage_intents.pgy` -- derived compiler intent clusters.
 - `src/self_hosted/compiler/target_capability_owner.pgy` -- target acceptance
   and fallback fact envelope for backend projections.
+- `src/self_hosted/compiler/target_capability_manifest.pgy` -- runnable
+  target-capability artifact projection over owner facts.
 - `src/self_hosted/compiler/compatibility_evolution_owner.pgy` -- versioned
   compatibility surface, obsolete-migration metadata, and seed
   breaking-change corpus rows.
@@ -163,6 +165,8 @@ compiler-stage `.pgy` source to be listed here.
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
+- `src/self_hosted/compiler/test_harness_target_paths_owner.pgy` -- target
+  acceptance artifact source and expected path suite.
 - `src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy` --
   backend-output comparator source, expected verdict, and fixture path suite.
 - `src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy` --

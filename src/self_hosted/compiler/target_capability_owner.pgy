@@ -143,11 +143,47 @@ func CompilerTargetFallbackReasonAt(index: Int) -> String {
     return "";
 }
 
+func CompilerTargetProjectionKnown(projection: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerTargetProjectionCount() {
+        if CompilerTargetProjectionAt(i) == projection {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerTargetFactKnown(fact: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerTargetFactCount() {
+        if CompilerTargetFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerTargetFallbackReasonKnown(reason: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerTargetFallbackReasonCount() {
+        if CompilerTargetFallbackReasonAt(i) == reason {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CompilerTargetCapabilityEnvelopeReady() -> Bool {
     return CompilerTargetProjectionCount() == 3 &&
         CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection() &&
         CompilerTargetProjectionAt(1) == CompilerTargetCpuLlvmProjection() &&
         CompilerTargetProjectionAt(2) == CompilerTargetSelfHostedProjection() &&
+        CompilerTargetProjectionKnown(CompilerTargetCpuCProjection()) &&
+        CompilerTargetProjectionKnown(CompilerTargetCpuLlvmProjection()) &&
+        CompilerTargetProjectionKnown(CompilerTargetSelfHostedProjection()) &&
         CompilerTargetFactCount() == 8 &&
         CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact() &&
         CompilerTargetFactAt(1) == CompilerTargetEffectSetFact() &&
@@ -157,10 +193,23 @@ func CompilerTargetCapabilityEnvelopeReady() -> Bool {
         CompilerTargetFactAt(5) == CompilerTargetLayoutShapeFact() &&
         CompilerTargetFactAt(6) == CompilerTargetLossBudgetFact() &&
         CompilerTargetFactAt(7) == CompilerTargetMaterializationReasonFact() &&
+        CompilerTargetFactKnown(CompilerTargetIntentGraphFact()) &&
+        CompilerTargetFactKnown(CompilerTargetEffectSetFact()) &&
+        CompilerTargetFactKnown(CompilerTargetAuthorityEvidenceFact()) &&
+        CompilerTargetFactKnown(CompilerTargetCoordinationFact()) &&
+        CompilerTargetFactKnown(CompilerTargetSlotOwnershipFact()) &&
+        CompilerTargetFactKnown(CompilerTargetLayoutShapeFact()) &&
+        CompilerTargetFactKnown(CompilerTargetLossBudgetFact()) &&
+        CompilerTargetFactKnown(CompilerTargetMaterializationReasonFact()) &&
         CompilerTargetFallbackReasonCount() == 5 &&
         CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason() &&
         CompilerTargetFallbackReasonAt(1) == CompilerTargetForbiddenLossBudgetFallbackReason() &&
         CompilerTargetFallbackReasonAt(2) == CompilerTargetRetainedEffectFallbackReason() &&
         CompilerTargetFallbackReasonAt(3) == CompilerTargetMissingAuthorityEvidenceFallbackReason() &&
-        CompilerTargetFallbackReasonAt(4) == CompilerTargetHostOnlySlotBoundaryFallbackReason();
+        CompilerTargetFallbackReasonAt(4) == CompilerTargetHostOnlySlotBoundaryFallbackReason() &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetUnsupportedShapeFallbackReason()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetForbiddenLossBudgetFallbackReason()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetRetainedEffectFallbackReason()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetMissingAuthorityEvidenceFallbackReason()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetHostOnlySlotBoundaryFallbackReason());
 }

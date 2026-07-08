@@ -47,7 +47,11 @@ not a status claim.
 emission. `target_capability_owner.pgy` names the accepted projection facts and
 the fallback reasons (`unsupported_shape`, `forbidden_loss_budget`,
 `retained_effect`, `missing_authority_evidence`, and
-`host_only_slot_boundary`). That keeps CPU fallback or future accelerator
+`host_only_slot_boundary`). `target_capability_manifest.pgy` projects that
+envelope as a stable artifact, and
+`self-host-target-capability-envelope-parity-test-smoke` requires the C and
+LLVM-built self-host tool to agree on both the clean artifact and the
+missing-fact fail-closed case. That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
 
 `CompatibilityEvolutionZone` owns the versioned compatibility surface envelope:
