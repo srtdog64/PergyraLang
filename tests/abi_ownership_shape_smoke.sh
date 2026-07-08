@@ -107,6 +107,12 @@ reject_term "src/compiler/mir_abi_layout.c" "runtime function name pattern"
 require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is payload carried"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_type_name"
+require_term "src/compiler/mir_abi_layout.h" "typedef struct MIRAbiTargetPolicy"
+require_term "src/compiler/mir_abi_layout.h" "const MIRAbiTargetPolicy *mir_abi_target_policy"
+require_term "src/compiler/mir_abi_layout.c" "static const MIRAbiTargetPolicy k_abi_target_policy_table[]"
+require_term "src/compiler/mir_abi_layout.c" '"selfhost-c", "cpu-c,self-hosted"'
+require_term "src/compiler/mir_abi_layout.c" '"layout_shape,materialization_reason"'
+require_term "src/compiler/mir_abi_layout.c" '"unsupported_shape,forbidden_loss_budget"'
 require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
 require_term "src/runtime/pgy_abi_spec.h" "allocator provenance as a fourth field"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_TYPE("Array<Long>"'
