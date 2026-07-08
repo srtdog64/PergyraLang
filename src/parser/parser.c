@@ -609,7 +609,16 @@ ASTNode* parser_parse_parallel_block(Parser* parser) {
 
     parser->in_parallel_block = true;
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        ASTNode* stmt = parser_parse_statement(parser);
+        ASTNode* stmt;
+        /* docs/177 F3(a) (BDFL 2026-07-09): a bare `{ ... }` inside a
+         * parallel block is one multi-statement arm. The statement grammar
+         * outside parallel is unchanged. */
+        if (parser_check(parser, TOKEN_LBRACE)) {
+            parser_advance(parser);  /* '{' */
+            stmt = parser_parse_block(parser);
+        } else {
+            stmt = parser_parse_statement(parser);
+        }
         if (stmt) {
             ast_add_parallel_task(parallel, stmt);
         }

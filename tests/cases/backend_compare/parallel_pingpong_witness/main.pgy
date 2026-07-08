@@ -1,0 +1,40 @@
+// Ping-pong protocol witness (docs/177 F3(a), bare-block arms).
+//
+// Two arms alternate strictly over two capacity-1 channels: A seeds ping,
+// then each side can only make progress after receiving the other's
+// message. Under real parallelism the arms interleave and the program
+// prints 10 / 10 / 20. Under serialized arms EITHER order deadlocks on the
+// first receive (the partner never ran), so the case hits the run timeout
+// and the gate goes RED -- a strictly stronger concurrency witness than
+// buffer backpressure.
+//
+// This is also the standing grammar witness for bare-block parallel arms:
+// each arm is a `{ ... }` block with multiple statements, which was
+// inexpressible before F3(a) (docs/177 p7 could not even be written).
+func Main() -> Void {
+    let ping: Channel<Int> = Channel(1);
+    let pong: Channel<Int> = Channel(1);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        {
+            ping <- 0;
+            while i < 10 {
+                let v: Int = <- pong;
+                ping <- v + 1;
+                i = i + 1;
+            }
+        }
+        {
+            while j < 10 {
+                let w: Int = <- ping;
+                pong <- w + 1;
+                j = j + 1;
+            }
+        }
+    }
+    Log(i);
+    Log(j);
+    let final: Int = <- ping;
+    Log(final);
+}
