@@ -5311,3 +5311,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Verified with `self-host-component-contract-test-smoke` and
   `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3`
   at 8999 generated-C lines).
+
+### 2026-07-09 -- Expression usage facts split from runtime/header usage
+
+- Added `ast_expression_usage_owner.pgy` as the owner for expression usage facts,
+  builtin-callee group rows, and the transitional `None` token scan.
+- Repointed `ast_usage_owner.pgy` so `CodegenRuntimeUsageFactsFromArena(...)`
+  consumes `CodegenExpressionUsageFacts` plus type/kind facts instead of
+  reopening expression payload scans or builtin group matching locally.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new expression usage owner and `ast_usage_owner.pgy`
+  rejects `ContainsCallOutsideStrings`, direct typed arena expression payload
+  reads, and direct builtin group scans.
+- This reduces the mixed AST-like tree blocker. It does not close it because the
+  expression usage owner still derives facts from transitional arena
+  atom/value/aux text until typed expression rows exist.
+- Verified with `self-host-component-contract-test-smoke`,
+  `build-source-inventory-test-smoke`, `self-host-pergyra-likeness-test-smoke`
+  (`result_use` ratcheted to 734), and `self-host-codegen-bootstrap-test-smoke`
+  (`SELF-HOSTING OK`, `gen2 == gen3` at 9131 generated-C lines).

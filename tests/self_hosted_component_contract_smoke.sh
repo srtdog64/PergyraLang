@@ -718,6 +718,7 @@ require_owner_surface codegen \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
+    "input/ast_expression_usage_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -1991,21 +1992,33 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func C
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromArena"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaBuiltinCallPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenUsageBuiltinGroupCalleeCount"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenUsageBuiltinGroupCalleeAt"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaBuiltinGroupPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaExpressionTokenPresent"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" 'import "ast_expression_usage_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionUsageFacts"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageFactsFromArena"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int>"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageGroupPresent"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageHasNone"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenAstArenaBuiltinCallPresent"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenUsageBuiltinGroupCalleeCount"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenUsageBuiltinGroupCalleeAt"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenAstArenaBuiltinGroupPresent"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenAstArenaExpressionTokenPresent"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaKindPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAtomText(arena, i)"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 13)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 17)"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArgs())"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupString())"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageFactsFromArena(arena, count)"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs())"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString())"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaTypeFactPresent(arena, count, \"Array<\")"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "ContainsCallOutsideStrings(UnwrapOption(part), callee)"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "ContainsCallOutsideStrings(UnwrapOption(part), callee)"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaAtomText(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinCallPresent(arena, count, \""
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinGroupPresent(arena, count"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "ContainsCallOutsideStrings"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAtomText(arena, i)"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaValueText(arena, i)"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaContains"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].text"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "StringIndexOf(nodes[i].payload"

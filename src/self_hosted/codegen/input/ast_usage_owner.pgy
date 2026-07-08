@@ -4,8 +4,8 @@
 // runtime/header decisions should not rescan the raw AST document. This owner
 // derives those decisions from the typed line inventory.
 
-import "../text/text_owner.pgy";
 import "ast_text_typed_arena_owner.pgy";
+import "ast_expression_usage_owner.pgy";
 
 struct CodegenRuntimeUsageFacts {
     let uses_args: Bool;
@@ -41,53 +41,6 @@ func CodegenAstArenaTypePartContains(part: Option<String>, needle: String) -> Bo
     return StringIndexOf(UnwrapOption(part), needle) >= 0;
 }
 
-func CodegenAstArenaExpressionPartHasToken(part: Option<String>, token: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    let text: String = UnwrapOption(part);
-    let n: Int = StringLength(text);
-    let m: Int = StringLength(token);
-    let i: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(text, i);
-        if in_str {
-            if c == "\\" {
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            i = i + 1;
-            continue;
-        }
-        if m > 0 && i + m <= n && Substring(text, i, m) == token {
-            let before_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(text, i - 1));
-            let after_pos: Int = i + m;
-            let after_ok: Bool = after_pos >= n || !IsIdentChar(CodegenCharAt(text, after_pos));
-            if before_ok && after_ok {
-                return true;
-            }
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenAstArenaExpressionPartCalls(part: Option<String>, callee: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    return ContainsCallOutsideStrings(UnwrapOption(part), callee);
-}
-
 func CodegenAstArenaTypeFactPresent(arena: AstArena, count: Int, needle: String) -> Bool {
     let i: Int = 0;
     while i < count {
@@ -95,183 +48,6 @@ func CodegenAstArenaTypeFactPresent(arena: AstArena, count: Int, needle: String)
             return true;
         }
         i = i + 1;
-    }
-    return false;
-}
-
-func CodegenAstArenaExpressionTokenPresent(arena: AstArena, count: Int, token: String) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaExpressionPartHasToken(TypedAstArenaAtomText(arena, i), token) ||
-            CodegenAstArenaExpressionPartHasToken(TypedAstArenaValueText(arena, i), token) ||
-            CodegenAstArenaExpressionPartHasToken(TypedAstArenaAuxValueText(arena, i), token) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenAstArenaBuiltinCallPresent(arena: AstArena, count: Int, callee: String) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaExpressionPartCalls(TypedAstArenaAtomText(arena, i), callee) ||
-            CodegenAstArenaExpressionPartCalls(TypedAstArenaValueText(arena, i), callee) ||
-            CodegenAstArenaExpressionPartCalls(TypedAstArenaAuxValueText(arena, i), callee) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenUsageBuiltinGroupArgs() -> Int { return 1; }
-func CodegenUsageBuiltinGroupString() -> Int { return 2; }
-func CodegenUsageBuiltinGroupMath() -> Int { return 3; }
-func CodegenUsageBuiltinGroupArraySort() -> Int { return 4; }
-func CodegenUsageBuiltinGroupArrayReverse() -> Int { return 5; }
-func CodegenUsageBuiltinGroupArrayMap() -> Int { return 6; }
-func CodegenUsageBuiltinGroupArrayFilter() -> Int { return 7; }
-func CodegenUsageBuiltinGroupResult() -> Int { return 8; }
-func CodegenUsageBuiltinGroupOption() -> Int { return 9; }
-func CodegenUsageBuiltinGroupExit() -> Int { return 10; }
-func CodegenUsageBuiltinGroupArrayCore() -> Int { return 11; }
-func CodegenUsageBuiltinGroupIo() -> Int { return 12; }
-func CodegenUsageBuiltinGroupJoin() -> Int { return 13; }
-func CodegenUsageBuiltinGroupSplit() -> Int { return 14; }
-func CodegenUsageBuiltinGroupDirWalk() -> Int { return 15; }
-func CodegenUsageBuiltinGroupLog() -> Int { return 16; }
-func CodegenUsageBuiltinGroupFileHandle() -> Int { return 17; }
-func CodegenUsageBuiltinGroupPrint() -> Int { return 18; }
-func CodegenUsageBuiltinGroupFloat() -> Int { return 19; }
-func CodegenUsageBuiltinGroupRandomValue() -> Int { return 20; }
-func CodegenUsageBuiltinGroupSeedRandom() -> Int { return 21; }
-
-func CodegenUsageBuiltinGroupCalleeCount(group: Int) -> Int {
-    if group == CodegenUsageBuiltinGroupArgs() { return 1; }
-    if group == CodegenUsageBuiltinGroupString() { return 20; }
-    if group == CodegenUsageBuiltinGroupMath() { return 3; }
-    if group == CodegenUsageBuiltinGroupArraySort() { return 1; }
-    if group == CodegenUsageBuiltinGroupArrayReverse() { return 1; }
-    if group == CodegenUsageBuiltinGroupArrayMap() { return 1; }
-    if group == CodegenUsageBuiltinGroupArrayFilter() { return 1; }
-    if group == CodegenUsageBuiltinGroupResult() { return 6; }
-    if group == CodegenUsageBuiltinGroupOption() { return 3; }
-    if group == CodegenUsageBuiltinGroupExit() { return 1; }
-    if group == CodegenUsageBuiltinGroupArrayCore() { return 9; }
-    if group == CodegenUsageBuiltinGroupIo() { return 4; }
-    if group == CodegenUsageBuiltinGroupJoin() { return 2; }
-    if group == CodegenUsageBuiltinGroupSplit() { return 1; }
-    if group == CodegenUsageBuiltinGroupDirWalk() { return 1; }
-    if group == CodegenUsageBuiltinGroupLog() { return 1; }
-    if group == CodegenUsageBuiltinGroupFileHandle() { return 4; }
-    if group == CodegenUsageBuiltinGroupPrint() { return 1; }
-    if group == CodegenUsageBuiltinGroupFloat() { return 5; }
-    if group == CodegenUsageBuiltinGroupRandomValue() { return 1; }
-    if group == CodegenUsageBuiltinGroupSeedRandom() { return 1; }
-    return 0;
-}
-
-func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
-    if group == CodegenUsageBuiltinGroupArgs() {
-        if index == 0 { return "Args"; }
-    }
-    if group == CodegenUsageBuiltinGroupString() {
-        if index == 0 { return "Concat"; }
-        if index == 1 { return "Substring"; }
-        if index == 2 { return "StringLength"; }
-        if index == 3 { return "StringContains"; }
-        if index == 4 { return "StringIndexOf"; }
-        if index == 5 { return "StringTrim"; }
-        if index == 6 { return "StringReplace"; }
-        if index == 7 { return "SubIndexOfWithLen"; }
-        if index == 8 { return "SubEqualsWithLen"; }
-        if index == 9 { return "SubContainsWithLen"; }
-        if index == 10 { return "SubStartsWithLen"; }
-        if index == 11 { return "CharCode"; }
-        if index == 12 { return "CharAtN"; }
-        if index == 13 { return "ToInt"; }
-        if index == 14 { return "ToString"; }
-        if index == 15 { return "ToUpper"; }
-        if index == 16 { return "ToLower"; }
-        if index == 17 { return "StringJoin"; }
-        if index == 18 { return "Join"; }
-        if index == 19 { return "Split"; }
-    }
-    if group == CodegenUsageBuiltinGroupMath() {
-        if index == 0 { return "Abs"; }
-        if index == 1 { return "Min"; }
-        if index == 2 { return "Max"; }
-    }
-    if group == CodegenUsageBuiltinGroupArraySort() && index == 0 { return "ArraySort"; }
-    if group == CodegenUsageBuiltinGroupArrayReverse() && index == 0 { return "ArrayReverse"; }
-    if group == CodegenUsageBuiltinGroupArrayMap() && index == 0 { return "ArrayMap"; }
-    if group == CodegenUsageBuiltinGroupArrayFilter() && index == 0 { return "ArrayFilter"; }
-    if group == CodegenUsageBuiltinGroupResult() {
-        if index == 0 { return "Ok"; }
-        if index == 1 { return "Err"; }
-        if index == 2 { return "IsOk"; }
-        if index == 3 { return "IsErr"; }
-        if index == 4 { return "Unwrap"; }
-        if index == 5 { return "UnwrapOr"; }
-    }
-    if group == CodegenUsageBuiltinGroupOption() {
-        if index == 0 { return "Some"; }
-        if index == 1 { return "IsSome"; }
-        if index == 2 { return "UnwrapOption"; }
-    }
-    if group == CodegenUsageBuiltinGroupExit() && index == 0 { return "Exit"; }
-    if group == CodegenUsageBuiltinGroupArrayCore() {
-        if index == 0 { return "ArrayPush"; }
-        if index == 1 { return "ArrayLength"; }
-        if index == 2 { return "ArraySet"; }
-        if index == 3 { return "ArrayPop"; }
-        if index == 4 { return "StringJoin"; }
-        if index == 5 { return "Join"; }
-        if index == 6 { return "Split"; }
-        if index == 7 { return "DirWalk"; }
-        if index == 8 { return "Args"; }
-    }
-    if group == CodegenUsageBuiltinGroupIo() {
-        if index == 0 { return "ReadFile"; }
-        if index == 1 { return "ReadStdin"; }
-        if index == 2 { return "FileExists"; }
-        if index == 3 { return "WriteFile"; }
-    }
-    if group == CodegenUsageBuiltinGroupJoin() {
-        if index == 0 { return "StringJoin"; }
-        if index == 1 { return "Join"; }
-    }
-    if group == CodegenUsageBuiltinGroupSplit() && index == 0 { return "Split"; }
-    if group == CodegenUsageBuiltinGroupDirWalk() && index == 0 { return "DirWalk"; }
-    if group == CodegenUsageBuiltinGroupLog() && index == 0 { return "Log"; }
-    if group == CodegenUsageBuiltinGroupFileHandle() {
-        if index == 0 { return "FileOpen"; }
-        if index == 1 { return "FileWrite"; }
-        if index == 2 { return "FileClose"; }
-        if index == 3 { return "FileRead"; }
-    }
-    if group == CodegenUsageBuiltinGroupPrint() && index == 0 { return "Print"; }
-    if group == CodegenUsageBuiltinGroupFloat() {
-        if index == 0 { return "Sqrt"; }
-        if index == 1 { return "Pow"; }
-        if index == 2 { return "Floor"; }
-        if index == 3 { return "Ceil"; }
-        if index == 4 { return "ToFloat"; }
-    }
-    if group == CodegenUsageBuiltinGroupRandomValue() && index == 0 { return "Random"; }
-    if group == CodegenUsageBuiltinGroupSeedRandom() && index == 0 { return "SeedRandom"; }
-    return "";
-}
-
-func CodegenAstArenaBuiltinGroupPresent(arena: AstArena, count: Int, group: Int) -> Bool {
-    let callee_index: Int = 0;
-    while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) {
-        let callee: String = CodegenUsageBuiltinGroupCalleeAt(group, callee_index);
-        if StringLength(callee) > 0 && CodegenAstArenaBuiltinCallPresent(arena, count, callee) {
-            return true;
-        }
-        callee_index = callee_index + 1;
     }
     return false;
 }
@@ -288,45 +64,46 @@ func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool 
 }
 
 func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
-    let uses_args: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArgs());
+    let expr_usage: CodegenExpressionUsageFacts = CodegenExpressionUsageFactsFromArena(arena, count);
+    let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());
     let uses_str: Bool = CodegenAstArenaTypeFactPresent(arena, count, "String")
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupString());
-    let uses_math: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupMath());
-    let uses_array_sort: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArraySort());
-    let uses_array_reverse: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayReverse());
-    let uses_array_map: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayMap());
-    let uses_array_filter: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayFilter());
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString());
+    let uses_math: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupMath());
+    let uses_array_sort: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArraySort());
+    let uses_array_reverse: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayReverse());
+    let uses_array_map: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayMap());
+    let uses_array_filter: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayFilter());
     let uses_result: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Result<")
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupResult());
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupResult());
     let uses_option: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Option<")
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupOption())
-        || CodegenAstArenaExpressionTokenPresent(arena, count, "None");
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
+        || CodegenExpressionUsageHasNone(expr_usage);
     let uses_bool: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Bool") || uses_array_filter || uses_result || uses_option;
     let uses_exit: Bool = CodegenAstArenaKindPresent(arena, count, 17)
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupExit());
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
     let uses_array: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Array<")
         || CodegenAstArenaKindPresent(arena, count, 19)
         || CodegenAstArenaKindPresent(arena, count, 18)
         || CodegenAstArenaKindPresent(arena, count, 16)
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayCore())
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayCore())
         || uses_array_sort
         || uses_array_reverse
         || uses_array_map
         || uses_array_filter
         || uses_args;
     let uses_ast_text_node_array: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Array<CodegenAstTextNode");
-    let uses_io: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupIo());
-    let uses_join: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupJoin());
-    let uses_split: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupSplit());
-    let uses_dirwalk: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupDirWalk());
+    let uses_io: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupIo());
+    let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
+    let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());
+    let uses_dirwalk: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupDirWalk());
     let uses_log: Bool = CodegenAstArenaKindPresent(arena, count, 13)
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupLog());
-    let uses_fhandle: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupFileHandle());
-    let uses_print: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupPrint());
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupLog());
+    let uses_fhandle: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFileHandle());
+    let uses_print: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupPrint());
     let uses_float: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Float")
-        || CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupFloat());
-    let uses_random_value: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupRandomValue());
-    let uses_seed_random: Bool = CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupSeedRandom());
+        || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFloat());
+    let uses_random_value: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupRandomValue());
+    let uses_seed_random: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSeedRandom());
     let uses_random: Bool = uses_random_value || uses_seed_random;
     return CodegenRuntimeUsageFacts(
         uses_args,
