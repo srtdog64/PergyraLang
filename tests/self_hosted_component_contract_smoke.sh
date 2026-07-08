@@ -1033,6 +1033,7 @@ require_text "Makefile" "self-host-compatibility-evolution-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/main.pgy"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json"
+require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/intent.md"
 require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 600
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../compiler/compatibility_evolution_owner.pgy";'
@@ -1055,6 +1056,7 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "m
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_stdlib_module_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_codefix_status"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityChangeRowHasShape"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityMalformedRowSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "malformed_change_row"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
@@ -1068,9 +1070,13 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/cle
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"stdlib_module":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"codefix_status":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"row_shape":9'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json" "pgy.selfhost.compatibility-corpus-negative.v1"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json" '"ok":false'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json" "malformed_change_row"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/intent.md" "CompatibilityEvolutionZone"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityCorpusSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "compatibility-corpus-paths"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompatibilityCorpusPaths"
@@ -1080,6 +1086,8 @@ require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"compatibility-corpus-paths"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-malformed-row"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"run_output"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/compatibility_evolution_checker/main.pgy"'

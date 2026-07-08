@@ -115,21 +115,25 @@ func CompilerHarnessCompatibilityCorpusExpectedJsonPath() -> String {
     return "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json";
 }
 
+func CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json"; }
+
 func CompilerHarnessCompatibilityCorpusPathCount() -> Int {
-    return 2;
+    return 3;
 }
 
 func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessCompatibilityCorpusToolSourcePath(); }
     if index == 1 { return CompilerHarnessCompatibilityCorpusExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessCompatibilityCorpusReady() -> Bool {
     return CompilerHarnessCompatibilityCorpusSuiteName() != "" &&
-        CompilerHarnessCompatibilityCorpusPathCount() == 2 &&
+        CompilerHarnessCompatibilityCorpusPathCount() == 3 &&
         CompilerHarnessCompatibilityCorpusPathAt(0) == CompilerHarnessCompatibilityCorpusToolSourcePath() &&
-        CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath();
+        CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath() &&
+        CompilerHarnessCompatibilityCorpusPathAt(2) == CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath();
 }
 
 func CompilerHarnessCompatibilityEvolutionSuiteName() -> String {

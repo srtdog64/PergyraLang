@@ -149,6 +149,9 @@ completed green with:
   compatibility rows by requiring every change row to keep the `change|...`
   prefix and the eleven-field compatibility envelope. This keeps the corpus
   from passing through loose substring matches alone.
+- Follow-up negative slice: the checker now has a malformed-row self-test mode
+  that must exit non-zero and byte-match the TestHarness-projected negative
+  JSON artifact on both C and LLVM legs when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
   31-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin/raw-slot resource

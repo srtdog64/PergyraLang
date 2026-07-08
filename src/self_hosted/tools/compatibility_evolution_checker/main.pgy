@@ -80,6 +80,41 @@ func CountCompatibilityRowsWithShape() -> Int {
     return count;
 }
 
+func CompatibilityMalformedRowSelfTestMode() -> String {
+    return "--self-test-malformed-row";
+}
+
+func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if row_shape_count < 1 {
+        missing = 1;
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "malformed_change_row")]));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("changes", "1"),
+        JsonEmitFieldNumber("row_shape", ToString(row_shape_count)),
+        JsonEmitFieldNumber("missing", ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.selfhost.compatibility-corpus-negative.v1"),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func RunCompatibilityMalformedRowSelfTest() -> Void {
+    let row_shape_count: Int = 0;
+    if CompatibilityChangeRowHasShape("change|source|too_short") {
+        row_shape_count = 1;
+    }
+    Log(CompatibilityMalformedRowSelfTestReport(row_shape_count));
+    if row_shape_count < 1 {
+        Exit(1);
+    }
+}
+
 func CompatibilityCorpusFindings(
     source_count: Int,
     abi_count: Int,
@@ -143,6 +178,12 @@ func CompatibilityCorpusFindings(
 }
 
 func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == CompatibilityMalformedRowSelfTestMode() {
+        RunCompatibilityMalformedRowSelfTest();
+        return;
+    }
+
     let source_count: Int = CountCompatibilityChangeSurface(CompilerSourceCompatibilitySurface());
     let abi_count: Int = CountCompatibilityChangeSurface(CompilerAbiBinaryCompatibilitySurface());
     let behavior_count: Int = CountCompatibilityChangeSurface(CompilerBehaviorCompatibilitySurface());

@@ -38,14 +38,15 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 2 ]]; then
-    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 2 compatibility corpus paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 3 ]]; then
+    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 3 compatibility corpus paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"
-for path in "$TOOL_SOURCE" "$EXPECTED_FILE"; do
+NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"
+for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:compatibility-corpus] missing input: $path" >&2
         exit 1
@@ -57,6 +58,8 @@ C_BIN="$BUILD_DIR/compatibility_corpus_c.exe"
 C_COMPILE_LOG="$BUILD_DIR/compatibility_corpus_c.compile.log"
 C_OUT="$BUILD_DIR/compatibility_corpus_c.out"
 C_ERR="$BUILD_DIR/compatibility_corpus_c.err"
+C_NEG_OUT="$BUILD_DIR/compatibility_corpus_c_negative.out"
+C_NEG_ERR="$BUILD_DIR/compatibility_corpus_c_negative.err"
 
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=c \
     -o "$(pgy_path_for_compiler "$PGY" "$C_BIN")" >"$C_COMPILE_LOG" 2>&1); then
@@ -82,6 +85,54 @@ pgy_selfhost_compare_expected_text_artifact_with_owner \
     "$(cat "$C_OUT")" \
     "run_output"
 
+set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-malformed-row 2>"$C_NEG_ERR" | pgy_selfhost_normalize_text_artifact >"$C_NEG_OUT")
+C_NEG_RC=$?
+set -e
+if [[ "$C_NEG_RC" -ne 1 ]]; then
+    echo "[self-host-parity:compatibility-corpus] malformed-row self-test should fail closed (rc=1), got rc=$C_NEG_RC" >&2
+    cat "$C_NEG_OUT" "$C_NEG_ERR" >&2
+    exit 1
+fi
+
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:compatibility-corpus" \
+    "$BUILD_DIR" \
+    "$NEGATIVE_EXPECTED_FILE" \
+    "$C_NEG_OUT" \
+    "run_output"
+
 assert_llvm_leg "self-host-parity:compatibility-corpus" "$TOOL_ARG" "$BUILD_DIR"
+
+LLVM_NEG_BIN="$BUILD_DIR/compatibility_corpus_llvm_negative.exe"
+LLVM_NEG_COMPILE_LOG="$BUILD_DIR/compatibility_corpus_llvm_negative.compile.log"
+LLVM_NEG_OUT="$BUILD_DIR/compatibility_corpus_llvm_negative.out"
+LLVM_NEG_ERR="$BUILD_DIR/compatibility_corpus_llvm_negative.err"
+if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
+    -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
+    if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
+        echo "[self-host-parity:compatibility-corpus] malformed-row llvm-leg skipped (compiler built without LLVM backend support)"
+    else
+        echo "[self-host-parity:compatibility-corpus] malformed-row LLVM compile failed" >&2
+        cat "$LLVM_NEG_COMPILE_LOG" >&2
+        exit 1
+    fi
+else
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-malformed-row 2>"$LLVM_NEG_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_NEG_OUT")
+    LLVM_NEG_RC=$?
+    set -e
+    if [[ "$LLVM_NEG_RC" -ne 1 ]]; then
+        echo "[self-host-parity:compatibility-corpus] malformed-row LLVM self-test should fail closed (rc=1), got rc=$LLVM_NEG_RC" >&2
+        cat "$LLVM_NEG_OUT" "$LLVM_NEG_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:compatibility-corpus" \
+        "$BUILD_DIR" \
+        "$NEGATIVE_EXPECTED_FILE" \
+        "$LLVM_NEG_OUT" \
+        "run_output"
+fi
 
 echo "[self-host-parity:compatibility-corpus] parity ok"
