@@ -66,9 +66,9 @@ func CompatibilityChangeRowHasDiagnosticId(row: String) -> Bool {
 }
 
 func CompatibilityChangeRowHasVersionLadder(row: String) -> Bool {
-    return CompatibilityChangeRowFieldAt(row, 4) == "0.8" &&
-        CompatibilityChangeRowFieldAt(row, 5) == "0.9" &&
-        CompatibilityChangeRowFieldAt(row, 6) == "1.0";
+    return CompatibilityChangeRowFieldAt(row, 4) == CompilerCompatibilityWarningFromVersion() &&
+        CompatibilityChangeRowFieldAt(row, 5) == CompilerCompatibilityErrorFromVersion() &&
+        CompatibilityChangeRowFieldAt(row, 6) == CompilerCompatibilityRemoveFromVersion();
 }
 
 func CompatibilityChangeRowHasMigrationUrl(row: String) -> Bool {
@@ -230,7 +230,20 @@ func RunCompatibilityMalformedRowSelfTest() -> Void {
 }
 
 func RunCompatibilityInvalidCodefixSelfTest() -> Void {
-    let row: String = "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|unknown_codefix";
+    let row_fields: Array<String> = [
+        "change",
+        CompilerSourceCompatibilitySurface(),
+        "PrintLine",
+        "obsolete",
+        CompilerCompatibilityWarningFromVersion(),
+        CompilerCompatibilityErrorFromVersion(),
+        CompilerCompatibilityRemoveFromVersion(),
+        "PGYCOMPAT001",
+        "Print",
+        "docs/compat/PrintLine",
+        "unknown_codefix"
+    ];
+    let row: String = StringJoin(row_fields, "|");
     let row_shape_count: Int = 0;
     let codefix_status_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {

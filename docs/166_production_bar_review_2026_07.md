@@ -156,9 +156,10 @@ completed green with:
 - Follow-up obsolete-migration exactness slice: the checker now validates
   diagnostic IDs, warning/error/remove versions, migration URLs, codefix
   statuses, and obsolete migration envelopes by canonical field position rather
-  than loose substring presence. A second negative artifact rejects an 11-field
-  row with an invalid codefix status on both C and LLVM legs when LLVM is
-  available.
+  than loose substring presence. The warning/error/remove version ladder is now
+  a `CompatibilityEvolutionZone` owner fact consumed by the checker instead of a
+  checker-local literal. A second negative artifact rejects an 11-field row with
+  an invalid codefix status on both C and LLVM legs when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
   33-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin, live-view,
