@@ -143,6 +143,13 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 
+## Fuzz
+
+- `src/self_hosted/fuzz/backend_parity_generator/main.pgy` -- backend parity
+  fuzz source-program construction and generator entrypoint.
+- `src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy` -- backend
+  parity fuzz JSONL manifest and stdout summary shape.
+
 ## SEA
 
 - `src/self_hosted/sea/execution_lane.pgy` -- typed

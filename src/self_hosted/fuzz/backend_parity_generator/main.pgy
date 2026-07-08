@@ -4,7 +4,10 @@
 //   backend_parity_generator <seed> <count> <out_dir>
 //
 // The shell parity driver owns directory creation and backend execution. This
-// Pergyra program owns the generated source text and manifest shape.
+// entrypoint owns generated source text; manifest/report shape lives in
+// manifest_owner.pgy.
+
+import "manifest_owner.pgy";
 
 func Die(message: String) -> Void {
     Log(Concat("FUZZ GENERATOR ERROR ", message));
@@ -13,43 +16,6 @@ func Die(message: String) -> Void {
 
 func JoinPath(dir: String, name: String) -> String {
     return Concat(Concat(dir, "/"), name);
-}
-
-func JsonHeader(seed: Int, count: Int) -> String {
-    let out: Array<String> = [];
-    ArrayPush(out, "{\"schema\":\"pgy.selfhost.backend-parity-fuzz-generator.v1\",");
-    ArrayPush(out, "\"kind\":\"header\",");
-    ArrayPush(out, "\"seed\":");
-    ArrayPush(out, ToString(seed));
-    ArrayPush(out, ",\"count\":");
-    ArrayPush(out, ToString(count));
-    ArrayPush(out, "}");
-    return StringJoin(out, "");
-}
-
-func JsonCase(index: Int, file: String, variant: Int) -> String {
-    let out: Array<String> = [];
-    ArrayPush(out, "{\"kind\":\"case\",");
-    ArrayPush(out, "\"index\":");
-    ArrayPush(out, ToString(index));
-    ArrayPush(out, ",\"file\":\"");
-    ArrayPush(out, file);
-    ArrayPush(out, "\",\"variant\":");
-    ArrayPush(out, ToString(variant));
-    ArrayPush(out, "}");
-    return StringJoin(out, "");
-}
-
-func Summary(seed: Int, count: Int) -> String {
-    let out: Array<String> = [];
-    ArrayPush(out, "{\"schema\":\"pgy.selfhost.backend-parity-fuzz-generator.v1\",");
-    ArrayPush(out, "\"ok\":true,");
-    ArrayPush(out, "\"seed\":");
-    ArrayPush(out, ToString(seed));
-    ArrayPush(out, ",\"count\":");
-    ArrayPush(out, ToString(count));
-    ArrayPush(out, "}");
-    return StringJoin(out, "");
 }
 
 func RenderArithmeticCase(index: Int, base: Int, twist: Int) -> String {
@@ -328,6 +294,10 @@ func RenderProgram(index: Int, variant: Int) -> String {
 }
 
 func Main() -> Void {
+    if !FuzzBackendGeneratorManifestOwnerReady() {
+        Die("manifest owner not ready");
+    }
+
     let args: Array<String> = Args();
     if ArrayLength(args) < 3 {
         Die("usage: <seed> <count> <out_dir>");
@@ -343,7 +313,7 @@ func Main() -> Void {
     SeedRandom(seed);
 
     let manifest: Array<String> = [];
-    ArrayPush(manifest, JsonHeader(seed, count));
+    ArrayPush(manifest, FuzzBackendGeneratorJsonHeader(seed, count));
 
     let mut i: Int = 0;
     while i < count {
@@ -354,10 +324,10 @@ func Main() -> Void {
         let name: String = Concat("f", Concat(ToString(i), ".pgy"));
         let source: String = RenderProgram(i, variant);
         WriteFile(JoinPath(out_dir, name), source);
-        ArrayPush(manifest, JsonCase(i, name, variant));
+        ArrayPush(manifest, FuzzBackendGeneratorJsonCase(i, name, variant));
         i = i + 1;
     }
 
     WriteFile(JoinPath(out_dir, "manifest.jsonl"), Concat(StringJoin(manifest, "\n"), "\n"));
-    Log(Summary(seed, count));
+    Log(FuzzBackendGeneratorSummary(seed, count));
 }

@@ -4744,6 +4744,24 @@ require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" '"emitted_self_hosted"'
+require_file "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy"
+require_max_lines "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/fuzz/backend_parity_generator/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy"
+require_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" 'import "manifest_owner.pgy";'
+require_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "FuzzBackendGeneratorManifestOwnerReady()"
+require_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "FuzzBackendGeneratorJsonHeader(seed, count)"
+require_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "FuzzBackendGeneratorJsonCase(i, name, variant)"
+require_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "FuzzBackendGeneratorSummary(seed, count)"
+require_text "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" "pgy.selfhost.backend-parity-fuzz-generator.v1"
+require_text "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" "func FuzzBackendGeneratorJsonHeader"
+require_text "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" "func FuzzBackendGeneratorJsonCase"
+require_text "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" "func FuzzBackendGeneratorSummary"
+require_text "src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy" "func FuzzBackendGeneratorManifestOwnerReady"
+reject_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "pgy.selfhost.backend-parity-fuzz-generator.v1"
+reject_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "func JsonHeader"
+reject_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "func JsonCase"
+reject_text "src/self_hosted/fuzz/backend_parity_generator/main.pgy" "func Summary"
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'cmp -s'
 reject_text "tests/self_hosted/parity/fuzz_backend_parity_generator_parity.sh" 'diff -u'

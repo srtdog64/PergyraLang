@@ -591,6 +591,12 @@ consumes the fuzz backend generator source through the
 `test_harness_codegen_bootstrap_paths_owner.pgy`. The generator still produces
 its corpus rows at runtime, but shell no longer owns the generator source path.
 
+Fuzz generator delta, 2026-07-08: `manifest_owner.pgy` now owns the
+`pgy.selfhost.backend-parity-fuzz-generator.v1` schema, manifest header rows,
+case rows, and stdout summary shape. `main.pgy` remains the generator
+entrypoint and source-program constructor, but it no longer owns artifact
+vocabulary or report shape.
+
 TestHarness delta, 2026-07-06: `backend_output_tri_compare_parity.sh` now
 reuses the shared self-host TestHarness manifest compiler and reads the
 backend-output comparator source through the `backend-output-comparator-paths`

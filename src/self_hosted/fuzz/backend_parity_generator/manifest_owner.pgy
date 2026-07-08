@@ -1,0 +1,65 @@
+// Backend parity fuzz generator manifest owner.
+//
+// Owns the JSONL manifest and stdout summary shape. The generator entrypoint
+// owns source-program construction and file writes, not artifact vocabulary.
+
+func FuzzBackendGeneratorSchema() -> String {
+    return "pgy.selfhost.backend-parity-fuzz-generator.v1";
+}
+
+func FuzzBackendGeneratorHeaderKind() -> String {
+    return "header";
+}
+
+func FuzzBackendGeneratorCaseKind() -> String {
+    return "case";
+}
+
+func FuzzBackendGeneratorJsonHeader(seed: Int, count: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"schema\":\"");
+    ArrayPush(out, FuzzBackendGeneratorSchema());
+    ArrayPush(out, "\",\"kind\":\"");
+    ArrayPush(out, FuzzBackendGeneratorHeaderKind());
+    ArrayPush(out, "\",\"seed\":");
+    ArrayPush(out, ToString(seed));
+    ArrayPush(out, ",\"count\":");
+    ArrayPush(out, ToString(count));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func FuzzBackendGeneratorJsonCase(index: Int, file: String, variant: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"kind\":\"");
+    ArrayPush(out, FuzzBackendGeneratorCaseKind());
+    ArrayPush(out, "\",\"index\":");
+    ArrayPush(out, ToString(index));
+    ArrayPush(out, ",\"file\":\"");
+    ArrayPush(out, file);
+    ArrayPush(out, "\",\"variant\":");
+    ArrayPush(out, ToString(variant));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func FuzzBackendGeneratorSummary(seed: Int, count: Int) -> String {
+    let out: Array<String> = [];
+    ArrayPush(out, "{\"schema\":\"");
+    ArrayPush(out, FuzzBackendGeneratorSchema());
+    ArrayPush(out, "\",\"ok\":true,\"seed\":");
+    ArrayPush(out, ToString(seed));
+    ArrayPush(out, ",\"count\":");
+    ArrayPush(out, ToString(count));
+    ArrayPush(out, "}");
+    return StringJoin(out, "");
+}
+
+func FuzzBackendGeneratorManifestOwnerReady() -> Bool {
+    return FuzzBackendGeneratorSchema() == "pgy.selfhost.backend-parity-fuzz-generator.v1" &&
+        FuzzBackendGeneratorHeaderKind() == "header" &&
+        FuzzBackendGeneratorCaseKind() == "case" &&
+        StringIndexOf(FuzzBackendGeneratorJsonHeader(1, 2), "\"kind\":\"header\"") >= 0 &&
+        StringIndexOf(FuzzBackendGeneratorJsonCase(0, "f0.pgy", 7), "\"kind\":\"case\"") >= 0 &&
+        StringIndexOf(FuzzBackendGeneratorSummary(1, 2), "\"ok\":true") >= 0;
+}
