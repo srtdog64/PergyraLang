@@ -5295,3 +5295,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker by moving another expression
   token projection behind a named owner; it does not close the blocker because
   expression payloads are still string-backed.
+
+### 2026-07-09 -- Runtime usage builtin vocabulary moves behind owner rows
+
+- Added `CodegenUsageBuiltinGroup*` rows to `ast_usage_owner.pgy` so
+  runtime/header usage decisions consume owner-owned builtin callee vocabulary
+  through `CodegenAstArenaBuiltinGroupPresent(...)`.
+- Repointed `CodegenRuntimeUsageFactsFromArena(...)` away from spelling every
+  builtin call name inline in the usage fact body. Type/kind facts still come
+  from the typed arena, and the expression matching engine remains
+  string-backed until dedicated expression usage rows replace transitional
+  atom/value/aux text.
+- Tightened `self_hosted_component_contract_smoke.sh` to require the builtin
+  group row owner functions and the grouped `Args`/string usage consumers.
+- Verified with `self-host-component-contract-test-smoke` and
+  `self-host-codegen-bootstrap-test-smoke` (`SELF-HOSTING OK`, `gen2 == gen3`
+  at 8999 generated-C lines).
