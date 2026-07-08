@@ -191,6 +191,7 @@ func EmitRuntimeCallAbiRowsPaths() -> Void { let i: Int = 0; while i < CompilerH
 func EmitTargetCapabilityEnvelopePaths() -> Void { let i: Int = 0; while i < CompilerHarnessTargetCapabilityEnvelopePathCount() { Log(CompilerHarnessTargetCapabilityEnvelopePathAt(i)); i = i + 1; } }
 func EmitBackendEmitterContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendEmitterContractPathCount() { Log(CompilerHarnessBackendEmitterContractPathAt(i)); i = i + 1; } }
 func EmitBackendAirAccessPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAirAccessPathCount() { Log(CompilerHarnessBackendAirAccessPathAt(i)); i = i + 1; } }
+func EmitBackendAbiLayoutContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAbiLayoutContractPathCount() { Log(CompilerHarnessBackendAbiLayoutContractPathAt(i)); i = i + 1; } }
 
 func EmitCompatibilityEvolutionPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityEvolutionPathCount() { Log(CompilerHarnessCompatibilityEvolutionPathAt(i)); i = i + 1; } }
 func EmitExecutionLaneParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessExecutionLanePathCount() { Log(CompilerHarnessExecutionLanePathAt(i)); i = i + 1; } }
@@ -476,6 +477,7 @@ func Main() -> Void {
     if args[0] == CompilerHarnessTargetCapabilityEnvelopeSuiteName() { EmitTargetCapabilityEnvelopePaths(); return; }
     if args[0] == CompilerHarnessBackendEmitterContractSuiteName() { EmitBackendEmitterContractPaths(); return; }
     if args[0] == CompilerHarnessBackendAirAccessSuiteName() { EmitBackendAirAccessPaths(); return; }
+    if args[0] == CompilerHarnessBackendAbiLayoutContractSuiteName() { EmitBackendAbiLayoutContractPaths(); return; }
     if args[0] == CompilerHarnessCompatibilityEvolutionSuiteName() {
         EmitCompatibilityEvolutionPaths();
         return;

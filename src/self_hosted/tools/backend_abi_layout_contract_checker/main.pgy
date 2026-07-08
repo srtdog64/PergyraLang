@@ -1,0 +1,131 @@
+// Self-host backend ABI layout contract checker.
+//
+// Consumes abi_layout_row_owner.pgy rows and verifies that native MIR/backend
+// ABI files keep layout/runtime spelling behind MIR-owned facts.
+
+import "../../compiler/abi_layout_row_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func BackendAbiLayoutFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendAbiLayoutNegativeSchema() -> String {
+    return "pgy.selfhost.backend-abi-layout-contract-negative.v1";
+}
+
+func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
+    return "--self-test-missing-required";
+}
+
+func BackendAbiLayoutForbiddenHitSelfTestMode() -> String {
+    return "--self-test-forbidden-hit";
+}
+
+func BackendAbiLayoutReport(
+    missing_required: Int,
+    forbidden_hits: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let problem_count: Int = missing_required + forbidden_hits;
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("required", ToString(CompilerBackendAbiLayoutRequiredCount())),
+        JsonEmitFieldNumber("forbidden", ToString(CompilerBackendAbiLayoutForbiddenCount())),
+        JsonEmitFieldNumber("missing_required", ToString(missing_required)),
+        JsonEmitFieldNumber("forbidden_hits", ToString(forbidden_hits))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", problem_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendAbiLayoutFinding(
+        "missing_required",
+        CompilerBackendAbiLayoutRequiredPathAt(0),
+        "definitely_missing_backend_abi_layout_term"));
+    Log(BackendAbiLayoutReport(1, 0, findings, BackendAbiLayoutNegativeSchema()));
+    Exit(1);
+}
+
+func RunBackendAbiLayoutForbiddenHitSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendAbiLayoutFinding(
+        "forbidden_hit",
+        CompilerBackendAbiLayoutForbiddenPathAt(0),
+        CompilerBackendAbiLayoutForbiddenTermAt(0)));
+    Log(BackendAbiLayoutReport(0, 1, findings, BackendAbiLayoutNegativeSchema()));
+    Exit(1);
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutMissingRequiredSelfTestMode() {
+        RunBackendAbiLayoutMissingRequiredSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == BackendAbiLayoutForbiddenHitSelfTestMode() {
+        RunBackendAbiLayoutForbiddenHitSelfTest();
+        return;
+    }
+    if !CompilerBackendAbiLayoutContractReady() {
+        Log("BACKEND_ABI_LAYOUT_CONTRACT ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+
+    let missing_required: Int = 0;
+    let forbidden_hits: Int = 0;
+    let findings: Array<String> = [];
+    let required_index: Int = 0;
+    while required_index < CompilerBackendAbiLayoutRequiredCount() {
+        let path: String = CompilerBackendAbiLayoutRequiredPathAt(required_index);
+        let term: String = CompilerBackendAbiLayoutRequiredTermAt(required_index);
+        if !FileExists(path) {
+            missing_required = missing_required + 1;
+            ArrayPush(findings, BackendAbiLayoutFinding("missing_input", path, term));
+        } else {
+            let content: String = ReadFile(path);
+            if !StringContains(content, term) {
+                missing_required = missing_required + 1;
+                ArrayPush(findings, BackendAbiLayoutFinding("missing_required", path, term));
+            }
+        }
+        required_index = required_index + 1;
+    }
+
+    let forbidden_index: Int = 0;
+    while forbidden_index < CompilerBackendAbiLayoutForbiddenCount() {
+        let path: String = CompilerBackendAbiLayoutForbiddenPathAt(forbidden_index);
+        let term: String = CompilerBackendAbiLayoutForbiddenTermAt(forbidden_index);
+        if !FileExists(path) {
+            missing_required = missing_required + 1;
+            ArrayPush(findings, BackendAbiLayoutFinding("missing_input", path, term));
+        } else {
+            let content: String = ReadFile(path);
+            if StringContains(content, term) {
+                forbidden_hits = forbidden_hits + 1;
+                ArrayPush(findings, BackendAbiLayoutFinding("forbidden_hit", path, term));
+            }
+        }
+        forbidden_index = forbidden_index + 1;
+    }
+
+    Log(BackendAbiLayoutReport(
+        missing_required,
+        forbidden_hits,
+        findings,
+        CompilerBackendAbiLayoutContractSchema()));
+    if missing_required > 0 || forbidden_hits > 0 {
+        Exit(1);
+    }
+}

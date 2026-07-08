@@ -7,6 +7,60 @@ import "target_capability_owner.pgy";
 func CompilerAbiLayoutRowSchema() -> String {
     return "pgy.selfhost.abi-layout-row.v3";
 }
+
+func CompilerBackendAbiLayoutContractSchema() -> String {
+    return "pgy.selfhost.backend-abi-layout-contract.v1";
+}
+func CompilerBackendAbiLayoutRequiredCount() -> Int {
+    return 8;
+}
+func CompilerBackendAbiLayoutRequiredPathAt(index: Int) -> String {
+    if index >= 0 && index <= 4 { return "src/compiler/mir_abi_layout.c"; }
+    if index == 5 { return "src/compiler/mir_abi_layout.h"; }
+    if index == 6 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
+    if index == 7 { return "src/compiler/mir_abi_layout.c"; }
+    return "";
+}
+func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "ABI_TYPE(\"Array<Long>\""; }
+    if index == 1 { return "ABI_TAGGED_TYPE(\"Option<Int>\""; }
+    if index == 2 { return "ABI_TAGGED_TYPE(\"Option<Float>\""; }
+    if index == 3 { return "ABI_TAGGED_TYPE(\"Option<Double>\""; }
+    if index == 4 { return "ABI_RESOURCE_OPS(\"SecureSlot<Long>\""; }
+    if index == 5 { return "mir_abi_resource_runtime_fn_by_kind"; }
+    if index == 6 { return "mir_abi_resource_runtime_fn(effective_layout, op_name)"; }
+    if index == 7 { return "Runtime function spelling is payload carried"; }
+    return "";
+}
+func CompilerBackendAbiLayoutForbiddenCount() -> Int {
+    return 5;
+}
+func CompilerBackendAbiLayoutForbiddenPathAt(index: Int) -> String {
+    if index >= 0 && index < CompilerBackendAbiLayoutForbiddenCount() {
+        return "src/compiler/mir_abi_layout.c";
+    }
+    return "";
+}
+func CompilerBackendAbiLayoutForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "Slot<Int>_rel"; }
+    if index == 1 { return "mir_abi_format_owned(\"%s_rel\""; }
+    if index == 2 { return "mir_abi_lookup_runtime_fmt"; }
+    if index == 3 { return "mir_extract_inner_type_suffix_owned"; }
+    if index == 4 { return "runtime function name pattern"; }
+    return "";
+}
+func CompilerBackendAbiLayoutContractReady() -> Bool {
+    return CompilerBackendAbiLayoutRequiredCount() == 8 &&
+        CompilerBackendAbiLayoutForbiddenCount() == 5 &&
+        CompilerBackendAbiLayoutRequiredPathAt(0) == "src/compiler/mir_abi_layout.c" &&
+        CompilerBackendAbiLayoutRequiredPathAt(5) == "src/compiler/mir_abi_layout.h" &&
+        CompilerBackendAbiLayoutRequiredPathAt(6) == "src/codegen/transpiler_mir_resource_op_core.c" &&
+        CompilerBackendAbiLayoutRequiredTermAt(0) == "ABI_TYPE(\"Array<Long>\"" &&
+        CompilerBackendAbiLayoutRequiredTermAt(1) == "ABI_TAGGED_TYPE(\"Option<Int>\"" &&
+        CompilerBackendAbiLayoutRequiredTermAt(6) == "mir_abi_resource_runtime_fn(effective_layout, op_name)" &&
+        CompilerBackendAbiLayoutForbiddenTermAt(0) == "Slot<Int>_rel" &&
+        CompilerBackendAbiLayoutForbiddenTermAt(3) == "mir_extract_inner_type_suffix_owned";
+}
 func CompilerAbiLayoutRowFactCount() -> Int {
     return 9;
 }

@@ -971,6 +971,14 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerA
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutTargetPolicyFallbacksAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutTargetPolicyKnown"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutTargetPolicyReady"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutContractSchema"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredPathAt"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredTermAt"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenPathAt"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenTermAt"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutRequiredCount() == 8"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutForbiddenCount() == 5"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutContractReady()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowFactAt(8) == CompilerAbiLayoutDefaultReturnValueFact()"
@@ -995,6 +1003,10 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTarget
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetFactKnown(CompilerTargetMaterializationReasonFact())"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetUnsupportedShapeFallbackReason())"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetForbiddenLossBudgetFallbackReason())"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TYPE(\\\"Array<Long>\\\""
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TAGGED_TYPE(\\\"Option<Int>\\\""
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_extract_inner_type_suffix_owned"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowDefaultReturnValueAt(UnwrapOption(row))"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue()"
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(0) == "decl_name"'
@@ -1050,6 +1062,39 @@ require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" "asser
 reject_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/abi_layout_row_manifest.pgy"'
 reject_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/abi_layout_rows.txt"'
 require_text "Makefile" "self-host-abi-layout-row-parity-test-smoke"
+require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy"
+require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json"
+require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json"
+require_file "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/forbidden_hit.json"
+require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 600
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingRequiredSelfTestMode"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutForbiddenHitSelfTestMode"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutRequiredCount()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutForbiddenCount()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" "pgy.selfhost.backend-abi-layout-contract.v1"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"required":8'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"forbidden":5'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json" "definitely_missing_backend_abi_layout_term"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/forbidden_hit.json" "Slot<Int>_rel"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAbiLayoutContractSuiteName"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-abi-layout-contract-paths"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAbiLayoutContractPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendAbiLayoutContractReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendAbiLayoutContractPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendAbiLayoutContractSuiteName()"
+require_file "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh"
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" '"backend-abi-layout-contract-paths"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'MISSING_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "--self-test-missing-required"
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "--self-test-forbidden-hit"
+require_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy"'
+require_text "Makefile" "self-host-backend-abi-layout-contract-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/backend_abi_layout_contract_checker_parity.sh"
 require_file "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
 require_file "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"

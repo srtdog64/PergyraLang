@@ -104,7 +104,7 @@ The compatibility gate must cover these surfaces together:
 |---|---|
 | Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
-| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, and self-host ABI row parity |
+| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
 | Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
 | LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
@@ -167,6 +167,14 @@ completed green with:
   moves the verification-only AIR boundary toward hard self-hosted parity while
   the existing Bash full-sweep non-impact gate remains the broad production
   backstop.
+- Follow-up native/backend ABI layout slice: `backend_abi_layout_contract_checker`
+  now consumes `abi_layout_row_owner.pgy` rows through the TestHarness manifest,
+  requires selected native MIR ABI layout rows and runtime-function consumers,
+  rejects old `_rel` alias and backend-local runtime-name synthesis terms, and
+  emits clean, missing-required, and forbidden-hit artifacts under
+  `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
+  moving the production ABI ownership blocker into hard self-host parity while
+  `abi-ownership-shape-test-smoke` remains the broad native backstop.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 - Follow-up owner-scoped TestHarness split refresh: `sources=175`, with
@@ -176,6 +184,11 @@ completed green with:
   `make self-host-completeness-smoke` completed at `sources=182`, with
   `lexer=182`, `parser=182`, `semantic=182`, `codegen=182`,
   `lex_parse=182`, `lex_parse_semantic=182`, and `full_pipeline=182`.
+- Follow-up backend ABI layout contract source-count refresh: after adding the
+  self-hosted backend ABI layout contract checker, focused
+  `make self-host-completeness-smoke` completed at `sources=183`, with
+  `lexer=183`, `parser=183`, `semantic=183`, `codegen=183`,
+  `lex_parse=183`, `lex_parse_semantic=183`, and `full_pipeline=183`.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:

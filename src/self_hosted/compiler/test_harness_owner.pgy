@@ -139,6 +139,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessTargetCapabilityEnvelopeReady() &&
         CompilerHarnessBackendEmitterContractReady() &&
         CompilerHarnessBackendAirAccessReady() &&
+        CompilerHarnessBackendAbiLayoutContractReady() &&
         CompilerHarnessCompatibilityEvolutionReady() &&
         CompilerHarnessExecutionLaneParityReady() &&
         CompilerHarnessLinterParityReady() &&

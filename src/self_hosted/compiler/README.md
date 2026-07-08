@@ -82,6 +82,12 @@ missing-required, and forbidden-hit paths across C/LLVM-built self-host tools.
 `backend_air_access_checker` is the adjacent AIR verification-only boundary:
 it walks `src/codegen` with `DirWalk`, rejects AIR header/type tokens in backend
 sources, and is gated by `self-host-backend-air-access-parity-test-smoke`.
+The native/backend ABI layout contract is intentionally tied back to the same
+`abi_layout_row_owner.pgy` rather than a second shell list:
+`backend_abi_layout_contract_checker` consumes those rows through the
+TestHarness manifest, requires selected native MIR ABI layout and runtime
+function consumer terms, and rejects old `_rel` alias or runtime-name synthesis
+terms under `self-host-backend-abi-layout-contract-parity-test-smoke`.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

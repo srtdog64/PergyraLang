@@ -75,3 +75,44 @@ func CompilerHarnessBackendAirAccessReady() -> Bool {
         CompilerHarnessBackendAirAccessPathAt(1) == CompilerHarnessBackendAirAccessExpectedJsonPath() &&
         CompilerHarnessBackendAirAccessPathAt(2) == CompilerHarnessBackendAirAccessForbiddenHitJsonPath();
 }
+
+func CompilerHarnessBackendAbiLayoutContractSuiteName() -> String {
+    return "backend-abi-layout-contract-paths";
+}
+
+func CompilerHarnessBackendAbiLayoutContractToolSourcePath() -> String {
+    return "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy";
+}
+
+func CompilerHarnessBackendAbiLayoutContractExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json";
+}
+
+func CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath() -> String {
+    return "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json";
+}
+
+func CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath() -> String {
+    return "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/forbidden_hit.json";
+}
+
+func CompilerHarnessBackendAbiLayoutContractPathCount() -> Int {
+    return 4;
+}
+
+func CompilerHarnessBackendAbiLayoutContractPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessBackendAbiLayoutContractToolSourcePath(); }
+    if index == 1 { return CompilerHarnessBackendAbiLayoutContractExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath(); }
+    if index == 3 { return CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessBackendAbiLayoutContractReady() -> Bool {
+    return CompilerHarnessBackendAbiLayoutContractSuiteName() != "" &&
+        CompilerHarnessBackendAbiLayoutContractPathCount() == 4 &&
+        CompilerHarnessBackendAbiLayoutContractPathAt(0) == CompilerHarnessBackendAbiLayoutContractToolSourcePath() &&
+        CompilerHarnessBackendAbiLayoutContractPathAt(1) == CompilerHarnessBackendAbiLayoutContractExpectedJsonPath() &&
+        CompilerHarnessBackendAbiLayoutContractPathAt(2) == CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath() &&
+        CompilerHarnessBackendAbiLayoutContractPathAt(3) == CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath();
+}
