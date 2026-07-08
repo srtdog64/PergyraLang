@@ -720,6 +720,7 @@ require_owner_surface codegen \
     "input/ast_text_indexed_assignment_owner.pgy" \
     "input/ast_text_for_stmt_owner.pgy" \
     "input/ast_text_statement_payload_owner.pgy" \
+    "input/ast_text_collection_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
@@ -2280,6 +2281,17 @@ require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy
 require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaMatchCasePatternOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaBareCallExprOrDie"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_statement_payload_owner.pgy";'
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaArraySetTargetOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaArraySetIndexOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaArraySetValueOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaArrayPushTargetOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaArrayPushValueOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetTargetOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetIndexOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetValueOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArrayPushTargetOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArrayPushValueOrDie"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_collection_stmt_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaAssignTargetIsIndex(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
@@ -2291,12 +2303,12 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIs
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPopStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenAstArenaArrayPopTargetOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArraySetStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenAstArenaValueOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenAstArenaAuxValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenAstArenaArraySetTargetOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenAstArenaArraySetIndexOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenAstArenaArraySetValueOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPushStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenAstArenaValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenAstArenaArrayPushTargetOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenAstArenaArrayPushValueOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsExitStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenAstArenaExitArgumentOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
@@ -2329,6 +2341,11 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "WrapCond(CodegenAs
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_expr: String = CodegenAstArenaAtomOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenAstArenaValueOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenAstArenaAuxValueOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenAstArenaValueOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextLogInner(nodes[idx])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextReturnValue(nodes[idx])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextArrayPopTarget(nodes[idx])"

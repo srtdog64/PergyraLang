@@ -12,6 +12,7 @@ import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
 import "../input/ast_text_for_stmt_owner.pgy";
 import "../input/ast_text_statement_payload_owner.pgy";
+import "../input/ast_text_collection_stmt_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -396,10 +397,10 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             deferred = Concat(body, deferred);
         } else if CodegenAstArenaIsArraySetStmt(arena, idx) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
-            let a_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let a_arr: String = CodegenAstArenaArraySetTargetOrDie(arena, idx);
             let c_a_arr: String = CompilerSymbolCBindingName(a_arr);
-            let a_idx: String = CodegenAstArenaValueOrDie(arena, idx);
-            let a_val: String = CodegenAstArenaAuxValueOrDie(arena, idx);
+            let a_idx: String = CodegenAstArenaArraySetIndexOrDie(arena, idx);
+            let a_val: String = CodegenAstArenaArraySetValueOrDie(arena, idx);
             let a_kind: String = LookupKindType(env_box[0], a_arr, "v");
             let a_kind_code: Int = CollectionRuntimeKindCode(a_kind);
             let set_fn: String = CollectionRuntimeCSetFn(a_kind_code);
@@ -409,9 +410,9 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsArrayPushStmt(arena, idx) {
             // `ArrayPush(arr, val)` lowers through the collection push helper owner.
-            let p_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let p_arr: String = CodegenAstArenaArrayPushTargetOrDie(arena, idx);
             let c_p_arr: String = CompilerSymbolCBindingName(p_arr);
-            let p_val: String = CodegenAstArenaValueOrDie(arena, idx);
+            let p_val: String = CodegenAstArenaArrayPushValueOrDie(arena, idx);
             let p_kind: String = LookupKindType(env_box[0], p_arr, "v");
             let p_kind_code: Int = CollectionRuntimeKindCode(p_kind);
             let push_fn: String = CollectionRuntimeCPushFn(p_kind_code);

@@ -119,6 +119,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy` -- AST text indexed assignment target shape, receiver, and index-expression facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
+- `src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy` -- AST text `ArrayPush` and `ArraySet` statement payload facts.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- expression usage facts and builtin-callee group rows derived from typed arena payload rows.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from typed arena type/kind rows and expression usage rows.
 - `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena

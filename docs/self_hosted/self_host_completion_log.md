@@ -5360,3 +5360,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker for statement emission. It does
   not close the blocker because the owner still reads transitional typed arena
   payload rows until typed statement rows replace the AST-text bridge.
+
+### 2026-07-09 -- Collection statement payload facts leave stmt emission
+
+- Added `ast_text_collection_stmt_owner.pgy` for self-host codegen `ArraySet`
+  and `ArrayPush` statement payload facts.
+- Repointed `stmt_emit.pgy` so collection mutation lowering consumes owner
+  accessors for target/index/value payloads instead of directly reading arena
+  atom/value/aux rows.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new collection statement owner and `stmt_emit.pgy`
+  rejects reopening those direct arena payload reads.
+- This reduces the mixed AST-like tree blocker for statement emission. It does
+  not close the blocker because the owner still reads transitional typed arena
+  payload rows until typed statement rows replace the AST-text bridge.

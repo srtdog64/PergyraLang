@@ -1,0 +1,41 @@
+// Self-host codegen AST-text collection statement facts.
+//
+// Collection mutation lowering owns runtime helper selection. This owner owns
+// the statement payload rows that identify the collection target and arguments.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaArraySetTargetOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArraySetStmt(arena, node_id) {
+        Die(Concat("expected ArraySet statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaArraySetIndexOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArraySetStmt(arena, node_id) {
+        Die(Concat("expected ArraySet statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaValueOrDie(arena, node_id);
+}
+
+func CodegenAstArenaArraySetValueOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArraySetStmt(arena, node_id) {
+        Die(Concat("expected ArraySet statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAuxValueOrDie(arena, node_id);
+}
+
+func CodegenAstArenaArrayPushTargetOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArrayPushStmt(arena, node_id) {
+        Die(Concat("expected ArrayPush statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaArrayPushValueOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArrayPushStmt(arena, node_id) {
+        Die(Concat("expected ArrayPush statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaValueOrDie(arena, node_id);
+}
