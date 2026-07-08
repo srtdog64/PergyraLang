@@ -197,8 +197,10 @@ completed green with:
   dumb-emitter contract checker now runs missing-required and forbidden-hit
   negative artifacts through both C-built and LLVM-built tools when LLVM is
   available, gated by `make self-host-backend-emitter-contract-parity-test-smoke`.
-  This strengthens the hard self-host parity path; it does not replace the broad
-  native `backend-fail-closed-test-smoke` gate.
+  Negative schema, count-field names, finding-kind vocabulary, and the
+  owner-not-ready diagnostic are backend-emitter owner facts rather than
+  checker-local strings. This strengthens the hard self-host parity path; it
+  does not replace the broad native `backend-fail-closed-test-smoke` gate.
 - Follow-up sandbox capability slice: `SandboxCapabilityZone` now owns the
   capability/frame-budget vocabulary for filesystem, network, clock, random,
   subprocess, storage, render, input, fuel, host calls, command buffers, memory,

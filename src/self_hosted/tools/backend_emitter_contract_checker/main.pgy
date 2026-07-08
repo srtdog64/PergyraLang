@@ -22,10 +22,10 @@ func BackendEmitterReport(
 ) -> String {
     let problem_count: Int = missing_required + forbidden_hits;
     let counts: String = JsonEmitObject([
-        JsonEmitFieldNumber("required", ToString(CompilerBackendEmitterRequiredCount())),
-        JsonEmitFieldNumber("forbidden", ToString(CompilerBackendEmitterForbiddenCount())),
-        JsonEmitFieldNumber("missing_required", ToString(missing_required)),
-        JsonEmitFieldNumber("forbidden_hits", ToString(forbidden_hits))
+        JsonEmitFieldNumber(CompilerBackendEmitterRequiredCountField(), ToString(CompilerBackendEmitterRequiredCount())),
+        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenCountField(), ToString(CompilerBackendEmitterForbiddenCount())),
+        JsonEmitFieldNumber(CompilerBackendEmitterMissingRequiredCountField(), ToString(missing_required)),
+        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenHitsCountField(), ToString(forbidden_hits))
     ]);
     return JsonEmitObject([
         JsonEmitFieldString("schema", schema),
@@ -33,10 +33,6 @@ func BackendEmitterReport(
         JsonEmitFieldRaw("counts", counts),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ]);
-}
-
-func BackendEmitterNegativeSchema() -> String {
-    return "pgy.selfhost.backend-emitter-contract-negative.v1";
 }
 
 func BackendEmitterMissingRequiredSelfTestMode() -> String {
@@ -50,20 +46,20 @@ func BackendEmitterForbiddenHitSelfTestMode() -> String {
 func RunBackendEmitterMissingRequiredSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
-        "missing_required",
+        CompilerBackendEmitterMissingRequiredFinding(),
         CompilerBackendEmitterRequiredPathAt(0),
         "definitely_missing_backend_contract_term"));
-    Log(BackendEmitterReport(1, 0, findings, BackendEmitterNegativeSchema()));
+    Log(BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
 }
 
 func RunBackendEmitterForbiddenHitSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
-        "forbidden_hit",
+        CompilerBackendEmitterForbiddenHitFinding(),
         CompilerBackendEmitterForbiddenPathAt(0),
         CompilerBackendEmitterForbiddenTermAt(0)));
-    Log(BackendEmitterReport(0, 1, findings, BackendEmitterNegativeSchema()));
+    Log(BackendEmitterReport(0, 1, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
 }
 
@@ -78,7 +74,7 @@ func Main() -> Void {
         return;
     }
     if !CompilerBackendEmitterContractReady() {
-        Log("BACKEND_EMITTER_CONTRACT ERROR: owner is not ready");
+        Log(CompilerBackendEmitterOwnerNotReadyMessage());
         Exit(1);
         return;
     }
@@ -92,12 +88,12 @@ func Main() -> Void {
         let term: String = CompilerBackendEmitterRequiredTermAt(required_index);
         if !FileExists(path) {
             missing_required = missing_required + 1;
-            ArrayPush(findings, BackendEmitterFinding("missing_input", path, term));
+            ArrayPush(findings, BackendEmitterFinding(CompilerBackendEmitterMissingInputFinding(), path, term));
         } else {
             let content: String = ReadFile(path);
             if !StringContains(content, term) {
                 missing_required = missing_required + 1;
-                ArrayPush(findings, BackendEmitterFinding("missing_required", path, term));
+                ArrayPush(findings, BackendEmitterFinding(CompilerBackendEmitterMissingRequiredFinding(), path, term));
             }
         }
         required_index = required_index + 1;
@@ -109,12 +105,12 @@ func Main() -> Void {
         let term: String = CompilerBackendEmitterForbiddenTermAt(forbidden_index);
         if !FileExists(path) {
             missing_required = missing_required + 1;
-            ArrayPush(findings, BackendEmitterFinding("missing_input", path, term));
+            ArrayPush(findings, BackendEmitterFinding(CompilerBackendEmitterMissingInputFinding(), path, term));
         } else {
             let content: String = ReadFile(path);
             if StringContains(content, term) {
                 forbidden_hits = forbidden_hits + 1;
-                ArrayPush(findings, BackendEmitterFinding("forbidden_hit", path, term));
+                ArrayPush(findings, BackendEmitterFinding(CompilerBackendEmitterForbiddenHitFinding(), path, term));
             }
         }
         forbidden_index = forbidden_index + 1;

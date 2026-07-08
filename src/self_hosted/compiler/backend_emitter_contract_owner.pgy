@@ -6,6 +6,33 @@
 func CompilerBackendEmitterContractSchema() -> String {
     return "pgy.selfhost.backend-emitter-contract.v1";
 }
+func CompilerBackendEmitterNegativeSchema() -> String {
+    return "pgy.selfhost.backend-emitter-contract-negative.v1";
+}
+func CompilerBackendEmitterMissingInputFinding() -> String {
+    return "missing_input";
+}
+func CompilerBackendEmitterMissingRequiredFinding() -> String {
+    return "missing_required";
+}
+func CompilerBackendEmitterForbiddenHitFinding() -> String {
+    return "forbidden_hit";
+}
+func CompilerBackendEmitterRequiredCountField() -> String {
+    return "required";
+}
+func CompilerBackendEmitterForbiddenCountField() -> String {
+    return "forbidden";
+}
+func CompilerBackendEmitterMissingRequiredCountField() -> String {
+    return "missing_required";
+}
+func CompilerBackendEmitterForbiddenHitsCountField() -> String {
+    return "forbidden_hits";
+}
+func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
+    return "BACKEND_EMITTER_CONTRACT ERROR: owner is not ready";
+}
 
 func CompilerBackendEmitterRequiredCount() -> Int {
     return 5;
@@ -53,6 +80,15 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 
 func CompilerBackendEmitterContractReady() -> Bool {
     return CompilerBackendEmitterRequiredCount() == 5 &&
+        CompilerBackendEmitterNegativeSchema() != "" &&
+        CompilerBackendEmitterMissingInputFinding() != "" &&
+        CompilerBackendEmitterMissingRequiredFinding() != "" &&
+        CompilerBackendEmitterForbiddenHitFinding() != "" &&
+        CompilerBackendEmitterRequiredCountField() != "" &&
+        CompilerBackendEmitterForbiddenCountField() != "" &&
+        CompilerBackendEmitterMissingRequiredCountField() != "" &&
+        CompilerBackendEmitterForbiddenHitsCountField() != "" &&
+        CompilerBackendEmitterOwnerNotReadyMessage() != "" &&
         CompilerBackendEmitterRequiredPathAt(0) != "" &&
         CompilerBackendEmitterRequiredTermAt(0) != "" &&
         CompilerBackendEmitterRequiredTermAt(1) != "" &&
