@@ -144,3 +144,51 @@ named task 쌍" 수요가 실측되면 (b)를 재론.
 join 올바름) · thread_pool_usage.c(Shared C/LLVM 탐지 — fact 미설정 근인) ·
 transpiler.c:440(조건부 pool_init) · IntentConflict.v(다중-작성자 정책의 이론
 착지점) · 클로저 Stage A(copy-capture 선례 — 교리 정렬 대상).
+
+## 8. copy-only 교리 판정 + 후속 착지 (2026-07-08/09, BDFL 비준)
+
+"copy-only 교리를 깨야 하나"에 대한 소스-추적 판정과 그 후속 구현의 기록.
+
+- **판정: 깨지 않는다 — 교리는 load-bearing이고 옳다.** F3(b)의 spawn
+  Channel-인자 거절은 교리 결함이 아니라 **lowering 사실**의 귀결이다:
+  현행 `Channel<T>`는 `pthread_mutex_t`+condvar 2개를 struct 안에 inline으로
+  박은 값 구조체(pgy_runtime_channel_inline.h)이고, ABI 스펙이 명시적으로
+  "must not be copied"를 박아뒀다(pgy_abi_spec.h §6). copy-only인 spawn
+  인자로 넘기면 mutex 비트복사 = POSIX UB — 거절이 정확하다. 반대로
+  parallel 캡처는 포인터 공유(모든 arm이 *같은* mutex 객체)라 안전하고,
+  p8 backpressure 목격자가 이를 실증한다. **비대칭은 실재하지만 그 원인은
+  "Channel이 아직 복사 가능한 값이 아니다"라는 표현 문제다.**
+- **깨면 안 되는 이유 2중**: (a) task 경계 최초의 by-ref escape가 되어
+  클로저 Stage C 거절 canon과 충돌하고 F2 구멍을 handle-보유 타입 전체로
+  재개방, (b) by-ref task escape는 수명 추론을 강제하는 형태 — lifetime
+  주석 하드-금지(docs/118 §2.1)와 정면 충돌.
+- **올바른 미래 lever**: opaque handle lowering. ABI가 이미 타깃을 깔아뒀다
+  (ZoneChannel/WorldChannel = uint32_t handle, pgy_abi_spec.h). 일반
+  Channel<T>가 handle로 lowering되면 `spawn Worker(ch)` = uint32_t 복사 =
+  **copy-only를 만족하면서** 채널 공유가 열린다. ABI+양 백엔드+arena 수명
+  workstream이고 수요("채널로 통신하는 named task 쌍") 실측 전 착수 금지.
+- **후속 착지 1 — slice 쓰기 표면(`9bf946d7`)**: `view[i] = v`를
+  `pgy_slice_set`으로 양 백엔드 완결(semantic은 원래 read/write 대칭 수용,
+  codegen이 반열림이었다). 부산물: slice_get + raw list/queue/map 접근자의
+  inline OOB panic 본문이 재생성된 `.bc` 재최적화에서 access violation으로
+  mis-lower하는 잠재 패밀리를 runtime_panic_codegen_smoke로 적발,
+  `llvm_fn_is_bounds_checked_accessor`에 패밀리 단위 등재로 폐쇄.
+- **후속 착지 2 — Disjointness admission(`c994f39b`, docs/178 WO-DOP-1
+  rung 0)**: `base.Slice(0,B)`/`base.Slice(B,LEN)` 분할 쌍을 parallel
+  캡처에서 증거로 인정. [0,B)∩[B,B+LEN)=∅는 B/LEN 값과 무관한 정리이므로
+  값 분석 없이 구성 사실만으로 성립(판정이 아니라 선언). 조건: 불변 view
+  바인딩 + 불변 Int 경계(리터럴 or 비-param 로컬) + 같은 base의 캡처된
+  fact-slice가 정확히 이 쌍 + 절반당 정확히 1개 arm 참조 + base는 어떤
+  arm에도 미참조. 그 외 전부 기존 fail-closed 거절 유지.
+  `parallel-disjoint-test-smoke`(admit 110 양 백엔드 + negative 4종:
+  동일-slice 이중 쓰기/base 침범/mut 경계/임의 겹침 view) + backend_compare
+  `parallel_disjoint_split_write`가 상설 게이트. **DOP 지향의 병렬 통로
+  0→1** — docs/178 §2 표의 "통로 부재"가 이 시점부로 stale.
+- **evidence lifetime 접점**(docs/semantics/09의 압축 예산으로 읽기):
+  Disjointness 증거 = 마지막 소비자가 semantic admission이고 이후 **erase**
+  (런타임 객체 0) · Channel 증거 = 런타임 **retain**(mutex/backpressure
+  상태) · spawn-Channel = **reject**. 이 arc의 세 결정이 정확히 세 budget의
+  인스턴스다.
+- 남은 표면 결정(코드 아님, 이 문서가 결정 입력): F3(a) bare-block arm
+  (문법 확장), F2 copy-in 기본화(관찰 의미 변경 — 부모가 join 후 변화를
+  못 보게 됨).

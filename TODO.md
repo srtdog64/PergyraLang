@@ -10164,6 +10164,28 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
   추가)로 RED 확인.
 - **DoD**: CI 배선 + RED/GREEN 양방향 증거 + docs/14 갱신.
 
+#### WO-A3 — evidence-lifetime 커버리지 메타게이트 (등록 2026-07-09, 미착수)
+
+- **계기**: 외부 evidence-lifetime 에세이 검증(2026-07-08) 결과, 원칙
+  ("마지막 소비자까지 운반, erase/summarize/retain/reject로 닫기")은
+  docs/semantics/09(compression budget: retain/summarize/erase/forbid) +
+  docs/semantics/14 §0a(AIR 단일 분류 지점)로 **이미 canon**. 유일한 실질
+  델타 = "**모든** evidence kind에 계약이 실재하는가"를 도는 커버리지
+  메타게이트가 없다는 것.
+- **목표**: `AIREvidenceKind` 전 항목(air.h, 현재 15종)에 대해
+  (a) 소유 계약(docs/09 shape: source/target/owner/loses/preserves/
+  forbids/evidence + **last consumer**)이 선언돼 있고 (b) negative
+  test가 존재함을 확인하는 게이트. kind-수준 서류만 확인하는 게이트는
+  기만 가능(machine-neutral gamed-4/4 교훈) — **per-site fact 또는
+  negative fixture에 물릴 것**.
+- **단계(스케치)**: 1. 선행 grep — 기존 abstraction-loss-contract smoke가
+  이미 커버하는 kind 확인(`tests/abstraction_loss_contract_smoke.sh`).
+  2. kind→계약 매핑을 기계가독 형태(md 표 grep 또는 JSON)로 고정.
+  3. 커버리지 게이트 + 의도적 미선언 kind 주입으로 RED 실증.
+- **게이트**: 신규 smoke green + RED 실증.
+- **DoD**: 15/15 kind 계약 매핑 + 게이트 배선 + docs/09 참조 갱신.
+- **금지**: 계약 필드만 채우고 negative 없이 "covered" 보고.
+
 ---
 
 ### Perf 트랙
@@ -18261,3 +18283,35 @@ Local verification for this debt refresh:
   declaration-inventory smoke now whitelists those field/slot view owners as
   declaration-inventory source-of-truth seams, and `test_inc_size_smoke.sh`
   reports zero production owner size violations.
+
+## 진행 노트 — 병렬성 arc 마감 + DOP 통로 개통 (2026-07-08/09)
+
+docs/177 감사에서 출발한 병렬성 arc의 종결 기록 (커밋 4개: `377bb524`
+F1+F2, `9bf946d7` slice 쓰기 표면, `c994f39b` Disjointness rung 0, +docs).
+
+- **F1/F2 (377bb524)**: pool_init 미방출 근인(`ast_uses_thread_pool_surface`
+  함수-본문 미하강) 수리 → parallel/spawn 진짜 병렬. 무증거 스칼라 write-race
+  거절(Exclusivity). backpressure 목격자 게이트(직렬 회귀=deadlock=RED).
+- **copy-only 교리 판정 (BDFL 2026-07-08 비준)**: spawn의 Channel 인자 거절은
+  올바름 — 현 Channel<T>가 inline mutex 값-구조체라 복사=POSIX UB
+  (pgy_abi_spec.h "must not be copied"). parallel 캡처는 포인터 공유(동일
+  mutex)라 안전. 비대칭의 해소 lever = opaque handle lowering(ZoneChannel/
+  WorldChannel ABI target), 수요 실측 시 재론. **교리 깨지 않는다.**
+- **slice 쓰기 표면 (9bf946d7)**: `view[i] = v` → `pgy_slice_set` 양 백엔드
+  완결(semantic은 원래 대칭 수용, codegen이 미완이었음). 부산물로 잠재 결함
+  패밀리 적발·폐쇄: slice_get + raw list/queue/map 접근자의 inline OOB panic
+  본문이 `.bc` 재최적화에서 access violation으로 mis-lower —
+  `llvm_fn_is_bounds_checked_accessor` strip 목록에 패밀리 단위 등재
+  (runtime_panic_codegen_smoke가 적발/검증).
+- **Disjointness rung 0 (c994f39b, docs/178 WO-DOP-1)**: `base.Slice(0,B)` /
+  `base.Slice(B,LEN)` 분할 쌍(불변 경계)을 parallel 캡처 admission으로 허용
+  — [0,B)∩[B,B+LEN)=∅는 값-무관 정리라 분석 아닌 선언(decide→declare).
+  arm당 정확 1참조 + base 무접촉 + 쌍 유일성, 그 외 전부 기존 fail-closed
+  거절 유지. `parallel-disjoint-test-smoke`(admit 110 양 백엔드 + negative
+  4종) + backend_compare `parallel_disjoint_split_write`. DOP 지향의 병렬
+  통로가 0→1.
+- **게이트 증거**: test-transpile 918/0, test-concurrency 5/5, parallel/
+  async/channel compare sweep 18/18, panic smoke 전 클래스 green.
+- 잔여 결정(코드 아님): F3(a) bare-block arm=문법 결정, F2 copy-in 기본화=
+  관찰 의미 변경 — 둘 다 docs/177 §7-8이 결정 입력. WO-A3(evidence-lifetime
+  커버리지 메타게이트) 신규 등록 — 착수 전 선행 grep 필수.

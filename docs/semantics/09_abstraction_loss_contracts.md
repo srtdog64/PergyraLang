@@ -43,6 +43,7 @@ An abstraction loss contract has seven fields:
 | `loses` | Facts intentionally discarded by the boundary. |
 | `preserves` | Facts that must remain available in the target or evidence. |
 | `forbids` | Downstream reads or fallbacks that would depend on lost facts. |
+| `last consumer` | The final stage that still reads the preserved fact (backend, runtime guard, sandbox manifest, LSP/diagnostic, or compatibility corpus). Erasure before this stage is a contract violation; retention past it is hoarding. |
 | `evidence` | Smoke, regression, diagnostic, trace, or invariant proving the budget. |
 
 Loss budget classes:
@@ -421,8 +422,20 @@ true:
 - the owner layer is named;
 - the allowed loss and preserved facts are listed;
 - downstream forbidden reads are listed;
+- the last consumer of every preserved fact is named (`last consumer`
+  field), and the fact is carried exactly that far: erased after full
+  discharge, summarized when tooling/compatibility still needs a digest,
+  retained when runtime safety/security needs the live fact, rejected when
+  the evidence is missing or contradictory;
 - the old compatibility path is rejected, removed, or quarantined behind a
   shrinking gate;
 - tests or diagnostics prove the loss budget;
 - documentation does not call the boundary lossless unless the budget is
   explicitly `zero`.
+
+One sentence holds the whole discipline together: Pergyra is an
+**evidence-carrying compiler, not an evidence-hoarding runtime**. Evidence
+is carried to its last consumer and then compressed by its declared budget;
+it is never erased without proof, and never kept past its last consumer
+without a materialization reason. Coverage of this rule across every
+`AIREvidenceKind` is WO-A3 (TODO work-order board).

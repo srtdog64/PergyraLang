@@ -1,7 +1,8 @@
 # 178. 병렬 경계 = 증거 문제 — 한 규율, 세 지향의 사영
 
-Status: `design-blueprint` (구현 0 — F2 정책의 상위 설계 + DOP 갭 WO). 작성
-2026-07-06. 계기: BDFL — "우리는 변형 OOP + FP + DOP 다중 지향이니, 병렬(캡처/
+Status: `partially-landed` (F2 Exclusivity `377bb524` + WO-DOP-1 rung 0
+`c994f39b`/`9bf946d7` 착지 2026-07-08/09 — §5 착지 기록. §3의 병렬-for는
+여전히 설계만). 작성 2026-07-06. 계기: BDFL — "우리는 변형 OOP + FP + DOP 다중 지향이니, 병렬(캡처/
 경계) 정책이 한 지향의 답이면 안 된다." 상위: docs/177(F1/F2 실측), docs/113
 (교리), docs/146(SEA — "lane은 증거로 결정"), docs/157(AC-3 정리 T),
 IntentConflict.v(`sep_when_active`), project_core_module_layering(★패러다임은
@@ -44,7 +45,7 @@ IntentConflict.v(`sep_when_active`), project_core_module_layering(★패러다�
 |---|---|---|---|
 | **FP** | 불변 값 fan-out, 결과는 채널/Future로 | Copy + Channel | **거의 완비** — spawn 인자 copy-only, 컬렉션 공유 거절, Channel/Slot green. 잔여: 스칼라 copy-in 기본(F2) |
 | **변형 OOP** (subject/vessel/intent) | 공유 개체를 배타 undertaking으로 | Exclusivity | intent 수준은 실물(admission/exclusive/priority + IntentConflict.v). **문장 수준이 구멍**(스칼라 포인터 공유 무가드 = F2) |
-| **DOP** (데이터 지향) | 데이터 테이블을 서로소 구간으로 갈라 일괄 처리 (게임 ECS/SoA 배치) | Disjointness | **통로 부재**: SplitAt/Chunk류 분할 primitive 없음(실측 — Slice/SliceCopy만), 병렬-for 표면 없음, 가변 컬렉션은 경계에서 통짜 거절 → 서로소 절반 2개에 병렬 쓰기를 표현할 방법이 없다 |
+| **DOP** (데이터 지향) | 데이터 테이블을 서로소 구간으로 갈라 일괄 처리 (게임 ECS/SoA 배치) | Disjointness | **rung 0 개통(2026-07-09, §5)**: 분할 slice 쌍의 병렬 쓰기가 admission으로 열림. 잔여 = 병렬-for 표면(설계만), 2-분할 초과 chunk |
 
 DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인데 우리 통로가
 0이라는 게 이 감사의 설계-측 핵심 발견이다. 던전크롤러(킬러 유즈케이스)의
@@ -70,10 +71,36 @@ DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인�
 - 증거 5번째 후보(atomic 등)는 실수요(탈출구 실측) 전 추가 금지 — 4종이 세
   지향을 덮는다는 게 본 설계의 주장이고, 못 덮는 사례가 나오면 그게 반증.
 
+## 5. 착지 기록 (2026-07-08/09)
+
+- **Exclusivity 문장-수준(`377bb524`)**: 무증거 스칼라 write-race 거절 —
+  §1 표의 Exclusivity leg가 문장 수준에서 실물이 됨(단일-작성자+join /
+  전부-읽기 허용, 그 외 거절).
+- **Disjointness rung 0(`c994f39b`, 전제 rung=slice 쓰기 표면 `9bf946d7`)**:
+  §3의 1차 설계 그대로 — 신규 구문 0. 기존 `base.Slice(0, B)` /
+  `base.Slice(B, LEN)` 쌍(불변 경계 B: Int 리터럴 or 불변 비-param 로컬)을
+  구성-보장 분할로 인식해 parallel 캡처 admission. [0,B)∩[B,B+LEN)=∅가
+  값-무관 정리라는 점이 핵심 — 분석이 아니라 선언(decide→declare canon).
+  admission 조건: 같은 base의 캡처된 fact-slice가 정확히 lower/upper 한 쌍,
+  경계 동일(심볼 identity or 리터럴 등가), 절반당 정확히 1개 arm 참조,
+  base는 어떤 arm에도 미참조. 실패 시 기존 컬렉션 거절로 fail-closed.
+  게이트: `parallel-disjoint-test-smoke`(admit=110 양 백엔드, negative 4종)
+  + backend_compare `parallel_disjoint_split_write`.
+- **비대칭 해소 기록**: spawn의 Channel 거절 vs parallel의 Channel 공유는
+  같은 증거 규율의 두 경계 읽기다 — spawn=Copy 경계(inline-mutex Channel은
+  복사 불가 → 거절), parallel=공유 경계(동일 객체 → Channel 증거로 안전).
+  근인/미래 lever(opaque handle lowering)는 docs/177 §8.
+- **evidence lifetime으로 읽기**(docs/semantics/09 압축 예산의 인스턴스):
+  Disjointness = 마지막 소비자가 semantic admission → **erase**(런타임 잔존
+  0) · Channel = 런타임 **retain**(동기화 상태 자체가 증거) · 무증거 공유 =
+  **reject**. "Evidence-carrying compiler, not evidence-hoarding runtime."
+
 ## Related
 
-docs/177(F1/F2 실측 — 본 문서가 F2의 상위 프레임) · docs/157+ZoneCrossingCore
-(Clone/Channel 증거의 정리) · IntentConflict.v(Exclusivity/서로소의 기계화 —
-Disjointness는 그 데이터 판) · docs/146(증거-기반 lane — 같은 문장의 데이터
-확장) · project_core_module_layering(패러다임≠축 canon) · 클로저 Stage A
-(copy 교리 선례) · rayon split_at_mut / ECS-SoA(DOP 계보) · 태스크 #1/#2.
+docs/177(F1/F2 실측 + §8 copy-only 판정 — 본 문서가 F2의 상위 프레임) ·
+docs/157+ZoneCrossingCore(Clone/Channel 증거의 정리) · IntentConflict.v
+(Exclusivity/서로소의 기계화 — Disjointness는 그 데이터 판) · docs/146
+(증거-기반 lane — 같은 문장의 데이터 확장) · docs/semantics/09(증거 압축
+예산 — §5가 그 인스턴스) · project_core_module_layering(패러다임≠축 canon) ·
+클로저 Stage A(copy 교리 선례) · rayon split_at_mut / ECS-SoA(DOP 계보) ·
+태스크 #1/#2 · WO-A3(evidence-lifetime 커버리지 메타게이트, TODO 보드).
