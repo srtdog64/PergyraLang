@@ -1,0 +1,36 @@
+// Runnable compatibility-evolution row projection.
+
+import "compatibility_evolution_owner.pgy";
+
+func CompilerCompatibilitySurfaceManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("surface|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerCompatibilitySurfaceAt(index));
+}
+
+func CompilerObsoleteMigrationManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("obsolete_field|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerObsoleteMigrationFieldAt(index));
+}
+
+func Main() -> Void {
+    if !CompilerCompatibilityEvolutionReady() {
+        Log("COMPATIBILITY_EVOLUTION ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", CompilerCompatibilityEvolutionSchema()));
+    Log(Concat("surface_count=", ToString(CompilerCompatibilitySurfaceCount())));
+    let surface_index: Int = 0;
+    while surface_index < CompilerCompatibilitySurfaceCount() {
+        Log(CompilerCompatibilitySurfaceManifestRowAt(surface_index));
+        surface_index = surface_index + 1;
+    }
+    Log(Concat("obsolete_field_count=", ToString(CompilerObsoleteMigrationFieldCount())));
+    let obsolete_index: Int = 0;
+    while obsolete_index < CompilerObsoleteMigrationFieldCount() {
+        Log(CompilerObsoleteMigrationManifestRowAt(obsolete_index));
+        obsolete_index = obsolete_index + 1;
+    }
+}

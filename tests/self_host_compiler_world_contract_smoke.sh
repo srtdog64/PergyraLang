@@ -529,18 +529,23 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 20" \
+    "CompilerArtifactKindCount() == 21" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
     "ast_text" \
     "CompilerAstTextArtifactKind" \
     "abi_layout" \
+    "runtime_call_abi" \
+    "compatibility_evolution" \
+    "CompilerRuntimeCallAbiArtifactKind" \
+    "CompilerCompatibilityEvolutionArtifactKind" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
-    "CompilerArtifactKindAt(8) == CompilerEmittedSelfHostedArtifactKind()" \
-    "CompilerArtifactKindAt(9) == CompilerRunOutputArtifactKind()" \
-    "CompilerArtifactKindAt(10) == CompilerAstTextArtifactKind()" \
+    "CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind()" \
+    "CompilerArtifactKindAt(9) == CompilerEmittedSelfHostedArtifactKind()" \
+    "CompilerArtifactKindAt(10) == CompilerRunOutputArtifactKind()" \
+    "CompilerArtifactKindAt(11) == CompilerAstTextArtifactKind()" \
     "CompilerLspDiagnosticsArtifactKind" \
     "CompilerLspTransportFrameArtifactKind" \
     "CompilerLspTransportStreamArtifactKind" \
@@ -550,12 +555,12 @@ for term in \
     "CompilerLspDocumentStoreArtifactKind" \
     "CompilerLspSessionStateArtifactKind" \
     "CompilerLspHoverContentArtifactKind" \
-    "CompilerArtifactKindAt(14) == CompilerLspRequestDispatchArtifactKind()" \
-    "CompilerArtifactKindAt(15) == CompilerLspResponseEmissionArtifactKind()" \
-    "CompilerArtifactKindAt(16) == CompilerLspSessionReplayArtifactKind()" \
-    "CompilerArtifactKindAt(17) == CompilerLspDocumentStoreArtifactKind()" \
-    "CompilerArtifactKindAt(18) == CompilerLspSessionStateArtifactKind()" \
-    "CompilerArtifactKindAt(19) == CompilerLspHoverContentArtifactKind()" \
+    "CompilerArtifactKindAt(15) == CompilerLspRequestDispatchArtifactKind()" \
+    "CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind()" \
+    "CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind()" \
+    "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()" \
+    "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()" \
+    "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"

@@ -55,11 +55,14 @@ source, ABI/binary, behavior, diagnostics, AIR evidence, MIR JSON, runtime
 trace, capability profile, and stdlib module compatibility. It also owns the
 required obsolete-migration fields (`diagnostic_id`, replacement,
 `migration_url`, warning/error/remove versions, and codefix status) so upgrade
-policy does not split between docs, diagnostics, and backend scripts.
+policy does not split between docs, diagnostics, and backend scripts. The
+`compatibility_evolution_manifest.pgy` projection emits those rows as a stable
+artifact consumed by `self-host-compatibility-evolution-parity-test-smoke`.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:
-`compatibility_evolution_owner.pgy`, `air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
+`compatibility_evolution_owner.pgy`, `compatibility_evolution_manifest.pgy`,
+`air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
 `abi_layout_row_owner.pgy`, `artifact_zone_owner.pgy`,
 `test_harness_owner.pgy`, and `subprocess_runner_owner.pgy`. These files own
 vocabulary envelopes only. A surface remains active until C, LLVM, and

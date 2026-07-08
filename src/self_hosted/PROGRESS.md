@@ -18,7 +18,10 @@ The latest broad refresh was `make self-host-preparation-test-smoke` on
 2026-07-08: it completed green with 171 real sources accepted by both selfcheck
 backends, M2 completeness at 171/171 through lexer/parser/semantic/codegen/full
 pipeline, codegen bootstrap `gen2 == gen3` at 8053 generated-C lines, DRV-0/DRV-1
-driver parity, LSP parity, and MIR JSON rung-0b parity over 86 fixtures.
+driver parity, LSP parity, and MIR JSON rung-0b parity over 86 fixtures. The
+owner-scoped M2 completeness refresh after adding the compatibility-evolution
+manifest completed green at `sources=172`, with lexer/parser/semantic/codegen
+and `full_pipeline` all at 172/172.
 
 ## Headline Number
 
@@ -81,9 +84,9 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-171 production self-host source files across lexer, parser, semantic, codegen,
-and full-pipeline identity. The real-source semantic selfcheck uses the same
-171-source C/LLVM gate over the current accepted semantic subset,
+172 production self-host source files across lexer, parser, semantic, codegen,
+and full-pipeline identity. The real-source semantic selfcheck uses the broad
+171-source C/LLVM gate from the latest full preparation refresh over the current accepted semantic subset,
 including the codegen run boundary, lexer run/fixture-manifest owners, emission
 action owners, type-fact owner, MIR-lower fact owners, and SEA execution-lane
 mirror. The
@@ -501,7 +504,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 171 production self-host
+   The M2 completeness ledger also now checks all 172 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

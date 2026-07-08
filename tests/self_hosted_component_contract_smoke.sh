@@ -986,6 +986,32 @@ require_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 
 reject_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"'
 reject_text "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/runtime_call_abi_rows.txt"'
 require_text "Makefile" "self-host-runtime-call-abi-row-parity-test-smoke"
+require_file "src/self_hosted/compiler/compatibility_evolution_manifest.pgy"
+require_file "src/self_hosted/compiler/expected/compatibility_evolution.txt"
+require_max_lines "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/compatibility_evolution_manifest.pgy"
+require_text "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 'import "compatibility_evolution_owner.pgy";'
+require_text "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" "func CompilerCompatibilitySurfaceManifestRowAt"
+require_text "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" "func CompilerObsoleteMigrationManifestRowAt"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "schema=pgy.selfhost.compatibility-evolution.v1"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "surface|5|mir_json"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "obsolete_field|2|migration_url"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCompatibilityEvolutionSuiteName"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCompatibilityEvolutionPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessCompatibilityEvolutionReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompatibilityEvolutionPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessCompatibilityEvolutionSuiteName()"
+require_file "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" '"compatibility-evolution"'
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" '"compatibility_evolution"'
+require_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/compatibility_evolution_manifest.pgy"'
+reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/compatibility_evolution.txt"'
+require_text "Makefile" "self-host-compatibility-evolution-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
@@ -2505,6 +2531,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerMi
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAstTextArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAbiLayoutArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeCallAbiArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerCompatibilityEvolutionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
@@ -2515,42 +2542,44 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspResponseEmissionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspSessionReplayArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDocumentStoreArtifactKind"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 20"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 21"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(3) == CompilerAbiLayoutArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(4) == CompilerRuntimeCallAbiArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(5) == CompilerRuntimeMaterializationArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(6) == CompilerEmittedCArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(7) == CompilerEmittedLlvmArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerEmittedSelfHostedArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(9) == CompilerRunOutputArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(10) == CompilerAstTextArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(11) == CompilerLspDiagnosticsArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(12) == CompilerLspTransportFrameArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(13) == CompilerLspTransportStreamArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(14) == CompilerLspRequestDispatchArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(15) == CompilerLspResponseEmissionArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(16) == CompilerLspSessionReplayArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(17) == CompilerLspDocumentStoreArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(18) == CompilerLspSessionStateArtifactKind()"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(19) == CompilerLspHoverContentArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(6) == CompilerRuntimeMaterializationArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(7) == CompilerEmittedCArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(8) == CompilerEmittedLlvmArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(9) == CompilerEmittedSelfHostedArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(10) == CompilerRunOutputArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(11) == CompilerAstTextArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(12) == CompilerLspDiagnosticsArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(13) == CompilerLspTransportFrameArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(14) == CompilerLspTransportStreamArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(15) == CompilerLspRequestDispatchArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()"
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(3) == "abi_layout"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(4) == "runtime_materialization"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(6) == "emitted_llvm"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(9) == "ast_text"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(10) == "lsp_diagnostics"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(11) == "lsp_transport_frame"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(12) == "lsp_transport_stream"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(13) == "lsp_request_dispatch"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(14) == "lsp_response_emission"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(15) == "lsp_session_replay"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(16) == "lsp_document_store"'
-reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(17) == "lsp_session_state"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(5) == "runtime_materialization"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(7) == "emitted_llvm"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(10) == "ast_text"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(11) == "lsp_diagnostics"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(12) == "lsp_transport_frame"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(13) == "lsp_transport_stream"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(14) == "lsp_request_dispatch"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(15) == "lsp_response_emission"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(16) == "lsp_session_replay"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(17) == "lsp_document_store"'
+reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(18) == "lsp_session_state"'
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "let args: Array<String> = Args();"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "expected_path = args[0];"
 require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "actual_path = args[1];"

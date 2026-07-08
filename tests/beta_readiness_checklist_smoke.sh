@@ -253,7 +253,10 @@ Non-Overclaim Rules
 Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness
 171 real self-hosted sources
 SELF-HOSTING OK
-compatibility-evolution gate is still distributed
+compatibility_evolution_manifest.pgy
+self-host-compatibility-evolution-parity-test-smoke
+sources=172
+one versioned production breaking-change corpus
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'
