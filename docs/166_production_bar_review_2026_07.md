@@ -169,10 +169,11 @@ completed green with:
   separate P0/P1 work.
 - Follow-up AIR/backend access slice: `backend_air_access_checker` now walks
   `src/codegen` from Pergyra, rejects AIR header/type tokens in backend sources,
-  and emits `pgy.selfhost.backend-air-access.v1` plus a forbidden-hit negative
-  artifact under `make self-host-backend-air-access-parity-test-smoke`. This
-  moves the verification-only AIR boundary toward hard self-hosted parity while
-  the existing Bash full-sweep non-impact gate remains the broad production
+  and emits `pgy.selfhost.backend-air-access.v1` plus forbidden-hit negative
+  artifacts from both C-built and LLVM-built tools under
+  `make self-host-backend-air-access-parity-test-smoke`. This moves the
+  verification-only AIR boundary toward hard self-hosted parity while the
+  existing Bash full-sweep non-impact gate remains the broad production
   backstop.
 - Follow-up native/backend ABI layout slice: `backend_abi_layout_contract_checker`
   now consumes `abi_layout_row_owner.pgy` rows through the TestHarness manifest,
