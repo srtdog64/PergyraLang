@@ -46,13 +46,19 @@ func CompilerRuntimeCallAbiMaterialTargetLibrary() -> String {
     return "target_library";
 }
 
-func CompilerRuntimeCallAbiRow(domain: String, operation: String,
-                               symbol: String, materialization: String) -> String {
-    let row: String = Concat(domain, "|");
-    row = Concat(row, Concat(operation, "|"));
-    row = Concat(row, Concat(symbol, "|"));
+struct CompilerRuntimeCallAbiRowInput {
+    let domain: String;
+    let operation: String;
+    let symbol: String;
+    let materialization: String;
+}
+
+func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String {
+    let row: String = Concat(input.domain, "|");
+    row = Concat(row, Concat(input.operation, "|"));
+    row = Concat(row, Concat(input.symbol, "|"));
     row = Concat(row, "function|");
-    return Concat(row, materialization);
+    return Concat(row, input.materialization);
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
@@ -60,105 +66,105 @@ func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
 }
 
 func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
-    if index == 0 { return CompilerRuntimeCallAbiRow("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 1 { return CompilerRuntimeCallAbiRow("collection", "array-int.push", CollectionRuntimeCPushFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 2 { return CompilerRuntimeCallAbiRow("collection", "array-int.set", CollectionRuntimeCSetFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 3 { return CompilerRuntimeCallAbiRow("collection", "array-int.get", CollectionRuntimeCGetFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 4 { return CompilerRuntimeCallAbiRow("collection", "array-int.len", CollectionRuntimeCLenFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 5 { return CompilerRuntimeCallAbiRow("collection", "array-int.pop", CollectionRuntimeCPopFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 6 { return CompilerRuntimeCallAbiRow("collection", "array-string.new", CollectionRuntimeCNewFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 7 { return CompilerRuntimeCallAbiRow("collection", "array-string.push", CollectionRuntimeCPushFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 8 { return CompilerRuntimeCallAbiRow("collection", "array-string.set", CollectionRuntimeCSetFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 9 { return CompilerRuntimeCallAbiRow("collection", "array-string.get", CollectionRuntimeCGetFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 10 { return CompilerRuntimeCallAbiRow("collection", "array-string.len", CollectionRuntimeCLenFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 11 { return CompilerRuntimeCallAbiRow("collection", "array-string.pop", CollectionRuntimeCPopFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 12 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.new", CollectionRuntimeCNewFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 13 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.push", CollectionRuntimeCPushFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 14 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.set", CollectionRuntimeCSetFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 15 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.get", CollectionRuntimeCGetFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 16 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.len", CollectionRuntimeCLenFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 17 { return CompilerRuntimeCallAbiRow("collection", "array-codegen-ast-text-node.pop", CollectionRuntimeCPopFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 18 { return CompilerRuntimeCallAbiRow("collection", "array-int.sort", CollectionRuntimeCIntSortFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 19 { return CompilerRuntimeCallAbiRow("collection", "array-int.reverse", CollectionRuntimeCIntReverseFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 20 { return CompilerRuntimeCallAbiRow("collection", "array-int.map", CollectionRuntimeCIntMapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 21 { return CompilerRuntimeCallAbiRow("collection", "array-int.filter", CollectionRuntimeCIntFilterFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.push", CollectionRuntimeCPushFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.set", CollectionRuntimeCSetFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.get", CollectionRuntimeCGetFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.len", CollectionRuntimeCLenFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.pop", CollectionRuntimeCPopFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.new", CollectionRuntimeCNewFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.push", CollectionRuntimeCPushFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.set", CollectionRuntimeCSetFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.get", CollectionRuntimeCGetFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.len", CollectionRuntimeCLenFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-string.pop", CollectionRuntimeCPopFn(2), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 12 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.new", CollectionRuntimeCNewFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 13 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.push", CollectionRuntimeCPushFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.set", CollectionRuntimeCSetFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.get", CollectionRuntimeCGetFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 16 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.len", CollectionRuntimeCLenFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 17 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-codegen-ast-text-node.pop", CollectionRuntimeCPopFn(3), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 18 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.sort", CollectionRuntimeCIntSortFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 19 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.reverse", CollectionRuntimeCIntReverseFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 20 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.map", CollectionRuntimeCIntMapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 21 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.filter", CollectionRuntimeCIntFilterFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
 func CompilerRuntimeCallAbiOptionResultRowAt(index: Int) -> String {
-    if index == 0 { return CompilerRuntimeCallAbiRow("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 1 { return CompilerRuntimeCallAbiRow("option-result", "option-string.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 2 { return CompilerRuntimeCallAbiRow("option-result", "option-int.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 3 { return CompilerRuntimeCallAbiRow("option-result", "option-string.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 4 { return CompilerRuntimeCallAbiRow("option-result", "option.is-some", OptionResultRuntimeCOptionIsSomeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 5 { return CompilerRuntimeCallAbiRow("option-result", "option.unwrap", OptionResultRuntimeCOptionUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 6 { return CompilerRuntimeCallAbiRow("option-result", "result.ok", OptionResultRuntimeCResultOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 7 { return CompilerRuntimeCallAbiRow("option-result", "result.err", OptionResultRuntimeCResultErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 8 { return CompilerRuntimeCallAbiRow("option-result", "result.is-ok", OptionResultRuntimeCResultIsOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 9 { return CompilerRuntimeCallAbiRow("option-result", "result.is-err", OptionResultRuntimeCResultIsErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 10 { return CompilerRuntimeCallAbiRow("option-result", "result.unwrap", OptionResultRuntimeCResultUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 11 { return CompilerRuntimeCallAbiRow("option-result", "result.unwrap-or", OptionResultRuntimeCResultUnwrapOrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-string.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-string.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.is-some", OptionResultRuntimeCOptionIsSomeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.unwrap", OptionResultRuntimeCOptionUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.ok", OptionResultRuntimeCResultOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.err", OptionResultRuntimeCResultErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-ok", OptionResultRuntimeCResultIsOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-err", OptionResultRuntimeCResultIsErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap", OptionResultRuntimeCResultUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap-or", OptionResultRuntimeCResultUnwrapOrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
 func CompilerRuntimeCallAbiMathRowAt(index: Int) -> String {
-    if index == 0 { return CompilerRuntimeCallAbiRow("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 1 { return CompilerRuntimeCallAbiRow("math", "min", MathRuntimeCMinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 2 { return CompilerRuntimeCallAbiRow("math", "max", MathRuntimeCMaxFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 3 { return CompilerRuntimeCallAbiRow("math", "sqrt", MathRuntimeCSqrtFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 4 { return CompilerRuntimeCallAbiRow("math", "pow", MathRuntimeCPowFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 5 { return CompilerRuntimeCallAbiRow("math", "floor", MathRuntimeCFloorFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 6 { return CompilerRuntimeCallAbiRow("math", "ceil", MathRuntimeCCeilFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 7 { return CompilerRuntimeCallAbiRow("math", "seed-random", MathRuntimeCSeedRandomFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 8 { return CompilerRuntimeCallAbiRow("math", "random", MathRuntimeCRandomFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "min", MathRuntimeCMinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "max", MathRuntimeCMaxFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "sqrt", MathRuntimeCSqrtFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "pow", MathRuntimeCPowFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "floor", MathRuntimeCFloorFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "ceil", MathRuntimeCCeilFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "seed-random", MathRuntimeCSeedRandomFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "random", MathRuntimeCRandomFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
 func CompilerRuntimeCallAbiStringRowAt(index: Int) -> String {
-    if index == 0 { return CompilerRuntimeCallAbiRow("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 1 { return CompilerRuntimeCallAbiRow("string", "log", StringRuntimeCLogFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 2 { return CompilerRuntimeCallAbiRow("string", "print", StringRuntimeCPrintFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 3 { return CompilerRuntimeCallAbiRow("string", "formatted-print", StringRuntimeCFormattedPrintFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 4 { return CompilerRuntimeCallAbiRow("string", "compare", StringRuntimeCStringCompareFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 5 { return CompilerRuntimeCallAbiRow("string", "length", StringRuntimeCStringLengthFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 6 { return CompilerRuntimeCallAbiRow("string", "contains", StringRuntimeCStringContainsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 7 { return CompilerRuntimeCallAbiRow("string", "index-of", StringRuntimeCStringIndexOfFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 8 { return CompilerRuntimeCallAbiRow("string", "split", StringRuntimeCSplitFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 9 { return CompilerRuntimeCallAbiRow("string", "to-int", StringRuntimeCToIntFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 10 { return CompilerRuntimeCallAbiRow("string", "to-float", StringRuntimeCToFloatFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
-    if index == 11 { return CompilerRuntimeCallAbiRow("string", "trim", StringRuntimeCStringTrimFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 12 { return CompilerRuntimeCallAbiRow("string", "replace", StringRuntimeCStringReplaceFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 13 { return CompilerRuntimeCallAbiRow("string", "to-upper", StringRuntimeCToUpperFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 14 { return CompilerRuntimeCallAbiRow("string", "to-lower", StringRuntimeCToLowerFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 15 { return CompilerRuntimeCallAbiRow("string", "char-code", StringRuntimeCCharCodeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 16 { return CompilerRuntimeCallAbiRow("string", "char-at-n", StringRuntimeCCharAtNFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 17 { return CompilerRuntimeCallAbiRow("string", "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 18 { return CompilerRuntimeCallAbiRow("string", "sub-equals-with-len", StringRuntimeCSubEqualsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 19 { return CompilerRuntimeCallAbiRow("string", "sub-index-of-with-len", StringRuntimeCSubIndexOfWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 20 { return CompilerRuntimeCallAbiRow("string", "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 21 { return CompilerRuntimeCallAbiRow("string", "substring", StringRuntimeCSubstringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 22 { return CompilerRuntimeCallAbiRow("string", "join", StringRuntimeCStringJoinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 23 { return CompilerRuntimeCallAbiRow("string", "to-string", StringRuntimeCToStringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "log", StringRuntimeCLogFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "print", StringRuntimeCPrintFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "formatted-print", StringRuntimeCFormattedPrintFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "compare", StringRuntimeCStringCompareFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "length", StringRuntimeCStringLengthFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "contains", StringRuntimeCStringContainsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "index-of", StringRuntimeCStringIndexOfFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "split", StringRuntimeCSplitFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-int", StringRuntimeCToIntFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-float", StringRuntimeCToFloatFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
+    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "trim", StringRuntimeCStringTrimFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 12 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "replace", StringRuntimeCStringReplaceFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 13 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-upper", StringRuntimeCToUpperFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-lower", StringRuntimeCToLowerFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "char-code", StringRuntimeCCharCodeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 16 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "char-at-n", StringRuntimeCCharAtNFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 17 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "sub-contains-with-len", StringRuntimeCSubContainsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 18 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "sub-equals-with-len", StringRuntimeCSubEqualsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 19 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "sub-index-of-with-len", StringRuntimeCSubIndexOfWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 20 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "sub-starts-with-len", StringRuntimeCSubStartsWithLenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 21 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "substring", StringRuntimeCSubstringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 22 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "join", StringRuntimeCStringJoinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 23 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "to-string", StringRuntimeCToStringFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
 func CompilerRuntimeCallAbiHostIoRowAt(index: Int) -> String {
-    if index == 0 { return CompilerRuntimeCallAbiRow("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 1 { return CompilerRuntimeCallAbiRow("host-io", "path-allowed", HostIORuntimeCPathAllowedFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal()); }
-    if index == 2 { return CompilerRuntimeCallAbiRow("host-io", "write-file", HostIORuntimeCWriteFileFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 3 { return CompilerRuntimeCallAbiRow("host-io", "file-open", HostIORuntimeCFileOpenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 4 { return CompilerRuntimeCallAbiRow("host-io", "secure-file-open", HostIORuntimeCSecureFileOpenFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal()); }
-    if index == 5 { return CompilerRuntimeCallAbiRow("host-io", "file-write", HostIORuntimeCFileWriteFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 6 { return CompilerRuntimeCallAbiRow("host-io", "file-close", HostIORuntimeCFileCloseFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 7 { return CompilerRuntimeCallAbiRow("host-io", "file-read", HostIORuntimeCFileReadFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 8 { return CompilerRuntimeCallAbiRow("host-io", "file-handle-valid", HostIORuntimeCFileHandleValidFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal()); }
-    if index == 9 { return CompilerRuntimeCallAbiRow("host-io", "read-file", HostIORuntimeCReadFileFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 10 { return CompilerRuntimeCallAbiRow("host-io", "read-stdin", HostIORuntimeCReadStdinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 11 { return CompilerRuntimeCallAbiRow("host-io", "dir-walk", HostIORuntimeCDirWalkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 12 { return CompilerRuntimeCallAbiRow("host-io", "dir-walk-rec", HostIORuntimeCDirWalkRecFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal()); }
-    if index == 13 { return CompilerRuntimeCallAbiRow("host-io", "string-compare", HostIORuntimeCStringCompareFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal()); }
-    if index == 14 { return CompilerRuntimeCallAbiRow("host-io", "args", HostIORuntimeCArgsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()); }
-    if index == 15 { return CompilerRuntimeCallAbiRow("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()); }
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "path-allowed", HostIORuntimeCPathAllowedFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "write-file", HostIORuntimeCWriteFileFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-open", HostIORuntimeCFileOpenFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "secure-file-open", HostIORuntimeCSecureFileOpenFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-write", HostIORuntimeCFileWriteFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-close", HostIORuntimeCFileCloseFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-read", HostIORuntimeCFileReadFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-handle-valid", HostIORuntimeCFileHandleValidFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal())); }
+    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "read-file", HostIORuntimeCReadFileFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "read-stdin", HostIORuntimeCReadStdinFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "dir-walk", HostIORuntimeCDirWalkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 12 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "dir-walk-rec", HostIORuntimeCDirWalkRecFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal())); }
+    if index == 13 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "string-compare", HostIORuntimeCStringCompareFn(), CompilerRuntimeCallAbiMaterialGeneratedInternal())); }
+    if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "args", HostIORuntimeCArgsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())); }
     return "";
 }
 
@@ -179,10 +185,10 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowFactAt(3) == CompilerRuntimeCallAbiRowSymbolKindFact() &&
         CompilerRuntimeCallAbiRowFactAt(4) == CompilerRuntimeCallAbiRowMaterializationFact() &&
         CompilerRuntimeCallAbiConcreteRowCount() == 83 &&
-        CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper()) &&
-        CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper()) &&
-        CompilerRuntimeCallAbiRowAt(34) == CompilerRuntimeCallAbiRow("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()) &&
-        CompilerRuntimeCallAbiRowAt(43) == CompilerRuntimeCallAbiRow("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()) &&
-        CompilerRuntimeCallAbiRowAt(67) == CompilerRuntimeCallAbiRow("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()) &&
-        CompilerRuntimeCallAbiRowAt(82) == CompilerRuntimeCallAbiRow("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary());
+        CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(34) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(43) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(67) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(82) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()));
 }

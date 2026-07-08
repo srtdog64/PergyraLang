@@ -153,10 +153,11 @@ completed green with:
   that must exit non-zero and byte-match the TestHarness-projected negative
   JSON artifact on both C and LLVM legs when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
-  31-row policy/evidence artifact. The parity gate locks positive
-  `MovableScheduler` rows and negative `Reject` rows for pin/raw-slot resource
-  capture under movability requirements on both C and LLVM. The same suite now
-  emits `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`, which
+  33-row policy/evidence artifact. The parity gate locks positive
+  `MovableScheduler` rows and negative `Reject` rows for pin, live-view,
+  raw-slot, and raw-channel resource capture under movability requirements on
+  both C and LLVM. The same suite now emits
+  `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`, which
   honestly records the current `worker_join_scaffold` executor depth. Live AIR
   JSON full-matrix coverage and lane-specific production executor depth remain
   separate P0/P1 work.

@@ -120,7 +120,7 @@ for be in $backends; do
     if ! diff -u "$GOLDEN" "$WORK/got_$be.txt"; then
         fail "lane decision drift (backend=$be) vs the C policy golden (see diff)."
     fi
-    echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (31/31)"
+    echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (33/33)"
 done
 
 EXEC_ARG="$(pgy_path_for_compiler "$PGY" "$EXEC_SRC")"

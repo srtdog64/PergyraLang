@@ -175,13 +175,15 @@ func LaneFromProducedBoundaryFact(fact: BoundaryLaneInputFact) -> ExecutionLane 
     return LaneFromBoundaryFact(BoundaryFactWithMirValueCaptureEvidence(fact));
 }
 
-// The 10 decision-table cases, in the same order as the C proof
+// The 12 decision-table cases, in the same order as the C proof
 // (src/tests/execution_lane_policy_test.c), so the two policies can be diffed.
 func Main() -> Void {
     LogLaneCase("policy_inline_not_concurrent", ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, false)));
     LogLaneCase("policy_pinned_pin_capture", ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, false, false, false, false, true)));
     LogLaneCase("policy_pinned_raw_slot_capture", ClassifyLane(BoundaryCaptureFact(false, false, true,  false, false, false, false, false, false, false, true)));
     LogLaneCase("negative_pin_requires_movability", ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, true,  false, false, false, true)));
+    LogLaneCase("negative_live_view_requires_movability", ClassifyLane(BoundaryCaptureFact(false, true,  false, false, false, false, true,  false, false, false, true)));
+    LogLaneCase("negative_raw_channel_requires_movability", ClassifyLane(BoundaryCaptureFact(false, false, false, true,  false, false, true,  false, false, false, true)));
     LogLaneCase("policy_blocking_io_ffi", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, true,  false, false, true)));
     LogLaneCase("policy_local_async_await_heavy", ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, true,  false, true)));
     LogLaneCase("policy_worker_deterministic_fork_join", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, true,  true)));

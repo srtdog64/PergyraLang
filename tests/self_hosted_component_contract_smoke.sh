@@ -1139,6 +1139,8 @@ require_max_lines "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 6
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "pgy.selfhost.runtime-call-abi-row.v1"
+require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "struct CompilerRuntimeCallAbiRowInput"
+reject_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "func CompilerRuntimeCallAbiRow(domain: String"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "CollectionRuntimeCNewFn(1)"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "StringRuntimeCSubstringFn()"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_owner.pgy" "HostIORuntimeCExitFn()"
@@ -1374,6 +1376,8 @@ require_text "src/self_hosted/sea/lane_executor_contract.pgy" "definitely_missin
 require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|Reject|(rejected)|fail_closed"
 require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
 require_text "src/self_hosted/sea/expected_executor_contract_missing.txt" "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term"
+require_text "src/self_hosted/sea/expected_lanes.txt" "negative_live_view_requires_movability|Reject"
+require_text "src/self_hosted/sea/expected_lanes.txt" "negative_raw_channel_requires_movability|Reject"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" '"execution-lane-parity-paths"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/${harness_paths[0]}"'
@@ -1383,6 +1387,7 @@ require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_GOLDEN="$ROO
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_MISSING_GOLDEN="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "--self-test-missing-term"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "assert_llvm_leg"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" "33/33"
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"'
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"

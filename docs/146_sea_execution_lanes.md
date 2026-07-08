@@ -97,8 +97,8 @@ strictly underneath.
   `crosses_authority_boundary`, and `requires_movability`, plus effect/shape
   facts needed by the decision table.
 - `ExecutionLaneFact` is the output SoT. The pure classification policy has a
-  decision-table proof covering every lane and both load-bearing edges
-  (`execution-lane-policy-test-smoke`, 10/10).
+  decision-table proof covering every lane and the resource+movability
+  fail-closed edges (`execution-lane-policy-test-smoke`, 12/12).
 - `boundary_capture` and `execution_lane` live on `AIRBoundaryNode`, are
   finalized in ONE pass in `air_synthesize`, and are emitted in `--air-json`.
 - A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
@@ -126,10 +126,11 @@ strictly underneath.
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
   (`self-host-execution-lane-parity-test-smoke`) diffs a named case-row artifact
   against the C policy table plus AIR evidence-shape rows on both C and LLVM
-  (31/31 each). The named rows explicitly pin positive `MovableScheduler`
-  evidence and negative `Reject` rows for pin/raw-slot resource capture under
-  movability requirements. The self-host mirror is forbidden to reintroduce
-  `BoundarySourceKind`, `source_kind`, or source-string lane APIs.
+  (33/33 each). The named rows explicitly pin positive `MovableScheduler`
+  evidence and negative `Reject` rows for pin, live-view, raw-slot, and
+  raw-channel resource capture under movability requirements. The self-host
+  mirror is forbidden to reintroduce `BoundarySourceKind`, `source_kind`, or
+  source-string lane APIs.
 - The same parity suite now also compiles
   `src/self_hosted/sea/lane_executor_contract.pgy`, which reads
   `src/runtime/pgy_lane_scheduler.{c,h}` and emits a stable executor-contract

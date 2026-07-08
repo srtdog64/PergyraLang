@@ -785,6 +785,15 @@ and emits `pgy.selfhost.lane-executor-contract.v1`, recording the current
 does not claim production executor depth; it turns the current scaffold into a
 tracked artifact that must change when dedicated lane executors land.
 
+SEA producer-coverage delta, 2026-07-08: the native execution-lane policy proof
+now pins every resource-capture family that conflicts with movability, not only
+pin/raw-slot. `execution-lane-policy-test-smoke` covers pin, live-view, and
+raw-channel rejection edges, and the self-host SEA parity artifact grew from
+31 to 33 rows with `negative_live_view_requires_movability` and
+`negative_raw_channel_requires_movability`. This tightens the
+BoundaryCaptureFact fail-closed contract without claiming the production
+executor split is complete.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

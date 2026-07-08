@@ -46,6 +46,12 @@ main(void)
     { BoundaryCaptureFact e = base; e.captures_pin = true; e.requires_movability = true;
       chk("pin+move(reject)", e, PGY_LANE_REJECT); }
 
+    { BoundaryCaptureFact e = base; e.captures_live_view = true; e.requires_movability = true;
+      chk("live-view+move", e, PGY_LANE_REJECT); }
+
+    { BoundaryCaptureFact e = base; e.captures_raw_channel = true; e.requires_movability = true;
+      chk("raw-channel+move", e, PGY_LANE_REJECT); }
+
     { BoundaryCaptureFact e = base; e.has_io_or_ffi_effect = true;
       e.captures_value_only = true; e.crosses_authority_boundary = true;
       chk("io-ffi", e, PGY_LANE_BLOCKING_POOL); }
@@ -67,6 +73,6 @@ main(void)
       chk("bare-concurrent", e, PGY_LANE_LOCAL_ASYNC); }
 
     if (fails) { printf("\n%d FAIL\n", fails); return 1; }
-    printf("\nALL PASS (10/10)\n");
+    printf("\nALL PASS (12/12)\n");
     return 0;
 }
