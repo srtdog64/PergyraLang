@@ -189,6 +189,20 @@ transpiler.c:440(조건부 pool_init) · IntentConflict.v(다중-작성자 정�
   (런타임 객체 0) · Channel 증거 = 런타임 **retain**(mutex/backpressure
   상태) · spawn-Channel = **reject**. 이 arc의 세 결정이 정확히 세 budget의
   인스턴스다.
-- 남은 표면 결정(코드 아님, 이 문서가 결정 입력): F3(a) bare-block arm
-  (문법 확장), F2 copy-in 기본화(관찰 의미 변경 — 부모가 join 후 변화를
-  못 보게 됨).
+- ~~남은 표면 결정: F3(a) bare-block arm, F2 copy-in 기본화~~ — **둘 다
+  BDFL 승인으로 2026-07-09 착지**:
+  - **F3(a) 着(`39da6046`)**: parallel arm 위치 한정으로 bare `{ ... }` 블록
+    = 다중-문장 arm(외부 문법 불변, 프로브로 누출 없음 확인). 목격자 =
+    `parallel_pingpong_witness` — 용량-1 채널 2개 위 교대-강제 프로토콜,
+    직렬이면 어느 순서로도 첫 recv에서 deadlock=RED. p7이 마침내 작성
+    가능해졌고 backpressure보다 강한 동시성 목격자다.
+  - **F2 copy-in 着(`48689eec`)**: 단일-writer 프리미티브 스칼라를 타 arm이
+    읽는 패턴(종전 거절)을 **reader=pre-parallel 스냅샷 / writer=배타
+    포인터**로 허용 — 어떤 인터리빙에서도 reader가 writer를 관찰 불가 =
+    결정론, spawn copy-only/클로저 Stage A와 정렬. write-write와 비-프리미티브
+    read-write는 거절 유지. writer 분석은 AST 소유 단일
+    함수(`ast_statement_assigns_identifier`)를 checker+양 백엔드가 공유(drift
+    불가). 판별 목격자 = `parallel_snapshot_read`(reader가 채널로 write
+    *이후*에 순서화 — 포인터 의미면 42/42 강제, 스냅샷이면 42/1) 양 백엔드
+    42/1 실측. 부수: 전-firing이 거짓이 된 구식 "writes shared captured
+    variable" 경고 제거.

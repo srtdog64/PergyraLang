@@ -43,7 +43,7 @@ IntentConflict.v(`sep_when_active`), project_core_module_layering(★패러다�
 
 | 지향 | 관용 병렬 패턴 | 필요 증거 | 현 상태 (docs/177 실측) |
 |---|---|---|---|
-| **FP** | 불변 값 fan-out, 결과는 채널/Future로 | Copy + Channel | **거의 완비** — spawn 인자 copy-only, 컬렉션 공유 거절, Channel/Slot green. 잔여: 스칼라 copy-in 기본(F2) |
+| **FP** | 불변 값 fan-out, 결과는 채널/Future로 | Copy + Channel | **완비(2026-07-09)** — spawn 인자 copy-only, 컬렉션 공유 거절, Channel/Slot green, 스칼라 reader-snapshot(§5) |
 | **변형 OOP** (subject/vessel/intent) | 공유 개체를 배타 undertaking으로 | Exclusivity | intent 수준은 실물(admission/exclusive/priority + IntentConflict.v). **문장 수준이 구멍**(스칼라 포인터 공유 무가드 = F2) |
 | **DOP** (데이터 지향) | 데이터 테이블을 서로소 구간으로 갈라 일괄 처리 (게임 ECS/SoA 배치) | Disjointness | **rung 0 개통(2026-07-09, §5)**: 분할 slice 쌍의 병렬 쓰기가 admission으로 열림. 잔여 = 병렬-for 표면(설계만), 2-분할 초과 chunk |
 
@@ -90,10 +90,22 @@ DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인�
   같은 증거 규율의 두 경계 읽기다 — spawn=Copy 경계(inline-mutex Channel은
   복사 불가 → 거절), parallel=공유 경계(동일 객체 → Channel 증거로 안전).
   근인/미래 lever(opaque handle lowering)는 docs/177 §8.
+- **Copy 문장-수준(`48689eec`, 2026-07-09)**: 단일-writer 프리미티브 스칼라의
+  reader arm이 pre-parallel 스냅샷을 복사로 수령(writer는 배타 포인터 유지) —
+  종전 read-write 거절이 결정론적 의미로 승격. §2 FP row의 마지막 잔여가
+  닫혀 FP 사영 완비. write-write/비-프리미티브 read-write는 fail-closed 유지.
+  writer 분석 단일 소유(`ast_statement_assigns_identifier`) — checker와 양
+  백엔드가 같은 walk를 소비해 admission↔materialization drift 불가. 게이트:
+  `parallel-snapshot-test-smoke` + backend_compare `parallel_snapshot_read`
+  (채널-순서화 판별자: 포인터 의미=42/42 강제, 스냅샷=42/1).
+- **bare-block arm(`39da6046`, 2026-07-09, docs/177 F3(a))**: 다중-문장 arm
+  표면이 열려 §2의 관용구들이 실제로 작성 가능해짐. 목격자 =
+  `parallel_pingpong_witness`(교대-강제 프로토콜, 직렬=deadlock=RED).
 - **evidence lifetime으로 읽기**(docs/semantics/09 압축 예산의 인스턴스):
   Disjointness = 마지막 소비자가 semantic admission → **erase**(런타임 잔존
-  0) · Channel = 런타임 **retain**(동기화 상태 자체가 증거) · 무증거 공유 =
-  **reject**. "Evidence-carrying compiler, not evidence-hoarding runtime."
+  0) · Copy(snapshot) = ctx 복사 후 원본과 절연 → **erase** · Channel =
+  런타임 **retain**(동기화 상태 자체가 증거) · 무증거 공유 = **reject**.
+  "Evidence-carrying compiler, not evidence-hoarding runtime."
 
 ## Related
 

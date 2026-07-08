@@ -18326,3 +18326,27 @@ F1+F2, `9bf946d7` slice 쓰기 표면, `c994f39b` Disjointness rung 0, +docs).
 - 잔여 결정(코드 아님): F3(a) bare-block arm=문법 결정, F2 copy-in 기본화=
   관찰 의미 변경 — 둘 다 docs/177 §7-8이 결정 입력. WO-A3(evidence-lifetime
   커버리지 메타게이트) 신규 등록 — 착수 전 선행 grep 필수.
+
+## 진행 노트 — 병렬 경계 잔여 3종 전부 착지 (2026-07-09, BDFL "남은것들 다")
+
+docs/177 §8의 보류 항목 2개 + WO-A3을 한 arc로 마감 (커밋: `39da6046`
+F3(a), `48689eec` F2 snapshot, `6bcd07df` WO-A3, +docs).
+
+- **F3(a)**: bare `{ }` 블록 = parallel arm (arm 위치 한정 문법 확장, 외부
+  문법 불변 프로브 확인). 목격자 `parallel_pingpong_witness` = 교대-강제
+  프로토콜(직렬=deadlock=RED) — backpressure보다 강한 동시성 증인.
+- **F2 copy-in**: 단일-writer 프리미티브 스칼라 + 타 arm 읽기(종전 거절)를
+  reader=pre-parallel **스냅샷**/writer=배타 포인터로 허용. 결정론(어떤
+  인터리빙에서도 reader가 writer 관찰 불가), spawn copy-only·클로저 Stage A
+  정렬. write-write/비-프리미티브 read-write 거절 유지. writer 분석은
+  `ast_statement_assigns_identifier` 단일 소유(checker+양 백엔드 공유).
+  거짓-firing이 된 구식 공유-쓰기 경고 제거. 판별 목격자
+  `parallel_snapshot_read`(채널-순서화: 포인터=42/42 강제, 스냅샷=42/1).
+- **WO-A3**: evidence_kind_manifest(15/15) + evidence_lifetime_smoke
+  (양방향 대응 ratchet + RED 자가검증). CI 배선은 동시 세션 air 작업 착지
+  후(보드 항목 참조).
+- 게이트: parallel 목격자 4종 compare green, snapshot/disjoint smoke green,
+  test-semantic 2794/0, test-transpile 918/0, test-concurrency 5/5.
+- 이로써 docs/177 감사의 발견 전 항목(F1/F2/F3/F4)이 코드 또는 기록으로
+  닫힘. 병렬 경계 증거 4종(Copy/Channel/Exclusivity/Disjointness) 전부
+  문장-수준 실물 + 상설 목격자 보유.
