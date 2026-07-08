@@ -17,7 +17,13 @@ obsolete_field|3|warning_from
 obsolete_field|4|error_from
 obsolete_field|5|remove_from
 obsolete_field|6|codefix_status
-change_count=3
+change_count=9
 change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|codefix_available
 change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership|manual_migration
 change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool|no_codefix
+change|behavior|ArrayPushValueParam|behavior|0.8|0.9|1.0|PGYCOMPAT004|inout Array<T>|docs/compat/value-arraypush|codefix_available
+change|air_evidence|authority_effect_evidence|required|0.8|0.9|1.0|PGYCOMPAT005|AIRAuthorityEvidence|docs/compat/air-authority-evidence|manual_migration
+change|mir_json|source_ast_semantic_fallback|breaking|0.8|0.9|1.0|PGYCOMPAT006|MirOwnedFacts|docs/compat/mir-source-ast|manual_migration
+change|runtime_trace|slot_materialization_reason|required|0.8|0.9|1.0|PGYCOMPAT007|RuntimeMaterializationTrace|docs/compat/runtime-materialization|no_codefix
+change|capability_profile|ambient_filesystem|breaking|0.8|0.9|1.0|PGYCOMPAT008|CapabilityManifestFs|docs/compat/capability-fs|manual_migration
+change|stdlib_module|money_add_currency|behavior|0.8|0.9|1.0|PGYCOMPAT009|MoneyCurrencyMatch|docs/compat/money-currency|no_codefix

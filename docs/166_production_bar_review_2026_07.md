@@ -137,21 +137,24 @@ completed green with:
 - MIR JSON rung-0b parity over 86 fixtures through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
 - Follow-up compatibility slice: compatibility vocabulary, obsolete migration
-  fields, and a seed source/ABI/diagnostic breaking-change corpus now emit a
-  stable `compatibility_evolution` artifact, gated by
+  fields, and a seed breaking-change row for every compatibility surface now
+  emit a stable `compatibility_evolution` artifact, gated by
   `make self-host-compatibility-evolution-parity-test-smoke`.
 - Follow-up consumer slice: `compatibility_evolution_checker` consumes the same
   owner rows through the TestHarness manifest and proves that the seed corpus
-  covers source, ABI/binary, diagnostic, diagnostic-id, version-ladder,
+  covers all nine compatibility surfaces plus diagnostic-id, version-ladder,
   migration-URL, and codefix-status rows, gated by
   `make self-host-compatibility-corpus-parity-test-smoke`.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
+- Follow-up owner-scoped TestHarness split refresh: `sources=175`, with
+  lexer/parser/semantic/codegen and `full_pipeline` all at 175/175.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:
 released/native driver and LSP replacement are still runged substitutes, the
 runtime executor and sandbox quota surfaces remain partial, and the
-compatibility-evolution corpus is still a seed corpus until diagnostics,
-stable-subset, package, runtime-trace, and native C/LLVM/self-host production
+compatibility-evolution corpus is still a seed corpus until old source, old
+ABI layout, old diagnostic JSON, old AIR/MIR JSON, old runtime trace,
+capability manifest, stdlib surface, and native C/LLVM/self-host production
 consumers read it as their shared upgrade policy.

@@ -3,7 +3,7 @@
 ## Intent
 
 Consume the PgyCompilerWorld compatibility-evolution owner and prove the seed
-breaking-change corpus has source, ABI/binary, and diagnostic coverage.
+breaking-change corpus has coverage for every compatibility surface.
 
 ## Input Contract
 

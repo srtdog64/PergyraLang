@@ -22,11 +22,11 @@ driver parity, LSP parity, and MIR JSON rung-0b parity over 86 fixtures. The
 owner-scoped M2 completeness refresh after adding the compatibility-evolution
 manifest completed green at `sources=172`, with lexer/parser/semantic/codegen
 and `full_pipeline` all at 172/172. The compatibility-evolution manifest now
-also emits seed source/ABI/diagnostic breaking-change corpus rows beside the
-surface vocabulary and obsolete-migration fields. A follow-up
+also emits a seed breaking-change row for every compatibility surface beside
+the surface vocabulary and obsolete-migration fields. A follow-up
 compatibility-corpus checker consumes those owner rows through the TestHarness
-manifest and proves source/ABI/diagnostic plus migration-metadata seed coverage
-for diagnostic IDs, version ladders, migration URLs, and codefix status; its
+manifest and proves all-surface plus migration-metadata seed coverage for
+diagnostic IDs, version ladders, migration URLs, and codefix status; its
 owner-scoped completeness refresh completed green at `sources=173`, with
 lexer/parser/semantic/codegen and `full_pipeline` all at 173/173. This has not
 yet been promoted to a fresh broad preparation run in this ledger.

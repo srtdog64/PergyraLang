@@ -62,7 +62,7 @@ func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
 }
 
 func CompilerCompatibilityChangeCount() -> Int {
-    return 3;
+    return 9;
 }
 
 func CompilerCompatibilityChangeRowAt(index: Int) -> String {
@@ -74,6 +74,24 @@ func CompilerCompatibilityChangeRowAt(index: Int) -> String {
     }
     if index == 2 {
         return "change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool|no_codefix";
+    }
+    if index == 3 {
+        return "change|behavior|ArrayPushValueParam|behavior|0.8|0.9|1.0|PGYCOMPAT004|inout Array<T>|docs/compat/value-arraypush|codefix_available";
+    }
+    if index == 4 {
+        return "change|air_evidence|authority_effect_evidence|required|0.8|0.9|1.0|PGYCOMPAT005|AIRAuthorityEvidence|docs/compat/air-authority-evidence|manual_migration";
+    }
+    if index == 5 {
+        return "change|mir_json|source_ast_semantic_fallback|breaking|0.8|0.9|1.0|PGYCOMPAT006|MirOwnedFacts|docs/compat/mir-source-ast|manual_migration";
+    }
+    if index == 6 {
+        return "change|runtime_trace|slot_materialization_reason|required|0.8|0.9|1.0|PGYCOMPAT007|RuntimeMaterializationTrace|docs/compat/runtime-materialization|no_codefix";
+    }
+    if index == 7 {
+        return "change|capability_profile|ambient_filesystem|breaking|0.8|0.9|1.0|PGYCOMPAT008|CapabilityManifestFs|docs/compat/capability-fs|manual_migration";
+    }
+    if index == 8 {
+        return "change|stdlib_module|money_add_currency|behavior|0.8|0.9|1.0|PGYCOMPAT009|MoneyCurrencyMatch|docs/compat/money-currency|no_codefix";
     }
     return "";
 }
@@ -97,8 +115,14 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerObsoleteMigrationFieldAt(4) == CompilerObsoleteErrorFromField() &&
         CompilerObsoleteMigrationFieldAt(5) == CompilerObsoleteRemoveFromField() &&
         CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField() &&
-        CompilerCompatibilityChangeCount() == 3 &&
+        CompilerCompatibilityChangeCount() == 9 &&
         StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
         StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(2), CompilerCompatibilityNoCodefixStatus());
+        StringContains(CompilerCompatibilityChangeRowAt(2), CompilerCompatibilityNoCodefixStatus()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(3), CompilerBehaviorCompatibilitySurface()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(4), CompilerAirEvidenceCompatibilitySurface()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(5), CompilerMirJsonCompatibilitySurface()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(6), CompilerRuntimeTraceCompatibilitySurface()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(7), CompilerCapabilityProfileCompatibilitySurface()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(8), CompilerStdlibModuleCompatibilitySurface());
 }

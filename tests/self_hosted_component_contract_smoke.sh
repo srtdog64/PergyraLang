@@ -1003,10 +1003,16 @@ require_text "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" "Co
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "schema=pgy.selfhost.compatibility-evolution.v1"
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "surface|5|mir_json"
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "obsolete_field|2|migration_url"
-require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change_count=3"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change_count=9"
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|codefix_available"
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership|manual_migration"
 require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool|no_codefix"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|behavior|ArrayPushValueParam|behavior|0.8|0.9|1.0|PGYCOMPAT004|inout Array<T>|docs/compat/value-arraypush|codefix_available"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|air_evidence|authority_effect_evidence|required|0.8|0.9|1.0|PGYCOMPAT005|AIRAuthorityEvidence|docs/compat/air-authority-evidence|manual_migration"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|mir_json|source_ast_semantic_fallback|breaking|0.8|0.9|1.0|PGYCOMPAT006|MirOwnedFacts|docs/compat/mir-source-ast|manual_migration"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|runtime_trace|slot_materialization_reason|required|0.8|0.9|1.0|PGYCOMPAT007|RuntimeMaterializationTrace|docs/compat/runtime-materialization|no_codefix"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|capability_profile|ambient_filesystem|breaking|0.8|0.9|1.0|PGYCOMPAT008|CapabilityManifestFs|docs/compat/capability-fs|manual_migration"
+require_text "src/self_hosted/compiler/expected/compatibility_evolution.txt" "change|stdlib_module|money_add_currency|behavior|0.8|0.9|1.0|PGYCOMPAT009|MoneyCurrencyMatch|docs/compat/money-currency|no_codefix"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityEvolutionSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityEvolutionPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessCompatibilityEvolutionReady()"
@@ -1035,17 +1041,30 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeRowAt(i)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerSourceCompatibilitySurface()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerAbiBinaryCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerBehaviorCompatibilitySurface()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerDiagnosticCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerAirEvidenceCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerMirJsonCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerRuntimeTraceCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCapabilityProfileCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerStdlibModuleCompatibilitySurface()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCodefixAvailableStatus()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityManualMigrationStatus()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityNoCodefixStatus()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_air_evidence_change"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_stdlib_module_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_codefix_status"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" "pgy.selfhost.compatibility-corpus.v1"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"changes":3'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"changes":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"abi_binary":1'
-require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"codefix_status":3'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"air_evidence":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"mir_json":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"runtime_trace":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"capability_profile":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"stdlib_module":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"codefix_status":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/intent.md" "CompatibilityEvolutionZone"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityCorpusSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "compatibility-corpus-paths"

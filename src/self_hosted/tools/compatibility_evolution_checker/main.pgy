@@ -1,7 +1,7 @@
 // Self-host compatibility-evolution corpus consumer.
 //
 // Consumes the PgyCompilerWorld compatibility owner and emits a stable report
-// proving that the seed corpus covers source, ABI/binary, and diagnostics.
+// proving that the seed corpus covers every compatibility surface.
 
 import "../../compiler/compatibility_evolution_owner.pgy";
 import "../../lib/json_emit.pgy";
@@ -54,7 +54,13 @@ func CountCompatibilityRowsWithCodefixStatus() -> Int {
 func CompatibilityCorpusFindings(
     source_count: Int,
     abi_count: Int,
+    behavior_count: Int,
     diagnostic_count: Int,
+    air_count: Int,
+    mir_count: Int,
+    runtime_trace_count: Int,
+    capability_count: Int,
+    stdlib_count: Int,
     diagnostic_id_count: Int,
     version_ladder_count: Int,
     migration_url_count: Int,
@@ -67,8 +73,26 @@ func CompatibilityCorpusFindings(
     if abi_count == 0 {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_abi_change")]));
     }
+    if behavior_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_behavior_change")]));
+    }
     if diagnostic_count == 0 {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_diagnostic_change")]));
+    }
+    if air_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_air_evidence_change")]));
+    }
+    if mir_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_mir_json_change")]));
+    }
+    if runtime_trace_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_runtime_trace_change")]));
+    }
+    if capability_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_capability_profile_change")]));
+    }
+    if stdlib_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_stdlib_module_change")]));
     }
     if diagnostic_id_count < CompilerCompatibilityChangeCount() {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_diagnostic_id")]));
@@ -88,7 +112,13 @@ func CompatibilityCorpusFindings(
 func Main() -> Void {
     let source_count: Int = CountCompatibilityChangeSurface(CompilerSourceCompatibilitySurface());
     let abi_count: Int = CountCompatibilityChangeSurface(CompilerAbiBinaryCompatibilitySurface());
+    let behavior_count: Int = CountCompatibilityChangeSurface(CompilerBehaviorCompatibilitySurface());
     let diagnostic_count: Int = CountCompatibilityChangeSurface(CompilerDiagnosticCompatibilitySurface());
+    let air_count: Int = CountCompatibilityChangeSurface(CompilerAirEvidenceCompatibilitySurface());
+    let mir_count: Int = CountCompatibilityChangeSurface(CompilerMirJsonCompatibilitySurface());
+    let runtime_trace_count: Int = CountCompatibilityChangeSurface(CompilerRuntimeTraceCompatibilitySurface());
+    let capability_count: Int = CountCompatibilityChangeSurface(CompilerCapabilityProfileCompatibilitySurface());
+    let stdlib_count: Int = CountCompatibilityChangeSurface(CompilerStdlibModuleCompatibilitySurface());
     let diagnostic_id_count: Int = CountCompatibilityRowsContaining("|PGYCOMPAT");
     let version_ladder_count: Int = CountCompatibilityRowsContaining("|0.8|0.9|1.0|");
     let migration_url_count: Int = CountCompatibilityRowsContaining("|docs/compat/");
@@ -96,7 +126,13 @@ func Main() -> Void {
     let missing: Int = 0;
     if source_count == 0 { missing = missing + 1; }
     if abi_count == 0 { missing = missing + 1; }
+    if behavior_count == 0 { missing = missing + 1; }
     if diagnostic_count == 0 { missing = missing + 1; }
+    if air_count == 0 { missing = missing + 1; }
+    if mir_count == 0 { missing = missing + 1; }
+    if runtime_trace_count == 0 { missing = missing + 1; }
+    if capability_count == 0 { missing = missing + 1; }
+    if stdlib_count == 0 { missing = missing + 1; }
     if diagnostic_id_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if version_ladder_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if migration_url_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
@@ -105,7 +141,13 @@ func Main() -> Void {
         JsonEmitFieldNumber("changes", ToString(CompilerCompatibilityChangeCount())),
         JsonEmitFieldNumber("source", ToString(source_count)),
         JsonEmitFieldNumber("abi_binary", ToString(abi_count)),
+        JsonEmitFieldNumber("behavior", ToString(behavior_count)),
         JsonEmitFieldNumber("diagnostic", ToString(diagnostic_count)),
+        JsonEmitFieldNumber("air_evidence", ToString(air_count)),
+        JsonEmitFieldNumber("mir_json", ToString(mir_count)),
+        JsonEmitFieldNumber("runtime_trace", ToString(runtime_trace_count)),
+        JsonEmitFieldNumber("capability_profile", ToString(capability_count)),
+        JsonEmitFieldNumber("stdlib_module", ToString(stdlib_count)),
         JsonEmitFieldNumber("diagnostic_id", ToString(diagnostic_id_count)),
         JsonEmitFieldNumber("version_ladder", ToString(version_ladder_count)),
         JsonEmitFieldNumber("migration_url", ToString(migration_url_count)),
@@ -119,7 +161,13 @@ func Main() -> Void {
         JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(
             source_count,
             abi_count,
+            behavior_count,
             diagnostic_count,
+            air_count,
+            mir_count,
+            runtime_trace_count,
+            capability_count,
+            stdlib_count,
             diagnostic_id_count,
             version_ladder_count,
             migration_url_count,
