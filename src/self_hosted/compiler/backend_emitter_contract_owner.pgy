@@ -1,0 +1,64 @@
+// Self-host compiler backend-emitter contract owner.
+//
+// Names the first self-host-consumed dumb-emitter source checks. The backend
+// may emit rows, but must not invent runtime function names locally.
+
+func CompilerBackendEmitterContractSchema() -> String {
+    return "pgy.selfhost.backend-emitter-contract.v1";
+}
+
+func CompilerBackendEmitterRequiredCount() -> Int {
+    return 5;
+}
+
+func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
+    if index == 0 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
+    if index == 1 { return "src/codegen/llvm_runtime.c"; }
+    if index == 2 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
+    if index == 3 { return "src/codegen/llvm_expr_slot_device_calls.c"; }
+    if index == 4 { return "src/codegen/llvm_stmt.c"; }
+    return "";
+}
+
+func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "mir_abi_resource_runtime_fn(effective_layout, op_name)"; }
+    if index == 1 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
+    if index == 2 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
+    if index == 3 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    if index == 4 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    return "";
+}
+
+func CompilerBackendEmitterForbiddenCount() -> Int {
+    return 5;
+}
+
+func CompilerBackendEmitterForbiddenPathAt(index: Int) -> String {
+    if index == 0 { return "src/codegen/llvm_runtime.c"; }
+    if index == 1 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
+    if index == 2 { return "src/codegen/llvm_stmt.c"; }
+    if index == 3 { return "src/codegen/llvm_expr_call_methods_domain_slice.c"; }
+    if index == 4 { return "src/codegen/llvm_expr_identifier_slot_helpers.c"; }
+    return "";
+}
+
+func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "llvm_runtime_slot_name"; }
+    if index == 1 { return "llvm_runtime_secure_slot_name"; }
+    if index == 2 { return "llvm_stmt_format_runtime_name"; }
+    if index == 3 { return "llvm_domain_slot_format_runtime_name"; }
+    if index == 4 { return "is_secure ? \"pgy_secure_read_%s\" : \"pgy_read_%s\""; }
+    return "";
+}
+
+func CompilerBackendEmitterContractReady() -> Bool {
+    return CompilerBackendEmitterRequiredCount() == 5 &&
+        CompilerBackendEmitterRequiredPathAt(0) != "" &&
+        CompilerBackendEmitterRequiredTermAt(0) != "" &&
+        CompilerBackendEmitterRequiredTermAt(1) != "" &&
+        CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_fn_by_kind(" &&
+        CompilerBackendEmitterForbiddenCount() == 5 &&
+        CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
+        CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&
+        CompilerBackendEmitterForbiddenTermAt(3) == "llvm_domain_slot_format_runtime_name";
+}

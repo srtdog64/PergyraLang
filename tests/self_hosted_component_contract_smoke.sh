@@ -808,6 +808,41 @@ require_text "src/self_hosted/compiler/expected/target_capability.txt" "fallback
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "pgy.selfhost.target-capability-negative.v1"
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" '"ok":false'
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "missing_required_target_fact"
+require_file "src/self_hosted/compiler/backend_emitter_contract_owner.pgy"
+require_max_lines "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_emitter_contract_owner.pgy"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "pgy.selfhost.backend-emitter-contract.v1"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterRequiredPathAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterRequiredTermAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenPathAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenTermAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 5"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 5"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn_by_kind("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json"
+require_max_lines "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 600
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../compiler/backend_emitter_contract_owner.pgy";'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterMissingRequiredSelfTestMode"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterForbiddenHitSelfTestMode"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterRequiredCount()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterForbiddenCount()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "missing_required"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "forbidden_hit"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":5'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":5'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTypeName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCFieldName"
@@ -1039,6 +1074,29 @@ reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'TOO
 reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/target_capability.txt"'
 require_text "Makefile" "self-host-target-capability-envelope-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/target_capability_manifest_parity.sh"
+require_file "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy"
+require_max_lines "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractSuiteName"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-emitter-contract-paths"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractPathAt"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendEmitterContractReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_backend_contract_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendEmitterContractPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendEmitterContractSuiteName()"
+require_file "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" '"backend-emitter-contract-paths"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'MISSING_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-missing-required"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-forbidden-hit"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"'
+require_text "Makefile" "self-host-backend-emitter-contract-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh"
 require_file "src/self_hosted/compiler/compatibility_evolution_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/compatibility_evolution.txt"
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 600

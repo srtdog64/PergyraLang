@@ -1,0 +1,131 @@
+// Self-host backend-emitter contract checker.
+//
+// Consumes backend_emitter_contract_owner.pgy and verifies that selected
+// backend paths consume MIR/ABI runtime rows instead of synthesizing names.
+
+import "../../compiler/backend_emitter_contract_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func BackendEmitterFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendEmitterReport(
+    missing_required: Int,
+    forbidden_hits: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let problem_count: Int = missing_required + forbidden_hits;
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("required", ToString(CompilerBackendEmitterRequiredCount())),
+        JsonEmitFieldNumber("forbidden", ToString(CompilerBackendEmitterForbiddenCount())),
+        JsonEmitFieldNumber("missing_required", ToString(missing_required)),
+        JsonEmitFieldNumber("forbidden_hits", ToString(forbidden_hits))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", problem_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func BackendEmitterNegativeSchema() -> String {
+    return "pgy.selfhost.backend-emitter-contract-negative.v1";
+}
+
+func BackendEmitterMissingRequiredSelfTestMode() -> String {
+    return "--self-test-missing-required";
+}
+
+func BackendEmitterForbiddenHitSelfTestMode() -> String {
+    return "--self-test-forbidden-hit";
+}
+
+func RunBackendEmitterMissingRequiredSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendEmitterFinding(
+        "missing_required",
+        CompilerBackendEmitterRequiredPathAt(0),
+        "definitely_missing_backend_contract_term"));
+    Log(BackendEmitterReport(1, 0, findings, BackendEmitterNegativeSchema()));
+    Exit(1);
+}
+
+func RunBackendEmitterForbiddenHitSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendEmitterFinding(
+        "forbidden_hit",
+        CompilerBackendEmitterForbiddenPathAt(0),
+        CompilerBackendEmitterForbiddenTermAt(0)));
+    Log(BackendEmitterReport(0, 1, findings, BackendEmitterNegativeSchema()));
+    Exit(1);
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == BackendEmitterMissingRequiredSelfTestMode() {
+        RunBackendEmitterMissingRequiredSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == BackendEmitterForbiddenHitSelfTestMode() {
+        RunBackendEmitterForbiddenHitSelfTest();
+        return;
+    }
+    if !CompilerBackendEmitterContractReady() {
+        Log("BACKEND_EMITTER_CONTRACT ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+
+    let missing_required: Int = 0;
+    let forbidden_hits: Int = 0;
+    let findings: Array<String> = [];
+    let required_index: Int = 0;
+    while required_index < CompilerBackendEmitterRequiredCount() {
+        let path: String = CompilerBackendEmitterRequiredPathAt(required_index);
+        let term: String = CompilerBackendEmitterRequiredTermAt(required_index);
+        if !FileExists(path) {
+            missing_required = missing_required + 1;
+            ArrayPush(findings, BackendEmitterFinding("missing_input", path, term));
+        } else {
+            let content: String = ReadFile(path);
+            if !StringContains(content, term) {
+                missing_required = missing_required + 1;
+                ArrayPush(findings, BackendEmitterFinding("missing_required", path, term));
+            }
+        }
+        required_index = required_index + 1;
+    }
+
+    let forbidden_index: Int = 0;
+    while forbidden_index < CompilerBackendEmitterForbiddenCount() {
+        let path: String = CompilerBackendEmitterForbiddenPathAt(forbidden_index);
+        let term: String = CompilerBackendEmitterForbiddenTermAt(forbidden_index);
+        if !FileExists(path) {
+            missing_required = missing_required + 1;
+            ArrayPush(findings, BackendEmitterFinding("missing_input", path, term));
+        } else {
+            let content: String = ReadFile(path);
+            if StringContains(content, term) {
+                forbidden_hits = forbidden_hits + 1;
+                ArrayPush(findings, BackendEmitterFinding("forbidden_hit", path, term));
+            }
+        }
+        forbidden_index = forbidden_index + 1;
+    }
+
+    Log(BackendEmitterReport(
+        missing_required,
+        forbidden_hits,
+        findings,
+        CompilerBackendEmitterContractSchema()));
+    if missing_required > 0 || forbidden_hits > 0 {
+        Exit(1);
+    }
+}

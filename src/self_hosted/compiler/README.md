@@ -65,6 +65,13 @@ surfaces. The `compatibility_evolution_manifest.pgy` projection emits those rows
 as a stable artifact consumed by
 `self-host-compatibility-evolution-parity-test-smoke`.
 
+`backend_emitter_contract_owner.pgy` names the first self-host-consumed
+backend dumb-emitter source contract: required MIR/ABI runtime-row consumer
+terms and forbidden backend-local runtime-name synthesis terms. The
+`backend_emitter_contract_checker` tool consumes those rows and
+`self-host-backend-emitter-contract-parity-test-smoke` proves the clean,
+missing-required, and forbidden-hit paths across C/LLVM-built self-host tools.
+
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:
 `compatibility_evolution_owner.pgy`, `compatibility_evolution_manifest.pgy`,
