@@ -132,10 +132,12 @@ strictly underneath.
   mirror is forbidden to reintroduce `BoundarySourceKind`, `source_kind`, or
   source-string lane APIs.
 - The same parity suite now also compiles
-  `src/self_hosted/sea/lane_executor_contract.pgy`, which reads
-  `src/runtime/pgy_lane_scheduler.{c,h}` and emits a stable executor-contract
-  artifact. The artifact deliberately records the current
-  `depth=scaffold-synchronous` state: `Reject` is fail-closed,
+  `src/self_hosted/sea/lane_executor_contract.pgy`. The contract vocabulary and
+  expected runtime terms are owned by
+  `src/self_hosted/sea/lane_executor_contract_owner.pgy`; the probe consumes
+  those owner facts, reads `src/runtime/pgy_lane_scheduler.{c,h}`, and emits a
+  stable executor-contract artifact. The artifact deliberately records the
+  current `depth=scaffold-synchronous` state: `Reject` is fail-closed,
   `Inline`/`PinnedZone` run in place, and
   `BlockingPool`/`LocalAsync`/`WorkerPool`/`MovableScheduler` are still
   `worker_join_scaffold` lanes. This is evidence, not a production-executor
@@ -227,5 +229,6 @@ strictly underneath.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
-  executor-invariant contract. `lane_executor_contract.pgy` now makes that
-  scaffold status a self-hosted artifact instead of prose-only status.
+  executor-invariant contract. `lane_executor_contract_owner.pgy` now owns the
+  contract rows, and `lane_executor_contract.pgy` makes that scaffold status a
+  self-hosted artifact instead of prose-only status.

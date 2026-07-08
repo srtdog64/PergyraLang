@@ -171,10 +171,13 @@ completed green with:
   `MovableScheduler` rows and negative `Reject` rows for pin, live-view,
   raw-slot, and raw-channel resource capture under movability requirements on
   both C and LLVM. The same suite now emits
-  `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`, which
-  honestly records the current `worker_join_scaffold` executor depth and proves
-  its missing-term fail-closed artifact through both C-built and LLVM-built
-  probes when LLVM is available. Live AIR JSON full-matrix coverage and
+  `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`. The schema,
+  runtime file set, required runtime terms, lane rows, scaffold-depth label, and
+  missing-term artifact vocabulary now live in
+  `lane_executor_contract_owner.pgy`; the probe consumes those owner facts while
+  honestly recording the current `worker_join_scaffold` executor depth and
+  proving its missing-term fail-closed artifact through both C-built and
+  LLVM-built probes when LLVM is available. Live AIR JSON full-matrix coverage and
   lane-specific production executor depth remain separate P0/P1 work.
 - Follow-up AIR/backend access slice: `backend_air_access_checker` now walks
   `src/codegen` from Pergyra, rejects AIR header/type tokens in backend sources,

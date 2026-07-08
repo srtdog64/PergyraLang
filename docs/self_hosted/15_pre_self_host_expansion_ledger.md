@@ -794,8 +794,11 @@ own `src/self_hosted/sea/...` path constants.
 
 SEA executor delta, 2026-07-08: the same execution-lane path suite now also
 owns `lane_executor_contract.pgy` plus clean and missing-term expected
-artifacts. The self-hosted probe reads `src/runtime/pgy_lane_scheduler.{c,h}`
-and emits `pgy.selfhost.lane-executor-contract.v1`, recording the current
+artifacts. `lane_executor_contract_owner.pgy` owns the schema, runtime file set,
+required runtime terms, lane rows, scaffold-depth label, and negative self-test
+term; the self-hosted probe consumes those owner facts while reading
+`src/runtime/pgy_lane_scheduler.{c,h}`. The emitted
+`pgy.selfhost.lane-executor-contract.v1` artifact records the current
 `depth=scaffold-synchronous` status and fail-closed `Reject` behavior. Its
 missing-term negative artifact now runs through both C-built and LLVM-built
 self-host probes when LLVM is available. This does not claim production

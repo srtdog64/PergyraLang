@@ -1,0 +1,131 @@
+// SEA runtime executor contract owner.
+//
+// Names the current PgyLaneScheduler facade contract. This is deliberately
+// honest about scaffold depth; the probe consumes these facts and verifies that
+// the runtime still exposes the required lane dispatch surface.
+
+func LaneExecutorContractSchema() -> String {
+    return "pgy.selfhost.lane-executor-contract.v1";
+}
+
+func LaneExecutorSchemaField() -> String {
+    return "schema";
+}
+
+func LaneExecutorDepthField() -> String {
+    return "depth";
+}
+
+func LaneExecutorDepthValue() -> String {
+    return "scaffold-synchronous";
+}
+
+func LaneExecutorRequiredCountField() -> String {
+    return "required_count";
+}
+
+func LaneExecutorMissingCountField() -> String {
+    return "missing";
+}
+
+func LaneExecutorLaneCountField() -> String {
+    return "lane_count";
+}
+
+func LaneExecutorMissingFindingKind() -> String {
+    return "missing_required";
+}
+
+func LaneExecutorMissingSelfTestMode() -> String {
+    return "--self-test-missing-term";
+}
+
+func LaneExecutorMissingSelfTestTerm() -> String {
+    return "definitely_missing_lane_executor_contract_term";
+}
+
+func LaneExecutorRuntimeCPath() -> String {
+    return "src/runtime/pgy_lane_scheduler.c";
+}
+
+func LaneExecutorRuntimeHPath() -> String {
+    return "src/runtime/pgy_lane_scheduler.h";
+}
+
+func LaneExecutorRequiredCount() -> Int {
+    return 14;
+}
+
+func LaneExecutorRequiredPathAt(index: Int) -> String {
+    if index <= 8 { return LaneExecutorRuntimeCPath(); }
+    if index >= 9 && index < LaneExecutorRequiredCount() { return LaneExecutorRuntimeHPath(); }
+    return "";
+}
+
+func LaneExecutorRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_lane_dispatch(PgyExecutionLane lane"; }
+    if index == 1 { return "case PGY_LANE_REJECT:"; }
+    if index == 2 { return "return PGY_LANE_DISPATCH_REJECTED;"; }
+    if index == 3 { return "case PGY_LANE_INLINE:"; }
+    if index == 4 { return "case PGY_LANE_PINNED_ZONE:"; }
+    if index == 5 { return "lane_run_on_worker(fn, arg, result_out);"; }
+    if index == 6 { return "case PGY_LANE_WORKER_POOL:"; }
+    if index == 7 { return "case PGY_LANE_BLOCKING_POOL:"; }
+    if index == 8 { return "case PGY_LANE_MOVABLE_SCHEDULER:"; }
+    if index == 9 { return "pgy_lane_spawn_dispatch(PgyExecutionLane lane"; }
+    if index == 10 { return "pgy_task_handle_set_lane(handle, lane)"; }
+    if index == 11 { return "pgy_lane_await(PgyTaskHandle handle)"; }
+    if index == 12 { return "pgy_lane_detach(PgyTaskHandle handle)"; }
+    if index == 13 { return "detach requires LocalAsync execution lane"; }
+    return "";
+}
+
+func LaneExecutorLaneCount() -> Int {
+    return 7;
+}
+
+func LaneExecutorLaneRowAt(index: Int) -> String {
+    if index == 0 { return "lane|Reject|(rejected)|fail_closed"; }
+    if index == 1 { return "lane|Inline|InlineExecutor|in_place"; }
+    if index == 2 { return "lane|PinnedZone|PinnedExecutor|in_place"; }
+    if index == 3 { return "lane|BlockingPool|BlockingExecutor|worker_join_scaffold"; }
+    if index == 4 { return "lane|LocalAsync|LocalCoroutineExecutor|worker_join_scaffold"; }
+    if index == 5 { return "lane|WorkerPool|WorkerPoolExecutor|worker_join_scaffold"; }
+    if index == 6 { return "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"; }
+    return "";
+}
+
+func LaneExecutorFieldRow(field: String, value: String) -> String {
+    let row0: String = Concat(field, "=");
+    return Concat(row0, value);
+}
+
+func LaneExecutorMissingFinding(path: String, term: String) -> String {
+    let row0: String = Concat(LaneExecutorMissingFindingKind(), "|");
+    let row1: String = Concat(row0, path);
+    let row2: String = Concat(row1, "|");
+    return Concat(row2, term);
+}
+
+func LaneExecutorContractReady() -> Bool {
+    return LaneExecutorContractSchema() != "" &&
+        LaneExecutorSchemaField() != "" &&
+        LaneExecutorDepthField() != "" &&
+        LaneExecutorDepthValue() == "scaffold-synchronous" &&
+        LaneExecutorRequiredCountField() != "" &&
+        LaneExecutorMissingCountField() != "" &&
+        LaneExecutorLaneCountField() != "" &&
+        LaneExecutorMissingFindingKind() != "" &&
+        LaneExecutorMissingSelfTestMode() != "" &&
+        LaneExecutorMissingSelfTestTerm() != "" &&
+        LaneExecutorRuntimeCPath() == "src/runtime/pgy_lane_scheduler.c" &&
+        LaneExecutorRuntimeHPath() == "src/runtime/pgy_lane_scheduler.h" &&
+        LaneExecutorRequiredCount() == 14 &&
+        LaneExecutorRequiredPathAt(0) == LaneExecutorRuntimeCPath() &&
+        LaneExecutorRequiredPathAt(9) == LaneExecutorRuntimeHPath() &&
+        LaneExecutorRequiredTermAt(0) == "pgy_lane_dispatch(PgyExecutionLane lane" &&
+        LaneExecutorRequiredTermAt(13) == "detach requires LocalAsync execution lane" &&
+        LaneExecutorLaneCount() == 7 &&
+        LaneExecutorLaneRowAt(0) == "lane|Reject|(rejected)|fail_closed" &&
+        LaneExecutorLaneRowAt(6) == "lane|MovableScheduler|MovableExecutor|worker_join_scaffold";
+}

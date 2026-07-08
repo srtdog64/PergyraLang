@@ -147,8 +147,10 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/sea/execution_lane.pgy` -- typed
   `BoundaryCaptureFact` to `ExecutionLane` classifier mirror.
+- `src/self_hosted/sea/lane_executor_contract_owner.pgy` -- runtime executor
+  facade contract facts over `PgyLaneScheduler`.
 - `src/self_hosted/sea/lane_executor_contract.pgy` -- runtime executor facade
-  contract probe over `PgyLaneScheduler`.
+  contract probe over the lane executor owner facts.
 
 ## Compiler World
 
