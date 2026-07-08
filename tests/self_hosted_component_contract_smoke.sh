@@ -1054,6 +1054,8 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_air_evidence_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_stdlib_module_change"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_codefix_status"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityChangeRowHasShape"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "malformed_change_row"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" "pgy.selfhost.compatibility-corpus.v1"
@@ -1065,6 +1067,7 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/cle
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"capability_profile":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"stdlib_module":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"codefix_status":9'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"row_shape":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/intent.md" "CompatibilityEvolutionZone"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityCorpusSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "compatibility-corpus-paths"

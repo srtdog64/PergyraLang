@@ -145,6 +145,10 @@ completed green with:
   covers all nine compatibility surfaces plus diagnostic-id, version-ladder,
   migration-URL, and codefix-status rows, gated by
   `make self-host-compatibility-corpus-parity-test-smoke`.
+- Follow-up row-shape slice: the same checker now rejects malformed
+  compatibility rows by requiring every change row to keep the `change|...`
+  prefix and the eleven-field compatibility envelope. This keeps the corpus
+  from passing through loose substring matches alone.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
   31-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin/raw-slot resource
