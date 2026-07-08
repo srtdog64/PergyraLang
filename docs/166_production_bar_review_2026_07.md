@@ -179,7 +179,8 @@ completed green with:
   now consumes `abi_layout_row_owner.pgy` rows through the TestHarness manifest,
   requires selected native MIR ABI layout rows and runtime-function consumers,
   rejects old `_rel` alias and backend-local runtime-name synthesis terms, and
-  emits clean, missing-required, and forbidden-hit artifacts under
+  emits clean, missing-required, and forbidden-hit artifacts from both C-built
+  and LLVM-built tools under
   `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
   moving the production ABI ownership blocker into hard self-host parity while
   `abi-ownership-shape-test-smoke` remains the broad native backstop.
