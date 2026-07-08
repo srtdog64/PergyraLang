@@ -865,12 +865,13 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenHitsCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 5"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 5"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn_by_kind("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'strncmp(fn, \"pgy_claim_secure_\"'
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json"
@@ -910,7 +911,7 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":5'
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":5'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":6'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-emitter-contract-negative.v1"

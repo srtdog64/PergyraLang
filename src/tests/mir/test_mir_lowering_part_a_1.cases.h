@@ -126,6 +126,37 @@ test_mir_lowering_part_a(void)
                && opt_string->niche_none_pattern == NULL);
     }
 
+    TEST("MIR ABI owner synthesizes constructed resource runtime rows");
+    {
+        const char *slot_claim = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SLOT, "Vec2", "Claim");
+        const char *slot_write = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SLOT, "Vec2", "Write");
+        const char *secure_claim = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Claim");
+        const char *secure_release = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Release");
+        const char *device_read = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_DEVICE_SLOT, "Vec2", "Read");
+        const char *nested_write = mir_abi_resource_runtime_fn_by_kind(
+            MIR_RESOURCE_ABI_SLOT, "Array<Int>", "Write");
+
+        EXPECT(slot_claim != NULL
+               && slot_write != NULL
+               && secure_claim != NULL
+               && secure_release != NULL
+               && device_read != NULL
+               && nested_write != NULL
+               && strcmp(slot_claim, "pgy_claim_Vec2") == 0
+               && strcmp(slot_write, "pgy_write_Vec2") == 0
+               && strcmp(secure_claim, "pgy_claim_secure_Vec2") == 0
+               && strcmp(secure_release, "pgy_secure_release_Vec2") == 0
+               && strcmp(device_read, "pgy_device_read_Vec2") == 0
+               && strcmp(nested_write, "pgy_write_Array_Int") == 0);
+        EXPECT(mir_abi_resource_runtime_fn_by_kind(
+                   MIR_RESOURCE_ABI_SLOT, "Unknown", "Claim") == NULL);
+    }
+
     TEST("MIR validator rejects view-backed resource owner metadata drift");
     {
         const char *src =

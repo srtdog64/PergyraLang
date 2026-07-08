@@ -54,6 +54,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *fn = NULL;
     const char *suffix = NULL;
     const MIRTypeLayout *effective_layout = layout;
+    char suffix_buf[96];
     char inner_name_buf[128];
     const char *slot_anchor;
     const char *effective_abi_type_name = NULL;
@@ -118,6 +119,31 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 inner_name = inner_name_buf;
         }
     }
+    if (fn == NULL && inner_name != NULL && effective_abi_type_name != NULL) {
+        MIRResourceAbiKind kind = MIR_RESOURCE_ABI_SLOT;
+        bool has_resource_kind = false;
+
+        if (is_device_slot) {
+            kind = MIR_RESOURCE_ABI_DEVICE_SLOT;
+            has_resource_kind = true;
+        } else if (is_secure_slot) {
+            kind = MIR_RESOURCE_ABI_SECURE_SLOT;
+            has_resource_kind = true;
+        } else if (strncmp(effective_abi_type_name, "Slot<", 5) == 0) {
+            kind = MIR_RESOURCE_ABI_SLOT;
+            has_resource_kind = true;
+        }
+
+        if (has_resource_kind) {
+            fn = mir_abi_resource_runtime_fn_by_kind(kind, inner_name, op_name);
+            if (fn != NULL) {
+                if (!sanitize_c_suffix(inner_name, suffix_buf,
+                        sizeof(suffix_buf)))
+                    return false;
+                suffix = suffix_buf;
+            }
+        }
+    }
 
     if (ctx != NULL && slot_anchor != NULL && mir_active)
         anchor_is_indirect = lookup_slot_is_indirect(ctx, slot_anchor);
@@ -139,13 +165,6 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 fn = mir_abi_resource_runtime_fn(effective_layout, op_name);
                 if (fn != NULL) {
                     suffix = transpiler_extract_type_suffix_from_fn(fn);
-                    if (strncmp(fn, "pgy_claim_secure_", 17) == 0
-                        || strncmp(fn, "pgy_secure_", 11) == 0) {
-                        is_secure_slot = true;
-                    } else if (strncmp(fn, "pgy_claim_device_", 17) == 0
-                               || strncmp(fn, "pgy_device_", 11) == 0) {
-                        is_device_slot = true;
-                    }
                 }
             }
             if (strncmp(typed_name, "SecureSlot<", 11) == 0) {

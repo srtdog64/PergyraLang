@@ -390,6 +390,16 @@ documented C/LLVM negative coverage real for the first dumb-emitter contract
 slice; the broad native `backend-fail-closed` gate remains the production
 backstop.
 
+Backend emitter runtime-string parse delta, 2026-07-08: the C MIR resource
+emitter no longer recovers SecureSlot/DeviceSlot identity by parsing the
+`pgy_claim_*` runtime function name returned from the ABI table. The
+backend-emitter contract now forbids that `strncmp(fn, "pgy_claim_secure_")`
+shape and requires the backend to keep consuming MIR/ABI type facts instead.
+The paired ABI-owner delta is constructed resource runtime rows:
+`mir_abi_resource_runtime_fn_by_kind` now owns runtime function spellings for
+nominal payload slots such as `Slot<Vec2>` and `SecureSlot<Vec2>`, so C/LLVM
+emitters can ask the ABI owner instead of reconstructing `pgy_*` names.
+
 Backend emitter report delta, 2026-07-08:
 `backend_emitter_contract_checker/report_owner.pgy` now owns the checker report
 JSON shape, count rows, finding objects, and report-owner readiness predicate.
