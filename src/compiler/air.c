@@ -10,6 +10,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+static const char *
+air_routine_boundary_owner_name(const ASTNode *routine)
+{
+    if (routine == NULL || routine->type != AST_FUNC_DECL)
+        return NULL;
+    return ast_declaration_name(routine);
+}
+
 static bool
 air_count_add(size_t *count, size_t addend)
 {
@@ -388,6 +396,20 @@ air_synthesize(const HIRProgram *hir,
             }
         }
     }
+    if (hir != NULL) {
+        for (size_t i = 0; i < hir->function_count; i++) {
+            ASTNode *routine = hir->functions[i];
+            if (air_routine_boundary_owner_name(routine) == NULL)
+                continue;
+            if (!air_count_add(&boundary_node_count,
+                               air_count_routine_expr_boundaries(routine))) {
+                air_destroy(air);
+                air_set_error(error_message,
+                              "AIR routine boundary count overflow");
+                return NULL;
+            }
+        }
+    }
 
     if (intent_node_count > 0) {
         if (intent_node_count > SIZE_MAX / sizeof(AIRIntentNode)) {
@@ -535,6 +557,34 @@ air_synthesize(const HIRProgram *hir,
                 return NULL;
             }
             intent_index++;
+        }
+    }
+    if (hir != NULL) {
+        for (size_t i = 0; i < hir->function_count; i++) {
+            ASTNode *routine = hir->functions[i];
+            const char *owner_source = air_routine_boundary_owner_name(routine);
+            const char *owner;
+
+            if (owner_source == NULL)
+                continue;
+            owner = air_program_owned_name(air, owner_source);
+            if (owner == NULL) {
+                air_destroy(air);
+                air_set_error(error_message,
+                              "AIR routine boundary owner allocation failed");
+                return NULL;
+            }
+            if (!air_append_routine_expr_boundaries(air,
+                                                    air->boundaries,
+                                                    &boundary_index,
+                                                    owner,
+                                                    routine)) {
+                air_destroy(air);
+                air_set_error(error_message,
+                              "AIR boundary synthesis failed for routine %s",
+                              owner_source);
+                return NULL;
+            }
         }
     }
     if (intent_index != intent_node_count || boundary_index != boundary_node_count) {

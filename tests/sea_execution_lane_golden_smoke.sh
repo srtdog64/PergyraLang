@@ -38,6 +38,8 @@ GOLDEN="$ROOT_DIR/tests/cases/sea_execution_lanes/expected_lanes.txt"
 
 WORK="$(mktemp -d)"
 JSON="$WORK/air.json"
+ROUTINE_FIXTURE="$WORK/routine_boundary_air.pgy"
+ROUTINE_JSON="$WORK/routine_air.json"
 GOT="$WORK/got.txt"
 PY_BIN=""
 if command -v python3 >/dev/null 2>&1; then
@@ -46,8 +48,22 @@ elif command -v python >/dev/null 2>&1; then
     PY_BIN="$(command -v python)"
 fi
 
+cat > "$ROUTINE_FIXTURE" <<'EOF'
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+func RoutineBoundaryAir(ch: Channel<Int>) -> Void {
+    ch <- 7;
+    let v: Int = <-ch;
+    let task: Future<Int> = spawn Inc(v);
+}
+EOF
+
 "$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$FIXTURE")" > "$JSON" 2>"$WORK/err" \
     || { cat "$WORK/err" >&2; fail "pgy --air-json failed"; }
+"$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$ROUTINE_FIXTURE")" > "$ROUTINE_JSON" 2>"$WORK/routine.err" \
+    || { cat "$WORK/routine.err" >&2; fail "pgy --air-json routine-boundary fixture failed"; }
 
 grep -Fq '"schema":"pgy.air.graph.v1"' "$JSON" \
     || fail "AIR JSON golden must consume the public graph schema"
@@ -61,19 +77,9 @@ grep -Fq '"location":{"line":' "$JSON" \
     || fail "AIR JSON golden must be source-gated, not synthetic AIR state"
 
 if [ -n "$PY_BIN" ]; then
-    "$PY_BIN" - "$JSON" > "$GOT" <<'PY'
+    "$PY_BIN" - "$JSON" "$ROUTINE_JSON" > "$GOT" <<'PY'
 import json
 import sys
-
-with open(sys.argv[1], "r", encoding="utf-8") as fh:
-    graph = json.load(fh)
-
-if graph.get("schema") != "pgy.air.graph.v1":
-    raise SystemExit("unexpected AIR graph schema")
-summary = graph.get("summary", {})
-for key in ("hir_input", "rir_input", "mir_input"):
-    if summary.get(key) is not True:
-        raise SystemExit(f"missing required source pipeline evidence: {key}")
 
 fields = [
     ("pin", "captures_pin"),
@@ -92,30 +98,42 @@ fields = [
 def bool_text(value):
     return "true" if value is True else "false"
 
-boundaries = graph.get("boundaries", [])
-if not boundaries:
-    raise SystemExit("expected at least one real source boundary")
+for path in sys.argv[1:]:
+    with open(path, "r", encoding="utf-8") as fh:
+        graph = json.load(fh)
 
-for boundary in boundaries:
-    location = boundary.get("location", {})
-    if not isinstance(location, dict) or location.get("line", 0) <= 0:
-        raise SystemExit("boundary lacks source location; refusing synthetic AIR row")
-    capture = boundary.get("boundary_capture", {})
-    parts = [
-        boundary.get("kind", ""),
-        boundary.get("execution_lane", ""),
-        "source=" + str(boundary.get("source", "")),
-        "sync=" + str(boundary.get("sync", "")),
-    ]
-    for label, key in fields:
-        parts.append(f"{label}={bool_text(capture.get(key))}")
-    print(" ".join(parts))
+    if graph.get("schema") != "pgy.air.graph.v1":
+        raise SystemExit("unexpected AIR graph schema")
+    summary = graph.get("summary", {})
+    for key in ("hir_input", "rir_input", "mir_input"):
+        if summary.get(key) is not True:
+            raise SystemExit(f"missing required source pipeline evidence: {key}")
+
+    boundaries = graph.get("boundaries", [])
+    if not boundaries:
+        raise SystemExit("expected at least one real source boundary")
+
+    for boundary in boundaries:
+        location = boundary.get("location", {})
+        if not isinstance(location, dict) or location.get("line", 0) <= 0:
+            raise SystemExit("boundary lacks source location; refusing synthetic AIR row")
+        capture = boundary.get("boundary_capture", {})
+        parts = [
+            boundary.get("kind", ""),
+            boundary.get("execution_lane", ""),
+            "source=" + str(boundary.get("source", "")),
+            "sync=" + str(boundary.get("sync", "")),
+        ]
+        for label, key in fields:
+            parts.append(f"{label}={bool_text(capture.get(key))}")
+        print(" ".join(parts))
 PY
 else
     # Fallback for Windows Git Bash dev loops without Python. `pgy --air-json`
     # emits compact single-line JSON; this fixture has no quotes inside source
     # names, so the stable boundary/capture shape can still be extracted.
-    grep -oE '"kind":"[^"]+"[^}]*"boundary_capture":\{[^}]*\}' "$JSON" \
+    { grep -oE '"kind":"[^"]+"[^}]*"boundary_capture":\{[^}]*\}' "$JSON";
+      grep -oE '"kind":"[^"]+"[^}]*"boundary_capture":\{[^}]*\}' "$ROUTINE_JSON"; } \
         | awk '
 function jval(line, key, marker, pos, rest, end) {
     marker = "\"" key "\":";

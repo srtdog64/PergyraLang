@@ -347,10 +347,12 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
         air_json_string(out, boundary->owner_name);
         fputs(",\"source\":", out);
         air_json_string(out, boundary->source_name);
-        fprintf(out,
-                ",\"intent\":%zu,\"step\":%zu,\"sync\":",
-                boundary->intent_index,
-                boundary->step_index);
+        fputs(",\"intent\":", out);
+        if (boundary->intent_index == SIZE_MAX)
+            fputs("null", out);
+        else
+            fprintf(out, "%zu", boundary->intent_index);
+        fprintf(out, ",\"step\":%zu,\"sync\":", boundary->step_index);
         air_json_string(out, air_sync_class_name(boundary->sync_class));
         fputs(",\"execution_lane\":", out);
         air_json_string(out, pgy_execution_lane_name(boundary->execution_lane));

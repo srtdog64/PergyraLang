@@ -3,7 +3,9 @@
 Status: BoundaryCaptureFact/ExecutionLane contract landed, source-kind and
 boundary-kind pin lane evidence removed from AIR classification (2026-07-02).
 The first conservative MIR value-capture producer and self-host parity mirror
-are landed (2026-07-06); full closure-capture precision remains the frontier.
+are landed (2026-07-06). AIR now materializes routine-level concurrency
+boundaries from HIR function bodies as first-class `AIRBoundaryNode` rows
+(2026-07-09); full closure-capture precision remains the frontier.
 Sister doc to
 `docs/114_async_model_positioning.md` (the async positioning) — this one names
 the execution layer below it.
@@ -103,9 +105,11 @@ strictly underneath.
   finalized in ONE pass in `air_synthesize`, and are emitted in `--air-json`.
 - A golden test (`sea-execution-lane-golden-test-smoke`) that compiles a real
   program, synthesises AIR, and pins the per-boundary lanes plus the
-  serialized `boundary_capture` bits for the clean AIR boundary kinds currently
-  reachable from valid intent clauses (valid RIR zone evidence produces
-  `zone -> PinnedZone`; `world -> LocalAsync`). The smoke now requires the
+  serialized `boundary_capture` bits for clean AIR boundary rows. It covers
+  intent-step zone/world rows (`zone -> PinnedZone`, `world -> LocalAsync`) and
+  routine-level concurrency rows from a valid function fixture
+  (`channel-send -> PinnedZone`, `channel-recv -> PinnedZone`,
+  `spawn -> WorkerPool`). The smoke now requires the
   public AIR graph schema, HIR/RIR/MIR inputs, and source locations, so it
   cannot be satisfied by manufacturing synthetic AIR rows. It also has a
   regression guard that a classified boundary is never left at the fail-closed
@@ -197,6 +201,13 @@ strictly underneath.
   The same MIR evidence stage refreshes `boundary_capture` and `execution_lane`
   through `air_refresh_execution_lane_facts`, so AIR JSON cannot expose stale
   lane facts after MIR evidence is attached.
+- `src/compiler/air_boundary_walk.c` now walks HIR function bodies as routine
+  owners, not only DIR intent-step expressions. A routine-level boundary has
+  `intent:null` in AIR JSON, but still requires HIR routine evidence, HIR CFG
+  evidence, RIR boundary evidence, boundary-local capture facts, and a source
+  location before it can enter the SEA golden. This closes the prior gap where
+  program-wide `inherent_concurrency_count` saw spawn/channel/parallel sites
+  while `AIRBoundaryNode` rows stayed empty outside intents.
 
 **Remaining — Precise capture plumbing (deep fill, not a quick slice):**
 - **Precise value-capture producer coverage.** `has_mir_value_capture_evidence`
@@ -221,14 +232,14 @@ strictly underneath.
   surface.
 - **Full AIR JSON lane matrix.** The policy proof and self-host parity proof
   cover `Inline`, `PinnedZone`, `BlockingPool`, `LocalAsync`, `WorkerPool`,
-  `MovableScheduler`, and `Reject`. Clean AIR JSON currently cannot produce
-  every row: valid intent clauses reject control-transfer expressions such as
-  `spawn`/`await`, and `MovableScheduler`/`Reject` require precise
-  raw-vs-value/movability facts not yet threaded onto AIR. The JSON golden
-  therefore pins the reachable clean AIR rows now and must expand only when a
-  valid source fixture produces the new row through HIR/RIR/MIR evidence and a
-  source location. Synthetic AIR state is reserved for unit tests and must not
-  be used to claim AIR JSON lane coverage.
+  `MovableScheduler`, and `Reject`. Clean AIR JSON now covers real intent
+  zone/world rows plus routine-level channel/spawn rows. It still cannot
+  produce every lane: `BlockingPool`, `MovableScheduler`, and `Reject` require
+  valid source fixtures whose HIR/RIR/MIR evidence proves IO/FFI, pure movable
+  authority crossing, or raw-resource movability contradictions. The JSON
+  golden must expand only when a valid source fixture produces the new row
+  through HIR/RIR/MIR evidence and a source location. Synthetic AIR state is
+  reserved for unit tests and must not be used to claim AIR JSON lane coverage.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same

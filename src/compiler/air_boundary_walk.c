@@ -1,5 +1,6 @@
 #include "air_internal.h"
 
+#include <stdint.h>
 #include <string.h>
 
 #include "../parser/ast_api.h"
@@ -292,6 +293,15 @@ air_walk_step_expr_boundaries(AIRBoundaryWalkCtx *ctx, const DIRIntentStep *step
                                 ast_intent_step_compensate_expr_count(ast));
 }
 
+static bool
+air_walk_routine_expr_boundaries(AIRBoundaryWalkCtx *ctx,
+                                 const ASTNode *routine)
+{
+    if (routine == NULL || routine->type != AST_FUNC_DECL)
+        return true;
+    return air_walk_child(ctx, ast_func_body(routine));
+}
+
 size_t
 air_count_step_expr_boundaries(const DIRIntentStep *step)
 {
@@ -322,4 +332,35 @@ air_append_step_expr_boundaries(AIRProgram *air,
     ctx.step = step;
     ctx.append = true;
     return air_walk_step_expr_boundaries(&ctx, step);
+}
+
+size_t
+air_count_routine_expr_boundaries(const ASTNode *routine)
+{
+    AIRBoundaryWalkCtx ctx;
+
+    memset(&ctx, 0, sizeof(ctx));
+    if (!air_walk_routine_expr_boundaries(&ctx, routine))
+        return 0;
+    return ctx.count;
+}
+
+bool
+air_append_routine_expr_boundaries(AIRProgram *air,
+                                   AIRBoundaryNode *boundaries,
+                                   size_t *boundary_index,
+                                   const char *owner,
+                                   const ASTNode *routine)
+{
+    AIRBoundaryWalkCtx ctx;
+
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.air = air;
+    ctx.boundaries = boundaries;
+    ctx.boundary_index = boundary_index;
+    ctx.intent_index = SIZE_MAX;
+    ctx.owner = owner;
+    ctx.step = NULL;
+    ctx.append = true;
+    return air_walk_routine_expr_boundaries(&ctx, routine);
 }

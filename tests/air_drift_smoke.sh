@@ -114,7 +114,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_mir_facts.c" "AIR_EVIDENCE_MIR_TERMINATOR"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_instruction_uses_select_receive_statement_emit"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_instruction_has_inherent_concurrency_fact"
-    require_literal "src/compiler/mir.h" "mir_instruction_has_inherent_concurrency_fact"
+    require_literal "src/compiler/mir_source_emit_predicates.h" "mir_instruction_has_inherent_concurrency_fact"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_inherent_concurrency_fact"
     for ast_concurrency_term in AST_PARALLEL_BLOCK AST_ASYNC_BLOCK AST_SPAWN_EXPR AST_CHANNEL_SEND AST_CHANNEL_RECV; do
         if grep -Fq -- "$ast_concurrency_term" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"; then

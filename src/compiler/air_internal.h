@@ -82,6 +82,12 @@ bool        air_append_step_expr_boundaries(AIRProgram *air,
                                             size_t intent_index,
                                             const char *owner,
                                             const DIRIntentStep *step);
+size_t      air_count_routine_expr_boundaries(const ASTNode *routine);
+bool        air_append_routine_expr_boundaries(AIRProgram *air,
+                                               AIRBoundaryNode *boundaries,
+                                               size_t *boundary_index,
+                                               const char *owner,
+                                               const ASTNode *routine);
 bool        air_collect_hir_evidence(AIRProgram *air,
                                      const HIRProgram *hir,
                                      char **error_message);

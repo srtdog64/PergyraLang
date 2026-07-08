@@ -25,7 +25,7 @@ capability claim must name the executable gate that blocks regression.
 | ABI ownership | PARTIAL/BLOCKER | Slot/resource rows are increasingly MIR-owned, but aggregate/generic ABI surfaces must keep moving out of backend-local spellings. |
 | C/LLVM backend parity | PARTIAL | Many parity rows are gated; whole-backend equivalence is still fixture and shard dependent. |
 | Compatibility evolution | PARTIAL | Compatibility vocabulary, a seed versioned breaking-change corpus, and its first self-hosted consumer gate exist; full production consumer coverage is still incomplete. |
-| Concurrency semantics | PARTIAL | Execution lane facts exist; precise producer coverage and negative rows remain P0. |
+| Concurrency semantics | PARTIAL | Execution lane facts exist; routine-level AIR boundary rows now flow from HIR/RIR evidence, but full lane-matrix producer coverage remains P0. |
 | Runtime executor | FAIL | The production executor split is not proven by lane-specific implementation gates. |
 | Sandbox/runtime safety | FAIL/PARTIAL | Several guards exist, but capability manifests and platform-specific atomicity are incomplete. |
 | Performance maturity | PARTIAL | Guard amortization has evidence; a continuous dashboard and frame-budget contract are not closed. |
@@ -171,7 +171,7 @@ same slice.
   report-shape spelling. A second negative artifact rejects an 11-field row
   with an invalid codefix status on both C and LLVM legs when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
-  33-row policy/evidence artifact. The parity gate locks positive
+  35-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin, live-view,
   raw-slot, and raw-channel resource capture under movability requirements on
   both C and LLVM. The same suite now emits
@@ -181,8 +181,11 @@ same slice.
   `lane_executor_contract_owner.pgy`; the probe consumes those owner facts while
   honestly recording the current `worker_join_scaffold` executor depth and
   proving its missing-term fail-closed artifact through both C-built and
-  LLVM-built probes when LLVM is available. Live AIR JSON full-matrix coverage and
-  lane-specific production executor depth remain separate P0/P1 work.
+  LLVM-built probes when LLVM is available. The live AIR JSON golden now also
+  covers five source-gated boundary rows: intent-step `zone`/`world` plus
+  routine-level `channel-send`, `channel-recv`, and `spawn`, each backed by
+  HIR/RIR/MIR inputs and source locations. Full AIR JSON lane-matrix coverage
+  and lane-specific production executor depth remain separate P0/P1 work.
 - Follow-up AIR/backend access slice: `backend_air_access_checker` now walks
   `src/codegen` from Pergyra, rejects AIR header/type tokens in backend sources,
   and emits `pgy.selfhost.backend-air-access.v1` plus forbidden-hit negative

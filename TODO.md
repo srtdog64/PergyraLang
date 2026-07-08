@@ -9843,7 +9843,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 | Formal corpus (docs/semantics/19) | 24 .v coqc 24/24, 0 admits; ✅WO-F1 닫힘(2026-07-04) | WO-F3/F4 후보 |
 | Machine-neutral | ✅WO-A1 닫힘(2026-07-04): test-all 상시 게이트 승격 | — |
 | AIR erasure dashboard | ✅WO-A2 닫힘(2026-07-04): air-erasure-gate CI화+substrate floor 고정 | — |
-| SEA / ExecutionLane | runtime facade landed; precise producer coverage/AIR lane matrix 남음 | A-3 |
+| SEA / ExecutionLane | runtime facade landed; routine-level AIR boundary rows landed; precise producer coverage/full lane matrix 남음 | A-3 |
 | String perf | fused builtins+StrView 런타임 landed | WO-P1 |
 | Guard amortization (docs/142) | 첫 슬라이스 landed | WO-P2 |
 | Closure capture (docs/141) | Stage A 完 | WO-C1→C3 |

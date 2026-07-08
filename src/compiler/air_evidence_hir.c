@@ -5,8 +5,12 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
                                  const AIRIntentNode *intent,
                                  const AIRBoundaryNode *boundary)
 {
-    if (routine == NULL || intent == NULL || boundary == NULL)
+    if (routine == NULL || boundary == NULL)
         return false;
+    if (intent == NULL) {
+        return air_name_matches(routine->name, boundary->owner_name)
+            || air_name_matches(routine->owner_name, boundary->owner_name);
+    }
     return air_name_matches(routine->owner_name, intent->intent_owner)
         || air_name_matches(routine->name, intent->step_name)
         || air_name_matches(routine->name, intent->intent_owner)
@@ -56,11 +60,12 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
         const HIRRoutine *routine = hir_routine_inventory_get(&inventory, i);
         for (size_t j = 0; j < air_boundary_node_count(air); j++) {
             AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, j);
-            const AIRIntentNode *intent;
+            const AIRIntentNode *intent = NULL;
             if (boundary == NULL)
                 continue;
-            intent = air_intent_node_at(air, boundary->intent_index);
-            if (intent == NULL)
+            if (boundary->intent_index != SIZE_MAX)
+                intent = air_intent_node_at(air, boundary->intent_index);
+            if (boundary->intent_index != SIZE_MAX && intent == NULL)
                 continue;
             if (air_hir_routine_matches_boundary(routine, intent, boundary)) {
                 const char *routine_name = routine->name != NULL

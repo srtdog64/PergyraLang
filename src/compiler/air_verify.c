@@ -31,18 +31,22 @@ air_verify(AIRProgram *air, char **error_message)
 
     for (size_t i = 0; i < air_boundary_node_count(air); i++) {
         AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, i);
-        const AIRIntentNode *intent;
+        const AIRIntentNode *intent = NULL;
+        bool has_intent_binding;
         if (boundary == NULL)
             continue;
-        intent = air_intent_node_at(air, boundary->intent_index);
-        if (intent == NULL)
+        has_intent_binding = boundary->intent_index != SIZE_MAX;
+        if (has_intent_binding)
+            intent = air_intent_node_at(air, boundary->intent_index);
+        if (has_intent_binding && intent == NULL)
             continue;
         char *provenance = air_format_boundary_provenance_owned(intent, boundary);
         if (provenance == NULL) {
             air_set_error(error_message, "AIR boundary provenance formatting failed");
             return false;
         }
-        if (air_sync_conflicts(intent->sync_class, boundary->sync_class)) {
+        if (has_intent_binding
+            && air_sync_conflicts(intent->sync_class, boundary->sync_class)) {
             if (!air_append_driftf(
                     air,
                     AIR_DRIFT_SYNC_ASYNC_CONFLICT,

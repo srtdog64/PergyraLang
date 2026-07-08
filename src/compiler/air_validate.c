@@ -343,7 +343,8 @@ air_validate(const AIRProgram *air, char **error_message)
     }
     for (size_t i = 0; i < air_boundary_node_count(air); i++) {
         const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
-        const AIRIntentNode *intent;
+        const AIRIntentNode *intent = NULL;
+        bool has_intent_binding;
         if (boundary == NULL) {
             air_set_invariant_error(error_message, "AIR boundary node %zu is missing", i);
             return false;
@@ -352,22 +353,25 @@ air_validate(const AIRProgram *air, char **error_message)
             air_set_invariant_error(error_message, "AIR boundary node %zu has unknown kind", i);
             return false;
         }
-        if (boundary->intent_index >= air_intent_node_count(air)) {
+        has_intent_binding = boundary->intent_index != SIZE_MAX;
+        if (has_intent_binding
+            && boundary->intent_index >= air_intent_node_count(air)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu references missing intent node %zu",
                                     i,
                                     boundary->intent_index);
             return false;
         }
-        intent = air_intent_node_at(air, boundary->intent_index);
-        if (intent == NULL) {
+        if (has_intent_binding)
+            intent = air_intent_node_at(air, boundary->intent_index);
+        if (has_intent_binding && intent == NULL) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu references missing intent node %zu",
                                     i,
                                     boundary->intent_index);
             return false;
         }
-        if (boundary->step_index != intent->step_index) {
+        if (has_intent_binding && boundary->step_index != intent->step_index) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu step index does not match intent node %zu",
                                     i,
@@ -378,7 +382,8 @@ air_validate(const AIRProgram *air, char **error_message)
             air_set_invariant_error(error_message, "AIR boundary node %zu has no owner name", i);
             return false;
         }
-        if (!air_name_matches(boundary->owner_name, intent->intent_owner)) {
+        if (has_intent_binding
+            && !air_name_matches(boundary->owner_name, intent->intent_owner)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu owner does not match intent node %zu",
                                     i,
@@ -519,7 +524,8 @@ air_validate(const AIRProgram *air, char **error_message)
         }
         if (drift->intent_index >= air_intent_node_count(air)
             && !(drift->intent_index == SIZE_MAX
-                 && air_drift_kind_is_global(drift->kind))) {
+                 && (air_drift_kind_is_global(drift->kind)
+                     || drift->boundary_index < air_boundary_node_count(air)))) {
             air_set_invariant_error(error_message,
                                     "AIR drift node %zu references missing intent node %zu",
                                     i,
