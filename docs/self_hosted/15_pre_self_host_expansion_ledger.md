@@ -318,6 +318,12 @@ expected artifact through TestHarness, compares the emitted rows with the
 Pergyra backend-output comparator, and runs the C/LLVM tool-output equality leg
 when LLVM is available.
 
+TestHarness delta, 2026-07-08: the compatibility-evolution manifest path suite
+now lives in `test_harness_tool_paths_owner.pgy` beside the compatibility
+corpus checker suite. The core `test_harness_owner.pgy` still consumes
+`CompilerHarnessCompatibilityEvolutionReady()` as a readiness predicate, but it
+no longer owns the concrete manifest source or expected artifact paths.
+
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.
 It no longer creates a build-dir `main.pgy` alias or copies the self-hosted
