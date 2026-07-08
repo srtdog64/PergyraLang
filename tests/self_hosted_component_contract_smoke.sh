@@ -1679,6 +1679,8 @@ require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableS
 require_text "src/self_hosted/sea/expected_executor_contract_missing.txt" "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term"
 require_text "src/self_hosted/sea/expected_lanes.txt" "negative_live_view_requires_movability|Reject"
 require_text "src/self_hosted/sea/expected_lanes.txt" "negative_raw_channel_requires_movability|Reject"
+require_text "src/self_hosted/sea/expected_lanes.txt" "air_parallel_raw_channel_pins|PinnedZone"
+require_text "src/self_hosted/sea/expected_lanes.txt" "negative_parallel_raw_channel_requires_movability|Reject"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" '"execution-lane-parity-paths"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/${harness_paths[0]}"'
@@ -1691,7 +1693,7 @@ require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_LLVM_NEG_BIN
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_LLVM_MISSING_OUT="$WORK/lane_executor_contract_llvm_missing.out"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "lane executor missing-term LLVM self-test should fail closed"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "assert_llvm_leg"
-require_text "tests/self_host_execution_lane_parity_smoke.sh" "33/33"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" "35/35"
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"'
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"

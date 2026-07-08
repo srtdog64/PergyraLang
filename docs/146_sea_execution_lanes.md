@@ -126,11 +126,12 @@ strictly underneath.
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
   (`self-host-execution-lane-parity-test-smoke`) diffs a named case-row artifact
   against the C policy table plus AIR evidence-shape rows on both C and LLVM
-  (33/33 each). The named rows explicitly pin positive `MovableScheduler`
+  (35/35 each). The named rows explicitly pin positive `MovableScheduler`
   evidence and negative `Reject` rows for pin, live-view, raw-slot, and
-  raw-channel resource capture under movability requirements. The self-host
-  mirror is forbidden to reintroduce `BoundarySourceKind`, `source_kind`, or
-  source-string lane APIs.
+  raw-channel resource capture under movability requirements. Raw-channel
+  evidence is boundary-local resource evidence, not a fact that only channel
+  boundary kinds may preserve. The self-host mirror is forbidden to reintroduce
+  `BoundarySourceKind`, `source_kind`, or source-string lane APIs.
 - The same parity suite now also compiles
   `src/self_hosted/sea/lane_executor_contract.pgy`. The contract vocabulary and
   expected runtime terms are owned by
@@ -179,7 +180,9 @@ strictly underneath.
   await-local, movability requirement, deterministic fork-join, zone pin, raw
   channel, raw slot, live view, pin cleanup, and value-only capture.
 - `src/compiler/air_execution_lane.c` consumes those evidence bits when it
-  builds `BoundaryCaptureFact`. The gate forbids
+  builds `BoundaryCaptureFact`. Raw-slot, raw-channel, and live-view evidence
+  are consumed as boundary-local resource facts before boundary-kind-specific
+  scheduling shape is considered. The gate forbids
   `air_boundary_source_kind(boundary)` from participating in lane evidence, and
   forbids `AIR_BOUNDARY_ZONE` from producing `captures_pin` without the RIR
   zone-pin evidence bit.

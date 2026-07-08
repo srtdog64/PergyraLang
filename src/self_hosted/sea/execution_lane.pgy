@@ -107,20 +107,20 @@ func CaptureFactFromBoundaryFact(fact: BoundaryLaneInputFact) -> BoundaryCapture
     let crosses_authority: Bool = fact.authority_required && fact.authority_count > 0;
     match fact.kind {
         case BoundaryKindZone:
-            return BoundaryCaptureFact(fact.has_rir_zone_pin_evidence, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+            return BoundaryCaptureFact(fact.has_rir_zone_pin_evidence, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
         case BoundaryKindChannel:
             return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
         case BoundaryKindIO:
-            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, true, false, false, true);
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, true, false, false, true);
         case BoundaryKindParallel:
-            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, fact.has_rir_movability_requirement_evidence, false, fact.has_rir_await_local_evidence, fact.has_rir_deterministic_fork_join_evidence, true);
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, fact.has_rir_movability_requirement_evidence, false, fact.has_rir_await_local_evidence, fact.has_rir_deterministic_fork_join_evidence, true);
         case BoundaryKindWorld:
-            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
         case BoundaryKindExecution:
             if fact.has_mir_pin_cleanup_evidence {
-                return BoundaryCaptureFact(true, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+                return BoundaryCaptureFact(true, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
             }
-            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, false, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
+            return BoundaryCaptureFact(false, fact.has_rir_live_view_capture_evidence, fact.has_rir_raw_slot_capture_evidence, fact.has_rir_raw_channel_capture_evidence, fact.has_mir_value_capture_evidence, crosses_authority, false, false, false, false, true);
         case BoundaryKindUnknown:
             return BoundaryCaptureFact(false, false, false, false, false, crosses_authority, false, false, false, false, false);
     }
@@ -200,6 +200,8 @@ func Main() -> Void {
     LogLaneCase("negative_raw_slot_requires_movability", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, true, false, false, false, false)));
     LogLaneCase("air_spawn_value_authority", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, true, false)));
     LogLaneCase("negative_fork_join_raw_slot_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, true, false, false, false, false)));
+    LogLaneCase("air_parallel_raw_channel_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, true, false, false, false, false, false)));
+    LogLaneCase("negative_parallel_raw_channel_requires_movability", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, true, false, false, false, false, false)));
     LogLaneCase("air_parallel_value_worker", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, true, false)));
     LogLaneCase("negative_await_live_view_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, true, false, false, false)));
     LogLaneCase("air_parallel_empty_local_async", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false)));

@@ -72,6 +72,10 @@ grep -Fq "producer_rejects_resource_movable|Reject" "$GOLDEN" \
     || fail "golden must pin producer-side resource rejection"
 grep -Fq "air_channel_raw_channel_pins|PinnedZone" "$GOLDEN" \
     || fail "golden must pin raw-channel materialization"
+grep -Fq "air_parallel_raw_channel_pins|PinnedZone" "$GOLDEN" \
+    || fail "golden must pin raw-channel resource evidence outside channel boundary kind"
+grep -Fq "negative_parallel_raw_channel_requires_movability|Reject" "$GOLDEN" \
+    || fail "golden must pin raw-channel+movability rejection from boundary-local evidence"
 grep -Fq "lane|Reject|(rejected)|fail_closed" "$EXEC_GOLDEN" \
     || fail "executor golden must pin Reject fail-closed behavior"
 grep -Fq "lane|MovableScheduler|MovableExecutor|worker_join_scaffold" "$EXEC_GOLDEN" \
@@ -120,7 +124,7 @@ for be in $backends; do
     if ! diff -u "$GOLDEN" "$WORK/got_$be.txt"; then
         fail "lane decision drift (backend=$be) vs the C policy golden (see diff)."
     fi
-    echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (33/33)"
+    echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (35/35)"
 done
 
 EXEC_ARG="$(pgy_path_for_compiler "$PGY" "$EXEC_SRC")"

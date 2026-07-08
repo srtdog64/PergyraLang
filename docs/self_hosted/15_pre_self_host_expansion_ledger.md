@@ -886,6 +886,16 @@ raw-channel rejection edges, and the self-host SEA parity artifact grew from
 BoundaryCaptureFact fail-closed contract without claiming the production
 executor split is complete.
 
+SEA raw-channel producer delta, 2026-07-09: `air_execution_lane.c` and the
+self-host SEA mirror now preserve `has_rir_raw_channel_capture_evidence` as a
+boundary-local resource fact, not only for `AIR_BOUNDARY_CHANNEL`. The C
+evidence proof adds parallel raw-channel pin/reject rows, and the self-host SEA
+parity artifact grows from 33 to 35 rows with
+`air_parallel_raw_channel_pins` and
+`negative_parallel_raw_channel_requires_movability`. This closes a producer
+gap where parallel/spawn-shaped raw-channel evidence could otherwise be erased
+before `BoundaryCaptureFact` reached the lane classifier.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

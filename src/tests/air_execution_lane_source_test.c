@@ -130,6 +130,14 @@ main(void)
         false, true, false, false, true, false, false, false, false, false,
         false, true, false, false, false, false, false, false, true,
         PGY_LANE_REJECT);
+    chk("parallel-raw-chan", AIR_BOUNDARY_PARALLEL,
+        false, false, false, true, false, false, false, false, false, false,
+        false, false, false, true, false, false, false, false, false,
+        PGY_LANE_PINNED_ZONE);
+    chk("spawn-raw-chan", AIR_BOUNDARY_PARALLEL,
+        false, true, false, true, false, false, false, false, false, false,
+        false, false, false, true, false, false, false, false, true,
+        PGY_LANE_REJECT);
     chk("spawn-value-auth", AIR_BOUNDARY_PARALLEL,
         false, true, false, false, false, false, false, true, false, true,
         false, false, false, false, true, true, false, false, true,
@@ -163,6 +171,6 @@ main(void)
         printf("\n%d FAIL\n", fails);
         return 1;
     }
-    printf("\nALL PASS (11/11)\n");
+    printf("\nALL PASS (13/13)\n");
     return 0;
 }

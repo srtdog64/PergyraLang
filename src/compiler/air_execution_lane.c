@@ -25,6 +25,8 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
         boundary->has_rir_live_view_capture_evidence;
     fact.captures_raw_slot =
         boundary->has_rir_raw_slot_capture_evidence;
+    fact.captures_raw_channel =
+        boundary->has_rir_raw_channel_capture_evidence;
     fact.captures_value_only =
         boundary->has_mir_value_capture_evidence;
     fact.captures_pin =
@@ -38,8 +40,6 @@ air_boundary_capture_fact(const AIRBoundaryNode *boundary)
 
         case AIR_BOUNDARY_CHANNEL:
             fact.is_concurrent_site = true;
-            fact.captures_raw_channel =
-                boundary->has_rir_raw_channel_capture_evidence;
             break;
 
         case AIR_BOUNDARY_IO:
