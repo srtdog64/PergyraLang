@@ -1359,6 +1359,17 @@ require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func 
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeFieldCount"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeDiagnosticIdFieldIndex"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeCodefixStatusFieldIndex"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityCorpusSchema"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityCorpusNegativeSchema"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityCorpusChangesCountField"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityCorpusCodefixStatusCountField"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityCorpusMissingCountField"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMissingAirEvidenceFinding"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMissingStdlibModuleFinding"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMissingCodefixStatusFinding"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMalformedChangeRowFinding"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding"
+require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityUnknownCodefixSelfTestStatus"
 require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "func CompilerCompatibilityChangeRow("
 reject_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "PGYCOMPAT001"
 reject_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "docs/compat/PrintLine"
@@ -1425,12 +1436,26 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeFieldCount()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeDiagnosticIdFieldIndex()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeCodefixStatusFieldIndex()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusSchema()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusNegativeSchema()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusChangesCountField()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingAirEvidenceFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingStdlibModuleFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingCodefixStatusFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMalformedChangeRowFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityUnknownCodefixSelfTestStatus()"
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== "obsolete"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== 11'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"change|"'
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_air_evidence_change"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_stdlib_module_change"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_codefix_status"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "pgy.selfhost.compatibility-corpus.v1"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "pgy.selfhost.compatibility-corpus-negative.v1"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_air_evidence_change"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_stdlib_module_change"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_codefix_status"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"malformed_change_row"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_obsolete_migration_envelope"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"unknown_codefix"'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityChangeRowHasShape"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityChangeRowFieldAt"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityChangeRowHasMigrationEnvelope"
@@ -1438,8 +1463,6 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CountCompatibilityRowsContaining"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityMalformedRowSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityInvalidCodefixSelfTestMode"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "malformed_change_row"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "missing_obsolete_migration_envelope"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" "pgy.selfhost.compatibility-corpus.v1"

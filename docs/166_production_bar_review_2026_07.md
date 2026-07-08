@@ -161,9 +161,11 @@ completed green with:
   checker-local literal; diagnostic-id and migration-URL construction now flows
   through owner constructors for the same reason, change-kind vocabulary is now
   an owner fact consumed by obsolete-row checks, and row delimiter/count/index
-  policy is consumed through owner facts. A second negative artifact rejects an
-  11-field row with an invalid codefix status on both C and LLVM legs when LLVM
-  is available.
+  policy is consumed through owner facts. The corpus JSON schema, negative
+  schema, count-field names, finding-kind vocabulary, and invalid-codefix
+  self-test status are now owner facts as well, so the checker no longer owns
+  report-shape spelling. A second negative artifact rejects an 11-field row
+  with an invalid codefix status on both C and LLVM legs when LLVM is available.
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
   33-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin, live-view,

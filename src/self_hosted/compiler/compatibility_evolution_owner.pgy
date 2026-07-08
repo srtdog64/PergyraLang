@@ -7,6 +7,14 @@ func CompilerCompatibilityEvolutionSchema() -> String {
     return "pgy.selfhost.compatibility-evolution.v1";
 }
 
+func CompilerCompatibilityCorpusSchema() -> String {
+    return "pgy.selfhost.compatibility-corpus.v1";
+}
+
+func CompilerCompatibilityCorpusNegativeSchema() -> String {
+    return "pgy.selfhost.compatibility-corpus-negative.v1";
+}
+
 func CompilerCompatibilitySurfaceCount() -> Int {
     return 9;
 }
@@ -97,6 +105,34 @@ func CompilerCompatibilityChangeDiagnosticIdFieldIndex() -> Int { return 7; }
 func CompilerCompatibilityChangeReplacementFieldIndex() -> Int { return 8; }
 func CompilerCompatibilityChangeMigrationUrlFieldIndex() -> Int { return 9; }
 func CompilerCompatibilityChangeCodefixStatusFieldIndex() -> Int { return 10; }
+
+func CompilerCompatibilityCorpusChangesCountField() -> String { return "changes"; }
+func CompilerCompatibilityCorpusDiagnosticIdCountField() -> String { return "diagnostic_id"; }
+func CompilerCompatibilityCorpusVersionLadderCountField() -> String { return "version_ladder"; }
+func CompilerCompatibilityCorpusMigrationUrlCountField() -> String { return "migration_url"; }
+func CompilerCompatibilityCorpusCodefixStatusCountField() -> String { return "codefix_status"; }
+func CompilerCompatibilityCorpusRowShapeCountField() -> String { return "row_shape"; }
+func CompilerCompatibilityCorpusObsoleteCountField() -> String { return "obsolete"; }
+func CompilerCompatibilityCorpusObsoleteMigrationCountField() -> String { return "obsolete_migration"; }
+func CompilerCompatibilityCorpusMissingCountField() -> String { return "missing"; }
+
+func CompilerCompatibilityMissingSourceFinding() -> String { return "missing_source_change"; }
+func CompilerCompatibilityMissingAbiFinding() -> String { return "missing_abi_change"; }
+func CompilerCompatibilityMissingBehaviorFinding() -> String { return "missing_behavior_change"; }
+func CompilerCompatibilityMissingDiagnosticFinding() -> String { return "missing_diagnostic_change"; }
+func CompilerCompatibilityMissingAirEvidenceFinding() -> String { return "missing_air_evidence_change"; }
+func CompilerCompatibilityMissingMirJsonFinding() -> String { return "missing_mir_json_change"; }
+func CompilerCompatibilityMissingRuntimeTraceFinding() -> String { return "missing_runtime_trace_change"; }
+func CompilerCompatibilityMissingCapabilityProfileFinding() -> String { return "missing_capability_profile_change"; }
+func CompilerCompatibilityMissingStdlibModuleFinding() -> String { return "missing_stdlib_module_change"; }
+func CompilerCompatibilityMissingDiagnosticIdFinding() -> String { return "missing_diagnostic_id"; }
+func CompilerCompatibilityMissingVersionLadderFinding() -> String { return "missing_version_ladder"; }
+func CompilerCompatibilityMissingMigrationUrlFinding() -> String { return "missing_migration_url"; }
+func CompilerCompatibilityMissingCodefixStatusFinding() -> String { return "missing_codefix_status"; }
+func CompilerCompatibilityMalformedChangeRowFinding() -> String { return "malformed_change_row"; }
+func CompilerCompatibilityMissingObsoleteFinding() -> String { return "missing_obsolete_change"; }
+func CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() -> String { return "missing_obsolete_migration_envelope"; }
+func CompilerCompatibilityUnknownCodefixSelfTestStatus() -> String { return "unknown_codefix"; }
 
 func CompilerCompatibilityChangeRow(
     surface: String,
@@ -197,6 +233,28 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityChangeReplacementFieldIndex() == 8 &&
         CompilerCompatibilityChangeMigrationUrlFieldIndex() == 9 &&
         CompilerCompatibilityChangeCodefixStatusFieldIndex() == 10 &&
+        CompilerCompatibilityCorpusSchema() != "" &&
+        CompilerCompatibilityCorpusNegativeSchema() != "" &&
+        CompilerCompatibilityCorpusChangesCountField() != "" &&
+        CompilerCompatibilityCorpusRowShapeCountField() != "" &&
+        CompilerCompatibilityCorpusMissingCountField() != "" &&
+        CompilerCompatibilityMissingSourceFinding() != "" &&
+        CompilerCompatibilityMissingAbiFinding() != "" &&
+        CompilerCompatibilityMissingBehaviorFinding() != "" &&
+        CompilerCompatibilityMissingDiagnosticFinding() != "" &&
+        CompilerCompatibilityMissingAirEvidenceFinding() != "" &&
+        CompilerCompatibilityMissingMirJsonFinding() != "" &&
+        CompilerCompatibilityMissingRuntimeTraceFinding() != "" &&
+        CompilerCompatibilityMissingCapabilityProfileFinding() != "" &&
+        CompilerCompatibilityMissingStdlibModuleFinding() != "" &&
+        CompilerCompatibilityMissingDiagnosticIdFinding() != "" &&
+        CompilerCompatibilityMissingVersionLadderFinding() != "" &&
+        CompilerCompatibilityMissingMigrationUrlFinding() != "" &&
+        CompilerCompatibilityMissingCodefixStatusFinding() != "" &&
+        CompilerCompatibilityMalformedChangeRowFinding() != "" &&
+        CompilerCompatibilityMissingObsoleteFinding() != "" &&
+        CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() != "" &&
+        CompilerCompatibilityUnknownCodefixSelfTestStatus() != "" &&
         CompilerCompatibilityChangeCount() == 9 &&
         StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
         StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&

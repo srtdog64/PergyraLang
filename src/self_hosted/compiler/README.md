@@ -79,7 +79,10 @@ policy does not split between docs, diagnostics, and backend scripts. It also
 owns the seed versioned breaking-change corpus for all nine compatibility
 surfaces. The `compatibility_evolution_manifest.pgy` projection emits those rows
 as a stable artifact consumed by
-`self-host-compatibility-evolution-parity-test-smoke`.
+`self-host-compatibility-evolution-parity-test-smoke`. The same owner also
+names the compatibility-corpus report schema, count fields, finding kinds, and
+invalid-codefix negative status consumed by `compatibility_evolution_checker`,
+so report-shape spelling does not live in the checker.
 
 `backend_emitter_contract_owner.pgy` names the first self-host-consumed
 backend dumb-emitter source contract: required MIR/ABI runtime-row consumer
