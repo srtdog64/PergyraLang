@@ -25,6 +25,18 @@ func CompilerAbiLayoutManifestRowAt(index: Int) -> String {
     return Concat(row18, CompilerAbiLayoutRowDefaultReturnValueAt(index));
 }
 
+func CompilerAbiLayoutTargetPolicyManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("target_policy|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    let row2: String = Concat(row1, CompilerAbiLayoutTargetPolicyAbiAt(index));
+    let row3: String = Concat(row2, "|");
+    let row4: String = Concat(row3, CompilerAbiLayoutTargetPolicyProjectionSetAt(index));
+    let row5: String = Concat(row4, "|");
+    let row6: String = Concat(row5, CompilerAbiLayoutTargetPolicyRequiredFactsAt(index));
+    let row7: String = Concat(row6, "|");
+    return Concat(row7, CompilerAbiLayoutTargetPolicyFallbacksAt(index));
+}
+
 func Main() -> Void {
     if !CompilerAbiLayoutRowsReady() {
         Log("ABI_LAYOUT ERROR: row owner is not ready");
@@ -37,5 +49,11 @@ func Main() -> Void {
     while i < CompilerAbiLayoutConcreteRowCount() {
         Log(CompilerAbiLayoutManifestRowAt(i));
         i = i + 1;
+    }
+    Log(Concat("target_policy_count=", ToString(CompilerAbiLayoutTargetPolicyCount())));
+    let target_policy_index: Int = 0;
+    while target_policy_index < CompilerAbiLayoutTargetPolicyCount() {
+        Log(CompilerAbiLayoutTargetPolicyManifestRowAt(target_policy_index));
+        target_policy_index = target_policy_index + 1;
     }
 }

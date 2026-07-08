@@ -54,6 +54,14 @@ LLVM-built self-host tool to agree on both the clean artifact and the
 missing-fact fail-closed case. That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
 
+`AbiRowProjectionZone` consumes that target envelope when it projects ABI layout
+rows. `abi_layout_row_owner.pgy` now ties the current `selfhost-c` ABI policy to
+the accepted `cpu-c,self-hosted` projection set plus the required
+`layout_shape,materialization_reason` facts and fallback reasons. The ABI row
+artifact therefore records not only C value spelling, field order, tag/niche,
+ownership, size/align, materialization, and default-return facts, but also the
+target capability facts that make those rows valid.
+
 `CompatibilityEvolutionZone` owns the versioned compatibility surface envelope:
 source, ABI/binary, behavior, diagnostics, AIR evidence, MIR JSON, runtime
 trace, capability profile, and stdlib module compatibility. It also owns the

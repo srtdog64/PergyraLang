@@ -2,8 +2,10 @@
 //
 // Owns the row vocabulary every projection must consume before emission.
 
+import "target_capability_owner.pgy";
+
 func CompilerAbiLayoutRowSchema() -> String {
-    return "pgy.selfhost.abi-layout-row.v2";
+    return "pgy.selfhost.abi-layout-row.v3";
 }
 func CompilerAbiLayoutRowFactCount() -> Int {
     return 9;
@@ -49,6 +51,7 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
 }
 func CompilerAbiLayoutRowsReady() -> Bool {
     return CompilerAbiLayoutRowFactCount() == 9 &&
+        CompilerTargetCapabilityEnvelopeReady() &&
         CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact() &&
         CompilerAbiLayoutRowFactAt(1) == CompilerAbiLayoutFieldOrderFact() &&
         CompilerAbiLayoutRowFactAt(2) == CompilerAbiLayoutTagKindFact() &&
@@ -80,7 +83,8 @@ func CompilerAbiLayoutRowsReady() -> Bool {
         CompilerAbiLayoutRowDefaultReturnValueAt(3) == CompilerAbiLayoutDefaultReturnEmptyString() &&
         CompilerAbiLayoutRowDefaultReturnValueAt(4) == CompilerAbiLayoutDefaultReturnUnsupported() &&
         CompilerAbiLayoutRowDefaultReturnValueAt(10) == CompilerAbiLayoutDefaultReturnZero() &&
-        CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization();
+        CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization() &&
+        CompilerAbiLayoutTargetPolicyReady();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
     return 11;
@@ -392,4 +396,68 @@ func CompilerAbiLayoutFieldAllowed(type_name: String) -> Bool {
     }
     return CompilerAbiLayoutRowMaterializationAt(UnwrapOption(row)) ==
         CompilerAbiLayoutFieldAllowedMaterialization();
+}
+
+func CompilerAbiLayoutTargetPolicyCount() -> Int {
+    return 1;
+}
+
+func CompilerAbiLayoutTargetPolicyAbiAt(index: Int) -> String {
+    if index == 0 {
+        return CompilerAbiLayoutSelfHostedCAbi();
+    }
+    return "";
+}
+
+func CompilerAbiLayoutTargetPolicyProjectionSetAt(index: Int) -> String {
+    if index == 0 {
+        let row0: String = Concat(CompilerTargetCpuCProjection(), ",");
+        return Concat(row0, CompilerTargetSelfHostedProjection());
+    }
+    return "";
+}
+
+func CompilerAbiLayoutTargetPolicyRequiredFactsAt(index: Int) -> String {
+    if index == 0 {
+        let row0: String = Concat(CompilerTargetLayoutShapeFact(), ",");
+        return Concat(row0, CompilerTargetMaterializationReasonFact());
+    }
+    return "";
+}
+
+func CompilerAbiLayoutTargetPolicyFallbacksAt(index: Int) -> String {
+    if index == 0 {
+        let row0: String = Concat(CompilerTargetUnsupportedShapeFallbackReason(), ",");
+        return Concat(row0, CompilerTargetForbiddenLossBudgetFallbackReason());
+    }
+    return "";
+}
+
+func CompilerAbiLayoutTargetPolicyKnown(abi_name: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerAbiLayoutTargetPolicyCount() {
+        if CompilerAbiLayoutTargetPolicyAbiAt(i) == abi_name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerAbiLayoutTargetPolicyReady() -> Bool {
+    return CompilerAbiLayoutTargetPolicyCount() == 1 &&
+        CompilerAbiLayoutTargetPolicyAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi() &&
+        CompilerAbiLayoutTargetPolicyProjectionSetAt(0) ==
+            Concat(Concat(CompilerTargetCpuCProjection(), ","), CompilerTargetSelfHostedProjection()) &&
+        CompilerAbiLayoutTargetPolicyRequiredFactsAt(0) ==
+            Concat(Concat(CompilerTargetLayoutShapeFact(), ","), CompilerTargetMaterializationReasonFact()) &&
+        CompilerAbiLayoutTargetPolicyFallbacksAt(0) ==
+            Concat(Concat(CompilerTargetUnsupportedShapeFallbackReason(), ","), CompilerTargetForbiddenLossBudgetFallbackReason()) &&
+        CompilerAbiLayoutTargetPolicyKnown(CompilerAbiLayoutSelfHostedCAbi()) &&
+        CompilerTargetProjectionKnown(CompilerTargetCpuCProjection()) &&
+        CompilerTargetProjectionKnown(CompilerTargetSelfHostedProjection()) &&
+        CompilerTargetFactKnown(CompilerTargetLayoutShapeFact()) &&
+        CompilerTargetFactKnown(CompilerTargetMaterializationReasonFact()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetUnsupportedShapeFallbackReason()) &&
+        CompilerTargetFallbackReasonKnown(CompilerTargetForbiddenLossBudgetFallbackReason());
 }
