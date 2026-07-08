@@ -104,7 +104,7 @@ The compatibility gate must cover these surfaces together:
 |---|---|
 | Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
-| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
+| MIR-owned ABI layout | `src/compiler/mir_abi_layout.c` for type/layout rows, `src/compiler/mir_abi_resource_runtime.c` for resource runtime-call spelling rows, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, `self-host-abi-layout-row-parity-test-smoke`, and `self-host-backend-abi-layout-contract-parity-test-smoke` |
 | Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
 | LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
@@ -117,17 +117,17 @@ The compatibility gate must cover these surfaces together:
 ## Immediate Closure
 
 The current self-host source-owner work is aligned with this review, and the
-latest full preparation run makes that evidence stronger than the earlier
-source-owner slice. On 2026-07-08, `make self-host-preparation-test-smoke`
-completed green with:
+latest broad preparation parity run makes that evidence stronger than the
+earlier source-owner slice. On 2026-07-09,
+`make self-host-preparation-parity-test-smoke` completed green with:
 
-- 171 real self-hosted sources accepted by the C and LLVM selfcheck legs.
-- M2 completeness ledger at `sources=171`, with `lexer=171`, `parser=171`,
-  `semantic=171`, `codegen=171`, and `full_pipeline=171`.
+- 195 real self-hosted sources accepted by the C and LLVM selfcheck legs.
+- M2 completeness ledger at `sources=195`, with `lexer=195`, `parser=195`,
+  `semantic=195`, `codegen=195`, and `full_pipeline=195`.
 - Parser parity over 188 source/fixture rows on C and LLVM parser binaries.
 - Semantic parity over 108 fixtures on C and LLVM checker binaries.
 - Codegen parity over 68 fixtures on C and LLVM-built codegen tools.
-- Bootstrap fixpoint `gen2 == gen3` at 8053 generated-C lines.
+- Bootstrap fixpoint `gen2 == gen3` at 8560 generated-C lines.
 - `SELF-HOSTING OK`: the Pergyra-built codegen builds lexer, parser, semantic,
   `mir_lower`, 13 gate/audit tools, and the backend fuzz generator with outputs
   matching the oracle-built tools.
@@ -136,6 +136,10 @@ completed green with:
   session-state, and hover-content parity over C and LLVM.
 - MIR JSON rung-0b parity over 86 fixtures through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
+
+This is a broad parity/preparation evidence refresh, not a claim that the
+heavier all-in-one `self-host-preparation-test-smoke` wrapper was rerun in the
+same slice.
 - Follow-up compatibility slice: compatibility vocabulary, obsolete migration
   fields, and a seed breaking-change row for every compatibility surface now
   emit a stable `compatibility_evolution` artifact, gated by
@@ -232,6 +236,10 @@ completed green with:
   `make self-host-completeness-smoke` completed at `sources=183`, with
   `lexer=183`, `parser=183`, `semantic=183`, `codegen=183`,
   `lex_parse=183`, `lex_parse_semantic=183`, and `full_pipeline=183`.
+- Follow-up broad parity refresh: after the runtime-call ABI rows and ABI
+  owner split, `make self-host-preparation-parity-test-smoke` completed at
+  `sources=195`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  195/195, and the bootstrap fixpoint at 8560 generated-C lines.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:

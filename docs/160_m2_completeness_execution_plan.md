@@ -84,18 +84,18 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
    count를 올릴 때는 C/LLVM oracle parity 또는 stage fixture가 같이 있어야 하며,
    C oracle의 silent fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
 
-**착지된 M2 ledger baseline(2026-07-06, tightened):** `self-host-completeness-smoke`가
-production self-host source 148개를 측정한다. locked minima:
-`source_min=148`, `lexer_pass_min=148`, `parser_pass_min=148`,
-`semantic_pass_min=148`, `codegen_pass_min=148`,
-`lex_parse_pass_min=148`, `lex_parse_semantic_pass_min=148`,
-`full_pipeline_pass_min=148`. 세 pipeline baseline manifest는 별도 복사본이 아니라
+**착지된 M2 ledger baseline(2026-07-09, tightened):** `self-host-completeness-smoke`가
+production self-host source 195개를 측정한다. locked minima:
+`source_min=195`, `lexer_pass_min=195`, `parser_pass_min=195`,
+`semantic_pass_min=195`, `codegen_pass_min=195`,
+`lex_parse_pass_min=195`, `lex_parse_semantic_pass_min=195`,
+`full_pipeline_pass_min=195`. 세 pipeline baseline manifest는 별도 복사본이 아니라
 `CompilerCompletenessSourceInventory()`가 방출하는 source inventory를 소비한다.
 따라서 새 production self-host source가 추가되면 source scope와 pipeline identity가
 같은 owner에서 함께 확장된다. 이 숫자는 낮출 수 없고, source inventory가 바뀌는
 커밋은 같은 게이트에서 새 source의 stage 통과도 증명해야 한다.
 
-주의: `full_pipeline_pass_min=148`은 이제 lexer/parser/semantic/codegen stage가
+주의: `full_pipeline_pass_min=195`는 이제 lexer/parser/semantic/codegen stage가
 같은 production source inventory 위에서 닫혔고, codegen stage는 self-parser가
 방출한 AST 텍스트를 입력으로 사용한다. 다만 이것은 아직 최종 bootstrap
 pipeline이 아니다. self-semantic의 typed facts가 codegen 입력으로 연결된 것이
@@ -197,11 +197,11 @@ family를 짝지어 전진하면 semantic 48k를 un-Pergyra로 안 쌓는다.
 **★M2 STEP 0 — likeness 래칫 범위 재정의 착지(2026-07-05 실측):**
 `self_host_pergyra_likeness_smoke.sh`는 이제 두 숫자를 분리한다.
 
-- `core_string_munge_sig = 116 / max 116` — **blocking GREEN**. 이 값만
+- `core_string_munge_sig = 108 / max 108` — **blocking GREEN**. 이 값만
   compiler-core linchpin이다. `codegen/emission/expr_rewrite.pgy`(11),
   `mir_lower/decl_lower.pgy`(10), `mir_lower/routine_lower.pgy`(9) 같은 오래된
   core text transform은 계속 포함하고, §3 strangler의 typed-fix 대상이다.
-- `total_string_munge_sig = 166` — **info only**. tools/LSP/fuzz/path/fixture/
+- `total_string_munge_sig = 192` — **info only**. tools/LSP/fuzz/path/fixture/
   harness 텍스트 라우팅까지 포함한 broad surface다. 이 값은 숨기지 않고 출력하되,
   compiler-core idiom ratchet을 흔드는 blocking metric으로 쓰지 않는다.
 
@@ -209,7 +209,7 @@ family를 짝지어 전진하면 semantic 48k를 un-Pergyra로 안 쌓는다.
 오염이었다. `lib/{json,json_emit,diagnostic}`만 제외하던 기준은 너무 좁아서
 tools/·lsp/·path-harness의 정당한 텍스트 소유까지 core debt로 세었다. 지금 기준은
 "코어가 idiomatic한가"만 압박하고, 주변 텍스트 도메인은 별도 owner/gate가 소유한다.
-절대 166으로 baseline을 올려 통과시키지 않았고, core 기준을 116으로 tighten했다.
+절대 166으로 baseline을 올려 통과시키지 않았고, core 기준을 108로 tighten했다.
 앞으로 typed-AST 진척은 `core_string_munge_sig↓`, `typed_ast_contract↑`로 측정한다.
 
 **결정점(BDFL, 로드맵 허용):** typed-AST를 fixpoint **전 완주** vs **후 끌어올림**.

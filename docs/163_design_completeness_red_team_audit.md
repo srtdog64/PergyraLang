@@ -38,14 +38,14 @@ manifests:
 
 | Metric | Current |
 |---|---:|
-| production self-host sources | 155 |
-| lexer pass | 155 |
-| parser pass | 155 |
-| semantic pass | 155 |
-| codegen pass | 155 |
-| lex+parse pass | 155 |
-| lex+parse+semantic pass | 155 |
-| full stage intersection | 155 |
+| production self-host sources | 195 |
+| lexer pass | 195 |
+| parser pass | 195 |
+| semantic pass | 195 |
+| codegen pass | 195 |
+| lex+parse pass | 195 |
+| lex+parse+semantic pass | 195 |
+| full stage intersection | 195 |
 
 Interpretation: parser is no longer the dominant blocker. The next real
 completeness wall is no longer source breadth. The codegen stage check now
@@ -53,7 +53,7 @@ consumes AST text emitted by the self-host parser, not C-oracle `pgy --ast`.
 The remaining hard-self-host blocker is replacing that AST-text bridge with
 typed self-parser/self-semantic owned facts without adding hidden fallbacks.
 
-The monotone ledger is now tightened at `155/155` for lexer, parser, semantic,
+The monotone ledger is now tightened at `195/195` for lexer, parser, semantic,
 codegen, lex+parse, lex+parse+semantic, and full stage intersection. The three
 pipeline baselines are emitted from the same source inventory owner rather than
 from copied path lists, so new production self-host sources must pass all
@@ -202,9 +202,9 @@ must remain fatal infrastructure failures, not pass-count failures.
 |---|---|---|
 | Self-host contract | Strong | honest definition, bridge/fallback split, CI owner named |
 | M2 completeness measurement | Medium-high | monotone source identity is right; stage check-unit ownership must stay explicit |
-| Parser self-host | Strong | 155/155 in completeness; parity fixture surface broad |
-| Semantic self-host | Medium | 155/155 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
-| Codegen self-host | Medium | fixed-point exists for subset; 155/155 source-stage checks pass via self-parser AST text |
+| Parser self-host | Strong | 195/195 in completeness; parity fixture surface broad |
+| Semantic self-host | Medium | 195/195 source-stage checks pass, but deep semantic parity is still bounded by the current subset |
+| Codegen self-host | Medium | fixed-point exists for subset; 195/195 source-stage checks pass via self-parser AST text |
 | CompilerWorld shape | Medium | vocabulary present; live fact consumption still needs negative evidence |
 | Typed AST | Medium-low | bridge is controlled, but still line-text backed |
 | JSON facts | Medium | shared owners exist; not yet a full schema/fact substrate |
@@ -220,7 +220,7 @@ or backend architecture complete.
 ## Next Work Order
 
 1. Replace the codegen stage's AST text bridge with typed self-parser /
-   self-semantic owned facts, then keep the 155/155 ledger green.
+   self-semantic owned facts, then keep the 195/195 ledger green.
 2. Keep applying the `READY for subset` / `ACTIVE global` split whenever a
    ledger surface mixes hard-rung readiness with native/global completion.
    `Target capability envelope` is the first gated split.

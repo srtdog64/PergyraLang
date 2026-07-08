@@ -36,14 +36,11 @@ English anchor for tooling/doc gates:
   `ExecutionLane` negative regressions, AIR/backend access lint, and stdlib L2
   doctrine pass. These augment the five closure targets above and do not make
   beta complete.
-- Self-host real-source selfcheck frontier: codegen `type_facts/type_env.pgy`,
-  MIR-lower JSON fact/input/inventory/decl/statement/routine/program owners, and
-  the SEA `execution_lane.pgy` mirror now declare their direct imports and enter
-  the real-source semantic selfcheck manifest. The manifest count moves from 97
-  to 108 accepted owner/source files, with `main.pgy` kept as orchestration
-  rather than the hidden dependency assembler for those owners. Parser/codegen
-  expression participants with real import cycles stay out of this slice; they
-  need an owner-boundary decision before promotion.
+- Self-host real-source selfcheck frontier: the M2 completeness ledger now locks
+  195 production self-host sources through lexer/parser/semantic/codegen and
+  full-pipeline identity. `main.pgy` stays orchestration, not a hidden dependency
+  assembler; new self-host sources must enter through named owners and pass the
+  staged ledger instead of relying on local folder/main aliases.
 - Mixed AST-text bridge progress: structural markers (`Program:`, `Body:`,
   `Block:`, `Then:`) now compare owner-owned `kind` facts instead of raw
   `CodegenAstTextNode.text` equality. The blocker remains open because line

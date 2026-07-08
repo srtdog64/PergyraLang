@@ -443,6 +443,13 @@ manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
 `CompilerTestHarnessReady()`, but it no longer owns those concrete manifest
 source or expected artifact paths.
 
+Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
+M2 minima at 195 for source inventory, lexer, parser, semantic, codegen,
+lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
+parity preparation run proved the same 195/195 ledger through C and LLVM
+selfcheck legs, so new production self-host sources cannot enter the inventory
+without passing the full staged completeness path.
+
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.
 It no longer creates a build-dir `main.pgy` alias or copies the self-hosted

@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - Completeness minima promoted to 195
+
+- Promoted `CompilerCompletenessLedger` minima from the historical 155-source
+  slice to 195 for source inventory, lexer, parser, semantic, codegen,
+  lex+parse, lex+parse+semantic, and full-pipeline intersection.
+- Updated the component contract so `return 155;` is rejected and all eight
+  minima must carry the 195-source closed slice.
+- Synchronized the production-bar and M2 planning docs with the latest broad
+  `self-host-preparation-parity-test-smoke` evidence: 195/195 staged
+  completeness and a codegen bootstrap fixpoint at 8560 generated-C lines.
+
 ## 2026-07-06 - Backend tri-compare consumes current comparator path suite
 
 - Updated `backend_output_tri_compare_parity.sh` to consume the seven-row

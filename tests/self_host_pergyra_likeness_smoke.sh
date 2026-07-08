@@ -125,7 +125,9 @@ SENTINEL_MAX=0
 # absence as Option<Int> instead of a literal -1 sentinel.
 # 712 -> 716 (2026-07-08): current tracked self-host source after compiler
 # world/sandbox owner wiring; keep errors-as-data adoption load-bearing.
-RESULT_USE_MIN=716
+# 716 -> 730 (2026-07-09): 195-source completeness promotion and backend ABI
+# contract owners increased typed Result/Option usage; keep it load-bearing.
+RESULT_USE_MIN=730
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
