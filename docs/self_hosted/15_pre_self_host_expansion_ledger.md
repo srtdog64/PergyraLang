@@ -356,6 +356,13 @@ and the TestHarness-projected parity suite now includes an
 `invalid_codefix_status` negative artifact on both C and LLVM legs when LLVM is
 available.
 
+Backend emitter contract delta, 2026-07-08: the self-host backend-emitter
+parity gate now runs the missing-required and forbidden-hit negative artifacts
+through an LLVM-built checker as well as the C-built checker. This makes the
+documented C/LLVM negative coverage real for the first dumb-emitter contract
+slice; the broad native `backend-fail-closed` gate remains the production
+backstop.
+
 TestHarness delta, 2026-07-08: the ABI-layout row and runtime-call ABI row
 manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
 `test_harness_owner.pgy` still consumes their readiness predicates as part of

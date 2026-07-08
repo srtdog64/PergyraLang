@@ -182,6 +182,12 @@ completed green with:
   `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
   moving the production ABI ownership blocker into hard self-host parity while
   `abi-ownership-shape-test-smoke` remains the broad native backstop.
+- Follow-up backend-emitter negative slice: the first self-host
+  dumb-emitter contract checker now runs missing-required and forbidden-hit
+  negative artifacts through both C-built and LLVM-built tools when LLVM is
+  available, gated by `make self-host-backend-emitter-contract-parity-test-smoke`.
+  This strengthens the hard self-host parity path; it does not replace the broad
+  native `backend-fail-closed-test-smoke` gate.
 - Follow-up sandbox capability slice: `SandboxCapabilityZone` now owns the
   capability/frame-budget vocabulary for filesystem, network, clock, random,
   subprocess, storage, render, input, fuel, host calls, command buffers, memory,

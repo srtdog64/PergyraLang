@@ -61,6 +61,8 @@ C_OUT="$BUILD_DIR/backend_emitter_contract_c.out"
 C_ERR="$BUILD_DIR/backend_emitter_contract_c.err"
 C_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_c_missing.out"
 C_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_c_forbidden.out"
+C_MISSING_ERR="$BUILD_DIR/backend_emitter_contract_c_missing.err"
+C_FORBIDDEN_ERR="$BUILD_DIR/backend_emitter_contract_c_forbidden.err"
 
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=c \
     -o "$(pgy_path_for_compiler "$PGY" "$C_BIN")" >"$C_COMPILE_LOG" 2>&1); then
@@ -86,12 +88,12 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 set +e
-(cd "$ROOT_DIR" && "$C_BIN" --self-test-missing-required 2>/dev/null | pgy_selfhost_normalize_text_artifact >"$C_MISSING_OUT")
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-missing-required 2>"$C_MISSING_ERR" | pgy_selfhost_normalize_text_artifact >"$C_MISSING_OUT")
 C_MISSING_RC=$?
 set -e
 if [[ "$C_MISSING_RC" -ne 1 ]]; then
     echo "[self-host-parity:backend-emitter-contract] missing-required self-test should fail closed (rc=1), got rc=$C_MISSING_RC" >&2
-    cat "$C_MISSING_OUT" >&2
+    cat "$C_MISSING_OUT" "$C_MISSING_ERR" >&2
     exit 1
 fi
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -102,12 +104,12 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 set +e
-(cd "$ROOT_DIR" && "$C_BIN" --self-test-forbidden-hit 2>/dev/null | pgy_selfhost_normalize_text_artifact >"$C_FORBIDDEN_OUT")
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-forbidden-hit 2>"$C_FORBIDDEN_ERR" | pgy_selfhost_normalize_text_artifact >"$C_FORBIDDEN_OUT")
 C_FORBIDDEN_RC=$?
 set -e
 if [[ "$C_FORBIDDEN_RC" -ne 1 ]]; then
     echo "[self-host-parity:backend-emitter-contract] forbidden-hit self-test should fail closed (rc=1), got rc=$C_FORBIDDEN_RC" >&2
-    cat "$C_FORBIDDEN_OUT" >&2
+    cat "$C_FORBIDDEN_OUT" "$C_FORBIDDEN_ERR" >&2
     exit 1
 fi
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
@@ -118,5 +120,54 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 assert_llvm_leg "self-host-parity:backend-emitter-contract" "$TOOL_ARG" "$BUILD_DIR"
+
+LLVM_NEG_BIN="$BUILD_DIR/backend_emitter_contract_llvm_negative.exe"
+LLVM_NEG_COMPILE_LOG="$BUILD_DIR/backend_emitter_contract_llvm_negative.compile.log"
+LLVM_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing.out"
+LLVM_MISSING_ERR="$BUILD_DIR/backend_emitter_contract_llvm_missing.err"
+LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.out"
+LLVM_FORBIDDEN_ERR="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.err"
+if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
+    -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
+    if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
+        echo "[self-host-parity:backend-emitter-contract] negative llvm-leg skipped (compiler built without LLVM backend support)"
+    else
+        echo "[self-host-parity:backend-emitter-contract] negative LLVM compile failed" >&2
+        cat "$LLVM_NEG_COMPILE_LOG" >&2
+        exit 1
+    fi
+else
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-missing-required 2>"$LLVM_MISSING_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_MISSING_OUT")
+    LLVM_MISSING_RC=$?
+    set -e
+    if [[ "$LLVM_MISSING_RC" -ne 1 ]]; then
+        echo "[self-host-parity:backend-emitter-contract] missing-required LLVM self-test should fail closed (rc=1), got rc=$LLVM_MISSING_RC" >&2
+        cat "$LLVM_MISSING_OUT" "$LLVM_MISSING_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:backend-emitter-contract" \
+        "$BUILD_DIR" \
+        "$MISSING_EXPECTED_FILE" \
+        "$LLVM_MISSING_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-forbidden-hit 2>"$LLVM_FORBIDDEN_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_FORBIDDEN_OUT")
+    LLVM_FORBIDDEN_RC=$?
+    set -e
+    if [[ "$LLVM_FORBIDDEN_RC" -ne 1 ]]; then
+        echo "[self-host-parity:backend-emitter-contract] forbidden-hit LLVM self-test should fail closed (rc=1), got rc=$LLVM_FORBIDDEN_RC" >&2
+        cat "$LLVM_FORBIDDEN_OUT" "$LLVM_FORBIDDEN_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:backend-emitter-contract" \
+        "$BUILD_DIR" \
+        "$FORBIDDEN_EXPECTED_FILE" \
+        "$LLVM_FORBIDDEN_OUT" \
+        "run_output"
+fi
 
 echo "[self-host-parity:backend-emitter-contract] parity ok"

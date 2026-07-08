@@ -1234,6 +1234,11 @@ require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.s
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-missing-required"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-forbidden-hit"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/backend_emitter_contract_llvm_negative.exe"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing.out"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.out"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "missing-required LLVM self-test should fail closed"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "forbidden-hit LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"'
 require_text "Makefile" "self-host-backend-emitter-contract-parity-test-smoke"
