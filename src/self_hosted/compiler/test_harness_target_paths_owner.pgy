@@ -37,3 +37,38 @@ func CompilerHarnessTargetCapabilityEnvelopeReady() -> Bool {
         CompilerHarnessTargetCapabilityEnvelopePathAt(1) == CompilerHarnessTargetCapabilityEnvelopeExpectedPath() &&
         CompilerHarnessTargetCapabilityEnvelopePathAt(2) == CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath();
 }
+
+func CompilerHarnessSandboxCapabilitySuiteName() -> String {
+    return "sandbox-capability-frame-budget";
+}
+
+func CompilerHarnessSandboxCapabilityToolSourcePath() -> String {
+    return "src/self_hosted/compiler/sandbox_capability_manifest.pgy";
+}
+
+func CompilerHarnessSandboxCapabilityExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/sandbox_capability.txt";
+}
+
+func CompilerHarnessSandboxCapabilityMissingBudgetExpectedPath() -> String {
+    return "src/self_hosted/compiler/expected/sandbox_capability_missing_budget.json";
+}
+
+func CompilerHarnessSandboxCapabilityPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessSandboxCapabilityPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessSandboxCapabilityToolSourcePath(); }
+    if index == 1 { return CompilerHarnessSandboxCapabilityExpectedPath(); }
+    if index == 2 { return CompilerHarnessSandboxCapabilityMissingBudgetExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessSandboxCapabilityReady() -> Bool {
+    return CompilerHarnessSandboxCapabilitySuiteName() != "" &&
+        CompilerHarnessSandboxCapabilityPathCount() == 3 &&
+        CompilerHarnessSandboxCapabilityPathAt(0) == CompilerHarnessSandboxCapabilityToolSourcePath() &&
+        CompilerHarnessSandboxCapabilityPathAt(1) == CompilerHarnessSandboxCapabilityExpectedPath() &&
+        CompilerHarnessSandboxCapabilityPathAt(2) == CompilerHarnessSandboxCapabilityMissingBudgetExpectedPath();
+}

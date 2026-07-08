@@ -1,0 +1,165 @@
+// Self-host compiler sandbox capability owner.
+//
+// Owns the explicit capability and frame-budget vocabulary required before a
+// sandbox or interactive runtime claim can become active.
+
+func CompilerSandboxCapabilitySchema() -> String {
+    return "pgy.selfhost.sandbox-capability-frame-budget.v1";
+}
+
+func CompilerSandboxCapabilityCount() -> Int {
+    return 8;
+}
+
+func CompilerSandboxFilesystemCapability() -> String { return "filesystem"; }
+func CompilerSandboxNetworkCapability() -> String { return "network"; }
+func CompilerSandboxClockCapability() -> String { return "clock"; }
+func CompilerSandboxRandomCapability() -> String { return "random"; }
+func CompilerSandboxSubprocessCapability() -> String { return "subprocess"; }
+func CompilerSandboxStorageCapability() -> String { return "storage"; }
+func CompilerSandboxRenderCapability() -> String { return "render"; }
+func CompilerSandboxInputCapability() -> String { return "input"; }
+
+func CompilerSandboxCapabilityAt(index: Int) -> String {
+    if index == 0 { return CompilerSandboxFilesystemCapability(); }
+    if index == 1 { return CompilerSandboxNetworkCapability(); }
+    if index == 2 { return CompilerSandboxClockCapability(); }
+    if index == 3 { return CompilerSandboxRandomCapability(); }
+    if index == 4 { return CompilerSandboxSubprocessCapability(); }
+    if index == 5 { return CompilerSandboxStorageCapability(); }
+    if index == 6 { return CompilerSandboxRenderCapability(); }
+    if index == 7 { return CompilerSandboxInputCapability(); }
+    return "";
+}
+
+func CompilerSandboxFrameBudgetCount() -> Int {
+    return 9;
+}
+
+func CompilerSandboxFuelBudget() -> String { return "per_frame_fuel"; }
+func CompilerSandboxHostCallBudget() -> String { return "per_frame_host_call_count"; }
+func CompilerSandboxDrawCommandBudget() -> String { return "per_frame_draw_commands"; }
+func CompilerSandboxAudioCommandBudget() -> String { return "per_frame_audio_commands"; }
+func CompilerSandboxStorageOpBudget() -> String { return "per_frame_storage_ops"; }
+func CompilerSandboxMemoryBudget() -> String { return "max_guest_memory_bytes"; }
+func CompilerSandboxQueuedEventBudget() -> String { return "max_queued_events"; }
+func CompilerSandboxStreamByteBudget() -> String { return "max_stream_bytes"; }
+func CompilerSandboxWallClockBudget() -> String { return "max_wall_clock_ms"; }
+
+func CompilerSandboxFrameBudgetAt(index: Int) -> String {
+    if index == 0 { return CompilerSandboxFuelBudget(); }
+    if index == 1 { return CompilerSandboxHostCallBudget(); }
+    if index == 2 { return CompilerSandboxDrawCommandBudget(); }
+    if index == 3 { return CompilerSandboxAudioCommandBudget(); }
+    if index == 4 { return CompilerSandboxStorageOpBudget(); }
+    if index == 5 { return CompilerSandboxMemoryBudget(); }
+    if index == 6 { return CompilerSandboxQueuedEventBudget(); }
+    if index == 7 { return CompilerSandboxStreamByteBudget(); }
+    if index == 8 { return CompilerSandboxWallClockBudget(); }
+    return "";
+}
+
+func CompilerSandboxAmbientRuleCount() -> Int {
+    return 8;
+}
+
+func CompilerSandboxAmbientRuleAt(index: Int) -> String {
+    let cap: String = CompilerSandboxCapabilityAt(index);
+    if cap == "" {
+        return "";
+    }
+    return Concat("no_ambient_", cap);
+}
+
+func CompilerSandboxBoundaryRuleCount() -> Int {
+    return 3;
+}
+
+func CompilerSandboxNoDefaultSubprocessRule() -> String {
+    return "no_default_subprocess";
+}
+
+func CompilerSandboxNoUnboundedHostCallRule() -> String {
+    return "no_unbounded_host_call";
+}
+
+func CompilerSandboxNoBlockingWithoutPoolRule() -> String {
+    return "no_blocking_host_call_without_blocking_pool";
+}
+
+func CompilerSandboxBoundaryRuleAt(index: Int) -> String {
+    if index == 0 { return CompilerSandboxNoDefaultSubprocessRule(); }
+    if index == 1 { return CompilerSandboxNoUnboundedHostCallRule(); }
+    if index == 2 { return CompilerSandboxNoBlockingWithoutPoolRule(); }
+    return "";
+}
+
+func CompilerSandboxCapabilityKnown(capability: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerSandboxCapabilityCount() {
+        if CompilerSandboxCapabilityAt(i) == capability {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerSandboxFrameBudgetKnown(budget: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerSandboxFrameBudgetCount() {
+        if CompilerSandboxFrameBudgetAt(i) == budget {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerSandboxAmbientRuleKnown(rule: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerSandboxAmbientRuleCount() {
+        if CompilerSandboxAmbientRuleAt(i) == rule {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerSandboxBoundaryRuleKnown(rule: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerSandboxBoundaryRuleCount() {
+        if CompilerSandboxBoundaryRuleAt(i) == rule {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerSandboxCapabilityEnvelopeReady() -> Bool {
+    return CompilerSandboxCapabilityCount() == 8 &&
+        CompilerSandboxCapabilityAt(0) == CompilerSandboxFilesystemCapability() &&
+        CompilerSandboxCapabilityAt(4) == CompilerSandboxSubprocessCapability() &&
+        CompilerSandboxCapabilityAt(7) == CompilerSandboxInputCapability() &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxRenderCapability()) &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxStorageCapability()) &&
+        CompilerSandboxFrameBudgetCount() == 9 &&
+        CompilerSandboxFrameBudgetAt(0) == CompilerSandboxFuelBudget() &&
+        CompilerSandboxFrameBudgetAt(1) == CompilerSandboxHostCallBudget() &&
+        CompilerSandboxFrameBudgetAt(5) == CompilerSandboxMemoryBudget() &&
+        CompilerSandboxFrameBudgetAt(8) == CompilerSandboxWallClockBudget() &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxQueuedEventBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxStreamByteBudget()) &&
+        CompilerSandboxAmbientRuleCount() == 8 &&
+        CompilerSandboxAmbientRuleAt(0) == "no_ambient_filesystem" &&
+        CompilerSandboxAmbientRuleAt(4) == "no_ambient_subprocess" &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_network") &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_random") &&
+        CompilerSandboxBoundaryRuleCount() == 3 &&
+        CompilerSandboxBoundaryRuleAt(0) == CompilerSandboxNoDefaultSubprocessRule() &&
+        CompilerSandboxBoundaryRuleAt(1) == CompilerSandboxNoUnboundedHostCallRule() &&
+        CompilerSandboxBoundaryRuleAt(2) == CompilerSandboxNoBlockingWithoutPoolRule() &&
+        CompilerSandboxBoundaryRuleKnown(CompilerSandboxNoBlockingWithoutPoolRule());
+}

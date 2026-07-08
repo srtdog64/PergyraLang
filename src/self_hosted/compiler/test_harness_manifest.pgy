@@ -2,7 +2,6 @@
 //
 // Emits line-oriented harness records owned by test_harness_owner.pgy. Shell
 // parity scripts may execute these records, but must not own the suite list.
-
 import "test_harness_owner.pgy";
 import "test_harness_tool_paths_owner.pgy";
 import "test_harness_target_paths_owner.pgy";
@@ -29,7 +28,6 @@ func EmitBackendTriSmokeCases() -> Void {
         i = i + 1;
     }
 }
-
 func EmitCompilerWorldProjectionPaths() -> Void {
     let i: Int = 0;
     while i < CompilerWorldProjectionPathCount() {
@@ -37,7 +35,6 @@ func EmitCompilerWorldProjectionPaths() -> Void {
         i = i + 1;
     }
 }
-
 func EmitBackendTriExtendedCases() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessBackendTriExtendedCaseCount() {
@@ -45,11 +42,8 @@ func EmitBackendTriExtendedCases() -> Void {
         i = i + 1;
     }
 }
-
 func EmitLinterParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessLinterPathCount() { Log(CompilerHarnessLinterPathAt(i)); i = i + 1; } }
-
 func EmitCompatibilityCorpusPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityCorpusPathCount() { Log(CompilerHarnessCompatibilityCorpusPathAt(i)); i = i + 1; } }
-
 func EmitModuleManifestResolverPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessModuleManifestResolverPathCount() {
@@ -57,7 +51,6 @@ func EmitModuleManifestResolverPaths() -> Void {
         i = i + 1;
     }
 }
-
 func EmitStableSubsetSectionPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessStableSubsetSectionPathCount() {
@@ -189,6 +182,7 @@ func EmitBackendOutputComparatorPaths() -> Void {
 func EmitAbiLayoutRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessAbiLayoutRowsPathCount() { Log(CompilerHarnessAbiLayoutRowsPathAt(i)); i = i + 1; } }
 func EmitRuntimeCallAbiRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessRuntimeCallAbiRowsPathCount() { Log(CompilerHarnessRuntimeCallAbiRowsPathAt(i)); i = i + 1; } }
 func EmitTargetCapabilityEnvelopePaths() -> Void { let i: Int = 0; while i < CompilerHarnessTargetCapabilityEnvelopePathCount() { Log(CompilerHarnessTargetCapabilityEnvelopePathAt(i)); i = i + 1; } }
+func EmitSandboxCapabilityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessSandboxCapabilityPathCount() { Log(CompilerHarnessSandboxCapabilityPathAt(i)); i = i + 1; } }
 func EmitBackendEmitterContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendEmitterContractPathCount() { Log(CompilerHarnessBackendEmitterContractPathAt(i)); i = i + 1; } }
 func EmitBackendAirAccessPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAirAccessPathCount() { Log(CompilerHarnessBackendAirAccessPathAt(i)); i = i + 1; } }
 func EmitBackendAbiLayoutContractPaths() -> Void { let i: Int = 0; while i < CompilerHarnessBackendAbiLayoutContractPathCount() { Log(CompilerHarnessBackendAbiLayoutContractPathAt(i)); i = i + 1; } }
@@ -475,6 +469,7 @@ func Main() -> Void {
     }
     if args[0] == CompilerHarnessRuntimeCallAbiRowsSuiteName() { EmitRuntimeCallAbiRowsPaths(); return; }
     if args[0] == CompilerHarnessTargetCapabilityEnvelopeSuiteName() { EmitTargetCapabilityEnvelopePaths(); return; }
+    if args[0] == CompilerHarnessSandboxCapabilitySuiteName() { EmitSandboxCapabilityPaths(); return; }
     if args[0] == CompilerHarnessBackendEmitterContractSuiteName() { EmitBackendEmitterContractPaths(); return; }
     if args[0] == CompilerHarnessBackendAirAccessSuiteName() { EmitBackendAirAccessPaths(); return; }
     if args[0] == CompilerHarnessBackendAbiLayoutContractSuiteName() { EmitBackendAbiLayoutContractPaths(); return; }

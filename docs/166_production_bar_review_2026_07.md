@@ -110,7 +110,7 @@ The compatibility gate must cover these surfaces together:
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
 | Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
 | AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/air_backend_nonimpact_smoke.sh`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
-| Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, capability manifest gates, and future frame-budget fixtures |
+| Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, `src/self_hosted/compiler/sandbox_capability_owner.pgy`, `src/self_hosted/compiler/sandbox_capability_manifest.pgy`, `self-host-sandbox-capability-parity-test-smoke`, capability manifest gates, and future runtime frame-budget fixtures |
 | Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
 | Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |
 
@@ -175,6 +175,14 @@ completed green with:
   `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
   moving the production ABI ownership blocker into hard self-host parity while
   `abi-ownership-shape-test-smoke` remains the broad native backstop.
+- Follow-up sandbox capability slice: `SandboxCapabilityZone` now owns the
+  capability/frame-budget vocabulary for filesystem, network, clock, random,
+  subprocess, storage, render, input, fuel, host calls, command buffers, memory,
+  queues, streams, wall-clock, ambient-denial, and blocking host-call rules.
+  `sandbox_capability_manifest.pgy` emits clean and missing-budget artifacts
+  under `make self-host-sandbox-capability-parity-test-smoke`. This is a
+  production-bar routing gate for the sandbox surface, not a claim that the
+  runtime executor or sandbox quotas are fully implemented.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 - Follow-up owner-scoped TestHarness split refresh: `sources=175`, with

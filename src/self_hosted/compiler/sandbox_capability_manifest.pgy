@@ -1,0 +1,102 @@
+// Runnable sandbox capability/frame-budget projection.
+
+import "sandbox_capability_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func CompilerSandboxCapabilityManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("capability|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerSandboxCapabilityAt(index));
+}
+
+func CompilerSandboxFrameBudgetManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("frame_budget|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerSandboxFrameBudgetAt(index));
+}
+
+func CompilerSandboxAmbientRuleManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("ambient_rule|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerSandboxAmbientRuleAt(index));
+}
+
+func CompilerSandboxBoundaryRuleManifestRowAt(index: Int) -> String {
+    let row0: String = Concat("boundary_rule|", ToString(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, CompilerSandboxBoundaryRuleAt(index));
+}
+
+func CompilerSandboxMissingBudgetSelfTestMode() -> String {
+    return "--self-test-missing-budget";
+}
+
+func CompilerSandboxMissingBudgetSelfTestReport(found_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if found_count < 1 {
+        missing = 1;
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_required_frame_budget")]));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("required_frame_budget", ToString(found_count)),
+        JsonEmitFieldNumber("missing", ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.selfhost.sandbox-capability-negative.v1"),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func RunCompilerSandboxMissingBudgetSelfTest() -> Void {
+    let found_count: Int = 0;
+    if CompilerSandboxFrameBudgetKnown("missing_frame_budget_fact") {
+        found_count = 1;
+    }
+    Log(CompilerSandboxMissingBudgetSelfTestReport(found_count));
+    if found_count < 1 {
+        Exit(1);
+    }
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == CompilerSandboxMissingBudgetSelfTestMode() {
+        RunCompilerSandboxMissingBudgetSelfTest();
+        return;
+    }
+
+    if !CompilerSandboxCapabilityEnvelopeReady() {
+        Log("SANDBOX_CAPABILITY ERROR: envelope owner is not ready");
+        Exit(1);
+        return;
+    }
+
+    Log(Concat("schema=", CompilerSandboxCapabilitySchema()));
+    Log(Concat("capability_count=", ToString(CompilerSandboxCapabilityCount())));
+    let cap_index: Int = 0;
+    while cap_index < CompilerSandboxCapabilityCount() {
+        Log(CompilerSandboxCapabilityManifestRowAt(cap_index));
+        cap_index = cap_index + 1;
+    }
+    Log(Concat("frame_budget_count=", ToString(CompilerSandboxFrameBudgetCount())));
+    let budget_index: Int = 0;
+    while budget_index < CompilerSandboxFrameBudgetCount() {
+        Log(CompilerSandboxFrameBudgetManifestRowAt(budget_index));
+        budget_index = budget_index + 1;
+    }
+    Log(Concat("ambient_rule_count=", ToString(CompilerSandboxAmbientRuleCount())));
+    let ambient_index: Int = 0;
+    while ambient_index < CompilerSandboxAmbientRuleCount() {
+        Log(CompilerSandboxAmbientRuleManifestRowAt(ambient_index));
+        ambient_index = ambient_index + 1;
+    }
+    Log(Concat("boundary_rule_count=", ToString(CompilerSandboxBoundaryRuleCount())));
+    let rule_index: Int = 0;
+    while rule_index < CompilerSandboxBoundaryRuleCount() {
+        Log(CompilerSandboxBoundaryRuleManifestRowAt(rule_index));
+        rule_index = rule_index + 1;
+    }
+}

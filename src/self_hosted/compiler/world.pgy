@@ -2,16 +2,15 @@ import "path_manifest_owner.pgy";
 import "target_capability_owner.pgy";
 import "compatibility_evolution_owner.pgy";
 import "air_evidence_owner.pgy";
+import "sandbox_capability_owner.pgy";
 import "artifact_zone_owner.pgy";
 import "test_harness_owner.pgy";
 import "subprocess_runner_owner.pgy";
 import "abi_layout_row_owner.pgy";
 import "symbol_table_owner.pgy";
 import "stage_artifact_owner.pgy";
-
 subject SourceUnit {
     let path: String;
-
     action Read(self, paths: StagePathManifest) -> Bool {
         return CompilerStagePathManifestReady();
     }
@@ -19,7 +18,6 @@ subject SourceUnit {
 
 subject LexerStage {
     let name: String;
-
     action Scan(self) -> Bool {
         return CompilerTokenStreamFactReady();
     }
@@ -27,7 +25,6 @@ subject LexerStage {
 
 subject ParserStage {
     let name: String;
-
     action BuildAst(self) -> Bool {
         return CompilerAstTreeFactReady();
     }
@@ -35,7 +32,6 @@ subject ParserStage {
 
 subject SemanticStage {
     let name: String;
-
     action Check(self) -> Bool {
         return CompilerSemanticVerdictFactReady();
     }
@@ -43,7 +39,6 @@ subject SemanticStage {
 
 subject MirLowerStage {
     let name: String;
-
     action Lower(self) -> Bool {
         return CompilerMirFactGraphReady();
     }
@@ -51,7 +46,6 @@ subject MirLowerStage {
 
 subject ProgramEmitter {
     let name: String;
-
     action Emit(self, types: TypeEnvZone, abi_layout: AbiLayoutZone, target_capability: TargetCapabilityZone) -> Bool {
         return CompilerEmissionFactReady() &&
             CompilerAbiLayoutRowsReady() &&
@@ -62,7 +56,6 @@ subject ProgramEmitter {
 
 subject TargetProjectionPlanner {
     let name: String;
-
     action Plan(self) -> Bool {
         return CompilerTargetCapabilityEnvelopeReady();
     }
@@ -78,6 +71,12 @@ subject AirEvidenceOwner {
     let name: String;
 
     action Verify(self) -> Bool { return CompilerAirEvidenceEnvelopeReady(); }
+}
+
+subject SandboxCapabilityOwner {
+    let name: String;
+
+    action Own(self) -> Bool { return CompilerSandboxCapabilityEnvelopeReady(); }
 }
 
 subject SymbolTableOwner {
@@ -143,6 +142,7 @@ object AbiLayoutFacts { schema: String; }
 object TargetCapabilityEnvelope { schema: String; }
 object CompatibilityEvolutionFacts { schema: String; }
 object AirEvidenceFacts { schema: String; }
+object SandboxCapabilityFacts { schema: String; }
 object SymbolFactTable { schema: String; }
 object AbiLayoutRows { schema: String; }
 object EmittedC { schema: String; }
@@ -204,6 +204,11 @@ zone AirEvidenceZone {
     object slot facts: AirEvidenceFacts
 }
 
+zone SandboxCapabilityZone {
+    subject slot owner: SandboxCapabilityOwner
+    object slot facts: SandboxCapabilityFacts
+}
+
 zone SymbolFactTableZone {
     subject slot owner: SymbolTableOwner
     object slot symbols: SymbolFactTable
@@ -252,6 +257,7 @@ zone SelfHostCompiler {
     subject slot target_planner: TargetProjectionPlanner
     subject slot compatibility_owner: CompatibilityEvolutionOwner
     subject slot evidence_owner: AirEvidenceOwner
+    subject slot sandbox_owner: SandboxCapabilityOwner
     subject slot symbol_owner: SymbolTableOwner
     subject slot abi_projector: AbiRowProjector
     subject slot artifact_sink: ArtifactSink
@@ -269,6 +275,7 @@ zone SelfHostCompiler {
     object slot target_capability: TargetCapabilityEnvelope
     object slot compatibility: CompatibilityEvolutionFacts
     object slot air_evidence: AirEvidenceFacts
+    object slot sandbox_capability: SandboxCapabilityFacts
     object slot symbols: SymbolFactTable
     object slot abi_rows: AbiLayoutRows
     object slot c_output: EmittedC
@@ -290,6 +297,7 @@ world PgyCompilerWorld {
     zone target_capability: TargetCapabilityZone
     zone compatibility: CompatibilityEvolutionZone
     zone air_evidence: AirEvidenceZone
+    zone sandbox_capability: SandboxCapabilityZone
     zone symbols: SymbolFactTableZone
     zone abi_rows: AbiRowProjectionZone
     zone emission: EmissionZone

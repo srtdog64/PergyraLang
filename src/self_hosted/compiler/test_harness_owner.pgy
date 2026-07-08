@@ -137,6 +137,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessAbiLayoutRowsReady() &&
         CompilerHarnessRuntimeCallAbiRowsReady() &&
         CompilerHarnessTargetCapabilityEnvelopeReady() &&
+        CompilerHarnessSandboxCapabilityReady() &&
         CompilerHarnessBackendEmitterContractReady() &&
         CompilerHarnessBackendAirAccessReady() &&
         CompilerHarnessBackendAbiLayoutContractReady() &&

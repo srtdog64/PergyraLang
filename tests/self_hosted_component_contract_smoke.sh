@@ -808,6 +808,42 @@ require_text "src/self_hosted/compiler/expected/target_capability.txt" "fallback
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "pgy.selfhost.target-capability-negative.v1"
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" '"ok":false'
 require_text "src/self_hosted/compiler/expected/target_capability_missing_fact.json" "missing_required_target_fact"
+require_file "src/self_hosted/compiler/sandbox_capability_owner.pgy"
+require_file "src/self_hosted/compiler/sandbox_capability_manifest.pgy"
+require_file "src/self_hosted/compiler/expected/sandbox_capability.txt"
+require_file "src/self_hosted/compiler/expected/sandbox_capability_missing_budget.json"
+require_max_lines "src/self_hosted/compiler/sandbox_capability_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/sandbox_capability_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/sandbox_capability_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/sandbox_capability_manifest.pgy"
+require_text "src/self_hosted/compiler/world.pgy" 'import "sandbox_capability_owner.pgy";'
+require_text "src/self_hosted/compiler/world.pgy" "zone SandboxCapabilityZone"
+require_text "src/self_hosted/compiler/world.pgy" "subject SandboxCapabilityOwner"
+require_text "src/self_hosted/compiler/world.pgy" "object SandboxCapabilityFacts"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxCapabilitySchema"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxFilesystemCapability"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxSubprocessCapability"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxFrameBudgetAt"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxAmbientRuleAt"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "func CompilerSandboxBoundaryRuleAt"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "CompilerSandboxCapabilityCount() == 8"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "CompilerSandboxFrameBudgetCount() == 9"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "CompilerSandboxBoundaryRuleCount() == 3"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "CompilerSandboxFrameBudgetKnown(CompilerSandboxQueuedEventBudget())"
+require_text "src/self_hosted/compiler/sandbox_capability_owner.pgy" "CompilerSandboxBoundaryRuleKnown(CompilerSandboxNoBlockingWithoutPoolRule())"
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" 'import "sandbox_capability_owner.pgy";'
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" 'import "../lib/json_emit.pgy";'
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" "CompilerSandboxCapabilityManifestRowAt"
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" "CompilerSandboxFrameBudgetManifestRowAt"
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" "CompilerSandboxMissingBudgetSelfTestMode"
+require_text "src/self_hosted/compiler/sandbox_capability_manifest.pgy" "missing_required_frame_budget"
+require_text "src/self_hosted/compiler/expected/sandbox_capability.txt" "schema=pgy.selfhost.sandbox-capability-frame-budget.v1"
+require_text "src/self_hosted/compiler/expected/sandbox_capability.txt" "capability|4|subprocess"
+require_text "src/self_hosted/compiler/expected/sandbox_capability.txt" "frame_budget|1|per_frame_host_call_count"
+require_text "src/self_hosted/compiler/expected/sandbox_capability.txt" "frame_budget|8|max_wall_clock_ms"
+require_text "src/self_hosted/compiler/expected/sandbox_capability.txt" "boundary_rule|2|no_blocking_host_call_without_blocking_pool"
+require_text "src/self_hosted/compiler/expected/sandbox_capability_missing_budget.json" "pgy.selfhost.sandbox-capability-negative.v1"
+require_text "src/self_hosted/compiler/expected/sandbox_capability_missing_budget.json" "missing_required_frame_budget"
 require_file "src/self_hosted/compiler/backend_emitter_contract_owner.pgy"
 require_max_lines "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_emitter_contract_owner.pgy"
@@ -1152,6 +1188,25 @@ reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'TOO
 reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/target_capability.txt"'
 require_text "Makefile" "self-host-target-capability-envelope-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/target_capability_manifest_parity.sh"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "func CompilerHarnessSandboxCapabilitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "sandbox-capability-frame-budget"
+require_text "src/self_hosted/compiler/test_harness_target_paths_owner.pgy" "CompilerHarnessSandboxCapabilityReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessSandboxCapabilityReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitSandboxCapabilityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessSandboxCapabilitySuiteName()"
+require_file "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh"
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" '"sandbox-capability-frame-budget"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "--self-test-missing-budget"
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" '"sandbox_capability"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/sandbox_capability_manifest.pgy"'
+reject_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/sandbox_capability.txt"'
+require_text "Makefile" "self-host-sandbox-capability-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh"
 require_file "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy"
 require_max_lines "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy"
@@ -2850,6 +2905,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAb
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeCallAbiArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerCompatibilityEvolutionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerTargetCapabilityArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerSandboxCapabilityArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
@@ -2860,7 +2916,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspResponseEmissionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspSessionReplayArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDocumentStoreArtifactKind"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 22"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 23"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
@@ -2880,6 +2936,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()"

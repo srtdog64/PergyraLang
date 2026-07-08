@@ -161,6 +161,10 @@ compiler-stage `.pgy` source to be listed here.
   and fallback fact envelope for backend projections.
 - `src/self_hosted/compiler/target_capability_manifest.pgy` -- runnable
   target-capability artifact projection over owner facts.
+- `src/self_hosted/compiler/sandbox_capability_owner.pgy` -- sandbox
+  capability and frame-budget fact envelope for interactive/runtime claims.
+- `src/self_hosted/compiler/sandbox_capability_manifest.pgy` -- runnable
+  sandbox capability/frame-budget artifact projection over owner facts.
 - `src/self_hosted/compiler/backend_emitter_contract_owner.pgy` -- backend
   dumb-emitter required/forbidden fact-consumer rows.
 - `src/self_hosted/compiler/compatibility_evolution_owner.pgy` -- versioned

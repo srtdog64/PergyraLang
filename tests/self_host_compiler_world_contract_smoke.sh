@@ -63,6 +63,8 @@ require_file "src/self_hosted/compiler/world.pgy"
 require_file "src/self_hosted/compiler/path_manifest_owner.pgy"
 require_file "src/self_hosted/compiler/stage_intents.pgy"
 require_file "src/self_hosted/compiler/target_capability_owner.pgy"
+require_file "src/self_hosted/compiler/sandbox_capability_owner.pgy"
+require_file "src/self_hosted/compiler/sandbox_capability_manifest.pgy"
 require_file "src/self_hosted/compiler/compatibility_evolution_owner.pgy"
 require_file "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_file "src/self_hosted/compiler/artifact_zone_owner.pgy"
@@ -92,6 +94,8 @@ require_file "tests/self_hosted/parity/driver_rung1_parity.sh"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_PATH_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_STAGE_ARTIFACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_COMPATIBILITY_EVOLUTION_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_SANDBOX_CAPABILITY_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_SANDBOX_CAPABILITY_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
@@ -112,6 +116,8 @@ pgy_compiler_world_require_stage_conformance "$ROOT_DIR" ||
 require_max_lines "src/self_hosted/compiler/world.pgy" 600
 require_max_lines "src/self_hosted/compiler/path_manifest_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/target_capability_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/sandbox_capability_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/sandbox_capability_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
@@ -242,6 +248,7 @@ for term in \
     "zone TypeEnvZone" \
     "zone AbiLayoutZone" \
     "zone TargetCapabilityZone" \
+    "zone SandboxCapabilityZone" \
     "zone CompatibilityEvolutionZone" \
     "zone AirEvidenceZone" \
     "zone SymbolFactTableZone" \
@@ -295,6 +302,7 @@ for term in \
     "CompilerMirFactGraphReady()" \
     "emitter.Emit(types, abi_layout, target_capability)" \
     "subject TargetProjectionPlanner" \
+    "subject SandboxCapabilityOwner" \
     "action Plan" \
     "subject CompatibilityEvolutionOwner" \
     "subject AirEvidenceOwner" \
@@ -318,6 +326,7 @@ for term in \
     "object TypeEnvironment" \
     "object AbiLayoutFacts" \
     "object TargetCapabilityEnvelope" \
+    "object SandboxCapabilityFacts" \
     "object CompatibilityEvolutionFacts" \
     "object AirEvidenceFacts" \
     "object SymbolFactTable" \
@@ -334,6 +343,7 @@ for term in \
     "subject slot emitter: ProgramEmitter" \
     "object slot abi_layout: AbiLayoutFacts" \
     "object slot target_capability: TargetCapabilityEnvelope" \
+    "object slot sandbox_capability: SandboxCapabilityFacts" \
     "object slot compatibility: CompatibilityEvolutionFacts" \
     "object slot air_evidence: AirEvidenceFacts" \
     "object slot symbols: SymbolFactTable" \
@@ -343,6 +353,7 @@ for term in \
     "object slot subprocess: SubprocessCapabilityEnvelope" \
     "object slot layouts: AbiLayoutFacts" \
     "object slot envelope: TargetCapabilityEnvelope" \
+    "object slot facts: SandboxCapabilityFacts" \
     "object slot facts: CompatibilityEvolutionFacts" \
     "object slot facts: AirEvidenceFacts" \
     "object slot symbols: SymbolFactTable" \
@@ -350,6 +361,7 @@ for term in \
     "object slot evidence: ArtifactEvidence" \
     "zone abi_layout: AbiLayoutZone" \
     "zone target_capability: TargetCapabilityZone" \
+    "zone sandbox_capability: SandboxCapabilityZone" \
     "zone compatibility: CompatibilityEvolutionZone" \
     "zone air_evidence: AirEvidenceZone" \
     "zone symbols: SymbolFactTableZone" \
@@ -362,6 +374,7 @@ for term in \
 done
 require_text "src/self_hosted/compiler/world.pgy" 'import "path_manifest_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "target_capability_owner.pgy"'
+require_text "src/self_hosted/compiler/world.pgy" 'import "sandbox_capability_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "compatibility_evolution_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "air_evidence_owner.pgy"'
 require_text "src/self_hosted/compiler/world.pgy" 'import "artifact_zone_owner.pgy"'
@@ -379,6 +392,8 @@ for term in \
     "func CompilerPathManifestPath" \
     "func CompilerStageIntentsPath" \
     "func CompilerTargetCapabilityOwnerPath" \
+    "func CompilerSandboxCapabilityOwnerPath" \
+    "func CompilerSandboxCapabilityManifestPath" \
     "func CompilerCompatibilityEvolutionOwnerPath" \
     "func CompilerAirEvidenceOwnerPath" \
     "func CompilerArtifactZoneOwnerPath" \
@@ -409,6 +424,8 @@ for term in \
     "return CompilerPathManifestPath();" \
     "return CompilerStageIntentsPath();" \
     "return CompilerTargetCapabilityOwnerPath();" \
+    "return CompilerSandboxCapabilityOwnerPath();" \
+    "return CompilerSandboxCapabilityManifestPath();" \
     "return CompilerCompatibilityEvolutionOwnerPath();" \
     "return CompilerAirEvidenceOwnerPath();" \
     "return CompilerArtifactZoneOwnerPath();" \
@@ -427,14 +444,14 @@ for term in \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 33" \
-    "CompilerWorldProjectionPathCount() != 36" \
+    "CompilerWorldManifestPathCount() != 35" \
+    "CompilerWorldProjectionPathCount() != 38" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 20" \
-    "CompilerStagePathAt(index - 15)" \
-    "if index < 28" \
-    "CompilerParityPathAt(index - 20)" \
+    "if index < 22" \
+    "CompilerStagePathAt(index - 17)" \
+    "if index < 30" \
+    "CompilerParityPathAt(index - 22)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -545,7 +562,7 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 22" \
+    "CompilerArtifactKindCount() == 23" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
@@ -557,6 +574,7 @@ for term in \
     "CompilerRuntimeCallAbiArtifactKind" \
     "CompilerCompatibilityEvolutionArtifactKind" \
     "CompilerTargetCapabilityArtifactKind" \
+    "CompilerSandboxCapabilityArtifactKind" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
     "CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind()" \
@@ -579,6 +597,7 @@ for term in \
     "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()" \
     "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()" \
     "CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind()" \
+    "CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind()" \
     "emitted_self_hosted" \
     "run_output"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
@@ -788,6 +807,8 @@ forbid_text "src/self_hosted/compiler/README.md" "??"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/world.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_intents.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/target_capability_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/sandbox_capability_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/sandbox_capability_manifest.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/compatibility_evolution_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/artifact_zone_owner.pgy"
@@ -1003,6 +1024,8 @@ grep -Fq "Zone: AbiLayoutZone" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutZone zone"
 grep -Fq "Zone: TargetCapabilityZone" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityZone zone"
+grep -Fq "Zone: SandboxCapabilityZone" "$ast_out" ||
+    fail "compiler world AST missing SandboxCapabilityZone zone"
 grep -Fq "Zone: CompatibilityEvolutionZone" "$ast_out" ||
     fail "compiler world AST missing CompatibilityEvolutionZone zone"
 grep -Fq "Zone: AirEvidenceZone" "$ast_out" ||
@@ -1029,6 +1052,8 @@ grep -Fq "Subject: ProgramEmitter" "$ast_out" ||
     fail "compiler world AST missing ProgramEmitter subject"
 grep -Fq "Subject: TargetProjectionPlanner" "$ast_out" ||
     fail "compiler world AST missing TargetProjectionPlanner subject"
+grep -Fq "Subject: SandboxCapabilityOwner" "$ast_out" ||
+    fail "compiler world AST missing SandboxCapabilityOwner subject"
 grep -Fq "Subject: CompatibilityEvolutionOwner" "$ast_out" ||
     fail "compiler world AST missing CompatibilityEvolutionOwner subject"
 grep -Fq "Subject: AirEvidenceOwner" "$ast_out" ||
@@ -1051,6 +1076,8 @@ grep -Fq "Object: AbiLayoutFacts" "$ast_out" ||
     fail "compiler world AST missing AbiLayoutFacts object"
 grep -Fq "Object: TargetCapabilityEnvelope" "$ast_out" ||
     fail "compiler world AST missing TargetCapabilityEnvelope object"
+grep -Fq "Object: SandboxCapabilityFacts" "$ast_out" ||
+    fail "compiler world AST missing SandboxCapabilityFacts object"
 grep -Fq "Object: CompatibilityEvolutionFacts" "$ast_out" ||
     fail "compiler world AST missing CompatibilityEvolutionFacts object"
 grep -Fq "Object: AirEvidenceFacts" "$ast_out" ||

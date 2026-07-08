@@ -18,7 +18,7 @@ Pergyra self-hosting should be organized around the language's own surface.
 compiler intent. The source unit flows through derived resource zones
 (`SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
 `SemanticVerdictZone`, `MirFactGraphZone`, `TypeEnvZone`, `AbiLayoutZone`,
-`TargetCapabilityZone`, `CompatibilityEvolutionZone`, `AirEvidenceZone`, `SymbolFactTableZone`,
+`TargetCapabilityZone`, `SandboxCapabilityZone`, `CompatibilityEvolutionZone`, `AirEvidenceZone`, `SymbolFactTableZone`,
 `AbiRowProjectionZone`, `EmissionZone`, `ArtifactZone`, `TestHarnessZone`,
 `SubprocessRunnerZone`, and `ParityZone`), and each zone is driven by a smaller intent. The stage actors
 are named by what they own: `LexerStage`, `ParserStage`, `SemanticStage`, and
@@ -53,6 +53,14 @@ envelope as a stable artifact, and
 LLVM-built self-host tool to agree on both the clean artifact and the
 missing-fact fail-closed case. That keeps CPU fallback or future accelerator
 rejects visible as facts instead of backend-local choices.
+
+`SandboxCapabilityZone` owns the capability and frame-budget vocabulary that
+must exist before sandbox or interactive runtime claims become active.
+`sandbox_capability_owner.pgy` names filesystem, network, clock, random,
+subprocess, storage, render, input, frame-budget, ambient-denial, and blocking
+host-call boundary facts. `sandbox_capability_manifest.pgy` projects those rows
+as a stable artifact, with a missing-budget fail-closed case gated by
+`self-host-sandbox-capability-parity-test-smoke`.
 
 `AbiRowProjectionZone` consumes that target envelope when it projects ABI layout
 rows. `abi_layout_row_owner.pgy` now ties the current `selfhost-c` ABI policy to
@@ -92,7 +100,8 @@ terms under `self-host-backend-abi-layout-contract-parity-test-smoke`.
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:
 `compatibility_evolution_owner.pgy`, `compatibility_evolution_manifest.pgy`,
-`air_evidence_owner.pgy`, `symbol_table_owner.pgy`,
+`air_evidence_owner.pgy`, `sandbox_capability_owner.pgy`,
+`sandbox_capability_manifest.pgy`, `symbol_table_owner.pgy`,
 `abi_layout_row_owner.pgy`, `artifact_zone_owner.pgy`,
 `test_harness_owner.pgy`, and `subprocess_runner_owner.pgy`. These files own
 vocabulary envelopes only. A surface remains active until C, LLVM, and

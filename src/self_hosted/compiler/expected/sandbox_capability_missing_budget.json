@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.sandbox-capability-negative.v1","ok":false,"counts":{"required_frame_budget":0,"missing":1},"findings":[{"kind":"missing_required_frame_budget"}]}
