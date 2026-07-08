@@ -2396,6 +2396,9 @@ checkedarith-failclosed-test-smoke:
 generic-nested-failclosed-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/generic_nested_failclosed_smoke.sh
 
+parallel-disjoint-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_disjoint_split_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 

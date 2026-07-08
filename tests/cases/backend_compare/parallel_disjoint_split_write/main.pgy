@@ -1,0 +1,33 @@
+// Disjointness evidence witness (docs/178 WO-DOP-1 rung 0).
+//
+// The DOP idiom: one backing array is split into two construction-
+// guaranteed disjoint halves, and two parallel arms write each half in
+// place through its own view. lo covers [0, mid) and hi covers
+// [mid, mid+4); the intervals are disjoint for every value of mid, so the
+// parallel boundary admits the pair as Disjointness evidence instead of
+// firing the collection-capture reject. The base array is only touched
+// after the join. Expected output: (1+2+3+4) + (10+20+30+40) = 110 on
+// both backends.
+//
+// Everything outside this exact shape stays rejected: a third overlapping
+// view, a mutable boundary, writes to the base inside an arm, or both
+// halves referenced by one-plus arms all fall back to the fail-closed
+// collection reject.
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let mid: Int = 4;
+    let lo: Slice<Int> = arr.Slice(0, mid);
+    let hi: Slice<Int> = arr.Slice(mid, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 4 { lo[i] = i + 1; i = i + 1; }
+        while j < 4 { hi[j] = (j + 1) * 10; j = j + 1; }
+    }
+    let mut sum: Int = 0;
+    let mut t: Int = 0;
+    while t < 8 { sum = sum + arr[t]; t = t + 1; }
+    Log(sum);
+}

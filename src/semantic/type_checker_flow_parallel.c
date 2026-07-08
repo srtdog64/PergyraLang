@@ -54,8 +54,90 @@ parallel_task_assigns_name(ASTNode *node, const char *name)
     }
 }
 
+/* docs/178 WO-DOP-1 rung 0: Disjointness evidence at the parallel boundary.
+ * A captured Slice binding is admitted through the collection-capture
+ * reject when it is one half of a construction-guaranteed disjoint split
+ * of one base array:
+ *   let lo = base.Slice(0, B);  let hi = base.Slice(B, LEN);
+ * with all of (fail-closed):
+ *   - both halves carry recorded split facts on the same base symbol and
+ *     the same boundary (symbol identity, or equal literals);
+ *   - the captured fact-bearing slices of that base are exactly this pair;
+ *   - each half is referenced by exactly one arm;
+ *   - the base array itself is not referenced by any arm.
+ * Everything else keeps the existing reject. Writes through the two views
+ * then touch provably non-overlapping element ranges of live storage. */
+
+static size_t
+parallel_ref_task_count(ASTNode *node, const char *name)
+{
+    size_t task_count = ast_parallel_task_count(node);
+    size_t refs = 0;
+
+    for (size_t t = 0; t < task_count; t++) {
+        if (ast_contains_free_identifier_ref(
+                ast_parallel_task(node, t), name))
+            refs++;
+    }
+    return refs;
+}
+
 static bool
-parallel_reject_shared_collection_capture(ASTNode *task,
+parallel_split_boundary_matches(const Symbol *a, const Symbol *b)
+{
+    if (a->slice_split_info.boundary_sym != NULL
+        || b->slice_split_info.boundary_sym != NULL)
+        return a->slice_split_info.boundary_sym
+            == b->slice_split_info.boundary_sym;
+    return a->slice_split_info.boundary_lit
+        == b->slice_split_info.boundary_lit;
+}
+
+static bool
+parallel_disjoint_split_admitted(ASTNode *node, SemanticContext *ctx,
+                                 Symbol *sym)
+{
+    Symbol *partner = NULL;
+    size_t captured_fact_siblings = 0;
+
+    if (node == NULL || ctx == NULL || sym == NULL || sym->name == NULL)
+        return false;
+    if (!sym->slice_split_info.has_fact)
+        return false;
+    if (parallel_ref_task_count(node, sym->name) != 1)
+        return false;
+    if (sym->slice_split_info.base_sym == NULL
+        || sym->slice_split_info.base_sym->name == NULL
+        || parallel_ref_task_count(node,
+               sym->slice_split_info.base_sym->name) != 0)
+        return false;
+
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *other = scope->symbols[i];
+
+            if (other == NULL || other == sym || other->name == NULL)
+                continue;
+            if (!other->slice_split_info.has_fact
+                || other->slice_split_info.base_sym
+                    != sym->slice_split_info.base_sym)
+                continue;
+            if (parallel_ref_task_count(node, other->name) == 0)
+                continue;
+            captured_fact_siblings++;
+            if (other->slice_split_info.is_upper
+                    != sym->slice_split_info.is_upper
+                && parallel_split_boundary_matches(sym, other)
+                && parallel_ref_task_count(node, other->name) == 1)
+                partner = other;
+        }
+    }
+    return captured_fact_siblings == 1 && partner != NULL;
+}
+
+static bool
+parallel_reject_shared_collection_capture(ASTNode *parallel_node,
+                                          ASTNode *task,
                                           SemanticContext *ctx)
 {
     if (task == NULL || ctx == NULL)
@@ -70,6 +152,10 @@ parallel_reject_shared_collection_capture(ASTNode *task,
             if (kind == NULL || sym->name == NULL)
                 continue;
             if (!ast_contains_free_identifier_ref(task, sym->name))
+                continue;
+            /* Disjoint split halves carry their own evidence. */
+            if (type_is_constructed_named(sym->type, "Slice")
+                && parallel_disjoint_split_admitted(parallel_node, ctx, sym))
                 continue;
 
             semantic_error_with_hints(ctx,
@@ -258,7 +344,7 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
         ASTNode *task = ast_parallel_task(node, i);
         ResourceConsumeSnapshot task_snap = {0};
-        if (parallel_reject_shared_collection_capture(task, ctx))
+        if (parallel_reject_shared_collection_capture(node, task, ctx))
             break;
         for (Scope *dr_scope = ctx->scope; dr_scope != NULL;
              dr_scope = dr_scope->parent) {
@@ -269,6 +355,11 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                     continue;
                 tname = dsym->type != NULL ? dsym->type->name : NULL;
                 if (tname != NULL && strncmp(tname, "Channel", 7) == 0)
+                    continue;
+                /* Admitted disjoint split halves are written by design;
+                 * the admission is the evidence this warning asks for. */
+                if (type_is_constructed_named(dsym->type, "Slice")
+                    && parallel_disjoint_split_admitted(node, ctx, dsym))
                     continue;
                 if (!parallel_task_assigns_name(task, dsym->name))
                     continue;

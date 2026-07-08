@@ -30,6 +30,105 @@ ownership_let_call_callee_name(const ASTNode *node)
     return ast_identifier_name(callee);
 }
 
+/*
+ * docs/178 WO-DOP-1 rung 0: disjoint slice-split provenance.
+ *
+ * A split boundary is trustworthy when its value is provably identical at
+ * both slicing sites: an Int literal, or an immutable non-parameter Int
+ * local (plain `let`, so it cannot be reassigned between the two slices).
+ */
+static bool
+ownership_let_slice_split_boundary(ASTNode *boundary_node,
+                                   SemanticContext *ctx,
+                                   Symbol **boundary_sym_out,
+                                   long long *boundary_lit_out)
+{
+    if (boundary_node == NULL)
+        return false;
+    if (boundary_node->type == AST_NUMBER) {
+        double v = ast_number_value(boundary_node);
+        if (v < 0 || v != (double)(long long)v)
+            return false;
+        *boundary_sym_out = NULL;
+        *boundary_lit_out = (long long)v;
+        return true;
+    }
+    if (boundary_node->type == AST_IDENTIFIER) {
+        Symbol *b = scope_lookup(ctx->scope,
+            ast_identifier_name(boundary_node));
+        if (b == NULL || b->kind != SYMBOL_VARIABLE || b->is_parameter
+            || b->is_mut_binding || !type_equals(b->type, TYPE_INT))
+            return false;
+        *boundary_sym_out = b;
+        *boundary_lit_out = 0;
+        return true;
+    }
+    return false;
+}
+
+/*
+ * Record construction-guaranteed disjoint-split provenance on an immutable
+ * Slice binding:
+ *   let lo = base.Slice(0, B);   -> lower half fact, range [0, B)
+ *   let hi = base.Slice(B, LEN); -> upper half fact, range [B, B+LEN)
+ * [0,B) and [B,B+LEN) are disjoint for every value of B and LEN, so the
+ * fact carries only the base identity and the shared boundary. Mutable
+ * view bindings never get a fact (they could be reseated after recording).
+ * The parallel boundary check consumes this as Disjointness evidence.
+ */
+static void
+ownership_let_record_slice_split_fact(ASTNode *node, SemanticContext *ctx,
+                                      Symbol *sym, Type *decl_type)
+{
+    ASTNode *init = ast_let_initializer(node);
+    ASTNode *callee;
+    ASTNode *object;
+    ASTNode *arg0;
+    ASTNode *boundary_node;
+    Symbol *base_sym;
+    Symbol *boundary_sym = NULL;
+    long long boundary_lit = 0;
+    bool is_upper;
+
+    if (sym == NULL || ctx == NULL || init == NULL)
+        return;
+    if (ast_let_is_mutable(node))
+        return;
+    if (!type_is_constructed_named(decl_type, "Slice"))
+        return;
+    if (init->type != AST_CALL || ast_call_arg_count(init) != 2)
+        return;
+    callee = ast_call_callee(init);
+    if (callee == NULL || callee->type != AST_MEMBER_ACCESS
+        || ast_member_name(callee) == NULL
+        || strcmp(ast_member_name(callee), "Slice") != 0)
+        return;
+    object = ast_member_object(callee);
+    if (object == NULL || object->type != AST_IDENTIFIER)
+        return;
+    base_sym = scope_lookup(ctx->scope, ast_identifier_name(object));
+    if (base_sym == NULL
+        || !type_is_constructed_named(base_sym->type, "Array"))
+        return;
+    arg0 = ast_call_argument(init, 0);
+    if (arg0 != NULL && arg0->type == AST_NUMBER
+        && ast_number_value(arg0) == 0) {
+        is_upper = false;
+        boundary_node = ast_call_argument(init, 1);
+    } else {
+        is_upper = true;
+        boundary_node = arg0;
+    }
+    if (!ownership_let_slice_split_boundary(boundary_node, ctx,
+                                            &boundary_sym, &boundary_lit))
+        return;
+    sym->slice_split_info.has_fact = true;
+    sym->slice_split_info.is_upper = is_upper;
+    sym->slice_split_info.base_sym = base_sym;
+    sym->slice_split_info.boundary_sym = boundary_sym;
+    sym->slice_split_info.boundary_lit = boundary_lit;
+}
+
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -510,6 +609,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))
         sym->slot_info.state = SLOT_STATE_CLAIMED;
+
+    sym->is_mut_binding = ast_let_is_mutable(node);
+    ownership_let_record_slice_split_fact(node, ctx, sym, decl_type);
 
     /* Set qubit semantic state for QubitSlot variables */
     if (type_is_qubit(decl_type)) {

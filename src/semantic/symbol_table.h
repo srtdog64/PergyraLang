@@ -106,6 +106,30 @@ struct Symbol
         QubitSemanticState semantic_state;
         int32_t           entangle_pool_id;  /* -1 = no pool */
     } qubit_info;
+
+    /* `let mut` vs `let` for locals (parameters use param_mode instead). */
+    bool is_mut_binding;
+
+    /*
+     * Disjoint slice-split provenance (docs/178 WO-DOP-1 rung 0).
+     * Recorded only on immutable Slice bindings whose initializer is the
+     * canonical split shape over one Array local:
+     *   let lo = base.Slice(0, B);      -> lower half, [0, B)
+     *   let hi = base.Slice(B, LEN);    -> upper half, [B, B+LEN)
+     * [0,B) and [B,B+LEN) are disjoint for every B and LEN, so the fact
+     * only needs base identity and the shared boundary (an immutable Int
+     * local or an Int literal). Immutable-binding-only means a recorded
+     * fact can never go stale through rebinding. Consumed as Disjointness
+     * evidence by the parallel boundary check.
+     */
+    struct
+    {
+        bool      has_fact;
+        bool      is_upper;
+        Symbol*   base_sym;       /* Array<T> local the view was taken from */
+        Symbol*   boundary_sym;   /* NULL when the boundary is a literal */
+        long long boundary_lit;   /* valid when boundary_sym == NULL */
+    } slice_split_info;
 };
 
 /*

@@ -58,6 +58,13 @@ transpiler_capture_reject_shared_collection(TranspilerCtx *ctx,
         codegen_worker_boundary_storage_kind_from_type_name(type_name, false);
     if (storage_kind == NULL)
         return false;
+    /* Slice views are fixed {data,len} spans: no realloc/rehash hazard.
+     * Their parallel-capture policy is owned by the semantic disjoint-
+     * split admission (docs/178 rung 0); a slice that reaches codegen has
+     * already passed it. This helper's only caller is the parallel
+     * emitter -- async blocks reject all captures separately. */
+    if (strcmp(storage_kind, "Slice") == 0)
+        return false;
 
     transpiler_set_backend_error_with_hints(ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,

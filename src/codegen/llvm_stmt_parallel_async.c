@@ -51,13 +51,36 @@ llvm_capture_shared_collection_kind(LLVMGenCtx *ctx, const char *name)
 }
 
 static bool
+llvm_capture_entry_is_slice_view(LLVMGenCtx *ctx, const char *name)
+{
+    LLVMVarEntry var;
+    const char *struct_name;
+
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var) || var.type == NULL)
+        return false;
+    if (LLVMGetTypeKind(var.type) != LLVMStructTypeKind)
+        return false;
+    struct_name = LLVMGetStructName(var.type);
+    return struct_name != NULL
+        && strncmp(struct_name, "PgySlice_", 9) == 0;
+}
+
+static bool
 llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
                                       const char *boundary,
-                                      const char *name)
+                                      const char *name,
+                                      bool allow_slice_views)
 {
     const char *kind = llvm_capture_shared_collection_kind(ctx, name);
 
     if (kind == NULL)
+        return false;
+    /* Slice views are fixed {data,len} spans: no realloc/rehash hazard.
+     * Parallel captures of slices are policy-owned by the semantic
+     * disjoint-split admission (docs/178 rung 0); a slice reaching this
+     * emitter has already passed it. Async blocks keep the reject: they
+     * have no semantic admission path. */
+    if (allow_slice_views && llvm_capture_entry_is_slice_view(ctx, name))
         return false;
     llvm_set_error_at_with_hints(ctx, site,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -206,7 +229,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                 return;
             }
             if (llvm_capture_reject_shared_collection(ctx, node, "parallel",
-                    frame->entries[j].name)) {
+                    frame->entries[j].name, true)) {
                 return;
             }
             captured[n_captured++] = (CapturedVar){
@@ -457,7 +480,7 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
                 return;
             }
             if (llvm_capture_reject_shared_collection(ctx, node, "async",
-                    name)) {
+                    name, false)) {
                 return;
             }
             if (channel_inner == NULL) {

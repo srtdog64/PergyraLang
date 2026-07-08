@@ -1,0 +1,18 @@
+// Negative: an arm touches the base array while views are being written --
+// a push could reallocate the backing storage under the other arm, so the
+// base reference denies admission and the collection reject fires.
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let mid: Int = 4;
+    let lo: Slice<Int> = arr.Slice(0, mid);
+    let hi: Slice<Int> = arr.Slice(mid, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 4 { lo[i] = 1; ArrayPush(arr, 9); i = i + 1; }
+        while j < 4 { hi[j] = 3; j = j + 1; }
+    }
+    Log(arr[0]);
+}

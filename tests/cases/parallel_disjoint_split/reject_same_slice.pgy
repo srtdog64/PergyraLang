@@ -1,0 +1,17 @@
+// Negative: both arms write the same half -- Exclusivity is gone, so the
+// pair is not admitted and the collection-capture reject fires.
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let mid: Int = 4;
+    let lo: Slice<Int> = arr.Slice(0, mid);
+    let hi: Slice<Int> = arr.Slice(mid, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 4 { lo[i] = 1; i = i + 1; }
+        while j < 4 { lo[j] = 2; hi[j] = 3; j = j + 1; }
+    }
+    Log(arr[0]);
+}

@@ -1,0 +1,21 @@
+// Positive: canonical disjoint split pair, one half per arm, base only
+// touched after the join. Admitted as Disjointness evidence (docs/178
+// rung 0) and runs to 110 on both backends.
+func Main() -> Void {
+    let mut arr: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(arr, 0); k = k + 1; }
+    let mid: Int = 4;
+    let lo: Slice<Int> = arr.Slice(0, mid);
+    let hi: Slice<Int> = arr.Slice(mid, 4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    parallel {
+        while i < 4 { lo[i] = i + 1; i = i + 1; }
+        while j < 4 { hi[j] = (j + 1) * 10; j = j + 1; }
+    }
+    let mut sum: Int = 0;
+    let mut t: Int = 0;
+    while t < 8 { sum = sum + arr[t]; t = t + 1; }
+    Log(sum);
+}
