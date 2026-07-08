@@ -42,7 +42,16 @@ func BackendEmitterReportOwnerReady() -> Bool {
             CompilerBackendEmitterRequiredPathAt(0),
             CompilerBackendEmitterRequiredTermAt(0))
     ];
+    let missing_input_findings: Array<String> = [
+        BackendEmitterFinding(
+            CompilerBackendEmitterMissingInputFinding(),
+            "src/codegen/definitely_missing_backend_contract_input.c",
+            CompilerBackendEmitterRequiredTermAt(0))
+    ];
     return StringIndexOf(
         BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()),
-        CompilerBackendEmitterNegativeSchema()) >= 0;
+        CompilerBackendEmitterNegativeSchema()) >= 0 &&
+        StringIndexOf(
+            BackendEmitterReport(1, 0, missing_input_findings, CompilerBackendEmitterNegativeSchema()),
+            CompilerBackendEmitterMissingInputFinding()) >= 0;
 }

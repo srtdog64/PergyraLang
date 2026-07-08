@@ -876,6 +876,7 @@ require_file "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json"
 require_max_lines "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 600
 require_max_lines "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 600
@@ -886,6 +887,7 @@ require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" '
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 'import "../../compiler/backend_emitter_contract_owner.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterMissingRequiredSelfTestMode"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterMissingInputSelfTestMode"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterForbiddenHitSelfTestMode"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterRequiredCount()"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterForbiddenCount()"
@@ -914,6 +916,9 @@ require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/cl
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":6'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json" "missing_input"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json" "definitely_missing_backend_contract_input.c"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "llvm_runtime_slot_name"
 require_file "src/self_hosted/compiler/backend_air_access_contract_owner.pgy"
@@ -1361,7 +1366,9 @@ require_max_lines "src/self_hosted/compiler/test_harness_backend_contract_paths_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractSuiteName"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-emitter-contract-paths"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractMissingInputJsonPath"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractPathAt"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "CompilerHarnessBackendEmitterContractPathCount() == 5"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAirAccessSuiteName"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-air-access-paths"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAirAccessPathAt"
@@ -1378,13 +1385,17 @@ require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.s
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'MISSING_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
-require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'MISSING_INPUT_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-missing-required"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-missing-input"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "--self-test-forbidden-hit"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/backend_emitter_contract_llvm_negative.exe"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing.out"'
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_MISSING_INPUT_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing_input.out"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.out"'
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "missing-required LLVM self-test should fail closed"
+require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "missing-input LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "forbidden-hit LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"'

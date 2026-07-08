@@ -38,16 +38,17 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:backend-emitter-contract] TestHarness manifest expected 4 backend contract paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:backend-emitter-contract] TestHarness manifest expected 5 backend contract paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
 TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"
 MISSING_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"
-FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
-for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$MISSING_EXPECTED_FILE" "$FORBIDDEN_EXPECTED_FILE"; do
+MISSING_INPUT_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
+FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"
+for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$MISSING_EXPECTED_FILE" "$MISSING_INPUT_EXPECTED_FILE" "$FORBIDDEN_EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:backend-emitter-contract] missing input: $path" >&2
         exit 1
@@ -60,8 +61,10 @@ C_COMPILE_LOG="$BUILD_DIR/backend_emitter_contract_c.compile.log"
 C_OUT="$BUILD_DIR/backend_emitter_contract_c.out"
 C_ERR="$BUILD_DIR/backend_emitter_contract_c.err"
 C_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_c_missing.out"
+C_MISSING_INPUT_OUT="$BUILD_DIR/backend_emitter_contract_c_missing_input.out"
 C_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_c_forbidden.out"
 C_MISSING_ERR="$BUILD_DIR/backend_emitter_contract_c_missing.err"
+C_MISSING_INPUT_ERR="$BUILD_DIR/backend_emitter_contract_c_missing_input.err"
 C_FORBIDDEN_ERR="$BUILD_DIR/backend_emitter_contract_c_forbidden.err"
 
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=c \
@@ -104,6 +107,22 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-missing-input 2>"$C_MISSING_INPUT_ERR" | pgy_selfhost_normalize_text_artifact >"$C_MISSING_INPUT_OUT")
+C_MISSING_INPUT_RC=$?
+set -e
+if [[ "$C_MISSING_INPUT_RC" -ne 1 ]]; then
+    echo "[self-host-parity:backend-emitter-contract] missing-input self-test should fail closed (rc=1), got rc=$C_MISSING_INPUT_RC" >&2
+    cat "$C_MISSING_INPUT_OUT" "$C_MISSING_INPUT_ERR" >&2
+    exit 1
+fi
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:backend-emitter-contract" \
+    "$BUILD_DIR" \
+    "$MISSING_INPUT_EXPECTED_FILE" \
+    "$C_MISSING_INPUT_OUT" \
+    "run_output"
+
+set +e
 (cd "$ROOT_DIR" && "$C_BIN" --self-test-forbidden-hit 2>"$C_FORBIDDEN_ERR" | pgy_selfhost_normalize_text_artifact >"$C_FORBIDDEN_OUT")
 C_FORBIDDEN_RC=$?
 set -e
@@ -125,6 +144,8 @@ LLVM_NEG_BIN="$BUILD_DIR/backend_emitter_contract_llvm_negative.exe"
 LLVM_NEG_COMPILE_LOG="$BUILD_DIR/backend_emitter_contract_llvm_negative.compile.log"
 LLVM_MISSING_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing.out"
 LLVM_MISSING_ERR="$BUILD_DIR/backend_emitter_contract_llvm_missing.err"
+LLVM_MISSING_INPUT_OUT="$BUILD_DIR/backend_emitter_contract_llvm_missing_input.out"
+LLVM_MISSING_INPUT_ERR="$BUILD_DIR/backend_emitter_contract_llvm_missing_input.err"
 LLVM_FORBIDDEN_OUT="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.out"
 LLVM_FORBIDDEN_ERR="$BUILD_DIR/backend_emitter_contract_llvm_forbidden.err"
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
@@ -151,6 +172,22 @@ else
         "$BUILD_DIR" \
         "$MISSING_EXPECTED_FILE" \
         "$LLVM_MISSING_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-missing-input 2>"$LLVM_MISSING_INPUT_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_MISSING_INPUT_OUT")
+    LLVM_MISSING_INPUT_RC=$?
+    set -e
+    if [[ "$LLVM_MISSING_INPUT_RC" -ne 1 ]]; then
+        echo "[self-host-parity:backend-emitter-contract] missing-input LLVM self-test should fail closed (rc=1), got rc=$LLVM_MISSING_INPUT_RC" >&2
+        cat "$LLVM_MISSING_INPUT_OUT" "$LLVM_MISSING_INPUT_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:backend-emitter-contract" \
+        "$BUILD_DIR" \
+        "$MISSING_INPUT_EXPECTED_FILE" \
+        "$LLVM_MISSING_INPUT_OUT" \
         "run_output"
 
     set +e

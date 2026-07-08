@@ -49,7 +49,7 @@ rule for pre-self-host expansion.
 | Runtime materialization policy | AIR/MIR evidence and runtime-frontier docs | AIR erasure/materialization gates | no hidden runtime calls on static hot paths |
 | Target capability envelope (self-host C subset) | `target_capability_owner.pgy`, `target_capability_manifest.pgy`, `TargetCapabilityZone` | `self-host-compiler-world-contract-test-smoke`, `self-host-target-capability-envelope-parity-test-smoke`, real-source selfcheck | CPU/C/LLVM/self-hosted projection rows, target facts, and fallback reasons are named owner facts. `CompilerTargetCapabilityEnvelopeReady()` consumes those facts instead of comparing row indexes to string literals, and the runnable manifest emits a stable target-capability artifact with a missing-fact fail-closed case across C/LLVM-built self-host tools. The self-host C codegen run boundary consumes that envelope before `GenerateC`, so hidden CPU fallback cannot enter that hard rung by omission. |
 | Sandbox capability/frame-budget envelope | `sandbox_capability_owner.pgy`, `sandbox_capability_manifest.pgy`, `SandboxCapabilityZone` | `self-host-compiler-world-contract-test-smoke`, `self-host-sandbox-capability-parity-test-smoke`, component contract | Filesystem, network, clock, random, subprocess, storage, render, input, per-frame fuel, host-call, command, memory, queue, stream, wall-clock, ambient-denial, and blocking host-call boundary facts are named owner rows. The runnable manifest emits a stable artifact and a missing-budget fail-closed JSON artifact across C/LLVM-built self-host tools. This does not claim the production sandbox runtime is complete; it prevents sandbox/frame-budget claims from living only in docs or shell. |
-| Backend dumb-emitter contract | `backend_emitter_contract_owner.pgy`, `backend_emitter_contract_checker` | `self-host-backend-emitter-contract-parity-test-smoke`, `self-host-component-contract-test-smoke` | The first backend dumb-emitter rows are Pergyra-owned and runnable: selected backend files must contain MIR/ABI runtime-row consumer terms and must not contain backend-local runtime-name synthesis terms. The self-host checker consumes negative schema, count-field names, finding-kind vocabulary, and owner-not-ready diagnostics from the backend-emitter owner, then proves clean, missing-required, and forbidden-hit paths across C/LLVM-built tools. This does not replace the full Bash `backend-fail-closed` gate yet; it starts moving that contract into hard self-host parity. |
+| Backend dumb-emitter contract | `backend_emitter_contract_owner.pgy`, `backend_emitter_contract_checker` | `self-host-backend-emitter-contract-parity-test-smoke`, `self-host-component-contract-test-smoke` | The first backend dumb-emitter rows are Pergyra-owned and runnable: selected backend files must contain MIR/ABI runtime-row consumer terms and must not contain backend-local runtime-name synthesis terms. The self-host checker consumes negative schema, count-field names, finding-kind vocabulary, and owner-not-ready diagnostics from the backend-emitter owner, then proves clean, missing-required, missing-input, and forbidden-hit paths across C/LLVM-built tools. This does not replace the full Bash `backend-fail-closed` gate yet; it starts moving that contract into hard self-host parity. |
 | Backend AIR access contract | `backend_air_access_contract_owner.pgy`, `backend_air_access_checker`, TestHarness backend-contract paths | `self-host-backend-air-access-parity-test-smoke`, `self-host-component-contract-test-smoke` | AIR remains verification-only: backend sources under `src/codegen` must not include AIR headers or consume AIR graph node types. The contract owner now names the schema, scan root, source-file extensions, JSON count fields, forbidden AIR token list, finding kind, negative self-test path, and owner-not-ready diagnostic. The self-host checker consumes those facts, walks the backend source tree with `DirWalk`, emits `pgy.selfhost.backend-air-access.v1`, and proves the forbidden-hit negative artifact through both C-built and LLVM-built tools when LLVM is available. The broader Bash AIR non-impact gate remains the full production backstop while this contract moves into hard self-host parity. |
 Backend AIR access report delta, 2026-07-08:
 `backend_air_access_checker/report_owner.pgy` now owns the checker report JSON
@@ -407,6 +407,12 @@ documented C/LLVM negative coverage real for the first dumb-emitter contract
 slice; the broad native `backend-fail-closed` gate remains the production
 backstop.
 
+Backend emitter missing-input delta, 2026-07-09:
+`backend_emitter_contract_checker` now has a missing-input negative artifact
+projected through `TestHarnessZone`. C-built and LLVM-built checker legs fail
+closed when a contract row points at an absent backend source, so shell cannot
+silently shrink the scan surface by omitting a file path.
+
 Backend emitter runtime-string parse delta, 2026-07-08: the C MIR resource
 emitter no longer recovers SecureSlot/DeviceSlot identity by parsing the
 `pgy_claim_*` runtime function name returned from the ABI table. The
@@ -421,7 +427,8 @@ Backend emitter report delta, 2026-07-08:
 `backend_emitter_contract_checker/report_owner.pgy` now owns the checker report
 JSON shape, count rows, finding objects, and report-owner readiness predicate.
 `main.pgy` scans required/forbidden backend source terms and runs fail-closed
-self-test modes only.
+self-test modes for missing-required, missing-input, and forbidden-hit artifacts
+only.
 
 TestHarness delta, 2026-07-08: the ABI-layout row and runtime-call ABI row
 manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core

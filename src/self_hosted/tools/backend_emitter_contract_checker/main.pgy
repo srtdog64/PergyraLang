@@ -10,6 +10,10 @@ func BackendEmitterMissingRequiredSelfTestMode() -> String {
     return "--self-test-missing-required";
 }
 
+func BackendEmitterMissingInputSelfTestMode() -> String {
+    return "--self-test-missing-input";
+}
+
 func BackendEmitterForbiddenHitSelfTestMode() -> String {
     return "--self-test-forbidden-hit";
 }
@@ -20,6 +24,16 @@ func RunBackendEmitterMissingRequiredSelfTest() -> Void {
         CompilerBackendEmitterMissingRequiredFinding(),
         CompilerBackendEmitterRequiredPathAt(0),
         "definitely_missing_backend_contract_term"));
+    Log(BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()));
+    Exit(1);
+}
+
+func RunBackendEmitterMissingInputSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendEmitterFinding(
+        CompilerBackendEmitterMissingInputFinding(),
+        "src/codegen/definitely_missing_backend_contract_input.c",
+        CompilerBackendEmitterRequiredTermAt(0)));
     Log(BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
 }
@@ -44,6 +58,10 @@ func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == BackendEmitterMissingRequiredSelfTestMode() {
         RunBackendEmitterMissingRequiredSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == BackendEmitterMissingInputSelfTestMode() {
+        RunBackendEmitterMissingInputSelfTest();
         return;
     }
     if ArrayLength(args) > 0 && args[0] == BackendEmitterForbiddenHitSelfTestMode() {

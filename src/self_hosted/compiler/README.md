@@ -91,7 +91,8 @@ backend dumb-emitter source contract: required MIR/ABI runtime-row consumer
 terms and forbidden backend-local runtime-name synthesis terms. The
 `backend_emitter_contract_checker` tool consumes those rows and
 `self-host-backend-emitter-contract-parity-test-smoke` proves the clean,
-missing-required, and forbidden-hit paths across C/LLVM-built self-host tools.
+missing-required, missing-input, and forbidden-hit paths across C/LLVM-built
+self-host tools.
 `backend_air_access_contract_owner.pgy` is the adjacent AIR verification-only
 boundary owner. It names the backend scan root, source extensions, forbidden
 AIR header/type tokens, JSON count fields, finding kind, and negative self-test
