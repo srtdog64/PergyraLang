@@ -324,6 +324,12 @@ corpus checker suite. The core `test_harness_owner.pgy` still consumes
 `CompilerHarnessCompatibilityEvolutionReady()` as a readiness predicate, but it
 no longer owns the concrete manifest source or expected artifact paths.
 
+TestHarness delta, 2026-07-08: the ABI-layout row and runtime-call ABI row
+manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
+`test_harness_owner.pgy` still consumes their readiness predicates as part of
+`CompilerTestHarnessReady()`, but it no longer owns those concrete manifest
+source or expected artifact paths.
+
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.
 It no longer creates a build-dir `main.pgy` alias or copies the self-hosted
