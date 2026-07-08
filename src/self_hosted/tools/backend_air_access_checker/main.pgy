@@ -5,7 +5,7 @@
 // graph node types as semantic input.
 
 import "../../compiler/backend_air_access_contract_owner.pgy";
-import "../../lib/json_emit.pgy";
+import "report_owner.pgy";
 
 func BackendAirAccessForbiddenHitSelfTestMode() -> String {
     return "--self-test-forbidden-hit";
@@ -31,33 +31,6 @@ func BackendAirAccessIsSourceFile(path: String) -> Bool {
     return false;
 }
 
-func BackendAirAccessFinding(kind: String, path: String, term: String) -> String {
-    return JsonEmitObject([
-        JsonEmitFieldString("kind", kind),
-        JsonEmitFieldString("path", path),
-        JsonEmitFieldString("term", term)
-    ]);
-}
-
-func BackendAirAccessReport(
-    file_count: Int,
-    hit_count: Int,
-    findings: Array<String>,
-    schema: String
-) -> String {
-    let counts: String = JsonEmitObject([
-        JsonEmitFieldNumber(CompilerBackendAirAccessFilesCountField(), ToString(file_count)),
-        JsonEmitFieldNumber(CompilerBackendAirAccessForbiddenTermsCountField(), ToString(CompilerBackendAirAccessForbiddenTermCount())),
-        JsonEmitFieldNumber(CompilerBackendAirAccessHitsCountField(), ToString(hit_count))
-    ]);
-    return JsonEmitObject([
-        JsonEmitFieldString("schema", schema),
-        JsonEmitFieldBool("ok", hit_count == 0),
-        JsonEmitFieldRaw("counts", counts),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ]);
-}
-
 func RunBackendAirAccessForbiddenHitSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendAirAccessFinding(
@@ -69,6 +42,12 @@ func RunBackendAirAccessForbiddenHitSelfTest() -> Void {
 }
 
 func Main() -> Void {
+    if !BackendAirAccessReportOwnerReady() {
+        Log(CompilerBackendAirAccessOwnerNotReadyMessage());
+        Exit(1);
+        return;
+    }
+
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == BackendAirAccessForbiddenHitSelfTestMode() {
         RunBackendAirAccessForbiddenHitSelfTest();

@@ -160,6 +160,10 @@ compiler-stage `.pgy` source to be listed here.
   ratchet parsing, live source counting, and checker entrypoint.
 - `src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy` -- AST read
   surface checker JSON schema, count rows, source rows, and finding shapes.
+- `src/self_hosted/tools/backend_air_access_checker/main.pgy` -- backend AIR
+  forbidden-token source scan and fail-closed self-test entrypoint.
+- `src/self_hosted/tools/backend_air_access_checker/report_owner.pgy` --
+  backend AIR access report schema, count rows, and finding shapes.
 - `src/self_hosted/tools/backend_emitter_contract_checker/main.pgy` --
   backend-emitter required/forbidden source scan and fail-closed self-test
   entrypoint.

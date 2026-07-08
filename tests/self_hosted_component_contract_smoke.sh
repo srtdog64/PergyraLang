@@ -324,6 +324,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
     src/self_hosted/tools/air_graph_ref_live/main.pgy \
     src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy \
+    src/self_hosted/tools/backend_air_access_checker/report_owner.pgy \
     src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
     src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy \
@@ -931,10 +932,17 @@ require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "C
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "AIRProgram"
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "air_internal.h"
 require_file "src/self_hosted/tools/backend_air_access_checker/main.pgy"
+require_file "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_air_access_checker/expected/clean.json"
 require_file "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json"
 require_max_lines "src/self_hosted/tools/backend_air_access_checker/main.pgy" 600
+require_max_lines "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_air_access_checker/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" 'import "../../compiler/backend_air_access_contract_owner.pgy";'
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" 'import "../../compiler/backend_air_access_contract_owner.pgy";'
+require_text "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessRoot()"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "DirWalk(CompilerBackendAirAccessRoot())"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessForbiddenTermCount()"
@@ -943,12 +951,20 @@ require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "Compil
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessContractReady()"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessOwnerNotReadyMessage()"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessForbiddenHitSelfTestMode"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessReportOwnerReady()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessReport"
+require_text "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" "func BackendAirAccessFinding"
+require_text "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" "func BackendAirAccessReport"
+require_text "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy" "func BackendAirAccessReportOwnerReady"
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access.v1"
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access-negative.v1"
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"forbidden_air_access"'
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"AIRProgram"'
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"air_internal.h"'
 reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"src/codegen"'
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "JsonEmitObject"
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" "pgy.selfhost.backend-air-access.v1"
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" '"hits":0'
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-air-access-negative.v1"

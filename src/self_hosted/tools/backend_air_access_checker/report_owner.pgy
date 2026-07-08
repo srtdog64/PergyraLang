@@ -1,0 +1,46 @@
+// Backend AIR-access checker report owner.
+//
+// Owns JSON report and finding shapes. The checker entrypoint owns backend
+// source walking and forbidden AIR-token scanning.
+
+import "../../compiler/backend_air_access_contract_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func BackendAirAccessFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendAirAccessReport(
+    file_count: Int,
+    hit_count: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerBackendAirAccessFilesCountField(), ToString(file_count)),
+        JsonEmitFieldNumber(CompilerBackendAirAccessForbiddenTermsCountField(), ToString(CompilerBackendAirAccessForbiddenTermCount())),
+        JsonEmitFieldNumber(CompilerBackendAirAccessHitsCountField(), ToString(hit_count))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", hit_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func BackendAirAccessReportOwnerReady() -> Bool {
+    let findings: Array<String> = [
+        BackendAirAccessFinding(
+            CompilerBackendAirAccessForbiddenHitFinding(),
+            CompilerBackendAirAccessForbiddenHitSelfTestPath(),
+            CompilerBackendAirAccessForbiddenTermAt(0))
+    ];
+    return StringIndexOf(
+        BackendAirAccessReport(1, 1, findings, CompilerBackendAirAccessNegativeSchema()),
+        CompilerBackendAirAccessNegativeSchema()) >= 0;
+}
