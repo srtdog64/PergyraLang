@@ -51,6 +51,48 @@ func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_sh
     ]);
 }
 
+func CompatibilityInvalidDiagnosticIdSelfTestReport(diagnostic_id_count: Int, row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if diagnostic_id_count < 1 {
+        missing = 1;
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingDiagnosticIdFinding()));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(1)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusDiagnosticIdCountField(), ToString(diagnostic_id_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func CompatibilityInvalidMigrationUrlSelfTestReport(migration_url_count: Int, row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if migration_url_count < 1 {
+        missing = 1;
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingMigrationUrlFinding()));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(1)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMigrationUrlCountField(), ToString(migration_url_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
 func CompatibilityInvalidChangeKindSelfTestReport(change_kind_count: Int, row_shape_count: Int) -> String {
     let missing: Int = 0;
     let findings: Array<String> = [];
@@ -326,6 +368,8 @@ func CompatibilityCorpusReport(
 func CompatibilityEvolutionReportOwnerReady() -> Bool {
     return StringIndexOf(CompatibilityMalformedRowSelfTestReport(0), CompilerCompatibilityCorpusNegativeSchema()) >= 0 &&
         StringIndexOf(CompatibilityInvalidCodefixSelfTestReport(0, 1), CompilerCompatibilityMissingCodefixStatusFinding()) >= 0 &&
+        StringIndexOf(CompatibilityInvalidDiagnosticIdSelfTestReport(0, 1), CompilerCompatibilityMissingDiagnosticIdFinding()) >= 0 &&
+        StringIndexOf(CompatibilityInvalidMigrationUrlSelfTestReport(0, 1), CompilerCompatibilityMissingMigrationUrlFinding()) >= 0 &&
         StringIndexOf(CompatibilityInvalidChangeKindSelfTestReport(0, 1), CompilerCompatibilityUnknownChangeKindFinding()) >= 0 &&
         StringIndexOf(CompatibilityInvalidObsoleteMigrationSelfTestReport(1, 0, 1), CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()) >= 0 &&
         StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingSourceFinding()) >= 0 &&

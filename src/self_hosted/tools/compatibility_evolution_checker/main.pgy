@@ -215,6 +215,14 @@ func CompatibilityInvalidCodefixSelfTestMode() -> String {
     return "--self-test-invalid-codefix-status";
 }
 
+func CompatibilityInvalidDiagnosticIdSelfTestMode() -> String {
+    return "--self-test-invalid-diagnostic-id";
+}
+
+func CompatibilityInvalidMigrationUrlSelfTestMode() -> String {
+    return "--self-test-invalid-migration-url";
+}
+
 func CompatibilityInvalidChangeKindSelfTestMode() -> String {
     return "--self-test-invalid-change-kind";
 }
@@ -263,6 +271,54 @@ func RunCompatibilityInvalidCodefixSelfTest() -> Void {
     }
     Log(CompatibilityInvalidCodefixSelfTestReport(codefix_status_count, row_shape_count));
     if codefix_status_count < 1 {
+        Exit(1);
+    }
+}
+
+func RunCompatibilityInvalidDiagnosticIdSelfTest() -> Void {
+    let seed_row: String = CompilerCompatibilityChangeRowAt(0);
+    let row: String = CompilerCompatibilityChangeRow(
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSurfaceFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSymbolFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeKindFieldIndex()),
+        "BADCOMPAT001",
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
+    let row_shape_count: Int = 0;
+    let diagnostic_id_count: Int = 0;
+    if CompatibilityChangeRowHasShape(row) {
+        row_shape_count = 1;
+    }
+    if CompatibilityChangeRowHasDiagnosticId(row) {
+        diagnostic_id_count = 1;
+    }
+    Log(CompatibilityInvalidDiagnosticIdSelfTestReport(diagnostic_id_count, row_shape_count));
+    if diagnostic_id_count < 1 {
+        Exit(1);
+    }
+}
+
+func RunCompatibilityInvalidMigrationUrlSelfTest() -> Void {
+    let seed_row: String = CompilerCompatibilityChangeRowAt(0);
+    let row: String = CompilerCompatibilityChangeRow(
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSurfaceFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSymbolFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeKindFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeDiagnosticIdFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
+        "https://example.invalid/compat/PrintLine",
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
+    let row_shape_count: Int = 0;
+    let migration_url_count: Int = 0;
+    if CompatibilityChangeRowHasShape(row) {
+        row_shape_count = 1;
+    }
+    if CompatibilityChangeRowHasMigrationUrl(row) {
+        migration_url_count = 1;
+    }
+    Log(CompatibilityInvalidMigrationUrlSelfTestReport(migration_url_count, row_shape_count));
+    if migration_url_count < 1 {
         Exit(1);
     }
 }
@@ -337,6 +393,14 @@ func Main() -> Void {
     }
     if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidCodefixSelfTestMode() {
         RunCompatibilityInvalidCodefixSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidDiagnosticIdSelfTestMode() {
+        RunCompatibilityInvalidDiagnosticIdSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidMigrationUrlSelfTestMode() {
+        RunCompatibilityInvalidMigrationUrlSelfTest();
         return;
     }
     if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidChangeKindSelfTestMode() {

@@ -81,9 +81,10 @@ surfaces. The `compatibility_evolution_manifest.pgy` projection emits those rows
 as a stable artifact consumed by
 `self-host-compatibility-evolution-parity-test-smoke`. The same owner also
 names the compatibility-corpus report schema, count fields, finding kinds, and
-invalid-codefix, invalid-change-kind, and invalid-obsolete-migration negative
-statuses consumed by `compatibility_evolution_checker`, so report-shape
-spelling, compatibility behavior-class spelling, and obsolete migration
+invalid-codefix, invalid-diagnostic-id, invalid-migration-url,
+invalid-change-kind, and invalid-obsolete-migration negative statuses consumed
+by `compatibility_evolution_checker`, so report-shape spelling, compatibility
+behavior-class spelling, migration policy spelling, and obsolete migration
 envelope spelling do not live in the checker.
 
 `backend_emitter_contract_owner.pgy` names the first self-host-consumed

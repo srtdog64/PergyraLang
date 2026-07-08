@@ -28,7 +28,7 @@ change-kind coverage counts, and structured findings.
 `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh` compiles
 the checker through C and LLVM, compares the report with the committed expected
 artifact, and verifies the C/LLVM tool outputs are identical.
-The same parity gate runs fail-closed negative modes for malformed change rows
-invalid codefix statuses, invalid change kinds, and missing surfaces on C and
-LLVM when the LLVM backend is available. It also runs an obsolete-migration
-negative that keeps obsolete rows from passing without their migration envelope.
+The same parity gate runs fail-closed negative modes for malformed change rows,
+invalid codefix statuses, invalid diagnostic IDs, invalid migration URLs,
+invalid change kinds, invalid obsolete-migration envelopes, and missing
+surfaces on C and LLVM when the LLVM backend is available.

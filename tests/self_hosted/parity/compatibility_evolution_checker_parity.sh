@@ -38,8 +38,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 7 ]]; then
-    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 7 compatibility corpus paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 9 compatibility corpus paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -47,10 +47,12 @@ TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"
 NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"
 INVALID_CODEFIX_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
-INVALID_CHANGE_KIND_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"
-INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE="$ROOT_DIR/${harness_paths[5]}"
-MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[6]}"
-for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE" "$INVALID_CHANGE_KIND_EXPECTED_FILE" "$INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE" "$MISSING_SURFACE_EXPECTED_FILE"; do
+INVALID_DIAGNOSTIC_ID_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"
+INVALID_MIGRATION_URL_EXPECTED_FILE="$ROOT_DIR/${harness_paths[5]}"
+INVALID_CHANGE_KIND_EXPECTED_FILE="$ROOT_DIR/${harness_paths[6]}"
+INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE="$ROOT_DIR/${harness_paths[7]}"
+MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[8]}"
+for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE" "$INVALID_DIAGNOSTIC_ID_EXPECTED_FILE" "$INVALID_MIGRATION_URL_EXPECTED_FILE" "$INVALID_CHANGE_KIND_EXPECTED_FILE" "$INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE" "$MISSING_SURFACE_EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:compatibility-corpus] missing input: $path" >&2
         exit 1
@@ -66,6 +68,10 @@ C_NEG_OUT="$BUILD_DIR/compatibility_corpus_c_negative.out"
 C_NEG_ERR="$BUILD_DIR/compatibility_corpus_c_negative.err"
 C_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.out"
 C_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.err"
+C_INVALID_DIAGNOSTIC_ID_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_diagnostic_id.out"
+C_INVALID_DIAGNOSTIC_ID_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_diagnostic_id.err"
+C_INVALID_MIGRATION_URL_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_migration_url.out"
+C_INVALID_MIGRATION_URL_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_migration_url.err"
 C_INVALID_CHANGE_KIND_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_change_kind.out"
 C_INVALID_CHANGE_KIND_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_change_kind.err"
 C_INVALID_OBSOLETE_MIGRATION_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_obsolete_migration.out"
@@ -132,6 +138,40 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-invalid-diagnostic-id 2>"$C_INVALID_DIAGNOSTIC_ID_ERR" | pgy_selfhost_normalize_text_artifact >"$C_INVALID_DIAGNOSTIC_ID_OUT")
+C_INVALID_DIAGNOSTIC_ID_RC=$?
+set -e
+if [[ "$C_INVALID_DIAGNOSTIC_ID_RC" -ne 1 ]]; then
+    echo "[self-host-parity:compatibility-corpus] invalid-diagnostic-id self-test should fail closed (rc=1), got rc=$C_INVALID_DIAGNOSTIC_ID_RC" >&2
+    cat "$C_INVALID_DIAGNOSTIC_ID_OUT" "$C_INVALID_DIAGNOSTIC_ID_ERR" >&2
+    exit 1
+fi
+
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:compatibility-corpus" \
+    "$BUILD_DIR" \
+    "$INVALID_DIAGNOSTIC_ID_EXPECTED_FILE" \
+    "$C_INVALID_DIAGNOSTIC_ID_OUT" \
+    "run_output"
+
+set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-invalid-migration-url 2>"$C_INVALID_MIGRATION_URL_ERR" | pgy_selfhost_normalize_text_artifact >"$C_INVALID_MIGRATION_URL_OUT")
+C_INVALID_MIGRATION_URL_RC=$?
+set -e
+if [[ "$C_INVALID_MIGRATION_URL_RC" -ne 1 ]]; then
+    echo "[self-host-parity:compatibility-corpus] invalid-migration-url self-test should fail closed (rc=1), got rc=$C_INVALID_MIGRATION_URL_RC" >&2
+    cat "$C_INVALID_MIGRATION_URL_OUT" "$C_INVALID_MIGRATION_URL_ERR" >&2
+    exit 1
+fi
+
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:compatibility-corpus" \
+    "$BUILD_DIR" \
+    "$INVALID_MIGRATION_URL_EXPECTED_FILE" \
+    "$C_INVALID_MIGRATION_URL_OUT" \
+    "run_output"
+
+set +e
 (cd "$ROOT_DIR" && "$C_BIN" --self-test-invalid-change-kind 2>"$C_INVALID_CHANGE_KIND_ERR" | pgy_selfhost_normalize_text_artifact >"$C_INVALID_CHANGE_KIND_OUT")
 C_INVALID_CHANGE_KIND_RC=$?
 set -e
@@ -190,6 +230,10 @@ LLVM_NEG_OUT="$BUILD_DIR/compatibility_corpus_llvm_negative.out"
 LLVM_NEG_ERR="$BUILD_DIR/compatibility_corpus_llvm_negative.err"
 LLVM_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.out"
 LLVM_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.err"
+LLVM_INVALID_DIAGNOSTIC_ID_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_diagnostic_id.out"
+LLVM_INVALID_DIAGNOSTIC_ID_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_diagnostic_id.err"
+LLVM_INVALID_MIGRATION_URL_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_migration_url.out"
+LLVM_INVALID_MIGRATION_URL_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_migration_url.err"
 LLVM_INVALID_CHANGE_KIND_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_change_kind.out"
 LLVM_INVALID_CHANGE_KIND_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_change_kind.err"
 LLVM_INVALID_OBSOLETE_MIGRATION_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_obsolete_migration.out"
@@ -236,6 +280,38 @@ else
         "$BUILD_DIR" \
         "$INVALID_CODEFIX_EXPECTED_FILE" \
         "$LLVM_INVALID_CODEFIX_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-invalid-diagnostic-id 2>"$LLVM_INVALID_DIAGNOSTIC_ID_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_INVALID_DIAGNOSTIC_ID_OUT")
+    LLVM_INVALID_DIAGNOSTIC_ID_RC=$?
+    set -e
+    if [[ "$LLVM_INVALID_DIAGNOSTIC_ID_RC" -ne 1 ]]; then
+        echo "[self-host-parity:compatibility-corpus] invalid-diagnostic-id LLVM self-test should fail closed (rc=1), got rc=$LLVM_INVALID_DIAGNOSTIC_ID_RC" >&2
+        cat "$LLVM_INVALID_DIAGNOSTIC_ID_OUT" "$LLVM_INVALID_DIAGNOSTIC_ID_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:compatibility-corpus" \
+        "$BUILD_DIR" \
+        "$INVALID_DIAGNOSTIC_ID_EXPECTED_FILE" \
+        "$LLVM_INVALID_DIAGNOSTIC_ID_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-invalid-migration-url 2>"$LLVM_INVALID_MIGRATION_URL_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_INVALID_MIGRATION_URL_OUT")
+    LLVM_INVALID_MIGRATION_URL_RC=$?
+    set -e
+    if [[ "$LLVM_INVALID_MIGRATION_URL_RC" -ne 1 ]]; then
+        echo "[self-host-parity:compatibility-corpus] invalid-migration-url LLVM self-test should fail closed (rc=1), got rc=$LLVM_INVALID_MIGRATION_URL_RC" >&2
+        cat "$LLVM_INVALID_MIGRATION_URL_OUT" "$LLVM_INVALID_MIGRATION_URL_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:compatibility-corpus" \
+        "$BUILD_DIR" \
+        "$INVALID_MIGRATION_URL_EXPECTED_FILE" \
+        "$LLVM_INVALID_MIGRATION_URL_OUT" \
         "run_output"
 
     set +e
