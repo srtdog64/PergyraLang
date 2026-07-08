@@ -14,10 +14,6 @@ func BackendAbiLayoutFinding(kind: String, path: String, term: String) -> String
     ]);
 }
 
-func BackendAbiLayoutNegativeSchema() -> String {
-    return "pgy.selfhost.backend-abi-layout-contract-negative.v1";
-}
-
 func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
     return "--self-test-missing-required";
 }
@@ -34,10 +30,10 @@ func BackendAbiLayoutReport(
 ) -> String {
     let problem_count: Int = missing_required + forbidden_hits;
     let counts: String = JsonEmitObject([
-        JsonEmitFieldNumber("required", ToString(CompilerBackendAbiLayoutRequiredCount())),
-        JsonEmitFieldNumber("forbidden", ToString(CompilerBackendAbiLayoutForbiddenCount())),
-        JsonEmitFieldNumber("missing_required", ToString(missing_required)),
-        JsonEmitFieldNumber("forbidden_hits", ToString(forbidden_hits))
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutRequiredCountField(), ToString(CompilerBackendAbiLayoutRequiredCount())),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenCountField(), ToString(CompilerBackendAbiLayoutForbiddenCount())),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutMissingRequiredCountField(), ToString(missing_required)),
+        JsonEmitFieldNumber(CompilerBackendAbiLayoutForbiddenHitsCountField(), ToString(forbidden_hits))
     ]);
     return JsonEmitObject([
         JsonEmitFieldString("schema", schema),
@@ -50,20 +46,20 @@ func BackendAbiLayoutReport(
 func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
-        "missing_required",
+        CompilerBackendAbiLayoutMissingRequiredFinding(),
         CompilerBackendAbiLayoutRequiredPathAt(0),
         "definitely_missing_backend_abi_layout_term"));
-    Log(BackendAbiLayoutReport(1, 0, findings, BackendAbiLayoutNegativeSchema()));
+    Log(BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
 }
 
 func RunBackendAbiLayoutForbiddenHitSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
-        "forbidden_hit",
+        CompilerBackendAbiLayoutForbiddenHitFinding(),
         CompilerBackendAbiLayoutForbiddenPathAt(0),
         CompilerBackendAbiLayoutForbiddenTermAt(0)));
-    Log(BackendAbiLayoutReport(0, 1, findings, BackendAbiLayoutNegativeSchema()));
+    Log(BackendAbiLayoutReport(0, 1, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
 }
 
@@ -78,7 +74,7 @@ func Main() -> Void {
         return;
     }
     if !CompilerBackendAbiLayoutContractReady() {
-        Log("BACKEND_ABI_LAYOUT_CONTRACT ERROR: owner is not ready");
+        Log(CompilerBackendAbiLayoutOwnerNotReadyMessage());
         Exit(1);
         return;
     }
@@ -92,12 +88,12 @@ func Main() -> Void {
         let term: String = CompilerBackendAbiLayoutRequiredTermAt(required_index);
         if !FileExists(path) {
             missing_required = missing_required + 1;
-            ArrayPush(findings, BackendAbiLayoutFinding("missing_input", path, term));
+            ArrayPush(findings, BackendAbiLayoutFinding(CompilerBackendAbiLayoutMissingInputFinding(), path, term));
         } else {
             let content: String = ReadFile(path);
             if !StringContains(content, term) {
                 missing_required = missing_required + 1;
-                ArrayPush(findings, BackendAbiLayoutFinding("missing_required", path, term));
+                ArrayPush(findings, BackendAbiLayoutFinding(CompilerBackendAbiLayoutMissingRequiredFinding(), path, term));
             }
         }
         required_index = required_index + 1;
@@ -109,12 +105,12 @@ func Main() -> Void {
         let term: String = CompilerBackendAbiLayoutForbiddenTermAt(forbidden_index);
         if !FileExists(path) {
             missing_required = missing_required + 1;
-            ArrayPush(findings, BackendAbiLayoutFinding("missing_input", path, term));
+            ArrayPush(findings, BackendAbiLayoutFinding(CompilerBackendAbiLayoutMissingInputFinding(), path, term));
         } else {
             let content: String = ReadFile(path);
             if StringContains(content, term) {
                 forbidden_hits = forbidden_hits + 1;
-                ArrayPush(findings, BackendAbiLayoutFinding("forbidden_hit", path, term));
+                ArrayPush(findings, BackendAbiLayoutFinding(CompilerBackendAbiLayoutForbiddenHitFinding(), path, term));
             }
         }
         forbidden_index = forbidden_index + 1;

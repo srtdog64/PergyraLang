@@ -189,8 +189,10 @@ completed green with:
   emits clean, missing-required, and forbidden-hit artifacts from both C-built
   and LLVM-built tools under
   `make self-host-backend-abi-layout-contract-parity-test-smoke`. This starts
-  moving the production ABI ownership blocker into hard self-host parity while
-  `abi-ownership-shape-test-smoke` remains the broad native backstop.
+  moving the production ABI ownership blocker into hard self-host parity. The
+  negative schema, count-field names, and finding-kind vocabulary are ABI owner
+  facts rather than checker-local strings, while `abi-ownership-shape-test-smoke`
+  remains the broad native backstop.
 - Follow-up backend-emitter negative slice: the first self-host
   dumb-emitter contract checker now runs missing-required and forbidden-hit
   negative artifacts through both C-built and LLVM-built tools when LLVM is

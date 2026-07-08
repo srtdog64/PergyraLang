@@ -1008,6 +1008,15 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerA
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutTargetPolicyKnown"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerAbiLayoutTargetPolicyReady"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutContractSchema"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutNegativeSchema"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingInputFinding"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredFinding"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitFinding"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredCountField"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenCountField"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredCountField"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitsCountField"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutOwnerNotReadyMessage"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredPathAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredTermAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenPathAt"
@@ -1106,8 +1115,20 @@ require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/mai
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingRequiredSelfTestMode"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutForbiddenHitSelfTestMode"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutNegativeSchema()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutMissingInputFinding()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutMissingRequiredFinding()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutForbiddenHitFinding()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutMissingRequiredCountField()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutForbiddenHitsCountField()"
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutOwnerNotReadyMessage()"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutRequiredCount()"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "CompilerBackendAbiLayoutForbiddenCount()"
+reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "pgy.selfhost.backend-abi-layout-contract-negative.v1"
+reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" '"missing_input"'
+reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" '"missing_required"'
+reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" '"forbidden_hit"'
+reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BACKEND_ABI_LAYOUT_CONTRACT ERROR"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" "pgy.selfhost.backend-abi-layout-contract.v1"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"required":8'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"forbidden":5'

@@ -11,6 +11,33 @@ func CompilerAbiLayoutRowSchema() -> String {
 func CompilerBackendAbiLayoutContractSchema() -> String {
     return "pgy.selfhost.backend-abi-layout-contract.v1";
 }
+func CompilerBackendAbiLayoutNegativeSchema() -> String {
+    return "pgy.selfhost.backend-abi-layout-contract-negative.v1";
+}
+func CompilerBackendAbiLayoutMissingInputFinding() -> String {
+    return "missing_input";
+}
+func CompilerBackendAbiLayoutMissingRequiredFinding() -> String {
+    return "missing_required";
+}
+func CompilerBackendAbiLayoutForbiddenHitFinding() -> String {
+    return "forbidden_hit";
+}
+func CompilerBackendAbiLayoutRequiredCountField() -> String {
+    return "required";
+}
+func CompilerBackendAbiLayoutForbiddenCountField() -> String {
+    return "forbidden";
+}
+func CompilerBackendAbiLayoutMissingRequiredCountField() -> String {
+    return "missing_required";
+}
+func CompilerBackendAbiLayoutForbiddenHitsCountField() -> String {
+    return "forbidden_hits";
+}
+func CompilerBackendAbiLayoutOwnerNotReadyMessage() -> String {
+    return "BACKEND_ABI_LAYOUT_CONTRACT ERROR: owner is not ready";
+}
 func CompilerBackendAbiLayoutRequiredCount() -> Int {
     return 8;
 }
@@ -52,6 +79,15 @@ func CompilerBackendAbiLayoutForbiddenTermAt(index: Int) -> String {
 func CompilerBackendAbiLayoutContractReady() -> Bool {
     return CompilerBackendAbiLayoutRequiredCount() == 8 &&
         CompilerBackendAbiLayoutForbiddenCount() == 5 &&
+        CompilerBackendAbiLayoutNegativeSchema() != "" &&
+        CompilerBackendAbiLayoutMissingInputFinding() != "" &&
+        CompilerBackendAbiLayoutMissingRequiredFinding() != "" &&
+        CompilerBackendAbiLayoutForbiddenHitFinding() != "" &&
+        CompilerBackendAbiLayoutRequiredCountField() != "" &&
+        CompilerBackendAbiLayoutForbiddenCountField() != "" &&
+        CompilerBackendAbiLayoutMissingRequiredCountField() != "" &&
+        CompilerBackendAbiLayoutForbiddenHitsCountField() != "" &&
+        CompilerBackendAbiLayoutOwnerNotReadyMessage() != "" &&
         CompilerBackendAbiLayoutRequiredPathAt(0) == "src/compiler/mir_abi_layout.c" &&
         CompilerBackendAbiLayoutRequiredPathAt(5) == "src/compiler/mir_abi_layout.h" &&
         CompilerBackendAbiLayoutRequiredPathAt(6) == "src/codegen/transpiler_mir_resource_op_core.c" &&
