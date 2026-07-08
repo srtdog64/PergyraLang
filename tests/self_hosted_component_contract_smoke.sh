@@ -1190,6 +1190,9 @@ require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EX
 require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "--self-test-missing-fact"
 require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" '"target_capability"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/target_capability_llvm_negative.exe"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'LLVM_NEG_OUT="$BUILD_DIR/target_capability_llvm_negative.out"'
+require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "missing-fact LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/target_capability_manifest.pgy"'
 reject_text "tests/self_hosted/parity/target_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/target_capability.txt"'
@@ -1209,6 +1212,9 @@ require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'E
 require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "--self-test-missing-budget"
 require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" '"sandbox_capability"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/sandbox_capability_llvm_negative.exe"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'LLVM_NEG_OUT="$BUILD_DIR/sandbox_capability_llvm_negative.out"'
+require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "missing-budget LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/compiler/sandbox_capability_manifest.pgy"'
 reject_text "tests/self_hosted/parity/sandbox_capability_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/sandbox_capability.txt"'
