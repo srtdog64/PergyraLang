@@ -2402,6 +2402,9 @@ parallel-disjoint-test-smoke: $(PGY)
 parallel-snapshot-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_snapshot_smoke.sh
 
+evidence-lifetime-test-smoke:
+	"$(BASH)" tests/evidence_lifetime_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 

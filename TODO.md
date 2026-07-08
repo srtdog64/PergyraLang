@@ -10164,7 +10164,18 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
   추가)로 RED 확인.
 - **DoD**: CI 배선 + RED/GREEN 양방향 증거 + docs/14 갱신.
 
-#### WO-A3 — evidence-lifetime 커버리지 메타게이트 (등록 2026-07-09, 미착수)
+#### WO-A3 — evidence-lifetime 커버리지 메타게이트 — ✅ CLOSED (2026-07-09)
+
+- **닫힘**: `docs/semantics/evidence_kind_manifest.md`(15/15 kind — producer/
+  discharge/last consumer/budget, 기존 loss/pass manifest 자매 레지스트리) +
+  `tests/evidence_lifetime_smoke.sh`(enum↔manifest **양방향 정확 대응** —
+  kind 추가 시 row 강제 ratchet, stale row도 RED — + producer/게이트 파일
+  실존 + **RED 자가검증 내장**: row 하나 제거한 사본에 대해 검사가 실패해야
+  green). make `evidence-lifetime-test-smoke` green 확인. per-site 물림은
+  producer 파일 실존 + 기존 air_drift/air_json_schema 게이트 링크로 충족.
+  **CI/test-all 배선은 보류**: air.h/air*.c가 동시 세션 dirty — 그 작업 착지
+  후 배선(새 kind가 그쪽에서 추가되면 이 게이트가 즉시 row를 요구하게 되므로
+  착지 순서 조율 필요). docs/09 acceptance rule이 manifest를 정식 참조.
 
 - **계기**: 외부 evidence-lifetime 에세이 검증(2026-07-08) 결과, 원칙
   ("마지막 소비자까지 운반, erase/summarize/retain/reject로 닫기")은

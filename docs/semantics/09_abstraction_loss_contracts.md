@@ -438,4 +438,6 @@ One sentence holds the whole discipline together: Pergyra is an
 is carried to its last consumer and then compressed by its declared budget;
 it is never erased without proof, and never kept past its last consumer
 without a materialization reason. Coverage of this rule across every
-`AIREvidenceKind` is WO-A3 (TODO work-order board).
+`AIREvidenceKind` is gate-enforced: evidence_kind_manifest.md holds the
+per-kind lifetime rows and `tests/evidence_lifetime_smoke.sh` keeps the
+manifest and the enum in exact two-way correspondence (WO-A3).
