@@ -55,6 +55,16 @@ func CompilerCompatibilityRemoveFromVersion() -> String { return "1.0"; }
 func CompilerCompatibilityDiagnosticIdPrefix() -> String { return "PGYCOMPAT"; }
 func CompilerCompatibilityMigrationUrlPrefix() -> String { return "docs/compat/"; }
 
+func CompilerCompatibilityDiagnosticId(suffix: String) -> String {
+    let parts: Array<String> = [CompilerCompatibilityDiagnosticIdPrefix(), suffix];
+    return StringJoin(parts, "");
+}
+
+func CompilerCompatibilityMigrationUrl(slug: String) -> String {
+    let parts: Array<String> = [CompilerCompatibilityMigrationUrlPrefix(), slug];
+    return StringJoin(parts, "");
+}
+
 func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
     if index == 0 { return CompilerObsoleteDiagnosticIdField(); }
     if index == 1 { return CompilerObsoleteReplacementField(); }
@@ -97,31 +107,31 @@ func CompilerCompatibilityChangeRow(
 
 func CompilerCompatibilityChangeRowAt(index: Int) -> String {
     if index == 0 {
-        return CompilerCompatibilityChangeRow(CompilerSourceCompatibilitySurface(), "PrintLine", "obsolete", "PGYCOMPAT001", "Print", "docs/compat/PrintLine", CompilerCompatibilityCodefixAvailableStatus());
+        return CompilerCompatibilityChangeRow(CompilerSourceCompatibilitySurface(), "PrintLine", "obsolete", CompilerCompatibilityDiagnosticId("001"), "Print", CompilerCompatibilityMigrationUrl("PrintLine"), CompilerCompatibilityCodefixAvailableStatus());
     }
     if index == 1 {
-        return CompilerCompatibilityChangeRow(CompilerAbiBinaryCompatibilitySurface(), "Array<String>", "breaking", "PGYCOMPAT002", "ArrayOwned<String>", "docs/compat/array-string-ownership", CompilerCompatibilityManualMigrationStatus());
+        return CompilerCompatibilityChangeRow(CompilerAbiBinaryCompatibilitySurface(), "Array<String>", "breaking", CompilerCompatibilityDiagnosticId("002"), "ArrayOwned<String>", CompilerCompatibilityMigrationUrl("array-string-ownership"), CompilerCompatibilityManualMigrationStatus());
     }
     if index == 2 {
-        return CompilerCompatibilityChangeRow(CompilerDiagnosticCompatibilitySurface(), "logical_operand_not_bool", "behavior", "PGYCOMPAT003", "BoolLogicalOperands", "docs/compat/logical-bool", CompilerCompatibilityNoCodefixStatus());
+        return CompilerCompatibilityChangeRow(CompilerDiagnosticCompatibilitySurface(), "logical_operand_not_bool", "behavior", CompilerCompatibilityDiagnosticId("003"), "BoolLogicalOperands", CompilerCompatibilityMigrationUrl("logical-bool"), CompilerCompatibilityNoCodefixStatus());
     }
     if index == 3 {
-        return CompilerCompatibilityChangeRow(CompilerBehaviorCompatibilitySurface(), "ArrayPushValueParam", "behavior", "PGYCOMPAT004", "inout Array<T>", "docs/compat/value-arraypush", CompilerCompatibilityCodefixAvailableStatus());
+        return CompilerCompatibilityChangeRow(CompilerBehaviorCompatibilitySurface(), "ArrayPushValueParam", "behavior", CompilerCompatibilityDiagnosticId("004"), "inout Array<T>", CompilerCompatibilityMigrationUrl("value-arraypush"), CompilerCompatibilityCodefixAvailableStatus());
     }
     if index == 4 {
-        return CompilerCompatibilityChangeRow(CompilerAirEvidenceCompatibilitySurface(), "authority_effect_evidence", "required", "PGYCOMPAT005", "AIRAuthorityEvidence", "docs/compat/air-authority-evidence", CompilerCompatibilityManualMigrationStatus());
+        return CompilerCompatibilityChangeRow(CompilerAirEvidenceCompatibilitySurface(), "authority_effect_evidence", "required", CompilerCompatibilityDiagnosticId("005"), "AIRAuthorityEvidence", CompilerCompatibilityMigrationUrl("air-authority-evidence"), CompilerCompatibilityManualMigrationStatus());
     }
     if index == 5 {
-        return CompilerCompatibilityChangeRow(CompilerMirJsonCompatibilitySurface(), "source_ast_semantic_fallback", "breaking", "PGYCOMPAT006", "MirOwnedFacts", "docs/compat/mir-source-ast", CompilerCompatibilityManualMigrationStatus());
+        return CompilerCompatibilityChangeRow(CompilerMirJsonCompatibilitySurface(), "source_ast_semantic_fallback", "breaking", CompilerCompatibilityDiagnosticId("006"), "MirOwnedFacts", CompilerCompatibilityMigrationUrl("mir-source-ast"), CompilerCompatibilityManualMigrationStatus());
     }
     if index == 6 {
-        return CompilerCompatibilityChangeRow(CompilerRuntimeTraceCompatibilitySurface(), "slot_materialization_reason", "required", "PGYCOMPAT007", "RuntimeMaterializationTrace", "docs/compat/runtime-materialization", CompilerCompatibilityNoCodefixStatus());
+        return CompilerCompatibilityChangeRow(CompilerRuntimeTraceCompatibilitySurface(), "slot_materialization_reason", "required", CompilerCompatibilityDiagnosticId("007"), "RuntimeMaterializationTrace", CompilerCompatibilityMigrationUrl("runtime-materialization"), CompilerCompatibilityNoCodefixStatus());
     }
     if index == 7 {
-        return CompilerCompatibilityChangeRow(CompilerCapabilityProfileCompatibilitySurface(), "ambient_filesystem", "breaking", "PGYCOMPAT008", "CapabilityManifestFs", "docs/compat/capability-fs", CompilerCompatibilityManualMigrationStatus());
+        return CompilerCompatibilityChangeRow(CompilerCapabilityProfileCompatibilitySurface(), "ambient_filesystem", "breaking", CompilerCompatibilityDiagnosticId("008"), "CapabilityManifestFs", CompilerCompatibilityMigrationUrl("capability-fs"), CompilerCompatibilityManualMigrationStatus());
     }
     if index == 8 {
-        return CompilerCompatibilityChangeRow(CompilerStdlibModuleCompatibilitySurface(), "money_add_currency", "behavior", "PGYCOMPAT009", "MoneyCurrencyMatch", "docs/compat/money-currency", CompilerCompatibilityNoCodefixStatus());
+        return CompilerCompatibilityChangeRow(CompilerStdlibModuleCompatibilitySurface(), "money_add_currency", "behavior", CompilerCompatibilityDiagnosticId("009"), "MoneyCurrencyMatch", CompilerCompatibilityMigrationUrl("money-currency"), CompilerCompatibilityNoCodefixStatus());
     }
     return "";
 }
@@ -150,6 +160,8 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityRemoveFromVersion() != "" &&
         CompilerCompatibilityDiagnosticIdPrefix() != "" &&
         CompilerCompatibilityMigrationUrlPrefix() != "" &&
+        CompilerCompatibilityDiagnosticId("001") != "" &&
+        CompilerCompatibilityMigrationUrl("PrintLine") != "" &&
         CompilerCompatibilityChangeCount() == 9 &&
         StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
         StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&
