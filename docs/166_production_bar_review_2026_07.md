@@ -116,10 +116,30 @@ The compatibility gate must cover these surfaces together:
 
 ## Immediate Closure
 
-The current self-host source-owner work is aligned with this review but does
-not close production readiness by itself. The latest closed slices compile the
-lexer and parser parity tools from their real source-owner manifest rows instead
-of copying them into a hidden `main.pgy` staging file. Parser parity currently
-checks C and LLVM output over 188 sources. Remaining shadow-source aliases are
-still present in the scale probes and semantic parity path, so the production
-bar remains PARTIAL.
+The current self-host source-owner work is aligned with this review, and the
+latest full preparation run makes that evidence stronger than the earlier
+source-owner slice. On 2026-07-08, `make self-host-preparation-test-smoke`
+completed green with:
+
+- 171 real self-hosted sources accepted by the C and LLVM selfcheck legs.
+- M2 completeness ledger at `sources=171`, with `lexer=171`, `parser=171`,
+  `semantic=171`, `codegen=171`, and `full_pipeline=171`.
+- Parser parity over 188 source/fixture rows on C and LLVM parser binaries.
+- Semantic parity over 108 fixtures on C and LLVM checker binaries.
+- Codegen parity over 68 fixtures on C and LLVM-built codegen tools.
+- Bootstrap fixpoint `gen2 == gen3` at 8053 generated-C lines.
+- `SELF-HOSTING OK`: the Pergyra-built codegen builds lexer, parser, semantic,
+  `mir_lower`, 13 gate/audit tools, and the backend fuzz generator with outputs
+  matching the oracle-built tools.
+- DRV-0 artifact parity and DRV-1 CLI parity over C and LLVM driver rungs.
+- LSP diagnostics, transport, request/response, session, document-store,
+  session-state, and hover-content parity over C and LLVM.
+- MIR JSON rung-0b parity over 86 fixtures through
+  `pgy --mir-json | mir_lower | codegen == C oracle`.
+
+That is enough to close the stale "hidden main staging" concern for the active
+self-host preparation path. It is not enough to call production readiness done:
+released/native driver and LSP replacement are still runged substitutes, the
+runtime executor and sandbox quota surfaces remain partial, and the
+compatibility-evolution gate is still distributed across owners rather than one
+versioned production corpus.

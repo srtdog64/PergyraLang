@@ -251,7 +251,9 @@ Sandbox capability and frame-budget gate
 Stdlib L2 doctrine pass
 Non-Overclaim Rules
 Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness
-Remaining shadow-source aliases
+171 real self-hosted sources
+SELF-HOSTING OK
+compatibility-evolution gate is still distributed
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'

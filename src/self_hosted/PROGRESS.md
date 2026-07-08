@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -14,6 +14,11 @@ ledger or touching an isolated SoT owner does not imply a fresh
 `docs/152_validation_isolation_policy.md`: run the owner-scoped self-host rung
 gate first, and escalate to the heavy preparation/parity bundle only when a
 broader compiler-world artifact changed or broad parity is explicitly requested.
+The latest broad refresh was `make self-host-preparation-test-smoke` on
+2026-07-08: it completed green with 171 real sources accepted by both selfcheck
+backends, M2 completeness at 171/171 through lexer/parser/semantic/codegen/full
+pipeline, codegen bootstrap `gen2 == gen3` at 8053 generated-C lines, DRV-0/DRV-1
+driver parity, LSP parity, and MIR JSON rung-0b parity over 86 fixtures.
 
 ## Headline Number
 
@@ -76,9 +81,9 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-148 production self-host source files across lexer, parser, semantic, codegen,
-and full-pipeline identity. The real-source semantic selfcheck remains a
-separate 134-source C/LLVM gate over the current accepted semantic subset,
+171 production self-host source files across lexer, parser, semantic, codegen,
+and full-pipeline identity. The real-source semantic selfcheck uses the same
+171-source C/LLVM gate over the current accepted semantic subset,
 including the codegen run boundary, lexer run/fixture-manifest owners, emission
 action owners, type-fact owner, MIR-lower fact owners, and SEA execution-lane
 mirror. The
@@ -209,7 +214,7 @@ compiler fork. See `src/self_hosted/codegen/README.md`.
 **Self-hosting achieved for codegen (2026-06-17, strengthened 2026-07-02):**
 the codegen tool *self-hosts*. A Pergyra-built copy of the owner graph emits C
 that gcc-compiles and **reproduces its own source-compilation exactly** --
-`gen2 == gen3` byte-identical (last observed 7701 generated-C lines) -- and the
+`gen2 == gen3` byte-identical (last observed 8053 generated-C lines) -- and the
 Pergyra-built tool emits byte-identical C to the oracle-built tool on the sample
 fixtures. Breadth: the same codegen also compiles the lexer (587 lines) and parser (3338 lines); each codegen-built binary matches its oracle-built counterpart on a sample source -- three real self-host components self-built. Wider survey: the codegen compiles **all 22 of 22** committed self-host components/tools to valid C, each verified run-equivalent to the oracle-built binary on a sample -- the entire committed self-host toolchain (lexer, parser, semantic, codegen itself, + 18 audit tools) is self-built by the Pergyra-written codegen. This includes namespace-imported audit tools (`TextScan::` qualified calls, flattened to `NS_Func` -- import/namespace + DirWalk support added). The earlier 18/22 ceiling was a `pgy --ast` bug (for-each `for x in lines` rendered as `For: x in (null)..(null)`, dropping the collection); FIXED in src/parser/ast_print.c (emit the iterable) + the self-host parser, regenerated 5 parser fixtures, and added for-each lowering + bare-void-return + word-boundary builtin matching to the codegen. The latest hard gap was the typed AST arena fixture exposing that the self-host codegen only knew `Option<Int>` ABI/runtime facts. FIXED by adding `Option<String>` to compiler ABI rows, runtime ABI owner symbols, expression kind facts, and typed `Some`/`None` emission. Parser parity (188 manifest rows) stays byte-equal. The bootstrap gate verifies codegen self-hosts (gen2==gen3) + builds lexer + parser + semantic + mir_lower + 13 audit tools and the backend fuzz generator, all matching oracle-built. Gated by `parity/codegen_bootstrap.sh`
 (`make self-host-codegen-bootstrap-test-smoke`).
@@ -426,7 +431,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 134 accepted self-host owner/source files
+  real-source selfcheck now feeds 171 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the lexer and mir_lower run/fixture-manifest owners, the compiler path manifest
@@ -495,8 +500,8 @@ The realistic incremental path toward genuine self-host:
    resolver. The module manifest resolver now consumes bounded module-array
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
-   on 66 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 148 production self-host
+   on 68 committed fixtures, with the emitter built through both backends.
+   The M2 completeness ledger also now checks all 171 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block
