@@ -774,6 +774,14 @@ the `execution-lane-parity-paths` suite emitted by `test_harness_manifest.pgy`,
 so the root smoke executes the self-hosted harness owner instead of carrying its
 own `src/self_hosted/sea/...` path constants.
 
+SEA executor delta, 2026-07-08: the same execution-lane path suite now also
+owns `lane_executor_contract.pgy` plus clean and missing-term expected
+artifacts. The self-hosted probe reads `src/runtime/pgy_lane_scheduler.{c,h}`
+and emits `pgy.selfhost.lane-executor-contract.v1`, recording the current
+`depth=scaffold-synchronous` status and fail-closed `Reject` behavior. This
+does not claim production executor depth; it turns the current scaffold into a
+tracked artifact that must change when dedicated lane executors land.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`

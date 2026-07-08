@@ -1,0 +1,125 @@
+// SEA runtime executor contract probe.
+//
+// This is not the production executor implementation. It is a self-hosted
+// artifact gate over the current PgyLaneScheduler facade, so executor depth
+// cannot be overstated or drift behind shell-only checks.
+
+func LaneExecutorContractSchema() -> String {
+    return "pgy.selfhost.lane-executor-contract.v1";
+}
+
+func LaneExecutorMissingSelfTestMode() -> String {
+    return "--self-test-missing-term";
+}
+
+func LaneExecutorRequiredCount() -> Int {
+    return 14;
+}
+
+func LaneExecutorRuntimeCPath() -> String {
+    return "src/runtime/pgy_lane_scheduler.c";
+}
+
+func LaneExecutorRuntimeHPath() -> String {
+    return "src/runtime/pgy_lane_scheduler.h";
+}
+
+func LaneExecutorRequiredPathAt(index: Int) -> String {
+    if index <= 8 { return LaneExecutorRuntimeCPath(); }
+    if index >= 9 && index < LaneExecutorRequiredCount() { return LaneExecutorRuntimeHPath(); }
+    return "";
+}
+
+func LaneExecutorRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_lane_dispatch(PgyExecutionLane lane"; }
+    if index == 1 { return "case PGY_LANE_REJECT:"; }
+    if index == 2 { return "return PGY_LANE_DISPATCH_REJECTED;"; }
+    if index == 3 { return "case PGY_LANE_INLINE:"; }
+    if index == 4 { return "case PGY_LANE_PINNED_ZONE:"; }
+    if index == 5 { return "lane_run_on_worker(fn, arg, result_out);"; }
+    if index == 6 { return "case PGY_LANE_WORKER_POOL:"; }
+    if index == 7 { return "case PGY_LANE_BLOCKING_POOL:"; }
+    if index == 8 { return "case PGY_LANE_MOVABLE_SCHEDULER:"; }
+    if index == 9 { return "pgy_lane_spawn_dispatch(PgyExecutionLane lane"; }
+    if index == 10 { return "pgy_task_handle_set_lane(handle, lane)"; }
+    if index == 11 { return "pgy_lane_await(PgyTaskHandle handle)"; }
+    if index == 12 { return "pgy_lane_detach(PgyTaskHandle handle)"; }
+    if index == 13 { return "detach requires LocalAsync execution lane"; }
+    return "";
+}
+
+func LaneExecutorLaneCount() -> Int {
+    return 7;
+}
+
+func LaneExecutorLaneRowAt(index: Int) -> String {
+    if index == 0 { return "lane|Reject|(rejected)|fail_closed"; }
+    if index == 1 { return "lane|Inline|InlineExecutor|in_place"; }
+    if index == 2 { return "lane|PinnedZone|PinnedExecutor|in_place"; }
+    if index == 3 { return "lane|BlockingPool|BlockingExecutor|worker_join_scaffold"; }
+    if index == 4 { return "lane|LocalAsync|LocalCoroutineExecutor|worker_join_scaffold"; }
+    if index == 5 { return "lane|WorkerPool|WorkerPoolExecutor|worker_join_scaffold"; }
+    if index == 6 { return "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"; }
+    return "";
+}
+
+func LaneExecutorMissingFinding(path: String, term: String) -> String {
+    let row0: String = Concat("missing_required|", path);
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, term);
+}
+
+func LaneExecutorTermPresent(path: String, term: String) -> Bool {
+    if !FileExists(path) {
+        return false;
+    }
+    return StringContains(ReadFile(path), term);
+}
+
+func LaneExecutorReport(missing: Int, findings: Array<String>) -> Void {
+    Log(Concat("schema=", LaneExecutorContractSchema()));
+    Log("depth=scaffold-synchronous");
+    Log(Concat("required_count=", ToString(LaneExecutorRequiredCount())));
+    Log(Concat("missing=", ToString(missing)));
+    Log(Concat("lane_count=", ToString(LaneExecutorLaneCount())));
+    let lane_index: Int = 0;
+    while lane_index < LaneExecutorLaneCount() {
+        Log(LaneExecutorLaneRowAt(lane_index));
+        lane_index = lane_index + 1;
+    }
+    let finding_index: Int = 0;
+    while finding_index < ArrayLength(findings) {
+        Log(findings[finding_index]);
+        finding_index = finding_index + 1;
+    }
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if ArrayLength(args) > 0 && args[0] == LaneExecutorMissingSelfTestMode() {
+        missing = 1;
+        ArrayPush(findings, LaneExecutorMissingFinding(
+            LaneExecutorRuntimeCPath(),
+            "definitely_missing_lane_executor_contract_term"));
+        LaneExecutorReport(missing, findings);
+        Exit(1);
+        return;
+    }
+
+    let i: Int = 0;
+    while i < LaneExecutorRequiredCount() {
+        let path: String = LaneExecutorRequiredPathAt(i);
+        let term: String = LaneExecutorRequiredTermAt(i);
+        if !LaneExecutorTermPresent(path, term) {
+            missing = missing + 1;
+            ArrayPush(findings, LaneExecutorMissingFinding(path, term));
+        }
+        i = i + 1;
+    }
+    LaneExecutorReport(missing, findings);
+    if missing > 0 {
+        Exit(1);
+    }
+}

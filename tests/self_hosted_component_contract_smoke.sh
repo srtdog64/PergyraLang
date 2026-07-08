@@ -1222,14 +1222,36 @@ require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_checke
 require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExecutionLaneParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "execution-lane-parity-paths"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractSourcePath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractMissingExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExecutionLaneParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExecutionLaneParitySuiteName()"
+require_file "src/self_hosted/sea/lane_executor_contract.pgy"
+require_file "src/self_hosted/sea/expected_executor_contract.txt"
+require_file "src/self_hosted/sea/expected_executor_contract_missing.txt"
+require_max_lines "src/self_hosted/sea/lane_executor_contract.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/sea/lane_executor_contract.pgy"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "pgy.selfhost.lane-executor-contract.v1"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "depth=scaffold-synchronous"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "LaneExecutorRequiredCount()"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "LaneExecutorLaneRowAt"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "LaneExecutorTermPresent"
+require_text "src/self_hosted/sea/lane_executor_contract.pgy" "definitely_missing_lane_executor_contract_term"
+require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|Reject|(rejected)|fail_closed"
+require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
+require_text "src/self_hosted/sea/expected_executor_contract_missing.txt" "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_host_execution_lane_parity_smoke.sh" '"execution-lane-parity-paths"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/${harness_paths[0]}"'
 require_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_SRC="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_GOLDEN="$ROOT_DIR/${harness_paths[3]}"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" 'EXEC_MISSING_GOLDEN="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" "--self-test-missing-term"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" "assert_llvm_leg"
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"'
 reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"

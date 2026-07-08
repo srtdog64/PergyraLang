@@ -143,6 +143,13 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 
+## SEA
+
+- `src/self_hosted/sea/execution_lane.pgy` -- typed
+  `BoundaryCaptureFact` to `ExecutionLane` classifier mirror.
+- `src/self_hosted/sea/lane_executor_contract.pgy` -- runtime executor facade
+  contract probe over `PgyLaneScheduler`.
+
 ## Compiler World
 
 - `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path

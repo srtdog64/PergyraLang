@@ -155,9 +155,11 @@ completed green with:
 - Follow-up ExecutionLane slice: the self-host SEA mirror now emits a named
   31-row policy/evidence artifact. The parity gate locks positive
   `MovableScheduler` rows and negative `Reject` rows for pin/raw-slot resource
-  capture under movability requirements on both C and LLVM. Live AIR JSON
-  full-matrix coverage and lane-specific executor depth remain separate P0/P1
-  work.
+  capture under movability requirements on both C and LLVM. The same suite now
+  emits `pgy.selfhost.lane-executor-contract.v1` over `PgyLaneScheduler`, which
+  honestly records the current `worker_join_scaffold` executor depth. Live AIR
+  JSON full-matrix coverage and lane-specific production executor depth remain
+  separate P0/P1 work.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 - Follow-up owner-scoped TestHarness split refresh: `sources=175`, with

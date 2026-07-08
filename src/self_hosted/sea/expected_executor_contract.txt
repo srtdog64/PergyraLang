@@ -1,0 +1,12 @@
+schema=pgy.selfhost.lane-executor-contract.v1
+depth=scaffold-synchronous
+required_count=14
+missing=0
+lane_count=7
+lane|Reject|(rejected)|fail_closed
+lane|Inline|InlineExecutor|in_place
+lane|PinnedZone|PinnedExecutor|in_place
+lane|BlockingPool|BlockingExecutor|worker_join_scaffold
+lane|LocalAsync|LocalCoroutineExecutor|worker_join_scaffold
+lane|WorkerPool|WorkerPoolExecutor|worker_join_scaffold
+lane|MovableScheduler|MovableExecutor|worker_join_scaffold

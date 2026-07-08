@@ -29,7 +29,8 @@ if { [ ! -x "$PGY" ] && [ ! -f "$PGY" ]; } || ! pgy_binary_is_runnable_here "$PG
     exit 0
 fi
 
-WORK="$(mktemp -d)"
+WORK="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/execution_lane}"
+mkdir -p "$WORK"
 HARNESS_PATHS="$WORK/execution_lane_harness_paths.txt"
 pgy_selfhost_read_test_harness_manifest \
     "sea-self-host-lane" \
@@ -41,16 +42,25 @@ while IFS= read -r line; do
     [ -n "$line" ] || continue
     harness_paths+=("$line")
 done < "$HARNESS_PATHS"
-if [ "${#harness_paths[@]}" -ne 2 ]; then
-    fail "TestHarness manifest expected 2 execution-lane paths, got ${#harness_paths[@]}"
+if [ "${#harness_paths[@]}" -ne 5 ]; then
+    fail "TestHarness manifest expected 5 execution-lane paths, got ${#harness_paths[@]}"
 fi
 case "${harness_paths[0]}" in /*|[A-Za-z]:*|*\\*) fail "execution-lane source path must be repo-relative: ${harness_paths[0]}" ;; esac
 case "${harness_paths[1]}" in /*|[A-Za-z]:*|*\\*) fail "execution-lane golden path must be repo-relative: ${harness_paths[1]}" ;; esac
+case "${harness_paths[2]}" in /*|[A-Za-z]:*|*\\*) fail "lane executor source path must be repo-relative: ${harness_paths[2]}" ;; esac
+case "${harness_paths[3]}" in /*|[A-Za-z]:*|*\\*) fail "lane executor golden path must be repo-relative: ${harness_paths[3]}" ;; esac
+case "${harness_paths[4]}" in /*|[A-Za-z]:*|*\\*) fail "lane executor missing golden path must be repo-relative: ${harness_paths[4]}" ;; esac
 
 SRC="$ROOT_DIR/${harness_paths[0]}"
 GOLDEN="$ROOT_DIR/${harness_paths[1]}"
+EXEC_SRC="$ROOT_DIR/${harness_paths[2]}"
+EXEC_GOLDEN="$ROOT_DIR/${harness_paths[3]}"
+EXEC_MISSING_GOLDEN="$ROOT_DIR/${harness_paths[4]}"
 [ -f "$SRC" ]    || fail "missing classifier: $SRC"
 [ -f "$GOLDEN" ] || fail "missing golden: $GOLDEN"
+[ -f "$EXEC_SRC" ] || fail "missing lane executor contract probe: $EXEC_SRC"
+[ -f "$EXEC_GOLDEN" ] || fail "missing lane executor contract golden: $EXEC_GOLDEN"
+[ -f "$EXEC_MISSING_GOLDEN" ] || fail "missing lane executor missing-term golden: $EXEC_MISSING_GOLDEN"
 
 grep -Fq "positive_movable_value_authority|MovableScheduler" "$GOLDEN" \
     || fail "golden must pin the MovableScheduler positive row"
@@ -62,6 +72,12 @@ grep -Fq "producer_rejects_resource_movable|Reject" "$GOLDEN" \
     || fail "golden must pin producer-side resource rejection"
 grep -Fq "air_channel_raw_channel_pins|PinnedZone" "$GOLDEN" \
     || fail "golden must pin raw-channel materialization"
+grep -Fq "lane|Reject|(rejected)|fail_closed" "$EXEC_GOLDEN" \
+    || fail "executor golden must pin Reject fail-closed behavior"
+grep -Fq "lane|MovableScheduler|MovableExecutor|worker_join_scaffold" "$EXEC_GOLDEN" \
+    || fail "executor golden must honestly pin current MovableScheduler scaffold depth"
+grep -Fq "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term" "$EXEC_MISSING_GOLDEN" \
+    || fail "executor missing-term golden must pin fail-closed missing evidence"
 
 grep -Fq "struct BoundaryLaneInputFact" "$SRC" \
     || fail "self-host lane classifier must consume a typed BoundaryLaneInputFact"
@@ -106,5 +122,39 @@ for be in $backends; do
     fi
     echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (31/31)"
 done
+
+EXEC_ARG="$(pgy_path_for_compiler "$PGY" "$EXEC_SRC")"
+EXEC_C_BIN="$WORK/lane_executor_contract_c.exe"
+EXEC_C_OUT="$WORK/lane_executor_contract_c.out"
+EXEC_EXPECTED_NORM="$WORK/lane_executor_contract_expected.norm"
+EXEC_C_MISSING_OUT="$WORK/lane_executor_contract_c_missing.out"
+EXEC_MISSING_EXPECTED_NORM="$WORK/lane_executor_contract_missing_expected.norm"
+EXEC_C_COMPILE_OUT="$WORK/lane_executor_contract_c.compile.out"
+EXEC_C_COMPILE_ERR="$WORK/lane_executor_contract_c.compile.err"
+if ! "$PGY" "$EXEC_ARG" --backend=c -o "$EXEC_C_BIN" \
+        >"$EXEC_C_COMPILE_OUT" 2>"$EXEC_C_COMPILE_ERR"; then
+    cat "$EXEC_C_COMPILE_ERR" >&2
+    fail "lane executor contract compile failed"
+fi
+"$EXEC_C_BIN" 2>/dev/null | pgy_selfhost_normalize_text_artifact > "$EXEC_C_OUT" \
+    || fail "lane executor contract run failed"
+pgy_selfhost_normalize_text_artifact < "$EXEC_GOLDEN" > "$EXEC_EXPECTED_NORM"
+if ! diff -u "$EXEC_EXPECTED_NORM" "$EXEC_C_OUT"; then
+    fail "lane executor contract drift (see diff)."
+fi
+
+set +e
+"$EXEC_C_BIN" --self-test-missing-term 2>/dev/null | \
+    pgy_selfhost_normalize_text_artifact > "$EXEC_C_MISSING_OUT"
+EXEC_MISSING_RC=$?
+set -e
+if [ "$EXEC_MISSING_RC" -ne 1 ]; then
+    fail "lane executor missing-term self-test should fail closed (rc=1), got rc=$EXEC_MISSING_RC"
+fi
+pgy_selfhost_normalize_text_artifact < "$EXEC_MISSING_GOLDEN" > "$EXEC_MISSING_EXPECTED_NORM"
+if ! diff -u "$EXEC_MISSING_EXPECTED_NORM" "$EXEC_C_MISSING_OUT"; then
+    fail "lane executor missing-term artifact drift (see diff)."
+fi
+assert_llvm_leg "sea-self-host-lane-executor" "$EXEC_ARG" "$WORK"
 
 echo "[sea-self-host-lane] PASS"

@@ -130,6 +130,15 @@ strictly underneath.
   evidence and negative `Reject` rows for pin/raw-slot resource capture under
   movability requirements. The self-host mirror is forbidden to reintroduce
   `BoundarySourceKind`, `source_kind`, or source-string lane APIs.
+- The same parity suite now also compiles
+  `src/self_hosted/sea/lane_executor_contract.pgy`, which reads
+  `src/runtime/pgy_lane_scheduler.{c,h}` and emits a stable executor-contract
+  artifact. The artifact deliberately records the current
+  `depth=scaffold-synchronous` state: `Reject` is fail-closed,
+  `Inline`/`PinnedZone` run in place, and
+  `BlockingPool`/`LocalAsync`/`WorkerPool`/`MovableScheduler` are still
+  `worker_join_scaffold` lanes. This is evidence, not a production-executor
+  claim; the gate will drift when those lanes receive dedicated executors.
 
 **Landed — spawn-shaped boundaries consume the lane facade (2026-06-29):**
 - Both backends used to choose the spawn executor with an independent
@@ -217,4 +226,5 @@ strictly underneath.
 - **Executor depth.** The Worker/Blocking/LocalAsync/Movable lanes currently
   share one worker-thread executor; backing them with the fiber scheduler /
   work-stealing pool / dedicated blocking pool is refinement under the same
-  executor-invariant contract.
+  executor-invariant contract. `lane_executor_contract.pgy` now makes that
+  scaffold status a self-hosted artifact instead of prose-only status.
