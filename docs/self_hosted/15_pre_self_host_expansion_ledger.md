@@ -286,6 +286,12 @@ consumes `CompilerHarnessBackendOutputComparatorReady()` and the comparable
 artifact facts, but no longer defines the concrete backend-output comparator
 source, expected JSON, or fixture paths.
 
+TestHarness delta, 2026-07-08: the `backend-tri-smoke` and
+`backend-tri-extended` case suites are now owned by
+`test_harness_backend_compare_paths_owner.pgy`. The core TestHarness owner
+still requires `CompilerHarnessBackendTriSuiteReady()`, but it no longer owns
+the concrete backend-compare fixture case inventory.
+
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now gets
 the expected mismatch and missing-input verdict artifacts from
 `test_harness_owner.pgy`. Shell still creates the negative artifact fixtures and

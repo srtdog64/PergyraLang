@@ -4,6 +4,7 @@
 
 import "test_harness_tool_paths_owner.pgy";
 import "test_harness_comparator_paths_owner.pgy";
+import "test_harness_backend_compare_paths_owner.pgy";
 import "test_harness_inventory_paths_owner.pgy";
 import "test_harness_size_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
@@ -108,96 +109,6 @@ func CompilerHarnessProjectionOrExit(index: Int) -> String {
 
 func CompilerHarnessFindingCap() -> Int {
     return 8;
-}
-
-func CompilerHarnessBackendTriSmokeSuiteName() -> String {
-    return "backend-tri-smoke";
-}
-
-func CompilerHarnessBackendTriExtendedSuiteName() -> String {
-    return "backend-tri-extended";
-}
-
-func CompilerHarnessBackendTriSmokeCaseCount() -> Int {
-    return 14;
-}
-
-func CompilerHarnessBackendTriSmokeCaseAt(index: Int) -> String {
-    if index == 0 { return "tests/cases/backend_compare/basic"; }
-    if index == 1 { return "tests/cases/backend_compare/arith_grand_total"; }
-    if index == 2 { return "tests/cases/backend_compare/array_builtins"; }
-    if index == 3 { return "tests/cases/backend_compare/allocator_lane_boxarray"; }
-    if index == 4 { return "tests/cases/backend_compare/allocator_defer_cleanup"; }
-    if index == 5 { return "tests/cases/backend_compare/class_factory_field_method"; }
-    if index == 6 { return "tests/cases/backend_compare/channel_send_recv_basic"; }
-    if index == 7 { return "tests/cases/backend_compare/async_spawn_await"; }
-    if index == 8 { return "tests/cases/backend_compare/slice_surface"; }
-    if index == 9 { return "tests/cases/backend_compare/slice_copy"; }
-    if index == 10 { return "tests/cases/backend_compare/string_interpolation"; }
-    if index == 11 { return "tests/cases/backend_compare/pin_write_view_block"; }
-    if index == 12 { return "tests/cases/backend_compare/secure_slot_view"; }
-    if index == 13 { return "tests/cases/backend_compare/intent_zone_binding"; }
-    return "";
-}
-
-func CompilerHarnessBackendTriExtendedCaseCount() -> Int {
-    return 17;
-}
-
-func CompilerHarnessBackendTriExtendedCaseAt(index: Int) -> String {
-    if index == 0 { return "tests/cases/backend_compare/file_handle_io"; }
-    if index == 1 { return "tests/cases/backend_compare/io_string_negative_paths"; }
-    if index == 2 { return "tests/cases/backend_compare/rc_weak_lifecycle"; }
-    if index == 3 { return "tests/cases/backend_compare/hashmap_basic_ops"; }
-    if index == 4 { return "tests/cases/backend_compare/list_mutation_ops"; }
-    if index == 5 { return "tests/cases/backend_compare/queue_state_ops"; }
-    if index == 6 { return "tests/cases/backend_compare/set_membership_ops"; }
-    if index == 7 { return "tests/cases/backend_compare/try_operator_result"; }
-    if index == 8 { return "tests/cases/backend_compare/future_cancel_state"; }
-    if index == 9 { return "tests/cases/backend_compare/select_single_ready"; }
-    if index == 10 { return "tests/cases/backend_compare/unsafe_lexical_boundary"; }
-    if index == 11 { return "tests/cases/backend_compare/top_level_visibility_decl"; }
-    if index == 12 { return "tests/cases/backend_compare/event_system"; }
-    if index == 13 { return "tests/cases/backend_compare/generic_future_spawn_multi_arg"; }
-    if index == 14 { return "tests/cases/backend_compare/runtime_seeded_random"; }
-    if index == 15 { return "tests/cases/backend_compare/map_ops"; }
-    if index == 16 { return "tests/cases/backend_compare/zone_host_method_abi_combo"; }
-    return "";
-}
-
-func CompilerHarnessBackendTriSmokeCasesReady() -> Bool {
-    if CompilerHarnessBackendTriSmokeCaseCount() != 14 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < CompilerHarnessBackendTriSmokeCaseCount() {
-        if CompilerHarnessBackendTriSmokeCaseAt(i) == "" {
-            return false;
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
-func CompilerHarnessBackendTriExtendedCasesReady() -> Bool {
-    if CompilerHarnessBackendTriExtendedCaseCount() != 17 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < CompilerHarnessBackendTriExtendedCaseCount() {
-        if CompilerHarnessBackendTriExtendedCaseAt(i) == "" {
-            return false;
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
-func CompilerHarnessBackendTriSuiteReady() -> Bool {
-    return CompilerHarnessBackendTriSmokeSuiteName() != "" &&
-        CompilerHarnessBackendTriExtendedSuiteName() != "" &&
-        CompilerHarnessBackendTriSmokeCasesReady() &&
-        CompilerHarnessBackendTriExtendedCasesReady();
 }
 
 func CompilerTestHarnessReady() -> Bool {

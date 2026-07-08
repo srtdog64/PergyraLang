@@ -2689,6 +2689,7 @@ require_file "src/self_hosted/tools/backend_output_comparator/expected/mismatch.
 require_file "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
@@ -2701,6 +2702,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
 require_max_lines "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
@@ -2937,15 +2939,24 @@ require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizePathAt"
 require_text "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" "func CompilerHarnessProductionHeaderSizeReady"
 require_file "src/self_hosted/tools/production_header_size_checker/expected/over_cap.json"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseAt"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseCount"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseAt"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCasesReady"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCasesReady"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSuiteReady"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseAt"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseCount"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseAt"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriSmokeCasesReady"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriExtendedCasesReady"
+require_text "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" "func CompilerHarnessBackendTriSuiteReady"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseCount"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCaseAt"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseCount"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCaseAt"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSmokeCasesReady"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCasesReady"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSuiteReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection()"
@@ -2972,6 +2983,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessB
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
