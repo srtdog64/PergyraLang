@@ -150,6 +150,13 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/fuzz/backend_parity_generator/manifest_owner.pgy` -- backend
   parity fuzz JSONL manifest and stdout summary shape.
 
+## Tools
+
+- `src/self_hosted/tools/ast_read_surface_checker/main.pgy` -- AST read surface
+  ratchet parsing, live source counting, and checker entrypoint.
+- `src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy` -- AST read
+  surface checker JSON schema, count rows, source rows, and finding shapes.
+
 ## SEA
 
 - `src/self_hosted/sea/execution_lane.pgy` -- typed

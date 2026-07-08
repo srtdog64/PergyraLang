@@ -708,6 +708,12 @@ gets the expected growth verdict JSON artifact from
 fixture and checks `rc=1`, but no longer owns the `surface_growth` diagnostic
 shape that proves the fail-closed path.
 
+AST read surface delta, 2026-07-08: `report_owner.pgy` now owns
+`pgy.selfhost.ast-read-surface.v1`, source/count row names, input-error
+findings, surface-growth findings, and final report shape. `main.pgy` owns
+ratchet parsing and live `DirWalk` counting only, then emits through the report
+owner.
+
 TestHarness delta, 2026-07-05: `air_graph_json_validator_parity.sh` now gets
 the checker source, AIR evidence owner, expected clean JSON, committed AIR
 fixtures, and live AIR source paths through the

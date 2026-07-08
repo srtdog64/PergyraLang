@@ -1,0 +1,126 @@
+// AST-read surface checker report owner.
+//
+// Owns the JSON schema, source/count field rows, and finding shapes. The
+// checker entrypoint owns ratchet parsing and live DirWalk counting.
+
+import "../../lib/json_emit.pgy";
+
+func AstReadSurfaceSchema() -> String {
+    return "pgy.selfhost.ast-read-surface.v1";
+}
+
+func AstReadSurfaceRatchetOwnerPath() -> String {
+    return "tests/ast_read_surface_ratchet.txt";
+}
+
+func AstReadSurfaceInventoryOwner() -> String {
+    return "DirWalk(scope)";
+}
+
+func AstReadSurfaceGrowthFindingKind() -> String {
+    return "surface_growth";
+}
+
+func AstReadSurfaceSourceJson(ratchet_path: String) -> String {
+    let source_fields: Array<String> = [
+        JsonEmitFieldString("ratchet_owner", ratchet_path),
+        JsonEmitFieldString("inventory_owner", AstReadSurfaceInventoryOwner())
+    ];
+    return JsonEmitObject(source_fields);
+}
+
+func AstReadSurfaceCountsJson(
+    enum_reads: Int,
+    source_ast_codegen_reads: Int,
+    source_ast_compiler_reads: Int,
+    source_decl_codegen_reads: Int,
+    source_decl_compiler_reads: Int,
+    routine_source_decl_codegen_reads: Int,
+    violations: Int
+) -> String {
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("enum", ToString(enum_reads)),
+        JsonEmitFieldNumber("source_ast_codegen", ToString(source_ast_codegen_reads)),
+        JsonEmitFieldNumber("source_ast_compiler", ToString(source_ast_compiler_reads)),
+        JsonEmitFieldNumber("source_decl_codegen", ToString(source_decl_codegen_reads)),
+        JsonEmitFieldNumber("source_decl_compiler", ToString(source_decl_compiler_reads)),
+        JsonEmitFieldNumber("routine_source_decl_codegen", ToString(routine_source_decl_codegen_reads)),
+        JsonEmitFieldNumber("violations", ToString(violations))
+    ];
+    return JsonEmitObject(counts_fields);
+}
+
+func AstReadSurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", AstReadSurfaceGrowthFindingKind()),
+        JsonEmitFieldString("metric", kind),
+        JsonEmitFieldNumber("reads", ToString(reads)),
+        JsonEmitFieldNumber("ceiling", ToString(ceiling)),
+        JsonEmitFieldString("location", scope)
+    ];
+    return JsonEmitObject(fields);
+}
+
+func AstReadSurfaceInputFinding(error_kind: String, key: String, location: String) -> String {
+    let finding_fields: Array<String> = [
+        JsonEmitFieldString("kind", error_kind),
+        JsonEmitFieldString("key", key),
+        JsonEmitFieldString("location", location)
+    ];
+    return JsonEmitObject(finding_fields);
+}
+
+func AstReadSurfaceReportJson(
+    ok: Bool,
+    ratchet_path: String,
+    enum_reads: Int,
+    source_ast_codegen_reads: Int,
+    source_ast_compiler_reads: Int,
+    source_decl_codegen_reads: Int,
+    source_decl_compiler_reads: Int,
+    routine_source_decl_codegen_reads: Int,
+    violations: Int,
+    findings: Array<String>
+) -> String {
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", AstReadSurfaceSchema()),
+        JsonEmitFieldBool("ok", ok),
+        JsonEmitFieldRaw("source", AstReadSurfaceSourceJson(ratchet_path)),
+        JsonEmitFieldRaw("counts", AstReadSurfaceCountsJson(
+            enum_reads,
+            source_ast_codegen_reads,
+            source_ast_compiler_reads,
+            source_decl_codegen_reads,
+            source_decl_compiler_reads,
+            routine_source_decl_codegen_reads,
+            violations)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
+}
+
+func AstReadSurfaceInputErrorJson(error_kind: String, key: String, location: String) -> Option<String> {
+    let findings: Array<String> = [
+        AstReadSurfaceInputFinding(error_kind, key, location)
+    ];
+    return Some(AstReadSurfaceReportJson(
+        false,
+        AstReadSurfaceRatchetOwnerPath(),
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        findings));
+}
+
+func AstReadSurfaceReportOwnerReady() -> Bool {
+    let no_findings: Array<String> = [];
+    return AstReadSurfaceSchema() == "pgy.selfhost.ast-read-surface.v1" &&
+        AstReadSurfaceRatchetOwnerPath() == "tests/ast_read_surface_ratchet.txt" &&
+        AstReadSurfaceInventoryOwner() == "DirWalk(scope)" &&
+        AstReadSurfaceGrowthFindingKind() == "surface_growth" &&
+        StringIndexOf(AstReadSurfaceReportJson(true, AstReadSurfaceRatchetOwnerPath(), 0, 0, 0, 0, 0, 0, 0, no_findings), AstReadSurfaceSchema()) >= 0;
+}

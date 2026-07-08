@@ -323,7 +323,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/air_graph_reachability/main.pgy \
     src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
     src/self_hosted/tools/air_graph_ref_live/main.pgy \
-    src/self_hosted/tools/ast_read_surface_checker/main.pgy \
+    src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
     src/self_hosted/tools/compatibility_evolution_checker/main.pgy \
     src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
@@ -3010,9 +3010,25 @@ reject_text "tests/self_hosted/parity/air_graph_ref_live_parity.sh" '"kind":"dan
 require_make_target_recipe_line \
     "self-host-air-graph-consumer-parity-test-smoke" \
     'PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/air_graph_json_validator_parity.sh'
-require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'import "../../lib/json.pgy";'
-require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitObject(report_fields)"
-require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitArray(findings)"
+require_file "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy"
+require_max_lines "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/ast_read_surface_checker/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "AstReadSurfaceRatchetOwnerPath()"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "AstReadSurfaceReportOwnerReady()"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "AstReadSurfaceInputErrorJson"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "AstReadSurfaceFinding"
+require_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "AstReadSurfaceReportJson"
+require_text "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" "pgy.selfhost.ast-read-surface.v1"
+require_text "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" "func AstReadSurfaceReportJson"
+require_text "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" "func AstReadSurfaceInputErrorJson"
+require_text "src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy" "func AstReadSurfaceReportOwnerReady"
+reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "pgy.selfhost.ast-read-surface.v1"
+reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitObject(report_fields)"
+reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 reject_text "src/self_hosted/tools/ast_read_surface_checker/main.pgy" 'let json_parts: Array<String>'
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/ast_read_surface_checker_parity.sh" '"ast-read-surface-paths"'

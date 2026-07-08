@@ -8,51 +8,7 @@
 // Contract: see intent.md in the same directory.
 
 import "../../lib/text_scan.pgy";
-import "../../lib/json.pgy";
-import "../../lib/json_emit.pgy";
-
-func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> String {
-    let fields: Array<String> = [
-        JsonEmitFieldString("kind", "surface_growth"),
-        JsonEmitFieldString("metric", kind),
-        JsonEmitFieldNumber("reads", ToString(reads)),
-        JsonEmitFieldNumber("ceiling", ToString(ceiling)),
-        JsonEmitFieldString("location", scope)
-    ];
-    return JsonEmitObject(fields);
-}
-
-func InputErrorJson(error_kind: String, key: String, location: String) -> Option<String> {
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("ratchet_owner", "tests/ast_read_surface_ratchet.txt"),
-        JsonEmitFieldString("inventory_owner", "DirWalk(scope)")
-    ];
-    let counts_fields: Array<String> = [
-        JsonEmitFieldNumber("enum", "0"),
-        JsonEmitFieldNumber("source_ast_codegen", "0"),
-        JsonEmitFieldNumber("source_ast_compiler", "0"),
-        JsonEmitFieldNumber("source_decl_codegen", "0"),
-        JsonEmitFieldNumber("source_decl_compiler", "0"),
-        JsonEmitFieldNumber("routine_source_decl_codegen", "0"),
-        JsonEmitFieldNumber("violations", "1")
-    ];
-    let finding_fields: Array<String> = [
-        JsonEmitFieldString("kind", error_kind),
-        JsonEmitFieldString("key", key),
-        JsonEmitFieldString("location", location)
-    ];
-    let findings: Array<String> = [
-        JsonEmitObject(finding_fields)
-    ];
-    let report_fields: Array<String> = [
-        JsonEmitFieldString("schema", "pgy.selfhost.ast-read-surface.v1"),
-        JsonEmitFieldBool("ok", false),
-        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
-        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ];
-    return Some(JsonEmitObject(report_fields));
-}
+import "report_owner.pgy";
 
 func EndsWith(text: String, suffix: String) -> Bool {
     let text_len: Int = StringLength(text);
@@ -79,10 +35,15 @@ func CountPatternInScope(pattern: String, scope: String) -> Int {
 }
 
 func Main() -> Void {
-    let ratchet_path: String = "tests/ast_read_surface_ratchet.txt";
+    if !AstReadSurfaceReportOwnerReady() {
+        Log(UnwrapOption(AstReadSurfaceInputErrorJson("owner_not_ready", "report_owner", "report_owner.pgy")));
+        Exit(1);
+    }
+
+    let ratchet_path: String = AstReadSurfaceRatchetOwnerPath();
 
     if !FileExists(ratchet_path) {
-        Log(UnwrapOption(InputErrorJson("missing_ratchet", ratchet_path, ratchet_path)));
+        Log(UnwrapOption(AstReadSurfaceInputErrorJson("missing_ratchet", ratchet_path, ratchet_path)));
         Exit(1);
     }
 
@@ -109,7 +70,7 @@ func Main() -> Void {
         if StringLength(line) > 0 {
             let parts: Array<String> = Split(line, "|");
             if ArrayLength(parts) < 4 {
-                Log(UnwrapOption(InputErrorJson("malformed_ratchet", line, ratchet_path)));
+                Log(UnwrapOption(AstReadSurfaceInputErrorJson("malformed_ratchet", line, ratchet_path)));
                 Exit(1);
             }
 
@@ -157,7 +118,7 @@ func Main() -> Void {
             }
 
             if known == 0 {
-                Log(UnwrapOption(InputErrorJson("unknown_metric", kind, scope)));
+                Log(UnwrapOption(AstReadSurfaceInputErrorJson("unknown_metric", kind, scope)));
                 Exit(1);
             }
         }
@@ -168,11 +129,11 @@ func Main() -> Void {
     let findings: Array<String> = [];
     if enum_reads > enum_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding("enum", enum_reads, enum_cap, "src/codegen"));
+        ArrayPush(findings, AstReadSurfaceFinding("enum", enum_reads, enum_cap, "src/codegen"));
     }
     if source_ast_codegen_reads > source_ast_codegen_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding(
+        ArrayPush(findings, AstReadSurfaceFinding(
             "source_ast_codegen",
             source_ast_codegen_reads,
             source_ast_codegen_cap,
@@ -180,7 +141,7 @@ func Main() -> Void {
     }
     if source_ast_compiler_reads > source_ast_compiler_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding(
+        ArrayPush(findings, AstReadSurfaceFinding(
             "source_ast_compiler",
             source_ast_compiler_reads,
             source_ast_compiler_cap,
@@ -188,7 +149,7 @@ func Main() -> Void {
     }
     if source_decl_codegen_reads > source_decl_codegen_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding(
+        ArrayPush(findings, AstReadSurfaceFinding(
             "source_decl_codegen",
             source_decl_codegen_reads,
             source_decl_codegen_cap,
@@ -196,7 +157,7 @@ func Main() -> Void {
     }
     if source_decl_compiler_reads > source_decl_compiler_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding(
+        ArrayPush(findings, AstReadSurfaceFinding(
             "source_decl_compiler",
             source_decl_compiler_reads,
             source_decl_compiler_cap,
@@ -204,34 +165,24 @@ func Main() -> Void {
     }
     if routine_source_decl_codegen_reads > routine_source_decl_codegen_cap {
         violations = violations + 1;
-        ArrayPush(findings, SurfaceFinding(
+        ArrayPush(findings, AstReadSurfaceFinding(
             "routine_source_decl_codegen",
             routine_source_decl_codegen_reads,
             routine_source_decl_codegen_cap,
             "src/codegen"));
     }
 
-    let source_fields: Array<String> = [
-        JsonEmitFieldString("ratchet_owner", ratchet_path),
-        JsonEmitFieldString("inventory_owner", "DirWalk(scope)")
-    ];
-    let counts_fields: Array<String> = [
-        JsonEmitFieldNumber("enum", ToString(enum_reads)),
-        JsonEmitFieldNumber("source_ast_codegen", ToString(source_ast_codegen_reads)),
-        JsonEmitFieldNumber("source_ast_compiler", ToString(source_ast_compiler_reads)),
-        JsonEmitFieldNumber("source_decl_codegen", ToString(source_decl_codegen_reads)),
-        JsonEmitFieldNumber("source_decl_compiler", ToString(source_decl_compiler_reads)),
-        JsonEmitFieldNumber("routine_source_decl_codegen", ToString(routine_source_decl_codegen_reads)),
-        JsonEmitFieldNumber("violations", ToString(violations))
-    ];
-    let report_fields: Array<String> = [
-        JsonEmitFieldString("schema", "pgy.selfhost.ast-read-surface.v1"),
-        JsonEmitFieldBool("ok", violations == 0),
-        JsonEmitFieldRaw("source", JsonEmitObject(source_fields)),
-        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ];
-    Log(JsonEmitObject(report_fields));
+    Log(AstReadSurfaceReportJson(
+        violations == 0,
+        ratchet_path,
+        enum_reads,
+        source_ast_codegen_reads,
+        source_ast_compiler_reads,
+        source_decl_codegen_reads,
+        source_decl_compiler_reads,
+        routine_source_decl_codegen_reads,
+        violations,
+        findings));
 
     if violations > 0 {
         Exit(1);
