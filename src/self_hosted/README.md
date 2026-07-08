@@ -284,3 +284,8 @@ the default proof for an isolated owner change.
    they are audit tools with a C/shell oracle and the full tool scaffold
    contract. Their stable contract is deterministic corpus generation plus a
    parity driver that proves backend-equivalent generator output.
+7. State-space exploration belongs under `src/self_hosted/fuzz/state_space/`
+   until it has an AIR-fact manifest, deterministic replay badge, shrink
+   policy, and parity driver. It must consume declared facts as the search
+   space; it must not rebuild semantics by rescanning source text or treating
+   branch coverage as the source of truth.

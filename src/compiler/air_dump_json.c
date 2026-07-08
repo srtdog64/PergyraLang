@@ -209,7 +209,8 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             "\"runtime_frontier_policy_evidence_count\":%zu,"
             "\"unproven_retain_count\":%zu,"
             "\"inherent_concurrency_count\":%zu,"
-            "\"slot_capability_retain_count\":%zu}",
+            "\"slot_capability_retain_count\":%zu,"
+            "\"lifecycle_state_space_count\":%zu}",
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
             air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
@@ -230,7 +231,43 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
                                        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY),
             air_unproven_retain_count(air),
             air_inherent_concurrency_count(air),
-            air_slot_capability_retain_count(air));
+            air_slot_capability_retain_count(air),
+            air_lifecycle_state_space_count(air));
+}
+
+static void
+air_dump_json_lifecycle_state_spaces(const AIRProgram *air, FILE *out)
+{
+    fputs("\"lifecycle_state_spaces\":[", out);
+    for (size_t i = 0; i < air_lifecycle_state_space_count(air); i++) {
+        const AIRLifecycleStateSpace *space =
+            air_lifecycle_state_space_at(air, i);
+        if (i != 0)
+            fputs(",", out);
+        fputs("{\"subject\":", out);
+        air_json_string(out, space != NULL ? space->subject : "");
+        fputs(",\"states\":[", out);
+        if (space != NULL) {
+            for (size_t s = 0; s < space->state_count; s++) {
+                if (s != 0)
+                    fputs(",", out);
+                air_json_string(out, space->states[s]);
+            }
+        }
+        fputs("],\"ops\":[", out);
+        if (space != NULL) {
+            for (size_t o = 0; o < space->op_count; o++) {
+                if (o != 0)
+                    fputs(",", out);
+                fputs("{\"name\":", out);
+                air_json_string(out, space->ops[o].name);
+                fprintf(out, ",\"valid_from_mask\":\"0x%x\"}",
+                        (unsigned)space->ops[o].valid_from_mask);
+            }
+        }
+        fputs("]}", out);
+    }
+    fputs("]", out);
 }
 
 static void
@@ -555,6 +592,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
                 es->routine != NULL ? es->routine : "");
     }
     fputs("]", out);
+    air_json_next_top_level_field(out, &has_field);
+    air_dump_json_lifecycle_state_spaces(air, out);
     air_json_next_top_level_field(out, &has_field);
     air_dump_json_summary(air, out);
     air_json_next_top_level_field(out, &has_field);

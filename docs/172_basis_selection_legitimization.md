@@ -72,8 +72,8 @@ PASS, admit/axiom 0): bigraph **정적** 단편(place forest + link) 대비 완�
 (encode_wf/parent/link) + 보존성(decode_encode 전단사 — 공간 축이 place graph
 초과분을 안 가짐) + **world_separation**(채널-프리 연결은 world root 보존 =
 "크로스월드는 채널-only"의 기계증명 그림자, AC-3/T의 정적 얼굴). 잔여: bigraph
-*reaction*(동역학) ↔ intent step 대응 = 다음 rung. CI(formal-semantics-smoke)
-등록은 실행 세션의 one-liner로 남김(공유 게이트 파일이라 동시세션 충돌 회피).
+*reaction*(동역학) ↔ intent step 대응 = 다음 rung. `formal-semantics-smoke`와
+`proof-spine-test-smoke`는 `BasisCompleteness.v`의 대표 정리 이름을 요구한다.
 
 ### M3 — 수렴 삼각측량 (Church-Turing 구조)
 독립 전통들이 같은 범주에 도달했음을 문서화. 이미 5개 독립 수렴점이 실존:
@@ -176,8 +176,8 @@ subject×zone×intent×authority×lifecycle×effect의 자유 조합이 도메�
   잔여 후속 2개(문서의 낮은 행): authority 고유 의무 지목(Authority
   DelegationCore.v 착지점), intent 정적 충돌 분석(docs/167 B축과 동일 작업).
 - **WO-BASIS-3** (M2) — ✅ 첫 단편 landed 2026-07-05: BasisCompleteness.v
-  (coqc PASS). 잔여 rung: ① CI 등록(formal_semantics_smoke.sh one-liner),
-  ② bigraph reaction ↔ intent step(동역학 대응 — 진짜 연구, post-self-host).
+  (coqc PASS, formal/proof-spine smoke 등록). 잔여 rung: bigraph reaction ↔
+  intent step(동역학 대응 — 진짜 연구, post-self-host).
 - **WO-BASIS-4** (M5) — ✂ descoped(BDFL 2026-07-05). 범주 스트레스 테스트만
   M3 §4로 이관.
 - 시퀀스 권고: BASIS-1(저술, 지금 가능) → BASIS-4(지표 정의만 선행) →

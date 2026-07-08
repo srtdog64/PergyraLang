@@ -67,6 +67,12 @@ and follow-up debt over older design notes.
 | [`semantics/10_behavior_contract_closure_gaps.md`](semantics/10_behavior_contract_closure_gaps.md) | Remaining proof gaps before calling behavior contracts a closed calculus |
 | [`semantics/18_machine_neutral_compute.md`](semantics/18_machine_neutral_compute.md) | Machine-neutral compute contract: C/LLVM as first CPU projections, AIR/MIR/ABI facts as the target-independent source of truth, and future tensor/NPU/dataflow/capability projections as fact consumers |
 | [`semantics/19_theoretical_foundations.md`](semantics/19_theoretical_foundations.md) | Theory-lineage bibliography and synthesis boundary: citations anchor each axis, but the open proof target is Pergyra's own abstract machine/core calculus |
+| [`171_cs_theory_reference_map.md`](171_cs_theory_reference_map.md) | Computer-science theory reference map: theory -> invariant/evidence -> owner -> gate, with stable reference links |
+| [`172_basis_selection_legitimization.md`](172_basis_selection_legitimization.md) | Basis-selection legitimization playbook: M1 macro-expressibility, M2 relative completeness, M3 convergence triangulation, M4 conservative erasure, and M5 descope |
+| [`173_intent_axis_strengthening.md`](173_intent_axis_strengthening.md) | Intent axis strengthening work order: keep source `intent`, split verification-plane fact families, and close INT-0 before INT-1 |
+| [`175_state_space_exploration_blueprint.md`](175_state_space_exploration_blueprint.md) | State-space exploration and fuzzing blueprint: AIR facts define the search space, deterministic replay and shrink policy gate stdlib promotion |
+| [`semantics/21_basis_convergence_triangulation.md`](semantics/21_basis_convergence_triangulation.md) | M3 convergence triangulation for the game-derived vocabulary across game, DDD, BDI/MAS, ontology, and logic/PL traditions |
+| [`semantics/22_axis_macro_expressibility.md`](semantics/22_axis_macro_expressibility.md) | M1 axis macro-expressibility argument: which axes resist library demotion and which remain weak |
 | [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md) | Why CFG/body dataflow is required for beta-grade ownership and cleanup |
 | [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md) | AIR architecture and abstraction drift model |
 | [`105_runtime_panic_contract.md`](105_runtime_panic_contract.md) | Runtime panic and hard-fail contract |
@@ -172,6 +178,7 @@ and follow-up debt over older design notes.
 | [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
 | [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |
 | [`166_production_bar_review_2026_07.md`](166_production_bar_review_2026_07.md) | Production-bar review contract: gate-less claims fail, partial coverage stays partial, and P0 production blockers are routed |
+| [`170_keyword_lineage_cs_application_map.md`](170_keyword_lineage_cs_application_map.md) | Keyword, influenced-language, computer-science, and implementation-owner routing map |
 | [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |
 
 ## Implementation Guides

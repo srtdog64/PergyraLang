@@ -34,6 +34,14 @@ for rel in \
     docs/semantics/proofs/UnifiedCore.v \
     docs/semantics/proofs/CompensationCore.v \
     docs/semantics/proofs/CoordinationCore.v \
+    docs/semantics/proofs/WholeProgramCore.v \
+    docs/semantics/proofs/AIRBinding.v \
+    docs/semantics/proofs/FormalKernel.v \
+    docs/semantics/proofs/BasisCompleteness.v \
+    docs/semantics/proofs/IntentObligations.v \
+    docs/semantics/proofs/IntentSpine.v \
+    docs/semantics/proofs/IntentConflict.v \
+    docs/semantics/proofs/AuthorityIrreducibility.v \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/VerificationMethodology.v \
     docs/semantics/proofs/ProofSpine.v \
@@ -57,6 +65,25 @@ require_text "docs/semantics/proofs/AuthorityDelegationCore.v" "Theorem no_privi
 require_text "docs/semantics/proofs/UnifiedCore.v" "Theorem authority_conservation"
 require_text "docs/semantics/proofs/CompensationCore.v" "Theorem do_then_rollback_restores"
 require_text "docs/semantics/proofs/CoordinationCore.v" "Theorem reachable_dep_closed"
+require_text "docs/semantics/proofs/WholeProgramCore.v" "Theorem step_iff_guard"
+require_text "docs/semantics/proofs/AIRBinding.v" "Theorem guard_air_faithful"
+require_text "docs/semantics/proofs/FormalKernel.v" "Theorem every_keyword_has_kernel_meaning"
+require_text "docs/semantics/proofs/FormalKernel.v" "Theorem no_keyword_permits_whole_language_claim"
+require_text "docs/semantics/proofs/BasisCompleteness.v" "Theorem world_separation"
+require_text "docs/semantics/proofs/BasisCompleteness.v" "Corollary cross_world_needs_channel"
+require_text "docs/semantics/proofs/IntentObligations.v" "Theorem intent_binder_inherits_verifier_family_strength"
+require_text "docs/semantics/proofs/IntentObligations.v" "Theorem purpose_trace_outside_nonexpressibility_claim"
+require_text "docs/semantics/proofs/IntentObligations.v" "Theorem no_atomic_intent_fact"
+require_text "docs/semantics/proofs/IntentSpine.v" "Theorem checked_intent_guard_free"
+require_text "docs/semantics/proofs/IntentSpine.v" "Theorem one_intent_from_facts"
+require_text "docs/semantics/proofs/IntentSpine.v" "Theorem intent_determined_by_facts"
+require_text "docs/semantics/proofs/IntentSpine.v" "Theorem library_bucket_obligation_free"
+require_text "docs/semantics/proofs/IntentSpine.v" "Corollary checked_intent_erasable"
+require_text "docs/semantics/proofs/IntentConflict.v" "Theorem separated_trace_conflict_free"
+require_text "docs/semantics/proofs/IntentConflict.v" "Example conflict_guard_real"
+require_text "docs/semantics/proofs/IntentConflict.v" "Example priority_waives_only_one_order"
+require_text "docs/semantics/proofs/AuthorityIrreducibility.v" "Theorem delegation_distinguishes"
+require_text "docs/semantics/proofs/AuthorityIrreducibility.v" "Theorem authority_beyond_cap_zone"
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
 require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem hard_self_host_requires_differential"
 
@@ -72,6 +99,12 @@ for term in \
     "Theorem complete_spine_connects_axis_ownership" \
     "Theorem complete_spine_connects_intent_core" \
     "Theorem complete_spine_connects_unified_machine" \
+    "Theorem complete_spine_connects_formal_kernel" \
+    "Theorem complete_spine_connects_basis_selection" \
+    "NodeIntentObligations" \
+    "NodeIntentSpine" \
+    "NodeIntentConflict" \
+    "NodeAuthorityIrreducibility" \
     "Theorem complete_spine_connects_certificate_pipeline" \
     "Theorem complete_spine_connects_methodology" \
     "Theorem complete_spine_is_not_whole_language_verification" \
@@ -86,6 +119,14 @@ for term in \
 done
 
 require_text "docs/semantics/proofs/ProofSpine.md" "complete proof spine != whole-language verification"
+require_text "docs/semantics/proofs/ProofSpine.md" "formal kernel"
+require_text "docs/semantics/proofs/ProofSpine.md" "FormalKernel.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "basis selection"
+require_text "docs/semantics/proofs/ProofSpine.md" "BasisCompleteness.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "IntentObligations.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "IntentSpine.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "IntentConflict.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "AuthorityIrreducibility.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationPinExceptionalCleanup"
 require_text "docs/semantics/proofs/ProofSpine.md" "DropOnce / ReleaseAfterUnpin"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationParserToAstManifest"

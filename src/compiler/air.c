@@ -231,6 +231,20 @@ air_effect_site_at(const AIRProgram *air, size_t index)
     return &air->effect_sites[index];
 }
 
+size_t
+air_lifecycle_state_space_count(const AIRProgram *air)
+{
+    return air != NULL ? air->lifecycle_state_space_count : 0;
+}
+
+const AIRLifecycleStateSpace *
+air_lifecycle_state_space_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->lifecycle_state_space_count)
+        return NULL;
+    return &air->lifecycle_state_spaces[index];
+}
+
 bool
 air_requires_strict_evidence(const AIRProgram *air)
 {
@@ -570,6 +584,7 @@ air_destroy(AIRProgram *air)
     free(air->owned_names);
     free(air->slot_sites);
     free(air->effect_sites);
+    free(air->lifecycle_state_spaces);
     free(air->intents);
     free(air->boundaries);
     free(air->evidence_nodes);

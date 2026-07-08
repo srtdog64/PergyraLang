@@ -207,8 +207,9 @@ intent가 된다"),
 검사 불변).
 **분업**: IntentObligations.v = §0-b **주장 구조**(binder/family/bucket/금지),
 IntentSpine.v = **연산 커널**(의무→가드-자유→합성). 이 둘이 "intent 정형 커널"의
-1차 완성. 잔여 실작업: INT-1 semantic pass(interproc used-set 계산), INT-4
-(cross-intent, 다중 spine 레지스트리 모델), IntentSpine.v smoke 등록.
+1차 완성. 잔여 실작업: INT-1 semantic pass(interproc used-set 계산), INT-4의
+정적 co-activity 계산과 SEA 연결. `IntentSpine.v` 자체는 proof-spine/formal
+smoke에 등록됐다.
 
 **Proof Pack 부족분 채움 (2026-07-06, 3건 추가 — 전부 coqc PASS)**:
 ① **`IntentConflict.v` — INT-4 커널 착지**: `pgy_intent_enter_export`의
@@ -227,6 +228,10 @@ checked intent에서 guarded/unguarded 머신이 같은 스케줄을 수용 = �
 체인만 달라 authority 판정이 갈림(`delegation_distinguishes`) ⇒ 어떤
 (cap,zone) 함수도 authority를 계산 못 함(`authority_beyond_cap_zone`).
 authority는 스냅샷이 아니라 **grant의 역사**라는 것의 정리화.
+- proof-pack 연결: `IntentSpine.v`, `IntentConflict.v`,
+  `AuthorityIrreducibility.v`를 `ProofSpine.v`, `proof_spine_smoke`, 그리고
+  `formal_semantics_smoke`에 등록했다. 이후 추가 Coq 파일도 이 연결 없이는
+  증거로 인정하지 않는다.
 - 시퀀스: INT-1 → INT-3 → INT-2 → INT-5(정리는 의무 셋이 실물이 된 후) →
   INT-4(SEA 트랙과 합류). 전부 self-host M2와 독립(semantic pass 계열이라
   병행 가능하나, 우선순위 경쟁은 BDFL 몫).

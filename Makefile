@@ -889,6 +889,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_cfg_contract_validate.c \
                    $(COMPILER_DIR)/mir_cfg_contract_validate_cleanup.c \
                    $(COMPILER_DIR)/mir_abi_layout.c \
+                   $(COMPILER_DIR)/mir_abi_resource_runtime.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \

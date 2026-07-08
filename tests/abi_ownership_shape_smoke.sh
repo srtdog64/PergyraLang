@@ -99,12 +99,12 @@ reject_term "src/runtime/pgy_runtime_slot_macros.h" "PGY_SECURE_SLOT_DEFINE_CHEC
 reject_term "src/runtime/pgy_runtime_slot_macros.h" "PGY_SECURE_SLOT_DEFINE_DEBUG"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int, occupied)'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int, token)'
-reject_term "src/compiler/mir_abi_layout.c" "Slot<Int>_rel"
-reject_term "src/compiler/mir_abi_layout.c" 'mir_abi_format_owned("%s_rel"'
-reject_term "src/compiler/mir_abi_layout.c" "mir_abi_lookup_runtime_fmt"
-reject_term "src/compiler/mir_abi_layout.c" "mir_extract_inner_type_suffix_owned"
-reject_term "src/compiler/mir_abi_layout.c" "runtime function name pattern"
-require_term "src/compiler/mir_abi_layout.c" "Runtime function spelling is payload carried"
+reject_term "src/compiler/mir_abi_resource_runtime.c" "Slot<Int>_rel"
+reject_term "src/compiler/mir_abi_resource_runtime.c" 'mir_abi_format_owned("%s_rel"'
+reject_term "src/compiler/mir_abi_resource_runtime.c" "mir_abi_lookup_runtime_fmt"
+reject_term "src/compiler/mir_abi_resource_runtime.c" "mir_extract_inner_type_suffix_owned"
+reject_term "src/compiler/mir_abi_resource_runtime.c" "runtime function name pattern"
+require_term "src/compiler/mir_abi_resource_runtime.c" "Runtime function spelling is payload carried"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_type_name"
 require_term "src/compiler/mir_abi_layout.h" "typedef struct MIRAbiTargetPolicy"
@@ -113,20 +113,20 @@ require_term "src/compiler/mir_abi_layout.c" "static const MIRAbiTargetPolicy k_
 require_term "src/compiler/mir_abi_layout.c" '"selfhost-c", "cpu-c,self-hosted"'
 require_term "src/compiler/mir_abi_layout.c" '"layout_shape,materialization_reason"'
 require_term "src/compiler/mir_abi_layout.c" '"unsupported_shape,forbidden_loss_budget"'
-require_term "src/compiler/mir_abi_layout.c" "MIRResourceRuntimeFnRow"
+require_term "src/compiler/mir_abi_resource_runtime.c" "MIRResourceRuntimeFnRow"
 require_term "src/runtime/pgy_abi_spec.h" "allocator provenance as a fourth field"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_TYPE("Array<Long>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("allocator", pgy_abi_array_int, allocator)'
 reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("len", pgy_abi_array_int, len)'
 reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("cap", pgy_abi_array_int, cap)'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_PIN_OPS("Slot<Int>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_PIN_OPS("SecureSlot<Int>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OPS("DeviceSlot<Long>"'
-require_term "src/compiler/mir_abi_layout.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PIN_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PIN_OPS("SecureSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("DeviceSlot<Long>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
@@ -139,7 +139,7 @@ require_term "src/codegen/llvm_runtime.c" '"PinWrite"'
 require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_runtime.c" '"Unpin"'
-require_term "src/compiler/mir_abi_layout.c" '"UnpinCleanup"'
+require_term "src/compiler/mir_abi_resource_runtime.c" '"UnpinCleanup"'
 reject_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'

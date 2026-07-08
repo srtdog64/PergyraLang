@@ -1,6 +1,6 @@
 # 175. 상태공간 탐색/퍼징 설계도 — 선언이 탐색공간을 공짜로 준다
 
-Status: `design-blueprint` (구현 0). 작성 2026-07-06. 계기: BDFL — "코드 자체가
+Status: `design-blueprint + FUZZ-2 partial` (AIR lifecycle manifest landed; explorer not yet). 작성 2026-07-06. 계기: BDFL — "코드 자체가
 탐색공간이 되어 늘리고 줄이며 fuzz할 수 있나? 라이브러리로 들어가야 할 것 같다
 — 우리 코드는 상태공간 정의가 비교적 명확하니." 상위: docs/19 §✦(판정이 아니라
 선언), docs/167(위상 분석), docs/174 §4(결정론 배당금 — 이 설계도의 전제),
@@ -35,7 +35,7 @@ IntentSpine.v/IntentConflict.v(탐색공간의 기계화 모델), docs/159(stdli
 
 | 선언 자산 | 열거 가능한 공간 | 상태 |
 |---|---|---|
-| vessel valid-from mask | 유한 FSM(상태×허용 전이) | 의미층에 있음 — **AIR 미노출**(air.h:311 주석뿐) → WO-FUZZ-2 |
+| vessel valid-from mask | 유한 FSM(상태×허용 전이) | semantic lifecycle registry → AIR `lifecycle_state_spaces[]` → AIR JSON summary로 노출. 남은 일: semantic coverage consumer |
 | slot own/ref/release | affine 3-상태 체인 | AIR slots[] 노출됨 |
 | intent 헤더+step+dep | 스케줄 = 선언 DAG의 interleaving (IntentSpine `sched_ok`가 그 공간의 Coq 모델) | AIR intents[] step-단위 노출 |
 | intent admission | enter/leave trace 공간 (IntentConflict `trace_ok`) | 런타임 규칙 — Coq 전사 완료 |
@@ -83,16 +83,22 @@ seed-결정론적 프로그램 생성기(Csmith 계보)가 self-hosted로 존재
 **탐색기 전체 = 라이브러리가 맞다** (stdlib 승격 경로는 docs/159 doctrine-pass).
 축 추가 0. 단 전제 인터페이스 3:
 
+착지 경로는 바로 stdlib이 아니다. 실험/자립 단계의 소유자는
+`src/self_hosted/fuzz/state_space/`이며, stdlib 승격은 AIR-fact manifest,
+deterministic replay badge, shrink policy, parity driver가 모두 존재할 때만
+가능하다. 이 경계는 `src/self_hosted/README.md`의 non-negotiable rule로도
+잠근다.
+
 | # | 인터페이스 | 상태 |
 |---|---|---|
-| ① | **상태공간 manifest** = AIR JSON | 대부분 있음(slots/intents/boundaries). **갭: vessel valid-from mask 미노출** → WO-FUZZ-2 (AIR fact 1종 추가, machine-neutral 게이트 계보) |
+| ① | **상태공간 manifest** = AIR JSON | lifecycle FSM까지 1차 노출됨(`lifecycle_state_spaces[]`: subject/states/ops/valid_from_mask). 남은 갭은 coverage consumer와 explorer manifest 통합 |
 | ② | **결정론 재현** = replay-safe 배지 | docs/174 §4 WO-CERT-DET — 이 설계도의 전제. 퍼저의 재현 요구가 그 배지의 첫 소비자 |
 | ③ | **스케줄 주입 훅** | ★유일한 실작업: 런타임이 외부 스케줄(admission/lane 순서)을 받는 driven-mode. 선례 있음 — `PGY_CAP_GRANT`/`PGY_BUDGET_*` env 채널과 동일 패턴(`PGY_SCHED_TRACE=<seed|trace>`), capability-gated(퍼저 권한도 선언되어야 — sandbox 규율 유지) |
 
 ## 4. WO 등록 + 시퀀스
 
 - **WO-FUZZ-1** — 스케줄 주입 훅(런타임 driven-mode, env 채널 + cap 게이트).
-- **WO-FUZZ-2** — vessel FSM fact AIR 노출(+semantic coverage의 fact 정의).
+- **WO-FUZZ-2** — partial landed: vessel FSM fact가 AIR JSON에 노출됨. Remaining: semantic coverage fact 정의와 explorer-side consumer.
 - **WO-FUZZ-3** — 탐색 라이브러리 본체(생성/shrink/POR 스케줄러/coverage 리포트)
   — post-M2, stdlib 승격 흐름(docs/159)으로. 기존 backend_parity_generator의
   일반화로 시작.

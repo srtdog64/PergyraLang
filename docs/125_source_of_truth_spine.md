@@ -406,10 +406,12 @@ Current beta closure snapshot:
   ownership, and destroy frees pending messages.
 - ABI layout facts live in `src/runtime/pgy_abi_spec.h`, with compile-time
   assertions in `src/runtime/pgy_abi_spec_asserts.h` and MIR consumer facts in
-  `src/compiler/mir_abi_layout.c`. `Option<T>` is currently an explicit tagged
-  layout (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
+  `src/compiler/mir_abi_layout.c`; Slot-like resource operation runtime rows
+  live in `src/compiler/mir_abi_resource_runtime.c`.
+  `Option<T>` is currently an explicit tagged layout
+  (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
   `mir_abi_lookup(...)` accepts exact ABI row names only; runtime function
-  names are payloads on those rows, not a fallback source of layout truth.
+  names are payloads on ABI rows, not a fallback source of layout truth.
   Slot-like C MIR resource operations consume
   `mir_abi_resource_runtime_fn(...)` rows for Claim/Read/Write/Release instead
   of synthesizing those names from type suffixes. LLVM Slot/SecureSlot/

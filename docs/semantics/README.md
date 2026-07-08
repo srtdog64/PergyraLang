@@ -42,6 +42,9 @@ Required shape for each proof document:
 - [17_proof_carrying_pipeline.md](17_proof_carrying_pipeline.md): proof-carrying IR pipeline contract. Stage 1 wraps live AIR/MIR payloads in a `pgy.proof-carrying-ir.v1` certificate envelope with digest checks, required evidence/fact lists, and a negative deletion check; Stage 2 is the mechanized checker-core proof boundary.
 - [18_machine_neutral_compute.md](18_machine_neutral_compute.md): machine-neutral compute contract. C and LLVM are the first CPU-family validation projections, while AIR/MIR/ABI owner facts preserve `intent`, `effect`, `authority`, `coordination`, `slot`, `world`, `zone`, layout/shape, loss-budget, materialization, and fallback facts for future dataflow, actor, tensor/NPU, capability, reconfigurable, and event-driven substrates. (Includes the 2026-06-22 capability-machine falsification: AIR now owns the measured effect/capability/slot/authority-contract projection fields, and `make machine-neutral-status` remains the executable regression marker.)
 - [19_theoretical_foundations.md](19_theoretical_foundations.md): theory-lineage bibliography + synthesis boundary. Maps each Pergyra axis to established theory while explicitly stating that a citation is a lineage anchor, not a whole-language proof. The open work is the Pergyra abstract machine/core calculus.
+- [21_basis_convergence_triangulation.md](21_basis_convergence_triangulation.md): M3 basis-selection argument. Records the five independent traditions (game, DDD, BDI/MAS, upper ontology, logic/PL) that converge on Pergyra's world/zone/intent/role vocabulary, while keeping the claim at thesis level.
+- [22_axis_macro_expressibility.md](22_axis_macro_expressibility.md): M1 axis macro-expressibility argument. Records which axes have a strong static rejection or erasure observation, and which axes remain weak.
+- [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 
 Mechanized artifacts:
 
@@ -146,6 +149,46 @@ Mechanized artifacts:
   remaining work is preservation/progress over a typing judgment and binding the
   model's graphs, holdings, compensation targets, and snapshots to live AIR/MIR
   owner facts.
+- [proofs/WholeProgramCore.v](proofs/WholeProgramCore.v): Coq proof sketch for the
+  whole-program guard machine. It folds coordination into the shared config and
+  proves `step_iff_guard`, `step_preserves_wf`, and `whole_program_safety` over
+  the eight Step forms.
+- [proofs/AIRBinding.v](proofs/AIRBinding.v): Coq proof sketch for the
+  calculus-to-AIR fact interface. It proves `guard_air_faithful` and
+  `gate_locality`, so a backend-visible guard is reconstructed from the AIR
+  fact record rather than recovered from syntax.
+- [proofs/FormalKernel.v](proofs/FormalKernel.v): Coq proof sketch for
+  source-vocabulary binding. It maps `world`, `zone`, `intent`, `effect`,
+  `authority`, `slot`, participant terms, `projection`, `channel`, and
+  `relation` to named kernel primitives and owner facts, and proves that this
+  kernel meaning still does not permit a whole-language proof claim.
+- [proofs/BasisCompleteness.v](proofs/BasisCompleteness.v): Coq proof sketch for
+  the first basis-selection M2 fragment. It encodes a static bigraph place/link
+  fragment into Pergyra axes (`zone`/`world` as place, `channel` as link),
+  proves encode/decode conservativity, and proves `world_separation`: a
+  channel-free path cannot cross world roots.
+- [proofs/IntentObligations.v](proofs/IntentObligations.v): Coq proof sketch
+  for the `intent` unit correction. It models source-level `intent` as a binder
+  that elaborates into verifier fact families, keeps `purpose` and `trace`
+  outside the non-library-expressibility claim, rejects an atomic `Intent` fact
+  as a formal target, and records that WO-INT-0 fact-family naming precedes
+  INT-1 participant declared-used checking.
+- [proofs/IntentSpine.v](proofs/IntentSpine.v): Coq proof sketch for the
+  operational intent fact kernel. It models participant, coordination, and
+  compensation facts joined by one spine identity, proves
+  `checked_intent_guard_free`, `no_dep_cycle`, fact-family reassembly, and the
+  checked-intent erasure corollary. It still treats interprocedural participant
+  used-set computation as an implementation/gate obligation.
+- [proofs/IntentConflict.v](proofs/IntentConflict.v): Coq proof sketch for the
+  cross-intent conflict kernel. It models the runtime admission guard, proves
+  that statically separated co-active traces cannot fire that guard, and records
+  that priority is a one-order tiebreak rather than separation evidence. The
+  static co-activity computation remains implementation/gate work.
+- [proofs/AuthorityIrreducibility.v](proofs/AuthorityIrreducibility.v): Coq
+  proof sketch for the authority-axis irreducibility claim. It gives two
+  configurations with identical capability and zone projections but different
+  delegation reachability, proving that authority is not a function of
+  cap-by-zone facts alone.
 - [proofs/ProofCarryingIR.v](proofs/ProofCarryingIR.v): Coq proof sketch for
   the Stage 2 checker-core rule behind `pgy.proof-carrying-ir.v1`: a valid
   certificate permits downstream fact consumption, while missing AIR/MIR facts
@@ -159,9 +202,10 @@ Mechanized artifacts:
   gate binds this model to the methodology document and the proof-pack index.
 - [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that
   names every mechanized artifact as a proof-pack node and connects the runtime
-  safety, axis ownership, intent core, unified machine, certificate pipeline,
-  and verification-methodology groups. Its negative theorem states that a
-  complete spine is still not whole-language verification.
+  safety, axis ownership, intent core, unified machine, formal-kernel,
+  basis-selection,
+  certificate pipeline, and verification-methodology groups. Its negative
+  theorem states that a complete spine is still not whole-language verification.
 
 ## Beta Proof Boundary
 

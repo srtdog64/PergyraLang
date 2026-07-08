@@ -188,6 +188,39 @@ semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)
         "Slot resource-boundary analysis could not allocate state");
 }
 
+static bool
+semantic_snapshot_lifecycle_state_spaces(SemanticResult *result)
+{
+    int count;
+
+    if (result == NULL)
+        return false;
+
+    count = lc_registry_count();
+    if (count <= 0)
+        return true;
+
+    result->lifecycle_state_spaces =
+        (LcSpec *)calloc((size_t)count, sizeof(LcSpec));
+    if (result->lifecycle_state_spaces == NULL)
+        return false;
+
+    result->lifecycle_state_space_count = (size_t)count;
+    for (int i = 0; i < count; i++) {
+        const LcSpec *src = lc_registry_at(i);
+        LcSpec *dst = &result->lifecycle_state_spaces[i];
+        if (src == NULL)
+            return false;
+
+        *dst = *src;
+        for (int s = 0; s < dst->state_count && s < LC_MAX_STATES; s++)
+            dst->state_names[s] = dst->state_buf[s];
+        for (int o = 0; o < dst->op_count && o < LC_MAX_OPS; o++)
+            dst->op_names[o] = dst->op_buf[o];
+    }
+    return true;
+}
+
 SemanticResult *
 semantic_analyze(ASTNode *ast)
 {
@@ -215,6 +248,11 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     type_check_program(ast, ctx);
 
     semantic_run_legacy_slot_resource_analysis(ast, ctx);
+
+    if (!semantic_snapshot_lifecycle_state_spaces(result)) {
+        semantic_error(ctx, ast,
+            "Lifecycle state-space fact snapshot allocation failed");
+    }
 
     /* Transfer diagnostics to result */
     result->success          = !ctx->has_error;
@@ -267,6 +305,7 @@ semantic_result_destroy(SemanticResult *result)
         free(result->diagnostics[i]);
     }
     free(result->diagnostics);
+    free(result->lifecycle_state_spaces);
     free(result);
 }
 
@@ -307,6 +346,21 @@ semantic_result_dag_ability_consumer_evidence_count(
     return result != NULL
         ? result->type_resolution_dag_ability_consumer_evidence_count
         : 0;
+}
+
+size_t
+semantic_result_lifecycle_state_space_count(const SemanticResult *result)
+{
+    return result != NULL ? result->lifecycle_state_space_count : 0;
+}
+
+const LcSpec *
+semantic_result_lifecycle_state_space_at(const SemanticResult *result,
+                                         size_t index)
+{
+    if (result == NULL || index >= result->lifecycle_state_space_count)
+        return NULL;
+    return &result->lifecycle_state_spaces[index];
 }
 
 void

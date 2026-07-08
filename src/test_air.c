@@ -471,6 +471,9 @@ main(void)
     TEST("AIR collects DAG generic ability evidence");
     EXPECT(test_air_collects_dag_generic_ability_evidence());
 
+    TEST("AIR collects lifecycle state-space inventory");
+    EXPECT(test_air_collects_lifecycle_state_space_inventory());
+
     TEST("AIR rejects DAG metadata hits without inventory");
     EXPECT(test_air_rejects_dag_hits_without_metadata_inventory());
 

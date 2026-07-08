@@ -15,6 +15,7 @@
 #include "../parser/ast.h"
 #include "diagnostic_types.h"
 #include "boundary_witness.h"
+#include "lifecycle_state.h"
 
 /*
  * Result of semantic analysis
@@ -38,6 +39,12 @@ typedef struct SemanticResult
      * PGY_CAP_* the program can exercise (the `--capability-manifest` artifact).
      * Best-effort lower bound w.r.t. dynamic dispatch; the runtime gate backstops. */
     uint32_t     program_capabilities;
+    /* Snapshot of semantic lifecycle state-space facts. This is the source of
+     * truth for AIR state-space exploration/fuzz manifests: downstream stages
+     * must consume these facts instead of rebuilding lifecycle transitions from
+     * AST source text. */
+    LcSpec      *lifecycle_state_spaces;
+    size_t       lifecycle_state_space_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------
@@ -73,6 +80,11 @@ size_t          semantic_result_dag_generic_contract_evidence_count(
                     const SemanticResult* result);
 size_t          semantic_result_dag_ability_consumer_evidence_count(
                     const SemanticResult* result);
+size_t          semantic_result_lifecycle_state_space_count(
+                    const SemanticResult* result);
+const LcSpec*   semantic_result_lifecycle_state_space_at(
+                    const SemanticResult* result,
+                    size_t index);
 
 /*
  * Emit diagnostics as a JSON array to stderr.

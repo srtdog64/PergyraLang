@@ -12,9 +12,11 @@
  * the final component for a symlink pointing OUTSIDE the sandbox after the
  * check passes but before the write lands.
  *
- * For writes we therefore do not fopen(): we open() the resolved path with
- * O_NOFOLLOW, so the kernel itself refuses (ELOOP) if the final component is a
- * symlink AT OPEN TIME -- atomically, with no window. Reads keep plain fopen():
+ * For writes we therefore do not fopen(): where the platform exposes
+ * O_NOFOLLOW, we open() the resolved path with it so the kernel itself refuses
+ * (ELOOP) if the final component is a symlink AT OPEN TIME -- atomically, with
+ * no window. POSIX-family platforms without O_NOFOLLOW keep the resolve/lstat
+ * guard as a portability fallback. Reads keep plain fopen():
  * their resolve path realpath()s the FULL candidate and prefix-matches, so a
  * symlink pointing out of the sandbox already fails resolution before any open.
  *
@@ -145,7 +147,9 @@ pgy_runtime_secure_fopen(const char *resolved, const char *mode)
     else
         return fopen(resolved, mode); /* unknown mode: preserve libc behavior */
 
+#ifdef O_NOFOLLOW
     flags |= O_NOFOLLOW;
+#endif
 #ifdef O_CLOEXEC
     flags |= O_CLOEXEC;
 #endif

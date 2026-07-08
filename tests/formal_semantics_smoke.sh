@@ -73,6 +73,12 @@ PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
 GUARD_COQ="$PROOF_DIR/proofs/GuardCalculus.v"
 WHOLE_PROGRAM_COQ="$PROOF_DIR/proofs/WholeProgramCore.v"
 AIR_BINDING_COQ="$PROOF_DIR/proofs/AIRBinding.v"
+FORMAL_KERNEL_COQ="$PROOF_DIR/proofs/FormalKernel.v"
+BASIS_COMPLETENESS_COQ="$PROOF_DIR/proofs/BasisCompleteness.v"
+INTENT_OBLIGATIONS_COQ="$PROOF_DIR/proofs/IntentObligations.v"
+INTENT_SPINE_COQ="$PROOF_DIR/proofs/IntentSpine.v"
+INTENT_CONFLICT_COQ="$PROOF_DIR/proofs/IntentConflict.v"
+AUTHORITY_IRREDUCIBILITY_COQ="$PROOF_DIR/proofs/AuthorityIrreducibility.v"
 MINIMAL_POSITION_DOC="$PROOF_DIR/20_minimal_verification_position.md"
 WITNESS_DOC="$PROOF_DIR/10_ability_witness_evidence.md"
 BOUNDARY_WITNESS_HEADER="$ROOT_DIR/src/semantic/boundary_witness.h"
@@ -104,6 +110,12 @@ require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
 require_file "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v"
 require_file "$WHOLE_PROGRAM_COQ" "docs/semantics/proofs/WholeProgramCore.v"
 require_file "$AIR_BINDING_COQ" "docs/semantics/proofs/AIRBinding.v"
+require_file "$FORMAL_KERNEL_COQ" "docs/semantics/proofs/FormalKernel.v"
+require_file "$BASIS_COMPLETENESS_COQ" "docs/semantics/proofs/BasisCompleteness.v"
+require_file "$INTENT_OBLIGATIONS_COQ" "docs/semantics/proofs/IntentObligations.v"
+require_file "$INTENT_SPINE_COQ" "docs/semantics/proofs/IntentSpine.v"
+require_file "$INTENT_CONFLICT_COQ" "docs/semantics/proofs/IntentConflict.v"
+require_file "$AUTHORITY_IRREDUCIBILITY_COQ" "docs/semantics/proofs/AuthorityIrreducibility.v"
 require_file "$MINIMAL_POSITION_DOC" "docs/semantics/20_minimal_verification_position.md"
 require_file "$WITNESS_DOC" "docs/semantics/10_ability_witness_evidence.md"
 require_file "$BOUNDARY_WITNESS_HEADER" "src/semantic/boundary_witness.h"
@@ -309,6 +321,94 @@ air_effect_gate
 air_acquire_gate
 air_comp_targets
 air_dep_graph
+TERMS
+
+require_terms "$FORMAL_KERNEL_COQ" "docs/semantics/proofs/FormalKernel.v" <<'TERMS'
+Pergyra Formal Semantics -- Formal Kernel Vocabulary Binding
+Inductive SourceKeyword
+Inductive KernelPrimitive
+Inductive KernelFact
+Definition keyword_meaning
+Definition InterpretsByPrimitive
+Definition InterpretsByFact
+Theorem every_keyword_has_kernel_meaning
+Theorem intent_decomposes_to_coordination_and_compensation
+Theorem world_zone_share_boundary_kernel
+Theorem authority_effect_not_aliases
+Theorem projection_is_loss_budgeted
+Theorem no_keyword_permits_whole_language_claim
+TERMS
+
+require_terms "$BASIS_COMPLETENESS_COQ" "docs/semantics/proofs/BasisCompleteness.v" <<'TERMS'
+Target: docs/172 M2
+Record Bigraph
+Record AxisConfig
+Definition encode
+Theorem encode_wf
+Theorem decode_encode
+Theorem encode_decode
+Theorem world_separation
+Corollary cross_world_needs_channel
+Example direct_cross_world_illformed
+TERMS
+
+require_terms "$INTENT_OBLIGATIONS_COQ" "docs/semantics/proofs/IntentObligations.v" <<'TERMS'
+Pergyra Intent Obligation Unit Correction
+Inductive IntentBucket
+Inductive VerifierFamily
+Inductive IntentSubfact
+Definition bucket_claim
+Definition subfact_bucket
+Definition all_verifier_families_emitted
+Theorem intent_binder_emits_all_verifier_families
+Theorem verifier_families_are_nonexpressibility_units
+Theorem purpose_trace_outside_nonexpressibility_claim
+Theorem verifier_subfacts_are_claim_units
+Theorem purpose_trace_subfacts_outside_claim
+Theorem intent_binder_inherits_verifier_family_strength
+Theorem no_atomic_intent_fact
+Theorem int0_precedes_participant_declared_used
+TERMS
+
+require_terms "$INTENT_SPINE_COQ" "docs/semantics/proofs/IntentSpine.v" <<'TERMS'
+Target: docs/173 SS0-b + INT-5 -- the intent fact kernel.
+Record ParticipantFact
+Record CoordinationFact
+Record CompensationFact
+Record IntentSpine
+Definition participants_covered
+Definition deps_wf
+Definition comp_covered
+Definition intent_checked
+Theorem checked_intent_guard_free
+Theorem no_dep_cycle
+Theorem facts_share_spine
+Theorem one_intent_from_facts
+Theorem intent_determined_by_facts
+Theorem library_bucket_obligation_free
+Corollary checked_intent_erasable
+TERMS
+
+require_terms "$INTENT_CONFLICT_COQ" "docs/semantics/proofs/IntentConflict.v" <<'TERMS'
+Target: docs/173 INT-4 -- the cross-intent conflict kernel.
+Record IntentDecl
+Definition overlap
+Definition conflict_guard
+Definition sep_when_active
+Inductive trace_ok
+Inductive no_conflict_fires
+Theorem separated_trace_conflict_free
+Example conflict_guard_real
+Example priority_waives_only_one_order
+TERMS
+
+require_terms "$AUTHORITY_IRREDUCIBILITY_COQ" "docs/semantics/proofs/AuthorityIrreducibility.v" <<'TERMS'
+Target: docs/semantics/22 SS1.5
+Record Config
+Inductive reach
+Definition authorized
+Theorem delegation_distinguishes
+Theorem authority_beyond_cap_zone
 TERMS
 
 OPTION_TRY_COQ="$PROOF_DIR/proofs/OptionTry.v"
@@ -578,6 +678,8 @@ Definition PermitsClaim
 Theorem complete_spine_has_node
 Theorem complete_spine_connects_runtime_safety
 Theorem complete_spine_connects_unified_machine
+Theorem complete_spine_connects_formal_kernel
+Theorem complete_spine_connects_basis_selection
 Theorem complete_spine_connects_certificate_pipeline
 Theorem complete_spine_connects_methodology
 Theorem complete_spine_is_not_whole_language_verification
@@ -714,6 +816,12 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/GuardCalculus.v \
         docs/semantics/proofs/WholeProgramCore.v \
         docs/semantics/proofs/AIRBinding.v \
+        docs/semantics/proofs/FormalKernel.v \
+        docs/semantics/proofs/BasisCompleteness.v \
+        docs/semantics/proofs/IntentObligations.v \
+        docs/semantics/proofs/IntentSpine.v \
+        docs/semantics/proofs/IntentConflict.v \
+        docs/semantics/proofs/AuthorityIrreducibility.v \
         docs/semantics/proofs/OptionTry.v \
         docs/semantics/proofs/GenericAxisCarriage.v \
         docs/semantics/proofs/ReadingConfluence.v \

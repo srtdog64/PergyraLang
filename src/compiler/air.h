@@ -271,6 +271,23 @@ typedef struct {
     const char *routine;    /* the routine the effect op lives in */
 } AIREffectSite;
 
+#define AIR_LIFECYCLE_NAME_LEN   64
+#define AIR_LIFECYCLE_MAX_STATES 32
+#define AIR_LIFECYCLE_MAX_OPS    32
+
+typedef struct {
+    char     name[AIR_LIFECYCLE_NAME_LEN];
+    uint32_t valid_from_mask;
+} AIRLifecycleOpFact;
+
+typedef struct {
+    char subject[AIR_LIFECYCLE_NAME_LEN];
+    char states[AIR_LIFECYCLE_MAX_STATES][AIR_LIFECYCLE_NAME_LEN];
+    size_t state_count;
+    AIRLifecycleOpFact ops[AIR_LIFECYCLE_MAX_OPS];
+    size_t op_count;
+} AIRLifecycleStateSpace;
+
 typedef struct AIRProgram
 {
     AIRIntentNode   *intents;
@@ -339,6 +356,11 @@ typedef struct AIRProgram
     AIREffectSite   *effect_sites;
     size_t           effect_site_count;
     size_t           effect_site_capacity;
+    /* Declared lifecycle state spaces from semantic lifecycle facts. This is
+       the FUZZ-2 manifest surface: state-space tools consume the declared FSM
+       here instead of reconstructing lifecycle rules from source text. */
+    AIRLifecycleStateSpace *lifecycle_state_spaces;
+    size_t           lifecycle_state_space_count;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,
@@ -411,6 +433,10 @@ size_t      air_effect_site_count(const AIRProgram *air);
 const AIREffectSite *air_effect_site_at(const AIRProgram *air, size_t index);
 bool        air_collect_effect_sites(AIRProgram *air, const MIRRoutine *routine,
                                      const char *routine_name);
+size_t      air_lifecycle_state_space_count(const AIRProgram *air);
+const AIRLifecycleStateSpace *air_lifecycle_state_space_at(
+                const AIRProgram *air,
+                size_t index);
 size_t      air_intent_node_count(const AIRProgram *air);
 const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
 size_t      air_boundary_node_count(const AIRProgram *air);

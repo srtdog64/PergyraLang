@@ -42,10 +42,11 @@ func CompilerBackendAbiLayoutRequiredCount() -> Int {
     return 13;
 }
 func CompilerBackendAbiLayoutRequiredPathAt(index: Int) -> String {
-    if index >= 0 && index <= 4 { return "src/compiler/mir_abi_layout.c"; }
+    if index >= 0 && index <= 3 { return "src/compiler/mir_abi_layout.c"; }
+    if index == 4 { return "src/compiler/mir_abi_resource_runtime.c"; }
     if index == 5 { return "src/compiler/mir_abi_layout.h"; }
     if index == 6 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
-    if index == 7 { return "src/compiler/mir_abi_layout.c"; }
+    if index == 7 { return "src/compiler/mir_abi_resource_runtime.c"; }
     if index == 8 || index == 9 { return "src/compiler/mir_abi_layout.h"; }
     if index >= 10 && index <= 12 { return "src/compiler/mir_abi_layout.c"; }
     return "";
@@ -71,7 +72,7 @@ func CompilerBackendAbiLayoutForbiddenCount() -> Int {
 }
 func CompilerBackendAbiLayoutForbiddenPathAt(index: Int) -> String {
     if index >= 0 && index < CompilerBackendAbiLayoutForbiddenCount() {
-        return "src/compiler/mir_abi_layout.c";
+        return "src/compiler/mir_abi_resource_runtime.c";
     }
     return "";
 }
@@ -96,8 +97,11 @@ func CompilerBackendAbiLayoutContractReady() -> Bool {
         CompilerBackendAbiLayoutForbiddenHitsCountField() != "" &&
         CompilerBackendAbiLayoutOwnerNotReadyMessage() != "" &&
         CompilerBackendAbiLayoutRequiredPathAt(0) == "src/compiler/mir_abi_layout.c" &&
+        CompilerBackendAbiLayoutRequiredPathAt(4) == "src/compiler/mir_abi_resource_runtime.c" &&
         CompilerBackendAbiLayoutRequiredPathAt(5) == "src/compiler/mir_abi_layout.h" &&
         CompilerBackendAbiLayoutRequiredPathAt(6) == "src/codegen/transpiler_mir_resource_op_core.c" &&
+        CompilerBackendAbiLayoutRequiredPathAt(7) == "src/compiler/mir_abi_resource_runtime.c" &&
+        CompilerBackendAbiLayoutForbiddenPathAt(0) == "src/compiler/mir_abi_resource_runtime.c" &&
         CompilerBackendAbiLayoutRequiredTermAt(0) == "ABI_TYPE(\"Array<Long>\"" &&
         CompilerBackendAbiLayoutRequiredTermAt(1) == "ABI_TAGGED_TYPE(\"Option<Int>\"" &&
         CompilerBackendAbiLayoutRequiredTermAt(6) == "mir_abi_resource_runtime_fn(effective_layout, op_name)" &&

@@ -1,0 +1,60 @@
+func Esc(s: String) -> String {
+    let slashes: String = StringReplace(s, "\\", "\\\\");
+    return StringReplace(slashes, "\"", "\\\"");
+}
+
+func PrintLine(s: String) -> Void {
+    Print(Concat(s, "\n"));
+}
+
+func Main() -> Void {
+    let lines: Array<String> = [];
+    let out: Array<String> = [];
+    ArrayPush(lines, "func Esc(s: String) -> String {");
+    ArrayPush(lines, "    let slashes: String = StringReplace(s, \"\\\\\", \"\\\\\\\\\");");
+    ArrayPush(lines, "    return StringReplace(slashes, \"\\\"\", \"\\\\\\\"\");");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func PrintLine(s: String) -> Void {");
+    ArrayPush(lines, "    Print(Concat(s, \"\\n\"));");
+    ArrayPush(lines, "}");
+    ArrayPush(lines, "");
+    ArrayPush(lines, "func Main() -> Void {");
+    ArrayPush(lines, "    let lines: Array<String> = [];");
+    ArrayPush(lines, "    let out: Array<String> = [];");
+    ArrayPush(lines, "    let prefix_count: Int = 12;");
+    ArrayPush(lines, "    let i: Int = 0;");
+    ArrayPush(lines, "    while i < prefix_count {");
+    ArrayPush(lines, "        ArrayPush(out, lines[i]);");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    i = 0;");
+    ArrayPush(lines, "    while i < ArrayLength(lines) {");
+    ArrayPush(lines, "        ArrayPush(out, Concat(Concat(\"    ArrayPush(lines, \\\"\", Esc(lines[i])), \"\\\");\"));");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    i = prefix_count;");
+    ArrayPush(lines, "    while i < ArrayLength(lines) {");
+    ArrayPush(lines, "        ArrayPush(out, lines[i]);");
+    ArrayPush(lines, "        i = i + 1;");
+    ArrayPush(lines, "    }");
+    ArrayPush(lines, "    PrintLine(StringJoin(out, \"\\n\"));");
+    ArrayPush(lines, "}");
+    let prefix_count: Int = 12;
+    let i: Int = 0;
+    while i < prefix_count {
+        ArrayPush(out, lines[i]);
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(lines) {
+        ArrayPush(out, Concat(Concat("    ArrayPush(lines, \"", Esc(lines[i])), "\");"));
+        i = i + 1;
+    }
+    i = prefix_count;
+    while i < ArrayLength(lines) {
+        ArrayPush(out, lines[i]);
+        i = i + 1;
+    }
+    PrintLine(StringJoin(out, "\n"));
+}

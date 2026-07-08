@@ -58,6 +58,9 @@ BOILERPLATE_ERR="$WORK_DIR/air_boilerplate.err"
 WORLD_SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_cross_world_transfer/main.pgy"
 WORLD_OUT="$WORK_DIR/air_world_transfer.json"
 WORLD_ERR="$WORK_DIR/air_world_transfer.err"
+LIFECYCLE_SOURCE="$ROOT_DIR/tests/air_erasure/fixtures/06_lifecycle_branch.pgy"
+LIFECYCLE_OUT="$WORK_DIR/air_lifecycle.json"
+LIFECYCLE_ERR="$WORK_DIR/air_lifecycle.err"
 SELECT_SOURCE="$WORK_DIR/air_select_receive.pgy"
 SELECT_OUT="$WORK_DIR/air_select_receive.json"
 SELECT_ERR="$WORK_DIR/air_select_receive.err"
@@ -78,6 +81,7 @@ EOF
 "$PGY" --air-json "$(to_native_path_for_pgy "$SOURCE")" --backend=c > "$OUT" 2> "$ERR"
 "$PGY" --air-json "$(to_native_path_for_pgy "$BOILERPLATE_SOURCE")" --backend=c > "$BOILERPLATE_OUT" 2> "$BOILERPLATE_ERR"
 "$PGY" --air-json "$(to_native_path_for_pgy "$WORLD_SOURCE")" --backend=c > "$WORLD_OUT" 2> "$WORLD_ERR"
+"$PGY" --air-json "$(to_native_path_for_pgy "$LIFECYCLE_SOURCE")" --backend=c > "$LIFECYCLE_OUT" 2> "$LIFECYCLE_ERR"
 "$PGY" --air-json "$(to_native_path_for_pgy "$SELECT_SOURCE")" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
 
 require_text() {
@@ -157,6 +161,8 @@ for required in \
     '"unproven_retain_count"' \
     '"inherent_concurrency_count"' \
     '"slot_capability_retain_count"' \
+    '"lifecycle_state_space_count"' \
+    '"lifecycle_state_spaces"' \
     '"kind":"observability_schema"' \
     '"kind":"runtime_frontier_policy"' \
     '"provider":"runtime-observability-schema"' \
@@ -185,7 +191,7 @@ elif command -v python >/dev/null 2>&1; then
 fi
 
 if [[ -n "$PY_BIN" ]]; then
-    "$PY_BIN" - "$OUT" "$SELECT_OUT" "$BOILERPLATE_OUT" "$WORLD_OUT" <<'PY'
+    "$PY_BIN" - "$OUT" "$SELECT_OUT" "$BOILERPLATE_OUT" "$WORLD_OUT" "$LIFECYCLE_OUT" <<'PY'
 import json
 import sys
 
@@ -197,6 +203,8 @@ with open(sys.argv[3], "r", encoding="utf-8") as fh:
     boilerplate_data = json.load(fh)
 with open(sys.argv[4], "r", encoding="utf-8") as fh:
     world_data = json.load(fh)
+with open(sys.argv[5], "r", encoding="utf-8") as fh:
+    lifecycle_data = json.load(fh)
 
 assert data["schema"] == "pgy.air.graph.v1"
 summary = data["summary"]
@@ -206,6 +214,7 @@ assert summary["intent_count"] == len(data["intents"])
 assert summary["boundary_count"] == len(data["boundaries"])
 assert summary["evidence_count"] == len(data["evidence"])
 assert summary["drift_count"] == len(data["drifts"]) == 0
+assert summary["lifecycle_state_space_count"] == len(data["lifecycle_state_spaces"]) == 0
 assert data["observability"]["abi_schema"] == "pgy.intent.observability.v1"
 assert data["observability"]["trace_schema"] == "pgy.intent.trace.v1"
 assert data["observability"]["surfaces"] == ["last", "history", "active", "recent"]
@@ -349,6 +358,22 @@ assert summary["unproven_retain_count"] >= 0
 assert summary["inherent_concurrency_count"] >= 0
 assert summary["slot_capability_retain_count"] >= 0
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
+lifecycle_summary = lifecycle_data["summary"]
+assert lifecycle_summary["lifecycle_state_space_count"] == len(lifecycle_data["lifecycle_state_spaces"])
+assert lifecycle_summary["lifecycle_state_space_count"] >= 1
+payment = next(
+    space for space in lifecycle_data["lifecycle_state_spaces"]
+    if space["subject"] == "Payment"
+)
+assert {"Pending", "Authorized", "Captured"} <= set(payment["states"])
+assert any(
+    op["name"] == "Authorize" and op["valid_from_mask"] == "0x1"
+    for op in payment["ops"]
+)
+assert any(
+    op["name"] == "Capture" and op["valid_from_mask"] == "0x2"
+    for op in payment["ops"]
+)
 print("[air-json-schema] parsed schema ok")
 PY
 else
@@ -365,5 +390,15 @@ else
     require_select_text '"provider_kind":"mir"'
     require_select_text '"subject_kind":"select_receive"'
     require_select_text '"subject":"select-receive"'
+    if ! grep -Fq '"subject":"Payment"' "$LIFECYCLE_OUT"; then
+        echo "[air-json-schema] missing lifecycle state-space subject" >&2
+        sed -n '1,80p' "$LIFECYCLE_OUT" >&2
+        exit 1
+    fi
+    if ! grep -Fq '"valid_from_mask":"0x2"' "$LIFECYCLE_OUT"; then
+        echo "[air-json-schema] missing lifecycle valid-from mask" >&2
+        sed -n '1,80p' "$LIFECYCLE_OUT" >&2
+        exit 1
+    fi
     echo "[air-json-schema] python not found; grep contract ok"
 fi

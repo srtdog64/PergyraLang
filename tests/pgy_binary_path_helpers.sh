@@ -332,3 +332,20 @@ pgy_path_for_compiler() {
     fi
     pgy_path_for_windows_tool "$path"
 }
+
+pgy_normalize_runner_env_paths_for_bash() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            if [[ -n "${PGY_BIN:-}" ]]; then
+                PGY_BIN="$(pgy_path_for_bash_tool "$PGY_BIN")"
+                export PGY_BIN
+            fi
+            if [[ -n "${PGY_LSP_BIN:-}" ]]; then
+                PGY_LSP_BIN="$(pgy_path_for_bash_tool "$PGY_LSP_BIN")"
+                export PGY_LSP_BIN
+            fi
+            ;;
+    esac
+}
+
+pgy_normalize_runner_env_paths_for_bash

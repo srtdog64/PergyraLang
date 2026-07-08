@@ -39,6 +39,23 @@ Negative sanity anchors:
 - Channel<T> alone is not a session type.
 - Dataflow alone is too thin for intent.
 
+## Game-Derived Vocabulary Note
+
+Pergyra's source vocabulary was first mined from games, TRPGs, board-game
+rules, and fiction. That origin is intentional: games are the software genre
+with decades of selection pressure around describing worlds compactly enough
+for agents, rules, resources, locations, permissions, and consequences to act
+inside them. The heuristic is therefore not random sampling; it is a mined
+convergence point.
+
+The theory-lineage check is the second leg. BDI agent theory, Searle-style
+institutional/context rules, UFO/OntoUML role and phase ontologies, and
+Kripke/ML5 possible-world semantics independently reach overlapping nouns:
+intent, agent, role, context/zone, phase/vessel, and world. This convergence is
+triangulation evidence for the basis selection. It is still not a proof of the
+language; it just explains why the vocabulary is a plausible basis before the
+formal kernel and implementation gates close it.
+
 ## Intent Decomposition
 
 `intent` is not a single magic primitive. It is a composition form:
@@ -260,9 +277,45 @@ influences a decision); it does not prove the C AIR emitter populates the fields
 correctly -- that remains the `air-json-schema` smoke plus the
 `make machine-neutral-status` producer gate.
 
-Core-calculus corpus is now **10 `coqc`-checked files** (the 7 corners/facets +
-`GuardCalculus` + `WholeProgramCore` + `AIRBinding`), all wired into
-`formal_semantics_smoke`.
+3. **`FormalKernel.v`** binds the source vocabulary to the formal kernel. It
+   maps `world`, `zone`, `intent`, `effect`, `authority`, `slot`, participant
+   terms, `projection`, `channel`, and `relation` to named kernel primitives
+   and owner facts. The key negative theorem is
+   `no_keyword_permits_whole_language_claim`: a keyword gaining a kernel
+   interpretation is not a proof of the whole language.
+4. **`BasisCompleteness.v`** adds the first M2 basis-selection theorem: a
+   static bigraph place/link fragment encodes into Pergyra axes, encode/decode
+   is conservative over channel-only configurations, and `world_separation`
+   proves channel-free paths preserve world roots. This is still the static
+   fragment only; bigraph reaction versus intent steps is the next rung.
+5. **`IntentObligations.v`** records the `intent` unit correction: source
+   `intent` is not an atomic formal primitive, but a binder that elaborates
+   into verifier fact families. The model keeps `purpose` and `trace` outside
+   the non-library-expressibility claim, makes an atomic `Intent` fact
+   impermissible as a formal target, and makes WO-INT-0 fact-family naming the
+   predecessor of INT-1 participant declared-used checking. This is not a proof
+   that all intent implementation obligations are closed; it is the formal
+   boundary for the work order.
+6. **`IntentSpine.v`** adds the operational intent fact kernel. It models the
+   participant, coordination, and compensation families joined by one spine id,
+   proves `checked_intent_guard_free`, `no_dep_cycle`, fact-family reassembly,
+   and `checked_intent_erasable`. This proves the kernel shape once the
+   compiler supplies the interprocedural used-set and scheduling facts; it does
+   not prove those implementation producers by itself.
+7. **`IntentConflict.v`** adds the INT-4 cross-intent conflict kernel. It
+   models the runtime admission guard and proves
+   `separated_trace_conflict_free`: statically separated co-active traces cannot
+   fire that guard. It also records the negative design fact that priority
+   waives one activation order only, so priority is not separation evidence.
+   Static co-activity computation is still an implementation producer.
+8. **`AuthorityIrreducibility.v`** discharges the authority-as-capability-times-
+   zone reduction objection at the model level. `delegation_distinguishes` and
+   `authority_beyond_cap_zone` show that delegation history can change the
+   authority verdict while capability and zone projections remain identical.
+
+Core-calculus corpus is now **11 `coqc`-checked files** (the 7 corners/facets +
+`GuardCalculus` + `WholeProgramCore` + `AIRBinding` + `FormalKernel`), all wired
+into `formal_semantics_smoke`.
 
 ### WO-F1 closed + guard-witness binding (2026-07-04, docs/155 §3 items)
 
@@ -290,5 +343,6 @@ Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
    model↔code vocabulary cannot drift silently. Not claimed: guard-firing
    correctness (failclosed fixtures) or emission coverage (twin parity).
 
-The `formal_semantics_smoke` coqc loop now compiles **24/24 proof files** —
-the full `docs/semantics/proofs/` corpus.
+The `formal_semantics_smoke` coqc loop now compiles the **30-file smoke-wired
+proof corpus**. Additional experimental `.v` files must be added to the smoke
+before they count as part of the cited proof pack.

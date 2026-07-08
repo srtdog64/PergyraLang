@@ -11,12 +11,17 @@ present before a proof-pack-level claim can be made.
 
 - runtime safety: `SlotCalculus.v`, `WitnessDataRace.v`,
   `SlotLifecycleCore.v`, and `CheckedArith.v`;
-- axis ownership: `AxisOwnership.v` and `IRMinimality.v`;
-- intent core: `IntentStepSoundness.v`, `CompensationCore.v`, and
-  `CoordinationCore.v`;
+- axis ownership: `AxisOwnership.v`, `IRMinimality.v`, and
+  `AuthorityIrreducibility.v`;
+- intent core: `IntentStepSoundness.v`, `CompensationCore.v`,
+  `CoordinationCore.v`, `IntentObligations.v`, `IntentSpine.v`, and
+  `IntentConflict.v`;
 - unified machine: `ZoneCrossingCore.v`, `EffectAuthorityCore.v`,
   `SlotLifecycleCore.v`, `AuthorityDelegationCore.v`, `UnifiedCore.v`,
-  `CompensationCore.v`, and `CoordinationCore.v`;
+  `CompensationCore.v`, `CoordinationCore.v`, and `WholeProgramCore.v`;
+- formal kernel: `FormalKernel.v`, `WholeProgramCore.v`, and `AIRBinding.v`;
+- basis selection: `BasisCompleteness.v`, `FormalKernel.v`, and
+  `AxisOwnership.v`;
 - certificate pipeline: `ProofCarryingIR.v` and `IRMinimality.v`;
 - verification methodology: `VerificationMethodology.v`.
 
@@ -57,6 +62,25 @@ remaining obligation blocks that stronger claim.
 
 - every proof node file exists;
 - the representative theorem names still exist in their owner files;
+- `FormalKernel.v` keeps source vocabulary bound to named kernel primitives
+  and owner facts without permitting a whole-language proof claim;
+- `BasisCompleteness.v` keeps the first M2 basis-completeness fragment tied to
+  the proof pack: static bigraph place/link fragments encode into Pergyra axes,
+  and channel-free paths preserve world roots;
+- `IntentObligations.v` keeps the unit correction for `intent` tied to the
+  proof pack: source-level `intent` is a binder that emits verifier fact
+  families; purpose and trace stay outside the non-library-expressibility
+  claim;
+- `IntentSpine.v` keeps the operational intent kernel tied to the proof pack:
+  participant coverage, coordination DAG, and compensation coverage imply
+  `checked_intent_guard_free`, fact-family reassembly, and checked-intent guard
+  erasure;
+- `IntentConflict.v` keeps the cross-intent conflict kernel tied to the proof
+  pack: static separation evidence makes the runtime admission conflict guard
+  unfireable, while priority alone is not separation evidence;
+- `AuthorityIrreducibility.v` keeps the authority-axis claim tied to the proof
+  pack: delegation history distinguishes configurations that have identical
+  capability and zone projections;
 - every remaining obligation above is named by the Coq spine and this document;
 - `formal_semantics_smoke.sh` type-checks `ProofSpine.v` when `coqc` exists;
 - the proof-pack README and language golden spine cite the top-level spine.

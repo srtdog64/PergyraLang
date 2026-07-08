@@ -19,7 +19,7 @@ subject Fighter {
     }
 
     func RollDamage(self, target_def: Int) -> Int {
-        let base = power - target_def;
+        let mut base = power - target_def;
         if base < 1 { base = 1; }
         let variance = Random(base / 2 + 1);
         return base + variance;
@@ -31,7 +31,7 @@ subject Fighter {
 
     // action = public plot behavior (audience sees, zone/effect aware)
     action Attack(self, target: Fighter) -> Int {
-        let dmg = self.RollDamage(target.defense);
+        let mut dmg = self.RollDamage(target.defense);
         let crit: Bool = self.IsCrit();
         if crit { dmg = dmg * 2; }
         target.hp = target.hp - dmg;
@@ -66,8 +66,8 @@ func RunBattle(a: Fighter, b: Fighter) -> Void {
     ShowHP(b);
     Log("");
 
-    let turn = 1;
-    let going = true;
+    let mut turn = 1;
+    let mut going = true;
 
     while going {
         Log("-- Turn " + ToString(turn) + " --");

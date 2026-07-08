@@ -171,6 +171,65 @@ test_air_collects_dag_generic_ability_evidence(void)
 }
 
 static bool
+test_air_collects_lifecycle_state_space_inventory(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    SemanticResult sem;
+    LcSpec spec;
+    char *error = NULL;
+    const AIRLifecycleStateSpace *space;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(&sem, 0, sizeof(sem));
+    memset(&spec, 0, sizeof(spec));
+
+    strcpy(spec.subject, "Payment");
+    strcpy(spec.state_buf[0], "Pending");
+    strcpy(spec.state_buf[1], "Authorized");
+    strcpy(spec.state_buf[2], "Captured");
+    spec.state_names[0] = spec.state_buf[0];
+    spec.state_names[1] = spec.state_buf[1];
+    spec.state_names[2] = spec.state_buf[2];
+    spec.state_count = 3;
+
+    strcpy(spec.op_buf[0], "Authorize");
+    strcpy(spec.op_buf[1], "Capture");
+    spec.op_names[0] = spec.op_buf[0];
+    spec.op_names[1] = spec.op_buf[1];
+    spec.op_count = 2;
+
+    spec.transitions[0] = (LcTransition){ .from = 0, .op = 0, .to = 1 };
+    spec.transitions[1] = (LcTransition){ .from = 1, .op = 1, .to = 2 };
+    spec.transition_count = 2;
+
+    sem.lifecycle_state_spaces = &spec;
+    sem.lifecycle_state_space_count = 1;
+
+    ok = air_collect_dag_evidence(air, &sem, &error)
+        && air_validate(air, &error)
+        && air_lifecycle_state_space_count(air) == 1;
+    space = air_lifecycle_state_space_at(air, 0);
+    ok = ok
+        && space != NULL
+        && strcmp(space->subject, "Payment") == 0
+        && space->state_count == 3
+        && strcmp(space->states[0], "Pending") == 0
+        && strcmp(space->states[1], "Authorized") == 0
+        && strcmp(space->states[2], "Captured") == 0
+        && space->op_count == 2
+        && strcmp(space->ops[0].name, "Authorize") == 0
+        && strcmp(space->ops[1].name, "Capture") == 0
+        && space->ops[0].valid_from_mask == 0x1u
+        && space->ops[1].valid_from_mask == 0x2u;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
 test_air_rejects_dag_hits_without_metadata_inventory(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));

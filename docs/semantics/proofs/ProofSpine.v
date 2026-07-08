@@ -27,6 +27,14 @@ Inductive ProofNode : Type :=
   | NodeUnifiedCore
   | NodeCompensationCore
   | NodeCoordinationCore
+  | NodeWholeProgramCore
+  | NodeAIRBinding
+  | NodeFormalKernel
+  | NodeBasisCompleteness
+  | NodeIntentObligations
+  | NodeIntentSpine
+  | NodeIntentConflict
+  | NodeAuthorityIrreducibility
   | NodeProofCarryingIR
   | NodeVerificationMethodology.
 
@@ -35,6 +43,8 @@ Inductive SpineClaim : Type :=
   | AxisOwnershipConnected
   | IntentCoreConnected
   | UnifiedMachineConnected
+  | FormalKernelConnected
+  | BasisSelectionConnected
   | CertificatePipelineConnected
   | VerificationMethodologyConnected
   | WholeLanguageVerified.
@@ -63,6 +73,14 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeUnifiedCore /\
   HasNode s NodeCompensationCore /\
   HasNode s NodeCoordinationCore /\
+  HasNode s NodeWholeProgramCore /\
+  HasNode s NodeAIRBinding /\
+  HasNode s NodeFormalKernel /\
+  HasNode s NodeBasisCompleteness /\
+  HasNode s NodeIntentObligations /\
+  HasNode s NodeIntentSpine /\
+  HasNode s NodeIntentConflict /\
+  HasNode s NodeAuthorityIrreducibility /\
   HasNode s NodeProofCarryingIR /\
   HasNode s NodeVerificationMethodology.
 
@@ -75,11 +93,15 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeCheckedArith
   | AxisOwnershipConnected =>
       HasNode s NodeAxisOwnership /\
-      HasNode s NodeIRMinimality
+      HasNode s NodeIRMinimality /\
+      HasNode s NodeAuthorityIrreducibility
   | IntentCoreConnected =>
       HasNode s NodeIntentStepSoundness /\
       HasNode s NodeCompensationCore /\
-      HasNode s NodeCoordinationCore
+      HasNode s NodeCoordinationCore /\
+      HasNode s NodeIntentObligations /\
+      HasNode s NodeIntentSpine /\
+      HasNode s NodeIntentConflict
   | UnifiedMachineConnected =>
       HasNode s NodeZoneCrossingCore /\
       HasNode s NodeEffectAuthorityCore /\
@@ -87,7 +109,16 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeAuthorityDelegationCore /\
       HasNode s NodeUnifiedCore /\
       HasNode s NodeCompensationCore /\
-      HasNode s NodeCoordinationCore
+      HasNode s NodeCoordinationCore /\
+      HasNode s NodeWholeProgramCore
+  | FormalKernelConnected =>
+      HasNode s NodeFormalKernel /\
+      HasNode s NodeWholeProgramCore /\
+      HasNode s NodeAIRBinding
+  | BasisSelectionConnected =>
+      HasNode s NodeBasisCompleteness /\
+      HasNode s NodeFormalKernel /\
+      HasNode s NodeAxisOwnership
   | CertificatePipelineConnected =>
       HasNode s NodeProofCarryingIR /\
       HasNode s NodeIRMinimality
@@ -138,7 +169,7 @@ Theorem complete_spine_connects_axis_ownership :
 Proof.
   intros s Hcomplete.
   unfold PermitsClaim.
-  split; apply complete_spine_has_node; exact Hcomplete.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
 Qed.
 
 Theorem complete_spine_connects_intent_core :
@@ -151,6 +182,22 @@ Qed.
 
 Theorem complete_spine_connects_unified_machine :
   forall s, ProofSpineComplete s -> PermitsClaim s UnifiedMachineConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_formal_kernel :
+  forall s, ProofSpineComplete s -> PermitsClaim s FormalKernelConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_basis_selection :
+  forall s, ProofSpineComplete s -> PermitsClaim s BasisSelectionConnected.
 Proof.
   intros s Hcomplete.
   unfold PermitsClaim.

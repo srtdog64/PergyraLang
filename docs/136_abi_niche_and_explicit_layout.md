@@ -52,9 +52,11 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   `discriminant_field_name = "tag"`, `primary_tag_value = 0`, and
   `secondary_tag_value = 1`.
 - `niche_none_pattern` is `NULL` for the current ABI.
-- ABI lookup is exact-row only. Runtime function spelling is payload carried by
-  a `MIRTypeLayout` row, not an alternate key that can reconstruct or select a
-  layout.
+- ABI lookup is exact-row only. Layout-level runtime function spelling is
+  payload carried by a `MIRTypeLayout` row, not an alternate key that can
+  reconstruct or select a layout. Slot-like resource operation spellings are
+  carried by `src/compiler/mir_abi_resource_runtime.c` rows keyed by ABI type
+  name and operation.
 - `Array<T>` layout includes allocator provenance as a fourth field:
   `{ data, length, capacity, allocator }`. The ABI owner models the real
   `PgyArray_*` runtime shape; a backend-local 3-field `{ data, len, cap }`

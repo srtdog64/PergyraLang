@@ -205,11 +205,80 @@ air_validate_effect_site_inventory(const AIRProgram *air,
 }
 
 static bool
+air_validate_lifecycle_state_space_inventory(const AIRProgram *air,
+                                             char **error_message)
+{
+    if (air->lifecycle_state_space_count > 0
+        && air->lifecycle_state_spaces == NULL) {
+        air_set_invariant_error(
+            error_message,
+            "AIR has lifecycle state-space count without lifecycle array");
+        return false;
+    }
+    for (size_t i = 0; i < air_lifecycle_state_space_count(air); i++) {
+        const AIRLifecycleStateSpace *space =
+            air_lifecycle_state_space_at(air, i);
+        if (space == NULL) {
+            air_set_invariant_error(
+                error_message,
+                "AIR lifecycle state-space %zu is missing",
+                i);
+            return false;
+        }
+        if (air_name_is_empty(space->subject)) {
+            air_set_invariant_error(
+                error_message,
+                "AIR lifecycle state-space %zu has empty subject",
+                i);
+            return false;
+        }
+        if (space->state_count == 0
+            || space->state_count > AIR_LIFECYCLE_MAX_STATES) {
+            air_set_invariant_error(
+                error_message,
+                "AIR lifecycle state-space %zu has invalid state count",
+                i);
+            return false;
+        }
+        if (space->op_count == 0
+            || space->op_count > AIR_LIFECYCLE_MAX_OPS) {
+            air_set_invariant_error(
+                error_message,
+                "AIR lifecycle state-space %zu has invalid op count",
+                i);
+            return false;
+        }
+        for (size_t s = 0; s < space->state_count; s++) {
+            if (air_name_is_empty(space->states[s])) {
+                air_set_invariant_error(
+                    error_message,
+                    "AIR lifecycle state-space %zu has empty state %zu",
+                    i,
+                    s);
+                return false;
+            }
+        }
+        for (size_t o = 0; o < space->op_count; o++) {
+            if (air_name_is_empty(space->ops[o].name)) {
+                air_set_invariant_error(
+                    error_message,
+                    "AIR lifecycle state-space %zu has empty op %zu",
+                    i,
+                    o);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
 air_validate_capability_machine(const AIRProgram *air,
                                 char **error_message)
 {
     return air_validate_slot_site_inventory(air, error_message)
-        && air_validate_effect_site_inventory(air, error_message);
+        && air_validate_effect_site_inventory(air, error_message)
+        && air_validate_lifecycle_state_space_inventory(air, error_message);
 }
 
 bool
