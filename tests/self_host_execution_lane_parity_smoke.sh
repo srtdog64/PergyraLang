@@ -128,6 +128,7 @@ EXEC_C_BIN="$WORK/lane_executor_contract_c.exe"
 EXEC_C_OUT="$WORK/lane_executor_contract_c.out"
 EXEC_EXPECTED_NORM="$WORK/lane_executor_contract_expected.norm"
 EXEC_C_MISSING_OUT="$WORK/lane_executor_contract_c_missing.out"
+EXEC_C_MISSING_ERR="$WORK/lane_executor_contract_c_missing.err"
 EXEC_MISSING_EXPECTED_NORM="$WORK/lane_executor_contract_missing_expected.norm"
 EXEC_C_COMPILE_OUT="$WORK/lane_executor_contract_c.compile.out"
 EXEC_C_COMPILE_ERR="$WORK/lane_executor_contract_c.compile.err"
@@ -144,11 +145,12 @@ if ! diff -u "$EXEC_EXPECTED_NORM" "$EXEC_C_OUT"; then
 fi
 
 set +e
-"$EXEC_C_BIN" --self-test-missing-term 2>/dev/null | \
+"$EXEC_C_BIN" --self-test-missing-term 2>"$EXEC_C_MISSING_ERR" | \
     pgy_selfhost_normalize_text_artifact > "$EXEC_C_MISSING_OUT"
 EXEC_MISSING_RC=$?
 set -e
 if [ "$EXEC_MISSING_RC" -ne 1 ]; then
+    cat "$EXEC_C_MISSING_OUT" "$EXEC_C_MISSING_ERR" >&2
     fail "lane executor missing-term self-test should fail closed (rc=1), got rc=$EXEC_MISSING_RC"
 fi
 pgy_selfhost_normalize_text_artifact < "$EXEC_MISSING_GOLDEN" > "$EXEC_MISSING_EXPECTED_NORM"
@@ -156,5 +158,33 @@ if ! diff -u "$EXEC_MISSING_EXPECTED_NORM" "$EXEC_C_MISSING_OUT"; then
     fail "lane executor missing-term artifact drift (see diff)."
 fi
 assert_llvm_leg "sea-self-host-lane-executor" "$EXEC_ARG" "$WORK"
+
+EXEC_LLVM_NEG_BIN="$WORK/lane_executor_contract_llvm_negative.exe"
+EXEC_LLVM_NEG_COMPILE_OUT="$WORK/lane_executor_contract_llvm_negative.compile.out"
+EXEC_LLVM_NEG_COMPILE_ERR="$WORK/lane_executor_contract_llvm_negative.compile.err"
+EXEC_LLVM_MISSING_OUT="$WORK/lane_executor_contract_llvm_missing.out"
+EXEC_LLVM_MISSING_ERR="$WORK/lane_executor_contract_llvm_missing.err"
+if ! "$PGY" "$EXEC_ARG" --backend=llvm -o "$EXEC_LLVM_NEG_BIN" \
+        >"$EXEC_LLVM_NEG_COMPILE_OUT" 2>"$EXEC_LLVM_NEG_COMPILE_ERR"; then
+    if pgy_selfhost_log_reports_no_llvm "$EXEC_LLVM_NEG_COMPILE_ERR" 2>/dev/null; then
+        echo "[sea-self-host-lane] lane executor missing-term llvm-leg skipped"
+    else
+        cat "$EXEC_LLVM_NEG_COMPILE_ERR" >&2
+        fail "lane executor missing-term LLVM compile failed"
+    fi
+else
+    set +e
+    "$EXEC_LLVM_NEG_BIN" --self-test-missing-term 2>"$EXEC_LLVM_MISSING_ERR" | \
+        pgy_selfhost_normalize_text_artifact > "$EXEC_LLVM_MISSING_OUT"
+    EXEC_LLVM_MISSING_RC=$?
+    set -e
+    if [ "$EXEC_LLVM_MISSING_RC" -ne 1 ]; then
+        cat "$EXEC_LLVM_MISSING_OUT" "$EXEC_LLVM_MISSING_ERR" >&2
+        fail "lane executor missing-term LLVM self-test should fail closed (rc=1), got rc=$EXEC_LLVM_MISSING_RC"
+    fi
+    if ! diff -u "$EXEC_MISSING_EXPECTED_NORM" "$EXEC_LLVM_MISSING_OUT"; then
+        fail "lane executor missing-term LLVM artifact drift (see diff)."
+    fi
+fi
 
 echo "[sea-self-host-lane] PASS"

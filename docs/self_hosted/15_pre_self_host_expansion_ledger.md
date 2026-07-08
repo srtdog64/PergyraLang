@@ -796,9 +796,11 @@ SEA executor delta, 2026-07-08: the same execution-lane path suite now also
 owns `lane_executor_contract.pgy` plus clean and missing-term expected
 artifacts. The self-hosted probe reads `src/runtime/pgy_lane_scheduler.{c,h}`
 and emits `pgy.selfhost.lane-executor-contract.v1`, recording the current
-`depth=scaffold-synchronous` status and fail-closed `Reject` behavior. This
-does not claim production executor depth; it turns the current scaffold into a
-tracked artifact that must change when dedicated lane executors land.
+`depth=scaffold-synchronous` status and fail-closed `Reject` behavior. Its
+missing-term negative artifact now runs through both C-built and LLVM-built
+self-host probes when LLVM is available. This does not claim production
+executor depth; it turns the current scaffold into a tracked artifact that must
+change when dedicated lane executors land.
 
 SEA producer-coverage delta, 2026-07-08: the native execution-lane policy proof
 now pins every resource-capture family that conflicts with movability, not only
