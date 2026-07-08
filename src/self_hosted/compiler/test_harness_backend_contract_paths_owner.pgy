@@ -40,3 +40,38 @@ func CompilerHarnessBackendEmitterContractReady() -> Bool {
         CompilerHarnessBackendEmitterContractPathAt(2) == CompilerHarnessBackendEmitterContractMissingRequiredJsonPath() &&
         CompilerHarnessBackendEmitterContractPathAt(3) == CompilerHarnessBackendEmitterContractForbiddenHitJsonPath();
 }
+
+func CompilerHarnessBackendAirAccessSuiteName() -> String {
+    return "backend-air-access-paths";
+}
+
+func CompilerHarnessBackendAirAccessToolSourcePath() -> String {
+    return "src/self_hosted/tools/backend_air_access_checker/main.pgy";
+}
+
+func CompilerHarnessBackendAirAccessExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/backend_air_access_checker/expected/clean.json";
+}
+
+func CompilerHarnessBackendAirAccessForbiddenHitJsonPath() -> String {
+    return "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json";
+}
+
+func CompilerHarnessBackendAirAccessPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessBackendAirAccessPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessBackendAirAccessToolSourcePath(); }
+    if index == 1 { return CompilerHarnessBackendAirAccessExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessBackendAirAccessForbiddenHitJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessBackendAirAccessReady() -> Bool {
+    return CompilerHarnessBackendAirAccessSuiteName() != "" &&
+        CompilerHarnessBackendAirAccessPathCount() == 3 &&
+        CompilerHarnessBackendAirAccessPathAt(0) == CompilerHarnessBackendAirAccessToolSourcePath() &&
+        CompilerHarnessBackendAirAccessPathAt(1) == CompilerHarnessBackendAirAccessExpectedJsonPath() &&
+        CompilerHarnessBackendAirAccessPathAt(2) == CompilerHarnessBackendAirAccessForbiddenHitJsonPath();
+}

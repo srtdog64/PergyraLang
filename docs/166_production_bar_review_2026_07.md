@@ -109,7 +109,7 @@ The compatibility gate must cover these surfaces together:
 | LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
 | Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
-| AIR/backend access lint | `docs/104_air_compiler_architecture.md` plus backend-access smoke |
+| AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/air_backend_nonimpact_smoke.sh`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
 | Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, capability manifest gates, and future frame-budget fixtures |
 | Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
 | Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |
@@ -160,6 +160,13 @@ completed green with:
   honestly records the current `worker_join_scaffold` executor depth. Live AIR
   JSON full-matrix coverage and lane-specific production executor depth remain
   separate P0/P1 work.
+- Follow-up AIR/backend access slice: `backend_air_access_checker` now walks
+  `src/codegen` from Pergyra, rejects AIR header/type tokens in backend sources,
+  and emits `pgy.selfhost.backend-air-access.v1` plus a forbidden-hit negative
+  artifact under `make self-host-backend-air-access-parity-test-smoke`. This
+  moves the verification-only AIR boundary toward hard self-hosted parity while
+  the existing Bash full-sweep non-impact gate remains the broad production
+  backstop.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 - Follow-up owner-scoped TestHarness split refresh: `sources=175`, with

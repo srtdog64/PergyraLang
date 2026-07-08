@@ -79,6 +79,9 @@ terms and forbidden backend-local runtime-name synthesis terms. The
 `backend_emitter_contract_checker` tool consumes those rows and
 `self-host-backend-emitter-contract-parity-test-smoke` proves the clean,
 missing-required, and forbidden-hit paths across C/LLVM-built self-host tools.
+`backend_air_access_checker` is the adjacent AIR verification-only boundary:
+it walks `src/codegen` with `DirWalk`, rejects AIR header/type tokens in backend
+sources, and is gated by `self-host-backend-air-access-parity-test-smoke`.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

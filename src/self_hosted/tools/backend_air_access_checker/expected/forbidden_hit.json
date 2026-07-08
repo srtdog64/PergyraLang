@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.backend-air-access-negative.v1","ok":false,"counts":{"files":1,"forbidden_terms":12,"hits":1},"findings":[{"kind":"forbidden_air_access","path":"src/codegen/forbidden_air_access_self_test.c","term":"AIRProgram"}]}

@@ -1,0 +1,137 @@
+// Self-host backend AIR access checker.
+//
+// AIR is verification-only. Backends may run after AIR/MIR evidence is
+// validated, but codegen sources must not include AIR headers or consume AIR
+// graph node types as semantic input.
+
+import "../../lib/json_emit.pgy";
+
+func BackendAirAccessSchema() -> String {
+    return "pgy.selfhost.backend-air-access.v1";
+}
+
+func BackendAirAccessNegativeSchema() -> String {
+    return "pgy.selfhost.backend-air-access-negative.v1";
+}
+
+func BackendAirAccessRoot() -> String {
+    return "src/codegen";
+}
+
+func BackendAirAccessForbiddenHitSelfTestMode() -> String {
+    return "--self-test-forbidden-hit";
+}
+
+func BackendAirAccessForbiddenTermCount() -> Int {
+    return 12;
+}
+
+func BackendAirAccessForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "AIRProgram"; }
+    if index == 1 { return "AIRIntentNode"; }
+    if index == 2 { return "AIRBoundaryNode"; }
+    if index == 3 { return "AIREvidenceNode"; }
+    if index == 4 { return "AIRDrift"; }
+    if index == 5 { return "AIRSlotSite"; }
+    if index == 6 { return "AIREffectSite"; }
+    if index == 7 { return "AIRLifecycleStateSpace"; }
+    if index == 8 { return "air.h\""; }
+    if index == 9 { return "air.h>"; }
+    if index == 10 { return "air_internal.h\""; }
+    if index == 11 { return "air_internal.h>"; }
+    return "";
+}
+
+func BackendAirAccessPathEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if suffix_len > path_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
+func BackendAirAccessIsSourceFile(path: String) -> Bool {
+    return BackendAirAccessPathEndsWith(path, ".c") ||
+        BackendAirAccessPathEndsWith(path, ".h");
+}
+
+func BackendAirAccessFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendAirAccessReport(
+    file_count: Int,
+    hit_count: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("files", ToString(file_count)),
+        JsonEmitFieldNumber("forbidden_terms", ToString(BackendAirAccessForbiddenTermCount())),
+        JsonEmitFieldNumber("hits", ToString(hit_count))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", hit_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func RunBackendAirAccessForbiddenHitSelfTest() -> Void {
+    let findings: Array<String> = [];
+    ArrayPush(findings, BackendAirAccessFinding(
+        "forbidden_air_access",
+        "src/codegen/forbidden_air_access_self_test.c",
+        BackendAirAccessForbiddenTermAt(0)));
+    Log(BackendAirAccessReport(1, 1, findings, BackendAirAccessNegativeSchema()));
+    Exit(1);
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == BackendAirAccessForbiddenHitSelfTestMode() {
+        RunBackendAirAccessForbiddenHitSelfTest();
+        return;
+    }
+
+    let entries: Array<String> = DirWalk(BackendAirAccessRoot());
+    let file_count: Int = 0;
+    let hit_count: Int = 0;
+    let findings: Array<String> = [];
+    let entry_index: Int = 0;
+    while entry_index < ArrayLength(entries) {
+        let path: String = entries[entry_index];
+        if BackendAirAccessIsSourceFile(path) {
+            file_count = file_count + 1;
+            let content: String = ReadFile(path);
+            let term_index: Int = 0;
+            while term_index < BackendAirAccessForbiddenTermCount() {
+                let term: String = BackendAirAccessForbiddenTermAt(term_index);
+                if StringContains(content, term) {
+                    hit_count = hit_count + 1;
+                    ArrayPush(findings, BackendAirAccessFinding(
+                        "forbidden_air_access",
+                        path,
+                        term));
+                }
+                term_index = term_index + 1;
+            }
+        }
+        entry_index = entry_index + 1;
+    }
+
+    Log(BackendAirAccessReport(
+        file_count,
+        hit_count,
+        findings,
+        BackendAirAccessSchema()));
+    if hit_count > 0 {
+        Exit(1);
+    }
+}

@@ -843,6 +843,20 @@ require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/mi
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "llvm_runtime_slot_name"
+require_file "src/self_hosted/tools/backend_air_access_checker/main.pgy"
+require_file "src/self_hosted/tools/backend_air_access_checker/expected/clean.json"
+require_file "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json"
+require_max_lines "src/self_hosted/tools/backend_air_access_checker/main.pgy" 600
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access.v1"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessRoot()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "DirWalk(BackendAirAccessRoot())"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "AIRProgram"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "air_internal.h"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessForbiddenHitSelfTestMode"
+require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" "pgy.selfhost.backend-air-access.v1"
+require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" '"hits":0'
+require_text "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-air-access-negative.v1"
+require_text "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json" "forbidden_air_access"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTypeName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCFieldName"
@@ -1099,10 +1113,16 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractSuiteName"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-emitter-contract-paths"
 require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendEmitterContractPathAt"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAirAccessSuiteName"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "backend-air-access-paths"
+require_text "src/self_hosted/compiler/test_harness_backend_contract_paths_owner.pgy" "func CompilerHarnessBackendAirAccessPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendEmitterContractReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendAirAccessReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_backend_contract_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendEmitterContractPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendEmitterContractSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitBackendAirAccessPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessBackendAirAccessSuiteName()"
 require_file "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" '"backend-emitter-contract-paths"'
@@ -1116,6 +1136,17 @@ require_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.s
 reject_text "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"'
 require_text "Makefile" "self-host-backend-emitter-contract-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/backend_emitter_contract_checker_parity.sh"
+require_file "tests/self_hosted/parity/backend_air_access_checker_parity.sh"
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" '"backend-air-access-paths"'
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" 'FORBIDDEN_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" "--self-test-forbidden-hit"
+require_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/backend_air_access_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_air_access_checker/main.pgy"'
+require_text "Makefile" "self-host-backend-air-access-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/backend_air_access_checker_parity.sh"
 require_file "src/self_hosted/compiler/compatibility_evolution_manifest.pgy"
 require_file "src/self_hosted/compiler/expected/compatibility_evolution.txt"
 require_max_lines "src/self_hosted/compiler/compatibility_evolution_manifest.pgy" 600
