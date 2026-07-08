@@ -4,36 +4,7 @@
 // backend paths consume MIR/ABI runtime rows instead of synthesizing names.
 
 import "../../compiler/backend_emitter_contract_owner.pgy";
-import "../../lib/json_emit.pgy";
-
-func BackendEmitterFinding(kind: String, path: String, term: String) -> String {
-    return JsonEmitObject([
-        JsonEmitFieldString("kind", kind),
-        JsonEmitFieldString("path", path),
-        JsonEmitFieldString("term", term)
-    ]);
-}
-
-func BackendEmitterReport(
-    missing_required: Int,
-    forbidden_hits: Int,
-    findings: Array<String>,
-    schema: String
-) -> String {
-    let problem_count: Int = missing_required + forbidden_hits;
-    let counts: String = JsonEmitObject([
-        JsonEmitFieldNumber(CompilerBackendEmitterRequiredCountField(), ToString(CompilerBackendEmitterRequiredCount())),
-        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenCountField(), ToString(CompilerBackendEmitterForbiddenCount())),
-        JsonEmitFieldNumber(CompilerBackendEmitterMissingRequiredCountField(), ToString(missing_required)),
-        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenHitsCountField(), ToString(forbidden_hits))
-    ]);
-    return JsonEmitObject([
-        JsonEmitFieldString("schema", schema),
-        JsonEmitFieldBool("ok", problem_count == 0),
-        JsonEmitFieldRaw("counts", counts),
-        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
-    ]);
-}
+import "report_owner.pgy";
 
 func BackendEmitterMissingRequiredSelfTestMode() -> String {
     return "--self-test-missing-required";
@@ -64,6 +35,12 @@ func RunBackendEmitterForbiddenHitSelfTest() -> Void {
 }
 
 func Main() -> Void {
+    if !BackendEmitterReportOwnerReady() {
+        Log(CompilerBackendEmitterOwnerNotReadyMessage());
+        Exit(1);
+        return;
+    }
+
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == BackendEmitterMissingRequiredSelfTestMode() {
         RunBackendEmitterMissingRequiredSelfTest();

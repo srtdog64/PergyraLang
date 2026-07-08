@@ -324,6 +324,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/air_graph_ref_integrity/main.pgy \
     src/self_hosted/tools/air_graph_ref_live/main.pgy \
     src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy \
+    src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
     src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy \
     src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
@@ -869,12 +870,18 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
+require_file "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json"
 require_max_lines "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 600
+require_max_lines "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../compiler/backend_emitter_contract_owner.pgy";'
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 'import "../../compiler/backend_emitter_contract_owner.pgy";'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterMissingRequiredSelfTestMode"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterForbiddenHitSelfTestMode"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterRequiredCount()"
@@ -883,14 +890,22 @@ require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterMissingInputFinding()"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterMissingRequiredFinding()"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterForbiddenHitFinding()"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterMissingRequiredCountField()"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterForbiddenHitsCountField()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" "CompilerBackendEmitterMissingRequiredCountField()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" "CompilerBackendEmitterForbiddenHitsCountField()"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "CompilerBackendEmitterOwnerNotReadyMessage()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterReportOwnerReady()"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BackendEmitterReport"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" "func BackendEmitterFinding"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" "func BackendEmitterReport"
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy" "func BackendEmitterReportOwnerReady"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "pgy.selfhost.backend-emitter-contract-negative.v1"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" '"missing_input"'
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" '"missing_required"'
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" '"forbidden_hit"'
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "BACKEND_EMITTER_CONTRACT ERROR"
+reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitObject"
+reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":5'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":5'

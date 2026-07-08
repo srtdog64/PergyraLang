@@ -374,6 +374,12 @@ documented C/LLVM negative coverage real for the first dumb-emitter contract
 slice; the broad native `backend-fail-closed` gate remains the production
 backstop.
 
+Backend emitter report delta, 2026-07-08:
+`backend_emitter_contract_checker/report_owner.pgy` now owns the checker report
+JSON shape, count rows, finding objects, and report-owner readiness predicate.
+`main.pgy` scans required/forbidden backend source terms and runs fail-closed
+self-test modes only.
+
 TestHarness delta, 2026-07-08: the ABI-layout row and runtime-call ABI row
 manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
 `test_harness_owner.pgy` still consumes their readiness predicates as part of

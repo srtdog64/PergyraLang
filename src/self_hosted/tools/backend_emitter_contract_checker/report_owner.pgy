@@ -1,0 +1,48 @@
+// Backend-emitter contract checker report owner.
+//
+// Owns the JSON report and finding shapes. The checker entrypoint owns source
+// file scanning against backend-emitter contract rows.
+
+import "../../compiler/backend_emitter_contract_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func BackendEmitterFinding(kind: String, path: String, term: String) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("kind", kind),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("term", term)
+    ]);
+}
+
+func BackendEmitterReport(
+    missing_required: Int,
+    forbidden_hits: Int,
+    findings: Array<String>,
+    schema: String
+) -> String {
+    let problem_count: Int = missing_required + forbidden_hits;
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerBackendEmitterRequiredCountField(), ToString(CompilerBackendEmitterRequiredCount())),
+        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenCountField(), ToString(CompilerBackendEmitterForbiddenCount())),
+        JsonEmitFieldNumber(CompilerBackendEmitterMissingRequiredCountField(), ToString(missing_required)),
+        JsonEmitFieldNumber(CompilerBackendEmitterForbiddenHitsCountField(), ToString(forbidden_hits))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", schema),
+        JsonEmitFieldBool("ok", problem_count == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func BackendEmitterReportOwnerReady() -> Bool {
+    let findings: Array<String> = [
+        BackendEmitterFinding(
+            CompilerBackendEmitterMissingRequiredFinding(),
+            CompilerBackendEmitterRequiredPathAt(0),
+            CompilerBackendEmitterRequiredTermAt(0))
+    ];
+    return StringIndexOf(
+        BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()),
+        CompilerBackendEmitterNegativeSchema()) >= 0;
+}
