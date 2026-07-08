@@ -24,7 +24,42 @@ func CountCompatibilityChangeSurface(surface: String) -> Int {
     return count;
 }
 
-func CompatibilityCorpusFindings(source_count: Int, abi_count: Int, diagnostic_count: Int) -> String {
+func CountCompatibilityRowsContaining(term: String) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if StringContains(CompilerCompatibilityChangeRowAt(i), term) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CountCompatibilityRowsWithCodefixStatus() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        let row: String = CompilerCompatibilityChangeRowAt(i);
+        if StringContains(row, CompilerCompatibilityCodefixAvailableStatus()) ||
+            StringContains(row, CompilerCompatibilityManualMigrationStatus()) ||
+            StringContains(row, CompilerCompatibilityNoCodefixStatus()) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CompatibilityCorpusFindings(
+    source_count: Int,
+    abi_count: Int,
+    diagnostic_count: Int,
+    diagnostic_id_count: Int,
+    version_ladder_count: Int,
+    migration_url_count: Int,
+    codefix_status_count: Int
+) -> String {
     let findings: Array<String> = [];
     if source_count == 0 {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_source_change")]));
@@ -35,6 +70,18 @@ func CompatibilityCorpusFindings(source_count: Int, abi_count: Int, diagnostic_c
     if diagnostic_count == 0 {
         ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_diagnostic_change")]));
     }
+    if diagnostic_id_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_diagnostic_id")]));
+    }
+    if version_ladder_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_version_ladder")]));
+    }
+    if migration_url_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_migration_url")]));
+    }
+    if codefix_status_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_codefix_status")]));
+    }
     return JsonEmitArray(findings);
 }
 
@@ -42,22 +89,42 @@ func Main() -> Void {
     let source_count: Int = CountCompatibilityChangeSurface(CompilerSourceCompatibilitySurface());
     let abi_count: Int = CountCompatibilityChangeSurface(CompilerAbiBinaryCompatibilitySurface());
     let diagnostic_count: Int = CountCompatibilityChangeSurface(CompilerDiagnosticCompatibilitySurface());
+    let diagnostic_id_count: Int = CountCompatibilityRowsContaining("|PGYCOMPAT");
+    let version_ladder_count: Int = CountCompatibilityRowsContaining("|0.8|0.9|1.0|");
+    let migration_url_count: Int = CountCompatibilityRowsContaining("|docs/compat/");
+    let codefix_status_count: Int = CountCompatibilityRowsWithCodefixStatus();
     let missing: Int = 0;
     if source_count == 0 { missing = missing + 1; }
     if abi_count == 0 { missing = missing + 1; }
     if diagnostic_count == 0 { missing = missing + 1; }
+    if diagnostic_id_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
+    if version_ladder_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
+    if migration_url_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
+    if codefix_status_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     let counts: String = JsonEmitObject([
         JsonEmitFieldNumber("changes", ToString(CompilerCompatibilityChangeCount())),
         JsonEmitFieldNumber("source", ToString(source_count)),
         JsonEmitFieldNumber("abi_binary", ToString(abi_count)),
         JsonEmitFieldNumber("diagnostic", ToString(diagnostic_count)),
+        JsonEmitFieldNumber("diagnostic_id", ToString(diagnostic_id_count)),
+        JsonEmitFieldNumber("version_ladder", ToString(version_ladder_count)),
+        JsonEmitFieldNumber("migration_url", ToString(migration_url_count)),
+        JsonEmitFieldNumber("codefix_status", ToString(codefix_status_count)),
         JsonEmitFieldNumber("missing", ToString(missing))
     ]);
     let report: String = JsonEmitObject([
         JsonEmitFieldString("schema", "pgy.selfhost.compatibility-corpus.v1"),
         JsonEmitFieldBool("ok", missing == 0),
         JsonEmitFieldRaw("counts", counts),
-        JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(source_count, abi_count, diagnostic_count))
+        JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(
+            source_count,
+            abi_count,
+            diagnostic_count,
+            diagnostic_id_count,
+            version_ladder_count,
+            migration_url_count,
+            codefix_status_count
+        ))
     ]);
     Log(report);
     if missing > 0 {

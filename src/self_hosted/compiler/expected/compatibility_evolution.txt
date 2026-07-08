@@ -18,6 +18,6 @@ obsolete_field|4|error_from
 obsolete_field|5|remove_from
 obsolete_field|6|codefix_status
 change_count=3
-change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine
-change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership
-change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool
+change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|codefix_available
+change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership|manual_migration
+change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool|no_codefix

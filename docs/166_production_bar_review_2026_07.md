@@ -24,7 +24,7 @@ capability claim must name the executable gate that blocks regression.
 | IR architecture | PASS/PARTIAL | The source-of-truth spine is correct, but several consumer paths still need hard gates. |
 | ABI ownership | PARTIAL/BLOCKER | Slot/resource rows are increasingly MIR-owned, but aggregate/generic ABI surfaces must keep moving out of backend-local spellings. |
 | C/LLVM backend parity | PARTIAL | Many parity rows are gated; whole-backend equivalence is still fixture and shard dependent. |
-| Compatibility evolution | PARTIAL | Compatibility vocabulary and a seed versioned breaking-change corpus now have a manifest parity gate; full consumer/corpus coverage is still incomplete. |
+| Compatibility evolution | PARTIAL | Compatibility vocabulary, a seed versioned breaking-change corpus, and its first self-hosted consumer gate exist; full production consumer coverage is still incomplete. |
 | Concurrency semantics | PARTIAL | Execution lane facts exist; precise producer coverage and negative rows remain P0. |
 | Runtime executor | FAIL | The production executor split is not proven by lane-specific implementation gates. |
 | Sandbox/runtime safety | FAIL/PARTIAL | Several guards exist, but capability manifests and platform-specific atomicity are incomplete. |
@@ -142,7 +142,8 @@ completed green with:
   `make self-host-compatibility-evolution-parity-test-smoke`.
 - Follow-up consumer slice: `compatibility_evolution_checker` consumes the same
   owner rows through the TestHarness manifest and proves that the seed corpus
-  covers source, ABI/binary, and diagnostic changes, gated by
+  covers source, ABI/binary, diagnostic, diagnostic-id, version-ladder,
+  migration-URL, and codefix-status rows, gated by
   `make self-host-compatibility-corpus-parity-test-smoke`.
 - Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.

@@ -46,6 +46,10 @@ func CompilerObsoleteErrorFromField() -> String { return "error_from"; }
 func CompilerObsoleteRemoveFromField() -> String { return "remove_from"; }
 func CompilerObsoleteCodefixStatusField() -> String { return "codefix_status"; }
 
+func CompilerCompatibilityCodefixAvailableStatus() -> String { return "codefix_available"; }
+func CompilerCompatibilityManualMigrationStatus() -> String { return "manual_migration"; }
+func CompilerCompatibilityNoCodefixStatus() -> String { return "no_codefix"; }
+
 func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
     if index == 0 { return CompilerObsoleteDiagnosticIdField(); }
     if index == 1 { return CompilerObsoleteReplacementField(); }
@@ -63,13 +67,13 @@ func CompilerCompatibilityChangeCount() -> Int {
 
 func CompilerCompatibilityChangeRowAt(index: Int) -> String {
     if index == 0 {
-        return "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine";
+        return "change|source|PrintLine|obsolete|0.8|0.9|1.0|PGYCOMPAT001|Print|docs/compat/PrintLine|codefix_available";
     }
     if index == 1 {
-        return "change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership";
+        return "change|abi_binary|Array<String>|breaking|0.8|0.9|1.0|PGYCOMPAT002|ArrayOwned<String>|docs/compat/array-string-ownership|manual_migration";
     }
     if index == 2 {
-        return "change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool";
+        return "change|diagnostic|logical_operand_not_bool|behavior|0.8|0.9|1.0|PGYCOMPAT003|BoolLogicalOperands|docs/compat/logical-bool|no_codefix";
     }
     return "";
 }
@@ -94,7 +98,7 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerObsoleteMigrationFieldAt(5) == CompilerObsoleteRemoveFromField() &&
         CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField() &&
         CompilerCompatibilityChangeCount() == 3 &&
-        CompilerCompatibilityChangeRowAt(0) != "" &&
-        CompilerCompatibilityChangeRowAt(1) != "" &&
-        CompilerCompatibilityChangeRowAt(2) != "";
+        StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&
+        StringContains(CompilerCompatibilityChangeRowAt(2), CompilerCompatibilityNoCodefixStatus());
 }

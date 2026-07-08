@@ -217,7 +217,13 @@ for term in \
     "codefix_status" \
     "PGYCOMPAT001" \
     "PGYCOMPAT002" \
-    "PGYCOMPAT003"; do
+    "PGYCOMPAT003" \
+    "func CompilerCompatibilityCodefixAvailableStatus" \
+    "func CompilerCompatibilityManualMigrationStatus" \
+    "func CompilerCompatibilityNoCodefixStatus" \
+    "codefix_available" \
+    "manual_migration" \
+    "no_codefix"; do
     require_text "src/self_hosted/compiler/compatibility_evolution_owner.pgy" "$term"
 done
 
