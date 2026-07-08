@@ -1116,7 +1116,16 @@ require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerB
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredTermAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenPathAt"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenTermAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutRequiredCount() == 8"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutRequiredCount() == 13"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "const MIRAbiTargetPolicy *mir_abi_target_policy"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" '\"layout_shape,materialization_reason\"'
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" '\"unsupported_shape,forbidden_loss_budget\"'
+require_text "src/compiler/mir_abi_layout.h" "typedef struct MIRAbiTargetPolicy"
+require_text "src/compiler/mir_abi_layout.h" "const MIRAbiTargetPolicy *mir_abi_target_policy"
+require_text "src/compiler/mir_abi_layout.c" "static const MIRAbiTargetPolicy k_abi_target_policy_table[]"
+require_text "src/compiler/mir_abi_layout.c" '"selfhost-c", "cpu-c,self-hosted"'
+require_text "src/compiler/mir_abi_layout.c" '"layout_shape,materialization_reason"'
+require_text "src/compiler/mir_abi_layout.c" '"unsupported_shape,forbidden_loss_budget"'
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutForbiddenCount() == 5"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutContractReady()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
@@ -1250,7 +1259,7 @@ reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy"
 reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" "pgy.selfhost.backend-abi-layout-contract.v1"
-require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"required":8'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"required":13'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/clean.json" '"forbidden":5'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_required.json" "definitely_missing_backend_abi_layout_term"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/expected/missing_input.json" "pgy.selfhost.backend-abi-layout-contract-negative.v1"

@@ -330,6 +330,15 @@ static const MIRTypeLayout k_abi_type_table[] = {
 #define PGY_ABI_TYPE_COUNT \
     (sizeof(k_abi_type_table) / sizeof(k_abi_type_table[0]))
 
+static const MIRAbiTargetPolicy k_abi_target_policy_table[] = {
+    {"selfhost-c", "cpu-c,self-hosted",
+     "layout_shape,materialization_reason",
+     "unsupported_shape,forbidden_loss_budget"},
+};
+
+#define PGY_ABI_TARGET_POLICY_COUNT \
+    (sizeof(k_abi_target_policy_table) / sizeof(k_abi_target_policy_table[0]))
+
 #undef ABI_TYPE
 #undef ABI_FIELD_STRUCT
 #undef ABI_FIELD_SCALAR
@@ -651,6 +660,19 @@ mir_abi_lookup(const char *pergyra_type_name)
         return NULL;
 
     return abi_type_lookup_by_name(pergyra_type_name);
+}
+
+const MIRAbiTargetPolicy *
+mir_abi_target_policy(const char *abi_name)
+{
+    if (abi_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < PGY_ABI_TARGET_POLICY_COUNT; i++) {
+        if (strcmp(k_abi_target_policy_table[i].abi_name, abi_name) == 0)
+            return &k_abi_target_policy_table[i];
+    }
+    return NULL;
 }
 
 const char *

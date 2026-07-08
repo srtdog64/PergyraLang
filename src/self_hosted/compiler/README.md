@@ -69,6 +69,10 @@ the accepted `cpu-c,self-hosted` projection set plus the required
 artifact therefore records not only C value spelling, field order, tag/niche,
 ownership, size/align, materialization, and default-return facts, but also the
 target capability facts that make those rows valid.
+The native MIR ABI layer mirrors that policy as `MIRAbiTargetPolicy`, and
+`self-host-backend-abi-layout-contract-parity-test-smoke` requires the native
+policy accessor plus the projected fact/fallback words so the target policy
+cannot regress back into docs-only status.
 
 `CompatibilityEvolutionZone` owns the versioned compatibility surface envelope:
 source, ABI/binary, behavior, diagnostics, AIR evidence, MIR JSON, runtime

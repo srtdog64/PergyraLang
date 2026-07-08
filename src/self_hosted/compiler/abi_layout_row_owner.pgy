@@ -39,13 +39,15 @@ func CompilerBackendAbiLayoutOwnerNotReadyMessage() -> String {
     return "BACKEND_ABI_LAYOUT_CONTRACT ERROR: owner is not ready";
 }
 func CompilerBackendAbiLayoutRequiredCount() -> Int {
-    return 8;
+    return 13;
 }
 func CompilerBackendAbiLayoutRequiredPathAt(index: Int) -> String {
     if index >= 0 && index <= 4 { return "src/compiler/mir_abi_layout.c"; }
     if index == 5 { return "src/compiler/mir_abi_layout.h"; }
     if index == 6 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
     if index == 7 { return "src/compiler/mir_abi_layout.c"; }
+    if index == 8 || index == 9 { return "src/compiler/mir_abi_layout.h"; }
+    if index >= 10 && index <= 12 { return "src/compiler/mir_abi_layout.c"; }
     return "";
 }
 func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
@@ -57,6 +59,11 @@ func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
     if index == 5 { return "mir_abi_resource_runtime_fn_by_kind"; }
     if index == 6 { return "mir_abi_resource_runtime_fn(effective_layout, op_name)"; }
     if index == 7 { return "Runtime function spelling is payload carried"; }
+    if index == 8 { return "typedef struct MIRAbiTargetPolicy"; }
+    if index == 9 { return "const MIRAbiTargetPolicy *mir_abi_target_policy"; }
+    if index == 10 { return "\"selfhost-c\", \"cpu-c,self-hosted\""; }
+    if index == 11 { return "\"layout_shape,materialization_reason\""; }
+    if index == 12 { return "\"unsupported_shape,forbidden_loss_budget\""; }
     return "";
 }
 func CompilerBackendAbiLayoutForbiddenCount() -> Int {
@@ -77,7 +84,7 @@ func CompilerBackendAbiLayoutForbiddenTermAt(index: Int) -> String {
     return "";
 }
 func CompilerBackendAbiLayoutContractReady() -> Bool {
-    return CompilerBackendAbiLayoutRequiredCount() == 8 &&
+    return CompilerBackendAbiLayoutRequiredCount() == 13 &&
         CompilerBackendAbiLayoutForbiddenCount() == 5 &&
         CompilerBackendAbiLayoutNegativeSchema() != "" &&
         CompilerBackendAbiLayoutMissingInputFinding() != "" &&
@@ -94,6 +101,8 @@ func CompilerBackendAbiLayoutContractReady() -> Bool {
         CompilerBackendAbiLayoutRequiredTermAt(0) == "ABI_TYPE(\"Array<Long>\"" &&
         CompilerBackendAbiLayoutRequiredTermAt(1) == "ABI_TAGGED_TYPE(\"Option<Int>\"" &&
         CompilerBackendAbiLayoutRequiredTermAt(6) == "mir_abi_resource_runtime_fn(effective_layout, op_name)" &&
+        CompilerBackendAbiLayoutRequiredTermAt(9) == "const MIRAbiTargetPolicy *mir_abi_target_policy" &&
+        CompilerBackendAbiLayoutRequiredTermAt(11) == "\"layout_shape,materialization_reason\"" &&
         CompilerBackendAbiLayoutForbiddenTermAt(0) == "Slot<Int>_rel" &&
         CompilerBackendAbiLayoutForbiddenTermAt(3) == "mir_extract_inner_type_suffix_owned";
 }

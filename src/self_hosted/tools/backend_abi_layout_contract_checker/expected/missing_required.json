@@ -1,1 +1,1 @@
-{"schema":"pgy.selfhost.backend-abi-layout-contract-negative.v1","ok":false,"counts":{"required":8,"forbidden":5,"missing_required":1,"forbidden_hits":0},"findings":[{"kind":"missing_required","path":"src/compiler/mir_abi_layout.c","term":"definitely_missing_backend_abi_layout_term"}]}
+{"schema":"pgy.selfhost.backend-abi-layout-contract-negative.v1","ok":false,"counts":{"required":13,"forbidden":5,"missing_required":1,"forbidden_hits":0},"findings":[{"kind":"missing_required","path":"src/compiler/mir_abi_layout.c","term":"definitely_missing_backend_abi_layout_term"}]}

@@ -10,7 +10,16 @@ typedef enum MIRResourceAbiKind
     MIR_RESOURCE_ABI_DEVICE_SLOT,
 } MIRResourceAbiKind;
 
+typedef struct MIRAbiTargetPolicy
+{
+    const char *abi_name;
+    const char *projection_set;
+    const char *required_facts;
+    const char *fallback_reasons;
+} MIRAbiTargetPolicy;
+
 const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);
+const MIRAbiTargetPolicy *mir_abi_target_policy(const char *abi_name);
 const char *mir_abi_resource_runtime_fn(const MIRTypeLayout *layout,
                                         const char *resource_op_name);
 const char *mir_abi_resource_runtime_fn_by_type_name(
