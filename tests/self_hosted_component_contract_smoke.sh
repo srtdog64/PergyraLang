@@ -325,6 +325,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/air_graph_ref_live/main.pgy \
     src/self_hosted/tools/ast_read_surface_checker/main.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
+    src/self_hosted/tools/compatibility_evolution_checker/main.pgy \
     src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
     src/self_hosted/tools/doc_link_checker/main.pgy \
     src/self_hosted/tools/examples_inventory_checker/main.pgy \
@@ -1018,6 +1019,40 @@ reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh
 reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/compiler/expected/compatibility_evolution.txt"'
 require_text "Makefile" "self-host-compatibility-evolution-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh"
+require_file "src/self_hosted/tools/compatibility_evolution_checker/main.pgy"
+require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json"
+require_file "src/self_hosted/tools/compatibility_evolution_checker/intent.md"
+require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 600
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../compiler/compatibility_evolution_owner.pgy";'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeCount()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeRowAt(i)"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerSourceCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerAbiBinaryCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerDiagnosticCompatibilitySurface()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" "pgy.selfhost.compatibility-corpus.v1"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"changes":3'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"abi_binary":1'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/intent.md" "CompatibilityEvolutionZone"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessCompatibilityCorpusSuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "compatibility-corpus-paths"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompatibilityCorpusPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessCompatibilityCorpusSuiteName()"
+require_file "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"compatibility-corpus-paths"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"run_output"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "assert_llvm_leg"
+reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/compatibility_evolution_checker/main.pgy"'
+reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json"'
+require_text "Makefile" "self-host-compatibility-corpus-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
@@ -3466,6 +3501,7 @@ reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"kind
 reject_text "tests/self_hosted/parity/module_manifest_resolver_parity.sh" '"kind":"field_count_mismatch"'
 for report_output_parity in \
     tests/self_hosted/parity/ast_read_surface_checker_parity.sh \
+    tests/self_hosted/parity/compatibility_evolution_checker_parity.sh \
     tests/self_hosted/parity/doc_link_checker_parity.sh \
     tests/self_hosted/parity/examples_inventory_checker_parity.sh \
     tests/self_hosted/parity/module_manifest_resolver_parity.sh \

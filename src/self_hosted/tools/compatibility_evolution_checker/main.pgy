@@ -1,0 +1,66 @@
+// Self-host compatibility-evolution corpus consumer.
+//
+// Consumes the PgyCompilerWorld compatibility owner and emits a stable report
+// proving that the seed corpus covers source, ABI/binary, and diagnostics.
+
+import "../../compiler/compatibility_evolution_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func CompatibilityChangeRowHasSurface(row: String, surface: String) -> Bool {
+    let needle_parts: Array<String> = ["change|", surface, "|"];
+    let needle: String = StringJoin(needle_parts, "");
+    return StringContains(row, needle);
+}
+
+func CountCompatibilityChangeSurface(surface: String) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowHasSurface(CompilerCompatibilityChangeRowAt(i), surface) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func CompatibilityCorpusFindings(source_count: Int, abi_count: Int, diagnostic_count: Int) -> String {
+    let findings: Array<String> = [];
+    if source_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_source_change")]));
+    }
+    if abi_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_abi_change")]));
+    }
+    if diagnostic_count == 0 {
+        ArrayPush(findings, JsonEmitObject([JsonEmitFieldString("kind", "missing_diagnostic_change")]));
+    }
+    return JsonEmitArray(findings);
+}
+
+func Main() -> Void {
+    let source_count: Int = CountCompatibilityChangeSurface(CompilerSourceCompatibilitySurface());
+    let abi_count: Int = CountCompatibilityChangeSurface(CompilerAbiBinaryCompatibilitySurface());
+    let diagnostic_count: Int = CountCompatibilityChangeSurface(CompilerDiagnosticCompatibilitySurface());
+    let missing: Int = 0;
+    if source_count == 0 { missing = missing + 1; }
+    if abi_count == 0 { missing = missing + 1; }
+    if diagnostic_count == 0 { missing = missing + 1; }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber("changes", ToString(CompilerCompatibilityChangeCount())),
+        JsonEmitFieldNumber("source", ToString(source_count)),
+        JsonEmitFieldNumber("abi_binary", ToString(abi_count)),
+        JsonEmitFieldNumber("diagnostic", ToString(diagnostic_count)),
+        JsonEmitFieldNumber("missing", ToString(missing))
+    ]);
+    let report: String = JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.selfhost.compatibility-corpus.v1"),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(source_count, abi_count, diagnostic_count))
+    ]);
+    Log(report);
+    if missing > 0 {
+        Exit(1);
+    }
+}

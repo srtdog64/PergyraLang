@@ -23,7 +23,12 @@ owner-scoped M2 completeness refresh after adding the compatibility-evolution
 manifest completed green at `sources=172`, with lexer/parser/semantic/codegen
 and `full_pipeline` all at 172/172. The compatibility-evolution manifest now
 also emits seed source/ABI/diagnostic breaking-change corpus rows beside the
-surface vocabulary and obsolete-migration fields.
+surface vocabulary and obsolete-migration fields. A follow-up
+compatibility-corpus checker consumes those owner rows through the TestHarness
+manifest and proves source/ABI/diagnostic seed coverage; its owner-scoped
+completeness refresh completed green at `sources=173`, with
+lexer/parser/semantic/codegen and `full_pipeline` all at 173/173. This has not
+yet been promoted to a fresh broad preparation run in this ledger.
 
 ## Headline Number
 
@@ -373,7 +378,7 @@ Notes:
 
 ## Peripheral Audit Tools (Not Counted In Coverage)
 
-These 18 tools live in `src/self_hosted/tools/` but do **not** count
+These 19 tools live in `src/self_hosted/tools/` but do **not** count
 toward compiler-internal substitution. They are dogfood validators
 that read text artifacts and emit drift verdicts; the C compiler
 keeps running fine with or without them.
@@ -389,6 +394,7 @@ keeps running fine with or without them.
 | `air_graph_ref_integrity`         | 143           | AIR graph dangling endpoint check |
 | `air_graph_reachability`          | 166           | AIR graph root reachability/worklist check |
 | `backend_output_comparator`       | 135           | paired text diff verdict |
+| `compatibility_evolution_checker` | 65            | compatibility seed corpus coverage check |
 | `module_manifest_resolver`        | 121           | language_module_manifest.json |
 | `stdlib_dispatch_inventory_checker` | 107         | C/LLVM dispatch table count parity |
 | `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
@@ -398,7 +404,7 @@ keeps running fine with or without them.
 | `ast_read_surface_checker`        | 219           | CFG/MIR SoT ratchet parity |
 | `linter`                          | 182           | LSP-style diagnostic JSON parity |
 | `runtime_boundary_checker`        | 82            | native-kernel vs portable-policy runtime boundary |
-| **Total peripheral**              | **2794**      | |
+| **Total peripheral**              | **2859**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.

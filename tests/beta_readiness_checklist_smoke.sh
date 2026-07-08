@@ -255,7 +255,7 @@ Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness
 SELF-HOSTING OK
 compatibility_evolution_manifest.pgy
 self-host-compatibility-evolution-parity-test-smoke
-sources=172
+sources=173
 seed source/ABI/diagnostic breaking-change corpus
 EOF
 

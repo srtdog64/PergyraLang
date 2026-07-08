@@ -45,6 +45,35 @@ func CompilerHarnessLinterParityReady() -> Bool {
     return CompilerHarnessLinterParitySuiteName() != "";
 }
 
+func CompilerHarnessCompatibilityCorpusSuiteName() -> String {
+    return "compatibility-corpus-paths";
+}
+
+func CompilerHarnessCompatibilityCorpusToolSourcePath() -> String {
+    return "src/self_hosted/tools/compatibility_evolution_checker/main.pgy";
+}
+
+func CompilerHarnessCompatibilityCorpusExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json";
+}
+
+func CompilerHarnessCompatibilityCorpusPathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessCompatibilityCorpusToolSourcePath(); }
+    if index == 1 { return CompilerHarnessCompatibilityCorpusExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessCompatibilityCorpusReady() -> Bool {
+    return CompilerHarnessCompatibilityCorpusSuiteName() != "" &&
+        CompilerHarnessCompatibilityCorpusPathCount() == 2 &&
+        CompilerHarnessCompatibilityCorpusPathAt(0) == CompilerHarnessCompatibilityCorpusToolSourcePath() &&
+        CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath();
+}
+
 func CompilerHarnessStableSubsetSectionSuiteName() -> String {
     return "stable-subset-section-paths";
 }

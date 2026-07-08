@@ -42,13 +42,9 @@ func EmitBackendTriExtendedCases() -> Void {
     }
 }
 
-func EmitLinterParityPaths() -> Void {
-    let i: Int = 0;
-    while i < CompilerHarnessLinterPathCount() {
-        Log(CompilerHarnessLinterPathAt(i));
-        i = i + 1;
-    }
-}
+func EmitLinterParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessLinterPathCount() { Log(CompilerHarnessLinterPathAt(i)); i = i + 1; } }
+
+func EmitCompatibilityCorpusPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityCorpusPathCount() { Log(CompilerHarnessCompatibilityCorpusPathAt(i)); i = i + 1; } }
 
 func EmitModuleManifestResolverPaths() -> Void {
     let i: Int = 0;
@@ -401,6 +397,7 @@ func Main() -> Void {
         EmitLinterParityPaths();
         return;
     }
+    if args[0] == CompilerHarnessCompatibilityCorpusSuiteName() { EmitCompatibilityCorpusPaths(); return; }
     if args[0] == CompilerHarnessModuleManifestResolverSuiteName() {
         EmitModuleManifestResolverPaths();
         return;

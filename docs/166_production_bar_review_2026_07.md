@@ -102,7 +102,7 @@ The compatibility gate must cover these surfaces together:
 
 | Production-bar item | Owner or next source of truth |
 |---|---|
-| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`, plus future consumer gates over the breaking-change corpus |
+| Compatibility evolution | `src/self_hosted/compiler/compatibility_evolution_owner.pgy`, `src/self_hosted/compiler/compatibility_evolution_manifest.pgy`, `tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh`, `src/self_hosted/tools/compatibility_evolution_checker/main.pgy`, `tests/self_hosted/parity/compatibility_evolution_checker_parity.sh`, plus future production consumers over diagnostics, stable-subset, package, runtime-trace, and native backend policy |
 | Obsolete migration | Diagnostic registry plus migration metadata gate |
 | MIR-owned ABI layout | `src/compiler/mir_abi_layout.c`, `src/runtime/pgy_abi_spec.h`, `tests/abi_ownership_shape_smoke.sh`, and self-host ABI row parity |
 | Backend dumb emitter | `tests/backend_fail_closed_smoke.sh`, `tests/abi_ownership_shape_smoke.sh`, and MIR/ABI fact consumers |
@@ -140,13 +140,17 @@ completed green with:
   fields, and a seed source/ABI/diagnostic breaking-change corpus now emit a
   stable `compatibility_evolution` artifact, gated by
   `make self-host-compatibility-evolution-parity-test-smoke`.
-- Follow-up owner-scoped M2 completeness refresh: `sources=172`, with
-  lexer/parser/semantic/codegen and `full_pipeline` all at 172/172.
+- Follow-up consumer slice: `compatibility_evolution_checker` consumes the same
+  owner rows through the TestHarness manifest and proves that the seed corpus
+  covers source, ABI/binary, and diagnostic changes, gated by
+  `make self-host-compatibility-corpus-parity-test-smoke`.
+- Follow-up owner-scoped M2 completeness refresh: `sources=173`, with
+  lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:
 released/native driver and LSP replacement are still runged substitutes, the
 runtime executor and sandbox quota surfaces remain partial, and the
 compatibility-evolution corpus is still a seed corpus until diagnostics,
-stable-subset, package, runtime-trace, and C/LLVM/self-host consumers read it
-as their shared upgrade policy.
+stable-subset, package, runtime-trace, and native C/LLVM/self-host production
+consumers read it as their shared upgrade policy.

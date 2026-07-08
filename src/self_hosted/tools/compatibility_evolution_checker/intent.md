@@ -1,0 +1,24 @@
+# Compatibility Evolution Checker
+
+## Intent
+
+Consume the PgyCompilerWorld compatibility-evolution owner and prove the seed
+breaking-change corpus has source, ABI/binary, and diagnostic coverage.
+
+## Input Contract
+
+The checker imports `compatibility_evolution_owner.pgy` directly. Shell may
+launch the tool but must not own the corpus rows or duplicate the coverage
+rules. The consumed source of truth is `CompatibilityEvolutionZone`; this tool
+is only a report/check consumer, not a second compatibility policy owner.
+
+## Output Contract
+
+The checker emits one `pgy.selfhost.compatibility-corpus.v1` JSON report with
+change counts, per-surface coverage counts, and structured findings.
+
+## Oracle
+
+`tests/self_hosted/parity/compatibility_evolution_checker_parity.sh` compiles
+the checker through C and LLVM, compares the report with the committed expected
+artifact, and verifies the C/LLVM tool outputs are identical.
