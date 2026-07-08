@@ -171,6 +171,11 @@ completed green with:
   lexer/parser/semantic/codegen and `full_pipeline` all at 173/173.
 - Follow-up owner-scoped TestHarness split refresh: `sources=175`, with
   lexer/parser/semantic/codegen and `full_pipeline` all at 175/175.
+- Follow-up backend AIR access source-count refresh: after adding the
+  self-hosted backend AIR access checker, focused
+  `make self-host-completeness-smoke` completed at `sources=182`, with
+  `lexer=182`, `parser=182`, `semantic=182`, `codegen=182`,
+  `lex_parse=182`, `lex_parse_semantic=182`, and `full_pipeline=182`.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:
