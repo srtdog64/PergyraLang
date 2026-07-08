@@ -178,6 +178,18 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
                 }
             }
             env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
+            if fname != cname {
+                env = Concat(env, Concat(fname, Concat("=call:", Concat(cname, "|"))));
+            }
+            let public_alias: String = CompilerSymbolCImportPublicName(cname);
+            if StringLength(public_alias) > 0 && public_alias != cname && public_alias != fname {
+                env = Concat(env, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
+            }
+            let local_alias: String = CompilerSymbolCLocalCallName(cname);
+            if StringLength(local_alias) > 0 && local_alias != cname &&
+                local_alias != fname && local_alias != public_alias {
+                env = Concat(env, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
+            }
         }
         i = i + 1;
     }

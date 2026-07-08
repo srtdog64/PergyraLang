@@ -13,18 +13,26 @@ func CodegenAstTextArenaAtomFor(node: CodegenAstTextNode) -> String {
     return node.payload;
 }
 
-func CodegenAstTextParentFor(nodes: Array<CodegenAstTextNode>, index: Int) -> Int {
+func CodegenAstTextParentFor(nodes: Array<CodegenAstTextNode>, index: Int) -> Option<Int> {
     if index <= 0 {
-        return -1;
+        return None;
     }
     let parent: Int = index - 1;
     while parent >= 0 {
         if nodes[parent].indent < nodes[index].indent {
-            return parent;
+            return Some(parent);
         }
         parent = parent - 1;
     }
-    return -1;
+    return None;
+}
+
+func CodegenAstTextParentRowFor(nodes: Array<CodegenAstTextNode>, index: Int) -> Int {
+    let parent: Option<Int> = CodegenAstTextParentFor(nodes, index);
+    if !IsSome(parent) {
+        return TypedAstNoParentRow();
+    }
+    return UnwrapOption(parent);
 }
 
 func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> AstArena {
@@ -92,7 +100,7 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
             j = j + 1;
         }
         ArrayPush(child_counts, direct);
-        ArrayPush(parents, CodegenAstTextParentFor(nodes, i));
+        ArrayPush(parents, CodegenAstTextParentRowFor(nodes, i));
         ArrayPush(indents, nodes[i].indent);
         i = i + 1;
     }
@@ -113,7 +121,11 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
             return false;
         }
         let parent: Option<Int> = TypedAstArenaParentId(arena, i);
-        if !IsSome(parent) || UnwrapOption(parent) != CodegenAstTextParentFor(nodes, i) {
+        let expected_parent: Option<Int> = CodegenAstTextParentFor(nodes, i);
+        if IsSome(parent) != IsSome(expected_parent) {
+            return false;
+        }
+        if IsSome(parent) && UnwrapOption(parent) != UnwrapOption(expected_parent) {
             return false;
         }
         let indent: Option<Int> = TypedAstArenaIndent(arena, i);
@@ -432,12 +444,13 @@ func CodegenAstArenaIsDescendantOf(arena: AstArena, node_id: Int, ancestor_id: I
     if node_id < 0 || ancestor_id < 0 {
         return false;
     }
-    let cur: Int = CodegenAstArenaParentOrDie(arena, node_id);
-    while cur >= 0 {
+    let cur_parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    while IsSome(cur_parent) {
+        let cur: Int = UnwrapOption(cur_parent);
         if cur == ancestor_id {
             return true;
         }
-        cur = CodegenAstArenaParentOrDie(arena, cur);
+        cur_parent = TypedAstArenaParentId(arena, cur);
     }
     return false;
 }

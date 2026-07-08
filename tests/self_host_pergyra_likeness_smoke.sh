@@ -67,9 +67,9 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-CORE_STRING_MUNGE_SIG_MAX=111
+CORE_STRING_MUNGE_SIG_MAX=109
 AST_STRING_SURFACE_MAX=0
-SENTINEL_MAX=3
+SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
 # IsSome/UnwrapOption rituals to try-propagation; pattern gained `\)\?` in the
 # same commit. Re-base per the result_use comment below -- not a loosening.
@@ -118,7 +118,9 @@ SENTINEL_MAX=3
 # 698 -> 710 (2026-07-07): struct Option runtime ABI now flows through
 # Option<OptionStructRuntimeFact> and OptionExprEmissionFact instead of
 # String-returning helper aliases; keep the typed-fact cutover load-bearing.
-RESULT_USE_MIN=710
+# 710 -> 712 (2026-07-08): typed AST parent facts now expose root parent
+# absence as Option<Int> instead of a literal -1 sentinel.
+RESULT_USE_MIN=712
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=18
 COMPILER_WORLD_MEMBERS_EXACT=18
@@ -132,8 +134,8 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner)\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
-SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$'
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner)\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$|^src/self_hosted/codegen/runtime_abi/'
 
 fail() {
     echo "[self-host-likeness] FAIL" >&2

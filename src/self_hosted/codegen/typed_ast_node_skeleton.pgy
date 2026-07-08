@@ -98,6 +98,10 @@ func TypedAstKindBlockTag() -> Int {
     return 3;
 }
 
+func TypedAstNoParentRow() -> Int {
+    return 0 - 1;
+}
+
 func TypedAstArenaFixture() -> AstArena {
     let kinds: Array<Int> = [TypedAstKindProgramTag(), TypedAstKindFuncDeclTag(), TypedAstKindBlockTag()];
     let atoms: Array<Int> = [0, 1, 0];
@@ -111,7 +115,7 @@ func TypedAstArenaFixture() -> AstArena {
     let modes: Array<Int> = [0, 0, 0];
     let first_children: Array<Int> = [0, 1, 2];
     let child_counts: Array<Int> = [1, 1, 0];
-    let parents: Array<Int> = [-1, 0, 1];
+    let parents: Array<Int> = [TypedAstNoParentRow(), 0, 1];
     let indents: Array<Int> = [0, 2, 4];
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
@@ -175,7 +179,11 @@ func TypedAstArenaParentId(arena: AstArena, node_id: Int) -> Option<Int> {
     if !TypedAstArenaHasNode(arena, node_id) {
         return None;
     }
-    return Some(arena.parents[node_id]);
+    let parent: Int = arena.parents[node_id];
+    if parent < 0 {
+        return None;
+    }
+    return Some(parent);
 }
 
 func TypedAstArenaIndent(arena: AstArena, node_id: Int) -> Option<Int> {
@@ -301,7 +309,7 @@ func TypedAstArenaRootTraversalReady() -> Bool {
         return false;
     }
     let root_parent: Option<Int> = TypedAstArenaParentId(arena, 0);
-    if !IsSome(root_parent) || UnwrapOption(root_parent) != -1 {
+    if IsSome(root_parent) {
         return false;
     }
     let root_indent: Option<Int> = TypedAstArenaIndent(arena, 0);

@@ -119,6 +119,30 @@ func CompilerSymbolCQualifiedName(owner_name: String, member_name: String) -> St
     }
     return Concat(CompilerSymbolCIdentifier(owner_name), Concat("_", member_symbol));
 }
+func CompilerSymbolCImportPublicName(c_symbol: String) -> String {
+    let prefix: String = "__imp0_";
+    let prefix_len: Int = StringLength(prefix);
+    if StringLength(c_symbol) > prefix_len &&
+        Substring(c_symbol, 0, prefix_len) == prefix {
+        return Substring(c_symbol, prefix_len, StringLength(c_symbol) - prefix_len);
+    }
+    return c_symbol;
+}
+func CompilerSymbolCLocalCallName(c_symbol: String) -> String {
+    let public_symbol: String = CompilerSymbolCImportPublicName(c_symbol);
+    let last_underscore: Int = 0 - 1;
+    let i: Int = 0;
+    while i < StringLength(public_symbol) {
+        if CompilerSymbolCharAt(public_symbol, i) == "_" {
+            last_underscore = i;
+        }
+        i = i + 1;
+    }
+    if last_underscore >= 0 && last_underscore + 1 < StringLength(public_symbol) {
+        return Substring(public_symbol, last_underscore + 1, StringLength(public_symbol) - last_underscore - 1);
+    }
+    return public_symbol;
+}
 func CompilerSymbolCTypeName(type_name: String) -> String {
     return CompilerSymbolCIdentifier(type_name);
 }

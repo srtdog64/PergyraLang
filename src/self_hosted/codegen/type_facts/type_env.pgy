@@ -333,6 +333,10 @@ func ExprKind(expr: String, env: String) -> String {
     if IsSingleCall(e) {
         let op: Int = StringIndexOf(e, "(");
         let fname: String = Substring(e, 0, op);
+        let call_alias: String = LookupKindType(env, fname, "call");
+        if StringLength(call_alias) > 0 {
+            fname = call_alias;
+        }
         let ft: String = LookupKindType(env, fname, "f");
         if StringLength(ft) > 0 {
             return ft;
