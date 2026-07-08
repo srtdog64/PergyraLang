@@ -1382,6 +1382,11 @@ require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'INVALID_CODEFIX_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-malformed-row"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-invalid-codefix-status"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/compatibility_corpus_llvm_negative.exe"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_NEG_OUT="$BUILD_DIR/compatibility_corpus_llvm_negative.out"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.out"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "malformed-row LLVM self-test should fail closed"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "invalid-codefix LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"run_output"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "assert_llvm_leg"
 reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/compatibility_evolution_checker/main.pgy"'

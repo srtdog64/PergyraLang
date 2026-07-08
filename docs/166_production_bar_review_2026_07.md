@@ -149,9 +149,10 @@ completed green with:
   compatibility rows by requiring every change row to keep the `change|...`
   prefix and the eleven-field compatibility envelope. This keeps the corpus
   from passing through loose substring matches alone.
-- Follow-up negative slice: the checker now has a malformed-row self-test mode
-  that must exit non-zero and byte-match the TestHarness-projected negative
-  JSON artifact on both C and LLVM legs when LLVM is available.
+- Follow-up negative slice: the checker now has malformed-row and invalid-codefix
+  self-test modes that must exit non-zero and byte-match the
+  TestHarness-projected negative JSON artifacts on both C and LLVM legs when
+  LLVM is available.
 - Follow-up obsolete-migration exactness slice: the checker now validates
   diagnostic IDs, warning/error/remove versions, migration URLs, codefix
   statuses, and obsolete migration envelopes by canonical field position rather
