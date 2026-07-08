@@ -62,7 +62,9 @@ func CompatibilityChangeRowFieldAt(row: String, index: Int) -> String {
 }
 
 func CompatibilityChangeRowHasDiagnosticId(row: String) -> Bool {
-    return StringIndexOf(CompatibilityChangeRowFieldAt(row, 7), "PGYCOMPAT") == 0;
+    return StringIndexOf(
+        CompatibilityChangeRowFieldAt(row, 7),
+        CompilerCompatibilityDiagnosticIdPrefix()) == 0;
 }
 
 func CompatibilityChangeRowHasVersionLadder(row: String) -> Bool {
@@ -72,7 +74,9 @@ func CompatibilityChangeRowHasVersionLadder(row: String) -> Bool {
 }
 
 func CompatibilityChangeRowHasMigrationUrl(row: String) -> Bool {
-    return StringIndexOf(CompatibilityChangeRowFieldAt(row, 9), "docs/compat/") == 0;
+    return StringIndexOf(
+        CompatibilityChangeRowFieldAt(row, 9),
+        CompilerCompatibilityMigrationUrlPrefix()) == 0;
 }
 
 func CompatibilityChangeRowHasCodefixStatus(row: String) -> Bool {
@@ -230,20 +234,15 @@ func RunCompatibilityMalformedRowSelfTest() -> Void {
 }
 
 func RunCompatibilityInvalidCodefixSelfTest() -> Void {
-    let row_fields: Array<String> = [
-        "change",
-        CompilerSourceCompatibilitySurface(),
-        "PrintLine",
-        "obsolete",
-        CompilerCompatibilityWarningFromVersion(),
-        CompilerCompatibilityErrorFromVersion(),
-        CompilerCompatibilityRemoveFromVersion(),
-        "PGYCOMPAT001",
-        "Print",
-        "docs/compat/PrintLine",
-        "unknown_codefix"
-    ];
-    let row: String = StringJoin(row_fields, "|");
+    let seed_row: String = CompilerCompatibilityChangeRowAt(0);
+    let row: String = CompilerCompatibilityChangeRow(
+        CompatibilityChangeRowFieldAt(seed_row, 1),
+        CompatibilityChangeRowFieldAt(seed_row, 2),
+        CompatibilityChangeRowFieldAt(seed_row, 3),
+        CompatibilityChangeRowFieldAt(seed_row, 7),
+        CompatibilityChangeRowFieldAt(seed_row, 8),
+        CompatibilityChangeRowFieldAt(seed_row, 9),
+        "unknown_codefix");
     let row_shape_count: Int = 0;
     let codefix_status_count: Int = 0;
     if CompatibilityChangeRowHasShape(row) {

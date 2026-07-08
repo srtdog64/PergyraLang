@@ -52,6 +52,8 @@ func CompilerCompatibilityNoCodefixStatus() -> String { return "no_codefix"; }
 func CompilerCompatibilityWarningFromVersion() -> String { return "0.8"; }
 func CompilerCompatibilityErrorFromVersion() -> String { return "0.9"; }
 func CompilerCompatibilityRemoveFromVersion() -> String { return "1.0"; }
+func CompilerCompatibilityDiagnosticIdPrefix() -> String { return "PGYCOMPAT"; }
+func CompilerCompatibilityMigrationUrlPrefix() -> String { return "docs/compat/"; }
 
 func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
     if index == 0 { return CompilerObsoleteDiagnosticIdField(); }
@@ -146,6 +148,8 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityWarningFromVersion() != "" &&
         CompilerCompatibilityErrorFromVersion() != "" &&
         CompilerCompatibilityRemoveFromVersion() != "" &&
+        CompilerCompatibilityDiagnosticIdPrefix() != "" &&
+        CompilerCompatibilityMigrationUrlPrefix() != "" &&
         CompilerCompatibilityChangeCount() == 9 &&
         StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
         StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&
