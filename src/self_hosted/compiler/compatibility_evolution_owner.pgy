@@ -61,6 +61,14 @@ func CompilerCompatibilityObsoleteChangeKind() -> String { return "obsolete"; }
 func CompilerCompatibilityBreakingChangeKind() -> String { return "breaking"; }
 func CompilerCompatibilityBehaviorChangeKind() -> String { return "behavior"; }
 func CompilerCompatibilityRequiredChangeKind() -> String { return "required"; }
+func CompilerCompatibilityChangeKindCount() -> Int { return 4; }
+func CompilerCompatibilityChangeKindAt(index: Int) -> String {
+    if index == 0 { return CompilerCompatibilityObsoleteChangeKind(); }
+    if index == 1 { return CompilerCompatibilityBreakingChangeKind(); }
+    if index == 2 { return CompilerCompatibilityBehaviorChangeKind(); }
+    if index == 3 { return CompilerCompatibilityRequiredChangeKind(); }
+    return "";
+}
 func CompilerCompatibilityWarningFromVersion() -> String { return "0.8"; }
 func CompilerCompatibilityErrorFromVersion() -> String { return "0.9"; }
 func CompilerCompatibilityRemoveFromVersion() -> String { return "1.0"; }
@@ -111,6 +119,7 @@ func CompilerCompatibilityCorpusDiagnosticIdCountField() -> String { return "dia
 func CompilerCompatibilityCorpusVersionLadderCountField() -> String { return "version_ladder"; }
 func CompilerCompatibilityCorpusMigrationUrlCountField() -> String { return "migration_url"; }
 func CompilerCompatibilityCorpusCodefixStatusCountField() -> String { return "codefix_status"; }
+func CompilerCompatibilityCorpusChangeKindCountField() -> String { return "change_kind"; }
 func CompilerCompatibilityCorpusRowShapeCountField() -> String { return "row_shape"; }
 func CompilerCompatibilityCorpusObsoleteCountField() -> String { return "obsolete"; }
 func CompilerCompatibilityCorpusObsoleteMigrationCountField() -> String { return "obsolete_migration"; }
@@ -129,6 +138,7 @@ func CompilerCompatibilityMissingDiagnosticIdFinding() -> String { return "missi
 func CompilerCompatibilityMissingVersionLadderFinding() -> String { return "missing_version_ladder"; }
 func CompilerCompatibilityMissingMigrationUrlFinding() -> String { return "missing_migration_url"; }
 func CompilerCompatibilityMissingCodefixStatusFinding() -> String { return "missing_codefix_status"; }
+func CompilerCompatibilityUnknownChangeKindFinding() -> String { return "unknown_change_kind"; }
 func CompilerCompatibilityMalformedChangeRowFinding() -> String { return "malformed_change_row"; }
 func CompilerCompatibilityMissingObsoleteFinding() -> String { return "missing_obsolete_change"; }
 func CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() -> String { return "missing_obsolete_migration_envelope"; }
@@ -213,6 +223,11 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityBreakingChangeKind() != "" &&
         CompilerCompatibilityBehaviorChangeKind() != "" &&
         CompilerCompatibilityRequiredChangeKind() != "" &&
+        CompilerCompatibilityChangeKindCount() == 4 &&
+        CompilerCompatibilityChangeKindAt(0) == CompilerCompatibilityObsoleteChangeKind() &&
+        CompilerCompatibilityChangeKindAt(1) == CompilerCompatibilityBreakingChangeKind() &&
+        CompilerCompatibilityChangeKindAt(2) == CompilerCompatibilityBehaviorChangeKind() &&
+        CompilerCompatibilityChangeKindAt(3) == CompilerCompatibilityRequiredChangeKind() &&
         CompilerCompatibilityWarningFromVersion() != "" &&
         CompilerCompatibilityErrorFromVersion() != "" &&
         CompilerCompatibilityRemoveFromVersion() != "" &&
@@ -238,6 +253,7 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityCorpusChangesCountField() != "" &&
         CompilerCompatibilityCorpusRowShapeCountField() != "" &&
         CompilerCompatibilityCorpusMissingCountField() != "" &&
+        CompilerCompatibilityCorpusChangeKindCountField() != "" &&
         CompilerCompatibilityMissingSourceFinding() != "" &&
         CompilerCompatibilityMissingAbiFinding() != "" &&
         CompilerCompatibilityMissingBehaviorFinding() != "" &&
@@ -251,6 +267,7 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityMissingVersionLadderFinding() != "" &&
         CompilerCompatibilityMissingMigrationUrlFinding() != "" &&
         CompilerCompatibilityMissingCodefixStatusFinding() != "" &&
+        CompilerCompatibilityUnknownChangeKindFinding() != "" &&
         CompilerCompatibilityMalformedChangeRowFinding() != "" &&
         CompilerCompatibilityMissingObsoleteFinding() != "" &&
         CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() != "" &&

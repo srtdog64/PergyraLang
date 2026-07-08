@@ -1519,9 +1519,11 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingAirEvidenceFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingStdlibModuleFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingCodefixStatusFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityUnknownChangeKindFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMalformedChangeRowFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityUnknownCodefixSelfTestStatus()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeKindAt"
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== "obsolete"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== 11'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"change|"'
@@ -1530,6 +1532,7 @@ reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "pg
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_air_evidence_change"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_stdlib_module_change"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_codefix_status"'
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"unknown_change_kind"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"malformed_change_row"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"missing_obsolete_migration_envelope"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '"unknown_codefix"'
@@ -1540,6 +1543,7 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CountCompatibilityRowsContaining"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityMalformedRowSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityInvalidCodefixSelfTestMode"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityInvalidChangeKindSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityMissingSurfaceSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityEvolutionReportOwnerReady()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityCorpusReport"
@@ -1561,6 +1565,7 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/cle
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"capability_profile":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"stdlib_module":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"codefix_status":9'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"change_kind":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"row_shape":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"obsolete":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"obsolete_migration":1'
@@ -1570,6 +1575,9 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/mal
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json" "pgy.selfhost.compatibility-corpus-negative.v1"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json" '"row_shape":1'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json" "missing_codefix_status"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_change_kind.json" "pgy.selfhost.compatibility-corpus-negative.v1"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_change_kind.json" '"change_kind":0'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_change_kind.json" "unknown_change_kind"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/missing_surface.json" "pgy.selfhost.compatibility-corpus-negative.v1"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/missing_surface.json" '"missing":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/missing_surface.json" "missing_source_change"
@@ -1579,9 +1587,10 @@ require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func 
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "compatibility-corpus-paths"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusInvalidChangeKindExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathCount() -> Int"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathCount() == 5"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathCount() == 6"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessCompatibilityCorpusReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompatibilityCorpusPaths"
@@ -1593,16 +1602,20 @@ require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'INVALID_CODEFIX_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"'
-require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'INVALID_CHANGE_KIND_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-malformed-row"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-invalid-codefix-status"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-invalid-change-kind"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "--self-test-missing-surface"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_NEG_BIN="$BUILD_DIR/compatibility_corpus_llvm_negative.exe"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_NEG_OUT="$BUILD_DIR/compatibility_corpus_llvm_negative.out"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.out"'
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_INVALID_CHANGE_KIND_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_change_kind.out"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" 'LLVM_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.out"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "malformed-row LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "invalid-codefix LLVM self-test should fail closed"
+require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "invalid-change-kind LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "missing-surface LLVM self-test should fail closed"
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" '"run_output"'
 require_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh" "assert_llvm_leg"

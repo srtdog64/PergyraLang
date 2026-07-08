@@ -7,7 +7,8 @@ breaking-change corpus has coverage for every compatibility surface.
 It also proves that the obsolete/migration envelope is field-owned: diagnostic
 ID, warning/error/remove versions, replacement, migration URL, and codefix
 status must appear in their canonical row positions rather than as loose
-substrings.
+substrings. Change kinds are checked against the compatibility owner vocabulary,
+so the checker cannot accept a row whose behavior class is invented locally.
 
 ## Input Contract
 
@@ -20,7 +21,7 @@ is only a report/check consumer, not a second compatibility policy owner.
 
 The checker emits one `pgy.selfhost.compatibility-corpus.v1` JSON report with
 change counts, per-surface coverage counts, obsolete migration-envelope counts,
-and structured findings.
+change-kind coverage counts, and structured findings.
 
 ## Oracle
 
@@ -28,4 +29,5 @@ and structured findings.
 the checker through C and LLVM, compares the report with the committed expected
 artifact, and verifies the C/LLVM tool outputs are identical.
 The same parity gate runs fail-closed negative modes for malformed change rows
-and invalid codefix statuses on C and LLVM when the LLVM backend is available.
+invalid codefix statuses, invalid change kinds, and missing surfaces on C and
+LLVM when the LLVM backend is available.

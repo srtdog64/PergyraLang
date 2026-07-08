@@ -377,6 +377,14 @@ surface findings through the same compatibility owner vocabulary, and the C and
 LLVM checker legs must both fail closed with that artifact when LLVM is
 available.
 
+Compatibility corpus change-kind delta, 2026-07-08:
+`compatibility_evolution_checker` now counts canonical change-kind rows through
+`CompatibilityEvolutionZone` instead of accepting any row spelling in the
+change-kind column. The TestHarness-projected parity suite includes an
+`invalid_change_kind` artifact, and the C and LLVM checker legs must both fail
+closed with the owner-owned `unknown_change_kind` finding when LLVM is
+available.
+
 Compatibility corpus report delta, 2026-07-08:
 `compatibility_evolution_checker/report_owner.pgy` now owns the corpus report
 JSON shape, count rows, negative self-test reports, and finding objects.

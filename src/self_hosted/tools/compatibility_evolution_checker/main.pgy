@@ -41,6 +41,18 @@ func CountCompatibilityRowsWithCodefixStatus() -> Int {
     return count;
 }
 
+func CountCompatibilityRowsWithKnownKind() -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        if CompatibilityChangeRowHasKnownKind(CompilerCompatibilityChangeRowAt(i)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
 func CompatibilityChangeRowFieldCount(row: String) -> Int {
     let count: Int = 1;
     let i: Int = 0;
@@ -94,6 +106,18 @@ func CompatibilityChangeRowHasCodefixStatus(row: String) -> Bool {
     return status == CompilerCompatibilityCodefixAvailableStatus() ||
         status == CompilerCompatibilityManualMigrationStatus() ||
         status == CompilerCompatibilityNoCodefixStatus();
+}
+
+func CompatibilityChangeRowHasKnownKind(row: String) -> Bool {
+    let kind: String = CompatibilityChangeRowFieldAt(row, CompilerCompatibilityChangeKindFieldIndex());
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeKindCount() {
+        if kind == CompilerCompatibilityChangeKindAt(i) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CompatibilityChangeRowIsObsolete(row: String) -> Bool {
@@ -191,6 +215,10 @@ func CompatibilityInvalidCodefixSelfTestMode() -> String {
     return "--self-test-invalid-codefix-status";
 }
 
+func CompatibilityInvalidChangeKindSelfTestMode() -> String {
+    return "--self-test-invalid-change-kind";
+}
+
 func CompatibilityMissingSurfaceSelfTestMode() -> String {
     return "--self-test-missing-surface";
 }
@@ -235,6 +263,30 @@ func RunCompatibilityInvalidCodefixSelfTest() -> Void {
     }
 }
 
+func RunCompatibilityInvalidChangeKindSelfTest() -> Void {
+    let seed_row: String = CompilerCompatibilityChangeRowAt(0);
+    let row: String = CompilerCompatibilityChangeRow(
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSurfaceFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSymbolFieldIndex()),
+        "unknown_kind",
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeDiagnosticIdFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeReplacementFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
+    let row_shape_count: Int = 0;
+    let change_kind_count: Int = 0;
+    if CompatibilityChangeRowHasShape(row) {
+        row_shape_count = 1;
+    }
+    if CompatibilityChangeRowHasKnownKind(row) {
+        change_kind_count = 1;
+    }
+    Log(CompatibilityInvalidChangeKindSelfTestReport(change_kind_count, row_shape_count));
+    if change_kind_count < 1 {
+        Exit(1);
+    }
+}
+
 func RunCompatibilityMissingSurfaceSelfTest() -> Void {
     Log(CompatibilityMissingSurfaceSelfTestReport());
     Exit(1);
@@ -255,6 +307,10 @@ func Main() -> Void {
         RunCompatibilityInvalidCodefixSelfTest();
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidChangeKindSelfTestMode() {
+        RunCompatibilityInvalidChangeKindSelfTest();
+        return;
+    }
     if ArrayLength(args) > 0 && args[0] == CompatibilityMissingSurfaceSelfTestMode() {
         RunCompatibilityMissingSurfaceSelfTest();
         return;
@@ -273,6 +329,7 @@ func Main() -> Void {
     let version_ladder_count: Int = CountCompatibilityRowsWithVersionLadder();
     let migration_url_count: Int = CountCompatibilityRowsWithMigrationUrl();
     let codefix_status_count: Int = CountCompatibilityRowsWithCodefixStatus();
+    let change_kind_count: Int = CountCompatibilityRowsWithKnownKind();
     let row_shape_count: Int = CountCompatibilityRowsWithShape();
     let obsolete_count: Int = CountCompatibilityObsoleteRows();
     let obsolete_migration_count: Int = CountCompatibilityObsoleteRowsWithMigrationEnvelope();
@@ -290,6 +347,7 @@ func Main() -> Void {
     if version_ladder_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if migration_url_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if codefix_status_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
+    if change_kind_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if row_shape_count < CompilerCompatibilityChangeCount() { missing = missing + 1; }
     if obsolete_count == 0 { missing = missing + 1; }
     if obsolete_migration_count < obsolete_count { missing = missing + 1; }
@@ -307,6 +365,7 @@ func Main() -> Void {
         version_ladder_count,
         migration_url_count,
         codefix_status_count,
+        change_kind_count,
         row_shape_count,
         obsolete_count,
         obsolete_migration_count,
