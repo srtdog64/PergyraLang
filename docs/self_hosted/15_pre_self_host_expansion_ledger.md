@@ -361,6 +361,12 @@ and the TestHarness-projected parity suite now includes an
 `invalid_codefix_status` negative artifact on both C and LLVM legs when LLVM is
 available.
 
+Compatibility corpus report delta, 2026-07-08:
+`compatibility_evolution_checker/report_owner.pgy` now owns the corpus report
+JSON shape, count rows, negative self-test reports, and finding objects.
+`main.pgy` performs compatibility-row analysis and fail-closed self-test
+dispatch only.
+
 Backend emitter contract delta, 2026-07-08: the self-host backend-emitter
 parity gate now runs the missing-required and forbidden-hit negative artifacts
 through an LLVM-built checker as well as the C-built checker. This makes the

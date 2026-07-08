@@ -1,0 +1,231 @@
+// Compatibility evolution checker report owner.
+//
+// Owns the JSON report, count row, and finding shapes. The checker entrypoint
+// owns row analysis over CompatibilityEvolutionZone facts.
+
+import "../../compiler/compatibility_evolution_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func CompatibilityFindingJson(kind: String) -> String {
+    return JsonEmitObject([JsonEmitFieldString("kind", kind)]);
+}
+
+func CompatibilityMalformedRowSelfTestReport(row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if row_shape_count < 1 {
+        missing = 1;
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMalformedChangeRowFinding()));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(1)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if codefix_status_count < 1 {
+        missing = 1;
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingCodefixStatusFinding()));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(1)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusCodefixStatusCountField(), ToString(codefix_status_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
+func CompatibilityCorpusFindings(
+    source_count: Int,
+    abi_count: Int,
+    behavior_count: Int,
+    diagnostic_count: Int,
+    air_count: Int,
+    mir_count: Int,
+    runtime_trace_count: Int,
+    capability_count: Int,
+    stdlib_count: Int,
+    diagnostic_id_count: Int,
+    version_ladder_count: Int,
+    migration_url_count: Int,
+    codefix_status_count: Int,
+    row_shape_count: Int,
+    obsolete_count: Int,
+    obsolete_migration_count: Int
+) -> String {
+    let findings: Array<String> = [];
+    if source_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingSourceFinding()));
+    }
+    if abi_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingAbiFinding()));
+    }
+    if behavior_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingBehaviorFinding()));
+    }
+    if diagnostic_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingDiagnosticFinding()));
+    }
+    if air_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingAirEvidenceFinding()));
+    }
+    if mir_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingMirJsonFinding()));
+    }
+    if runtime_trace_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingRuntimeTraceFinding()));
+    }
+    if capability_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingCapabilityProfileFinding()));
+    }
+    if stdlib_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingStdlibModuleFinding()));
+    }
+    if diagnostic_id_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingDiagnosticIdFinding()));
+    }
+    if version_ladder_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingVersionLadderFinding()));
+    }
+    if migration_url_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingMigrationUrlFinding()));
+    }
+    if codefix_status_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingCodefixStatusFinding()));
+    }
+    if row_shape_count < CompilerCompatibilityChangeCount() {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMalformedChangeRowFinding()));
+    }
+    if obsolete_count == 0 {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingObsoleteFinding()));
+    }
+    if obsolete_migration_count < obsolete_count {
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()));
+    }
+    return JsonEmitArray(findings);
+}
+
+func CompatibilityCorpusCountsJson(
+    source_count: Int,
+    abi_count: Int,
+    behavior_count: Int,
+    diagnostic_count: Int,
+    air_count: Int,
+    mir_count: Int,
+    runtime_trace_count: Int,
+    capability_count: Int,
+    stdlib_count: Int,
+    diagnostic_id_count: Int,
+    version_ladder_count: Int,
+    migration_url_count: Int,
+    codefix_status_count: Int,
+    row_shape_count: Int,
+    obsolete_count: Int,
+    obsolete_migration_count: Int,
+    missing: Int
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(CompilerCompatibilityChangeCount())),
+        JsonEmitFieldNumber(CompilerSourceCompatibilitySurface(), ToString(source_count)),
+        JsonEmitFieldNumber(CompilerAbiBinaryCompatibilitySurface(), ToString(abi_count)),
+        JsonEmitFieldNumber(CompilerBehaviorCompatibilitySurface(), ToString(behavior_count)),
+        JsonEmitFieldNumber(CompilerDiagnosticCompatibilitySurface(), ToString(diagnostic_count)),
+        JsonEmitFieldNumber(CompilerAirEvidenceCompatibilitySurface(), ToString(air_count)),
+        JsonEmitFieldNumber(CompilerMirJsonCompatibilitySurface(), ToString(mir_count)),
+        JsonEmitFieldNumber(CompilerRuntimeTraceCompatibilitySurface(), ToString(runtime_trace_count)),
+        JsonEmitFieldNumber(CompilerCapabilityProfileCompatibilitySurface(), ToString(capability_count)),
+        JsonEmitFieldNumber(CompilerStdlibModuleCompatibilitySurface(), ToString(stdlib_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusDiagnosticIdCountField(), ToString(diagnostic_id_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusVersionLadderCountField(), ToString(version_ladder_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMigrationUrlCountField(), ToString(migration_url_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusCodefixStatusCountField(), ToString(codefix_status_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusObsoleteCountField(), ToString(obsolete_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusObsoleteMigrationCountField(), ToString(obsolete_migration_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+}
+
+func CompatibilityCorpusReport(
+    source_count: Int,
+    abi_count: Int,
+    behavior_count: Int,
+    diagnostic_count: Int,
+    air_count: Int,
+    mir_count: Int,
+    runtime_trace_count: Int,
+    capability_count: Int,
+    stdlib_count: Int,
+    diagnostic_id_count: Int,
+    version_ladder_count: Int,
+    migration_url_count: Int,
+    codefix_status_count: Int,
+    row_shape_count: Int,
+    obsolete_count: Int,
+    obsolete_migration_count: Int,
+    missing: Int
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", CompatibilityCorpusCountsJson(
+            source_count,
+            abi_count,
+            behavior_count,
+            diagnostic_count,
+            air_count,
+            mir_count,
+            runtime_trace_count,
+            capability_count,
+            stdlib_count,
+            diagnostic_id_count,
+            version_ladder_count,
+            migration_url_count,
+            codefix_status_count,
+            row_shape_count,
+            obsolete_count,
+            obsolete_migration_count,
+            missing
+        )),
+        JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(
+            source_count,
+            abi_count,
+            behavior_count,
+            diagnostic_count,
+            air_count,
+            mir_count,
+            runtime_trace_count,
+            capability_count,
+            stdlib_count,
+            diagnostic_id_count,
+            version_ladder_count,
+            migration_url_count,
+            codefix_status_count,
+            row_shape_count,
+            obsolete_count,
+            obsolete_migration_count
+        ))
+    ]);
+}
+
+func CompatibilityEvolutionReportOwnerReady() -> Bool {
+    return StringIndexOf(CompatibilityMalformedRowSelfTestReport(0), CompilerCompatibilityCorpusNegativeSchema()) >= 0 &&
+        StringIndexOf(CompatibilityInvalidCodefixSelfTestReport(0, 1), CompilerCompatibilityMissingCodefixStatusFinding()) >= 0 &&
+        StringIndexOf(CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 1, 1, 0), CompilerCompatibilityCorpusSchema()) >= 0;
+}

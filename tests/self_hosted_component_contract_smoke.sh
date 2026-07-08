@@ -325,7 +325,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/air_graph_ref_live/main.pgy \
     src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
-    src/self_hosted/tools/compatibility_evolution_checker/main.pgy \
+    src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy \
     src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
     src/self_hosted/tools/doc_link_checker/main.pgy \
     src/self_hosted/tools/examples_inventory_checker/main.pgy \
@@ -1405,13 +1405,19 @@ reject_text "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh
 require_text "Makefile" "self-host-compatibility-evolution-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/main.pgy"
+require_file "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json"
 require_file "src/self_hosted/tools/compatibility_evolution_checker/intent.md"
 require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 600
+require_max_lines "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/compatibility_evolution_checker/main.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../compiler/compatibility_evolution_owner.pgy";'
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "report_owner.pgy";'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" 'import "../../compiler/compatibility_evolution_owner.pgy";'
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeCount()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeRowAt(i)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerSourceCompatibilitySurface()"
@@ -1436,14 +1442,14 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeFieldCount()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeDiagnosticIdFieldIndex()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityChangeCodefixStatusFieldIndex()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusSchema()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusNegativeSchema()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityCorpusChangesCountField()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingAirEvidenceFinding()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingStdlibModuleFinding()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingCodefixStatusFinding()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMalformedChangeRowFinding()"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityCorpusSchema()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityCorpusNegativeSchema()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityCorpusChangesCountField()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingAirEvidenceFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingStdlibModuleFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingCodefixStatusFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMalformedChangeRowFinding()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompilerCompatibilityUnknownCodefixSelfTestStatus()"
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== "obsolete"'
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" '== 11'
@@ -1463,8 +1469,16 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "C
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CountCompatibilityRowsContaining"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityMalformedRowSelfTestMode"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityInvalidCodefixSelfTestMode"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
-require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityEvolutionReportOwnerReady()"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "CompatibilityCorpusReport"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityCorpusReport"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityCorpusFindings"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityEvolutionReportOwnerReady"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "JsonEmitObject"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitArray(findings)"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" "pgy.selfhost.compatibility-corpus.v1"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"changes":9'
 require_text "src/self_hosted/tools/compatibility_evolution_checker/expected/clean.json" '"abi_binary":1'

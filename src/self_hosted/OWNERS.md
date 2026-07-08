@@ -160,6 +160,11 @@ compiler-stage `.pgy` source to be listed here.
   ratchet parsing, live source counting, and checker entrypoint.
 - `src/self_hosted/tools/ast_read_surface_checker/report_owner.pgy` -- AST read
   surface checker JSON schema, count rows, source rows, and finding shapes.
+- `src/self_hosted/tools/compatibility_evolution_checker/main.pgy` --
+  compatibility row analysis, fail-closed self-test modes, and checker
+  entrypoint.
+- `src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy` --
+  compatibility corpus report schema, count rows, and finding shapes.
 
 ## SEA
 
