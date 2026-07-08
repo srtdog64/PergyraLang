@@ -36,7 +36,11 @@ pgy_selfhost_read_test_harness_manifest \
     "$WORK" \
     "execution-lane-parity-paths" \
     "$HARNESS_PATHS"
-mapfile -t harness_paths < "$HARNESS_PATHS"
+harness_paths=()
+while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    harness_paths+=("$line")
+done < "$HARNESS_PATHS"
 if [ "${#harness_paths[@]}" -ne 2 ]; then
     fail "TestHarness manifest expected 2 execution-lane paths, got ${#harness_paths[@]}"
 fi
