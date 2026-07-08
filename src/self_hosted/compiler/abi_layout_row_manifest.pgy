@@ -1,6 +1,7 @@
 // Runnable ABI row projection over abi_layout_row_owner.pgy.
 
 import "abi_layout_row_owner.pgy";
+import "abi_layout_target_policy_owner.pgy";
 
 func CompilerAbiLayoutManifestRowAt(index: Int) -> String {
     let row0: String = Concat(ToString(index), "|");

@@ -28,9 +28,26 @@ func OptionResultRuntimeOptionPayloadKindString() -> Int {
     return 2;
 }
 
+func OptionResultRuntimeOptionPayloadKindFloat() -> Int {
+    return 3;
+}
+
+func OptionResultRuntimeOptionPayloadKindDouble() -> Int {
+    return 4;
+}
+
 func OptionResultRuntimeOptionPayloadKindFromExprKind(kind: String) -> Int {
     if kind == "String" {
         return OptionResultRuntimeOptionPayloadKindString();
+    }
+    if kind == "Float" {
+        return OptionResultRuntimeOptionPayloadKindFloat();
+    }
+    if kind == "Double" {
+        return OptionResultRuntimeOptionPayloadKindDouble();
+    }
+    if kind == "Long" {
+        return OptionResultRuntimeOptionPayloadKindInt();
     }
     return OptionResultRuntimeOptionPayloadKindInt();
 }
@@ -47,6 +64,24 @@ func OptionResultRuntimeOptionPayloadKindForType(type_name: String) -> Int {
     }
     if type_name == "Option<Int: Int>" {
         return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    if type_name == "Option<Long>" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    if type_name == "Option<Long: Long>" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
+    if type_name == "Option<Float>" {
+        return OptionResultRuntimeOptionPayloadKindFloat();
+    }
+    if type_name == "Option<Float: Float>" {
+        return OptionResultRuntimeOptionPayloadKindFloat();
+    }
+    if type_name == "Option<Double>" {
+        return OptionResultRuntimeOptionPayloadKindDouble();
+    }
+    if type_name == "Option<Double: Double>" {
+        return OptionResultRuntimeOptionPayloadKindDouble();
     }
     return 0;
 }
@@ -75,6 +110,15 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
     if kind == "OptionString" {
         return OptionResultRuntimeOptionPayloadKindString();
     }
+    if kind == "OptionFloat" {
+        return OptionResultRuntimeOptionPayloadKindFloat();
+    }
+    if kind == "OptionDouble" {
+        return OptionResultRuntimeOptionPayloadKindDouble();
+    }
+    if kind == "OptionLong" {
+        return OptionResultRuntimeOptionPayloadKindInt();
+    }
     if kind == "OptionInt" {
         return OptionResultRuntimeOptionPayloadKindInt();
     }
@@ -84,6 +128,12 @@ func OptionResultRuntimeOptionPayloadKindFromEnvKind(kind: String) -> Int {
 func OptionResultRuntimeCOptionSomeFnForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_some_string";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindFloat() {
+        return "pgy_option_some_float";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindDouble() {
+        return "pgy_option_some_double";
     }
     return OptionResultRuntimeCOptionSomeFn();
 }
@@ -95,6 +145,12 @@ func OptionResultRuntimeCOptionNoneFn() -> String {
 func OptionResultRuntimeCOptionNoneFnForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "pgy_option_none_string";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindFloat() {
+        return "pgy_option_none_float";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindDouble() {
+        return "pgy_option_none_double";
     }
     return OptionResultRuntimeCOptionNoneFn();
 }
@@ -111,6 +167,12 @@ func OptionResultRuntimeOptionEnvKindForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "OptionString";
     }
+    if kind == OptionResultRuntimeOptionPayloadKindFloat() {
+        return "OptionFloat";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindDouble() {
+        return "OptionDouble";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindInt() {
         return "OptionInt";
     }
@@ -121,6 +183,12 @@ func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "Option<String>";
     }
+    if kind == OptionResultRuntimeOptionPayloadKindFloat() {
+        return "Option<Float>";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindDouble() {
+        return "Option<Double>";
+    }
     if kind == OptionResultRuntimeOptionPayloadKindInt() {
         return "Option<Int>";
     }
@@ -130,6 +198,12 @@ func OptionResultRuntimeOptionTypeNameForPayloadKind(kind: Int) -> String {
 func OptionResultRuntimeOptionValueTypeForPayloadKind(kind: Int) -> String {
     if kind == OptionResultRuntimeOptionPayloadKindString() {
         return "String";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindFloat() {
+        return "Float";
+    }
+    if kind == OptionResultRuntimeOptionPayloadKindDouble() {
+        return "Double";
     }
     if kind == OptionResultRuntimeOptionPayloadKindInt() {
         return "Int";
@@ -196,19 +270,33 @@ func OptionResultRuntimeCResultIntBlock() -> String {
 func OptionResultRuntimeCOptionScalarBlock() -> String {
     let option_int_type: String = CompilerAbiLayoutOptionIntCValueType();
     let option_string_type: String = CompilerAbiLayoutOptionStringCValueType();
+    let option_float_type: String = CompilerAbiLayoutOptionFloatCValueType();
+    let option_double_type: String = CompilerAbiLayoutOptionDoubleCValueType();
     let int_type: String = CompilerAbiLayoutIntCValueType();
     let string_type: String = CompilerAbiLayoutStringCValueType();
+    let float_type: String = CompilerAbiLayoutFloatCValueType();
+    let double_type: String = CompilerAbiLayoutDoubleCValueType();
     let block: String = "";
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(int_type, Concat(" value; } ", Concat(option_int_type, ";\n")))));
     block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(string_type, Concat(" value; } ", Concat(option_string_type, ";\n")))));
+    block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(float_type, Concat(" value; } ", Concat(option_float_type, ";\n")))));
+    block = Concat(block, Concat("typedef struct { bool is_some; ", Concat(double_type, Concat(" value; } ", Concat(option_double_type, ";\n")))));
     block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFn(), Concat("(", Concat(int_type, " v) { ")))))));
     block = Concat(block, Concat(option_int_type, " o; o.is_some = true; o.value = v; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), Concat("(", Concat(string_type, " v) { ")))))));
     block = Concat(block, Concat(option_string_type, " o; o.is_some = true; o.value = v; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_float_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), Concat("(", Concat(float_type, " v) { ")))))));
+    block = Concat(block, Concat(option_float_type, " o; o.is_some = true; o.value = v; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_double_type, Concat(" ", Concat(OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), Concat("(", Concat(double_type, " v) { ")))))));
+    block = Concat(block, Concat(option_double_type, " o; o.is_some = true; o.value = v; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_int_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFn(), "(void) { ")))));
     block = Concat(block, Concat(option_int_type, " o; o.is_some = false; o.value = 0; return o; }\n"));
     block = Concat(block, Concat("static ", Concat(option_string_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), "(void) { ")))));
     block = Concat(block, Concat(option_string_type, " o; o.is_some = false; o.value = \"\"; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_float_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), "(void) { ")))));
+    block = Concat(block, Concat(option_float_type, " o; o.is_some = false; o.value = 0.0; return o; }\n"));
+    block = Concat(block, Concat("static ", Concat(option_double_type, Concat(" ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), "(void) { ")))));
+    block = Concat(block, Concat(option_double_type, " o; o.is_some = false; o.value = 0.0; return o; }\n"));
     block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionIsSomeFn(), "(o) ((o).is_some)\n")));
     block = Concat(block, Concat("#define ", Concat(OptionResultRuntimeCOptionUnwrapFn(), "(o) ((o).value)\n\n")));
     return block;

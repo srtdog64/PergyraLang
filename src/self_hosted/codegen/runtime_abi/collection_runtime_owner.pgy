@@ -9,7 +9,8 @@ import "../../compiler/abi_layout_row_owner.pgy";
 // Normalize bridge spelling at the owner boundary so emission participants
 // consume canonical collection-kind facts rather than re-parsing type text.
 func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
-    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" {
+    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" ||
+        type_name == "Array<Long>" || type_name == "Array<Long: Long>" {
         return "ArrayInt";
     }
     if type_name == "Array<String>" || type_name == "Array<String: String>" {

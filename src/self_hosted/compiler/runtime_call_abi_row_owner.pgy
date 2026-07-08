@@ -62,7 +62,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 83;
+    return 87;
 }
 
 func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
@@ -94,16 +94,20 @@ func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
 func CompilerRuntimeCallAbiOptionResultRowAt(index: Int) -> String {
     if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-string.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-string.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.is-some", OptionResultRuntimeCOptionIsSomeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.unwrap", OptionResultRuntimeCOptionUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.ok", OptionResultRuntimeCResultOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.err", OptionResultRuntimeCResultErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-ok", OptionResultRuntimeCResultIsOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-err", OptionResultRuntimeCResultIsErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap", OptionResultRuntimeCResultUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
-    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap-or", OptionResultRuntimeCResultUnwrapOrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-string.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindString()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 6 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 7 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.none", OptionResultRuntimeCOptionNoneFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 8 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.is-some", OptionResultRuntimeCOptionIsSomeFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 9 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option.unwrap", OptionResultRuntimeCOptionUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 10 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.ok", OptionResultRuntimeCResultOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 11 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.err", OptionResultRuntimeCResultErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 12 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-ok", OptionResultRuntimeCResultIsOkFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 13 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.is-err", OptionResultRuntimeCResultIsErrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 14 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap", OptionResultRuntimeCResultUnwrapFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 15 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "result.unwrap-or", OptionResultRuntimeCResultUnwrapOrFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     return "";
 }
 
@@ -170,10 +174,10 @@ func CompilerRuntimeCallAbiHostIoRowAt(index: Int) -> String {
 
 func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 0 && index < 22 { return CompilerRuntimeCallAbiCollectionRowAt(index); }
-    if index >= 22 && index < 34 { return CompilerRuntimeCallAbiOptionResultRowAt(index - 22); }
-    if index >= 34 && index < 43 { return CompilerRuntimeCallAbiMathRowAt(index - 34); }
-    if index >= 43 && index < 67 { return CompilerRuntimeCallAbiStringRowAt(index - 43); }
-    if index >= 67 && index < 83 { return CompilerRuntimeCallAbiHostIoRowAt(index - 67); }
+    if index >= 22 && index < 38 { return CompilerRuntimeCallAbiOptionResultRowAt(index - 22); }
+    if index >= 38 && index < 47 { return CompilerRuntimeCallAbiMathRowAt(index - 38); }
+    if index >= 47 && index < 71 { return CompilerRuntimeCallAbiStringRowAt(index - 47); }
+    if index >= 71 && index < 87 { return CompilerRuntimeCallAbiHostIoRowAt(index - 71); }
     return "";
 }
 
@@ -184,11 +188,13 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowFactAt(2) == CompilerRuntimeCallAbiRowSymbolFact() &&
         CompilerRuntimeCallAbiRowFactAt(3) == CompilerRuntimeCallAbiRowSymbolKindFact() &&
         CompilerRuntimeCallAbiRowFactAt(4) == CompilerRuntimeCallAbiRowMaterializationFact() &&
-        CompilerRuntimeCallAbiConcreteRowCount() == 83 &&
+        CompilerRuntimeCallAbiConcreteRowCount() == 87 &&
         CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(34) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(43) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(67) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(82) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()));
+        CompilerRuntimeCallAbiRowAt(24) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(25) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(38) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(47) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(71) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowAt(86) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()));
 }

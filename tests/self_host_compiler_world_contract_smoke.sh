@@ -74,6 +74,7 @@ require_file "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.
 require_file "src/self_hosted/compiler/test_harness_manifest.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_file "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
@@ -99,6 +100,7 @@ require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPIL
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_TARGET_POLICY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH"
@@ -127,6 +129,7 @@ require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_o
 require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
@@ -225,9 +228,9 @@ for term in \
     "error_from" \
     "remove_from" \
     "codefix_status" \
-    "PGYCOMPAT001" \
-    "PGYCOMPAT002" \
-    "PGYCOMPAT003" \
+    'CompilerCompatibilityDiagnosticId("001")' \
+    'CompilerCompatibilityDiagnosticId("002")' \
+    'CompilerCompatibilityDiagnosticId("003")' \
     "func CompilerCompatibilityCodefixAvailableStatus" \
     "func CompilerCompatibilityManualMigrationStatus" \
     "func CompilerCompatibilityNoCodefixStatus" \
@@ -401,6 +404,7 @@ for term in \
     "func CompilerTestHarnessManifestPath" \
     "func CompilerSubprocessRunnerOwnerPath" \
     "func CompilerAbiLayoutRowOwnerPath" \
+    "func CompilerAbiLayoutTargetPolicyOwnerPath" \
     "func CompilerAbiLayoutRowManifestPath" \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerStageArtifactOwnerPath" \
@@ -433,6 +437,7 @@ for term in \
     "return CompilerTestHarnessManifestPath();" \
     "return CompilerSubprocessRunnerOwnerPath();" \
     "return CompilerAbiLayoutRowOwnerPath();" \
+    "return CompilerAbiLayoutTargetPolicyOwnerPath();" \
     "return CompilerAbiLayoutRowManifestPath();" \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerStageArtifactOwnerPath();" \
@@ -444,14 +449,14 @@ for term in \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 35" \
-    "CompilerWorldProjectionPathCount() != 38" \
+    "CompilerWorldManifestPathCount() != 36" \
+    "CompilerWorldProjectionPathCount() != 39" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 22" \
-    "CompilerStagePathAt(index - 17)" \
-    "if index < 30" \
-    "CompilerParityPathAt(index - 22)" \
+    "if index < 23" \
+    "CompilerStagePathAt(index - 18)" \
+    "if index < 31" \
+    "CompilerParityPathAt(index - 23)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -662,7 +667,7 @@ for term in \
     "CompilerAbiLayoutRowsReady" \
     "CompilerAbiLayoutRowFactCount() == 9" \
     "CompilerAbiLayoutConcreteRowCount" \
-    "CompilerAbiLayoutConcreteRowCount() == 11" \
+    "CompilerAbiLayoutConcreteRowCount() == 16" \
     "CompilerAbiLayoutRowIndex" \
     "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \
@@ -675,6 +680,19 @@ for term in \
     "materialization_policy" \
     "default_return_value"; do
     require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "$term"
+done
+
+for term in \
+    'import "target_capability_owner.pgy";' \
+    "func CompilerAbiLayoutSelfHostedCAbi" \
+    "func CompilerAbiLayoutTargetPolicyCount" \
+    "func CompilerAbiLayoutTargetPolicyAbiAt" \
+    "func CompilerAbiLayoutTargetPolicyProjectionSetAt" \
+    "func CompilerAbiLayoutTargetPolicyRequiredFactsAt" \
+    "func CompilerAbiLayoutTargetPolicyFallbacksAt" \
+    "func CompilerAbiLayoutTargetPolicyKnown" \
+    "func CompilerAbiLayoutTargetPolicyReady"; do
+    require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "$term"
 done
 
 for term in \
@@ -817,6 +835,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/stage_artifact_owner.pgy"
