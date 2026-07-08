@@ -3,6 +3,7 @@
 // Owns the fixture/result row vocabulary for hard self-host parity.
 
 import "test_harness_tool_paths_owner.pgy";
+import "test_harness_comparator_paths_owner.pgy";
 import "test_harness_inventory_paths_owner.pgy";
 import "test_harness_size_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
@@ -103,77 +104,6 @@ func CompilerHarnessProjectionOrExit(index: Int) -> String {
         return "";
     }
     return CompilerHarnessProjectionAt(index);
-}
-
-func CompilerHarnessComparableArtifactPathCount() -> Int {
-    return 2;
-}
-
-func CompilerHarnessExpectedComparableArtifactPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt";
-}
-
-func CompilerHarnessActualComparableArtifactPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt";
-}
-
-func CompilerHarnessComparableArtifactPathAt(index: Int) -> String {
-    if index == 0 { return CompilerHarnessExpectedComparableArtifactPath(); }
-    if index == 1 { return CompilerHarnessActualComparableArtifactPath(); }
-    return "";
-}
-
-func CompilerHarnessBackendOutputComparatorSuiteName() -> String {
-    return "backend-output-comparator-paths";
-}
-
-func CompilerHarnessBackendOutputComparatorToolSourcePath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
-}
-
-func CompilerHarnessBackendOutputComparatorExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/expected/clean.json";
-}
-
-func CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/expected/mismatch.json";
-}
-
-func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json";
-}
-
-func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json";
-}
-
-func CompilerHarnessBackendOutputComparatorPathCount() -> Int {
-    return 7;
-}
-
-func CompilerHarnessBackendOutputComparatorPathAt(index: Int) -> String {
-    if index == 0 { return CompilerHarnessBackendOutputComparatorToolSourcePath(); }
-    if index == 1 { return CompilerHarnessBackendOutputComparatorExpectedJsonPath(); }
-    if index == 2 { return CompilerHarnessExpectedComparableArtifactPath(); }
-    if index == 3 { return CompilerHarnessActualComparableArtifactPath(); }
-    if index == 4 { return CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath(); }
-    if index == 5 { return CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath(); }
-    if index == 6 { return CompilerHarnessBackendOutputComparatorArgExpectedJsonPath(); }
-    return "";
-}
-
-func CompilerHarnessBackendOutputComparatorReady() -> Bool {
-    if CompilerHarnessBackendOutputComparatorPathCount() != 7 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < CompilerHarnessBackendOutputComparatorPathCount() {
-        if CompilerHarnessBackendOutputComparatorPathAt(i) == "" {
-            return false;
-        }
-        i = i + 1;
-    }
-    return CompilerHarnessBackendOutputComparatorSuiteName() != "";
 }
 
 func CompilerHarnessFindingCap() -> Int {

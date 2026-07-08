@@ -163,6 +163,8 @@ compiler-stage `.pgy` source to be listed here.
   kinds consumed by C/LLVM/self-hosted parity.
 - `src/self_hosted/compiler/test_harness_owner.pgy` -- fixture/result row
   vocabulary for Pergyra-owned parity harness work.
+- `src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy` --
+  backend-output comparator source, expected verdict, and fixture path suite.
 - `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared
   parity tool/input path suites consumed by test harness manifests.
 - `src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy` --

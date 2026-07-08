@@ -2653,7 +2653,7 @@ reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'src/self_hosted/tools/backend_output_comparator/fixture/'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionIndexKnown"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionOrExit"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSourcePathRow"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedDiagnosticRow"
@@ -2666,18 +2666,29 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHar
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCOracleProjection"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessLlvmOracleProjection"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessSelfHostedProjection"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorSuiteName"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorPathAt"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorSuiteName"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorPathAt"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessExpectedComparableArtifactPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessActualComparableArtifactPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorToolSourcePath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorExpectedJsonPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorMismatchExpectedJsonPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorInputErrorExpectedJsonPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorPathAt"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/mismatch.json"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
@@ -2689,6 +2700,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_bootstrap_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
 require_max_lines "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
@@ -2959,6 +2971,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessL
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
@@ -3170,7 +3183,8 @@ require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "mis
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "missing-input JSON parity FAIL"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "argv-mode JSON parity FAIL"
 require_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"$ARG_BIN" "$ARG_EXPECTED_PATH" "$ARG_ACTUAL_PATH" 0 2'
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorArgExpectedJsonPath"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json"
 require_text "src/self_hosted/tools/backend_output_comparator/expected/arg_self_hosted.json" '"actual_projection":"self_hosted"'
 reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" '"kind":"mismatch"'

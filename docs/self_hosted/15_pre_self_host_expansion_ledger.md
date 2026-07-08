@@ -279,6 +279,13 @@ scratch mutator, and corrupted-fixture `rc=1` checker.
 
 TestHarness delta, 2026-07-05: backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness through the `backend-output-comparator-paths` manifest suite. Shell no longer owns the comparator input path constants.
 
+TestHarness delta, 2026-07-08: the `backend-output-comparator-paths` suite and
+its comparable fixture paths are now owned by
+`test_harness_comparator_paths_owner.pgy`. The core `test_harness_owner.pgy`
+consumes `CompilerHarnessBackendOutputComparatorReady()` and the comparable
+artifact facts, but no longer defines the concrete backend-output comparator
+source, expected JSON, or fixture paths.
+
 TestHarness delta, 2026-07-06: `backend_output_comparator_parity.sh` now gets
 the expected mismatch and missing-input verdict artifacts from
 `test_harness_owner.pgy`. Shell still creates the negative artifact fixtures and

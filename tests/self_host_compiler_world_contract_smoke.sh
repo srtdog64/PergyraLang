@@ -67,6 +67,7 @@ require_file "src/self_hosted/compiler/compatibility_evolution_owner.pgy"
 require_file "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_file "src/self_hosted/compiler/artifact_zone_owner.pgy"
 require_file "src/self_hosted/compiler/test_harness_owner.pgy"
+require_file "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy"
 require_file "src/self_hosted/compiler/test_harness_manifest.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
@@ -114,6 +115,7 @@ require_max_lines "src/self_hosted/compiler/compatibility_evolution_owner.pgy" 6
 require_max_lines "src/self_hosted/compiler/air_evidence_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/artifact_zone_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
@@ -786,6 +788,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/compatibility
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/air_evidence_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/artifact_zone_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
