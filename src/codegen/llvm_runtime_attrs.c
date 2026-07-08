@@ -61,9 +61,31 @@ llvm_fn_is_bounds_checked_accessor(const char *fn_name)
      * stripping -- stripping a static symbol yields an undefined-reference link
      * error (it broke HashMap on the LLVM backend until this was removed).
      */
-    return fn_name != NULL
-        && (strstr(fn_name, "pgy_array_get_") != NULL
-            || strstr(fn_name, "pgy_array_set_") != NULL);
+    if (fn_name == NULL)
+        return false;
+    if (strstr(fn_name, "pgy_array_get_") != NULL
+        || strstr(fn_name, "pgy_array_set_") != NULL
+        /* Slice element accessors carry the same inline out-of-bounds
+         * panic body as the array accessors, so they take the same
+         * strip treatment (external in the exports object). slice_get
+         * was a latent gap: its inlined panic body mis-lowered to an
+         * access violation once the runtime bitcode was regenerated
+         * (caught by slice_inline_index_oob/llvm). */
+        || strstr(fn_name, "pgy_slice_get_") != NULL
+        || strstr(fn_name, "pgy_slice_set_") != NULL)
+        return true;
+    /* Raw list/queue/map accessors carry the same inline bounds/shape
+     * panic bodies (caught by list_get_oob/llvm after the bitcode
+     * regeneration). Every *_raw_export in these families is external
+     * except pgy_map_grow_raw_export, which is static and must keep its
+     * body (see the note above). */
+    if (strstr(fn_name, "_raw_export") != NULL
+        && (strncmp(fn_name, "pgy_list_", 9) == 0
+            || strncmp(fn_name, "pgy_queue_", 10) == 0
+            || strncmp(fn_name, "pgy_map_", 8) == 0)
+        && strcmp(fn_name, "pgy_map_grow_raw_export") != 0)
+        return true;
+    return false;
 }
 
 /*

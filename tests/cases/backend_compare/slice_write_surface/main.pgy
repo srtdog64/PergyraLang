@@ -1,0 +1,19 @@
+// Slice write-through surface (docs/178 WO-DOP-1 prerequisite rung).
+//
+// view[i] = v on a Slice<T> lowers to pgy_slice_set_<T> on both backends and
+// mutates the backing array in place: the semantic layer has always typed
+// slice index assignment symmetrically with reads, and this case pins the
+// codegen completion of that surface. The base array observes every write
+// made through the view, and reads through the view observe them too.
+func Main() -> Void {
+    let mut arr: Array<Int> = [10, 20, 30, 40];
+    let view: Slice<Int> = arr.Slice(1, 2);
+    view[0] = 99;
+    view[1] = view[1] + 1;
+    Log(arr[0]);
+    Log(arr[1]);
+    Log(arr[2]);
+    Log(arr[3]);
+    Log(view[0]);
+    Log(view[1]);
+}

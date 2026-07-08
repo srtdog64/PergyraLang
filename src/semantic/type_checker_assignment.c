@@ -81,6 +81,31 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                     "array", ctx)) {
                 return target_type;
             }
+            /* Slice<T> is a borrowed view: writing through a default value
+             * parameter would mutate the caller's backing array invisibly.
+             * Same contract as the collection mutator receivers -- caller-
+             * visible mutation must be spelled 'inout'. */
+            if (array_sym != NULL && array_sym->is_parameter
+                && array_sym->param_mode == PARAM_MODE_DEFAULT
+                && type_is_constructed_named(array_sym->type, "Slice")) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, array_node,
+                    "Slice index assignment cannot target default value parameter '%s'.\n"
+                    "Reason:\n"
+                    "- a Slice<T> is a borrowed view; writing through it mutates the caller's backing array\n"
+                    "- caller-visible mutation must be explicit at the function boundary\n"
+                    "Fix:\n"
+                    "- spell the parameter as 'inout %s: %s' when caller mutation is intended\n"
+                    "- or SliceCopy(%s) into an owned Array and mutate that locally",
+                    array_name != NULL ? array_name : "<receiver>",
+                    array_name != NULL ? array_name : "<receiver>",
+                    array_sym->type != NULL && array_sym->type->name != NULL
+                        ? array_sym->type->name : "Slice<T>",
+                    array_name != NULL ? array_name : "<receiver>");
+                return target_type;
+            }
         }
     }
 

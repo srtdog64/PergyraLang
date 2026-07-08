@@ -70,6 +70,56 @@ transpiler_emit_assignment_expression_parts(TranspilerCtx *ctx,
                 return result;
             }
         }
+        if (array_type != NULL
+            && transpiler_type_name_is_slice(array_type)) {
+            /* Write-through view: a Slice<T> is a fixed {data,len} span, so
+             * setting through a copied view struct hits the same backing
+             * storage -- mirrors the slice read emit's tmp-copy pattern. */
+            char inner_buf[128];
+            const char *inner = NULL;
+            if (slot_inner_type_name_copy(array_type, inner_buf,
+                    sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C slice assignment requires concrete Slice<T> element metadata");
+                return NULL;
+            }
+            char slice_suffix[128];
+            sanitize_c_suffix(inner, slice_suffix, sizeof(slice_suffix));
+            char *view = transpiler_dispatch_emit_part(ctx,
+                array_node, "slice assignment", "slice");
+            if (view == NULL)
+                return NULL;
+            char *index = transpiler_dispatch_emit_part(ctx,
+                index_node, "slice assignment", "index");
+            if (index == NULL) {
+                free(view);
+                return NULL;
+            }
+            char *value = transpiler_dispatch_emit_part(ctx,
+                value_node, "slice assignment", "value");
+            if (value == NULL) {
+                free(view);
+                free(index);
+                return NULL;
+            }
+            int tmp_id = ++ctx->tmp_counter;
+            char *result = strdup_fmt(
+                "({ PgySlice_%s _pgy_slice_set_%d = %s; "
+                "pgy_slice_set_%s(&_pgy_slice_set_%d, (size_t)(%s), %s); })",
+                slice_suffix, tmp_id, view,
+                slice_suffix, tmp_id, index, value);
+            free(view);
+            free(index);
+            free(value);
+            return result;
+        }
     }
     if (target_node != NULL && target_node->type == AST_IDENTIFIER) {
         const char *tgt_name = ast_identifier_name(target_node);

@@ -170,9 +170,26 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                         elem_type, llvm_tmp_name(ctx));
                 }
             }
-            snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
-            fn = llvm_required_runtime_function(ctx, node,
-                "indexed array assignment", "ArraySet", fn_name);
+            {
+                /* Slice receivers write through the view into the backing
+                 * array; dispatch on the local's struct name the same way
+                 * the indexed read path does. */
+                const char *recv_struct =
+                    arr_var.type != NULL
+                        && LLVMGetTypeKind(arr_var.type) == LLVMStructTypeKind
+                    ? LLVMGetStructName(arr_var.type)
+                    : NULL;
+                bool recv_is_slice = recv_struct != NULL
+                    && strncmp(recv_struct, "PgySlice_", 9) == 0;
+                snprintf(fn_name, sizeof(fn_name),
+                    recv_is_slice ? "pgy_slice_set_%s" : "pgy_array_set_%s",
+                    suffix);
+                fn = llvm_required_runtime_function(ctx, node,
+                    recv_is_slice
+                        ? "indexed slice assignment"
+                        : "indexed array assignment",
+                    recv_is_slice ? "SliceSet" : "ArraySet", fn_name);
+            }
             if (fn == NULL)
                 return NULL;
             index64 = idx;

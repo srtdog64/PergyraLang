@@ -593,6 +593,7 @@ main() {
         "tests/cases/backend_compare/slice_surface"
         "tests/cases/backend_compare/slice_copy"
         "tests/cases/backend_compare/slice_inline_access"
+        "tests/cases/backend_compare/slice_write_surface"
         "tests/cases/backend_compare/slice_range_syntax"
         "tests/cases/backend_compare/dynamic_array"
         "tests/cases/backend_compare/dynamic_array_ops"

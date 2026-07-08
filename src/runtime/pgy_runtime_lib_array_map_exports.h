@@ -125,6 +125,23 @@ CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)            
     return slice->data[index];                                                   \
 }                                                                                \
                                                                                  \
+void pgy_slice_set_##Suffix(PgySlice_##Suffix *slice, size_t index, CType value) \
+{                                                                                \
+    if (slice == NULL) {                                                         \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice set on null slice");                            \
+    }                                                                            \
+    if (index >= slice->length) {                                                \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
+                          PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+    }                                                                            \
+    if (slice->data == NULL) {                                                   \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice set on slice without backing storage");         \
+    }                                                                            \
+    slice->data[index] = value;                                                  \
+}                                                                                \
+                                                                                 \
 PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,               \
                                            size_t start, size_t len)             \
 {                                                                                \
