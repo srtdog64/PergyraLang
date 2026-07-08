@@ -117,9 +117,10 @@ func CompilerHarnessCompatibilityCorpusExpectedJsonPath() -> String {
 
 func CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json"; }
 func CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json"; }
+func CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/missing_surface.json"; }
 
 func CompilerHarnessCompatibilityCorpusPathCount() -> Int {
-    return 4;
+    return 5;
 }
 
 func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
@@ -127,16 +128,18 @@ func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
     if index == 1 { return CompilerHarnessCompatibilityCorpusExpectedJsonPath(); }
     if index == 2 { return CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath(); }
     if index == 3 { return CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath(); }
+    if index == 4 { return CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessCompatibilityCorpusReady() -> Bool {
     return CompilerHarnessCompatibilityCorpusSuiteName() != "" &&
-        CompilerHarnessCompatibilityCorpusPathCount() == 4 &&
+        CompilerHarnessCompatibilityCorpusPathCount() == 5 &&
         CompilerHarnessCompatibilityCorpusPathAt(0) == CompilerHarnessCompatibilityCorpusToolSourcePath() &&
         CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath() &&
         CompilerHarnessCompatibilityCorpusPathAt(2) == CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath() &&
-        CompilerHarnessCompatibilityCorpusPathAt(3) == CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath();
+        CompilerHarnessCompatibilityCorpusPathAt(3) == CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath() &&
+        CompilerHarnessCompatibilityCorpusPathAt(4) == CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath();
 }
 
 func CompilerHarnessCompatibilityEvolutionSuiteName() -> String {

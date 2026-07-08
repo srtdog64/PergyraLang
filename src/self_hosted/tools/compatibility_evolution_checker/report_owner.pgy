@@ -51,6 +51,51 @@ func CompatibilityInvalidCodefixSelfTestReport(codefix_status_count: Int, row_sh
     ]);
 }
 
+func CompatibilityMissingSurfaceSelfTestReport() -> String {
+    let missing: Int = CompilerCompatibilitySurfaceCount();
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", false),
+        JsonEmitFieldRaw("counts", CompatibilityCorpusCountsJson(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            1,
+            1,
+            missing
+        )),
+        JsonEmitFieldRaw("findings", CompatibilityCorpusFindings(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            CompilerCompatibilityChangeCount(),
+            1,
+            1
+        ))
+    ]);
+}
+
 func CompatibilityCorpusFindings(
     source_count: Int,
     abi_count: Int,
@@ -227,5 +272,7 @@ func CompatibilityCorpusReport(
 func CompatibilityEvolutionReportOwnerReady() -> Bool {
     return StringIndexOf(CompatibilityMalformedRowSelfTestReport(0), CompilerCompatibilityCorpusNegativeSchema()) >= 0 &&
         StringIndexOf(CompatibilityInvalidCodefixSelfTestReport(0, 1), CompilerCompatibilityMissingCodefixStatusFinding()) >= 0 &&
+        StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingSourceFinding()) >= 0 &&
+        StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingStdlibModuleFinding()) >= 0 &&
         StringIndexOf(CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 1, 1, 0), CompilerCompatibilityCorpusSchema()) >= 0;
 }

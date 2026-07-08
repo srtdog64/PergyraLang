@@ -191,6 +191,10 @@ func CompatibilityInvalidCodefixSelfTestMode() -> String {
     return "--self-test-invalid-codefix-status";
 }
 
+func CompatibilityMissingSurfaceSelfTestMode() -> String {
+    return "--self-test-missing-surface";
+}
+
 func RunCompatibilityMalformedRowSelfTest() -> Void {
     let row_shape_count: Int = 0;
     let row_parts: Array<String> = [
@@ -231,6 +235,11 @@ func RunCompatibilityInvalidCodefixSelfTest() -> Void {
     }
 }
 
+func RunCompatibilityMissingSurfaceSelfTest() -> Void {
+    Log(CompatibilityMissingSurfaceSelfTestReport());
+    Exit(1);
+}
+
 func Main() -> Void {
     if !CompatibilityEvolutionReportOwnerReady() {
         Log(CompatibilityMalformedRowSelfTestReport(0));
@@ -244,6 +253,10 @@ func Main() -> Void {
     }
     if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidCodefixSelfTestMode() {
         RunCompatibilityInvalidCodefixSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityMissingSurfaceSelfTestMode() {
+        RunCompatibilityMissingSurfaceSelfTest();
         return;
     }
 

@@ -38,8 +38,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 4 ]]; then
-    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 4 compatibility corpus paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 5 ]]; then
+    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 5 compatibility corpus paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -47,7 +47,8 @@ TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"
 NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"
 INVALID_CODEFIX_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
-for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE"; do
+MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"
+for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE" "$MISSING_SURFACE_EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:compatibility-corpus] missing input: $path" >&2
         exit 1
@@ -63,6 +64,8 @@ C_NEG_OUT="$BUILD_DIR/compatibility_corpus_c_negative.out"
 C_NEG_ERR="$BUILD_DIR/compatibility_corpus_c_negative.err"
 C_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.out"
 C_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.err"
+C_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_c_missing_surface.out"
+C_MISSING_SURFACE_ERR="$BUILD_DIR/compatibility_corpus_c_missing_surface.err"
 
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=c \
     -o "$(pgy_path_for_compiler "$PGY" "$C_BIN")" >"$C_COMPILE_LOG" 2>&1); then
@@ -122,6 +125,23 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$C_INVALID_CODEFIX_OUT" \
     "run_output"
 
+set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-missing-surface 2>"$C_MISSING_SURFACE_ERR" | pgy_selfhost_normalize_text_artifact >"$C_MISSING_SURFACE_OUT")
+C_MISSING_SURFACE_RC=$?
+set -e
+if [[ "$C_MISSING_SURFACE_RC" -ne 1 ]]; then
+    echo "[self-host-parity:compatibility-corpus] missing-surface self-test should fail closed (rc=1), got rc=$C_MISSING_SURFACE_RC" >&2
+    cat "$C_MISSING_SURFACE_OUT" "$C_MISSING_SURFACE_ERR" >&2
+    exit 1
+fi
+
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:compatibility-corpus" \
+    "$BUILD_DIR" \
+    "$MISSING_SURFACE_EXPECTED_FILE" \
+    "$C_MISSING_SURFACE_OUT" \
+    "run_output"
+
 assert_llvm_leg "self-host-parity:compatibility-corpus" "$TOOL_ARG" "$BUILD_DIR"
 
 LLVM_NEG_BIN="$BUILD_DIR/compatibility_corpus_llvm_negative.exe"
@@ -130,6 +150,8 @@ LLVM_NEG_OUT="$BUILD_DIR/compatibility_corpus_llvm_negative.out"
 LLVM_NEG_ERR="$BUILD_DIR/compatibility_corpus_llvm_negative.err"
 LLVM_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.out"
 LLVM_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.err"
+LLVM_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.out"
+LLVM_MISSING_SURFACE_ERR="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.err"
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
     -o "$(pgy_path_for_compiler "$PGY" "$LLVM_NEG_BIN")" >"$LLVM_NEG_COMPILE_LOG" 2>&1); then
     if pgy_selfhost_log_reports_no_llvm "$LLVM_NEG_COMPILE_LOG"; then
@@ -170,6 +192,22 @@ else
         "$BUILD_DIR" \
         "$INVALID_CODEFIX_EXPECTED_FILE" \
         "$LLVM_INVALID_CODEFIX_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-missing-surface 2>"$LLVM_MISSING_SURFACE_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_MISSING_SURFACE_OUT")
+    LLVM_MISSING_SURFACE_RC=$?
+    set -e
+    if [[ "$LLVM_MISSING_SURFACE_RC" -ne 1 ]]; then
+        echo "[self-host-parity:compatibility-corpus] missing-surface LLVM self-test should fail closed (rc=1), got rc=$LLVM_MISSING_SURFACE_RC" >&2
+        cat "$LLVM_MISSING_SURFACE_OUT" "$LLVM_MISSING_SURFACE_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:compatibility-corpus" \
+        "$BUILD_DIR" \
+        "$MISSING_SURFACE_EXPECTED_FILE" \
+        "$LLVM_MISSING_SURFACE_OUT" \
         "run_output"
 fi
 
