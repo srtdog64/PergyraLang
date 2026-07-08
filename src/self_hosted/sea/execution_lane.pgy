@@ -99,6 +99,10 @@ func LaneName(lane: ExecutionLane) -> String {
     }
 }
 
+func LogLaneCase(name: String, lane: ExecutionLane) -> Void {
+    Log(Concat(Concat(name, "|"), LaneName(lane)));
+}
+
 func CaptureFactFromBoundaryFact(fact: BoundaryLaneInputFact) -> BoundaryCaptureFact {
     let crosses_authority: Bool = fact.authority_required && fact.authority_count > 0;
     match fact.kind {
@@ -174,35 +178,35 @@ func LaneFromProducedBoundaryFact(fact: BoundaryLaneInputFact) -> ExecutionLane 
 // The 10 decision-table cases, in the same order as the C proof
 // (src/tests/execution_lane_policy_test.c), so the two policies can be diffed.
 func Main() -> Void {
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, false, false, false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, true,  false, false, false, false, false, false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, true,  false, false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, true,  false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, true,  false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, true,  true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  false, false, false, false, false, true))));
-    Log(LaneName(ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, true))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, true, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, true, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, true, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, true, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, true, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindZone, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindZone, false, 0, false, false, false, false, false, false, false, false, true))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, true, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, true, false, false))));
-    Log(LaneName(LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, false, false))));
-    Log(LaneName(LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, true, false, false, false, false))));
+    LogLaneCase("policy_inline_not_concurrent", ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("policy_pinned_pin_capture", ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, false, false, false, false, true)));
+    LogLaneCase("policy_pinned_raw_slot_capture", ClassifyLane(BoundaryCaptureFact(false, false, true,  false, false, false, false, false, false, false, true)));
+    LogLaneCase("negative_pin_requires_movability", ClassifyLane(BoundaryCaptureFact(true,  false, false, false, false, false, true,  false, false, false, true)));
+    LogLaneCase("policy_blocking_io_ffi", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, true,  false, false, true)));
+    LogLaneCase("policy_local_async_await_heavy", ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, true,  false, true)));
+    LogLaneCase("policy_worker_deterministic_fork_join", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, true,  true)));
+    LogLaneCase("positive_movable_value_authority", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  true,  false, false, false, false, true)));
+    LogLaneCase("policy_worker_value_no_authority", ClassifyLane(BoundaryCaptureFact(false, false, false, false, true,  false, false, false, false, false, true)));
+    LogLaneCase("policy_local_async_bare_concurrent", ClassifyLane(BoundaryCaptureFact(false, false, false, false, false, false, false, false, false, false, true)));
+    LogLaneCase("air_parallel_fork_join", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false, false)));
+    LogLaneCase("air_parallel_fork_join_repeat", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, false, false, false, false, false)));
+    LogLaneCase("air_parallel_no_evidence", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_parallel_no_evidence_repeat", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_parallel_await_local", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_parallel_await_local_repeat", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, false, false, false, false)));
+    LogLaneCase("negative_movability_without_value_evidence", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, false, false, false, false, false)));
+    LogLaneCase("negative_raw_slot_requires_movability", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, true, false, false, true, false, false, false, false)));
+    LogLaneCase("air_spawn_value_authority", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, true, false)));
+    LogLaneCase("negative_fork_join_raw_slot_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, true, false, true, false, false, false, false)));
+    LogLaneCase("air_parallel_value_worker", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, true, false)));
+    LogLaneCase("negative_await_live_view_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, true, false, false, false, false, true, false, false, false)));
+    LogLaneCase("air_parallel_empty_local_async", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_zone_no_pin_evidence", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindZone, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_zone_pin_evidence", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindZone, false, 0, false, false, false, false, false, false, false, false, true)));
+    LogLaneCase("air_channel_raw_channel_pins", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, true, false, false, false, false, false)));
+    LogLaneCase("air_channel_no_evidence", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindChannel, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_execution_no_pin", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, false, false, false)));
+    LogLaneCase("air_execution_pin_cleanup", LaneFromBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindExecution, false, 0, false, false, false, false, false, false, true, false, false)));
+    LogLaneCase("producer_promotes_value_movable", LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, false, false, false, false, false)));
+    LogLaneCase("producer_rejects_resource_movable", LaneFromProducedBoundaryFact(BoundaryLaneInputFact(BoundaryKind.BoundaryKindParallel, true, 1, false, true, false, false, true, false, false, false, false)));
 }

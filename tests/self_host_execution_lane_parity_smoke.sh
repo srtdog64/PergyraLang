@@ -5,8 +5,9 @@
 # The self-host SEA ExecutionLane classifier (src/self_hosted/sea/execution_lane.pgy)
 # must make the SAME lane decision as the C policy (src/compiler/execution_lane.c)
 # and the same boundary evidence -> capture-fact decisions as
-# src/compiler/air_execution_lane.c, on both backends. The golden file is the C
-# decision table plus AIR evidence-shape proof output, so a match proves:
+# src/compiler/air_execution_lane.c, on both backends. The golden file is a
+# named case-row artifact over the C decision table plus AIR evidence-shape
+# proof output, so a match proves:
 #   - self-host (Pergyra) policy/evidence shape == C policy/evidence shape
 #   - C backend == LLVM backend
 
@@ -30,6 +31,17 @@ if { [ ! -x "$PGY" ] && [ ! -f "$PGY" ]; } || ! pgy_binary_is_runnable_here "$PG
 fi
 [ -f "$SRC" ]    || fail "missing classifier: $SRC"
 [ -f "$GOLDEN" ] || fail "missing golden: $GOLDEN"
+
+grep -Fq "positive_movable_value_authority|MovableScheduler" "$GOLDEN" \
+    || fail "golden must pin the MovableScheduler positive row"
+grep -Fq "negative_pin_requires_movability|Reject" "$GOLDEN" \
+    || fail "golden must pin pin+movability rejection"
+grep -Fq "negative_raw_slot_requires_movability|Reject" "$GOLDEN" \
+    || fail "golden must pin raw-slot+movability rejection"
+grep -Fq "producer_rejects_resource_movable|Reject" "$GOLDEN" \
+    || fail "golden must pin producer-side resource rejection"
+grep -Fq "air_channel_raw_channel_pins|PinnedZone" "$GOLDEN" \
+    || fail "golden must pin raw-channel materialization"
 
 grep -Fq "struct BoundaryLaneInputFact" "$SRC" \
     || fail "self-host lane classifier must consume a typed BoundaryLaneInputFact"
@@ -73,7 +85,7 @@ for be in $backends; do
     if ! diff -u "$GOLDEN" "$WORK/got_$be.txt"; then
         fail "lane decision drift (backend=$be) vs the C policy golden (see diff)."
     fi
-    echo "[sea-self-host-lane] backend=$be matches C policy/evidence shape (31/31)"
+    echo "[sea-self-host-lane] backend=$be matches named C policy/evidence shape (31/31)"
 done
 
 echo "[sea-self-host-lane] PASS"

@@ -124,10 +124,12 @@ strictly underneath.
   (`src/self_hosted/sea/execution_lane.pgy` — a typed `BoundaryCaptureFact`
   struct consumed by a typed `ExecutionLane` return, `Reject` as a first-class
   variant, zero `-1` sentinels). A cross-language / cross-backend parity smoke
-  (`self-host-execution-lane-parity-test-smoke`) diffs it against the C policy
-  table plus AIR evidence-shape rows on both C and LLVM (31/31 each). The
-  self-host mirror is forbidden to reintroduce `BoundarySourceKind`,
-  `source_kind`, or source-string lane APIs.
+  (`self-host-execution-lane-parity-test-smoke`) diffs a named case-row artifact
+  against the C policy table plus AIR evidence-shape rows on both C and LLVM
+  (31/31 each). The named rows explicitly pin positive `MovableScheduler`
+  evidence and negative `Reject` rows for pin/raw-slot resource capture under
+  movability requirements. The self-host mirror is forbidden to reintroduce
+  `BoundarySourceKind`, `source_kind`, or source-string lane APIs.
 
 **Landed — spawn-shaped boundaries consume the lane facade (2026-06-29):**
 - Both backends used to choose the spawn executor with an independent
