@@ -454,6 +454,16 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     }
     if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
         pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        /* No silent serialization (docs/177 F1, CLAUDE No.1.1): a spawn with
+         * no live pool runs inline/serially. Announce it so "my parallel code
+         * isn't parallel" is observable instead of a hidden control-flow branch.
+         * With the thread-pool surface fact fixed, main() emits pgy_pool_init
+         * whenever spawn/parallel is used, so reaching here means pool init was
+         * skipped or failed -- a condition worth a warning, not a silent fall. */
+        pgy_parallel_warn("spawn",
+            "worker pool inactive; task runs inline (serial). "
+            "parallel/spawn does not run concurrently without a live pool "
+            "(pgy_pool_init).");
         return pgy_spawn_inline_completed(fn, arg, "spawn", false,
                                           PGY_LANE_WORKER_POOL);
     }

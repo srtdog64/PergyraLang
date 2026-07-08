@@ -1,0 +1,28 @@
+// Backpressure concurrency witness (docs/177 F1).
+//
+// A producer sends 100 items into a capacity-4 channel while a consumer
+// drains it. Under real parallelism the two arms overlap and this prints
+// 100. Under serialized arms (the F1 regression, where pgy_pool_init is not
+// emitted and spawn silently runs inline) the producer blocks on the 5th
+// send forever -- the case then hits the backend-compare run timeout and the
+// gate goes RED.
+//
+// The pre-F1 corpus (producer_consumer, async_demo, the buffer-fitting parity
+// fixtures) could not catch serialization because every workload fit its
+// channel without needing overlap. This case cannot pass serially, so it is
+// the standing regression guard that parallel actually runs in parallel.
+//
+// Capture note (docs/177 F2): i, j, sum are each written by exactly one arm
+// and read only after the join, so the single-writer exclusivity evidence
+// holds and the scalar-write-race check accepts this program.
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    let mut i: Int = 0;
+    let mut j: Int = 0;
+    let mut sum: Int = 0;
+    parallel {
+        while i < 100 { ch <- 1; i = i + 1; }
+        while j < 100 { let v: Int = <- ch; sum = sum + v; j = j + 1; }
+    }
+    Log(sum);
+}

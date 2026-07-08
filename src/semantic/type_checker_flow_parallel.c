@@ -92,6 +92,80 @@ parallel_reject_shared_collection_capture(ASTNode *task,
     return false;
 }
 
+/* docs/178 Exclusivity evidence: a captured scalar crosses the worker
+ * boundary by shared pointer (llvm_stmt_parallel_async.c stores the parent
+ * alloca address; there is no copy-in yet). Sharing is only sound when the
+ * boundary carries evidence -- here, exclusive access. Reject the two
+ * evidence-free write races; allow the rest (single writer + no other
+ * referencing arm = the value is written by exactly one task and only read
+ * after the join; all-readers = immutable share). Collections have their own
+ * reject; Channel/Slot/Future are runtime-synchronized, so they are skipped.
+ * docs/177 F2. */
+static bool
+parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
+{
+    size_t task_count;
+
+    if (node == NULL || ctx == NULL)
+        return false;
+    task_count = ast_parallel_task_count(node);
+
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *sym = scope->symbols[i];
+            const char *tn;
+            size_t writers = 0;
+            size_t refs = 0;
+
+            if (sym == NULL || sym->name == NULL)
+                continue;
+            /* collections: owned by parallel_reject_shared_collection_capture */
+            if (worker_boundary_storage_display_name(sym->type) != NULL)
+                continue;
+            /* runtime-synchronized transports are safe to share */
+            tn = sym->type != NULL ? sym->type->name : NULL;
+            if (tn != NULL
+                && (strncmp(tn, "Channel", 7) == 0
+                    || strncmp(tn, "Slot", 4) == 0
+                    || strncmp(tn, "SecureSlot", 10) == 0
+                    || strncmp(tn, "DeviceSlot", 10) == 0
+                    || strncmp(tn, "Future", 6) == 0
+                    || strncmp(tn, "RemoteFuture", 12) == 0))
+                continue;
+
+            for (size_t t = 0; t < task_count; t++) {
+                ASTNode *task = ast_parallel_task(node, t);
+                if (parallel_task_assigns_name(task, sym->name))
+                    writers++;
+                if (ast_contains_free_identifier_ref(task, sym->name))
+                    refs++;
+            }
+
+            if (writers >= 2 || (writers == 1 && refs >= 2)) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
+                    PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    node,
+                    "Parallel tasks share mutable variable '%s' across the worker boundary with a writer: data race.\n"
+                    "Reason:\n"
+                    "- captured scalars cross the boundary by shared pointer (no copy-in), so\n"
+                    "- %s\n"
+                    "Fix:\n"
+                    "- send updates through a channel, or write to a disjoint Slot per task\n"
+                    "- or compute in a single task and read '%s' after the parallel join",
+                    sym->name,
+                    writers >= 2
+                        ? "two or more tasks write it concurrently (write-write race)"
+                        : "one task writes it while another task reads it (read-write race)",
+                    sym->name);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool
 type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 {
@@ -166,6 +240,9 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
             return false;
         }
     }
+
+    if (parallel_reject_scalar_write_race(node, ctx))
+        return false;
 
     prev_parallel = ctx->in_parallel;
     ctx->in_parallel = true;

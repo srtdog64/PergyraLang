@@ -50,10 +50,11 @@ p1~p6의 "이치에 맞는 값"은 전부 직렬 실행과 일치하는 값이�
    ("Shared C/LLVM") → `pgy_mir_program_uses_thread_pool` → **MIR surface-usage
    fact(`uses_thread_pool_surface`)가 parallel/spawn 프로그램에서 참이 되지
    않는다**(p1/p4/p8 방출 C에서 pool_init 0회 실측 — dispatch 호출은 있음).
-3. 풀 비활성 → `pgy_spawn`이 **`pgy_spawn_inline_completed(fn, arg, "spawn",
-   false, …)`로 무음 폴백**(pgy_parallel.h:455 — warn 플래그가 문자 그대로
-   `false`). 첫 spawn 호출 안에서 태스크가 완주 실행 → 직렬. p8에선 생산자가
-   9번째 send에서 영원히 대기.
+3. 풀 비활성 → `pgy_spawn`이 **`pgy_spawn_inline_completed`로 폴백**
+   (pgy_parallel.h:455)하는데, 이 함수는 **경고 없이** 태스크를 첫 호출 안에서
+   완주 실행 → 직렬. (정정: 4번째 인자 `false`는 warn이 아니라
+   `charge_spawn_budget` 플래그다. 무음성은 이 폴백 경로에 진단이 아예 없다는
+   것이지 플래그가 아니다.) p8에선 생산자가 9번째 send에서 영원히 대기.
 4. **왜 아무 게이트도 못 잡았나**: 기존 corpus(producer_consumer, async_demo,
    backend_compare fixture)는 전부 buffer-fitting/overlap-불요 워크로드 —
    직렬 실행과 관찰 동치. **동시성 목격자 fixture가 코퍼스에 없다.**
@@ -106,7 +107,36 @@ Channel/Slot/Future 값 흐름 10/10 결정론·백엔드 일치, 가변 컬렉�
   범위를 명시할 것(#2에 포함) — 정리가 틀린 게 아니라 전제 밖일 것으로 추정
   되나 실측 전 단정 금지.
 
-## Related
+## 7. 수정 착지 (2026-07-06) — F1/F2 완료, F3는 표면 결정으로 보류
+
+순서 제약대로 **F2 → F1을 함께 빌드**(pool이 켜질 때 정책이 이미 존재).
+
+- **F2 완료** — `type_checker_flow_parallel.c`에 `parallel_reject_scalar_write_race`:
+  docs/178 Exclusivity 증거 판정. 외부 스칼라에 대해 arm별 writer/참조 수를
+  세어 **≥2 writer(write-write) 또는 1 writer+타 arm 참조(read-write)를 거절**,
+  단일 writer 무참조·전부 read는 허용. collection(별도 거절)·Channel/Slot/
+  Future(런타임 동기화)는 제외. 기존 line 196의 *경고*를 실 *거절*로 승격.
+  실측: p3/p6 거절, p1/p2/p5 통과, 기존 병렬 예제(producer_consumer/async_demo/
+  concurrency_demo/channel_test) 무회귀.
+- **F1 완료** — 근인은 `ast_uses_thread_pool_surface`가 **함수 본문으로 안
+  내려간 것**(inventory rollup이 함수 decl 노드를 스캔하는데 `AST_FUNC_DECL`
+  케이스 부재 → default:false). `ast_thread_pool_analysis.c`에 함수-본문 하강
+  케이스 1개 추가(`ast_func_body`가 async/sync 분기 처리). 실측: p1/p4/p8이
+  이제 pool_init 방출(C+LLVM), **p8 backpressure가 양 백엔드 100000 완주 = 진짜
+  병렬**. 무음 폴백에는 `pgy_parallel.h`에 warn 추가(§1.1 준수).
+- **목격자 게이트 완료** — `tests/cases/backend_compare/parallel_backpressure_
+  witness/`(용량 4 채널에 100 send + 동시 소비). 직렬 회귀 시 deadlock→run
+  timeout→**RED**, 병렬이면 C==LLVM=100 green. compare_backends.sh 목록 등록.
+  실측: 드라이버 통과(1/1). buffer-fitting corpus가 못 준 재발 방지의 본체.
+- **회귀 판별** — test-transpile이 897/19지만, 내 3파일을 stash한 baseline도
+  897/19(동일) → **19 fail은 전부 동시 세션의 slot ABI 라우팅 리팩터, 내 변경
+  기여 0**. test-concurrency green, 게이트 3종 green.
+
+**F3는 코드 수정 대상이 아님(보류, BDFL 결정 입력)**: (a) bare 블록을 parallel
+arm으로 파싱 = **문법 확장**이라 표면 결정(임의 문법 변경은 canon 위반 위험),
+(b) spawn 인자 Channel 거절 = **의도적 copy-only 교리**라 "고칠" 대상이 아니라
+교리 변경 후보. 둘 다 이 문서가 결정 입력이고, WO 미등록 유지. "채널로 통신하는
+named task 쌍" 수요가 실측되면 (b)를 재론.
 
 .tmp/par_probe/(프로브 8종+로그 — 미커밋 실험물) · docs/113(교리 — F2가 집행
 갭) · docs/146(SEA — lane 계약은 옳고 실행이 미완) · docs/114 · pgy_parallel.h

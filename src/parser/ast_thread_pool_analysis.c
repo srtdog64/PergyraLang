@@ -4,6 +4,7 @@
  */
 
 #include "ast_analysis.h"
+#include "ast_api.h"
 
 static bool
 ast_array_uses_thread_pool_surface(ASTNode *const *nodes, size_t count)
@@ -31,6 +32,15 @@ ast_uses_thread_pool_surface(const ASTNode *node)
     case AST_BLOCK:
         return ast_array_uses_thread_pool_surface(
             node->data.block.statements, node->data.block.count);
+    case AST_FUNC_DECL:
+        /* The inventory rollup (mir_inventory_surface_usage_summary) scans
+         * whole function decl nodes, so the thread-pool surface must descend
+         * into the body -- otherwise a program whose only parallel/spawn lives
+         * inside a function (i.e. every real program) reports no thread-pool
+         * use, main() omits pgy_pool_init, and the pool never starts: all
+         * parallel/spawn silently degrades to serial inline execution
+         * (docs/177 F1). ast_func_body handles the async/sync body split. */
+        return ast_uses_thread_pool_surface(ast_func_body(node));
     case AST_LET_DECL:
         return ast_uses_thread_pool_surface(node->data.let_decl.type)
             || ast_uses_thread_pool_surface(node->data.let_decl.initializer);
