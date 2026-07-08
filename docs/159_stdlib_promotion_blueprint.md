@@ -27,6 +27,20 @@ Status: `execution-blueprint`. 작성 2026-07-05. docs/148(stdlib **배선**: �
   무검사 통과하는 게 docs/12 domain-UB의 정확한 반례 — 이걸 fail-closed로
   닫는 게 thesis의 stdlib 실증이다.
 
+**★재서열 (BDFL 2026-07-06, docs/176):** stdlib은 두 트랙 — **기반 트랙 =
+mathlib**(알고리즘 table stakes: random/hash/sort/floatconv/… — 논문이 스펙,
+doctrine-pass 8번 항 신설)이 먼저, **전시 트랙 = 도메인 삼형제**(본 문서의
+money 1호)는 WO-MATH-1~3 뒤 재개. 근거·모듈-논문 표·L0 선행(wrapping builtin)·
+순서는 docs/176이 정본. §2 템플릿에 8번 항(canonical reference + 논문 유래
+vector fixture)이 추가된 것으로 읽을 것.
+
+**★모듈 명명 원칙 (BDFL 문답 2026-07-06):** **개념 = 모듈, 버티컬 = 예제/
+네임스페이스.** money는 Fowler Money 패턴·JSR-354 계보의 개념명으로 유지;
+"finance"는 산업 버티컬이라 모듈명이 될 수 없고, 이미 올바른 층(examples/
+finance_ledger_probe)에 산다. 가족 묶음(finance = money+ledger+obligation)은
+self-host 후 네임스페이스가 올 때 그 이름으로. 게임 금화가 `use finance`를
+쓰게 만들지 않는다(킬러 유즈케이스 정합).
+
 ---
 
 ## 1. 현재 상태 (docs/148 §4 inventory)
