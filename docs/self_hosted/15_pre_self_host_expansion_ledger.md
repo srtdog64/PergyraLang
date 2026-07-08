@@ -385,6 +385,15 @@ change-kind column. The TestHarness-projected parity suite includes an
 closed with the owner-owned `unknown_change_kind` finding when LLVM is
 available.
 
+Compatibility corpus obsolete-migration delta, 2026-07-08:
+`compatibility_evolution_checker` now has an `invalid_obsolete_migration`
+negative artifact projected through `TestHarnessZone`. The artifact keeps
+obsolete rows from passing with only row shape, kind, and codefix status present:
+the diagnostic ID, version ladder, replacement, migration URL, and codefix
+status must still form the owner-defined obsolete migration envelope, and the C
+and LLVM checker legs must fail closed with
+`missing_obsolete_migration_envelope` when LLVM is available.
+
 Compatibility corpus report delta, 2026-07-08:
 `compatibility_evolution_checker/report_owner.pgy` now owns the corpus report
 JSON shape, count rows, negative self-test reports, and finding objects.

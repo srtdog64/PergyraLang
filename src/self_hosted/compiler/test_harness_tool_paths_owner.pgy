@@ -118,10 +118,11 @@ func CompilerHarnessCompatibilityCorpusExpectedJsonPath() -> String {
 func CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/malformed_row.json"; }
 func CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_codefix_status.json"; }
 func CompilerHarnessCompatibilityCorpusInvalidChangeKindExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_change_kind.json"; }
+func CompilerHarnessCompatibilityCorpusInvalidObsoleteMigrationExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/invalid_obsolete_migration.json"; }
 func CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath() -> String { return "src/self_hosted/tools/compatibility_evolution_checker/expected/missing_surface.json"; }
 
 func CompilerHarnessCompatibilityCorpusPathCount() -> Int {
-    return 6;
+    return 7;
 }
 
 func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
@@ -130,19 +131,21 @@ func CompilerHarnessCompatibilityCorpusPathAt(index: Int) -> String {
     if index == 2 { return CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath(); }
     if index == 3 { return CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath(); }
     if index == 4 { return CompilerHarnessCompatibilityCorpusInvalidChangeKindExpectedJsonPath(); }
-    if index == 5 { return CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath(); }
+    if index == 5 { return CompilerHarnessCompatibilityCorpusInvalidObsoleteMigrationExpectedJsonPath(); }
+    if index == 6 { return CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath(); }
     return "";
 }
 
 func CompilerHarnessCompatibilityCorpusReady() -> Bool {
     return CompilerHarnessCompatibilityCorpusSuiteName() != "" &&
-        CompilerHarnessCompatibilityCorpusPathCount() == 6 &&
+        CompilerHarnessCompatibilityCorpusPathCount() == 7 &&
         CompilerHarnessCompatibilityCorpusPathAt(0) == CompilerHarnessCompatibilityCorpusToolSourcePath() &&
         CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath() &&
         CompilerHarnessCompatibilityCorpusPathAt(2) == CompilerHarnessCompatibilityCorpusMalformedRowExpectedJsonPath() &&
         CompilerHarnessCompatibilityCorpusPathAt(3) == CompilerHarnessCompatibilityCorpusInvalidCodefixExpectedJsonPath() &&
         CompilerHarnessCompatibilityCorpusPathAt(4) == CompilerHarnessCompatibilityCorpusInvalidChangeKindExpectedJsonPath() &&
-        CompilerHarnessCompatibilityCorpusPathAt(5) == CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath();
+        CompilerHarnessCompatibilityCorpusPathAt(5) == CompilerHarnessCompatibilityCorpusInvalidObsoleteMigrationExpectedJsonPath() &&
+        CompilerHarnessCompatibilityCorpusPathAt(6) == CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath();
 }
 
 func CompilerHarnessCompatibilityEvolutionSuiteName() -> String {

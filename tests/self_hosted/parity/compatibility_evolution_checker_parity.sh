@@ -38,8 +38,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 6 compatibility corpus paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:compatibility-corpus] TestHarness manifest expected 7 compatibility corpus paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -48,8 +48,9 @@ EXPECTED_FILE="$ROOT_DIR/${harness_paths[1]}"
 NEGATIVE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[2]}"
 INVALID_CODEFIX_EXPECTED_FILE="$ROOT_DIR/${harness_paths[3]}"
 INVALID_CHANGE_KIND_EXPECTED_FILE="$ROOT_DIR/${harness_paths[4]}"
-MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[5]}"
-for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE" "$INVALID_CHANGE_KIND_EXPECTED_FILE" "$MISSING_SURFACE_EXPECTED_FILE"; do
+INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE="$ROOT_DIR/${harness_paths[5]}"
+MISSING_SURFACE_EXPECTED_FILE="$ROOT_DIR/${harness_paths[6]}"
+for path in "$TOOL_SOURCE" "$EXPECTED_FILE" "$NEGATIVE_EXPECTED_FILE" "$INVALID_CODEFIX_EXPECTED_FILE" "$INVALID_CHANGE_KIND_EXPECTED_FILE" "$INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE" "$MISSING_SURFACE_EXPECTED_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:compatibility-corpus] missing input: $path" >&2
         exit 1
@@ -67,6 +68,8 @@ C_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.out"
 C_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_codefix.err"
 C_INVALID_CHANGE_KIND_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_change_kind.out"
 C_INVALID_CHANGE_KIND_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_change_kind.err"
+C_INVALID_OBSOLETE_MIGRATION_OUT="$BUILD_DIR/compatibility_corpus_c_invalid_obsolete_migration.out"
+C_INVALID_OBSOLETE_MIGRATION_ERR="$BUILD_DIR/compatibility_corpus_c_invalid_obsolete_migration.err"
 C_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_c_missing_surface.out"
 C_MISSING_SURFACE_ERR="$BUILD_DIR/compatibility_corpus_c_missing_surface.err"
 
@@ -146,6 +149,23 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "run_output"
 
 set +e
+(cd "$ROOT_DIR" && "$C_BIN" --self-test-invalid-obsolete-migration 2>"$C_INVALID_OBSOLETE_MIGRATION_ERR" | pgy_selfhost_normalize_text_artifact >"$C_INVALID_OBSOLETE_MIGRATION_OUT")
+C_INVALID_OBSOLETE_MIGRATION_RC=$?
+set -e
+if [[ "$C_INVALID_OBSOLETE_MIGRATION_RC" -ne 1 ]]; then
+    echo "[self-host-parity:compatibility-corpus] invalid-obsolete-migration self-test should fail closed (rc=1), got rc=$C_INVALID_OBSOLETE_MIGRATION_RC" >&2
+    cat "$C_INVALID_OBSOLETE_MIGRATION_OUT" "$C_INVALID_OBSOLETE_MIGRATION_ERR" >&2
+    exit 1
+fi
+
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:compatibility-corpus" \
+    "$BUILD_DIR" \
+    "$INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE" \
+    "$C_INVALID_OBSOLETE_MIGRATION_OUT" \
+    "run_output"
+
+set +e
 (cd "$ROOT_DIR" && "$C_BIN" --self-test-missing-surface 2>"$C_MISSING_SURFACE_ERR" | pgy_selfhost_normalize_text_artifact >"$C_MISSING_SURFACE_OUT")
 C_MISSING_SURFACE_RC=$?
 set -e
@@ -172,6 +192,8 @@ LLVM_INVALID_CODEFIX_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.o
 LLVM_INVALID_CODEFIX_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_codefix.err"
 LLVM_INVALID_CHANGE_KIND_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_change_kind.out"
 LLVM_INVALID_CHANGE_KIND_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_change_kind.err"
+LLVM_INVALID_OBSOLETE_MIGRATION_OUT="$BUILD_DIR/compatibility_corpus_llvm_invalid_obsolete_migration.out"
+LLVM_INVALID_OBSOLETE_MIGRATION_ERR="$BUILD_DIR/compatibility_corpus_llvm_invalid_obsolete_migration.err"
 LLVM_MISSING_SURFACE_OUT="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.out"
 LLVM_MISSING_SURFACE_ERR="$BUILD_DIR/compatibility_corpus_llvm_missing_surface.err"
 if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
@@ -230,6 +252,22 @@ else
         "$BUILD_DIR" \
         "$INVALID_CHANGE_KIND_EXPECTED_FILE" \
         "$LLVM_INVALID_CHANGE_KIND_OUT" \
+        "run_output"
+
+    set +e
+    (cd "$ROOT_DIR" && "$LLVM_NEG_BIN" --self-test-invalid-obsolete-migration 2>"$LLVM_INVALID_OBSOLETE_MIGRATION_ERR" | pgy_selfhost_normalize_text_artifact >"$LLVM_INVALID_OBSOLETE_MIGRATION_OUT")
+    LLVM_INVALID_OBSOLETE_MIGRATION_RC=$?
+    set -e
+    if [[ "$LLVM_INVALID_OBSOLETE_MIGRATION_RC" -ne 1 ]]; then
+        echo "[self-host-parity:compatibility-corpus] invalid-obsolete-migration LLVM self-test should fail closed (rc=1), got rc=$LLVM_INVALID_OBSOLETE_MIGRATION_RC" >&2
+        cat "$LLVM_INVALID_OBSOLETE_MIGRATION_OUT" "$LLVM_INVALID_OBSOLETE_MIGRATION_ERR" >&2
+        exit 1
+    fi
+    pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+        "self-host-parity:compatibility-corpus" \
+        "$BUILD_DIR" \
+        "$INVALID_OBSOLETE_MIGRATION_EXPECTED_FILE" \
+        "$LLVM_INVALID_OBSOLETE_MIGRATION_OUT" \
         "run_output"
 
     set +e

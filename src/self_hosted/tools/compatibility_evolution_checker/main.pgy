@@ -219,6 +219,10 @@ func CompatibilityInvalidChangeKindSelfTestMode() -> String {
     return "--self-test-invalid-change-kind";
 }
 
+func CompatibilityInvalidObsoleteMigrationSelfTestMode() -> String {
+    return "--self-test-invalid-obsolete-migration";
+}
+
 func CompatibilityMissingSurfaceSelfTestMode() -> String {
     return "--self-test-missing-surface";
 }
@@ -287,6 +291,34 @@ func RunCompatibilityInvalidChangeKindSelfTest() -> Void {
     }
 }
 
+func RunCompatibilityInvalidObsoleteMigrationSelfTest() -> Void {
+    let seed_row: String = CompilerCompatibilityChangeRowAt(0);
+    let row: String = CompilerCompatibilityChangeRow(
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSurfaceFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeSymbolFieldIndex()),
+        CompilerCompatibilityObsoleteChangeKind(),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeDiagnosticIdFieldIndex()),
+        "",
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeMigrationUrlFieldIndex()),
+        CompatibilityChangeRowFieldAt(seed_row, CompilerCompatibilityChangeCodefixStatusFieldIndex()));
+    let row_shape_count: Int = 0;
+    let obsolete_count: Int = 0;
+    let obsolete_migration_count: Int = 0;
+    if CompatibilityChangeRowHasShape(row) {
+        row_shape_count = 1;
+    }
+    if CompatibilityChangeRowIsObsolete(row) {
+        obsolete_count = 1;
+    }
+    if CompatibilityChangeRowIsObsolete(row) && CompatibilityChangeRowHasMigrationEnvelope(row) {
+        obsolete_migration_count = 1;
+    }
+    Log(CompatibilityInvalidObsoleteMigrationSelfTestReport(obsolete_count, obsolete_migration_count, row_shape_count));
+    if obsolete_migration_count < obsolete_count {
+        Exit(1);
+    }
+}
+
 func RunCompatibilityMissingSurfaceSelfTest() -> Void {
     Log(CompatibilityMissingSurfaceSelfTestReport());
     Exit(1);
@@ -309,6 +341,10 @@ func Main() -> Void {
     }
     if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidChangeKindSelfTestMode() {
         RunCompatibilityInvalidChangeKindSelfTest();
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == CompatibilityInvalidObsoleteMigrationSelfTestMode() {
+        RunCompatibilityInvalidObsoleteMigrationSelfTest();
         return;
     }
     if ArrayLength(args) > 0 && args[0] == CompatibilityMissingSurfaceSelfTestMode() {

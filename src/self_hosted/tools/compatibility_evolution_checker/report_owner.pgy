@@ -72,6 +72,28 @@ func CompatibilityInvalidChangeKindSelfTestReport(change_kind_count: Int, row_sh
     ]);
 }
 
+func CompatibilityInvalidObsoleteMigrationSelfTestReport(obsolete_count: Int, obsolete_migration_count: Int, row_shape_count: Int) -> String {
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    if obsolete_migration_count < obsolete_count {
+        missing = 1;
+        ArrayPush(findings, CompatibilityFindingJson(CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()));
+    }
+    let counts: String = JsonEmitObject([
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusChangesCountField(), ToString(1)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusRowShapeCountField(), ToString(row_shape_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusObsoleteCountField(), ToString(obsolete_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusObsoleteMigrationCountField(), ToString(obsolete_migration_count)),
+        JsonEmitFieldNumber(CompilerCompatibilityCorpusMissingCountField(), ToString(missing))
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerCompatibilityCorpusNegativeSchema()),
+        JsonEmitFieldBool("ok", missing == 0),
+        JsonEmitFieldRaw("counts", counts),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ]);
+}
+
 func CompatibilityMissingSurfaceSelfTestReport() -> String {
     let missing: Int = CompilerCompatibilitySurfaceCount();
     return JsonEmitObject([
@@ -305,6 +327,7 @@ func CompatibilityEvolutionReportOwnerReady() -> Bool {
     return StringIndexOf(CompatibilityMalformedRowSelfTestReport(0), CompilerCompatibilityCorpusNegativeSchema()) >= 0 &&
         StringIndexOf(CompatibilityInvalidCodefixSelfTestReport(0, 1), CompilerCompatibilityMissingCodefixStatusFinding()) >= 0 &&
         StringIndexOf(CompatibilityInvalidChangeKindSelfTestReport(0, 1), CompilerCompatibilityUnknownChangeKindFinding()) >= 0 &&
+        StringIndexOf(CompatibilityInvalidObsoleteMigrationSelfTestReport(1, 0, 1), CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()) >= 0 &&
         StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingSourceFinding()) >= 0 &&
         StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingStdlibModuleFinding()) >= 0 &&
         StringIndexOf(CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 1, 1, 0), CompilerCompatibilityCorpusSchema()) >= 0;

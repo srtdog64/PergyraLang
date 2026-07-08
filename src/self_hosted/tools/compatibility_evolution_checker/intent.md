@@ -30,4 +30,5 @@ the checker through C and LLVM, compares the report with the committed expected
 artifact, and verifies the C/LLVM tool outputs are identical.
 The same parity gate runs fail-closed negative modes for malformed change rows
 invalid codefix statuses, invalid change kinds, and missing surfaces on C and
-LLVM when the LLVM backend is available.
+LLVM when the LLVM backend is available. It also runs an obsolete-migration
+negative that keeps obsolete rows from passing without their migration envelope.
