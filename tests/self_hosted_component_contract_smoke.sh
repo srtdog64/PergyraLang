@@ -718,6 +718,7 @@ require_owner_surface codegen \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
+    "input/ast_text_for_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
@@ -2248,6 +2249,17 @@ require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pg
 require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy" "func CodegenAstArenaAssignIndexReceiverOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy" "func CodegenAstArenaAssignIndexExprOrDie"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_indexed_assignment_owner.pgy";'
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaForLoopVarOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaForIsRange"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaForRangeEndOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaForEachCollectionOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForLoopVarOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForIsRange"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeEndOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForEachCollectionOrDie"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_for_stmt_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaAssignTargetIsIndex(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
@@ -2270,10 +2282,12 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsContinueStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsForStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let loop_var: String = CodegenAstArenaAtomOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let range_end: Option<String> = TypedAstArenaAuxValueText(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let start_v: String = CodegenAstArenaValueOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenAstArenaValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let loop_var: String = CodegenAstArenaForLoopVarOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "if CodegenAstArenaForIsRange(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let start_v: String = CodegenAstArenaForRangeStartOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let end_v: String = CodegenAstArenaForRangeEndOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenAstArenaForEachCollectionOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstArenaAuxValueText(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsWhileStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCond(CodegenAstArenaAtomOrDie(arena, idx), env_box[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsIfStmt(arena, idx)"

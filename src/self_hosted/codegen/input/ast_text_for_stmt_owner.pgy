@@ -1,0 +1,46 @@
+// Self-host codegen AST-text for-statement facts.
+//
+// The typed arena already carries loop variable, iterable/range start, and
+// optional range end rows. This owner keeps range-vs-foreach classification out
+// of statement emission participants.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaForLoopVarOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsForStmt(arena, node_id) {
+        Die(Concat("expected for statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaForIsRange(arena: AstArena, node_id: Int) -> Bool {
+    if !CodegenAstArenaIsForStmt(arena, node_id) {
+        return false;
+    }
+    return IsSome(TypedAstArenaAuxValueText(arena, node_id));
+}
+
+func CodegenAstArenaForRangeStartOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaForIsRange(arena, node_id) {
+        Die(Concat("expected range for statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaValueOrDie(arena, node_id);
+}
+
+func CodegenAstArenaForRangeEndOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsForStmt(arena, node_id) {
+        Die(Concat("expected for statement at typed AST node: ", ToString(node_id)));
+    }
+    let range_end: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+    if !IsSome(range_end) {
+        Die(Concat("expected range end at typed AST node: ", ToString(node_id)));
+    }
+    return UnwrapOption(range_end);
+}
+
+func CodegenAstArenaForEachCollectionOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsForStmt(arena, node_id) || CodegenAstArenaForIsRange(arena, node_id) {
+        Die(Concat("expected foreach statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaValueOrDie(arena, node_id);
+}

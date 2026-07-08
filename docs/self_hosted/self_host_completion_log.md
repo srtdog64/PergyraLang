@@ -5330,3 +5330,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `build-source-inventory-test-smoke`, `self-host-pergyra-likeness-test-smoke`
   (`result_use` ratcheted to 734), and `self-host-codegen-bootstrap-test-smoke`
   (`SELF-HOSTING OK`, `gen2 == gen3` at 9131 generated-C lines).
+
+### 2026-07-09 -- For statement payload facts leave stmt emission
+
+- Added `ast_text_for_stmt_owner.pgy` for self-host codegen `For` facts:
+  loop variable, range-vs-foreach classification, range start/end, and foreach
+  collection.
+- Repointed `stmt_emit.pgy` so `For` lowering consumes those owner accessors
+  instead of reading `TypedAstArenaAuxValueText(arena, idx)` directly.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new `For` statement owner and `stmt_emit.pgy` rejects
+  reopening direct range-end payload reads.
+- This reduces the mixed AST-like tree blocker for statement emission. It does
+  not close the blocker because the owner still reads the transitional typed
+  arena payload rows until typed expression/statement rows replace the AST-text
+  bridge.
