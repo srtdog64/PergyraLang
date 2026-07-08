@@ -194,6 +194,7 @@ func EmitAbiLayoutRowsPaths() -> Void {
 func EmitRuntimeCallAbiRowsPaths() -> Void { let i: Int = 0; while i < CompilerHarnessRuntimeCallAbiRowsPathCount() { Log(CompilerHarnessRuntimeCallAbiRowsPathAt(i)); i = i + 1; } }
 
 func EmitCompatibilityEvolutionPaths() -> Void { let i: Int = 0; while i < CompilerHarnessCompatibilityEvolutionPathCount() { Log(CompilerHarnessCompatibilityEvolutionPathAt(i)); i = i + 1; } }
+func EmitExecutionLaneParityPaths() -> Void { let i: Int = 0; while i < CompilerHarnessExecutionLanePathCount() { Log(CompilerHarnessExecutionLanePathAt(i)); i = i + 1; } }
 
 func EmitAirGraphJsonValidatorPaths() -> Void {
     let i: Int = 0;
@@ -477,6 +478,7 @@ func Main() -> Void {
         EmitCompatibilityEvolutionPaths();
         return;
     }
+    if args[0] == CompilerHarnessExecutionLaneParitySuiteName() { EmitExecutionLaneParityPaths(); return; }
     if args[0] == CompilerHarnessAirGraphJsonValidatorSuiteName() {
         EmitAirGraphJsonValidatorPaths();
         return;

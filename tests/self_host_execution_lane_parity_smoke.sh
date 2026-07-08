@@ -16,12 +16,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
-SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"
-GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"
 
 fail() { echo "[sea-self-host-lane] FAIL: $*" >&2; exit 1; }
 
@@ -29,6 +28,23 @@ if { [ ! -x "$PGY" ] && [ ! -f "$PGY" ]; } || ! pgy_binary_is_runnable_here "$PG
     echo "[sea-self-host-lane] SKIP: compiler binary not runnable"
     exit 0
 fi
+
+WORK="$(mktemp -d)"
+HARNESS_PATHS="$WORK/execution_lane_harness_paths.txt"
+pgy_selfhost_read_test_harness_manifest \
+    "sea-self-host-lane" \
+    "$WORK" \
+    "execution-lane-parity-paths" \
+    "$HARNESS_PATHS"
+mapfile -t harness_paths < "$HARNESS_PATHS"
+if [ "${#harness_paths[@]}" -ne 2 ]; then
+    fail "TestHarness manifest expected 2 execution-lane paths, got ${#harness_paths[@]}"
+fi
+case "${harness_paths[0]}" in /*|[A-Za-z]:*|*\\*) fail "execution-lane source path must be repo-relative: ${harness_paths[0]}" ;; esac
+case "${harness_paths[1]}" in /*|[A-Za-z]:*|*\\*) fail "execution-lane golden path must be repo-relative: ${harness_paths[1]}" ;; esac
+
+SRC="$ROOT_DIR/${harness_paths[0]}"
+GOLDEN="$ROOT_DIR/${harness_paths[1]}"
 [ -f "$SRC" ]    || fail "missing classifier: $SRC"
 [ -f "$GOLDEN" ] || fail "missing golden: $GOLDEN"
 
@@ -63,7 +79,6 @@ if grep -Fq "LaneFromBoundarySource" "$SRC"; then
     fail "self-host lane classifier reintroduced source-string lane API"
 fi
 
-WORK="$(mktemp -d)"
 backends="c"
 # Only attempt LLVM if this build advertises it.
 if "$PGY" --help 2>/dev/null | grep -qiE 'llvm'; then

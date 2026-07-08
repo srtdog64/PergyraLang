@@ -199,7 +199,7 @@ for term in \
     "func CompilerCompatibilityChangeCount" \
     "func CompilerCompatibilityChangeRowAt" \
     "CompilerCompatibilitySurfaceCount() == 9" \
-    "CompilerCompatibilityChangeCount() == 3" \
+    "CompilerCompatibilityChangeCount() == 9" \
     "source" \
     "abi_binary" \
     "behavior" \

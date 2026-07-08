@@ -161,6 +161,35 @@ func CompilerHarnessCompatibilityEvolutionReady() -> Bool {
         CompilerHarnessCompatibilityEvolutionPathAt(1) == CompilerHarnessCompatibilityEvolutionExpectedPath();
 }
 
+func CompilerHarnessExecutionLaneParitySuiteName() -> String {
+    return "execution-lane-parity-paths";
+}
+
+func CompilerHarnessExecutionLaneSourcePath() -> String {
+    return "src/self_hosted/sea/execution_lane.pgy";
+}
+
+func CompilerHarnessExecutionLaneExpectedPath() -> String {
+    return "src/self_hosted/sea/expected_lanes.txt";
+}
+
+func CompilerHarnessExecutionLanePathCount() -> Int {
+    return 2;
+}
+
+func CompilerHarnessExecutionLanePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessExecutionLaneSourcePath(); }
+    if index == 1 { return CompilerHarnessExecutionLaneExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessExecutionLaneParityReady() -> Bool {
+    return CompilerHarnessExecutionLaneParitySuiteName() != "" &&
+        CompilerHarnessExecutionLanePathCount() == 2 &&
+        CompilerHarnessExecutionLanePathAt(0) == CompilerHarnessExecutionLaneSourcePath() &&
+        CompilerHarnessExecutionLanePathAt(1) == CompilerHarnessExecutionLaneExpectedPath();
+}
+
 func CompilerHarnessStableSubsetSectionSuiteName() -> String {
     return "stable-subset-section-paths";
 }

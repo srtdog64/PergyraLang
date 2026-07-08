@@ -1084,6 +1084,18 @@ reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
 require_text "Makefile" "self-host-compatibility-corpus-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExecutionLaneParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "execution-lane-parity-paths"
+require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExecutionLaneParityPaths"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExecutionLaneParitySuiteName()"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_host_execution_lane_parity_smoke.sh" '"execution-lane-parity-paths"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/${harness_paths[0]}"'
+require_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/${harness_paths[1]}"'
+reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'SRC="$ROOT_DIR/src/self_hosted/sea/execution_lane.pgy"'
+reject_text "tests/self_host_execution_lane_parity_smoke.sh" 'GOLDEN="$ROOT_DIR/src/self_hosted/sea/expected_lanes.txt"'
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextIndentOf"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "struct CodegenAstTextNode"
 require_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "let kind: Int"

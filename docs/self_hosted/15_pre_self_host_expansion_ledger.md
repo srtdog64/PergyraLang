@@ -760,6 +760,12 @@ TestHarness delta, 2026-07-05: `mir_json_parity.sh` no longer owns the
 runner consumes those rows before invoking `pgy --mir-json`, `mir_lower`,
 `codegen`, and the C oracle.
 
+TestHarness delta, 2026-07-08: `self_host_execution_lane_parity_smoke.sh` no
+longer owns the SEA execution-lane source/golden paths. The paths now come from
+the `execution-lane-parity-paths` suite emitted by `test_harness_manifest.pgy`,
+so the root smoke executes the self-hosted harness owner instead of carrying its
+own `src/self_hosted/sea/...` path constants.
+
 Artifact Zone delta, 2026-07-04: LSP transport outputs are now tracked as
 their own comparable artifact kinds: `CompilerLspTransportFrameArtifactKind()`
 for LSP-2a single-frame output and `CompilerLspTransportStreamArtifactKind()`
