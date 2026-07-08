@@ -22,6 +22,7 @@ import "input/ast_text_enum_variant_owner.pgy";
 import "input/ast_text_try_let_owner.pgy";
 import "input/ast_text_indexed_assignment_owner.pgy";
 import "input/ast_text_for_stmt_owner.pgy";
+import "input/ast_text_statement_payload_owner.pgy";
 import "input/ast_expression_usage_owner.pgy";
 import "input/ast_usage_owner.pgy";
 import "emission/expr_rewrite.pgy";

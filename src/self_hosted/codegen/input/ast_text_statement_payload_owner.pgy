@@ -1,0 +1,69 @@
+// Self-host codegen AST-text single-payload statement facts.
+//
+// Statement emission owns C lowering. This owner owns the payload meaning for
+// simple statement rows whose semantic payload is the arena atom text.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaLogArgumentOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsLogStmt(arena, node_id) {
+        Die(Concat("expected Log statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaReturnValueOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsValueReturnStmt(arena, node_id) {
+        Die(Concat("expected value Return statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaArrayPopTargetOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsArrayPopStmt(arena, node_id) {
+        Die(Concat("expected ArrayPop statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaExitArgumentOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsExitStmt(arena, node_id) {
+        Die(Concat("expected Exit statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaWhileConditionOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsWhileStmt(arena, node_id) {
+        Die(Concat("expected While statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaIfConditionOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsIfStmt(arena, node_id) {
+        Die(Concat("expected If statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaMatchSubjectOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsMatchStmt(arena, node_id) {
+        Die(Concat("expected Match statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaMatchCasePatternOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsMatchCaseStmt(arena, node_id) {
+        Die(Concat("expected MatchCase statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaBareCallExprOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsBareCallStmt(arena, node_id) {
+        Die(Concat("expected bare call statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}

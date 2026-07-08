@@ -11,6 +11,7 @@ import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
 import "../input/ast_text_for_stmt_owner.pgy";
+import "../input/ast_text_statement_payload_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -364,7 +365,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             result = Concat(result, Concat(pad, Concat(EmitAssign(arena, idx, env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsLogStmt(arena, idx) {
-            let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let log_inner: String = CodegenAstArenaLogArgumentOrDie(arena, idx);
             result = Concat(result, Concat(pad, Concat(EmitLog(log_inner, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsBareReturnStmt(arena, idx) {
@@ -380,7 +381,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             result = Concat(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsValueReturnStmt(arena, idx) {
-            let rexpr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let rexpr: String = CodegenAstArenaReturnValueOrDie(arena, idx);
             result = Concat(result, deferred);
             result = Concat(result, active_defers);
             deferred = "";
@@ -420,7 +421,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsArrayPopStmt(arena, idx) {
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
-            let q_arr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let q_arr: String = CodegenAstArenaArrayPopTargetOrDie(arena, idx);
             let c_q_arr: String = CompilerSymbolCBindingName(q_arr);
             let q_kind: String = LookupKindType(env_box[0], q_arr, "v");
             let pop_fn: String = CollectionRuntimeCPopFn(CollectionRuntimeKindCode(q_kind));
@@ -428,7 +429,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsExitStmt(arena, idx) {
             // `Exit(N)` statement -> target process-exit call (rung-9).
-            let e_arg: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let e_arg: String = CodegenAstArenaExitArgumentOrDie(arena, idx);
             result = Concat(result, Concat(pad, Concat(HostIORuntimeCExitFn(), Concat("(", Concat(IntEval(e_arg, env_box[0]), ");\n")))));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsBreakStmt(arena, idx) {
@@ -499,14 +500,14 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsWhileStmt(arena, idx) {
-            let cond: String = WrapCond(CodegenAstArenaAtomOrDie(arena, idx), env_box[0]);
+            let cond: String = WrapCond(CodegenAstArenaWhileConditionOrDie(arena, idx), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             result = Concat(result, EmitStmtList(nodes, count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsIfStmt(arena, idx) {
-            let cond2: String = WrapCond(CodegenAstArenaAtomOrDie(arena, idx), env_box[0]);
+            let cond2: String = WrapCond(CodegenAstArenaIfConditionOrDie(arena, idx), env_box[0]);
             result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
@@ -530,7 +531,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                 result = Concat(result, Concat(pad, "}\n"));
             }
         } else if CodegenAstArenaIsMatchStmt(arena, idx) {
-            let match_subject: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let match_subject: String = CodegenAstArenaMatchSubjectOrDie(arena, idx);
             let match_subject_type: String = ExprKind(match_subject, env_box[0]);
             let match_tmp: String = CompilerSymbolCMatchTempName(idx);
             let match_tmp_type: String = AbiLayoutCLocalType("Int", env_box[0]);
@@ -548,7 +549,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
             let match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
                 if CodegenAstArenaIsMatchCaseStmt(arena, cur[0]) {
-                    let case_pattern: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
+                    let case_pattern: String = CodegenAstArenaMatchCasePatternOrDie(arena, cur[0]);
                     let case_value: String = EmitMatchCaseValue(case_pattern, match_subject_type, env_box[0]);
                     if match_case_count == 0 {
                         result = Concat(result, Concat(inner_pad, Concat("if (", Concat(match_tmp, Concat(" == ", Concat(case_value, ") {\n"))))));
@@ -574,7 +575,7 @@ func EmitStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
         } else if CodegenAstArenaIsBareCallStmt(arena, idx) {
             // Bare function-call statement, e.g. `Die(Concat(...))` or a void
             // user call. Arguments lower through the same RewriteExpr pipeline.
-            let call_expr: String = CodegenAstArenaAtomOrDie(arena, idx);
+            let call_expr: String = CodegenAstArenaBareCallExprOrDie(arena, idx);
             result = Concat(result, Concat(pad, Concat(RewriteExpr(call_expr, env_box[0]), ";\n")));
             ArraySet(cur, 0, idx + 1);
         } else {

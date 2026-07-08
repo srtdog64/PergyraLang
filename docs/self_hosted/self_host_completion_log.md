@@ -5345,3 +5345,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   not close the blocker because the owner still reads the transitional typed
   arena payload rows until typed expression/statement rows replace the AST-text
   bridge.
+
+### 2026-07-09 -- Single-payload statement facts leave stmt emission
+
+- Added `ast_text_statement_payload_owner.pgy` for self-host codegen statement
+  payload facts: `Log`, value `Return`, `ArrayPop`, `Exit`, `While`, `If`,
+  `Match`, match case, and bare-call payloads.
+- Repointed `stmt_emit.pgy` so those statement forms consume owner accessors
+  instead of directly calling `CodegenAstArenaAtomOrDie(arena, idx)` for their
+  payloads.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new statement payload owner and `stmt_emit.pgy` rejects
+  reopening those direct atom reads.
+- This reduces the mixed AST-like tree blocker for statement emission. It does
+  not close the blocker because the owner still reads transitional typed arena
+  payload rows until typed statement rows replace the AST-text bridge.
