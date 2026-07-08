@@ -87,9 +87,12 @@ terms and forbidden backend-local runtime-name synthesis terms. The
 `backend_emitter_contract_checker` tool consumes those rows and
 `self-host-backend-emitter-contract-parity-test-smoke` proves the clean,
 missing-required, and forbidden-hit paths across C/LLVM-built self-host tools.
-`backend_air_access_checker` is the adjacent AIR verification-only boundary:
-it walks `src/codegen` with `DirWalk`, rejects AIR header/type tokens in backend
-sources, and is gated by `self-host-backend-air-access-parity-test-smoke`.
+`backend_air_access_contract_owner.pgy` is the adjacent AIR verification-only
+boundary owner. It names the backend scan root, source extensions, forbidden
+AIR header/type tokens, JSON count fields, finding kind, and negative self-test
+path. `backend_air_access_checker` consumes those facts, walks `src/codegen`
+with `DirWalk`, rejects AIR header/type tokens in backend sources, and is gated
+by `self-host-backend-air-access-parity-test-smoke`.
 The native/backend ABI layout contract is intentionally tied back to the same
 `abi_layout_row_owner.pgy` rather than a second shell list:
 `backend_abi_layout_contract_checker` consumes those rows through the

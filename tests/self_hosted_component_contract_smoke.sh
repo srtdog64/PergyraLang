@@ -898,16 +898,42 @@ require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/mi
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/forbidden_hit.json" "llvm_runtime_slot_name"
+require_file "src/self_hosted/compiler/backend_air_access_contract_owner.pgy"
+require_max_lines "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_air_access_contract_owner.pgy"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "pgy.selfhost.backend-air-access.v1"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "pgy.selfhost.backend-air-access-negative.v1"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessRoot"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessFilesCountField"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenTermsCountField"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessHitsCountField"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenHitFinding"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessOwnerNotReadyMessage"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenHitSelfTestPath"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessSourceExtensionAt"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenTermAt"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "CompilerBackendAirAccessForbiddenTermCount() == 12"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "AIRProgram"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "air_internal.h"
 require_file "src/self_hosted/tools/backend_air_access_checker/main.pgy"
 require_file "src/self_hosted/tools/backend_air_access_checker/expected/clean.json"
 require_file "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json"
 require_max_lines "src/self_hosted/tools/backend_air_access_checker/main.pgy" 600
-require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access.v1"
-require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessRoot()"
-require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "DirWalk(BackendAirAccessRoot())"
-require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "AIRProgram"
-require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "air_internal.h"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" 'import "../../compiler/backend_air_access_contract_owner.pgy";'
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessRoot()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "DirWalk(CompilerBackendAirAccessRoot())"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessForbiddenTermCount()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessForbiddenTermAt"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessForbiddenHitFinding()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessContractReady()"
+require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "CompilerBackendAirAccessOwnerNotReadyMessage()"
 require_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "BackendAirAccessForbiddenHitSelfTestMode"
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access.v1"
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" "pgy.selfhost.backend-air-access-negative.v1"
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"forbidden_air_access"'
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"AIRProgram"'
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"air_internal.h"'
+reject_text "src/self_hosted/tools/backend_air_access_checker/main.pgy" '"src/codegen"'
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" "pgy.selfhost.backend-air-access.v1"
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/clean.json" '"hits":0'
 require_text "src/self_hosted/tools/backend_air_access_checker/expected/forbidden_hit.json" "pgy.selfhost.backend-air-access-negative.v1"

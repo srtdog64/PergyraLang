@@ -1,0 +1,89 @@
+// Self-host compiler backend AIR access contract owner.
+//
+// AIR is verification-only. Backend sources must not include AIR headers or
+// consume AIR graph node types as semantic input.
+
+func CompilerBackendAirAccessSchema() -> String {
+    return "pgy.selfhost.backend-air-access.v1";
+}
+
+func CompilerBackendAirAccessNegativeSchema() -> String {
+    return "pgy.selfhost.backend-air-access-negative.v1";
+}
+
+func CompilerBackendAirAccessRoot() -> String {
+    return "src/codegen";
+}
+
+func CompilerBackendAirAccessFilesCountField() -> String {
+    return "files";
+}
+
+func CompilerBackendAirAccessForbiddenTermsCountField() -> String {
+    return "forbidden_terms";
+}
+
+func CompilerBackendAirAccessHitsCountField() -> String {
+    return "hits";
+}
+
+func CompilerBackendAirAccessForbiddenHitFinding() -> String {
+    return "forbidden_air_access";
+}
+
+func CompilerBackendAirAccessOwnerNotReadyMessage() -> String {
+    return "BACKEND_AIR_ACCESS_CONTRACT ERROR: owner is not ready";
+}
+
+func CompilerBackendAirAccessForbiddenHitSelfTestPath() -> String {
+    return "src/codegen/forbidden_air_access_self_test.c";
+}
+
+func CompilerBackendAirAccessSourceExtensionCount() -> Int {
+    return 2;
+}
+
+func CompilerBackendAirAccessSourceExtensionAt(index: Int) -> String {
+    if index == 0 { return ".c"; }
+    if index == 1 { return ".h"; }
+    return "";
+}
+
+func CompilerBackendAirAccessForbiddenTermCount() -> Int {
+    return 12;
+}
+
+func CompilerBackendAirAccessForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "AIRProgram"; }
+    if index == 1 { return "AIRIntentNode"; }
+    if index == 2 { return "AIRBoundaryNode"; }
+    if index == 3 { return "AIREvidenceNode"; }
+    if index == 4 { return "AIRDrift"; }
+    if index == 5 { return "AIRSlotSite"; }
+    if index == 6 { return "AIREffectSite"; }
+    if index == 7 { return "AIRLifecycleStateSpace"; }
+    if index == 8 { return "air.h\""; }
+    if index == 9 { return "air.h>"; }
+    if index == 10 { return "air_internal.h\""; }
+    if index == 11 { return "air_internal.h>"; }
+    return "";
+}
+
+func CompilerBackendAirAccessContractReady() -> Bool {
+    return CompilerBackendAirAccessSchema() != "" &&
+        CompilerBackendAirAccessNegativeSchema() != "" &&
+        CompilerBackendAirAccessRoot() == "src/codegen" &&
+        CompilerBackendAirAccessFilesCountField() != "" &&
+        CompilerBackendAirAccessForbiddenTermsCountField() != "" &&
+        CompilerBackendAirAccessHitsCountField() != "" &&
+        CompilerBackendAirAccessForbiddenHitFinding() != "" &&
+        CompilerBackendAirAccessOwnerNotReadyMessage() != "" &&
+        CompilerBackendAirAccessForbiddenHitSelfTestPath() != "" &&
+        CompilerBackendAirAccessSourceExtensionCount() == 2 &&
+        CompilerBackendAirAccessSourceExtensionAt(0) == ".c" &&
+        CompilerBackendAirAccessSourceExtensionAt(1) == ".h" &&
+        CompilerBackendAirAccessForbiddenTermCount() == 12 &&
+        CompilerBackendAirAccessForbiddenTermAt(0) == "AIRProgram" &&
+        CompilerBackendAirAccessForbiddenTermAt(7) == "AIRLifecycleStateSpace" &&
+        CompilerBackendAirAccessForbiddenTermAt(10) == "air_internal.h\"";
+}

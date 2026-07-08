@@ -167,6 +167,8 @@ compiler-stage `.pgy` source to be listed here.
   sandbox capability/frame-budget artifact projection over owner facts.
 - `src/self_hosted/compiler/backend_emitter_contract_owner.pgy` -- backend
   dumb-emitter required/forbidden fact-consumer rows.
+- `src/self_hosted/compiler/backend_air_access_contract_owner.pgy` -- backend
+  AIR verification-only forbidden-token and scan-boundary contract facts.
 - `src/self_hosted/compiler/compatibility_evolution_owner.pgy` -- versioned
   compatibility surface, obsolete-migration metadata, and seed
   breaking-change corpus rows.

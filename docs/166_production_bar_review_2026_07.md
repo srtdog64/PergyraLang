@@ -109,7 +109,7 @@ The compatibility gate must cover these surfaces together:
 | LLVM runtime bitcode | `src/codegen/llvm_api.c`, runtime bitcode strip policy, and performance parity gates |
 | Boundary capture | `docs/146_sea_execution_lanes.md` and MIR/RIR producer code |
 | Execution lane negatives | `tests/sea_execution_lane_golden_smoke.sh` and self-host SEA parity |
-| AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/air_backend_nonimpact_smoke.sh`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
+| AIR/backend access lint | `docs/104_air_compiler_architecture.md`, `tests/air_backend_nonimpact_smoke.sh`, `src/self_hosted/compiler/backend_air_access_contract_owner.pgy`, `src/self_hosted/tools/backend_air_access_checker/main.pgy`, and `self-host-backend-air-access-parity-test-smoke` |
 | Sandbox capability/frame budget | `docs/semantics/15_capability_sandbox.md`, `src/self_hosted/compiler/sandbox_capability_owner.pgy`, `src/self_hosted/compiler/sandbox_capability_manifest.pgy`, `self-host-sandbox-capability-parity-test-smoke`, capability manifest gates, and future runtime frame-budget fixtures |
 | Stdlib L2 doctrine | `docs/148_stdlib_architecture.md` and stdlib conformance gates |
 | Self-host replacement | `docs/self_hosted/10_hard_self_host_contract.md`, `docs/self_hosted/15_pre_self_host_expansion_ledger.md`, and `docs/160_m2_completeness_execution_plan.md` |
@@ -181,7 +181,11 @@ completed green with:
   `make self-host-backend-air-access-parity-test-smoke`. This moves the
   verification-only AIR boundary toward hard self-hosted parity while the
   existing Bash full-sweep non-impact gate remains the broad production
-  backstop.
+  backstop. The schema, source root, source-file extensions, count-field names,
+  forbidden AIR token list, finding kind, negative self-test path, and
+  owner-not-ready diagnostic now live in
+  `backend_air_access_contract_owner.pgy`; the checker is only the executable
+  `DirWalk`/scan projection over those owner facts.
 - Follow-up native/backend ABI layout slice: `backend_abi_layout_contract_checker`
   now consumes `abi_layout_row_owner.pgy` rows through the TestHarness manifest,
   requires selected native MIR ABI layout rows and runtime-function consumers,
