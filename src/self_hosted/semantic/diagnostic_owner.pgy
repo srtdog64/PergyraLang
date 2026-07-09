@@ -124,6 +124,10 @@ func SemanticVerdictPayloadFixtureCount() -> Int {
     return ArrayLength(SemanticVerdictPayloadFixtureManifestRows());
 }
 
+func SemanticVerdictPayloadFixtureFrontierCount() -> Int {
+    return 110;
+}
+
 func SemanticVerdictPayloadFixtureDir() -> String {
     return "src/self_hosted/semantic/fixture";
 }
@@ -497,7 +501,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
     }
-    if SemanticVerdictPayloadFixtureCount() != 110 {
+    if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
     if SemanticDiagnosticCodeCount() != 17 {

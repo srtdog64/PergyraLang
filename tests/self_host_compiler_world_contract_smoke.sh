@@ -526,9 +526,10 @@ for term in \
     "func SemanticVerdictPayloadSchema" \
     "pgy.selfhost.semantic.v1" \
     "func SemanticVerdictPayloadFixtureCount" \
+    "func SemanticVerdictPayloadFixtureFrontierCount" \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
-    "SemanticVerdictPayloadFixtureCount() != 110" \
+    "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
     "SemanticDiagnosticCodeCount() != 17" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do

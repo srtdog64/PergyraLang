@@ -50,6 +50,16 @@ rewrite history.
 - Tightened self-host component and compiler-world contracts so the parser AST
   payload contract cannot reintroduce the second local fixture-count source.
 
+## 2026-07-10 - Semantic payload frontier count gets a named owner fact
+
+- Added `SemanticVerdictPayloadFixtureFrontierCount()` as the named frontier
+  fact for the semantic verdict payload manifest.
+- Repointed `SemanticVerdictPayloadContractReady()` so it compares the manifest
+  row count against that frontier fact instead of carrying a local
+  `SemanticVerdictPayloadFixtureCount() != 110` literal.
+- Tightened the self-host component and compiler-world contracts so the old
+  direct semantic fixture-count comparison cannot return.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for
