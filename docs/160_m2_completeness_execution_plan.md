@@ -85,17 +85,17 @@ self-semantic 각각에 `--check <file>` 모드(pass/fail + 실패 사유) 추�
    C oracle의 silent fallback을 그대로 따라간 결과는 pass 상승 근거가 아니다.
 
 **착지된 M2 ledger baseline(2026-07-09, tightened):** `self-host-completeness-smoke`가
-production self-host source 204개를 측정한다. locked minima:
-`source_min=204`, `lexer_pass_min=204`, `parser_pass_min=204`,
-`semantic_pass_min=204`, `codegen_pass_min=204`,
-`lex_parse_pass_min=204`, `lex_parse_semantic_pass_min=204`,
-`full_pipeline_pass_min=204`. 세 pipeline baseline manifest는 별도 복사본이 아니라
+production self-host source 205개를 측정한다. locked minima:
+`source_min=205`, `lexer_pass_min=205`, `parser_pass_min=205`,
+`semantic_pass_min=205`, `codegen_pass_min=205`,
+`lex_parse_pass_min=205`, `lex_parse_semantic_pass_min=205`,
+`full_pipeline_pass_min=205`. 세 pipeline baseline manifest는 별도 복사본이 아니라
 `CompilerCompletenessSourceInventory()`가 방출하는 source inventory를 소비한다.
 따라서 새 production self-host source가 추가되면 source scope와 pipeline identity가
 같은 owner에서 함께 확장된다. 이 숫자는 낮출 수 없고, source inventory가 바뀌는
 커밋은 같은 게이트에서 새 source의 stage 통과도 증명해야 한다.
 
-주의: `full_pipeline_pass_min=204`는 이제 lexer/parser/semantic/codegen stage가
+주의: `full_pipeline_pass_min=205`는 이제 lexer/parser/semantic/codegen stage가
 같은 production source inventory 위에서 닫혔고, codegen stage는 self-parser가
 방출한 AST 텍스트를 입력으로 사용한다. 다만 이것은 아직 최종 bootstrap
 pipeline이 아니다. self-semantic의 typed facts가 codegen 입력으로 연결된 것이

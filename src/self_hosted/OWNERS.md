@@ -125,8 +125,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
 - `src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy` -- AST text `ArrayPush` and `ArraySet` statement payload facts.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- expression usage facts and builtin-callee group rows derived from typed arena payload rows.
+- `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- type-surface usage facts derived from typed arena type-name rows.
-- `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from typed arena kind rows plus expression/type usage owner rows.
+- `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
 - `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena
   payload contract, `NodeId` lookup facts, and migration target for retiring
   the AST text bridge.

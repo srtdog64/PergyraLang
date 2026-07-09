@@ -726,6 +726,8 @@ require_owner_surface codegen \
     "input/ast_text_statement_payload_owner.pgy" \
     "input/ast_text_collection_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
+    "input/ast_kind_usage_owner.pgy" \
+    "input/ast_type_usage_owner.pgy" \
     "input/ast_usage_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
@@ -2030,6 +2032,13 @@ require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "struct Co
 require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "func CodegenTypeUsageFactsFromArena"
 require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
 require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "TypedAstArenaTypeName(arena, i)"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "struct CodegenKindUsageFacts"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "func CodegenKindUsageFactsFromArena"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "func CodegenAstArenaKindPresent"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindLogStmt()"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindExitStmt()"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindArrayPushStmt()"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstArenaKindIs(arena, i, kind)"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionParts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_atom: Bool"
@@ -2047,14 +2056,16 @@ require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "fun
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenUsageBuiltinGroupCalleeAt"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenAstArenaBuiltinGroupPresent"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenAstArenaExpressionTokenPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaKindPresent"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 13)"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 17)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageFactsFromArena(arena, count)"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenKindUsageFactsFromArena(arena, count)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenTypeUsageFactsFromArena(arena, count)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs())"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString())"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_array"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "kind_usage.has_array_push"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "kind_usage.has_array_set"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "kind_usage.has_array_literal"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "kind_usage.has_log_stmt"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_ast_text_node_array"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_float"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "ContainsCallOutsideStrings(UnwrapOption(part), callee)"
@@ -2070,6 +2081,9 @@ reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Type
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinCallPresent(arena, count, \""
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinGroupPresent(arena, count"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "ContainsCallOutsideStrings"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaKindPresent"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindIs(arena, i, kind)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaTypeFactPresent(arena, count"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaTypeName(arena, i)"
@@ -4577,11 +4591,12 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 154
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 155;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 195;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 203;"
-completeness_min_count="$(grep -F "return 204;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204;"
+completeness_min_count="$(grep -F "return 205;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 204-source closed slice"
+    fail "self-host completeness minima drifted below the 205-source closed slice"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -5272,6 +5287,11 @@ require_text "tests/self_hosted/parity/completeness_ledger.sh" "focused source-f
 require_text "docs/self_hosted/10_hard_self_host_contract.md" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" "it is never a replacement for the"
 require_text "docs/91_build_troubleshooting.md" "PGY_SELFHOST_COMPLETENESS_SOURCES=src/self_hosted/codegen/input/ast_type_usage_owner.pgy"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Incremental Compilation Position"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "fact-owner based"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "source bytes hash"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "ABI/runtime row fingerprints"
+require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "Missing owner facts fail closed and recompute"
 require_text "scripts/measure_build_pressure.ps1" "peak exceeded limit"
 require_text "scripts/measure_build_pressure.ps1" "TimeoutSec"
 require_text "Makefile" "clean-local-artifacts: clean clean-scratch clean-local-variant-artifacts"

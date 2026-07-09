@@ -6,6 +6,7 @@
 
 import "ast_text_typed_arena_owner.pgy";
 import "ast_expression_usage_owner.pgy";
+import "ast_kind_usage_owner.pgy";
 import "ast_type_usage_owner.pgy";
 
 struct CodegenRuntimeUsageFacts {
@@ -35,19 +36,9 @@ struct CodegenRuntimeUsageFacts {
     let uses_random: Bool;
 }
 
-func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaKindIs(arena, i, kind) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
 func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts = CodegenExpressionUsageFactsFromArena(arena, count);
+    let kind_usage: CodegenKindUsageFacts = CodegenKindUsageFactsFromArena(arena, count);
     let type_usage: CodegenTypeUsageFacts = CodegenTypeUsageFactsFromArena(arena, count);
     let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());
     let uses_str: Bool = type_usage.has_string
@@ -63,12 +54,12 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
         || CodegenExpressionUsageHasNone(expr_usage);
     let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option;
-    let uses_exit: Bool = CodegenAstArenaKindPresent(arena, count, 17)
+    let uses_exit: Bool = kind_usage.has_exit_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
     let uses_array: Bool = type_usage.has_array
-        || CodegenAstArenaKindPresent(arena, count, 19)
-        || CodegenAstArenaKindPresent(arena, count, 18)
-        || CodegenAstArenaKindPresent(arena, count, 16)
+        || kind_usage.has_array_push
+        || kind_usage.has_array_set
+        || kind_usage.has_array_literal
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayCore())
         || uses_array_sort
         || uses_array_reverse
@@ -80,7 +71,7 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
     let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
     let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());
     let uses_dirwalk: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupDirWalk());
-    let uses_log: Bool = CodegenAstArenaKindPresent(arena, count, 13)
+    let uses_log: Bool = kind_usage.has_log_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupLog());
     let uses_fhandle: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFileHandle());
     let uses_print: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupPrint());

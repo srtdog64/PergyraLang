@@ -29,6 +29,8 @@ import "input/ast_text_for_stmt_owner.pgy";
 import "input/ast_text_statement_payload_owner.pgy";
 import "input/ast_text_collection_stmt_owner.pgy";
 import "input/ast_expression_usage_owner.pgy";
+import "input/ast_kind_usage_owner.pgy";
+import "input/ast_type_usage_owner.pgy";
 import "input/ast_usage_owner.pgy";
 import "emission/expr_rewrite.pgy";
 import "emission/struct_value_emit.pgy";

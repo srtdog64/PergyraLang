@@ -127,6 +127,9 @@ earlier source-owner slice. On 2026-07-09,
 - Focused M2 completeness refresh: 204 real self-hosted sources measured at
   `sources=204`, with lexer/parser/semantic/codegen and `full_pipeline` all at
   204/204.
+- Focused M2 completeness refresh: 205 real self-hosted sources measured at
+  `sources=205`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  205/205.
 - Parser parity over 188 source/fixture rows on C and LLVM parser binaries.
 - Semantic parity over 108 fixtures on C and LLVM checker binaries.
 - Codegen parity over 68 fixtures on C and LLVM-built codegen tools.
@@ -250,6 +253,10 @@ same slice.
   aggregate codegen runtime/header owner, `make self-host-completeness-smoke`
   completed at `sources=204`, with lexer/parser/semantic/codegen and
   `full_pipeline` all at 204/204.
+- Focused completeness refresh: after splitting kind-usage facts out of the
+  aggregate codegen runtime/header owner, `make self-host-completeness-smoke`
+  completed at `sources=205`, with lexer/parser/semantic/codegen and
+  `full_pipeline` all at 205/205.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:

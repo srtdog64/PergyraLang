@@ -1,0 +1,41 @@
+// Codegen kind usage fact owner.
+//
+// Runtime/header usage decisions need statement-shape facts, but the
+// aggregate runtime usage owner should not scan typed arena kind rows itself.
+
+import "ast_text_typed_arena_owner.pgy";
+
+struct CodegenKindUsageFacts {
+    let has_log_stmt: Bool;
+    let has_exit_stmt: Bool;
+    let has_array_literal: Bool;
+    let has_array_push: Bool;
+    let has_array_set: Bool;
+}
+
+func CodegenAstKindLogStmt() -> Int { return 13; }
+func CodegenAstKindArrayLiteral() -> Int { return 16; }
+func CodegenAstKindExitStmt() -> Int { return 17; }
+func CodegenAstKindArraySetStmt() -> Int { return 18; }
+func CodegenAstKindArrayPushStmt() -> Int { return 19; }
+
+func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
+    let i: Int = 0;
+    while i < count {
+        if CodegenAstArenaKindIs(arena, i, kind) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenKindUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenKindUsageFacts {
+    return CodegenKindUsageFacts(
+        CodegenAstArenaKindPresent(arena, count, CodegenAstKindLogStmt()),
+        CodegenAstArenaKindPresent(arena, count, CodegenAstKindExitStmt()),
+        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArrayLiteral()),
+        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArrayPushStmt()),
+        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArraySetStmt())
+    );
+}
