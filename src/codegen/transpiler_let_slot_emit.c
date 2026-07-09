@@ -16,15 +16,42 @@
 #include "transpiler_type_require.h"
 
 static const char *
+transpiler_let_slot_expected_call_shape(MIRResourceAbiKind kind,
+                                        const char *operation)
+{
+    bool secure = kind == MIR_RESOURCE_ABI_SECURE_SLOT;
+
+    if (operation == NULL)
+        return NULL;
+    if (strcmp(operation, "Claim") == 0)
+        return secure ? "token_ptr_to_container" : "returns_container";
+    if (strcmp(operation, "Write") == 0)
+        return secure ? "container_ptr_value_token_ptr_to_void"
+                      : "container_ptr_value_to_void";
+    if (strcmp(operation, "Read") == 0)
+        return secure ? "container_ptr_token_ptr_to_value"
+                      : "container_ptr_to_value";
+    if (strcmp(operation, "Release") == 0)
+        return secure ? "container_ptr_token_ptr_to_void"
+                      : "container_ptr_to_void";
+    return NULL;
+}
+
+static const char *
 transpiler_let_slot_runtime_fn(TranspilerCtx *ctx,
                                MIRResourceAbiKind kind,
                                const char *inner_type,
                                const char *operation)
 {
-    const char *runtime_fn =
-        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
-    if (runtime_fn != NULL)
-        return runtime_fn;
+    const char *expected_shape =
+        transpiler_let_slot_expected_call_shape(kind, operation);
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL &&
+        (expected_shape == NULL ||
+         strcmp(row->call_shape, expected_shape) == 0)) {
+        return row->runtime_fn;
+    }
 
     transpiler_set_backend_error_with_hints(
         ctx,

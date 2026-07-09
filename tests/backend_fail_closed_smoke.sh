@@ -277,7 +277,9 @@ if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release"
     echo "[backend-fail-closed] LLVM secure slot release declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
@@ -517,7 +519,9 @@ if grep -F 'slot_builtin_strdup_fmt(const char *fmt' \
     echo "[backend-fail-closed] slot builtin formatter lost backend diagnostics" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "C expression slot %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
@@ -550,7 +554,9 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 grep -Fq "C slot method %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "C let-slot %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"

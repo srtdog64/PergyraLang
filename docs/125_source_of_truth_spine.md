@@ -412,21 +412,18 @@ Current beta closure snapshot:
   (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
   `mir_abi_lookup(...)` accepts exact ABI row names only; runtime function
   names are payloads on ABI rows, not a fallback source of layout truth.
-  Slot-like C MIR resource operations consume
-  `mir_abi_resource_runtime_fn(...)` rows for Claim/Read/Write/Release instead
-  of synthesizing those names from type suffixes. LLVM Slot/SecureSlot/
-  DeviceSlot claim/read/write/release/submit-read declarations and LLVM
-  Slot/SecureSlot pin/unpin declaration registries consume the same rows
-  through `mir_abi_resource_runtime_fn_by_type_name(...)`; LLVM slot builtin
-  calls, slot method calls, slot assignment writes, slot initializer writes,
-  with-slot cleanup releases, statement auto-release cleanup, slot identifier
-  auto-read, C MIR pin enter/exit cleanup, and secure LLVM MIR pin enter/exit
-  cleanup consume them through `mir_abi_resource_runtime_fn_by_kind(...)`. C
-  source-level slot builtins (`Read`/`Write`/`Release`), source-level
-  DeviceSlot builtins (`DeviceRead`/`DeviceWrite`/`ReleaseDeviceSlot`/
-  `SubmitDeviceRead`), source-level slot method calls, expression-dispatch
-  slot assignment/auto-read, `let slot` claim/initializer writes, and block
-  auto-release cleanup also consume row-backed runtime names. Source-level
+  Slot-like C MIR resource operations consume ABI-owned runtime rows for
+  Claim/Read/Write/Release instead of synthesizing those names from type
+  suffixes. Source-level C slot builtins, C expression slot runtime rows,
+  `let slot` claim/initializer writes, LLVM slot identifier auto-read, and
+  LLVM slot/device builtins now consume concrete `MIRResourceRuntimeRow`
+  records through `mir_abi_resource_runtime_row_by_kind(...)` and validate the
+  row-owned `call_shape` before emission. LLVM Slot/SecureSlot/DeviceSlot
+  declaration registries, LLVM pin/unpin declaration registries, MIR resource
+  op emission, pin cleanup, slot method calls, slot assignment writes,
+  with-slot cleanup releases, and statement auto-release cleanup are still
+  compatibility consumers of the same ABI owner through symbol-returning row
+  accessors until they are cut over to concrete row records. Source-level
   `with slot` alias claim/release emission consumes the same rows for Claim
   and Release. C MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` consumes
   the Claim rows as well. C class field-claim helpers consume Claim rows from

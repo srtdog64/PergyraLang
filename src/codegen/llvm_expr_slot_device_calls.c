@@ -99,6 +99,64 @@ llvm_slot_builtin_error_out(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
+static const char *
+llvm_slot_runtime_expected_call_shape(MIRResourceAbiKind kind,
+                                      const char *operation)
+{
+    bool secure = kind == MIR_RESOURCE_ABI_SECURE_SLOT;
+
+    if (operation == NULL)
+        return NULL;
+    if (strcmp(operation, "Claim") == 0)
+        return secure ? "token_ptr_to_container" : "returns_container";
+    if (strcmp(operation, "Read") == 0)
+        return secure ? "container_ptr_token_ptr_to_value"
+                      : "container_ptr_to_value";
+    if (strcmp(operation, "Write") == 0)
+        return secure ? "container_ptr_value_token_ptr_to_void"
+                      : "container_ptr_value_to_void";
+    if (strcmp(operation, "Release") == 0)
+        return secure ? "container_ptr_token_ptr_to_void"
+                      : "container_ptr_to_void";
+    if (strcmp(operation, "SubmitRead") == 0)
+        return "container_ptr_to_task_handle";
+    return NULL;
+}
+
+static const MIRResourceRuntimeRow *
+llvm_slot_runtime_row_or_error(ASTNode *node,
+                               LLVMGenCtx *ctx,
+                               MIRResourceAbiKind kind,
+                               const char *inner,
+                               const char *operation,
+                               const char *missing_message,
+                               LLVMValueRef *out)
+{
+    const char *expected_shape =
+        llvm_slot_runtime_expected_call_shape(kind, operation);
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_kind(kind, inner, operation);
+
+    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
+        llvm_slot_builtin_error_out(node, ctx, missing_message, out);
+        return NULL;
+    }
+    if (expected_shape != NULL &&
+        strcmp(row->call_shape, expected_shape) != 0) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM slot builtin %s requires MIR ABI call shape %s",
+            operation != NULL ? operation : "<unknown>",
+            expected_shape);
+        if (out != NULL)
+            *out = NULL;
+        return NULL;
+    }
+    return row;
+}
+
 bool
 llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
@@ -145,15 +203,18 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_slot_builtin_error_out(node, ctx,
                 "LLVM Write could not lower value expression", out);
 
-        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-            is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-            inner, "Write");
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_or_error(node, ctx,
+                is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                          : MIR_RESOURCE_ABI_SLOT,
+                inner, "Write",
+                "LLVM Write requires MIR ABI runtime function row", out);
+        if (runtime_row == NULL)
+            return true;
+        const char *runtime_fn = runtime_row->runtime_fn;
         LLVMFuncEntry *fn =
             runtime_fn != NULL ? llvm_lookup_function(ctx, runtime_fn) : NULL;
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
-            if (runtime_fn == NULL)
-                return llvm_slot_builtin_error_out(node, ctx,
-                    "LLVM Write requires MIR ABI runtime function row", out);
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, runtime_fn);
             return llvm_slot_builtin_error_out(node, ctx,
@@ -207,15 +268,18 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_slot_builtin_error_out(node, ctx,
                 "LLVM Read requires registered slot receiver", out);
 
-        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-            is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-            inner, "Read");
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_or_error(node, ctx,
+                is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                          : MIR_RESOURCE_ABI_SLOT,
+                inner, "Read",
+                "LLVM Read requires MIR ABI runtime function row", out);
+        if (runtime_row == NULL)
+            return true;
+        const char *runtime_fn = runtime_row->runtime_fn;
         LLVMFuncEntry *fn =
             runtime_fn != NULL ? llvm_lookup_function(ctx, runtime_fn) : NULL;
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
-            if (runtime_fn == NULL)
-                return llvm_slot_builtin_error_out(node, ctx,
-                    "LLVM Read requires MIR ABI runtime function row", out);
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, runtime_fn);
             return llvm_slot_builtin_error_out(node, ctx,
@@ -267,15 +331,18 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_slot_builtin_error_out(node, ctx,
                 "LLVM Release requires registered slot receiver", out);
 
-        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-            is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-            inner, "Release");
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_or_error(node, ctx,
+                is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                          : MIR_RESOURCE_ABI_SLOT,
+                inner, "Release",
+                "LLVM Release requires MIR ABI runtime function row", out);
+        if (runtime_row == NULL)
+            return true;
+        const char *runtime_fn = runtime_row->runtime_fn;
         LLVMFuncEntry *fn =
             runtime_fn != NULL ? llvm_lookup_function(ctx, runtime_fn) : NULL;
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
-            if (runtime_fn == NULL)
-                return llvm_slot_builtin_error_out(node, ctx,
-                    "LLVM Release requires MIR ABI runtime function row", out);
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, runtime_fn);
             return llvm_slot_builtin_error_out(node, ctx,
@@ -335,11 +402,13 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM DeviceWrite requires registered DeviceSlot<T> receiver",
                 out);
 
-        const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-            MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write");
-        if (runtime_fn == NULL)
-            return llvm_slot_builtin_error_out(node, ctx,
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_or_error(node, ctx,
+                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Write",
                 "LLVM DeviceWrite requires MIR ABI runtime function row", out);
+        if (runtime_row == NULL)
+            return true;
+        const char *runtime_fn = runtime_row->runtime_fn;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "device slot", callee_name, runtime_fn);
         LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -380,21 +449,22 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM device slot operation requires registered DeviceSlot<T> receiver",
                 out);
 
-        const char *runtime_fn = NULL;
+        const char *operation = NULL;
         if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ) {
-            runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Read");
+            operation = "Read";
         } else if (op == LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT) {
-            runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "Release");
+            operation = "Release";
         } else {
-            runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, "SubmitRead");
+            operation = "SubmitRead";
         }
-        if (runtime_fn == NULL)
-            return llvm_slot_builtin_error_out(node, ctx,
+        const MIRResourceRuntimeRow *runtime_row =
+            llvm_slot_runtime_row_or_error(node, ctx,
+                MIR_RESOURCE_ABI_DEVICE_SLOT, inner, operation,
                 "LLVM device slot operation requires MIR ABI runtime function row",
                 out);
+        if (runtime_row == NULL)
+            return true;
+        const char *runtime_fn = runtime_row->runtime_fn;
 
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "device slot", callee_name, runtime_fn);

@@ -58,7 +58,7 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 0 { return "mir_abi_resource_runtime_fn(effective_layout, op_name)"; }
     if index == 1 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
     if index == 2 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
-    if index == 3 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    if index == 3 { return "mir_abi_resource_runtime_row_by_kind("; }
     if index == 4 { return "mir_abi_resource_runtime_fn_by_kind("; }
     if index == 5 { return "C source slot auto-release requires MIR ABI runtime function row"; }
     if index == 6 { return "C slot method %s requires MIR ABI runtime function row"; }
@@ -108,7 +108,7 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterRequiredPathAt(0) != "" &&
         CompilerBackendEmitterRequiredTermAt(0) != "" &&
         CompilerBackendEmitterRequiredTermAt(1) != "" &&
-        CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_fn_by_kind(" &&
+        CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_row_by_kind(" &&
         CompilerBackendEmitterRequiredTermAt(5) == "C source slot auto-release requires MIR ABI runtime function row" &&
         CompilerBackendEmitterRequiredTermAt(11) == "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row" &&
         CompilerBackendEmitterForbiddenCount() == 6 &&

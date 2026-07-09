@@ -876,7 +876,7 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn_by_kind("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C source slot auto-release requires MIR ABI runtime function row"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"

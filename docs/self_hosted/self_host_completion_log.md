@@ -5597,3 +5597,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This does not finish the production ABI blocker; the remaining callsites
   still need to move from `mir_abi_resource_runtime_fn_by_kind` /
   `mir_abi_resource_runtime_fn_by_type_name` to concrete row-record consumption.
+
+### 2026-07-09 -- Slot/device builtin consumers validate runtime-call rows
+
+- Extended row-record consumption from the first representative consumers into
+  `transpiler_slot_runtime_row.c`, `transpiler_let_slot_emit.c`, and
+  `llvm_expr_slot_device_calls.c`.
+- These paths now resolve Slot/SecureSlot/DeviceSlot operations through
+  `mir_abi_resource_runtime_row_by_kind(...)` and check the MIR-owned
+  `call_shape` before emitting claim/read/write/release/submit-read calls.
+- Updated `abi_ownership_shape_smoke.sh`, `backend_fail_closed_smoke.sh`,
+  `perf_contract_smoke.sh`, and the self-host backend-emitter contract owner so
+  these paths cannot regress to symbol-only runtime ABI lookup.
+- The production ABI blocker remains open: MIR resource-op emission, pin
+  emission/cleanup, LLVM runtime declaration registries, and remaining
+  slot/member callsites still have symbol-only compatibility consumers.
