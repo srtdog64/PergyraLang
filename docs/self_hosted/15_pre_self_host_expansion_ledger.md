@@ -567,7 +567,7 @@ or `CodegenAstArenaKindIs` directly. This keeps aggregate runtime/header
 decisions from reopening raw kind-row scans.
 
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
-M2 minima at 205 for source inventory, lexer, parser, semantic, codegen,
+M2 minima at 206 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
 parity preparation run proved the prior 203/203 ledger through C and LLVM
 selfcheck legs; the focused completeness gate now prevents the new production
@@ -591,7 +591,15 @@ self-host source patterns to `PGY_SELFHOST_COMPLETENESS_SOURCES`,
 `PGY_SELFHOST_COMPLETENESS_STAGES`, and the required proof gate. The
 `self-host-completeness-impact-test-smoke` gate compiles the Pergyra
 TestHarness manifest and verifies those rows against the Make targets and
-runner knobs, so impact routing is no longer only a shell convention.
+runner knobs, so impact routing is no longer only a shell convention. The
+first executable planner,
+`src/self_hosted/tools/completeness_impact_planner/main.pgy`, consumes those
+rows from the owner, accepts explicit changed paths, emits
+`pgy.selfhost.completeness-impact-planner.v1`, and is checked through
+C/LLVM-built tool parity with clean and unmatched-path artifacts. This remains
+rung0 routing, not full dependency invalidation: it does not inspect git state
+or import graphs, and later rungs must replace coarse path classes with
+owner-owned dependency fingerprints.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.

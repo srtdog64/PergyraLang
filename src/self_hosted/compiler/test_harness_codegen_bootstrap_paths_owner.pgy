@@ -79,7 +79,7 @@ func CompilerHarnessCodegenBootstrapComponentRowAt(index: Int) -> String {
 }
 
 func CompilerHarnessCodegenBootstrapToolCount() -> Int {
-    return 13;
+    return 14;
 }
 
 func CompilerHarnessCodegenBootstrapToolRowAt(index: Int) -> String {
@@ -96,6 +96,7 @@ func CompilerHarnessCodegenBootstrapToolRowAt(index: Int) -> String {
     if index == 10 { return "stdlib_dispatch_inventory_checker|src/self_hosted/tools/stdlib_dispatch_inventory_checker/main.pgy"; }
     if index == 11 { return "ast_read_surface_checker|src/self_hosted/tools/ast_read_surface_checker/main.pgy"; }
     if index == 12 { return "production_c_size_checker|src/self_hosted/tools/production_c_size_checker/main.pgy"; }
+    if index == 13 { return "completeness_impact_planner|src/self_hosted/tools/completeness_impact_planner/main.pgy"; }
     return "";
 }
 

@@ -232,7 +232,14 @@ The matching rung0 impact plan is also fact-owned:
 `PGY_SELFHOST_COMPLETENESS_SOURCES` /
 `PGY_SELFHOST_COMPLETENESS_STAGES` knobs and the required proof gate. This is
 not yet automatic dependency invalidation; it is the owner-owned contract that
-prevents changed-source impact from living as an unreviewed shell list.
+prevents changed-source impact from living as an unreviewed shell list. The
+first executable consumer is
+`src/self_hosted/tools/completeness_impact_planner/main.pgy`: it accepts
+explicit changed paths, consumes those owner rows, emits
+`pgy.selfhost.completeness-impact-planner.v1`, and is checked through C/LLVM
+tool parity. It deliberately does not inspect git state or infer an import
+graph; callers must pass the changed paths and later rungs must replace the
+coarse path classes with owner-owned dependency fingerprints.
 
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit

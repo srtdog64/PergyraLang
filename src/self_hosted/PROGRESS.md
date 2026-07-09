@@ -19,7 +19,7 @@ on 2026-07-09: it completed green with 203 real sources accepted by both
 selfcheck backends, codegen bootstrap `gen2 == gen3` at 9816 generated-C lines,
 DRV-0/DRV-1 driver parity, LSP parity, backend tri-compare, and MIR JSON rung-0b
 parity over 86 fixtures. A later focused completeness refresh on 2026-07-09
-raised the M2 ledger to 205/205 through lexer/parser/semantic/codegen/full
+raised the M2 ledger to 206/206 through lexer/parser/semantic/codegen/full
 pipeline.
 
 ## Headline Number
@@ -83,7 +83,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-205 production self-host source files across lexer, parser, semantic, codegen,
+206 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The real-source semantic selfcheck uses the broad
 203-source C/LLVM gate from the latest parity preparation refresh over the current accepted semantic subset,
 including the codegen run boundary, lexer run/fixture-manifest owners, emission
@@ -370,7 +370,7 @@ Notes:
 
 ## Peripheral Audit Tools (Not Counted In Coverage)
 
-These 19 tools live in `src/self_hosted/tools/` but do **not** count
+These 20 tools live in `src/self_hosted/tools/` but do **not** count
 toward compiler-internal substitution. They are dogfood validators
 that read text artifacts and emit drift verdicts; the C compiler
 keeps running fine with or without them.
@@ -386,6 +386,7 @@ keeps running fine with or without them.
 | `air_graph_ref_integrity`         | 143           | AIR graph dangling endpoint check |
 | `air_graph_reachability`          | 166           | AIR graph root reachability/worklist check |
 | `backend_output_comparator`       | 135           | paired text diff verdict |
+| `completeness_impact_planner`     | 145           | changed-path impact rows -> proof-gate plan |
 | `compatibility_evolution_checker` | 65            | compatibility seed corpus coverage check |
 | `module_manifest_resolver`        | 121           | language_module_manifest.json |
 | `stdlib_dispatch_inventory_checker` | 107         | C/LLVM dispatch table count parity |
@@ -396,7 +397,7 @@ keeps running fine with or without them.
 | `ast_read_surface_checker`        | 219           | CFG/MIR SoT ratchet parity |
 | `linter`                          | 182           | LSP-style diagnostic JSON parity |
 | `runtime_boundary_checker`        | 82            | native-kernel vs portable-policy runtime boundary |
-| **Total peripheral**              | **2859**      | |
+| **Total peripheral**              | **3004**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.
@@ -504,7 +505,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 205 production self-host
+   The M2 completeness ledger also now checks all 206 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

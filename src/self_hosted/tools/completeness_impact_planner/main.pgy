@@ -1,0 +1,145 @@
+// src/self_hosted/tools/completeness_impact_planner/main.pgy
+//
+// Consumes the completeness impact rows and classifies changed paths into the
+// proof gates that should run. It does not inspect git state; callers pass the
+// changed paths explicitly so the impact decision remains deterministic.
+
+import "../../compiler/completeness_ledger_owner.pgy";
+import "../../lib/json_emit.pgy";
+
+func ImpactPlannerStartsWith(path: String, prefix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let prefix_len: Int = StringLength(prefix);
+    if path_len < prefix_len {
+        return false;
+    }
+    return Substring(path, 0, prefix_len) == prefix;
+}
+
+func ImpactPlannerEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if path_len < suffix_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
+func ImpactPlannerPathMatches(impact_id: String, path: String) -> Bool {
+    if impact_id == "selfhost-production-source" {
+        return ImpactPlannerStartsWith(path, "src/self_hosted/") &&
+            ImpactPlannerEndsWith(path, ".pgy");
+    }
+    if impact_id == "parser-source" {
+        return ImpactPlannerStartsWith(path, "src/self_hosted/parser/") &&
+            ImpactPlannerEndsWith(path, ".pgy");
+    }
+    if impact_id == "codegen-source" {
+        return ImpactPlannerStartsWith(path, "src/self_hosted/codegen/") &&
+            ImpactPlannerEndsWith(path, ".pgy");
+    }
+    if impact_id == "air-graph-consumer-source" {
+        return ImpactPlannerStartsWith(path, "src/self_hosted/tools/air_graph") &&
+            ImpactPlannerEndsWith(path, ".pgy");
+    }
+    if impact_id == "component-contract" {
+        return path == "tests/self_hosted_component_contract_smoke.sh";
+    }
+    return false;
+}
+
+func ImpactPlannerRowField(row: String, index: Int) -> Option<String> {
+    let parts: Array<String> = Split(row, "\t");
+    if index < 0 || index >= ArrayLength(parts) {
+        return None;
+    }
+    return Some(parts[index]);
+}
+
+func ImpactPlannerArrayContains(values: Array<String>, value: String) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(values) {
+        if values[i] == value {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ImpactPlannerFinding(path: String) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", "unmatched_path"),
+        JsonEmitFieldString("path", path),
+        JsonEmitFieldString("location", path)
+    ];
+    return JsonEmitObject(fields);
+}
+
+func ImpactPlannerJson(paths: Array<String>) -> String {
+    let proof_gates: Array<String> = [];
+    let findings: Array<String> = [];
+    let unmatched: Int = 0;
+    let path_i: Int = 0;
+    while path_i < ArrayLength(paths) {
+        let path: String = paths[path_i];
+        let path_matched: Bool = false;
+        let row_i: Int = 0;
+        while row_i < CompilerCompletenessImpactRowCount() {
+            let row: String = CompilerCompletenessImpactRowAt(row_i);
+            let impact_id_opt: Option<String> = ImpactPlannerRowField(row, 0);
+            if IsSome(impact_id_opt) {
+                let impact_id: String = UnwrapOption(impact_id_opt);
+                if ImpactPlannerPathMatches(impact_id, path) {
+                    path_matched = true;
+                    let gate_opt: Option<String> = CompilerCompletenessImpactProofGateFor(impact_id);
+                    if IsSome(gate_opt) {
+                        let gate: String = UnwrapOption(gate_opt);
+                        if !ImpactPlannerArrayContains(proof_gates, gate) {
+                            ArrayPush(proof_gates, gate);
+                        }
+                    }
+                }
+            }
+            row_i = row_i + 1;
+        }
+        if !path_matched {
+            unmatched = unmatched + 1;
+            if ArrayLength(findings) < 8 {
+                ArrayPush(findings, ImpactPlannerFinding(path));
+            }
+        }
+        path_i = path_i + 1;
+    }
+
+    let gate_items: Array<String> = [];
+    let gate_i: Int = 0;
+    while gate_i < ArrayLength(proof_gates) {
+        ArrayPush(gate_items, JsonStringLiteral(proof_gates[gate_i]));
+        gate_i = gate_i + 1;
+    }
+    let counts_fields: Array<String> = [
+        JsonEmitFieldNumber("changed_paths", ToString(ArrayLength(paths))),
+        JsonEmitFieldNumber("matched_impacts", ToString(ArrayLength(proof_gates))),
+        JsonEmitFieldNumber("proof_gates", ToString(ArrayLength(proof_gates))),
+        JsonEmitFieldNumber("unmatched", ToString(unmatched))
+    ];
+    let report_fields: Array<String> = [
+        JsonEmitFieldString("schema", "pgy.selfhost.completeness-impact-planner.v1"),
+        JsonEmitFieldBool("ok", unmatched == 0),
+        JsonEmitFieldString("impact_schema", CompilerCompletenessImpactPlanSchema()),
+        JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
+        JsonEmitFieldRaw("proof_gates", JsonEmitArray(gate_items)),
+        JsonEmitFieldRaw("findings", JsonEmitArray(findings))
+    ];
+    return JsonEmitObject(report_fields);
+}
+
+func Main() -> Void {
+    let paths: Array<String> = Args();
+    let report: String = ImpactPlannerJson(paths);
+    Log(report);
+    if StringContains(report, "\"ok\":false") {
+        Exit(1);
+    }
+}

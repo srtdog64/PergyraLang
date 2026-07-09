@@ -189,6 +189,8 @@ compiler-stage `.pgy` source to be listed here.
   entrypoint.
 - `src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy` --
   compatibility corpus report schema, count rows, and finding shapes.
+- `src/self_hosted/tools/completeness_impact_planner/main.pgy` --
+  completeness impact-row consumption and changed-path proof-gate planning.
 
 ## SEA
 

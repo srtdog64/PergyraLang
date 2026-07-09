@@ -36,6 +36,23 @@ rewrite history.
   TestHarness manifest and verify the impact rows against Make targets and
   runner env knobs.
 
+## 2026-07-09 - Completeness impact planner consumes owner rows
+
+- Added `src/self_hosted/tools/completeness_impact_planner/main.pgy` as the
+  first executable consumer for completeness impact rows. It accepts explicit
+  changed paths, consumes `CompilerCompletenessImpact*` owner facts, emits
+  `pgy.selfhost.completeness-impact-planner.v1`, and fails closed on unmatched
+  paths.
+- Projected the planner source, expected artifacts, and representative changed
+  paths through `self-host-completeness-impact-planner-paths` in the Pergyra
+  TestHarness manifest.
+- Added C/LLVM parity for the clean and unmatched-path planner artifacts and
+  enrolled the planner in the codegen bootstrap tool breadth rows. This is
+  still rung0 impact routing, not automatic git or import-graph invalidation.
+- Promoted the M2 completeness minima to 206 after the filtered completeness
+  gate proved the changed production self-host sources through lexer, parser,
+  semantic, and codegen.
+
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 
 - Added recursive scalar-field collection facts to `json_fact_table.pgy`:

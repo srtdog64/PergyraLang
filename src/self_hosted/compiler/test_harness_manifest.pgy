@@ -566,18 +566,9 @@ func Main() -> Void {
         EmitLspHoverContentPaths();
         return;
     }
-    if args[0] == CompilerCompletenessSourcesSuiteName() {
-        EmitCompilerCompletenessSourceInventory();
-        return;
-    }
-    if args[0] == CompilerCompletenessStagesSuiteName() {
-        EmitCompilerCompletenessStages();
-        return;
-    }
-    if args[0] == CompilerCompletenessSemanticTargetsSuiteName() {
-        EmitCompilerCompletenessSemanticTargets();
-        return;
-    }
+    if args[0] == CompilerCompletenessSourcesSuiteName() { EmitCompilerCompletenessSourceInventory(); return; }
+    if args[0] == CompilerCompletenessStagesSuiteName() { EmitCompilerCompletenessStages(); return; }
+    if args[0] == CompilerCompletenessSemanticTargetsSuiteName() { EmitCompilerCompletenessSemanticTargets(); return; }
     if args[0] == CompilerCompletenessBaselineSuiteName() {
         EmitCompilerCompletenessBaseline();
         return;
@@ -595,6 +586,7 @@ func Main() -> Void {
         return;
     }
     if args[0] == CompilerCompletenessImpactSuiteName() { EmitCompilerCompletenessImpactPlan(); return; }
+    if args[0] == CompilerCompletenessImpactPlannerSuiteName() { EmitCompilerCompletenessImpactPlannerPaths(); return; }
     Log(Concat("HARNESS ERROR: unknown manifest suite: ", args[0]));
     Exit(1);
 }

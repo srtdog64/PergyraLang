@@ -131,8 +131,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     BOOTSTRAP_TOOL_ROWS+=("$line")
 done <"$HARNESS_TOOLS_FILE"
-if [[ "${#BOOTSTRAP_TOOL_ROWS[@]}" -ne 13 ]]; then
-    echo "[self-host-bootstrap] TestHarness manifest expected 13 bootstrap tool rows, got ${#BOOTSTRAP_TOOL_ROWS[@]}" >&2
+if [[ "${#BOOTSTRAP_TOOL_ROWS[@]}" -ne 14 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 14 bootstrap tool rows, got ${#BOOTSTRAP_TOOL_ROWS[@]}" >&2
     exit 1
 fi
 

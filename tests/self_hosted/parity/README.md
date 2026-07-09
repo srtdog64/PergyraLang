@@ -1,6 +1,6 @@
 # Self-Host Parity Harness
 
-Status: fourteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
+Status: fifteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
 harnesses, one Pergyra-origin fuzz generator harness, plus lexer/parser rung-1,
 semantic rung-2, and codegen rung-0..20 compiler-internal harnesses active.
 
@@ -32,6 +32,7 @@ The parity set currently covers:
 - `backend_output_tri_compare` (C/LLVM outputs checked by the Pergyra
   comparator; use `make self-host-backend-tri-compare-extended-test-smoke` for
   the opt-in 29-case C/LLVM closure gate)
+- `completeness_impact_planner`
 - `module_manifest_resolver`
 - `stdlib_dispatch_inventory_checker`
 - `doc_link_checker`

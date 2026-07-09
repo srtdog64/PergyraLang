@@ -331,6 +331,7 @@ for json_emit_consumer in \
     src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy \
     src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy \
     src/self_hosted/tools/backend_output_comparator/main.pgy \
+    src/self_hosted/tools/completeness_impact_planner/main.pgy \
     src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy \
     src/self_hosted/tools/diagnostic_catalog_checker/report_owner.pgy \
     src/self_hosted/tools/doc_link_checker/main.pgy \
@@ -4598,11 +4599,12 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 155
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 195;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 203;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204;"
-completeness_min_count="$(grep -F "return 205;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 205;"
+completeness_min_count="$(grep -F "return 206;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 205-source closed slice"
+    fail "self-host completeness minima drifted below the 206-source closed slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
@@ -4610,6 +4612,9 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func Comp
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactSuiteName"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "self-host-completeness-impact-plan"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlannerSuiteName"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "self-host-completeness-impact-planner-paths"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlannerPathAt"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRowAt"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactProofGateFor"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "Option<String>"
@@ -4617,16 +4622,32 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "PGY_SELFH
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "PGY_SELFHOST_COMPLETENESS_STAGES"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerCompletenessImpactSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerCompletenessImpactPlan()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerCompletenessImpactPlannerSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerCompletenessImpactPlannerPaths()"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"source-set"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-source"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"compiler-executable"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-executable"'
 require_text "Makefile" "self-host-completeness-impact-test-smoke"
+require_text "Makefile" "self-host-completeness-impact-planner-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_manifest.sh"
+require_text "Makefile" "tests/self_hosted/parity/completeness_impact_planner_parity.sh"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "self-host-completeness-impact-plan"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "pgy.selfhost.completeness-impact.v1"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "self-host-completeness-impact-planner-paths"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "expected 9 path rows"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" '"run_output"'
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "assert_llvm_leg"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "completeness_impact_planner|src/self_hosted/tools/completeness_impact_planner/main.pgy"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manifest expected 14 bootstrap tool rows"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/completeness_impact_planner/main.pgy"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'import "../../compiler/completeness_ledger_owner.pgy";'
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "CompilerCompletenessImpactProofGateFor"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "pgy.selfhost.completeness-impact-planner.v1"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'BUILD_DIR="$ROOT_DIR/$BUILD_DIR"'
