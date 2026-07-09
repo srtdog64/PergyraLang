@@ -30,6 +30,7 @@ Useful commands:
 mingw32-make build-resource-report
 PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report  # slower exact sizes
 mingw32-make build-pressure-dev-compiler # samples pgy-only build RSS/private bytes
+mingw32-make build-pressure-compiler     # samples default LLVM-enabled compiler build
 mingw32-make clean-scratch              # removes .tmp only
 mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
 ```
@@ -40,13 +41,14 @@ and free space without recursively counting files. Use
 on Windows/Git Bash, scanning tens of thousands of scratch files can itself
 make the desktop feel stalled.
 
-`build-pressure-dev-compiler` is the memory bug line. It runs the low-pressure
-C-only compiler build through `scripts/measure_build_pressure.ps1` and samples
-the process tree. The default limit is 3 GiB (`PGY_BUILD_PRESSURE_LIMIT_MB`);
-if a pgy-only compiler build crosses that line, treat it as a build/compiler
-memory defect until the sample log proves otherwise. This is separate from
-disk/file-count pressure: a full artifact scan can stall the desktop with small
-RSS when the repo drive is nearly full.
+`build-pressure-dev-compiler` and `build-pressure-compiler` are the memory bug
+lines. They run the low-pressure C-only compiler build and the default
+LLVM-enabled compiler build through `scripts/measure_build_pressure.ps1`, then
+sample the process tree. The default limit is 3 GiB
+(`PGY_BUILD_PRESSURE_LIMIT_MB`); if a compiler-only build crosses that line,
+treat it as a build/compiler memory defect until the sample log proves
+otherwise. This is separate from disk/file-count pressure: a full artifact scan
+can stall the desktop with small RSS when the repo drive is nearly full.
 
 The same rule applies to self-host stage tools. A `--check` mode must validate
 the stage contract without materializing a full generated artifact unless that
@@ -67,19 +69,20 @@ mingw32-make LLVM_ENABLED=0 all        # C-only, pgy + pgy-lsp
 mingw32-make abi-ownership-shape-test-smoke
 ```
 
-2026-07-09 local measurement on Windows/MinGW:
+2026-07-09 local measurement on Windows/MinGW, with tests excluded and debug
+symbols off:
 
-- forced serial C-only compiler object rebuild, tests excluded, debug symbols
-  off: peak sampled working set 267 MB, peak sampled private memory 251 MB,
-  max matching build processes 5. The measurement command used a PowerShell
-  backslash path and failed only at the final link response-file boundary;
-- link-only follow-up: peak sampled working set 32 MB;
-- local artifact pressure was dominated by `.tmp/self_hosted`, not compiler
-  RSS: about 395 MB across more than 20k files.
-- `dev-compiler` must pass forward-slash `BUILD_DIR` / `BIN_DIR` values on
-  Windows. A mixed `E:\.../build-dev` path can leak into a linker response file
-  as `E:PergyraLang/...`, which is a local low-pressure build path bug, not a
-  compiler memory leak.
+- clean `dev-compiler` rebuild after removing `build-dev` / `bin-dev`: peak
+  sampled working set 290.5 MB, peak sampled private memory 266.4 MB, top
+  process `cc1.exe` at 243.2 MB;
+- clean default `compiler` rebuild after removing `build` / `bin`: peak sampled
+  working set 385.4 MB, peak sampled private memory 364.3 MB, top process
+  `cc1.exe` at 357.2 MB;
+- local artifact pressure can still dominate perceived hangs. The resource
+  report on the same checkout showed the E: drive at 99% used with about
+  15.5 GiB free, many local `build-*` / `bin-*` variants, and more than 28k
+  files under the active `.tmp` / `build` / `bin` sample. In that state, broad
+  local CI may stall from file churn even when compiler RSS stays under 400 MB.
 
 So a stalled desktop is not automatically evidence of a compiler heap leak. If
 single `compiler` builds stay below a few hundred MB but broad smokes stall the
