@@ -1,5 +1,7 @@
 // Self-host lexer token classification and output formatting owner.
 
+import "fixture_manifest_owner.pgy";
+
 func KeywordType(text: String) -> String {
     if text == "func" {
         return "FUNC";
@@ -244,7 +246,7 @@ func LexerTokenPayloadSchema() -> String {
 }
 
 func LexerTokenPayloadFixtureCount() -> Int {
-    return 8;
+    return LexerFixtureManifestCount();
 }
 
 func LexerTokenPayloadKeywordReady() -> Bool {
@@ -274,7 +276,7 @@ func LexerTokenPayloadContractReady() -> Bool {
     if LexerTokenPayloadSchema() == "" {
         return false;
     }
-    if LexerTokenPayloadFixtureCount() != 8 {
+    if LexerTokenPayloadFixtureCount() != LexerFixtureManifestCount() {
         return false;
     }
     if !LexerTokenPayloadKeywordReady() {

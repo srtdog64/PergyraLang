@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Lexer payload fixture count consumes manifest owner
+
+- Repointed `LexerTokenPayloadFixtureCount()` to consume
+  `LexerFixtureManifestCount()` from `fixture_manifest_owner.pgy` instead of
+  carrying a parallel literal.
+- Tightened the self-host component and compiler-world contracts so the lexer
+  token payload contract cannot reintroduce `return 8;` or compare against a
+  second local fixture-count source.
+- This is a SoT closure on the existing lexer payload contract; it does not
+  change the lexer fixture frontier or the headline substitution percentage.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

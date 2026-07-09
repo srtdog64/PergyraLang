@@ -468,7 +468,11 @@ require_text "src/self_hosted/lexer/scan_owner.pgy" 'import "token_owner.pgy";'
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadContractReady"
 require_text "src/self_hosted/lexer/token_owner.pgy" "func LexerTokenPayloadSchema"
 require_text "src/self_hosted/lexer/token_owner.pgy" "pgy.selfhost.lexer-token-stream.v1"
-require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 8"
+require_text "src/self_hosted/lexer/token_owner.pgy" 'import "fixture_manifest_owner.pgy";'
+require_text "src/self_hosted/lexer/token_owner.pgy" "return LexerFixtureManifestCount();"
+require_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != LexerFixtureManifestCount()"
+reject_text "src/self_hosted/lexer/token_owner.pgy" "return 8;"
+reject_text "src/self_hosted/lexer/token_owner.pgy" "LexerTokenPayloadFixtureCount() != 8"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func LexerFixtureManifestCount() -> Int"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "func EmitLexerFixtureManifest"
 require_text "src/self_hosted/lexer/fixture_manifest_owner.pgy" "LexerFixtureManifestCount()"

@@ -496,6 +496,9 @@ for term in \
     "func LexerTokenPayloadSchema" \
     "pgy.selfhost.lexer-token-stream.v1" \
     "func LexerTokenPayloadFixtureCount" \
+    'import "fixture_manifest_owner.pgy";' \
+    "return LexerFixtureManifestCount();" \
+    "LexerTokenPayloadFixtureCount() != LexerFixtureManifestCount()" \
     "func LexerTokenPayloadKeywordReady" \
     "func LexerTokenPayloadFormatReady" \
     "func LexerTokenPayloadContractReady" \
