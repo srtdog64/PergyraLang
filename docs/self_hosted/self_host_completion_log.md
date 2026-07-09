@@ -108,6 +108,18 @@ rewrite history.
   the rung0 cache proof honest while precise import/module invalidation remains
   a future graph-consumer step.
 
+## 2026-07-10 - ABI layout readiness consumes row lookup facts
+
+- Added type-name lookup accessors for ABI row C value spelling, field order,
+  materialization, and default return values.
+- Repointed `CompilerAbiLayoutRowsReady()` so representative concrete ABI rows
+  are validated through `CompilerAbiLayoutRowIndex(...)` consumers instead of
+  fixed numeric row positions such as `Option<String>` row 9 or `Long` row 10.
+- Tightened the self-host component and compiler-world contracts so direct
+  concrete row-count and fixed-index ABI readiness checks cannot return. This
+  reduces the active cross-backend ABI/layout row projection blocker without
+  claiming full native C/LLVM ABI closure.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

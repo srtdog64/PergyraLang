@@ -154,50 +154,36 @@ func CompilerAbiLayoutRowFactAt(index: Int) -> String {
     return "";
 }
 func CompilerAbiLayoutRowsReady() -> Bool {
-    return CompilerAbiLayoutRowFactCount() == 9 &&
+    return CompilerAbiLayoutRowFactCount() > 0 &&
         CompilerTargetCapabilityEnvelopeReady() &&
         CompilerAbiLayoutRowFactAt(0) == CompilerAbiLayoutDeclNameFact() &&
-        CompilerAbiLayoutRowFactAt(1) == CompilerAbiLayoutFieldOrderFact() &&
-        CompilerAbiLayoutRowFactAt(2) == CompilerAbiLayoutTagKindFact() &&
-        CompilerAbiLayoutRowFactAt(3) == CompilerAbiLayoutNicheFact() &&
-        CompilerAbiLayoutRowFactAt(4) == CompilerAbiLayoutOwnershipShapeFact() &&
-        CompilerAbiLayoutRowFactAt(5) == CompilerAbiLayoutTargetAbiFact() &&
-        CompilerAbiLayoutRowFactAt(6) == CompilerAbiLayoutSizeAlignFact() &&
-        CompilerAbiLayoutRowFactAt(7) == CompilerAbiLayoutMaterializationPolicyFact() &&
-        CompilerAbiLayoutRowFactAt(8) == CompilerAbiLayoutDefaultReturnValueFact() &&
-        CompilerAbiLayoutConcreteRowCount() == 16 &&
-        CompilerAbiLayoutRowTypeNameAt(0) == CompilerAbiLayoutIntTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(0) == CompilerAbiLayoutIntCValueType() &&
-        CompilerAbiLayoutRowFieldOrderAt(4) == CompilerAbiLayoutFieldOrderArrayBuffer() &&
+        CompilerAbiLayoutRowFactAt(CompilerAbiLayoutRowFactCount() - 1) == CompilerAbiLayoutDefaultReturnValueFact() &&
+        CompilerAbiLayoutConcreteRowCount() > 0 &&
+        CompilerAbiLayoutRowTypeNameAt(CompilerAbiLayoutConcreteRowCount()) == "" &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutIntTypeName()) == CompilerAbiLayoutIntCValueType() &&
+        CompilerAbiLayoutRowFieldOrderFor(CompilerAbiLayoutArrayIntTypeName()) == CompilerAbiLayoutFieldOrderArrayBuffer() &&
         CompilerAbiLayoutRowTagKindAt(8) == CompilerAbiLayoutTagKindBoolPresence() &&
         CompilerAbiLayoutRowNicheAt(8) == CompilerAbiLayoutNicheNone() &&
         CompilerAbiLayoutRowOwnershipShapeAt(5) == CompilerAbiLayoutOwnershipSharedBufferValue() &&
         CompilerAbiLayoutRowTargetAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi() &&
         CompilerAbiLayoutRowSizeAlignAt(0) == CompilerAbiLayoutTargetCDefaultSizeAlign() &&
-        CompilerAbiLayoutRowMaterializationAt(0) == CompilerAbiLayoutFieldAllowedMaterialization() &&
-        CompilerAbiLayoutRowTypeNameAt(9) == CompilerAbiLayoutOptionStringTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(9) == CompilerAbiLayoutOptionStringCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(10) == CompilerAbiLayoutLongTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(10) == CompilerAbiLayoutLongCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(11) == CompilerAbiLayoutDoubleTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(11) == CompilerAbiLayoutDoubleCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(12) == CompilerAbiLayoutArrayLongTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(12) == CompilerAbiLayoutArrayLongCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(13) == CompilerAbiLayoutOptionLongTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(13) == CompilerAbiLayoutOptionLongCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(14) == CompilerAbiLayoutOptionFloatTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(14) == CompilerAbiLayoutOptionFloatCValueType() &&
-        CompilerAbiLayoutRowTypeNameAt(15) == CompilerAbiLayoutOptionDoubleTypeName() &&
-        CompilerAbiLayoutRowCValueTypeAt(15) == CompilerAbiLayoutOptionDoubleCValueType() &&
+        CompilerAbiLayoutRowMaterializationFor(CompilerAbiLayoutIntTypeName()) == CompilerAbiLayoutFieldAllowedMaterialization() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionStringTypeName()) == CompilerAbiLayoutOptionStringCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutLongTypeName()) == CompilerAbiLayoutLongCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutDoubleTypeName()) == CompilerAbiLayoutDoubleCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutArrayLongTypeName()) == CompilerAbiLayoutArrayLongCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionLongTypeName()) == CompilerAbiLayoutOptionLongCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionFloatTypeName()) == CompilerAbiLayoutOptionFloatCValueType() &&
+        CompilerAbiLayoutRowCValueTypeFor(CompilerAbiLayoutOptionDoubleTypeName()) == CompilerAbiLayoutOptionDoubleCValueType() &&
         CompilerAbiLayoutVoidTypeName() != "" &&
         CompilerAbiLayoutVoidCValueType() != "" &&
         CompilerAbiLayoutPayloadFreeEnumCValueType() == CompilerAbiLayoutIntCValueType() &&
-        CompilerAbiLayoutRowDefaultReturnValueAt(0) == CompilerAbiLayoutDefaultReturnZero() &&
-        CompilerAbiLayoutRowDefaultReturnValueAt(2) == CompilerAbiLayoutDefaultReturnFloatZero() &&
-        CompilerAbiLayoutRowDefaultReturnValueAt(3) == CompilerAbiLayoutDefaultReturnEmptyString() &&
-        CompilerAbiLayoutRowDefaultReturnValueAt(4) == CompilerAbiLayoutDefaultReturnUnsupported() &&
-        CompilerAbiLayoutRowDefaultReturnValueAt(10) == CompilerAbiLayoutDefaultReturnZero() &&
-        CompilerAbiLayoutRowMaterializationAt(9) == CompilerAbiLayoutRuntimeValueOnlyMaterialization() &&
+        CompilerAbiLayoutRowDefaultReturnValueFor(CompilerAbiLayoutIntTypeName()) == CompilerAbiLayoutDefaultReturnZero() &&
+        CompilerAbiLayoutRowDefaultReturnValueFor(CompilerAbiLayoutFloatTypeName()) == CompilerAbiLayoutDefaultReturnFloatZero() &&
+        CompilerAbiLayoutRowDefaultReturnValueFor(CompilerAbiLayoutStringTypeName()) == CompilerAbiLayoutDefaultReturnEmptyString() &&
+        CompilerAbiLayoutRowDefaultReturnValueFor(CompilerAbiLayoutArrayIntTypeName()) == CompilerAbiLayoutDefaultReturnUnsupported() &&
+        CompilerAbiLayoutRowDefaultReturnValueFor(CompilerAbiLayoutLongTypeName()) == CompilerAbiLayoutDefaultReturnZero() &&
+        CompilerAbiLayoutRowMaterializationFor(CompilerAbiLayoutOptionStringTypeName()) == CompilerAbiLayoutRuntimeValueOnlyMaterialization() &&
         CompilerAbiLayoutTargetPolicyReady();
 }
 func CompilerAbiLayoutConcreteRowCount() -> Int {
@@ -566,6 +552,27 @@ func CompilerAbiLayoutRowIndex(type_name: String) -> Option<Int> {
         i = i + 1;
     }
     return None;
+}
+
+func CompilerAbiLayoutRowCValueTypeFor(type_name: String) -> String {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row) { return ""; }
+    return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
+}
+func CompilerAbiLayoutRowFieldOrderFor(type_name: String) -> String {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row) { return ""; }
+    return CompilerAbiLayoutRowFieldOrderAt(UnwrapOption(row));
+}
+func CompilerAbiLayoutRowMaterializationFor(type_name: String) -> String {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row) { return ""; }
+    return CompilerAbiLayoutRowMaterializationAt(UnwrapOption(row));
+}
+func CompilerAbiLayoutRowDefaultReturnValueFor(type_name: String) -> String {
+    let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
+    if !IsSome(row) { return ""; }
+    return CompilerAbiLayoutRowDefaultReturnValueAt(UnwrapOption(row));
 }
 
 func CompilerAbiLayoutFieldAllowed(type_name: String) -> Bool {

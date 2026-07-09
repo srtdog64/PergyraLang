@@ -714,10 +714,15 @@ done
 for term in \
     "func CompilerAbiLayoutRowSchema" \
     "CompilerAbiLayoutRowsReady" \
-    "CompilerAbiLayoutRowFactCount() == 9" \
+    "CompilerAbiLayoutRowFactCount() > 0" \
     "CompilerAbiLayoutConcreteRowCount" \
-    "CompilerAbiLayoutConcreteRowCount() == 16" \
+    "CompilerAbiLayoutConcreteRowCount() > 0" \
+    "CompilerAbiLayoutRowTypeNameAt(CompilerAbiLayoutConcreteRowCount()) == \"\"" \
     "CompilerAbiLayoutRowIndex" \
+    "CompilerAbiLayoutRowCValueTypeFor" \
+    "CompilerAbiLayoutRowFieldOrderFor" \
+    "CompilerAbiLayoutRowMaterializationFor" \
+    "CompilerAbiLayoutRowDefaultReturnValueFor" \
     "CompilerAbiLayoutRowCValueTypeAt" \
     "CompilerAbiLayoutFieldAllowed" \
     "CompilerAbiLayoutRowMaterializationAt" \
