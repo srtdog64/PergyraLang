@@ -86,6 +86,26 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     return "";
 }
 
+func CompilerBackendEmitterRequiredRowKnown(path: String, term: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendEmitterRequiredCount() {
+        if CompilerBackendEmitterRequiredPathAt(index) == path &&
+            CompilerBackendEmitterRequiredTermAt(index) == term {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+func CompilerBackendEmitterPrimaryRequiredPath() -> String {
+    return "src/codegen/transpiler_mir_resource_op_core.c";
+}
+
+func CompilerBackendEmitterPrimaryRequiredTerm() -> String {
+    return "mir_abi_resource_runtime_row_by_type_name(";
+}
+
 func CompilerBackendEmitterForbiddenCount() -> Int {
     return 11;
 }
@@ -120,8 +140,28 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
     return "";
 }
 
+func CompilerBackendEmitterForbiddenRowKnown(path: String, term: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendEmitterForbiddenCount() {
+        if CompilerBackendEmitterForbiddenPathAt(index) == path &&
+            CompilerBackendEmitterForbiddenTermAt(index) == term {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+func CompilerBackendEmitterPrimaryForbiddenPath() -> String {
+    return "src/codegen/llvm_runtime.c";
+}
+
+func CompilerBackendEmitterPrimaryForbiddenTerm() -> String {
+    return "llvm_runtime_slot_name";
+}
+
 func CompilerBackendEmitterContractReady() -> Bool {
-    return CompilerBackendEmitterRequiredCount() == 20 &&
+    return CompilerBackendEmitterContractSchema() != "" &&
         CompilerBackendEmitterNegativeSchema() != "" &&
         CompilerBackendEmitterMissingInputFinding() != "" &&
         CompilerBackendEmitterMissingRequiredFinding() != "" &&
@@ -131,29 +171,50 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterMissingRequiredCountField() != "" &&
         CompilerBackendEmitterForbiddenHitsCountField() != "" &&
         CompilerBackendEmitterOwnerNotReadyMessage() != "" &&
-        CompilerBackendEmitterRequiredPathAt(0) != "" &&
-        CompilerBackendEmitterRequiredTermAt(0) != "" &&
-        CompilerBackendEmitterRequiredTermAt(1) != "" &&
-        CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_row_by_kind(" &&
-        CompilerBackendEmitterRequiredTermAt(5) == "C source slot auto-release requires MIR ABI runtime function row" &&
-        CompilerBackendEmitterRequiredTermAt(11) == "transpiler_slot_runtime_fn(" &&
-        CompilerBackendEmitterRequiredPathAt(12) == "src/codegen/transpiler_mir_pin_emit.c" &&
-        CompilerBackendEmitterRequiredTermAt(12) == "mir_abi_resource_runtime_row_by_kind(" &&
-        CompilerBackendEmitterRequiredTermAt(13) == "row->call_shape" &&
-        CompilerBackendEmitterRequiredPathAt(14) == "src/codegen/transpiler_block_emit.c" &&
-        CompilerBackendEmitterRequiredTermAt(15) == "row->call_shape" &&
-        CompilerBackendEmitterRequiredPathAt(16) == "src/codegen/llvm_mir_pin_region.c" &&
-        CompilerBackendEmitterRequiredTermAt(16) == "mir_abi_resource_runtime_row_by_kind(" &&
-        CompilerBackendEmitterRequiredTermAt(17) == "row->call_shape" &&
-        CompilerBackendEmitterRequiredPathAt(18) == "src/codegen/llvm_runtime.c" &&
-        CompilerBackendEmitterRequiredTermAt(18) == "row->call_shape" &&
-        CompilerBackendEmitterRequiredPathAt(19) == "src/codegen/llvm_runtime_secure_slot_decl.c" &&
-        CompilerBackendEmitterRequiredTermAt(19) == "row->call_shape" &&
-        CompilerBackendEmitterForbiddenCount() == 11 &&
-        CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
-        CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&
-        CompilerBackendEmitterForbiddenTermAt(3) == "llvm_domain_slot_format_runtime_name" &&
-        CompilerBackendEmitterForbiddenTermAt(5) == "strncmp(fn, \"pgy_claim_secure_\"" &&
-        CompilerBackendEmitterForbiddenPathAt(10) == "src/codegen/transpiler_expr_stdlib_builtin.c" &&
-        CompilerBackendEmitterForbiddenTermAt(10) == "mir_abi_resource_runtime_fn_by_kind(";
+        CompilerBackendEmitterRequiredPathAt(CompilerBackendEmitterRequiredCount()) == "" &&
+        CompilerBackendEmitterRequiredTermAt(CompilerBackendEmitterRequiredCount()) == "" &&
+        CompilerBackendEmitterForbiddenPathAt(CompilerBackendEmitterForbiddenCount()) == "" &&
+        CompilerBackendEmitterForbiddenTermAt(CompilerBackendEmitterForbiddenCount()) == "" &&
+        CompilerBackendEmitterRequiredRowKnown(
+            CompilerBackendEmitterPrimaryRequiredPath(),
+            CompilerBackendEmitterPrimaryRequiredTerm()) &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_runtime.c",
+            "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_runtime_secure_slot_decl.c",
+            "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_expr_slot_device_calls.c",
+            "mir_abi_resource_runtime_row_by_kind(") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/transpiler_mir_pin_emit.c",
+            "mir_abi_resource_runtime_row_by_kind(") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/transpiler_mir_pin_emit.c",
+            "row->call_shape") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/transpiler_block_emit.c",
+            "row->call_shape") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_mir_pin_region.c",
+            "mir_abi_resource_runtime_row_by_kind(") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_mir_pin_region.c",
+            "row->call_shape") &&
+        CompilerBackendEmitterRequiredRowKnown(
+            "src/codegen/llvm_runtime_secure_slot_decl.c",
+            "row->call_shape") &&
+        CompilerBackendEmitterForbiddenRowKnown(
+            CompilerBackendEmitterPrimaryForbiddenPath(),
+            CompilerBackendEmitterPrimaryForbiddenTerm()) &&
+        CompilerBackendEmitterForbiddenRowKnown(
+            "src/codegen/llvm_expr_call_methods_domain_slice.c",
+            "llvm_domain_slot_format_runtime_name") &&
+        CompilerBackendEmitterForbiddenRowKnown(
+            "src/codegen/transpiler_mir_resource_op_core.c",
+            "strncmp(fn, \"pgy_claim_secure_\"") &&
+        CompilerBackendEmitterForbiddenRowKnown(
+            "src/codegen/transpiler_expr_stdlib_builtin.c",
+            "mir_abi_resource_runtime_fn_by_kind(");
 }

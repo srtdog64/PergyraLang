@@ -22,7 +22,7 @@ func RunBackendEmitterMissingRequiredSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterMissingRequiredFinding(),
-        CompilerBackendEmitterRequiredPathAt(0),
+        CompilerBackendEmitterPrimaryRequiredPath(),
         "definitely_missing_backend_contract_term"));
     Log(BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
@@ -33,7 +33,7 @@ func RunBackendEmitterMissingInputSelfTest() -> Void {
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterMissingInputFinding(),
         "src/codegen/definitely_missing_backend_contract_input.c",
-        CompilerBackendEmitterRequiredTermAt(0)));
+        CompilerBackendEmitterPrimaryRequiredTerm()));
     Log(BackendEmitterReport(1, 0, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
 }
@@ -42,8 +42,8 @@ func RunBackendEmitterForbiddenHitSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendEmitterFinding(
         CompilerBackendEmitterForbiddenHitFinding(),
-        CompilerBackendEmitterForbiddenPathAt(0),
-        CompilerBackendEmitterForbiddenTermAt(0)));
+        CompilerBackendEmitterPrimaryForbiddenPath(),
+        CompilerBackendEmitterPrimaryForbiddenTerm()));
     Log(BackendEmitterReport(0, 1, findings, CompilerBackendEmitterNegativeSchema()));
     Exit(1);
 }

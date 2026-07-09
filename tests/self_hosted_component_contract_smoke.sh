@@ -935,8 +935,14 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_emitt
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "pgy.selfhost.backend-emitter-contract.v1"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterRequiredPathAt"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterRequiredTermAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterRequiredRowKnown"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterPrimaryRequiredPath"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterPrimaryRequiredTerm"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenPathAt"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenTermAt"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenRowKnown"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterPrimaryForbiddenPath"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterPrimaryForbiddenTerm"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterNegativeSchema"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterMissingInputFinding"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterMissingRequiredFinding"
@@ -946,8 +952,16 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterMissingRequiredCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenHitsCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 20"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 11"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredPathAt(CompilerBackendEmitterRequiredCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredTermAt(CompilerBackendEmitterRequiredCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenPathAt(CompilerBackendEmitterForbiddenCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenTermAt(CompilerBackendEmitterForbiddenCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredRowKnown("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenRowKnown("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryRequiredPath(),"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryRequiredTerm())"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryForbiddenPath(),"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterPrimaryForbiddenTerm())"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
@@ -959,6 +973,14 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "tran
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'strncmp(fn, \"pgy_claim_secure_\"'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 20"
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 11"
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_row_by_kind("'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterRequiredTermAt(5) == "C source slot auto-release requires MIR ABI runtime function row"'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterRequiredPathAt(12) == "src/codegen/transpiler_mir_pin_emit.c"'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c"'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name"'
+reject_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'CompilerBackendEmitterForbiddenTermAt(10) == "mir_abi_resource_runtime_fn_by_kind("'
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json"

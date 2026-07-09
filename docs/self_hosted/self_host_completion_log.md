@@ -6131,3 +6131,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so the old backend AIR access count/index
   readiness shape cannot return while the parity gate continues to prove the
   clean and forbidden-hit artifacts across C/LLVM-built self-host tools.
+
+### 2026-07-10 -- Backend emitter readiness consumes source-term rows by name
+
+- Added required-row and forbidden-row membership lookups to
+  `backend_emitter_contract_owner.pgy`.
+- Repointed `CompilerBackendEmitterContractReady()` from exact
+  required/forbidden counts and representative `At(n)` checks to named
+  `(path, term)` membership plus out-of-range boundary checks.
+- Kept ordered required/forbidden rows for stable checker artifact emission,
+  but made readiness independent of row insertion order.
+- Repointed backend-emitter missing-required, missing-input, and forbidden-hit
+  self-tests to owner-named primary rows instead of `At(0)`.
+- Tightened the component contract so the old backend-emitter count/index
+  readiness shape cannot return while the parity gate continues to prove the
+  clean and three negative artifacts across C/LLVM-built self-host tools.
