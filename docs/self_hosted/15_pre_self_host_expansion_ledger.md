@@ -568,6 +568,17 @@ selfcheck legs; the focused completeness gate now prevents the new production
 self-host source from entering the inventory without passing the full staged
 completeness path.
 
+Completeness cache delta, 2026-07-09: `completeness_ledger_owner.pgy` now owns
+the rung0 incremental cache schema and fingerprint vocabulary for the
+self-host completeness harness. The shell runner may cache stage-tool builds
+only under `pgy.selfhost.completeness-cache.v1` with the full production
+source-set fingerprint, tool source hash, and compiler executable fingerprint,
+and may cache pass artifacts only with the full source-set fingerprint, stage,
+source path, check target, tool executable, and producer executable in the key.
+This is intentionally coarse: it speeds repeated proof runs but invalidates on
+any production self-host source change until the import/module graph is a
+Pergyra-owned fingerprint.
+
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.
 It no longer creates a build-dir `main.pgy` alias or copies the self-hosted

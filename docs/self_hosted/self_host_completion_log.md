@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - Completeness harness gets a fact-owned cache rung
+
+- Added a rung0 incremental cache contract to `completeness_ledger_owner.pgy`:
+  schema plus required source-set, stage, source, check-target, tool executable,
+  and producer executable fingerprints.
+- Repointed `tests/self_hosted/parity/completeness_ledger.sh` so stage-tool
+  builds and stage checks may reuse artifacts only when the full fingerprint
+  key matches.
+- Kept the cache deliberately coarse. Any production self-host source change
+  invalidates the cache until import/module graph fingerprints become
+  Pergyra-owned.
+
 ## 2026-07-09 - Kind usage facts enter codegen input ownership
 
 - Added `ast_kind_usage_owner.pgy` as the named owner for codegen

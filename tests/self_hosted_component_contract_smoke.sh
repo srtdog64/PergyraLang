@@ -4597,6 +4597,29 @@ completeness_min_count="$(grep -F "return 205;" "$ROOT_DIR/src/self_hosted/compi
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
     fail "self-host completeness minima drifted below the 205-source closed slice"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"source-set"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-source"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"compiler-executable"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-executable"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'BUILD_DIR="$ROOT_DIR/$BUILD_DIR"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'local ast_abs="$BUILD_DIR/ast/${safe}.ast.txt"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "source_set_fingerprint"
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'tool_key="${CACHE_SCHEMA}|tool-build'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "compiler-executable="
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'build.key'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "tool-executable="
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "producer-executable="
+require_text "tests/self_hosted/parity/completeness_ledger.sh" "cache: schema="
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'printf '"'"'%s\tpass=%s\tfail=%s\n'"'"' "$stage" "$pass" "$fail" | tee -a "$LEDGER"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" 'count_stage "$stage"'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" '.tmp/self_hosted/completeness/ast/${safe}.ast.txt'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'count_stage "$stage" | tee -a "$LEDGER"'
+reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'stage_result="$(count_stage "$stage")"'
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
@@ -5285,6 +5308,8 @@ require_text "Makefile" "build-pressure-dev-compiler:"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "focused source-filter ledger ok"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" "PGY_SELFHOST_COMPLETENESS_SOURCES"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" "PGY_SELFHOST_COMPLETENESS_CACHE=0"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" "pgy.selfhost.completeness-cache.v1"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" "it is never a replacement for the"
 require_text "docs/91_build_troubleshooting.md" "PGY_SELFHOST_COMPLETENESS_SOURCES=src/self_hosted/codegen/input/ast_type_usage_owner.pgy"
 require_text "docs/self_hosted/13_compiler_substrate_architecture.md" "### Incremental Compilation Position"

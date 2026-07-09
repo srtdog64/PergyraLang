@@ -43,6 +43,26 @@ func CompilerCompletenessFullPipelineBaselineSuiteName() -> String {
     return "self-host-completeness-full-pipeline-baseline";
 }
 
+func CompilerCompletenessIncrementalCacheSchema() -> String {
+    return "pgy.selfhost.completeness-cache.v1";
+}
+
+func CompilerCompletenessCacheFingerprintCount() -> Int {
+    return 8;
+}
+
+func CompilerCompletenessCacheFingerprintAt(index: Int) -> String {
+    if index == 0 { return "source-set"; }
+    if index == 1 { return "stage"; }
+    if index == 2 { return "source-path"; }
+    if index == 3 { return "check-target"; }
+    if index == 4 { return "tool-source"; }
+    if index == 5 { return "compiler-executable"; }
+    if index == 6 { return "tool-executable"; }
+    if index == 7 { return "producer-executable"; }
+    return "";
+}
+
 func CompilerCompletenessPathEndsWith(path: String, suffix: String) -> Bool {
     let path_len: Int = StringLength(path);
     let suffix_len: Int = StringLength(suffix);
@@ -227,5 +247,10 @@ func CompilerCompletenessLedgerReady() -> Bool {
         StringLength(CompilerCompletenessSemanticTargetsSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessLexParseSemanticBaselineSuiteName()) > 0 &&
-        StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0;
+        StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0 &&
+        StringLength(CompilerCompletenessIncrementalCacheSchema()) > 0 &&
+        CompilerCompletenessCacheFingerprintCount() == 8 &&
+        CompilerCompletenessCacheFingerprintAt(0) == "source-set" &&
+        CompilerCompletenessCacheFingerprintAt(5) == "compiler-executable" &&
+        CompilerCompletenessCacheFingerprintAt(6) == "tool-executable";
 }

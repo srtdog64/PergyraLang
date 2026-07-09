@@ -25,6 +25,9 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 BUILD_DIR="${PGY_SELFHOST_COMPLETENESS_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/completeness}"
+if [[ "$BUILD_DIR" != /* && ! "$BUILD_DIR" =~ ^[A-Za-z]: ]]; then
+    BUILD_DIR="$ROOT_DIR/$BUILD_DIR"
+fi
 SOURCE_MANIFEST="$BUILD_DIR/sources.txt"
 STAGE_MANIFEST="$BUILD_DIR/stages.txt"
 SEMANTIC_TARGET_MANIFEST="$BUILD_DIR/semantic_targets.txt"
@@ -38,6 +41,11 @@ SEMANTIC_PATH_MANIFEST="$BUILD_DIR/semantic_paths.txt"
 CODEGEN_PATH_MANIFEST="$BUILD_DIR/codegen_paths.txt"
 CHECK_TIMEOUT_SEC="${PGY_SELFHOST_COMPLETENESS_TIMEOUT_SEC:-60}"
 TIMEOUT_EXIT_CODE=124
+CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"
+CACHE_MODE="${PGY_SELFHOST_COMPLETENESS_CACHE:-1}"
+CACHE_DIR="$BUILD_DIR/cache/$CACHE_SCHEMA"
+CACHE_HITS=0
+CACHE_MISSES=0
 mkdir -p "$BUILD_DIR"
 
 read_manifest() {
@@ -190,6 +198,59 @@ LEX_PARSE_PASS_MIN="$(baseline_value lex_parse_pass_min)"
 LEX_PARSE_SEMANTIC_PASS_MIN="$(baseline_value lex_parse_semantic_pass_min)"
 FULL_PIPELINE_PASS_MIN="$(baseline_value full_pipeline_pass_min)"
 
+sha256_text() {
+    printf '%s' "$1" | sha256sum | cut -d' ' -f1
+}
+
+sha256_file() {
+    sha256sum "$1" | cut -d' ' -f1
+}
+
+cache_available() {
+    [[ "$CACHE_MODE" != "0" ]] && command -v sha256sum >/dev/null 2>&1
+}
+
+source_set_fingerprint() {
+    local fingerprint_input="$BUILD_DIR/source_set_fingerprint.txt"
+    local src
+
+    : >"$fingerprint_input"
+    for src in "${ALL_SOURCES[@]}"; do
+        printf '%s\t%s\n' "$src" "$(sha256_file "$ROOT_DIR/$src")" >>"$fingerprint_input"
+    done
+    sha256_file "$fingerprint_input"
+}
+
+SOURCE_SET_FINGERPRINT="no-cache"
+if cache_available; then
+    mkdir -p "$CACHE_DIR"
+    SOURCE_SET_FINGERPRINT="$(source_set_fingerprint)"
+fi
+
+cache_key_path() {
+    local key="$1"
+    printf '%s/%s.pass\n' "$CACHE_DIR" "$(sha256_text "$key")"
+}
+
+cache_hit() {
+    local key="$1"
+    local path
+
+    cache_available || return 1
+    path="$(cache_key_path "$key")"
+    [[ -f "$path" ]] || return 1
+    grep -Fxq "$key" "$path"
+}
+
+cache_record_pass() {
+    local key="$1"
+    local path
+
+    cache_available || return 0
+    path="$(cache_key_path "$key")"
+    printf '%s\n' "$key" >"$path"
+}
+
 tool_source_path_from_manifest() {
     local label="$1"
     local manifest="$2"
@@ -229,14 +290,27 @@ compile_tool() {
     local build_subdir="$3"
     local bin="$BUILD_DIR/$build_subdir/main.exe"
     local log="$BUILD_DIR/$build_subdir/compile.log"
+    local stamp="$BUILD_DIR/$build_subdir/build.key"
+    local tool_key=""
 
     mkdir -p "$BUILD_DIR/$build_subdir"
+
+    if cache_available; then
+        tool_key="${CACHE_SCHEMA}|tool-build|source-set=${SOURCE_SET_FINGERPRINT}|label=${label}|source=${source}|source-hash=$(sha256_file "$source")|compiler-executable=$(sha256_file "$PGY")"
+        if [[ -x "$bin" && -f "$stamp" ]] && grep -Fxq "$tool_key" "$stamp"; then
+            printf '%s\n' "$bin"
+            return 0
+        fi
+    fi
 
     if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$source")" \
         --backend=c -o "$(pgy_path_for_compiler "$PGY" "$bin")" >"$log" 2>&1); then
         echo "[self-host-completeness] $label build failed" >&2
         cat "$log" >&2
         exit 1
+    fi
+    if cache_available; then
+        printf '%s\n' "$tool_key" >"$stamp"
     fi
     printf '%s\n' "$bin"
 }
@@ -302,13 +376,13 @@ semantic_check_target_for() {
 run_codegen_check() {
     local src="$1"
     local safe="${src//[^A-Za-z0-9_]/_}"
-    local ast_rel=".tmp/self_hosted/completeness/ast/${safe}.ast.txt"
-    local ast_abs="$ROOT_DIR/$ast_rel"
+    local ast_abs="$BUILD_DIR/ast/${safe}.ast.txt"
+    local ast_rel="${ast_abs#"$ROOT_DIR/"}"
     local ast_err="$BUILD_DIR/ast/${safe}.err"
     local out="$BUILD_DIR/codegen_${safe}.out"
     local err="$BUILD_DIR/codegen_${safe}.err"
 
-    mkdir -p "$ROOT_DIR/.tmp/self_hosted/completeness/ast"
+    mkdir -p "$BUILD_DIR/ast"
     (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PARSER_BIN" "$src" \
         >"$ast_abs" 2>"$ast_err")
     local ast_rc="$?"
@@ -356,7 +430,7 @@ count_stage() {
         echo "[self-host-completeness] $stage checking $index/$total $src" >&2
         case "$stage" in
             lexer)
-                if run_source_check lexer "$LEXER_BIN" "$src"; then
+                if run_source_check_cached lexer "$LEXER_BIN" "$src"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -369,7 +443,7 @@ count_stage() {
                 fi
                 ;;
             parser)
-                if run_source_check parser "$PARSER_BIN" "$src"; then
+                if run_source_check_cached parser "$PARSER_BIN" "$src"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -384,7 +458,7 @@ count_stage() {
             semantic)
                 local semantic_target
                 semantic_target="$(semantic_check_target_for "$src")"
-                if run_source_check semantic "$SEMANTIC_BIN" "$src" "$semantic_target"; then
+                if run_source_check_cached semantic "$SEMANTIC_BIN" "$src" "$semantic_target"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -397,7 +471,7 @@ count_stage() {
                 fi
                 ;;
             codegen)
-                if run_codegen_check "$src"; then
+                if run_codegen_check_cached "$src"; then
                     pass=$((pass + 1))
                     printf '%s\n' "$src" >>"$pass_manifest"
                 else
@@ -415,7 +489,7 @@ count_stage() {
                 ;;
         esac
     done
-    printf '%s\tpass=%s\tfail=%s\n' "$stage" "$pass" "$fail"
+    printf '%s\tpass=%s\tfail=%s\n' "$stage" "$pass" "$fail" | tee -a "$LEDGER"
 }
 
 print_stage_failures() {
@@ -436,10 +510,61 @@ if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && (( SOURCE_COUNT < SOURCE_MIN )); then
     exit 1
 fi
 
+run_source_check_cached() {
+    local stage="$1"
+    local bin="$2"
+    local src="$3"
+    local check_src="${4:-$src}"
+    local key
+    local rc
+
+    if ! cache_available; then
+        run_source_check "$stage" "$bin" "$src" "$check_src"
+        return "$?"
+    fi
+    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=${stage}|source-path=${src}|check-target=${check_src}|tool-executable=$(sha256_file "$bin")|producer-executable=none"
+    if cache_hit "$key"; then
+        CACHE_HITS=$((CACHE_HITS + 1))
+        return 0
+    fi
+    CACHE_MISSES=$((CACHE_MISSES + 1))
+    if run_source_check "$stage" "$bin" "$src" "$check_src"; then
+        cache_record_pass "$key"
+        return 0
+    else
+        rc="$?"
+        return "$rc"
+    fi
+}
+
+run_codegen_check_cached() {
+    local src="$1"
+    local key
+    local rc
+
+    if ! cache_available; then
+        run_codegen_check "$src"
+        return "$?"
+    fi
+    key="${CACHE_SCHEMA}|source-set=${SOURCE_SET_FINGERPRINT}|stage=codegen|source-path=${src}|check-target=${src}|tool-executable=$(sha256_file "$CODEGEN_BIN")|producer-executable=$(sha256_file "$PARSER_BIN")"
+    if cache_hit "$key"; then
+        CACHE_HITS=$((CACHE_HITS + 1))
+        return 0
+    fi
+    CACHE_MISSES=$((CACHE_MISSES + 1))
+    if run_codegen_check "$src"; then
+        cache_record_pass "$key"
+        return 0
+    else
+        rc="$?"
+        return "$rc"
+    fi
+}
+
 LEDGER="$BUILD_DIR/ledger.tsv"
 : >"$LEDGER"
 for stage in "${STAGES[@]}"; do
-    count_stage "$stage" | tee -a "$LEDGER"
+    count_stage "$stage"
 done
 
 stage_pass() {
@@ -579,4 +704,10 @@ else
         echo "[self-host-completeness] focused ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS stages=${STAGES[*]}"
     fi
     echo "[self-host-completeness] focused failure manifests: $BUILD_DIR/{lexer,parser,semantic,codegen}_failures.txt"
+fi
+
+if cache_available; then
+    echo "[self-host-completeness] cache: schema=$CACHE_SCHEMA hits=$CACHE_HITS misses=$CACHE_MISSES source_set=$SOURCE_SET_FINGERPRINT"
+else
+    echo "[self-host-completeness] cache: disabled"
 fi

@@ -216,6 +216,16 @@ owner boundaries, artifact rows, and oracle comparison points. The compiler
 driver can consume the same cache discipline after those harness caches prove
 stable.
 
+Rung 0 of this cache is deliberately coarse: the self-host completeness harness
+keys stage-tool builds by the full production source-set fingerprint, tool
+source hash, and compiler executable fingerprint, then keys pass artifacts by
+the full production source-set fingerprint, stage name, source path, check
+target, tool executable fingerprint, and producer executable fingerprint. This
+makes repeated proof runs cheap without pretending that import graph
+invalidation is solved. A change to any production self-host source invalidates
+the current cache; later rungs may replace `source-set` with precise
+import/module graph fingerprints after that graph is Pergyra-owned.
+
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit
 unsupported input, and must not depend on `HOLD` surfaces.
