@@ -5405,3 +5405,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker for function emission. It does
   not close the blocker because the owner still reads transitional typed arena
   payload rows until typed declaration rows replace the AST-text bridge.
+
+### 2026-07-09 -- Declaration facts leave function/program emission
+
+- Added `ast_text_declaration_owner.pgy` for self-host codegen declaration
+  facts: nominal names, role names/target types, enum names, and struct field
+  name/type rows.
+- Repointed `function_emit.pgy` and `program_emit.pgy` so declaration scanning,
+  method owner tracking, struct collection, enum collection, role-operator
+  lookup, and prototype owner tracking consume declaration owner accessors
+  instead of directly reading arena atom/type rows.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new declaration owner and the emitters reject reopening
+  those direct declaration payload reads.
+- This reduces the mixed AST-like tree blocker for declaration emission. It
+  does not close the blocker because the owner still reads transitional typed
+  arena payload rows until typed declaration rows replace the AST-text bridge.

@@ -5,6 +5,7 @@
 import "../text/text_owner.pgy";
 import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
+import "../input/ast_text_declaration_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
@@ -91,7 +92,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
                 ArraySet(cur, 0, cur[0] + 1);
             }
         } else if CodegenAstArenaIsNominalDecl(arena, cur[0]) {
-            let owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
+            let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0]);
             let owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
@@ -104,7 +105,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
                 }
             }
         } else if CodegenAstArenaIsRoleDecl(arena, cur[0]) {
-            let role_owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0]);
+            let role_owner_name: String = CodegenAstArenaRoleNameOrDie(arena, cur[0]);
             let role_owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {

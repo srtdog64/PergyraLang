@@ -717,6 +717,7 @@ require_owner_surface codegen \
     "input/ast_text_array_literal_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_text_function_signature_owner.pgy" \
+    "input/ast_text_declaration_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
     "input/ast_text_local_binding_owner.pgy" \
@@ -2059,8 +2060,11 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstAren
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsFunction(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaRoleNameOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'StartsWith(main_line, "Event:")'
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsEventDecl(nodes[main_scan])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextIsMainFunction(nodes[main_scan])"
@@ -2137,14 +2141,38 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "rtype = Codege
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsReturns(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFieldsHeader(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumNameOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "owner = CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let role_name: String = CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let sname: String = CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let fname: String = CodegenAstArenaAtomOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ename: String = CodegenAstArenaAtomOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantCount(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantNameAt(arena, i, value)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_enum_variant_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, signature_context)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"

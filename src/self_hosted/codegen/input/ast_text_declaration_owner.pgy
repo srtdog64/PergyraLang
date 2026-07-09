@@ -1,0 +1,52 @@
+// Self-host codegen AST-text declaration facts.
+//
+// Declaration collectors own C typedef/env emission. This owner owns the typed
+// AST declaration header and field-row facts they consume.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaNominalNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsNominalDecl(arena, node_id) {
+        Die(Concat("expected nominal declaration at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaRoleNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsRoleDecl(arena, node_id) {
+        Die(Concat("expected role declaration at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaRoleTargetTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsRoleDecl(arena, node_id) {
+        Die(Concat("expected role declaration at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaTypeNameOrDie(arena, node_id);
+}
+
+func CodegenAstArenaEnumNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsEnumDecl(arena, node_id) {
+        Die(Concat("expected enum declaration at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaIsFieldRow(arena: AstArena, node_id: Int) -> Bool {
+    return CodegenAstArenaKindIs(arena, node_id, 5);
+}
+
+func CodegenAstArenaFieldNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsFieldRow(arena, node_id) {
+        Die(Concat("expected field row at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaFieldTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsFieldRow(arena, node_id) {
+        Die(Concat("expected field row at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaTypeNameOrDie(arena, node_id);
+}

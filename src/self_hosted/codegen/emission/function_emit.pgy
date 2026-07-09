@@ -7,6 +7,7 @@ import "../input/ast_text_inventory_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_text_enum_variant_owner.pgy";
 import "../input/ast_text_function_signature_owner.pgy";
+import "../input/ast_text_declaration_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -143,11 +144,11 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
             continue;
         }
         if CodegenAstArenaIsNominalDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
+            owner = CodegenAstArenaNominalNameOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstArenaIsRoleDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
+            owner = CodegenAstArenaRoleNameOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstArenaIsFunction(arena, i) {
@@ -203,8 +204,8 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: A
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsRoleDecl(arena, i) {
-            let role_name: String = CodegenAstArenaAtomOrDie(arena, i);
-            let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i);
+            let role_name: String = CodegenAstArenaRoleNameOrDie(arena, i);
+            let for_type: String = CodegenAstArenaRoleTargetTypeNameOrDie(arena, i);
             let j: Int = i + 1;
             while j < count && CodegenAstArenaIsDescendantOf(arena, j, i) {
                 if CodegenAstArenaIsFunction(arena, j) {
@@ -229,7 +230,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsNominalDecl(arena, i) {
-            let sname: String = CodegenAstArenaAtomOrDie(arena, i);
+            let sname: String = CodegenAstArenaNominalNameOrDie(arena, i);
             let c_sname: String = AbiLayoutCStructTypeName(sname);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
             let j: Int = i + 1;
@@ -239,8 +240,8 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
             let fields_c: String = "";
             let field_names: String = "";
             while j < count && CodegenAstArenaIndentOrDie(arena, j) == s_indent + 4 {
-                let fname: String = CodegenAstArenaAtomOrDie(arena, j);
-                let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j);
+                let fname: String = CodegenAstArenaFieldNameOrDie(arena, j);
+                let ftype: String = CodegenAstArenaFieldTypeNameOrDie(arena, j);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
                 let c_fname: String = CompilerSymbolCFieldName(fname);
                 if StringLength(field_names) == 0 {
@@ -266,7 +267,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsEnumDecl(arena, i) {
-            let ename: String = CodegenAstArenaAtomOrDie(arena, i);
+            let ename: String = CodegenAstArenaEnumNameOrDie(arena, i);
             let variant_total: Int = CodegenAstArenaEnumVariantCount(arena, i);
             let value: Int = 0;
             let enum_c: String = "enum {\n";
@@ -316,11 +317,11 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
             continue;
         }
         if CodegenAstArenaIsNominalDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
+            owner = CodegenAstArenaNominalNameOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstArenaIsRoleDecl(arena, i) {
-            owner = CodegenAstArenaAtomOrDie(arena, i);
+            owner = CodegenAstArenaRoleNameOrDie(arena, i);
             owner_indent = indent;
         }
         if CodegenAstArenaIsFunction(arena, i) {
