@@ -21,6 +21,8 @@ import "input/ast_text_array_literal_owner.pgy";
 import "input/ast_text_enum_variant_owner.pgy";
 import "input/ast_text_try_let_owner.pgy";
 import "input/ast_text_indexed_assignment_owner.pgy";
+import "input/ast_text_local_binding_owner.pgy";
+import "input/ast_text_assignment_owner.pgy";
 import "input/ast_text_for_stmt_owner.pgy";
 import "input/ast_text_statement_payload_owner.pgy";
 import "input/ast_text_collection_stmt_owner.pgy";

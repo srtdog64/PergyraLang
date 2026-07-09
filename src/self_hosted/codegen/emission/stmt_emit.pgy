@@ -10,6 +10,8 @@ import "../input/ast_text_array_literal_owner.pgy";
 import "../input/ast_text_typed_arena_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
+import "../input/ast_text_local_binding_owner.pgy";
+import "../input/ast_text_assignment_owner.pgy";
 import "../input/ast_text_for_stmt_owner.pgy";
 import "../input/ast_text_statement_payload_owner.pgy";
 import "../input/ast_text_collection_stmt_owner.pgy";
@@ -66,10 +68,10 @@ func EmitCollectionElementValue(kind: String, value_expr: String, env: String, k
 }
 
 func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String {
-    let name: String = CodegenAstArenaAtomOrDie(arena, idx);
+    let name: String = CodegenAstArenaLetNameOrDie(arena, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
-    let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
-    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
+    let type_name: String = CodegenAstArenaLetTypeNameOrDie(arena, idx);
+    let expr: String = CodegenAstArenaLetInitializerOrDie(arena, idx);
     if type_name == "Int" {
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
@@ -150,9 +152,9 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
 }
 
 func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
-    let name: String = CodegenAstArenaAtomOrDie(arena, idx);
+    let name: String = CodegenAstArenaLetNameOrDie(arena, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
-    let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx);
+    let type_name: String = CodegenAstArenaLetTypeNameOrDie(arena, idx);
     let inner_opt: Option<String> = CodegenAstArenaLetTryInner(arena, idx);
     if !IsSome(inner_opt) {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstTextProvenance(node)));
@@ -202,8 +204,8 @@ func EmitTryLet(node: CodegenAstTextNode, arena: AstArena, idx: Int, inout env_b
 
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.
 func EmitAssign(arena: AstArena, idx: Int, env_box: Array<String>) -> String {
-    let name: String = CodegenAstArenaAtomOrDie(arena, idx);
-    let expr: String = CodegenAstArenaValueOrDie(arena, idx);
+    let name: String = CodegenAstArenaAssignTargetOrDie(arena, idx);
+    let expr: String = CodegenAstArenaAssignValueOrDie(arena, idx);
     if CodegenAstArenaAssignTargetIsIndex(arena, idx) {
         let arr_name: String = CodegenAstArenaAssignIndexReceiverOrDie(arena, idx);
         let c_arr_name: String = CompilerSymbolCBindingName(arr_name);

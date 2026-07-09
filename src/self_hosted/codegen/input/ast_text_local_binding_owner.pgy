@@ -1,0 +1,27 @@
+// Self-host codegen AST-text local binding facts.
+//
+// Local binding lowering owns emitted C storage and environment updates. This
+// owner owns the `Let` row payload facts: binding name, type, and initializer.
+
+import "ast_text_typed_arena_owner.pgy";
+
+func CodegenAstArenaLetNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        Die(Concat("expected Let statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaLetTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        Die(Concat("expected Let statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaTypeNameOrDie(arena, node_id);
+}
+
+func CodegenAstArenaLetInitializerOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+        Die(Concat("expected Let statement at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaValueOrDie(arena, node_id);
+}

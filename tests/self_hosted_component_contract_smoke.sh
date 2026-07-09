@@ -718,6 +718,8 @@ require_owner_surface codegen \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
+    "input/ast_text_local_binding_owner.pgy" \
+    "input/ast_text_assignment_owner.pgy" \
     "input/ast_text_for_stmt_owner.pgy" \
     "input/ast_text_statement_payload_owner.pgy" \
     "input/ast_text_collection_stmt_owner.pgy" \
@@ -2221,9 +2223,26 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitTryLet(n
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign(arena: AstArena, idx: Int"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLetStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsAssignStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetTypeNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLetInitializerOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignTargetOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaAssignValueOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_local_binding_owner.pgy" "func CodegenAstArenaLetNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_local_binding_owner.pgy" "func CodegenAstArenaLetTypeNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_local_binding_owner.pgy" "func CodegenAstArenaLetInitializerOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_assignment_owner.pgy" "func CodegenAstArenaAssignTargetOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_assignment_owner.pgy" "func CodegenAstArenaAssignValueOrDie"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_local_binding_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_assignment_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaLetNameOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaLetTypeNameOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaLetInitializerOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAssignTargetOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaAssignValueOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetInitializerStartsArrayLiteral"
 require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetArrayLiteralElementCount"
 require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenAstArenaLetArrayLiteralElementAt"

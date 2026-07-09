@@ -117,6 +117,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
 - `src/self_hosted/codegen/input/ast_text_try_let_owner.pgy` -- AST text try-let initializer shape and inner-expression facts.
 - `src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy` -- AST text indexed assignment target shape, receiver, and index-expression facts.
+- `src/self_hosted/codegen/input/ast_text_local_binding_owner.pgy` -- AST text local binding name/type/initializer facts.
+- `src/self_hosted/codegen/input/ast_text_assignment_owner.pgy` -- AST text assignment target and RHS facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
 - `src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy` -- AST text `ArrayPush` and `ArraySet` statement payload facts.
