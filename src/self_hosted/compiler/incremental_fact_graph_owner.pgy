@@ -30,6 +30,18 @@ func CompilerIncrementalFactGraphStageCount() -> Int {
     return 9;
 }
 
+func CompilerIncrementalFactGraphSourceStageIndex() -> Int {
+    return 0;
+}
+
+func CompilerIncrementalFactGraphMirStageIndex() -> Int {
+    return 4;
+}
+
+func CompilerIncrementalFactGraphParityStageIndex() -> Int {
+    return CompilerIncrementalFactGraphStageCount() - 1;
+}
+
 func CompilerIncrementalFactGraphStageAt(index: Int) -> String {
     if index == 0 { return "source-bytes"; }
     if index == 1 { return "token-stream"; }
@@ -43,8 +55,30 @@ func CompilerIncrementalFactGraphStageAt(index: Int) -> String {
     return "";
 }
 
+func CompilerIncrementalFactGraphStageIndexKnown(index: Int) -> Bool {
+    return index >= 0 &&
+        index < CompilerIncrementalFactGraphStageCount() &&
+        CompilerIncrementalFactGraphStageAt(index) != "";
+}
+
 func CompilerIncrementalFactGraphDependencyCount() -> Int {
     return 12;
+}
+
+func CompilerIncrementalFactGraphSourceHashDependencyIndex() -> Int {
+    return 0;
+}
+
+func CompilerIncrementalFactGraphImportFingerprintDependencyIndex() -> Int {
+    return 1;
+}
+
+func CompilerIncrementalFactGraphAbiRowDependencyIndex() -> Int {
+    return 8;
+}
+
+func CompilerIncrementalFactGraphRuntimeCallRowDependencyIndex() -> Int {
+    return 9;
 }
 
 func CompilerIncrementalFactGraphDependencyAt(index: Int) -> String {
@@ -63,8 +97,22 @@ func CompilerIncrementalFactGraphDependencyAt(index: Int) -> String {
     return "";
 }
 
+func CompilerIncrementalFactGraphDependencyIndexKnown(index: Int) -> Bool {
+    return index >= 0 &&
+        index < CompilerIncrementalFactGraphDependencyCount() &&
+        CompilerIncrementalFactGraphDependencyAt(index) != "";
+}
+
 func CompilerIncrementalFactGraphArtifactCount() -> Int {
     return 9;
+}
+
+func CompilerIncrementalFactGraphMirJsonArtifactIndex() -> Int {
+    return 3;
+}
+
+func CompilerIncrementalFactGraphAbiLayoutArtifactIndex() -> Int {
+    return 5;
 }
 
 func CompilerIncrementalFactGraphArtifactAt(index: Int) -> String {
@@ -80,8 +128,22 @@ func CompilerIncrementalFactGraphArtifactAt(index: Int) -> String {
     return "";
 }
 
+func CompilerIncrementalFactGraphArtifactIndexKnown(index: Int) -> Bool {
+    return index >= 0 &&
+        index < CompilerIncrementalFactGraphArtifactCount() &&
+        CompilerIncrementalFactGraphArtifactAt(index) != "";
+}
+
 func CompilerIncrementalFactGraphVerifierCount() -> Int {
     return 5;
+}
+
+func CompilerIncrementalFactGraphArtifactParityVerifierIndex() -> Int {
+    return 0;
+}
+
+func CompilerIncrementalFactGraphUnsupportedFactVerifierIndex() -> Int {
+    return CompilerIncrementalFactGraphVerifierCount() - 1;
 }
 
 func CompilerIncrementalFactGraphVerifierAt(index: Int) -> String {
@@ -91,6 +153,12 @@ func CompilerIncrementalFactGraphVerifierAt(index: Int) -> String {
     if index == 3 { return "schema-version-match"; }
     if index == 4 { return "unsupported-fact-fail-closed"; }
     return "";
+}
+
+func CompilerIncrementalFactGraphVerifierIndexKnown(index: Int) -> Bool {
+    return index >= 0 &&
+        index < CompilerIncrementalFactGraphVerifierCount() &&
+        CompilerIncrementalFactGraphVerifierAt(index) != "";
 }
 
 func CompilerIncrementalFactGraphCacheHitPolicy() -> String {
@@ -106,7 +174,7 @@ func EmitCompilerIncrementalCacheParityPlan() -> Void {
     Log(Concat("cache_schema=", CompilerIncrementalFactGraphRung0CacheSchema()));
     Log(Concat("source=", CompilerIncrementalCacheParityDefaultSource()));
     Log(Concat("stages=", CompilerIncrementalCacheParityDefaultStages()));
-    Log(Concat("verifier=", CompilerIncrementalFactGraphVerifierAt(0)));
+    Log(Concat("verifier=", CompilerIncrementalFactGraphVerifierAt(CompilerIncrementalFactGraphArtifactParityVerifierIndex())));
     Log(Concat("cache_hit_policy=", CompilerIncrementalFactGraphCacheHitPolicy()));
     Log(Concat("missing_fact_policy=", CompilerIncrementalFactGraphMissingFactPolicy()));
 }
@@ -127,49 +195,76 @@ func CompilerIncrementalFactGraphReady() -> Bool {
     if CompilerIncrementalCacheParityDefaultStages() != "lexer,parser,semantic,codegen" {
         return false;
     }
-    if CompilerIncrementalFactGraphStageCount() != 9 {
+    if CompilerIncrementalFactGraphStageCount() <= 0 {
         return false;
     }
-    if CompilerIncrementalFactGraphStageAt(0) != "source-bytes" {
+    if CompilerIncrementalFactGraphStageAt(CompilerIncrementalFactGraphSourceStageIndex()) != "source-bytes" {
         return false;
     }
-    if CompilerIncrementalFactGraphStageAt(4) != "mir-fact-graph" {
+    if CompilerIncrementalFactGraphStageAt(CompilerIncrementalFactGraphMirStageIndex()) != "mir-fact-graph" {
         return false;
     }
-    if CompilerIncrementalFactGraphStageAt(8) != "parity-evidence" {
+    if CompilerIncrementalFactGraphStageAt(CompilerIncrementalFactGraphParityStageIndex()) != "parity-evidence" {
         return false;
     }
-    if CompilerIncrementalFactGraphDependencyCount() != 12 {
+    if !CompilerIncrementalFactGraphStageIndexKnown(CompilerIncrementalFactGraphSourceStageIndex()) {
         return false;
     }
-    if CompilerIncrementalFactGraphDependencyAt(0) != "source-bytes-hash" {
+    if !CompilerIncrementalFactGraphStageIndexKnown(CompilerIncrementalFactGraphParityStageIndex()) {
         return false;
     }
-    if CompilerIncrementalFactGraphDependencyAt(1) != "import-graph-fingerprint" {
+    if CompilerIncrementalFactGraphStageIndexKnown(CompilerIncrementalFactGraphStageCount()) {
         return false;
     }
-    if CompilerIncrementalFactGraphDependencyAt(8) != "abi-row-fingerprint" {
+    if CompilerIncrementalFactGraphDependencyCount() <= 0 {
         return false;
     }
-    if CompilerIncrementalFactGraphDependencyAt(9) != "runtime-call-row-fingerprint" {
+    if CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphSourceHashDependencyIndex()) != "source-bytes-hash" {
         return false;
     }
-    if CompilerIncrementalFactGraphArtifactCount() != 9 {
+    if CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphImportFingerprintDependencyIndex()) != "import-graph-fingerprint" {
         return false;
     }
-    if CompilerIncrementalFactGraphArtifactAt(3) != "mir-json" {
+    if CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphAbiRowDependencyIndex()) != "abi-row-fingerprint" {
         return false;
     }
-    if CompilerIncrementalFactGraphArtifactAt(5) != "abi-layout-rows" {
+    if CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphRuntimeCallRowDependencyIndex()) != "runtime-call-row-fingerprint" {
         return false;
     }
-    if CompilerIncrementalFactGraphVerifierCount() != 5 {
+    if !CompilerIncrementalFactGraphDependencyIndexKnown(CompilerIncrementalFactGraphAbiRowDependencyIndex()) {
         return false;
     }
-    if CompilerIncrementalFactGraphVerifierAt(0) != "clean-vs-incremental-artifact-parity" {
+    if CompilerIncrementalFactGraphDependencyIndexKnown(CompilerIncrementalFactGraphDependencyCount()) {
         return false;
     }
-    if CompilerIncrementalFactGraphVerifierAt(4) != "unsupported-fact-fail-closed" {
+    if CompilerIncrementalFactGraphArtifactCount() <= 0 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactAt(CompilerIncrementalFactGraphMirJsonArtifactIndex()) != "mir-json" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactAt(CompilerIncrementalFactGraphAbiLayoutArtifactIndex()) != "abi-layout-rows" {
+        return false;
+    }
+    if !CompilerIncrementalFactGraphArtifactIndexKnown(CompilerIncrementalFactGraphMirJsonArtifactIndex()) {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactIndexKnown(CompilerIncrementalFactGraphArtifactCount()) {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierCount() <= 0 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierAt(CompilerIncrementalFactGraphArtifactParityVerifierIndex()) != "clean-vs-incremental-artifact-parity" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierAt(CompilerIncrementalFactGraphUnsupportedFactVerifierIndex()) != "unsupported-fact-fail-closed" {
+        return false;
+    }
+    if !CompilerIncrementalFactGraphVerifierIndexKnown(CompilerIncrementalFactGraphUnsupportedFactVerifierIndex()) {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierIndexKnown(CompilerIncrementalFactGraphVerifierCount()) {
         return false;
     }
     return CompilerIncrementalFactGraphCacheHitPolicy() ==

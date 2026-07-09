@@ -95,6 +95,19 @@ rewrite history.
   cannot reintroduce the old direct `8`/`3`/`2` count comparisons or fixed
   final-index checks.
 
+## 2026-07-10 - Incremental fact graph readiness consumes axis owners
+
+- Added named index facts and `*IndexKnown()` boundary checks for the
+  incremental graph's stage, dependency, artifact, and verifier axes.
+- Repointed `CompilerIncrementalFactGraphReady()` so MIR-stage,
+  ABI/runtime-fingerprint, MIR/ABI artifact, and fail-closed verifier checks
+  consume those owner facts instead of repeating the current numeric row
+  positions in readiness.
+- Tightened the self-host component contract so the old direct `9`/`12`/`9`/`5`
+  count comparisons and fixed semantic row indexes cannot return. This keeps
+  the rung0 cache proof honest while precise import/module invalidation remains
+  a future graph-consumer step.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

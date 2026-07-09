@@ -4672,6 +4672,22 @@ require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "self-h
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "EmitCompilerIncrementalCacheParityPlan"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalCacheParityDefaultSource"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalCacheParityDefaultStages"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "func CompilerIncrementalFactGraphStageIndexKnown"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "func CompilerIncrementalFactGraphDependencyIndexKnown"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "func CompilerIncrementalFactGraphArtifactIndexKnown"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "func CompilerIncrementalFactGraphVerifierIndexKnown"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphStageAt(CompilerIncrementalFactGraphMirStageIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphStageAt(CompilerIncrementalFactGraphParityStageIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphAbiRowDependencyIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphDependencyAt(CompilerIncrementalFactGraphRuntimeCallRowDependencyIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphArtifactAt(CompilerIncrementalFactGraphMirJsonArtifactIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphArtifactAt(CompilerIncrementalFactGraphAbiLayoutArtifactIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphVerifierAt(CompilerIncrementalFactGraphArtifactParityVerifierIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphVerifierAt(CompilerIncrementalFactGraphUnsupportedFactVerifierIndex())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphStageIndexKnown(CompilerIncrementalFactGraphStageCount())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphDependencyIndexKnown(CompilerIncrementalFactGraphDependencyCount())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphArtifactIndexKnown(CompilerIncrementalFactGraphArtifactCount())"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphVerifierIndexKnown(CompilerIncrementalFactGraphVerifierCount())"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "source-bytes-hash"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "import-graph-fingerprint"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "abi-row-fingerprint"
@@ -4684,6 +4700,18 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerIncremen
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "incremental_fact_graph_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerIncrementalCacheParitySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerIncrementalCacheParityPlan()"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphStageCount() != 9"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphDependencyCount() != 12"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphArtifactCount() != 9"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphVerifierCount() != 5"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphStageAt(4) != "mir-fact-graph"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphStageAt(8) != "parity-evidence"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphDependencyAt(8) != "abi-row-fingerprint"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphDependencyAt(9) != "runtime-call-row-fingerprint"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphArtifactAt(3) != "mir-json"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphArtifactAt(5) != "abi-layout-rows"'
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphVerifierAt(0)"
+reject_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" 'CompilerIncrementalFactGraphVerifierAt(4) != "unsupported-fact-fail-closed"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlanSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRunGroupsSchema"
