@@ -86,6 +86,9 @@ rewrite history.
   the first run group, so the source/stage filter envs are proven against the
   real `self-host-completeness-smoke` boundary while keeping the routine gate
   bounded.
+- Wired the same runner into `self-host-preparation-parity-test-smoke`, so CI's
+  normal self-host preparation path now proves the planner output is executable,
+  not only comparable.
 
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 

@@ -50,6 +50,20 @@ require_text() {
         fail "$rel missing term: $term"
 }
 
+require_make_target_text() {
+    local target="$1"
+    local term="$2"
+    local body
+
+    body="$(awk -v target="$target" '
+        $0 ~ "^" target ":" { in_target = 1; next }
+        in_target && $0 ~ /^[^ \t#][^:]*:/ { exit }
+        in_target { print }
+    ' "$ROOT_DIR/Makefile")"
+    [[ "$body" == *"$term"* ]] ||
+        fail "Makefile target $target missing term: $term"
+}
+
 reject_text() {
     local rel="$1"
     local term="$2"
@@ -4639,6 +4653,12 @@ require_text "Makefile" "self-host-completeness-impact-runner-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_manifest.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_planner_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
+require_make_target_text \
+    "self-host-preparation-parity-test-smoke" \
+    "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
+require_make_target_text \
+    "self-host-completeness-impact-test-smoke" \
+    "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "self-host-completeness-impact-plan"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "pgy.selfhost.completeness-impact.v1"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"

@@ -2203,6 +2203,7 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_ledger.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_planner_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
