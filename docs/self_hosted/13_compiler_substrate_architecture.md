@@ -235,7 +235,8 @@ not yet automatic dependency invalidation; it is the owner-owned contract that
 prevents changed-source impact from living as an unreviewed shell list. The
 first executable consumer is
 `src/self_hosted/tools/completeness_impact_planner/main.pgy`: it accepts
-explicit changed paths, consumes those owner rows, emits
+explicit changed paths, consumes the owner row's `source_pattern` and
+`proof_gate` fields, emits
 `pgy.selfhost.completeness-impact-planner.v1`, and is checked through C/LLVM
 tool parity. It deliberately does not inspect git state or infer an import
 graph; callers must pass the changed paths and later rungs must replace the

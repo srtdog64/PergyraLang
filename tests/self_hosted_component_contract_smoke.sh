@@ -4646,8 +4646,14 @@ require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owne
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manifest expected 14 bootstrap tool rows"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/completeness_impact_planner/main.pgy"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'import "../../compiler/completeness_ledger_owner.pgy";'
-require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "CompilerCompletenessImpactProofGateFor"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPatternMatches"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 1)"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 5)"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "pgy.selfhost.completeness-impact-planner.v1"
+reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPathMatches(impact_id"
+reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "selfhost-production-source"'
+reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "parser-source"'
+reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "codegen-source"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'BUILD_DIR="$ROOT_DIR/$BUILD_DIR"'

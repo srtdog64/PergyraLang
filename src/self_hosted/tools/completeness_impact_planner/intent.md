@@ -8,7 +8,10 @@ proof-gate plan for an explicit list of changed paths.
 ## Input Contract
 
 Arguments are repo-relative changed paths. Git state and timestamps are not
-read here; callers provide the changed path list.
+read here; callers provide the changed path list. Path matching consumes the
+`source_pattern` field from `CompilerCompletenessImpactRowAt(...)`; proof-gate
+selection consumes the row's `proof_gate` field. The planner must not branch on
+specific `impact_id` names.
 
 ## Output Contract
 

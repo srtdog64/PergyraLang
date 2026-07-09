@@ -52,6 +52,9 @@ rewrite history.
 - Promoted the M2 completeness minima to 206 after the filtered completeness
   gate proved the changed production self-host sources through lexer, parser,
   semantic, and codegen.
+- Follow-up: repointed the planner from `impact_id`-specific path branches to
+  the row-owned `source_pattern` and `proof_gate` fields, so changing impact
+  rows does not require parallel planner edits.
 
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 

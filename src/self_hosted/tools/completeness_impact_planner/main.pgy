@@ -25,27 +25,24 @@ func ImpactPlannerEndsWith(path: String, suffix: String) -> Bool {
     return Substring(path, path_len - suffix_len, suffix_len) == suffix;
 }
 
-func ImpactPlannerPathMatches(impact_id: String, path: String) -> Bool {
-    if impact_id == "selfhost-production-source" {
-        return ImpactPlannerStartsWith(path, "src/self_hosted/") &&
+func ImpactPlannerPrefixPatternMatches(path: String, prefix_pattern: String) -> Bool {
+    if ImpactPlannerEndsWith(prefix_pattern, "*") {
+        let prefix_len: Int = StringLength(prefix_pattern) - 1;
+        let prefix: String = Substring(prefix_pattern, 0, prefix_len);
+        return ImpactPlannerStartsWith(path, prefix);
+    }
+    return ImpactPlannerStartsWith(path, Concat(prefix_pattern, "/"));
+}
+
+func ImpactPlannerPatternMatches(pattern: String, path: String) -> Bool {
+    let recursive_pgy_suffix: String = "/**/*.pgy";
+    if ImpactPlannerEndsWith(pattern, recursive_pgy_suffix) {
+        let prefix_len: Int = StringLength(pattern) - StringLength(recursive_pgy_suffix);
+        let prefix_pattern: String = Substring(pattern, 0, prefix_len);
+        return ImpactPlannerPrefixPatternMatches(path, prefix_pattern) &&
             ImpactPlannerEndsWith(path, ".pgy");
     }
-    if impact_id == "parser-source" {
-        return ImpactPlannerStartsWith(path, "src/self_hosted/parser/") &&
-            ImpactPlannerEndsWith(path, ".pgy");
-    }
-    if impact_id == "codegen-source" {
-        return ImpactPlannerStartsWith(path, "src/self_hosted/codegen/") &&
-            ImpactPlannerEndsWith(path, ".pgy");
-    }
-    if impact_id == "air-graph-consumer-source" {
-        return ImpactPlannerStartsWith(path, "src/self_hosted/tools/air_graph") &&
-            ImpactPlannerEndsWith(path, ".pgy");
-    }
-    if impact_id == "component-contract" {
-        return path == "tests/self_hosted_component_contract_smoke.sh";
-    }
-    return false;
+    return path == pattern;
 }
 
 func ImpactPlannerRowField(row: String, index: Int) -> Option<String> {
@@ -87,17 +84,15 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         let row_i: Int = 0;
         while row_i < CompilerCompletenessImpactRowCount() {
             let row: String = CompilerCompletenessImpactRowAt(row_i);
-            let impact_id_opt: Option<String> = ImpactPlannerRowField(row, 0);
-            if IsSome(impact_id_opt) {
-                let impact_id: String = UnwrapOption(impact_id_opt);
-                if ImpactPlannerPathMatches(impact_id, path) {
+            let pattern_opt: Option<String> = ImpactPlannerRowField(row, 1);
+            let gate_opt: Option<String> = ImpactPlannerRowField(row, 5);
+            if IsSome(pattern_opt) && IsSome(gate_opt) {
+                let pattern: String = UnwrapOption(pattern_opt);
+                if ImpactPlannerPatternMatches(pattern, path) {
+                    let gate: String = UnwrapOption(gate_opt);
                     path_matched = true;
-                    let gate_opt: Option<String> = CompilerCompletenessImpactProofGateFor(impact_id);
-                    if IsSome(gate_opt) {
-                        let gate: String = UnwrapOption(gate_opt);
-                        if !ImpactPlannerArrayContains(proof_gates, gate) {
-                            ArrayPush(proof_gates, gate);
-                        }
+                    if !ImpactPlannerArrayContains(proof_gates, gate) {
+                        ArrayPush(proof_gates, gate);
                     }
                 }
             }

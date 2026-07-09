@@ -594,7 +594,8 @@ TestHarness manifest and verifies those rows against the Make targets and
 runner knobs, so impact routing is no longer only a shell convention. The
 first executable planner,
 `src/self_hosted/tools/completeness_impact_planner/main.pgy`, consumes those
-rows from the owner, accepts explicit changed paths, emits
+rows from the owner, accepts explicit changed paths, consumes the
+`source_pattern` and `proof_gate` row fields, emits
 `pgy.selfhost.completeness-impact-planner.v1`, and is checked through
 C/LLVM-built tool parity with clean and unmatched-path artifacts. This remains
 rung0 routing, not full dependency invalidation: it does not inspect git state
