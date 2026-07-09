@@ -33,6 +33,15 @@ struct CodegenExpressionUsageFacts {
     let has_none: Bool;
 }
 
+struct CodegenExpressionParts {
+    let has_atom: Bool;
+    let atom: String;
+    let has_value: Bool;
+    let value: String;
+    let has_aux_value: Bool;
+    let aux_value: String;
+}
+
 func CodegenUsageBuiltinGroupArgs() -> Int { return 1; }
 func CodegenUsageBuiltinGroupString() -> Int { return 2; }
 func CodegenUsageBuiltinGroupMath() -> Int { return 3; }
@@ -219,12 +228,49 @@ func CodegenAstArenaExpressionPartCalls(part: Option<String>, callee: String) ->
     return ContainsCallOutsideStrings(UnwrapOption(part), callee);
 }
 
+func CodegenAstArenaExpressionPartsAt(arena: AstArena, node_id: Int) -> CodegenExpressionParts {
+    let atom_opt: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    let value_opt: Option<String> = TypedAstArenaValueText(arena, node_id);
+    let aux_value_opt: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+    let atom_text: String = "";
+    let value_text: String = "";
+    let aux_value_text: String = "";
+    if IsSome(atom_opt) {
+        atom_text = UnwrapOption(atom_opt);
+    }
+    if IsSome(value_opt) {
+        value_text = UnwrapOption(value_opt);
+    }
+    if IsSome(aux_value_opt) {
+        aux_value_text = UnwrapOption(aux_value_opt);
+    }
+    return CodegenExpressionParts(
+        IsSome(atom_opt),
+        atom_text,
+        IsSome(value_opt),
+        value_text,
+        IsSome(aux_value_opt),
+        aux_value_text
+    );
+}
+
+func CodegenExpressionPartsHasToken(parts: CodegenExpressionParts, token: String) -> Bool {
+    return (parts.has_atom && CodegenAstArenaExpressionPartHasToken(Some(parts.atom), token)) ||
+        (parts.has_value && CodegenAstArenaExpressionPartHasToken(Some(parts.value), token)) ||
+        (parts.has_aux_value && CodegenAstArenaExpressionPartHasToken(Some(parts.aux_value), token));
+}
+
+func CodegenExpressionPartsCalls(parts: CodegenExpressionParts, callee: String) -> Bool {
+    return (parts.has_atom && CodegenAstArenaExpressionPartCalls(Some(parts.atom), callee)) ||
+        (parts.has_value && CodegenAstArenaExpressionPartCalls(Some(parts.value), callee)) ||
+        (parts.has_aux_value && CodegenAstArenaExpressionPartCalls(Some(parts.aux_value), callee));
+}
+
 func CodegenAstArenaExpressionTokenPresent(arena: AstArena, count: Int, token: String) -> Bool {
     let i: Int = 0;
     while i < count {
-        if CodegenAstArenaExpressionPartHasToken(TypedAstArenaAtomText(arena, i), token) ||
-            CodegenAstArenaExpressionPartHasToken(TypedAstArenaValueText(arena, i), token) ||
-            CodegenAstArenaExpressionPartHasToken(TypedAstArenaAuxValueText(arena, i), token) {
+        let parts: CodegenExpressionParts = CodegenAstArenaExpressionPartsAt(arena, i);
+        if CodegenExpressionPartsHasToken(parts, token) {
             return true;
         }
         i = i + 1;
@@ -235,9 +281,8 @@ func CodegenAstArenaExpressionTokenPresent(arena: AstArena, count: Int, token: S
 func CodegenAstArenaBuiltinCallPresent(arena: AstArena, count: Int, callee: String) -> Bool {
     let i: Int = 0;
     while i < count {
-        if CodegenAstArenaExpressionPartCalls(TypedAstArenaAtomText(arena, i), callee) ||
-            CodegenAstArenaExpressionPartCalls(TypedAstArenaValueText(arena, i), callee) ||
-            CodegenAstArenaExpressionPartCalls(TypedAstArenaAuxValueText(arena, i), callee) {
+        let parts: CodegenExpressionParts = CodegenAstArenaExpressionPartsAt(arena, i);
+        if CodegenExpressionPartsCalls(parts, callee) {
             return true;
         }
         i = i + 1;

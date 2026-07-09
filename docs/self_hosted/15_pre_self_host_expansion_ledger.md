@@ -236,6 +236,15 @@ payload scans or direct builtin group scans inside the runtime/header usage
 owner. This is still transitional because the expression usage owner reads arena
 atom/value/aux text until typed expression rows exist.
 
+TypedAst delta, 2026-07-09: expression usage lane selection now has a single
+fact seam. `ast_expression_usage_owner.pgy` builds a `CodegenExpressionParts`
+row for each typed arena node, with explicit presence bits plus text for the
+current self-host C ABI subset; token and builtin-call scans consume that row
+instead of each reopening atom/value/aux lane reads. The component contract
+rejects the old `TypedAstArena*Text(arena, i)` scan shape. This still does not
+close the blocker because `CodegenExpressionParts` is backed by transitional
+arena text until typed/tagged expression rows replace the bridge.
+
 TypedAst delta, 2026-07-09: `For` statement payload facts now have a dedicated
 owner. `ast_text_for_stmt_owner.pgy` owns loop variable, range-vs-foreach
 classification, range start/end, and foreach collection facts. `stmt_emit.pgy`

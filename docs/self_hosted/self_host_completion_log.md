@@ -5433,3 +5433,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This keeps the compatibility corpus consumer aligned with the production-bar
   rule: the compatibility owner owns cardinality; report emission only consumes
   that fact.
+
+### 2026-07-09 -- Expression usage scans consume expression-part fact
+
+- Added `CodegenExpressionParts` inside `ast_expression_usage_owner.pgy` as the
+  single transitional fact row for expression atom/value/aux lanes, represented
+  with explicit presence bits plus text to stay within the current self-host C
+  ABI subset.
+- Repointed builtin-call and `None` token scans so they consume
+  `CodegenExpressionParts` instead of reopening `TypedAstArena*Text(arena, i)`
+  in each scanner.
+- Tightened `self_hosted_component_contract_smoke.sh` so expression usage scans
+  must go through `CodegenAstArenaExpressionPartsAt(...)` and reject the old
+  direct lane-read scan shape.
+- This narrows the remaining mixed AST-like tree blocker to one bridge seam.
+  The blocker remains active until typed/tagged expression rows replace the
+  transitional arena text behind `CodegenExpressionParts`.

@@ -130,7 +130,10 @@ SENTINEL_MAX=0
 # 730 -> 734 (2026-07-09): expression usage matching split into a dedicated
 # owner, with Result-based known-group validation instead of silent unknown
 # group fallthrough.
-RESULT_USE_MIN=734
+# 734 -> 743 (2026-07-09): expression usage lane selection now uses a typed
+# CodegenExpressionParts row with explicit presence bits and Option-backed lane
+# projection.
+RESULT_USE_MIN=743
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
