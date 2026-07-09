@@ -64,11 +64,49 @@ func ImpactPlannerArrayContains(values: Array<String>, value: String) -> Bool {
     return false;
 }
 
+func ImpactPlannerCsvContains(csv: String, value: String) -> Bool {
+    if csv == "" {
+        return false;
+    }
+    let haystack: String = Concat(",", Concat(csv, ","));
+    let needle: String = Concat(",", Concat(value, ","));
+    return StringContains(haystack, needle);
+}
+
+func ImpactPlannerCsvAppendUnique(csv: String, value: String) -> String {
+    if csv == "" {
+        return value;
+    }
+    if ImpactPlannerCsvContains(csv, value) {
+        return csv;
+    }
+    return Concat(csv, Concat(",", value));
+}
+
 func ImpactPlannerFinding(path: String) -> String {
     let fields: Array<String> = [
         JsonEmitFieldString("kind", "unmatched_path"),
         JsonEmitFieldString("path", path),
         JsonEmitFieldString("location", path)
+    ];
+    return JsonEmitObject(fields);
+}
+
+func ImpactPlannerRunGroupItem(
+    gate: String,
+    source_env: String,
+    source_values: String,
+    stage_env: String,
+    stage_value: String,
+    impact_ids: String
+) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("proof_gate", gate),
+        JsonEmitFieldString("source_filter_env", source_env),
+        JsonEmitFieldString("source_filter_value", source_values),
+        JsonEmitFieldString("stage_filter_env", stage_env),
+        JsonEmitFieldString("stage_filter_value", stage_value),
+        JsonEmitFieldString("impact_ids", impact_ids)
     ];
     return JsonEmitObject(fields);
 }
@@ -98,6 +136,12 @@ func ImpactPlannerImpactItem(
 func ImpactPlannerJson(paths: Array<String>) -> String {
     let matched_impacts: Array<String> = [];
     let impact_items: Array<String> = [];
+    let group_gates: Array<String> = [];
+    let group_source_envs: Array<String> = [];
+    let group_source_values: Array<String> = [];
+    let group_stage_envs: Array<String> = [];
+    let group_stage_values: Array<String> = [];
+    let group_impact_ids: Array<String> = [];
     let proof_gates: Array<String> = [];
     let findings: Array<String> = [];
     let unmatched: Int = 0;
@@ -126,6 +170,36 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
                     path_matched = true;
                     if !ImpactPlannerArrayContains(matched_impacts, impact_id) {
                         ArrayPush(matched_impacts, impact_id);
+                    }
+                    let group_index: Int = -1;
+                    let group_i: Int = 0;
+                    while group_i < ArrayLength(group_gates) {
+                        if group_gates[group_i] == gate &&
+                            group_source_envs[group_i] == source_env &&
+                            group_stage_envs[group_i] == stage_env &&
+                            group_stage_values[group_i] == stage_value {
+                            group_index = group_i;
+                        }
+                        group_i = group_i + 1;
+                    }
+                    if group_index < 0 {
+                        ArrayPush(group_gates, gate);
+                        ArrayPush(group_source_envs, source_env);
+                        ArrayPush(group_source_values, path);
+                        ArrayPush(group_stage_envs, stage_env);
+                        ArrayPush(group_stage_values, stage_value);
+                        ArrayPush(group_impact_ids, impact_id);
+                    } else {
+                        ArraySet(
+                            group_source_values,
+                            group_index,
+                            ImpactPlannerCsvAppendUnique(group_source_values[group_index], path)
+                        );
+                        ArraySet(
+                            group_impact_ids,
+                            group_index,
+                            ImpactPlannerCsvAppendUnique(group_impact_ids[group_index], impact_id)
+                        );
                     }
                     ArrayPush(
                         impact_items,
@@ -161,11 +235,28 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         ArrayPush(gate_items, JsonStringLiteral(proof_gates[gate_i]));
         gate_i = gate_i + 1;
     }
+    let run_groups: Array<String> = [];
+    let group_out_i: Int = 0;
+    while group_out_i < ArrayLength(group_gates) {
+        ArrayPush(
+            run_groups,
+            ImpactPlannerRunGroupItem(
+                group_gates[group_out_i],
+                group_source_envs[group_out_i],
+                group_source_values[group_out_i],
+                group_stage_envs[group_out_i],
+                group_stage_values[group_out_i],
+                group_impact_ids[group_out_i]
+            )
+        );
+        group_out_i = group_out_i + 1;
+    }
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("changed_paths", ToString(ArrayLength(paths))),
         JsonEmitFieldNumber("matched_impacts", ToString(ArrayLength(matched_impacts))),
         JsonEmitFieldNumber("impact_matches", ToString(ArrayLength(impact_items))),
         JsonEmitFieldNumber("proof_gates", ToString(ArrayLength(proof_gates))),
+        JsonEmitFieldNumber("run_groups", ToString(ArrayLength(run_groups))),
         JsonEmitFieldNumber("unmatched", ToString(unmatched))
     ];
     let report_fields: Array<String> = [
@@ -174,6 +265,7 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         JsonEmitFieldString("impact_schema", CompilerCompletenessImpactPlanSchema()),
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("proof_gates", JsonEmitArray(gate_items)),
+        JsonEmitFieldRaw("run_groups", JsonEmitArray(run_groups)),
         JsonEmitFieldRaw("impacts", JsonEmitArray(impact_items)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];

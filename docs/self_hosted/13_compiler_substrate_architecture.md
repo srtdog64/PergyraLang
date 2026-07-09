@@ -238,12 +238,13 @@ first executable consumer is
 explicit changed paths, consumes the owner row's `source_pattern` and
 `proof_gate` fields plus the filter env/stage fields, emits
 `pgy.selfhost.completeness-impact-planner.v1`, and is checked through C/LLVM
-tool parity. The emitted artifact carries both the deduplicated proof-gate list
-and the matched impact row items (`source_filter_env`, `source_filter_value`,
-`stage_filter_env`, `stage_filter_value`) needed by a runner. It deliberately
-does not inspect git state or infer an import graph; callers must pass the
-changed paths and later rungs must replace the coarse path classes with
-owner-owned dependency fingerprints.
+tool parity. The emitted artifact carries the deduplicated proof-gate list,
+proof-gate `run_groups`, and the matched impact row items. A run group includes
+the `source_filter_env`, grouped `source_filter_value`, `stage_filter_env`, and
+`stage_filter_value` needed by a runner, so shell does not have to rebuild that
+mapping from path classes. It deliberately does not inspect git state or infer
+an import graph; callers must pass the changed paths and later rungs must
+replace the coarse path classes with owner-owned dependency fingerprints.
 
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit

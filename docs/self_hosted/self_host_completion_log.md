@@ -59,6 +59,9 @@ rewrite history.
   source/stage filter envs and values. The shell gate now compares that richer
   JSON through the backend-output comparator instead of recovering runner
   knobs from the proof-gate list.
+- Added proof-gate `run_groups` to the same artifact, grouping source-filter
+  values per gate so a future runner can execute the plan without rebuilding
+  path-to-env aggregation in shell.
 
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 

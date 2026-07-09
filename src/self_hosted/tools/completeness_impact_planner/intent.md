@@ -17,8 +17,8 @@ specific `impact_id` names.
 
 The tool emits one JSON object with schema
 `pgy.selfhost.completeness-impact-planner.v1`, counts, unique proof-gate names,
-matched impact row items, and unmatched-path findings. Any unmatched path exits
-non-zero.
+proof-gate run groups, matched impact row items, and unmatched-path findings.
+Any unmatched path exits non-zero.
 
 ## Oracle
 
