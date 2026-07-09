@@ -150,7 +150,7 @@ require_literal "src/runtime/slot_manager_security_stats.c" \
 require_literal "src/runtime/slot_manager_security_stats.c" \
     "localtime_r(&now, out)"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/compiler/mir_abi_resource_runtime.c" \
     'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_literal "src/codegen/llvm_expr_array_calls.c" \
@@ -164,7 +164,7 @@ require_literal "src/codegen/llvm_expr_call_methods_domain_slice.c" \
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "transpiler_mir_slot_address_local"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
     "\"PinRead\""
 require_literal "src/codegen/transpiler_mir_pin_emit.c" \
@@ -176,7 +176,7 @@ require_literal "src/codegen/llvm_mir_pin_region.c" \
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "llvm_mir_pin_token_name"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/llvm_mir_pin_region.c" \
     "\"PinReadInit\""
 require_literal "src/codegen/llvm_mir_pin_region.c" \
@@ -288,11 +288,11 @@ reject_literal "src/codegen/llvm_runtime_channels.c" \
 reject_literal "src/codegen/llvm_runtime_channels.c" \
     "llvm_runtime_lane_channel_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
-    "mir_abi_resource_runtime_fn_by_type_name"
+    "mir_abi_resource_runtime_row_by_type_name"
 require_literal "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "\"PinReadInit\""
 require_literal "src/codegen/llvm_runtime.c" \
-    "mir_abi_resource_runtime_fn_by_type_name"
+    "mir_abi_resource_runtime_row_by_type_name"
 require_literal "src/codegen/llvm_runtime.c" \
     "llvm_runtime_export_name"
 require_literal "src/codegen/llvm_runtime.c" \
@@ -374,7 +374,7 @@ require_literal "src/codegen/transpiler_enum_decl_emit.c" \
 require_literal "src/codegen/transpiler_block_emit.c" \
     "transpiler_block_pin_address_too_long"
 require_literal "src/codegen/transpiler_block_emit.c" \
-    "mir_abi_resource_runtime_fn_by_kind"
+    "mir_abi_resource_runtime_row_by_kind"
 require_literal "src/codegen/transpiler_block_emit.c" \
     "\"UnpinCleanup\""
 require_literal "src/codegen/transpiler_block_emit.c" \

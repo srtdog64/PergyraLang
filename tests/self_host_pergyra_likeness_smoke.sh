@@ -67,9 +67,10 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
-# 109 -> 108 (2026-07-09): compatibility evolution and SEA lane executor
-# contract-row owners are explicit text-resource owners, not compiler-core
-# AST/IR string bridges. Exclude them by name and tighten to the measured core.
+# 109 -> 108 (2026-07-09): compatibility evolution, runtime-call ABI row,
+# and SEA lane executor contract-row owners are explicit text-resource owners,
+# not compiler-core AST/IR string bridges. Exclude them by name and tighten to
+# the measured core.
 CORE_STRING_MUNGE_SIG_MAX=108
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
@@ -153,7 +154,7 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner)\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|runtime_call_abi_row_owner)\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$|^src/self_hosted/codegen/runtime_abi/'
 
 fail() {
