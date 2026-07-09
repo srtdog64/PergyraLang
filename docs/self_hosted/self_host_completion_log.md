@@ -5521,3 +5521,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   runtime-call ABI row artifact. The production ABI blocker remains open until
   native C/LLVM emitters consume this concrete table rather than proving only
   selected source terms.
+
+### 2026-07-09 -- Native resource runtime rows become executable facts
+
+- Added `mir_abi_resource_runtime_row_count`,
+  `mir_abi_resource_runtime_row_type_name`,
+  `mir_abi_resource_runtime_row_operation`, and
+  `mir_abi_resource_runtime_row_symbol` so the native MIR resource runtime-call
+  table can be inspected as rows instead of only queried by lookup helpers.
+- Added `MIR ABI resource runtime row table exposes native resource rows` to
+  `test_mir`, covering row count, slot, secure slot, pin/unpin, device slot,
+  submit-read, and out-of-range fail-closed access.
+- Added `mir_abi_resource_runtime.o` to `MIR_CORE_OBJECTS` so MIR tests link
+  the native runtime-call table owner directly.
+- Tightened `abi_ownership_shape_smoke.sh` so the native row-access API and
+  executable row-table test remain load-bearing.
+- This gives the self-host `runtime_call_abi` projection a native executable
+  row surface to compare against in later parity work. Full closure still
+  requires C/LLVM backend emitters to consume concrete row records, not merely
+  source-term lookup helpers.

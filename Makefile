@@ -1425,6 +1425,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_validate.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_validate_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_abi_layout.o \
+                   $(BUILD_DIR)/compiler/mir_abi_resource_runtime.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \

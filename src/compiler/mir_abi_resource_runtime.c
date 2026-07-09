@@ -147,6 +147,36 @@ static const MIRResourceRuntimeFnRow k_abi_resource_runtime_fn_table[] = {
 #undef ABI_PIN_OPS
 #undef ABI_RESOURCE_OP
 
+size_t
+mir_abi_resource_runtime_row_count(void)
+{
+    return PGY_ABI_RESOURCE_RUNTIME_FN_COUNT;
+}
+
+const char *
+mir_abi_resource_runtime_row_type_name(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return k_abi_resource_runtime_fn_table[index].abi_type_name;
+}
+
+const char *
+mir_abi_resource_runtime_row_operation(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return k_abi_resource_runtime_fn_table[index].resource_op_name;
+}
+
+const char *
+mir_abi_resource_runtime_row_symbol(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return k_abi_resource_runtime_fn_table[index].runtime_fn;
+}
+
 static bool
 abi_runtime_suffix_copy(const char *type_name, char *buf, size_t buf_size)
 {

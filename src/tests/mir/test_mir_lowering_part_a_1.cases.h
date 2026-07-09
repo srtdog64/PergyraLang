@@ -157,6 +157,32 @@ test_mir_lowering_part_a(void)
                    MIR_RESOURCE_ABI_SLOT, "Unknown", "Claim") == NULL);
     }
 
+    TEST("MIR ABI resource runtime row table exposes native resource rows");
+    {
+        EXPECT(mir_abi_resource_runtime_row_count() == 150);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(0), "Slot<Int>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(0), "Claim") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(0), "pgy_claim_Int") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(47), "SecureSlot<String>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(47), "Write") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(47), "pgy_secure_write_String") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(48), "Slot<Int>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(48), "PinRead") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(48), "pgy_pin_read_Int") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(119), "SecureSlot<String>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(119), "UnpinCleanup") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(119), "pgy_secure_unpin_cleanup_String") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(120), "DeviceSlot<Int>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(120), "Claim") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(120), "pgy_claim_device_Int") == 0);
+        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(149), "DeviceSlot<String>") == 0
+               && strcmp(mir_abi_resource_runtime_row_operation(149), "SubmitRead") == 0
+               && strcmp(mir_abi_resource_runtime_row_symbol(149), "pgy_submit_device_read_String") == 0);
+        EXPECT(mir_abi_resource_runtime_row_type_name(150) == NULL
+               && mir_abi_resource_runtime_row_operation(150) == NULL
+               && mir_abi_resource_runtime_row_symbol(150) == NULL);
+    }
+
     TEST("MIR validator rejects view-backed resource owner metadata drift");
     {
         const char *src =
