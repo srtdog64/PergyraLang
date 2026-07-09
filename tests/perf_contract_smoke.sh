@@ -925,13 +925,21 @@ if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*
     echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq "row->call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq '"PinWrite"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq '"Unpin"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+! grep -Fq "transpiler_mir_pin_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 ! grep -Fq "pgy_pin_%s_%s" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
@@ -941,6 +949,12 @@ grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 ! grep -Fq "pgy_secure_unpin_%s(&%s);" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "row->call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "transpiler_slot_runtime_expected_call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinRead"' \
@@ -960,6 +974,8 @@ grep -Fq "C source slot auto-release requires MIR ABI runtime function row" \
 ! grep -Fq "cleanup(pgy_unpin_cleanup_%s)" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "cleanup(pgy_secure_unpin_cleanup_%s)" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+! grep -Fq "transpiler_block_pin_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "pgy_release_%s(&%s);" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"

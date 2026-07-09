@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 12;
+    return 16;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -51,6 +51,10 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 9 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
     if index == 10 { return "src/codegen/transpiler_class_decl_emit.c"; }
     if index == 11 { return "src/codegen/transpiler_expr_stdlib_builtin.c"; }
+    if index == 12 { return "src/codegen/transpiler_mir_pin_emit.c"; }
+    if index == 13 { return "src/codegen/transpiler_mir_pin_emit.c"; }
+    if index == 14 { return "src/codegen/transpiler_block_emit.c"; }
+    if index == 15 { return "src/codegen/transpiler_block_emit.c"; }
     return "";
 }
 
@@ -67,6 +71,10 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 9 { return "C MIR destructuring %s requires MIR ABI runtime function row"; }
     if index == 10 { return "C class field slot Claim requires MIR ABI runtime function row"; }
     if index == 11 { return "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"; }
+    if index == 12 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 13 { return "row->call_shape"; }
+    if index == 14 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 15 { return "row->call_shape"; }
     return "";
 }
 
@@ -95,7 +103,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterContractReady() -> Bool {
-    return CompilerBackendEmitterRequiredCount() == 12 &&
+    return CompilerBackendEmitterRequiredCount() == 16 &&
         CompilerBackendEmitterNegativeSchema() != "" &&
         CompilerBackendEmitterMissingInputFinding() != "" &&
         CompilerBackendEmitterMissingRequiredFinding() != "" &&
@@ -111,6 +119,11 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_row_by_kind(" &&
         CompilerBackendEmitterRequiredTermAt(5) == "C source slot auto-release requires MIR ABI runtime function row" &&
         CompilerBackendEmitterRequiredTermAt(11) == "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row" &&
+        CompilerBackendEmitterRequiredPathAt(12) == "src/codegen/transpiler_mir_pin_emit.c" &&
+        CompilerBackendEmitterRequiredTermAt(12) == "mir_abi_resource_runtime_row_by_kind(" &&
+        CompilerBackendEmitterRequiredTermAt(13) == "row->call_shape" &&
+        CompilerBackendEmitterRequiredPathAt(14) == "src/codegen/transpiler_block_emit.c" &&
+        CompilerBackendEmitterRequiredTermAt(15) == "row->call_shape" &&
         CompilerBackendEmitterForbiddenCount() == 6 &&
         CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
         CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&

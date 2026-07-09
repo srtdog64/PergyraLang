@@ -5626,3 +5626,23 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The production ABI blocker remains open for pin emission/cleanup, LLVM
   runtime declaration registries, and remaining slot/member compatibility
   callsites.
+
+### 2026-07-09 -- C pin emission/cleanup consume runtime-call row records
+
+- Repointed C MIR pin-region enter/exit emission in
+  `transpiler_mir_pin_emit.c` to consume concrete `MIRResourceRuntimeRow`
+  records for PinRead/PinWrite and Unpin instead of symbol-only lookup.
+- Repointed source-level C pin block enter/cleanup attribute emission in
+  `transpiler_block_emit.c` to consume row records for PinRead/PinWrite and
+  UnpinCleanup. Statement auto-release remains a separate compatibility
+  consumer through the symbol-returning row accessor.
+- Both paths now validate the MIR-owned `call_shape` before emitting a runtime
+  call or cleanup attribute, and both consume the shared
+  `transpiler_slot_runtime_expected_call_shape(...)` owner instead of carrying
+  local pin-only call-shape tables.
+- Tightened `abi_ownership_shape_smoke.sh`, `backend_fail_closed_smoke.sh`,
+  `perf_contract_smoke.sh`, and the self-host backend-emitter contract owner so
+  these C pin paths cannot regress to symbol-only runtime ABI lookup.
+- The production ABI blocker remains open for LLVM pin/unpin declaration
+  registries, LLVM pin-region emission, source statement auto-release, and
+  remaining slot/member compatibility callsites.

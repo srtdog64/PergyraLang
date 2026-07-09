@@ -63,11 +63,16 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   reconstruction is wrong.
 - Slot-like MIR resource operations must consume explicit ABI rows. C MIR
   resource-op emission, C source-level slot builtins, C expression slot runtime
-  rows, `let slot` claim/initializer writes, LLVM identifier read emission, and
-  LLVM slot/device builtins already consume concrete `MIRResourceRuntimeRow`
-  records and validate the MIR-owned `call_shape`. Other resource callsites
-  still consume symbol-returning row accessors as compatibility paths until
-  they are cut over to concrete row records. Source-level
+  rows, `let slot` claim/initializer writes, C MIR pin enter/exit emission,
+  source-level C pin block cleanup attributes, LLVM identifier read emission,
+  and LLVM slot/device builtins already consume concrete
+  `MIRResourceRuntimeRow` records and validate the MIR-owned `call_shape`.
+  C pin emitters get expected call shapes from
+  `transpiler_slot_runtime_expected_call_shape(...)`, not local pin-only
+  tables.
+  Other resource callsites still consume symbol-returning row accessors as
+  compatibility paths until they are cut over to concrete row records.
+  Source-level
   `with slot` alias claim/release emission uses those same Claim/Release rows.
   MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` uses the same Claim
   rows. C class field-claim helpers also consume Claim rows from this ABI

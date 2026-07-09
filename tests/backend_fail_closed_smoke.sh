@@ -419,7 +419,11 @@ if grep -F 'transpiler_format_slot_runtime_fn(' \
     echo "[backend-fail-closed] C MIR resource op must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq "row->call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
@@ -427,6 +431,16 @@ grep -Fq '"PinWrite"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
 grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR pin enter/cleanup must consume MIR ABI runtime row records" >&2
+    exit 1
+fi
+if grep -F "transpiler_mir_pin_expected_call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR pin call shape must be owned by slot runtime row owner" >&2
+    exit 1
+fi
 if grep -F 'pgy_pin_%s_%s' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR pin enter must consume MIR ABI runtime rows" >&2
@@ -447,6 +461,12 @@ if grep -F 'pgy_secure_unpin_%s(&%s);' \
     echo "[backend-fail-closed] C MIR secure pin cleanup must consume MIR ABI runtime rows" >&2
     exit 1
 fi
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "row->call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+grep -Fq "transpiler_slot_runtime_expected_call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinRead"' \
@@ -477,6 +497,11 @@ fi
 if grep -F 'cleanup(pgy_secure_unpin_cleanup_%s)' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source secure pin cleanup attribute must consume MIR ABI runtime rows" >&2
+    exit 1
+fi
+if grep -F "transpiler_block_pin_expected_call_shape" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source pin call shape must be owned by slot runtime row owner" >&2
     exit 1
 fi
 if grep -F 'pgy_release_%s(&%s);' \

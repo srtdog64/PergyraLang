@@ -200,6 +200,9 @@ require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_slot_runtime_row.c" "row->call_shape"
+require_term "src/codegen/transpiler_slot_runtime_row.c" "transpiler_slot_runtime_expected_call_shape"
+require_term "src/codegen/transpiler_slot_runtime_row.c" '"PinRead"'
+require_term "src/codegen/transpiler_slot_runtime_row.c" '"UnpinCleanup"'
 require_term "src/codegen/transpiler_slot_runtime_row.c" "C expression slot %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "transpiler_emit_nominal_container_runtime_rows"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "PGY_SLOT_DEFINE(%s, %s)"
@@ -410,10 +413,13 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_unp
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_read_init_##Suffix"
 require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin_write_init_##Suffix"
 
-require_term "src/codegen/transpiler_mir_pin_emit.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/transpiler_mir_pin_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_mir_pin_emit.c" "row->call_shape"
+require_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_slot_runtime_expected_call_shape"
 require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinRead"'
 require_term "src/codegen/transpiler_mir_pin_emit.c" '"PinWrite"'
 require_term "src/codegen/transpiler_mir_pin_emit.c" '"Unpin"'
+reject_term "src/codegen/transpiler_mir_pin_emit.c" "transpiler_mir_pin_expected_call_shape"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_secure_pin_%s_%s"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
@@ -441,12 +447,16 @@ require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_a
 require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(%s)))"
+require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_block_emit.c" "row->call_shape"
+require_term "src/codegen/transpiler_block_emit.c" "transpiler_slot_runtime_expected_call_shape"
 require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_block_emit.c" '"PinRead"'
 require_term "src/codegen/transpiler_block_emit.c" '"PinWrite"'
 require_term "src/codegen/transpiler_block_emit.c" '"UnpinCleanup"'
 require_term "src/codegen/transpiler_block_emit.c" '"Release"'
 require_term "src/codegen/transpiler_block_emit.c" "C source slot auto-release requires MIR ABI runtime function row"
+reject_term "src/codegen/transpiler_block_emit.c" "transpiler_block_pin_expected_call_shape"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_pin_%s_%s"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_secure_pin_%s_%s"
 reject_term "src/codegen/transpiler_block_emit.c" "cleanup(pgy_unpin_cleanup_%s)"

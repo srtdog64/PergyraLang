@@ -7,8 +7,8 @@
 
 #include <string.h>
 
-static const char *
-slot_runtime_expected_call_shape(bool secure, const char *operation)
+const char *
+transpiler_slot_runtime_expected_call_shape(bool secure, const char *operation)
 {
     if (operation == NULL)
         return NULL;
@@ -23,6 +23,15 @@ slot_runtime_expected_call_shape(bool secure, const char *operation)
     if (strcmp(operation, "Release") == 0)
         return secure ? "container_ptr_token_ptr_to_void"
                       : "container_ptr_to_void";
+    if (strcmp(operation, "PinRead") == 0 ||
+        strcmp(operation, "PinWrite") == 0) {
+        return secure ? "container_ptr_token_ptr_to_pinned_view"
+                      : "container_ptr_to_pinned_view";
+    }
+    if (strcmp(operation, "Unpin") == 0 ||
+        strcmp(operation, "UnpinCleanup") == 0) {
+        return "pinned_view_ptr_to_void";
+    }
     return NULL;
 }
 
@@ -33,7 +42,7 @@ transpiler_slot_runtime_fn(TranspilerCtx *ctx,
                            const char *operation)
 {
     const char *expected_shape =
-        slot_runtime_expected_call_shape(secure, operation);
+        transpiler_slot_runtime_expected_call_shape(secure, operation);
     const MIRResourceRuntimeRow *row = mir_abi_resource_runtime_row_by_kind(
         secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
         inner_type, operation);

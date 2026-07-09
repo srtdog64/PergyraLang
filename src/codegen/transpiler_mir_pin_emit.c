@@ -14,6 +14,7 @@
 #include "codegen_mir_resource_name_helpers.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_map.h"
+#include "transpiler_slot_runtime_row.h"
 
 static SlotVarEntry *
 transpiler_mir_find_pin_slot_local(TranspilerCtx *ctx,
@@ -121,6 +122,38 @@ transpiler_mir_pin_format_reason(char *reason, size_t reason_cap,
         message != NULL ? message : "MIR pin formatting failed");
 }
 
+static const MIRResourceRuntimeRow *
+transpiler_mir_pin_runtime_row(MIRResourceAbiKind kind,
+                               bool secure,
+                               const char *inner_type,
+                               const char *operation,
+                               char *reason,
+                               size_t reason_cap)
+{
+    const char *expected_shape =
+        transpiler_slot_runtime_expected_call_shape(secure, operation);
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+
+    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
+        transpiler_mir_reasonf(reason, reason_cap,
+            "C MIR pin requires MIR ABI runtime row for %s<%s> %s",
+            secure ? "SecureSlot" : "Slot",
+            inner_type != NULL ? inner_type : "<unknown>",
+            operation != NULL ? operation : "<op>");
+        return NULL;
+    }
+    if (expected_shape != NULL &&
+        strcmp(row->call_shape, expected_shape) != 0) {
+        transpiler_mir_reasonf(reason, reason_cap,
+            "C MIR pin %s requires MIR ABI call shape %s",
+            operation != NULL ? operation : "<op>",
+            expected_shape);
+        return NULL;
+    }
+    return row;
+}
+
 static bool
 transpiler_emit_mir_plain_pin_preflight_local(CodeBuf *buf,
                                               TranspilerCtx *ctx,
@@ -189,6 +222,7 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     const char *token_expr;
     const char *pin_op;
     const char *runtime_fn = NULL;
+    const MIRResourceRuntimeRow *runtime_row = NULL;
 
     if (block == NULL || !block->is_pin_region)
         return true;
@@ -224,18 +258,13 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     }
     pin_op = block->pin_view_is_write ? "PinWrite" : "PinRead";
     if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
-        runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        runtime_row = transpiler_mir_pin_runtime_row(
             slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                             : MIR_RESOURCE_ABI_SLOT,
-            slot->inner_type, pin_op);
-        if (runtime_fn == NULL) {
-            transpiler_mir_reasonf(reason, reason_cap,
-                "C MIR pin enter requires MIR ABI runtime function row for %s<%s> %s",
-                slot->is_secure ? "SecureSlot" : "Slot",
-                slot->inner_type,
-                pin_op);
+            slot->is_secure, slot->inner_type, pin_op, reason, reason_cap);
+        if (runtime_row == NULL)
             return false;
-        }
+        runtime_fn = runtime_row->runtime_fn;
     }
     if (slot->is_secure) {
         transpiler_write_indent_to(buf, ctx->indent);
@@ -271,6 +300,7 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
     SlotVarEntry *slot;
     char pin_name[64];
     const char *runtime_fn = NULL;
+    const MIRResourceRuntimeRow *runtime_row = NULL;
 
     if (block == NULL || !block->is_pin_region)
         return true;
@@ -293,17 +323,13 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
         return false;
     }
     if (slot->is_secure || !mir_block_has_pin_guard_amortization_region(block)) {
-        runtime_fn = mir_abi_resource_runtime_fn_by_kind(
+        runtime_row = transpiler_mir_pin_runtime_row(
             slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                             : MIR_RESOURCE_ABI_SLOT,
-            slot->inner_type, "Unpin");
-        if (runtime_fn == NULL) {
-            transpiler_mir_reasonf(reason, reason_cap,
-                "C MIR pin cleanup requires MIR ABI runtime function row for %s<%s>",
-                slot->is_secure ? "SecureSlot" : "Slot",
-                slot->inner_type);
+            slot->is_secure, slot->inner_type, "Unpin", reason, reason_cap);
+        if (runtime_row == NULL)
             return false;
-        }
+        runtime_fn = runtime_row->runtime_fn;
     }
     if (slot->is_secure) {
         transpiler_write_indent_to(buf, ctx->indent);

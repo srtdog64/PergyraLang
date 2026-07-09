@@ -420,9 +420,13 @@ Current beta closure snapshot:
   `MIRResourceRuntimeRow` records through
   `mir_abi_resource_runtime_row_by_type_name(...)` /
   `mir_abi_resource_runtime_row_by_kind(...)` and validate the row-owned
-  `call_shape` before emission. LLVM Slot/SecureSlot/DeviceSlot declaration
-  registries, LLVM pin/unpin declaration registries, pin cleanup, slot method
-  calls, slot assignment writes,
+  `call_shape` before emission. C MIR pin enter/exit emission and source-level
+  C pin block cleanup attributes also consume the concrete row records for
+  PinRead/PinWrite and Unpin/UnpinCleanup, with expected call shapes supplied
+  by `transpiler_slot_runtime_expected_call_shape(...)` rather than local
+  emitter tables. LLVM Slot/SecureSlot/DeviceSlot
+  declaration registries, LLVM pin/unpin declaration registries, LLVM
+  pin-region emission, slot method calls, slot assignment writes,
   with-slot cleanup releases, and statement auto-release cleanup are still
   compatibility consumers of the same ABI owner through symbol-returning row
   accessors until they are cut over to concrete row records. Source-level
@@ -430,8 +434,9 @@ Current beta closure snapshot:
   and Release. C MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` consumes
   the Claim rows as well. C class field-claim helpers consume Claim rows from
   the same ABI owner. C stdlib `Clone(Slot<T>)` lowering consumes Claim/Read/
-  Write rows from the same ABI owner. C source-level pin block emitters consume
-  row-backed PinRead/PinWrite and UnpinCleanup names; cleanup attributes are
+  Write rows from the same ABI owner. C source-level pin block emitters and C
+  MIR pin-region emitters consume row-backed PinRead/PinWrite and
+  Unpin/UnpinCleanup names; cleanup attributes are
   not allowed to synthesize `pgy_claim_*`, `pgy_read_*`, `pgy_write_*`,
   `pgy_device_*`, `pgy_release_*`, or `pgy_unpin_cleanup_*` suffixes locally.
 - `with slot` scope exit is a resource fact, not a backend fallback. RIR emits
