@@ -487,6 +487,82 @@ find_value_summary_with_slot(const MIRRoutine *routine, const char *prefix, cons
     return NULL;
 }
 
+static void
+trim_line_end(char *line)
+{
+    size_t len;
+    if (line == NULL)
+        return;
+    len = strlen(line);
+    while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+        line[--len] = '\0';
+    }
+}
+
+static bool
+format_expected_native_resource_row_suffix(size_t native_index,
+                                           char *dst,
+                                           size_t dst_size)
+{
+    const char *type_name = mir_abi_resource_runtime_row_type_name(native_index);
+    const char *operation = mir_abi_resource_runtime_row_operation(native_index);
+    const char *symbol = mir_abi_resource_runtime_row_symbol(native_index);
+    int written;
+
+    if (type_name == NULL || operation == NULL || symbol == NULL ||
+        dst == NULL || dst_size == 0)
+        return false;
+
+    written = snprintf(dst, dst_size,
+                       "native-resource|%s.%s|%s|function|mir_abi_resource_row",
+                       type_name, operation, symbol);
+    return written >= 0 && (size_t)written < dst_size;
+}
+
+static bool
+runtime_call_abi_expected_native_rows_match(void)
+{
+    char path[1024];
+    char line[512];
+    char expected[512];
+    size_t native_index = 0;
+    FILE *fp;
+    int written = snprintf(
+        path,
+        sizeof(path),
+        "%s/src/self_hosted/compiler/expected/runtime_call_abi_rows.txt",
+        PGY_PROJECT_ROOT);
+
+    if (written < 0 || (size_t)written >= sizeof(path))
+        return false;
+
+    fp = fopen(path, "rb");
+    if (fp == NULL)
+        return false;
+
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char *row_suffix;
+        trim_line_end(line);
+
+        if (strstr(line, "|native-resource|") != NULL) {
+            row_suffix = strchr(line, '|');
+            if (row_suffix == NULL ||
+                native_index >= mir_abi_resource_runtime_row_count() ||
+                !format_expected_native_resource_row_suffix(native_index,
+                                                            expected,
+                                                            sizeof(expected)) ||
+                strcmp(row_suffix + 1, expected) != 0) {
+                fclose(fp);
+                return false;
+            }
+            native_index++;
+        }
+    }
+
+    fclose(fp);
+    return native_index == mir_abi_resource_runtime_row_count();
+}
+
 #include "tests/mir/test_mir_lowering_part_a_1.cases.h"
 #include "tests/mir/test_mir_lowering_part_a_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_1.cases.h"

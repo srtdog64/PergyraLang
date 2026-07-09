@@ -183,6 +183,11 @@ test_mir_lowering_part_a(void)
                && mir_abi_resource_runtime_row_symbol(150) == NULL);
     }
 
+    TEST("MIR ABI native resource rows match self-host runtime-call artifact");
+    {
+        EXPECT(runtime_call_abi_expected_native_rows_match());
+    }
+
     TEST("MIR validator rejects view-backed resource owner metadata drift");
     {
         const char *src =

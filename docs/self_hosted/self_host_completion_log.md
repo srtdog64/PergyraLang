@@ -5540,3 +5540,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   row surface to compare against in later parity work. Full closure still
   requires C/LLVM backend emitters to consume concrete row records, not merely
   source-term lookup helpers.
+
+### 2026-07-09 -- Native runtime-call artifact rows compare against MIR rows
+
+- Added `MIR ABI native resource rows match self-host runtime-call artifact`
+  to `test_mir`.
+- The test opens the committed self-host
+  `src/self_hosted/compiler/expected/runtime_call_abi_rows.txt` artifact and
+  compares every `native-resource` row against the native
+  `mir_abi_resource_runtime_row_*` accessors.
+- Tightened `abi_ownership_shape_smoke.sh` so this artifact-to-native-row
+  comparison remains load-bearing.
+- This closes the first executable drift gate between the self-host
+  runtime-call ABI artifact and the native MIR resource runtime-call row table.
+  The production ABI blocker remains open until C and LLVM emitters consume the
+  concrete rows directly.
