@@ -38,7 +38,7 @@ func BackendAirAccessReportOwnerReady() -> Bool {
         BackendAirAccessFinding(
             CompilerBackendAirAccessForbiddenHitFinding(),
             CompilerBackendAirAccessForbiddenHitSelfTestPath(),
-            CompilerBackendAirAccessForbiddenTermAt(0))
+            CompilerBackendAirAccessPrimaryForbiddenTerm())
     ];
     return StringIndexOf(
         BackendAirAccessReport(1, 1, findings, CompilerBackendAirAccessNegativeSchema()),

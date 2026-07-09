@@ -1021,10 +1021,26 @@ require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "f
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessOwnerNotReadyMessage"
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenHitSelfTestPath"
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessSourceExtensionAt"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessSourceExtensionKnown"
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenTermAt"
-require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "CompilerBackendAirAccessForbiddenTermCount() == 12"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessForbiddenTermKnown"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "func CompilerBackendAirAccessPrimaryForbiddenTerm"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessSourceExtensionAt(CompilerBackendAirAccessSourceExtensionCount()) == ""'
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermAt(CompilerBackendAirAccessForbiddenTermCount()) == ""'
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessSourceExtensionKnown(".c")'
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessSourceExtensionKnown(".h")'
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "CompilerBackendAirAccessForbiddenTermKnown(CompilerBackendAirAccessPrimaryForbiddenTerm())"
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermKnown("AIRLifecycleStateSpace")'
+require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermKnown("air_internal.h\"")'
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "AIRProgram"
 require_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "air_internal.h"
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "CompilerBackendAirAccessSourceExtensionCount() == 2"
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessSourceExtensionAt(0) == ".c"'
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessSourceExtensionAt(1) == ".h"'
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" "CompilerBackendAirAccessForbiddenTermCount() == 12"
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermAt(0) == "AIRProgram"'
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermAt(7) == "AIRLifecycleStateSpace"'
+reject_text "src/self_hosted/compiler/backend_air_access_contract_owner.pgy" 'CompilerBackendAirAccessForbiddenTermAt(10) == "air_internal.h\""'
 require_file "src/self_hosted/tools/backend_air_access_checker/main.pgy"
 require_file "src/self_hosted/tools/backend_air_access_checker/report_owner.pgy"
 require_file "src/self_hosted/tools/backend_air_access_checker/expected/clean.json"

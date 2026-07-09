@@ -49,6 +49,17 @@ func CompilerBackendAirAccessSourceExtensionAt(index: Int) -> String {
     return "";
 }
 
+func CompilerBackendAirAccessSourceExtensionKnown(extension: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendAirAccessSourceExtensionCount() {
+        if CompilerBackendAirAccessSourceExtensionAt(index) == extension {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
 func CompilerBackendAirAccessForbiddenTermCount() -> Int {
     return 12;
 }
@@ -69,6 +80,21 @@ func CompilerBackendAirAccessForbiddenTermAt(index: Int) -> String {
     return "";
 }
 
+func CompilerBackendAirAccessForbiddenTermKnown(term: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendAirAccessForbiddenTermCount() {
+        if CompilerBackendAirAccessForbiddenTermAt(index) == term {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
+func CompilerBackendAirAccessPrimaryForbiddenTerm() -> String {
+    return "AIRProgram";
+}
+
 func CompilerBackendAirAccessContractReady() -> Bool {
     return CompilerBackendAirAccessSchema() != "" &&
         CompilerBackendAirAccessNegativeSchema() != "" &&
@@ -79,11 +105,12 @@ func CompilerBackendAirAccessContractReady() -> Bool {
         CompilerBackendAirAccessForbiddenHitFinding() != "" &&
         CompilerBackendAirAccessOwnerNotReadyMessage() != "" &&
         CompilerBackendAirAccessForbiddenHitSelfTestPath() != "" &&
-        CompilerBackendAirAccessSourceExtensionCount() == 2 &&
-        CompilerBackendAirAccessSourceExtensionAt(0) == ".c" &&
-        CompilerBackendAirAccessSourceExtensionAt(1) == ".h" &&
-        CompilerBackendAirAccessForbiddenTermCount() == 12 &&
-        CompilerBackendAirAccessForbiddenTermAt(0) == "AIRProgram" &&
-        CompilerBackendAirAccessForbiddenTermAt(7) == "AIRLifecycleStateSpace" &&
-        CompilerBackendAirAccessForbiddenTermAt(10) == "air_internal.h\"";
+        CompilerBackendAirAccessSourceExtensionAt(CompilerBackendAirAccessSourceExtensionCount()) == "" &&
+        CompilerBackendAirAccessSourceExtensionKnown(".c") &&
+        CompilerBackendAirAccessSourceExtensionKnown(".h") &&
+        CompilerBackendAirAccessForbiddenTermAt(CompilerBackendAirAccessForbiddenTermCount()) == "" &&
+        CompilerBackendAirAccessForbiddenTermKnown(CompilerBackendAirAccessPrimaryForbiddenTerm()) &&
+        CompilerBackendAirAccessForbiddenTermKnown("AIRLifecycleStateSpace") &&
+        CompilerBackendAirAccessForbiddenTermKnown("air_internal.h\"") &&
+        CompilerBackendAirAccessForbiddenTermKnown("air_internal.h>");
 }

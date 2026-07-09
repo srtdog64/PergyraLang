@@ -6116,3 +6116,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   instead of reading `CompilerSubprocessUseCaseAt(0)`.
 - Kept ordered env-allowlist projection stable for expected artifacts while
   removing row position as the subprocess bridge truth.
+
+### 2026-07-10 -- Backend AIR access readiness consumes forbidden terms by name
+
+- Added source-extension and forbidden-term membership lookups to
+  `backend_air_access_contract_owner.pgy`.
+- Repointed `CompilerBackendAirAccessContractReady()` from exact
+  source-extension/forbidden-term counts and representative `At(n)` checks to
+  named membership plus out-of-range boundary checks.
+- Kept ordered source-extension and forbidden-term rows for stable checker
+  artifact emission, but made readiness independent of row insertion order.
+- Repointed the forbidden-hit self-test to the owner-named primary forbidden
+  term instead of `CompilerBackendAirAccessForbiddenTermAt(0)`.
+- Tightened the component contract so the old backend AIR access count/index
+  readiness shape cannot return while the parity gate continues to prove the
+  clean and forbidden-hit artifacts across C/LLVM-built self-host tools.

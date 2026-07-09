@@ -36,7 +36,7 @@ func RunBackendAirAccessForbiddenHitSelfTest() -> Void {
     ArrayPush(findings, BackendAirAccessFinding(
         CompilerBackendAirAccessForbiddenHitFinding(),
         CompilerBackendAirAccessForbiddenHitSelfTestPath(),
-        CompilerBackendAirAccessForbiddenTermAt(0)));
+        CompilerBackendAirAccessPrimaryForbiddenTerm()));
     Log(BackendAirAccessReport(1, 1, findings, CompilerBackendAirAccessNegativeSchema()));
     Exit(1);
 }
