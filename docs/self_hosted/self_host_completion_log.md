@@ -5507,3 +5507,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   self-host parity. It still does not close the full production ABI blocker
   because native C/LLVM backends must eventually consume the same concrete
   runtime-call ABI row table instead of only proving selected source terms.
+
+### 2026-07-09 -- Runtime-call ABI rows include native resource table
+
+- Expanded `runtime_call_abi_row_owner.pgy` from 87 to 237 concrete rows.
+- The runnable `runtime_call_abi` artifact now projects the native
+  Slot/SecureSlot/DeviceSlot resource runtime-call table as `native-resource`
+  rows with `mir_abi_resource_row` materialization, covering claim/read/write/
+  release, pin/unpin, and device submit-read spellings.
+- Updated the committed expected artifact and component contract so representative
+  native resource rows are ratcheted by the self-host gate.
+- This connects the backend-emitter source-term contract to a self-hosted
+  runtime-call ABI row artifact. The production ABI blocker remains open until
+  native C/LLVM emitters consume this concrete table rather than proving only
+  selected source terms.

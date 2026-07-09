@@ -112,6 +112,10 @@ function consumer terms, and rejects old `_rel` alias or runtime-name synthesis
 terms. Its parity gate proves clean, missing-required, missing-input, and
 forbidden-hit paths across C/LLVM-built self-host tools under
 `self-host-backend-abi-layout-contract-parity-test-smoke`.
+`runtime_call_abi_row_owner.pgy` now also projects the native
+Slot/SecureSlot/DeviceSlot MIR resource runtime-call table as `native-resource`
+rows, so backend resource helper spellings are visible in the same runnable
+runtime-call ABI artifact as the self-host runtime helper rows.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

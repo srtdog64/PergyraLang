@@ -46,6 +46,10 @@ func CompilerRuntimeCallAbiMaterialTargetLibrary() -> String {
     return "target_library";
 }
 
+func CompilerRuntimeCallAbiMaterialMirResourceRow() -> String {
+    return "mir_abi_resource_row";
+}
+
 struct CompilerRuntimeCallAbiRowInput {
     let domain: String;
     let operation: String;
@@ -62,7 +66,123 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 87;
+    return 237;
+}
+
+func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
+    if index == 0 { return "Int"; }
+    if index == 1 { return "Long"; }
+    if index == 2 { return "Float"; }
+    if index == 3 { return "Double"; }
+    if index == 4 { return "Bool"; }
+    if index == 5 { return "String"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativeResourceType(kind: Int, scalar_index: Int) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(scalar_index);
+    if kind == 0 { return Concat(Concat("Slot<", scalar), ">"); }
+    if kind == 1 { return Concat(Concat("SecureSlot<", scalar), ">"); }
+    if kind == 2 { return Concat(Concat("DeviceSlot<", scalar), ">"); }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativeResourceOperationAt(index: Int) -> String {
+    if index == 0 { return "Claim"; }
+    if index == 1 { return "Read"; }
+    if index == 2 { return "Release"; }
+    if index == 3 { return "Write"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativePinOperationAt(index: Int) -> String {
+    if index == 0 { return "PinRead"; }
+    if index == 1 { return "PinWrite"; }
+    if index == 2 { return "PinReadInit"; }
+    if index == 3 { return "PinWriteInit"; }
+    if index == 4 { return "Unpin"; }
+    if index == 5 { return "UnpinCleanup"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativeResourceSymbol(kind: Int, scalar_index: Int, op_index: Int) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(scalar_index);
+    if kind == 0 {
+        if op_index == 0 { return Concat("pgy_claim_", scalar); }
+        if op_index == 1 { return Concat("pgy_read_", scalar); }
+        if op_index == 2 { return Concat("pgy_release_", scalar); }
+        if op_index == 3 { return Concat("pgy_write_", scalar); }
+    }
+    if kind == 1 {
+        if op_index == 0 { return Concat("pgy_claim_secure_", scalar); }
+        if op_index == 1 { return Concat("pgy_secure_read_", scalar); }
+        if op_index == 2 { return Concat("pgy_secure_release_", scalar); }
+        if op_index == 3 { return Concat("pgy_secure_write_", scalar); }
+    }
+    if kind == 2 {
+        if op_index == 0 { return Concat("pgy_claim_device_", scalar); }
+        if op_index == 1 { return Concat("pgy_device_read_", scalar); }
+        if op_index == 2 { return Concat("pgy_release_device_", scalar); }
+        if op_index == 3 { return Concat("pgy_device_write_", scalar); }
+    }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativePinSymbol(kind: Int, scalar_index: Int, op_index: Int) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(scalar_index);
+    if kind == 0 {
+        if op_index == 0 { return Concat("pgy_pin_read_", scalar); }
+        if op_index == 1 { return Concat("pgy_pin_write_", scalar); }
+        if op_index == 2 { return Concat("pgy_pin_read_init_", scalar); }
+        if op_index == 3 { return Concat("pgy_pin_write_init_", scalar); }
+        if op_index == 4 { return Concat("pgy_unpin_", scalar); }
+        if op_index == 5 { return Concat("pgy_unpin_cleanup_", scalar); }
+    }
+    if kind == 1 {
+        if op_index == 0 { return Concat("pgy_secure_pin_read_", scalar); }
+        if op_index == 1 { return Concat("pgy_secure_pin_write_", scalar); }
+        if op_index == 2 { return Concat("pgy_secure_pin_read_init_", scalar); }
+        if op_index == 3 { return Concat("pgy_secure_pin_write_init_", scalar); }
+        if op_index == 4 { return Concat("pgy_secure_unpin_", scalar); }
+        if op_index == 5 { return Concat("pgy_secure_unpin_cleanup_", scalar); }
+    }
+    return "";
+}
+
+func CompilerRuntimeCallAbiNativeSlotResourceRowAt(index: Int) -> String {
+    let kind: Int = index / 24;
+    let inner: Int = (index % 24) / 4;
+    let op: Int = index % 4;
+    let type_name: String = CompilerRuntimeCallAbiNativeResourceType(kind, inner);
+    let operation: String = CompilerRuntimeCallAbiNativeResourceOperationAt(op);
+    return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput(
+        "native-resource",
+        Concat(Concat(type_name, "."), operation),
+        CompilerRuntimeCallAbiNativeResourceSymbol(kind, inner, op),
+        CompilerRuntimeCallAbiMaterialMirResourceRow()));
+}
+
+func CompilerRuntimeCallAbiNativePinRowAt(index: Int) -> String {
+    let kind: Int = index / 36;
+    let inner: Int = (index % 36) / 6;
+    let op: Int = index % 6;
+    let type_name: String = CompilerRuntimeCallAbiNativeResourceType(kind, inner);
+    let operation: String = CompilerRuntimeCallAbiNativePinOperationAt(op);
+    return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput(
+        "native-resource",
+        Concat(Concat(type_name, "."), operation),
+        CompilerRuntimeCallAbiNativePinSymbol(kind, inner, op),
+        CompilerRuntimeCallAbiMaterialMirResourceRow()));
+}
+
+func CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index: Int) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(index);
+    let type_name: String = CompilerRuntimeCallAbiNativeResourceType(2, index);
+    return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput(
+        "native-resource",
+        Concat(Concat(type_name, "."), "SubmitRead"),
+        Concat("pgy_submit_device_read_", scalar),
+        CompilerRuntimeCallAbiMaterialMirResourceRow()));
 }
 
 func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
@@ -178,6 +298,10 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 38 && index < 47 { return CompilerRuntimeCallAbiMathRowAt(index - 38); }
     if index >= 47 && index < 71 { return CompilerRuntimeCallAbiStringRowAt(index - 47); }
     if index >= 71 && index < 87 { return CompilerRuntimeCallAbiHostIoRowAt(index - 71); }
+    if index >= 87 && index < 135 { return CompilerRuntimeCallAbiNativeSlotResourceRowAt(index - 87); }
+    if index >= 135 && index < 207 { return CompilerRuntimeCallAbiNativePinRowAt(index - 135); }
+    if index >= 207 && index < 231 { return CompilerRuntimeCallAbiNativeSlotResourceRowAt(index - 159); }
+    if index >= 231 && index < 237 { return CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index - 231); }
     return "";
 }
 
@@ -188,7 +312,7 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowFactAt(2) == CompilerRuntimeCallAbiRowSymbolFact() &&
         CompilerRuntimeCallAbiRowFactAt(3) == CompilerRuntimeCallAbiRowSymbolKindFact() &&
         CompilerRuntimeCallAbiRowFactAt(4) == CompilerRuntimeCallAbiRowMaterializationFact() &&
-        CompilerRuntimeCallAbiConcreteRowCount() == 87 &&
+        CompilerRuntimeCallAbiConcreteRowCount() == 237 &&
         CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(24) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
@@ -196,5 +320,12 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowAt(38) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(47) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(71) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(86) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary()));
+        CompilerRuntimeCallAbiRowAt(86) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowAt(87) == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(134) == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(135) == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(206) == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(207) == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(230) == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row" &&
+        CompilerRuntimeCallAbiRowAt(236) == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row";
 }

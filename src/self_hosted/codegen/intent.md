@@ -137,8 +137,9 @@ a zone:
 - `abi_layout/` owns self-host C ABI type spelling facts.
 - `runtime_abi/` owns self-host C collection, math/random, host I/O/argv, Option/Result, and string/text runtime helper symbol facts.
 - `compiler/runtime_call_abi_row_owner.pgy` projects those runtime call facts
-  into a stable row artifact; codegen participants keep consuming the domain
-  runtime ABI owners, while parity gates consume the projection.
+  and the native Slot/SecureSlot/DeviceSlot MIR resource runtime-call table into
+  a stable row artifact; codegen participants keep consuming the domain runtime
+  ABI owners, while parity gates consume the projection.
 - The component contract rejects quoted runtime helper or target-library call
   spellings in `emission/`, `text/`, and `input/`, so spelling ownership cannot
   drift back into action participants.
