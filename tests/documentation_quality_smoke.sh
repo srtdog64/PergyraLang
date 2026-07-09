@@ -654,6 +654,8 @@ build_troubleshooting_terms=(
     "mingw32-make build-resource-report"
     "PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report"
     "mingw32-make clean-local-artifacts"
+    "mingw32-make dev-compiler"
+    "PGY_DEBUG_SYMBOLS=0"
     "less than about 10 GiB free"
     "Shared \`build/\` 병렬 실행 금지"
     "file in wrong format"

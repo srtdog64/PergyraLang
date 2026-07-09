@@ -15,6 +15,9 @@ Observed local pressure pattern:
 
 - `make all` builds only `pgy` and `pgy-lsp`; test binaries are behind
   `all-with-tests` and test targets.
+- The default build keeps debug symbols off (`PGY_DEBUG_SYMBOLS=0`). Use
+  `PGY_DEBUG_SYMBOLS=1 mingw32-make all` or `mingw32-make debug` only when
+  symbolized debugging is intentional.
 - `make clean` removes only the active `BUILD_DIR` and `BIN_DIR`.
 - Ad-hoc roots such as `build-codex*`, `bin-codex*`, `build-llvm*`, and
   `.tmp/self_hosted/*` are intentionally ignored, but they can accumulate.
@@ -35,7 +38,9 @@ Use the narrow gate named by the source-of-truth seam first. For low-pressure
 local builds, prefer:
 
 ```sh
-mingw32-make LLVM_ENABLED=0 all
+mingw32-make dev-compiler              # C-only, no debug symbols, pgy only, serialized
+PGY_DEV_COMPILER_JOBS=4 mingw32-make dev-compiler  # explicit opt-in parallelism
+mingw32-make LLVM_ENABLED=0 all        # C-only, pgy + pgy-lsp
 mingw32-make abi-ownership-shape-test-smoke
 ```
 
