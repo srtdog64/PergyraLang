@@ -1,0 +1,26 @@
+// Negative: one role implementing the same ability twice. Exactly one
+// implementation (one witness) per (role, ability) -- a duplicate would
+// make dispatch-table construction ambiguous (docs/semantics/10 SS4.1).
+subject Fighter {
+    let power: Int;
+}
+ability Combatable {
+    func Score(self) -> Int;
+}
+role Warrior for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int { return 10; }
+    }
+    impl ability Combatable {
+        func Score(self) -> Int { return 99; }
+    }
+}
+party Team {
+    dyn role slot fighter: Combatable;
+    shared hp: Int;
+}
+func Main() -> Void {
+    let team: Team = Team();
+    bind team.fighter = Warrior;
+    Log(1);
+}

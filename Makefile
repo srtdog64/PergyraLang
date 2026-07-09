@@ -2406,6 +2406,9 @@ parallel-snapshot-test-smoke: $(PGY)
 evidence-lifetime-test-smoke:
 	"$(BASH)" tests/evidence_lifetime_smoke.sh
 
+ability-coherence-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ability_coherence_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 

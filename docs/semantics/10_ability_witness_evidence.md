@@ -84,8 +84,16 @@ instance가 없어 *coherence ambiguity가 발생할 수 없다* — "어느 wit
 bind된 그것". 동적 rebind는 `llvm_dyn_role_vtable_swap`이 게이트. → **결정적 규칙 불필요;
 explicit-named-binding이 그 자체로 규칙.** (Scala가 못 닫은 걸 named-slot으로 닫은 셈.)
 
-*잔여 확인*: slot 하나에 두 role을 bind 시도하거나, 한 role이 ability를 중복 impl할 때도
-fail-closed인지 — BDFL이 role 활성 모델 소유자라 확인 위임.
+*잔여 확인 → 닫힘 (2026-07-09 실측)*:
+- **순차 rebind는 합법·결정론** — `bind slot = Warrior; bind slot = Berserker;`
+  는 수용되고 명시적 last-wins(모호성 아님 — 어느 witness가 이기나 = 마지막으로
+  bind된 그것). 동적 rebind 게이트는 기존대로 `llvm_dyn_role_vtable_swap`.
+- **한 role의 같은 ability 중복 impl은 구멍이었다**: semantic이 통과시켜
+  C 백엔드는 생성 C의 gcc 재정의 에러로 *우연히* fail-closed(진단 소유층 오류),
+  **LLVM 백엔드는 무음 수용**(어느 구현이 이기는지 미정의 — 백엔드 발산).
+  → `type_checker_role_decl.c`에 (role, ability)당 정확히 1 impl 규칙으로
+  semantic 거절 착지. 게이트 `ability-coherence-test-smoke`
+  (중복=양 백엔드 동일 거절 + 두-role-같은-ability+rebind=합법 컨트롤).
 
 ### 4.2 Dispatch — static vs dynamic
 witness IR은 둘 다 표현해야:
@@ -171,3 +179,45 @@ fixture로 방어한다.
 `model soundness = Coq`, `implementation conformance = boundary witness +
 semantic fixture`로 나뉜다. 이것은 whole-C-program proof가 아니라,
 남은 RustBelt-vs-rustc 갭을 정직하게 좁히는 실행 게이트다.
+
+## 9. Lineage verdict — 다형성 원전 대조 감사 (2026-07-09, BDFL 발의)
+
+"어빌리티 다형성이 잘된 것인가"를 다형성 원전 문헌에 대고 감사한 기록.
+결론: **축 선택은 발명이 아니라 40년 수렴점의 채택이고, 변형 지점들에는
+이론 선례가 있다.**
+
+**좌표계.** Strachey 1967(*Fundamental Concepts in Programming
+Languages* — parametric/ad-hoc 구분의 창시), Cardelli & Wegner 1985(*On
+Understanding Types...* — universal(parametric+inclusion) vs
+ad-hoc(overloading+coercion) 4분면), Wadler & Blott 1989(*How to make
+ad-hoc polymorphism less ad hoc* — type class = 규율화된 ad-hoc,
+dictionary 번역). 1989 설계가 이후 수렴점이다: Haskell class → Rust
+trait → Swift protocol → C# interface+constraint(아버지 계보).
+
+**우리 위치.** ability=class 선언, `role ... impl`=instance,
+witness=dictionary(표면 누출 금지), `where T: Ability`=제약된 파라메트릭.
+4분면에서 parametric+규율화된 ad-hoc을 취하고 inclusion(상속 서브타이핑)은
+의도적으로 배제 — fragile-base-class 역사와 C# 자신의 interface-우선 이동이
+지지하는 방향.
+
+**문헌 이탈 3곳과 그 방어.**
+1. *coherence: 전역-유일성 대신 명시-바인딩* — Haskell은 전역 유일성으로
+   닫아 orphan 고통을 낳았고 Scala implicit은 못 닫았다. 우리는 전역
+   dispatch 자체가 없다(§4.1). 이 선택은 modular type classes / ML functor
+   계열(명시적 인스턴스화)과 같은 축이며, "어느 문맥에서 어느 역할인가"라는
+   도메인 자격 질문과 정합한다.
+2. *witness의 3-명제 통일*(§2) — dictionary는 구조 명제만 다뤘다.
+   경계/실행요건으로의 확장은 proof-carrying/capability 계보와의 접합이고
+   이것이 고유 기여다. ability가 zone-authority/intent 요건 검사에
+   참여하는 것 = thesis lost-meaning 7축 중 "자격"의 회복 장치.
+3. *HKT 배제* — constructor class(Functor/Monad) 계열의 추상력을 의도적으로
+   자른다(docs/121: 타입=도메인 좌표 운반체). "덜 하는 것"이지 "모르는
+   것"이 아님을 이 절이 기록한다.
+
+**감사가 찾은 실물 구멍(§4.1 잔여 → 닫힘).** 중복 impl이 semantic을
+통과해 LLVM이 무음 수용하던 것 — Wadler-Blott가 경고한 이중-dictionary
+모호성의 정확한 인스턴스였고, (role, ability)당 1-impl 규칙 +
+`ability-coherence-test-smoke`로 닫았다. 이론 감사가 게이트를 낳은 사례.
+
+참조: docs/semantics/19 Lineage Map의 `ability`/`role` row(본 감사로 추가),
+docs/semantics/03(generics), tests/ability_coherence_smoke.sh.

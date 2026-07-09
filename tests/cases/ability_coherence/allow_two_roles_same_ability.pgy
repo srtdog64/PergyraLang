@@ -1,0 +1,30 @@
+// Positive control: two roles for the same subject may each implement the
+// same ability -- there is no global instance space, so no ambiguity can
+// arise; the explicit `bind slot = Role` names the winner
+// (docs/semantics/10 SS4.1: explicit-named-binding IS the coherence rule).
+subject Fighter {
+    let power: Int;
+}
+ability Combatable {
+    func Score(self) -> Int;
+}
+role Warrior for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int { return 10; }
+    }
+}
+role Berserker for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int { return 77; }
+    }
+}
+party Team {
+    dyn role slot fighter: Combatable;
+    shared hp: Int;
+}
+func Main() -> Void {
+    let team: Team = Team();
+    bind team.fighter = Warrior;
+    bind team.fighter = Berserker;
+    Log(2);
+}

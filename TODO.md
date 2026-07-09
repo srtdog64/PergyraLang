@@ -18347,3 +18347,25 @@ F3(a), `48689eec` F2 snapshot, `6bcd07df` WO-A3, +docs).
 - 이로써 docs/177 감사의 발견 전 항목(F1/F2/F3/F4)이 코드 또는 기록으로
   닫힘. 병렬 경계 증거 4종(Copy/Channel/Exclusivity/Disjointness) 전부
   문장-수준 실물 + 상설 목격자 보유.
+
+## 진행 노트 — 다형성 계보 감사 + coherence 구멍 폐쇄 (2026-07-09)
+
+BDFL 발의("어빌리티 다형성이 잘된 건지, 최초 논문 보고 고민")로 원전 대조
+감사 수행. 전문 = docs/semantics/10 §9, 요지:
+
+- **판정: 축 선택은 40년 수렴점의 채택** — Strachey 1967(용어 창시) →
+  Cardelli-Wegner 1985(4분면) → Wadler-Blott 1989(typeclass/dictionary)
+  계보 위. ability=class, role impl=instance, witness=dictionary,
+  `where T: Ability`=제약 파라메트릭. inclusion(상속)은 의도적 배제.
+- **이탈 3곳 전부 선례/교리 방어**: coherence=명시-바인딩(modular type
+  classes 계보, Scala 실패 지점 구조 우회) · witness 3-명제 통일(고유 기여,
+  자격 축 회복) · HKT 배제(docs/121 교리).
+- **감사가 구멍 실측→폐쇄**: 한 role의 같은 ability 중복 impl이 semantic
+  통과 → C는 gcc 재정의 에러 leak(소유층 오류), **LLVM은 무음 수용**(승자
+  미정의, 백엔드 발산). `type_checker_role_decl.c`에 (role,ability)당 1-impl
+  규칙 착지 + `ability-coherence-test-smoke`(중복=양 백엔드 거절, 두-role
+  같은-ability+순차 rebind=합법 컨트롤). docs/10 §4.1 잔여 확인 항목 닫힘.
+- docs/semantics/19 Lineage Map에 유일하게 빠져 있던 `ability`/`role` row
+  추가(모든 축이 이론 앵커 보유 완성).
+- 게이트: ability-coherence green, test-semantic 2794/0, test-transpile
+  918/0, formal-semantics/golden-spine green.

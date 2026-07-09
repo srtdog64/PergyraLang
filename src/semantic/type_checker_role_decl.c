@@ -198,6 +198,44 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *ability_ref = ast_impl_ability_ref(impl);
             const char *ability_name = ast_impl_ability_name(impl);
 
+            /* Coherence (docs/semantics/10 SS4.1): exactly one impl per
+             * (role, ability) -- one witness. A duplicate would leave
+             * "which implementation wins" undefined: before this check the
+             * C backend surfaced it as a gcc redefinition error (wrong
+             * owner) and the LLVM backend accepted it silently (measured
+             * 2026-07-09). */
+            if (ability_name != NULL) {
+                bool duplicate_impl = false;
+                for (size_t k = 0; k < i; k++) {
+                    ASTNode *prev = ast_role_impl(node, k);
+                    const char *prev_name;
+                    if (prev == NULL || prev->type != AST_IMPL_ABILITY)
+                        continue;
+                    prev_name = ast_impl_ability_name(prev);
+                    if (prev_name != NULL
+                        && strcmp(prev_name, ability_name) == 0) {
+                        duplicate_impl = true;
+                        break;
+                    }
+                }
+                if (duplicate_impl) {
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_ROLE_CONTRACT_INVALID,
+                        PGY_CAUSE_ROLE_CONTRACT,
+                        PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, impl,
+                        "Role '%s' implements ability '%s' more than once.\n"
+                        "Reason:\n"
+                        "- each (role, ability) pair owns exactly one implementation (one witness)\n"
+                        "- a second impl block would make dispatch-table construction ambiguous\n"
+                        "Fix:\n"
+                        "- merge the duplicate impl blocks into one\n"
+                        "- or move the second implementation into a different role",
+                        name != NULL ? name : "<role>",
+                        ability_name);
+                    continue;
+                }
+            }
+
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,
                 impl,
