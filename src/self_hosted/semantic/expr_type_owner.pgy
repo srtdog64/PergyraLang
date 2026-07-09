@@ -399,6 +399,19 @@ func IsOptionType(type_name: String) -> Bool {
     }
     return Substring(type_name, 0, 7) == "Option<" && CharAt(type_name, n - 1) == ">";
 }
+func IsResultType(type_name: String) -> Bool {
+    let n: Int = StringLength(type_name);
+    if n < 9 {
+        return false;
+    }
+    return Substring(type_name, 0, 7) == "Result<" && CharAt(type_name, n - 1) == ">";
+}
+func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
+    if IsResultType(type_name) {
+        return Some(Substring(type_name, 7, StringLength(type_name) - 8));
+    }
+    return None;
+}
 func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
     let n: Int = StringLength(text);
     if n >= 4 && CharAt(text, 0) == "(" && CharAt(text, 1) == "?" && CharAt(text, n - 1) == ")" {
@@ -451,11 +464,59 @@ func OptionCallReturnType(text: String, names: Array<String>, types: Array<Strin
     }
     return "";
 }
+func ResultCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" {
+        return "";
+    }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 {
+        return "";
+    }
+    let callee: String = Trim(Substring(text, 0, paren));
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    if callee == "Ok" {
+        let value_expr: String = CallArgAt(args_src, 0);
+        let value_type: String = ExprType(value_expr, names, types, func_names, func_rets);
+        if StringLength(value_type) == 0 {
+            return "Result<Unknown>";
+        }
+        return Concat(Concat("Result<", value_type), ">");
+    }
+    if callee == "Err" {
+        return "Result<Unknown>";
+    }
+    if callee == "IsOk" || callee == "IsErr" {
+        return "Bool";
+    }
+    if callee == "Unwrap" {
+        let result_expr: String = CallArgAt(args_src, 0);
+        let payload_type_opt: Option<String> = ResultPayloadTypeOpt(ExprType(result_expr, names, types, func_names, func_rets));
+        if IsSome(payload_type_opt) {
+            return UnwrapOption(payload_type_opt);
+        }
+        return "Unknown";
+    }
+    if callee == "UnwrapOr" {
+        let result_expr: String = CallArgAt(args_src, 0);
+        let result_type: String = ExprType(result_expr, names, types, func_names, func_rets);
+        let payload_type_opt2: Option<String> = ResultPayloadTypeOpt(result_type);
+        if IsSome(payload_type_opt2) && UnwrapOption(payload_type_opt2) != "Unknown" {
+            return UnwrapOption(payload_type_opt2);
+        }
+        let fallback_expr: String = CallArgAt(args_src, 1);
+        return ExprType(fallback_expr, names, types, func_names, func_rets);
+    }
+    return "";
+}
 func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> Bool {
     if expected == actual {
         return true;
     }
     if IsOptionType(expected) && actual == "Option<Unknown>" {
+        return true;
+    }
+    if IsResultType(expected) && actual == "Result<Unknown>" {
         return true;
     }
     if expected == "Long" && actual == "Int" && IsIntLiteral(Trim(expr)) {
@@ -513,6 +574,10 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     let option_type: String = OptionCallReturnType(text, names, types, func_names, func_rets);
     if StringLength(option_type) > 0 {
         return option_type;
+    }
+    let result_type: String = ResultCallReturnType(text, names, types, func_names, func_rets);
+    if StringLength(result_type) > 0 {
+        return result_type;
     }
     let scalar_utility_type: String = ScalarUtilityReturnType(text, names, types, func_names, func_rets);
     if StringLength(scalar_utility_type) > 0 {

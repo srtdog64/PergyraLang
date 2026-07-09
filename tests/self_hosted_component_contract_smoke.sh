@@ -636,7 +636,7 @@ require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticD
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadContractReady"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 108"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticVerdictPayloadFixtureManifest"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "DirWalk(SemanticVerdictPayloadFixtureDir())"
@@ -2079,6 +2079,7 @@ require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(tree_text: String)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextNodeInventory(tree_text, nodes, node_count_box)"
@@ -2091,6 +2092,8 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstAren
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(ast: String)"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "RejectUnsupportedCodegenBuiltins(ast: String)"
 reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "let ast: String"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CheckCUnit(check_tree_text, false)"
+reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(check_tree_text, false)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let uses_args: Bool = usage.uses_args"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenRuntimeUsageFactsFromNodes(nodes, count)"
@@ -4649,11 +4652,11 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 108 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 108"
-[[ "$semantic_expected_count" -eq 108 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 108"
-require_text "src/self_hosted/PROGRESS.md" "across 108 fixtures"
+[[ "$semantic_fixture_count" -eq 110 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 110"
+[[ "$semantic_expected_count" -eq 110 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 110"
+require_text "src/self_hosted/PROGRESS.md" "across 110 fixtures"
 require_file "src/self_hosted/semantic/fixture/valid_scalar_math_builtins.pgy"
 require_file "src/self_hosted/semantic/fixture/valid_string_plus.pgy"
 require_file "src/self_hosted/semantic/fixture/valid_string_scalar_plus.pgy"
@@ -5251,6 +5254,9 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target c
 require_text "Makefile" "clean-scratch:"
 require_text "Makefile" "'\$(PROJECT_ROOT)'/.tmp"
 require_text "Makefile" "build-resource-report:"
+require_text "Makefile" "build-pressure-dev-compiler:"
+require_text "scripts/measure_build_pressure.ps1" "peak exceeded limit"
+require_text "scripts/measure_build_pressure.ps1" "TimeoutSec"
 require_text "Makefile" "clean-local-artifacts: clean clean-scratch clean-local-variant-artifacts"
 require_text "tests/self_hosted/parity/README.md" "make build-resource-report"
 require_text "tests/self_hosted/parity/README.md" "make clean-local-artifacts"

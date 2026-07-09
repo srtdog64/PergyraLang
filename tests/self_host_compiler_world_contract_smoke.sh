@@ -523,7 +523,7 @@ for term in \
     "func SemanticVerdictPayloadFixtureCount" \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
-    "SemanticVerdictPayloadFixtureCount() != 108" \
+    "SemanticVerdictPayloadFixtureCount() != 110" \
     "SemanticDiagnosticCodeCount() != 17" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do

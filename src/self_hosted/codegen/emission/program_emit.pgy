@@ -14,6 +14,188 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "function_emit.pgy";
 
+func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+                  stmt_indent: Int, inout cur: Array<Int>) -> Bool {
+    while cur[0] < count {
+        let idx: Int = cur[0];
+        let ind: Int = CodegenAstArenaIndentOrDie(arena, idx);
+        if ind < stmt_indent {
+            return true;
+        }
+        if ind > stmt_indent {
+            Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
+        }
+        if CodegenAstArenaIsLetStmt(arena, idx) ||
+            CodegenAstArenaIsAssignStmt(arena, idx) ||
+            CodegenAstArenaIsLogStmt(arena, idx) ||
+            CodegenAstArenaIsBareReturnStmt(arena, idx) ||
+            CodegenAstArenaIsValueReturnStmt(arena, idx) ||
+            CodegenAstArenaIsArraySetStmt(arena, idx) ||
+            CodegenAstArenaIsArrayPushStmt(arena, idx) ||
+            CodegenAstArenaIsArrayPopStmt(arena, idx) ||
+            CodegenAstArenaIsExitStmt(arena, idx) ||
+            CodegenAstArenaIsBreakStmt(arena, idx) ||
+            CodegenAstArenaIsContinueStmt(arena, idx) ||
+            CodegenAstArenaIsBareCallStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+        } else if CodegenAstArenaIsDeferStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
+        } else if CodegenAstArenaIsForStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
+        } else if CodegenAstArenaIsWhileStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
+        } else if CodegenAstArenaIsIfStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectThen(arena, count, cur);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+            if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
+                ArraySet(cur, 0, cur[0] + 1);
+                if CodegenAstArenaIsElseIfAt(arena, count, cur[0]) {
+                    CheckStmtList(nodes, count, arena, CodegenAstArenaIndentOrDie(arena, cur[0]), cur);
+                } else {
+                    CodegenAstArenaExpectBlock(arena, count, cur);
+                    CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+                }
+            }
+        } else if CodegenAstArenaIsMatchStmt(arena, idx) {
+            ArraySet(cur, 0, idx + 1);
+            let match_case_count: Int = 0;
+            while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
+                if CodegenAstArenaIsMatchCaseStmt(arena, cur[0]) {
+                    ArraySet(cur, 0, cur[0] + 1);
+                    CodegenAstArenaExpectBlock(arena, count, cur);
+                    CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+                    match_case_count = match_case_count + 1;
+                } else if CodegenAstArenaIsMatchDefaultStmt(arena, cur[0]) {
+                    Die("match default is not supported in self-host codegen subset");
+                } else {
+                    Die(Concat("expected match case in self-host codegen subset: ", CodegenAstTextProvenance(nodes[cur[0]])));
+                }
+            }
+            if match_case_count == 0 {
+                Die(Concat("match statement has no cases: ", CodegenAstTextProvenance(nodes[idx])));
+            }
+        } else {
+            Die(Concat("unsupported AST line in supported subset: ", CodegenAstTextProvenance(nodes[idx])));
+        }
+    }
+    return true;
+}
+
+func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+                   inout cur: Array<Int>, f_indent: Int) -> Bool {
+    ArraySet(cur, 0, cur[0] + 1);
+    CodegenAstArenaExpectParameters(arena, count, cur);
+    while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
+        let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, cur[0]);
+        if p_mode == 2 || p_mode == 3 {
+            Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
+        }
+        ArraySet(cur, 0, cur[0] + 1);
+    }
+    if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
+        Die("expected Returns: line after parameters");
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+    CodegenAstArenaExpectBody(arena, count, cur);
+    CodegenAstArenaExpectBlock(arena, count, cur);
+    return CheckStmtList(nodes, count, arena, f_indent + 6, cur);
+}
+
+func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
+    RejectUnsupportedCodegenBuiltins(tree_text);
+
+    let nodes: Array<CodegenAstTextNode> = [];
+    let node_count_box: Array<Int> = [0];
+    CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
+
+    let count: Int = node_count_box[0];
+    if !CodegenTypedAstBridgeReady(nodes, count) {
+        Die("codegen AST text bridge failed typed AST arena contract");
+    }
+    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    let main_count: Int = 0;
+    let main_scan: Int = 0;
+    while main_scan < count {
+        if CodegenAstArenaIsEventDecl(arena, main_scan) {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
+        }
+        if CodegenAstArenaIsMainFunction(arena, main_scan) {
+            main_count = main_count + 1;
+        }
+        main_scan = main_scan + 1;
+    }
+    if require_entrypoint {
+        if main_count != 1 {
+            Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
+        }
+    } else {
+        if main_count > 1 {
+            Die(Concat("at most one `Main` function is allowed in a codegen unit; saw count=", ToString(main_count)));
+        }
+    }
+
+    let cur: Array<Int> = [0];
+    let saw_function: Bool = false;
+    while cur[0] < count {
+        let cur_node: Int = cur[0];
+        let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
+        if CodegenAstArenaIsProgramRoot(arena, cur[0]) {
+            ArraySet(cur, 0, cur[0] + 1);
+        } else if CodegenAstArenaIsZeroArtifactDecl(arena, cur[0]) {
+            let decl_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
+                ArraySet(cur, 0, cur[0] + 1);
+            }
+        } else if CodegenAstArenaIsNominalDecl(arena, cur[0]) {
+            let owner_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
+                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                    let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
+                    CheckFunction(nodes, count, arena, cur, method_indent);
+                    saw_function = true;
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if CodegenAstArenaIsRoleDecl(arena, cur[0]) {
+            let role_owner_node: Int = cur_node;
+            ArraySet(cur, 0, cur[0] + 1);
+            while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
+                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                    let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
+                    CheckFunction(nodes, count, arena, cur, role_method_indent);
+                    saw_function = true;
+                } else {
+                    ArraySet(cur, 0, cur[0] + 1);
+                }
+            }
+        } else if CodegenAstArenaIsEnumDecl(arena, cur[0]) {
+            ArraySet(cur, 0, cur[0] + 1);
+        } else if CodegenAstArenaIsEventDecl(arena, cur[0]) {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[cur[0]])));
+        } else if CodegenAstArenaIsFunction(arena, cur[0]) {
+            CheckFunction(nodes, count, arena, cur, cur_indent);
+            saw_function = true;
+        } else {
+            ArraySet(cur, 0, cur[0] + 1);
+        }
+    }
+    if require_entrypoint && !saw_function {
+        Die("no function found in AST");
+    }
+    return true;
+}
+
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     RejectUnsupportedCodegenBuiltins(tree_text);
 

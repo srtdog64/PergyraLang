@@ -497,7 +497,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
         return false;
     }
-    if SemanticVerdictPayloadFixtureCount() != 108 {
+    if SemanticVerdictPayloadFixtureCount() != 110 {
         return false;
     }
     if SemanticDiagnosticCodeCount() != 17 {

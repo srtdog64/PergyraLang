@@ -1,0 +1,19 @@
+func Validate(x: Int) -> Result<Int> {
+    if x > 10 {
+        return Err("too large");
+    }
+    return Ok(x);
+}
+
+func Main() -> Void {
+    let ok: Result<Int> = Validate(7);
+    let bad: Result<Int> = Validate(11);
+    if IsOk(ok) {
+        let value: Int = Unwrap(ok);
+        Log(value);
+    }
+    if IsErr(bad) {
+        let fallback: Int = UnwrapOr(bad, -1);
+        Log(fallback);
+    }
+}

@@ -503,9 +503,17 @@ pgy_spawn(void *(*fn)(void *), void *arg)
 }
 
 #include "runtime/pgy_parallel_blocking.h"
-#include "runtime/pgy_parallel_coroutine.h"
 
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#include "runtime/pgy_parallel_coroutine.h"
 #include "runtime/pgy_parallel_task_ops.h"
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include "runtime/pgy_parallel_run.h"
 
 #endif /* PERGYRA_RUNTIME_PGY_PARALLEL_H */

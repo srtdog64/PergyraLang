@@ -78,7 +78,7 @@ survivors after `-O2`.
 | `01_slot_provable_with` | 2 | **0** | 0 | 0 | 0 | 1 |
 | `02_slot_provable_claim` | 3 | **0** | 0 | 0 | 0 | 1 |
 | `03_secure_slot` | 0 | **0** | 0 | 0 | 0 | 1 |
-| `04_channel_parallel` | 8 | **0** | 11 | 2 | 1 | 1 |
+| `04_channel_parallel` | 8 | **0** | 13 | 2 | 1 | 1 |
 | `05_zone_intent` | 6 | **0** | 2 | 1 | 1 | 2 |
 | `06_lifecycle_branch` | 2 | **0** | 0 | 0 | 1 | 0 |
 | `07_lifecycle_linear` | 0 | **0** | 0 | 0 | 0 | 0 |
@@ -108,9 +108,11 @@ Consequences, encoded in the gate (`tests/air_erasure/gate.ps1`):
   `nm`, so Windows CI is its home). RED verified in both directions (injected
   axis symbol / injected floor symbol). Baseline updates are explicit commits.
 
-Declared-side deltas in the same window: `04_channel_parallel` `A_inh 4→3`
-(boundary modeling moved during the SEA execution-lane / AIR ownership work);
-the hard C-monotone rule was never violated (`C_unprov` total stable at 1).
+Declared-side deltas in the same window: `01_slot_provable_with` now pins one
+semantic execution-boundary retain with no physical excess, and
+`04_channel_parallel` pins both boundary retain causes and the program-wide
+concurrency summary (`A_inh=6`). The hard C-monotone rule was never violated
+(`C_unprov` total stable at 1).
 
 ## 3. Headline reading
 
@@ -126,7 +128,7 @@ the hard C-monotone rule was never violated (`C_unprov` total stable at 1).
    keeps a fully-provable lifecycle at literally no residue.
 
 3. **Irreducible residue = exactly the primitive the axis stood for, not the
-   abstraction leaking.** `04_channel_parallel` keeps **11 `Sync` + 2 `Heap`**:
+   abstraction leaking.** `04_channel_parallel` keeps **13 `Sync` + 2 `Heap`**:
    that is `pthread_mutex`/`cond` — what *any* implementation of "run these in
    parallel and pass a value over a channel" must cost. The `parallel{}` / `<-`
    syntax erased; the concurrency it denotes did not, because it cannot.
@@ -282,9 +284,10 @@ its own erasure is not evidence.
 
 | Fixture | AIR: A_inh | AIR: B_pol | AIR: C_unprov | phys Sync | phys Abort | reading |
 |---|---:|---:|---:|---:|---:|---|
+| `slot_provable_with` | **1** | 0 | 0 | 2 | 1 | straight-line with-slot retains a semantic execution boundary but has no physical residue beyond floor |
 | `lifecycle_branch` | 0 | 0 | **1** | 2 | **1** | declared C=1; current symbol oracle has no abort excess beyond floor |
 | `zone_intent` | **2** | 0 | 0 | 4 | 1 | inherent boundaries declare runtime sync residue; floor-excess Sync=2 |
-| `channel_parallel` | **3** | 0 | 0 | **13** | 1 | bare concurrency is declared program-wide; floor-excess Sync=11 |
+| `channel_parallel` | **6** | 0 | 0 | **15** | 1 | boundary retains plus program-wide concurrency summary; floor-excess Sync=13 |
 | `secure_slot_method` | 0 | **2** | 0 | 2 | 1 | secure/device capability residue is declared as policy |
 
 The `lifecycle_branch` row is the load-bearing bucket-C result: AIR *declares*
@@ -316,8 +319,9 @@ The three gaps §6/§7 recorded are now filled:
   parallel/async/spawn blocks and channel send/recv as inherent concurrency
   retains (`inherent_concurrency_count`, `air_mir_routine_inherent_concurrency_fact_count`),
   so a bare `parallel{}`/`channel` — not an intent-step boundary — still declares
-  its irreducible residue. `04_channel_parallel` now reports `A_inh = 3`, and the
-  `compression_residue_mismatch` drift it used to raise is gone.
+  its irreducible residue. `04_channel_parallel` now reports `A_inh = 6` because
+  the gate joins boundary retain causes with the program-wide concurrency
+  summary; the previous `compression_residue_mismatch` drift is gone.
 - **Runtime-authority fixture (bucket B is declared).**
   `08_secure_slot_method` reads a secure-slot token across a method boundary.
   AIR declares the policy retain via `slot_capability_retain_count`, computed

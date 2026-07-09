@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let ok: Result<Int> = Ok(7);
+    let value: String = Unwrap(ok);
+    Log(value);
+}

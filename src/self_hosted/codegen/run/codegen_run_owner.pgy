@@ -93,8 +93,7 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Die("target capability envelope is not ready for self-host C codegen");
         }
         let check_tree_text: String = CodegenReadAst(args[1]);
-        let check_c_source: String = GenerateCUnit(check_tree_text, false);
-        if StringLength(check_c_source) >= 0 {
+        if CheckCUnit(check_tree_text, false) {
             Log("Diagnostic: pgy.selfhost.stage-check.v1");
             Log("Stage: codegen");
             Log("Status: ok");

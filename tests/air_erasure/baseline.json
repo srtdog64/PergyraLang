@@ -15,14 +15,23 @@
     "attribution": "R6 wall-time budget watchdog (pgy_budget_wall_watchdog, src/runtime/pgy_runtime_budget.h): pthread_create+pthread_detach spawn the watchdog thread, abort is the wall-budget fail-close. Bucket-B substrate (designed fail-closed enforcement, always-on), landed with task #41; floor moved 0->(Sync 2, Abort 1) at the 2026-07-04 dashboard refresh."
   },
   "retained_runtime_attribution": {
-    "04_channel_parallel": {
-      "A_inh": 3,
+    "01_slot_provable_with": {
+      "A_inh": 1,
       "B_pol": 0,
       "C_unprov": 0,
       "phys_Axis": 0,
-      "phys_Sync_excess": 11,
+      "phys_Sync_excess": 0,
       "phys_Abort_excess": 0,
-      "reason": "Inherent concurrency and channel synchronization. AIR declares the retain through boundary/inherent concurrency facts; the measured pthread residue is the primitive that remains after axis erasure."
+      "reason": "The straight-line with-slot boundary is semantically retained as an execution boundary, but MIR proves and erases the physical slot machinery. Attribution pins the declared retain even when no runtime residue survives beyond the substrate floor."
+    },
+    "04_channel_parallel": {
+      "A_inh": 6,
+      "B_pol": 0,
+      "C_unprov": 0,
+      "phys_Axis": 0,
+      "phys_Sync_excess": 13,
+      "phys_Abort_excess": 0,
+      "reason": "Inherent concurrency and channel synchronization. AIR declares both boundary retain causes and the program-wide concurrency summary; the measured pthread residue is the primitive that remains after axis erasure and lane scheduling."
     },
     "05_zone_intent": {
       "A_inh": 2,

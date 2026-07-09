@@ -140,7 +140,10 @@ SENTINEL_MAX=0
 # seam through an Option<String> view instead of reopening the auxiliary row.
 # 750 -> 761 (2026-07-09): array-literal and enum-variant payload owners now
 # expose Option-backed fact views instead of generic arena/sentinel reads.
-RESULT_USE_MIN=761
+# 761 -> 771 (2026-07-09): Result core semantic consumption now carries payload
+# absence as Option<String> and self-host codegen check uses a structural
+# verifier instead of materializing the full emitted C artifact.
+RESULT_USE_MIN=771
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

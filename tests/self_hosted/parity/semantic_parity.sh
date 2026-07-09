@@ -263,8 +263,8 @@ read_semantic_fixture_manifest() {
         SOURCE_PAIRS+=("$line")
     done <"$SEMANTIC_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#SOURCE_PAIRS[@]}" -ne 108 ]]; then
-        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 108" >&2
+    if [[ "${#SOURCE_PAIRS[@]}" -ne 110 ]]; then
+        echo "[self-host-parity:semantic] fixture manifest count drifted: ${#SOURCE_PAIRS[@]} != 110" >&2
         exit 1
     fi
 }

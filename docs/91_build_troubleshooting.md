@@ -29,6 +29,7 @@ Useful commands:
 ```sh
 mingw32-make build-resource-report
 PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report  # slower exact sizes
+mingw32-make build-pressure-dev-compiler # samples pgy-only build RSS/private bytes
 mingw32-make clean-scratch              # removes .tmp only
 mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
 ```
@@ -38,6 +39,22 @@ and free space without recursively counting files. Use
 `PGY_BUILD_RESOURCE_DEEP=1` only when you need exact size/file-count evidence;
 on Windows/Git Bash, scanning tens of thousands of scratch files can itself
 make the desktop feel stalled.
+
+`build-pressure-dev-compiler` is the memory bug line. It runs the low-pressure
+C-only compiler build through `scripts/measure_build_pressure.ps1` and samples
+the process tree. The default limit is 3 GiB (`PGY_BUILD_PRESSURE_LIMIT_MB`);
+if a pgy-only compiler build crosses that line, treat it as a build/compiler
+memory defect until the sample log proves otherwise. This is separate from
+disk/file-count pressure: a full artifact scan can stall the desktop with small
+RSS when the repo drive is nearly full.
+
+The same rule applies to self-host stage tools. A `--check` mode must validate
+the stage contract without materializing a full generated artifact unless that
+artifact is the thing being tested. 2026-07-09 evidence: self-host codegen
+`--check` over an 840 KiB compiler AST peaked at about 3.4 GiB when it called
+the full C-emission path; after splitting the check path into structural
+subset verification, the same input peaked at about 76 MiB. Treat a future
+`--check` path that builds full generated C text as a memory regression.
 
 Do not run broad CI targets when the repo drive has less than about 10 GiB free.
 Use the narrow gate named by the source-of-truth seam first. For low-pressure
@@ -59,6 +76,10 @@ mingw32-make abi-ownership-shape-test-smoke
 - link-only follow-up: peak sampled working set 32 MB;
 - local artifact pressure was dominated by `.tmp/self_hosted`, not compiler
   RSS: about 395 MB across more than 20k files.
+- `dev-compiler` must pass forward-slash `BUILD_DIR` / `BIN_DIR` values on
+  Windows. A mixed `E:\.../build-dev` path can leak into a linker response file
+  as `E:PergyraLang/...`, which is a local low-pressure build path bug, not a
+  compiler memory leak.
 
 So a stalled desktop is not automatically evidence of a compiler heap leak. If
 single `compiler` builds stay below a few hundred MB but broad smokes stall the

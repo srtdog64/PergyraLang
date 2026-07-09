@@ -98,6 +98,7 @@ program. That is designed bucket-B substrate, not an erasure regression:
 `phys_Axis` stayed 0 everywhere.
 
 Retained-runtime fixtures are pinned in `retained_runtime_attribution`. Current
-snapshot values include `04_channel_parallel` `A_inh=3`,
-`phys_Sync_excess=11`; `05_zone_intent` `A_inh=2`, `phys_Sync_excess=2`;
-`06_lifecycle_branch` `C_unprov=1`; and `08_secure_slot_method` `B_pol=2`.
+snapshot values include `01_slot_provable_with` `A_inh=1` with zero physical
+excess; `04_channel_parallel` `A_inh=6`, `phys_Sync_excess=13`;
+`05_zone_intent` `A_inh=2`, `phys_Sync_excess=2`; `06_lifecycle_branch`
+`C_unprov=1`; and `08_secure_slot_method` `B_pol=2`.

@@ -40,6 +40,11 @@
 #else
 #include <fcntl.h>
 #include <unistd.h>
+
+/* Strict C compile paths may not define POSIX feature macros before this
+ * generated-runtime header is included, so glibc can hide fdopen(). The
+ * secure-open owner declares the POSIX boundary it consumes locally. */
+extern FILE *fdopen(int fd, const char *mode);
 #endif
 
 #ifdef _WIN32

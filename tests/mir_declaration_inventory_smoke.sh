@@ -7569,11 +7569,11 @@ if awk '
 fi
 require_term "src/compiler/mir_program_validate.c" \
     "mir_validate_decl_header_metadata(mir, error_message)"
-require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h_2.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h_2.cases.h" \
     "MIR validator rejects hosted method routine link metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h_2.cases.h" \
     "MIR method routine linker requires owner metadata"
 require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
     "MIR validator rejects declaration header name metadata drift"
@@ -8159,7 +8159,7 @@ require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
     "MIR declaration headers preserve zone refresh field maps"
 require_term "src/tests/mir/test_mir_lowering_part_d_2.cases.h" \
     "MIR declaration headers preserve relation and effect refresh metadata"
-require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h_2.cases.h" \
     "MIR validator rejects zone refresh metadata drift"
 
 require_term "TODO.md" "declaration-side MIR-only debt"

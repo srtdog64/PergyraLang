@@ -19,6 +19,15 @@ print_dir_row() {
 
 echo "[build-resource] filesystem for $root"
 df -Pk "$root" || true
+df -Pk "$root" 2>/dev/null | awk '
+    NR == 2 {
+        used = $5
+        sub(/%$/, "", used)
+        if ($4 < 10485760 || used >= 95) {
+            printf "[build-resource] warning: low free space: %s KiB available, %s%% used; broad local CI may stall\n", $4, used
+        }
+    }
+'
 
 echo "[build-resource] artifact roots"
 artifact_roots | sed "s#^$root/#  #"
