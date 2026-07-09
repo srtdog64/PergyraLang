@@ -73,7 +73,31 @@ func ImpactPlannerFinding(path: String) -> String {
     return JsonEmitObject(fields);
 }
 
+func ImpactPlannerImpactItem(
+    impact_id: String,
+    pattern: String,
+    matched_path: String,
+    source_env: String,
+    stage_env: String,
+    stage_value: String,
+    gate: String
+) -> String {
+    let fields: Array<String> = [
+        JsonEmitFieldString("impact_id", impact_id),
+        JsonEmitFieldString("source_pattern", pattern),
+        JsonEmitFieldString("matched_path", matched_path),
+        JsonEmitFieldString("source_filter_env", source_env),
+        JsonEmitFieldString("source_filter_value", matched_path),
+        JsonEmitFieldString("stage_filter_env", stage_env),
+        JsonEmitFieldString("stage_filter_value", stage_value),
+        JsonEmitFieldString("proof_gate", gate)
+    ];
+    return JsonEmitObject(fields);
+}
+
 func ImpactPlannerJson(paths: Array<String>) -> String {
+    let matched_impacts: Array<String> = [];
+    let impact_items: Array<String> = [];
     let proof_gates: Array<String> = [];
     let findings: Array<String> = [];
     let unmatched: Int = 0;
@@ -84,13 +108,37 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         let row_i: Int = 0;
         while row_i < CompilerCompletenessImpactRowCount() {
             let row: String = CompilerCompletenessImpactRowAt(row_i);
+            let impact_id_opt: Option<String> = ImpactPlannerRowField(row, 0);
             let pattern_opt: Option<String> = ImpactPlannerRowField(row, 1);
+            let source_env_opt: Option<String> = ImpactPlannerRowField(row, 2);
+            let stage_env_opt: Option<String> = ImpactPlannerRowField(row, 3);
+            let stage_value_opt: Option<String> = ImpactPlannerRowField(row, 4);
             let gate_opt: Option<String> = ImpactPlannerRowField(row, 5);
-            if IsSome(pattern_opt) && IsSome(gate_opt) {
+            if IsSome(impact_id_opt) && IsSome(pattern_opt) && IsSome(source_env_opt) &&
+                IsSome(stage_env_opt) && IsSome(stage_value_opt) && IsSome(gate_opt) {
+                let impact_id: String = UnwrapOption(impact_id_opt);
                 let pattern: String = UnwrapOption(pattern_opt);
                 if ImpactPlannerPatternMatches(pattern, path) {
+                    let source_env: String = UnwrapOption(source_env_opt);
+                    let stage_env: String = UnwrapOption(stage_env_opt);
+                    let stage_value: String = UnwrapOption(stage_value_opt);
                     let gate: String = UnwrapOption(gate_opt);
                     path_matched = true;
+                    if !ImpactPlannerArrayContains(matched_impacts, impact_id) {
+                        ArrayPush(matched_impacts, impact_id);
+                    }
+                    ArrayPush(
+                        impact_items,
+                        ImpactPlannerImpactItem(
+                            impact_id,
+                            pattern,
+                            path,
+                            source_env,
+                            stage_env,
+                            stage_value,
+                            gate
+                        )
+                    );
                     if !ImpactPlannerArrayContains(proof_gates, gate) {
                         ArrayPush(proof_gates, gate);
                     }
@@ -115,7 +163,8 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
     }
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("changed_paths", ToString(ArrayLength(paths))),
-        JsonEmitFieldNumber("matched_impacts", ToString(ArrayLength(proof_gates))),
+        JsonEmitFieldNumber("matched_impacts", ToString(ArrayLength(matched_impacts))),
+        JsonEmitFieldNumber("impact_matches", ToString(ArrayLength(impact_items))),
         JsonEmitFieldNumber("proof_gates", ToString(ArrayLength(proof_gates))),
         JsonEmitFieldNumber("unmatched", ToString(unmatched))
     ];
@@ -125,6 +174,7 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         JsonEmitFieldString("impact_schema", CompilerCompletenessImpactPlanSchema()),
         JsonEmitFieldRaw("counts", JsonEmitObject(counts_fields)),
         JsonEmitFieldRaw("proof_gates", JsonEmitArray(gate_items)),
+        JsonEmitFieldRaw("impacts", JsonEmitArray(impact_items)),
         JsonEmitFieldRaw("findings", JsonEmitArray(findings))
     ];
     return JsonEmitObject(report_fields);

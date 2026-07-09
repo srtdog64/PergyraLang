@@ -55,6 +55,10 @@ rewrite history.
 - Follow-up: repointed the planner from `impact_id`-specific path branches to
   the row-owned `source_pattern` and `proof_gate` fields, so changing impact
   rows does not require parallel planner edits.
+- Extended the planner artifact with matched impact row items, including
+  source/stage filter envs and values. The shell gate now compares that richer
+  JSON through the backend-output comparator instead of recovering runner
+  knobs from the proof-gate list.
 
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 

@@ -595,12 +595,14 @@ runner knobs, so impact routing is no longer only a shell convention. The
 first executable planner,
 `src/self_hosted/tools/completeness_impact_planner/main.pgy`, consumes those
 rows from the owner, accepts explicit changed paths, consumes the
-`source_pattern` and `proof_gate` row fields, emits
+`source_pattern`, filter env/stage, and `proof_gate` row fields, emits
 `pgy.selfhost.completeness-impact-planner.v1`, and is checked through
-C/LLVM-built tool parity with clean and unmatched-path artifacts. This remains
-rung0 routing, not full dependency invalidation: it does not inspect git state
-or import graphs, and later rungs must replace coarse path classes with
-owner-owned dependency fingerprints.
+C/LLVM-built tool parity with clean and unmatched-path artifacts. Its clean
+artifact includes matched impact row items as well as deduplicated proof-gate
+names, so a runner can consume filter env/value rows without reconstructing the
+impact decision in shell. This remains rung0 routing, not full dependency
+invalidation: it does not inspect git state or import graphs, and later rungs
+must replace coarse path classes with owner-owned dependency fingerprints.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.

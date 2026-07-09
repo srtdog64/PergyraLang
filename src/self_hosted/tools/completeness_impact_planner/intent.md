@@ -16,8 +16,9 @@ specific `impact_id` names.
 ## Output Contract
 
 The tool emits one JSON object with schema
-`pgy.selfhost.completeness-impact-planner.v1`, counts, proof-gate names, and
-unmatched-path findings. Any unmatched path exits non-zero.
+`pgy.selfhost.completeness-impact-planner.v1`, counts, unique proof-gate names,
+matched impact row items, and unmatched-path findings. Any unmatched path exits
+non-zero.
 
 ## Oracle
 

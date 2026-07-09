@@ -4647,8 +4647,15 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manife
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/completeness_impact_planner/main.pgy"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'import "../../compiler/completeness_ledger_owner.pgy";'
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPatternMatches"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerImpactItem"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 0)"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 1)"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 2)"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 3)"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 4)"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 5)"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" '"impact_matches"'
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" '"impacts"'
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "pgy.selfhost.completeness-impact-planner.v1"
 reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPathMatches(impact_id"
 reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "selfhost-production-source"'
