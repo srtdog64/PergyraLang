@@ -137,7 +137,9 @@ SENTINEL_MAX=0
 # fact seam through an Option<String> view instead of reopening arena payloads.
 # 746 -> 750 (2026-07-09): `For` range-end lowering now consumes a single fact
 # seam through an Option<String> view instead of reopening the auxiliary row.
-RESULT_USE_MIN=750
+# 750 -> 761 (2026-07-09): array-literal and enum-variant payload owners now
+# expose Option-backed fact views instead of generic arena/sentinel reads.
+RESULT_USE_MIN=761
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

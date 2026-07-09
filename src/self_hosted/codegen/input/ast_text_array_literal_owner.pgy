@@ -6,23 +6,49 @@
 import "ast_text_typed_arena_owner.pgy";
 import "../text/expr_sequence_owner.pgy";
 
-func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: Int) -> Bool {
+struct CodegenLetArrayLiteralFact {
+    let has_initializer: Bool;
+    let initializer: String;
+}
+
+func CodegenAstArenaLetArrayLiteralFactAt(arena: AstArena, node_id: Int) -> CodegenLetArrayLiteralFact {
     if !CodegenAstArenaIsLetStmt(arena, node_id) {
-        return false;
+        return CodegenLetArrayLiteralFact(false, "");
     }
     let value: Option<String> = TypedAstArenaValueText(arena, node_id);
     if !IsSome(value) {
+        return CodegenLetArrayLiteralFact(false, "");
+    }
+    return CodegenLetArrayLiteralFact(true, UnwrapOption(value));
+}
+
+func CodegenLetArrayLiteralInitializerText(fact: CodegenLetArrayLiteralFact) -> Option<String> {
+    if !fact.has_initializer {
+        return None;
+    }
+    return Some(fact.initializer);
+}
+
+func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: Int) -> Bool {
+    let fact: CodegenLetArrayLiteralFact = CodegenAstArenaLetArrayLiteralFactAt(arena, node_id);
+    let initializer: Option<String> = CodegenLetArrayLiteralInitializerText(fact);
+    if !IsSome(initializer) {
         return false;
     }
-    let expr: String = StringTrim(UnwrapOption(value));
+    let expr: String = StringTrim(UnwrapOption(initializer));
     return StringLength(expr) > 0 && CodegenCharAt(expr, 0) == "[";
 }
 
 func CodegenAstArenaLetArrayLiteralBodyOrDie(arena: AstArena, node_id: Int) -> String {
-    if !CodegenAstArenaLetInitializerStartsArrayLiteral(arena, node_id) {
+    let fact: CodegenLetArrayLiteralFact = CodegenAstArenaLetArrayLiteralFactAt(arena, node_id);
+    let initializer: Option<String> = CodegenLetArrayLiteralInitializerText(fact);
+    if !IsSome(initializer) {
         Die(Concat("expected array literal initializer at typed AST node: ", ToString(node_id)));
     }
-    let expr: String = StringTrim(CodegenAstArenaValueOrDie(arena, node_id));
+    let expr: String = StringTrim(UnwrapOption(initializer));
+    if StringLength(expr) == 0 || CodegenCharAt(expr, 0) != "[" {
+        Die(Concat("expected array literal initializer at typed AST node: ", ToString(node_id)));
+    }
     let n: Int = StringLength(expr);
     if n < 2 || CodegenCharAt(expr, n - 1) != "]" {
         Die(Concat("malformed array literal initializer at typed AST node: ", ToString(node_id)));

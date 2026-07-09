@@ -5477,3 +5477,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker inside the input owner surface.
   The blocker remains active until typed statement payload rows replace the
   transitional arena auxiliary-value row behind the fact.
+
+### 2026-07-09 -- Array literal and enum variant payloads consume owner facts
+
+- Added `CodegenLetArrayLiteralFact` inside
+  `ast_text_array_literal_owner.pgy` so array-literal starts/body checks consume
+  one initializer fact instead of reopening the generic arena value accessor.
+- Added `CodegenEnumVariantPayloadFact` inside
+  `ast_text_enum_variant_owner.pgy` so payload-free enum variant count/name
+  accessors consume an `Option<String>` view instead of carrying missing
+  payload as an owner-local empty-string fact.
+- Tightened `self_hosted_component_contract_smoke.sh` so both owners must
+  expose the fact seams and may read their transitional payload rows only once.
+- This reduces the mixed AST-like tree blocker inside the input owner surface.
+  The blocker remains active until typed statement/declaration payload rows
+  replace the transitional arena value and auxiliary-value rows behind the
+  facts.
