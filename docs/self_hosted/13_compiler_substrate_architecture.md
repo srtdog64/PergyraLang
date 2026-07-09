@@ -259,6 +259,9 @@ import graph; callers own the changed-path source, and later rungs must replace
 the coarse path classes with owner-owned dependency fingerprints. The Make
 entrypoint for that mode is `self-host-preparation-impact-test-smoke`, which
 requires changed-path input and runs every affected group.
+`scripts/self_host_impact_changed_paths.sh` is the outer changed-path collector:
+it can consume explicit env input or git diff state, writes a changed-path file,
+and then delegates to the same Make entrypoint without carrying impact patterns.
 
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit

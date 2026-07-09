@@ -137,6 +137,9 @@ The architecture is executable policy:
 - `make self-host-preparation-impact-test-smoke` is the changed-path evidence
   path: the caller supplies changed paths, and the Pergyra impact runner chooses
   every affected proof-gate group.
+- `make self-host-preparation-impact-changed-paths-test-smoke` checks the outer
+  caller wrapper that can collect changed paths before handing them to that
+  evidence path.
 
 This document is a shape contract, not a release claim that the compiler is
 already fully self-hosted.

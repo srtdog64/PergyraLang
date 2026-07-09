@@ -614,7 +614,9 @@ the Pergyra planner and does not inspect git state. This remains rung0 routing,
 not full dependency invalidation: later rungs must replace coarse path classes
 with owner-owned dependency fingerprints. `self-host-preparation-impact-test-smoke`
 is the Make entrypoint for that mode and fails closed unless changed-path input
-is supplied.
+is supplied. `scripts/self_host_impact_changed_paths.sh` is the current outer
+caller: it may collect changed paths from git, but it must not own impact
+classification or source-pattern rows.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.

@@ -4651,6 +4651,8 @@ require_text "Makefile" "self-host-completeness-impact-test-smoke"
 require_text "Makefile" "self-host-completeness-impact-planner-test-smoke"
 require_text "Makefile" "self-host-completeness-impact-runner-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-test-smoke"
+require_text "Makefile" "self-host-preparation-impact-changed-paths-test-smoke"
+require_text "Makefile" "scripts/self_host_impact_changed_paths.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_manifest.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_planner_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
@@ -4660,6 +4662,16 @@ require_make_target_text \
 require_make_target_text \
     "self-host-preparation-impact-test-smoke" \
     "PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS=all"
+require_make_target_text \
+    "self-host-preparation-impact-changed-paths-test-smoke" \
+    "PGY_SELFHOST_IMPACT_CHANGED_PATHS=\"tests/self_hosted_component_contract_smoke.sh\""
+require_text "scripts/self_host_impact_changed_paths.sh" "self-host-preparation-impact-test-smoke"
+require_text "scripts/self_host_impact_changed_paths.sh" "PGY_SELFHOST_IMPACT_GIT_BASE"
+require_text "scripts/self_host_impact_changed_paths.sh" "git -C"
+require_text "scripts/self_host_impact_changed_paths.sh" "diff --name-only"
+require_text "scripts/self_host_impact_changed_paths.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
+reject_text "scripts/self_host_impact_changed_paths.sh" "source_pattern"
+reject_text "scripts/self_host_impact_changed_paths.sh" "impact_id"
 require_make_target_text \
     "self-host-preparation-parity-test-smoke" \
     "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"

@@ -98,6 +98,10 @@ rewrite history.
 - Added `PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS`, used by the new
   `self-host-preparation-impact-test-smoke` Make entrypoint so impact mode
   cannot silently fall back to representative clean fixture paths.
+- Added `scripts/self_host_impact_changed_paths.sh` and
+  `self-host-preparation-impact-changed-paths-test-smoke` as the outer
+  changed-path caller boundary. It can collect paths from git or explicit env
+  input, but impact classification still lives in the Pergyra planner.
 - Extended `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS` with `all`, so callers can
   execute every affected proof-gate group without re-counting planner rows in
   shell.
