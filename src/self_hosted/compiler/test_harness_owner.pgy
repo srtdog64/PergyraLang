@@ -66,6 +66,17 @@ func CompilerHarnessRowIndexKnown(index: Int) -> Bool {
         CompilerHarnessRowAt(index) != "";
 }
 
+func CompilerHarnessRowKnown(row: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerHarnessRowCount() {
+        if CompilerHarnessRowAt(index) == row {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
 func CompilerHarnessRowAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessSourcePathRow(); }
     if index == 1 { return CompilerHarnessExpectedDiagnosticRow(); }
@@ -107,6 +118,17 @@ func CompilerHarnessProjectionIndexKnown(index: Int) -> Bool {
         CompilerHarnessProjectionAt(index) != "";
 }
 
+func CompilerHarnessProjectionKnown(projection: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerHarnessProjectionCount() {
+        if CompilerHarnessProjectionAt(index) == projection {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
 func CompilerHarnessProjectionOrExit(index: Int) -> String {
     if !CompilerHarnessProjectionIndexKnown(index) {
         Log("HARNESS ERROR: unknown projection row");
@@ -122,28 +144,28 @@ func CompilerHarnessFindingCap() -> Int {
 
 func CompilerTestHarnessReady() -> Bool {
     return CompilerHarnessRowCount() > 0 &&
-        CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow() &&
-        CompilerHarnessRowAt(1) == CompilerHarnessExpectedDiagnosticRow() &&
-        CompilerHarnessRowAt(2) == CompilerHarnessExpectedAirJsonRow() &&
-        CompilerHarnessRowAt(3) == CompilerHarnessExpectedMirJsonRow() &&
-        CompilerHarnessRowAt(4) == CompilerHarnessExpectedAbiLayoutRow() &&
-        CompilerHarnessRowAt(5) == CompilerHarnessExpectedStdoutRow() &&
-        CompilerHarnessRowAt(6) == CompilerHarnessExpectedExitRow() &&
-        CompilerHarnessRowAt(CompilerHarnessRowCount() - 1) == CompilerHarnessProjectionRow() &&
+        CompilerHarnessRowKnown(CompilerHarnessSourcePathRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedDiagnosticRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedAirJsonRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedMirJsonRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedAbiLayoutRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedStdoutRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessExpectedExitRow()) &&
+        CompilerHarnessRowKnown(CompilerHarnessProjectionRow()) &&
         CompilerHarnessRowIndexKnown(0) &&
         CompilerHarnessRowIndexKnown(CompilerHarnessRowCount() - 1) &&
         !CompilerHarnessRowIndexKnown(CompilerHarnessRowCount()) &&
         CompilerHarnessProjectionCount() > 0 &&
-        CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection() &&
-        CompilerHarnessProjectionAt(1) == CompilerHarnessLlvmOracleProjection() &&
-        CompilerHarnessProjectionAt(CompilerHarnessProjectionCount() - 1) == CompilerHarnessSelfHostedProjection() &&
+        CompilerHarnessProjectionKnown(CompilerHarnessCOracleProjection()) &&
+        CompilerHarnessProjectionKnown(CompilerHarnessLlvmOracleProjection()) &&
+        CompilerHarnessProjectionKnown(CompilerHarnessSelfHostedProjection()) &&
         CompilerHarnessProjectionIndexKnown(0) &&
         CompilerHarnessProjectionIndexKnown(1) &&
         CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount() - 1) &&
         !CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount()) &&
         CompilerHarnessComparableArtifactPathCount() > 0 &&
-        CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath() &&
-        CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount() - 1) == CompilerHarnessActualComparableArtifactPath() &&
+        CompilerHarnessComparableArtifactPathKnown(CompilerHarnessExpectedComparableArtifactPath()) &&
+        CompilerHarnessComparableArtifactPathKnown(CompilerHarnessActualComparableArtifactPath()) &&
         CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount()) == "" &&
         CompilerHarnessFindingCap() > 0 &&
         CompilerHarnessAbiLayoutRowsReady() &&

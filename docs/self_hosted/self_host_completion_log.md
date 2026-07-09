@@ -36,6 +36,19 @@ rewrite history.
 - This is a SoT closure on the existing lexer payload contract; it does not
   change the lexer fixture frontier or the headline substitution percentage.
 
+## 2026-07-10 - TestHarness readiness consumes named row facts
+
+- Added `CompilerHarnessRowKnown(...)` and
+  `CompilerHarnessProjectionKnown(...)` to the core TestHarness owner, plus
+  `CompilerHarnessComparableArtifactPathKnown(...)` to the comparator path
+  owner.
+- Repointed `CompilerTestHarnessReady()` so row, projection, and comparable
+  artifact readiness consumes named facts instead of fixed `At(0)` or
+  `At(Count() - 1)` representative positions.
+- Tightened the component and compiler-world contracts so the old positional
+  readiness checks cannot return while ordered rows remain available for
+  TestHarness manifest emission.
+
 ## 2026-07-10 - Parser payload fixture count consumes manifest owner
 
 - Added manifest-owned parser fixture count facts:

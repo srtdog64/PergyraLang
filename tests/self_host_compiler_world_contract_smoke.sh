@@ -667,8 +667,11 @@ for term in \
     "func CompilerTestHarnessSchema" \
     "CompilerTestHarnessReady" \
     "func CompilerHarnessRowIndexKnown" \
+    "func CompilerHarnessRowKnown" \
+    "func CompilerHarnessProjectionKnown" \
     "CompilerHarnessRowCount() > 0" \
-    "CompilerHarnessRowAt(CompilerHarnessRowCount() - 1) == CompilerHarnessProjectionRow()" \
+    "CompilerHarnessRowKnown(CompilerHarnessSourcePathRow())" \
+    "CompilerHarnessRowKnown(CompilerHarnessProjectionRow())" \
     "CompilerHarnessRowIndexKnown(CompilerHarnessRowCount() - 1)" \
     "!CompilerHarnessRowIndexKnown(CompilerHarnessRowCount())" \
     "source_path" \
@@ -677,10 +680,12 @@ for term in \
     "expected_mir_json" \
     "expected_abi_layout" \
     "CompilerHarnessProjectionCount() > 0" \
-    "CompilerHarnessProjectionAt(CompilerHarnessProjectionCount() - 1) == CompilerHarnessSelfHostedProjection()" \
+    "CompilerHarnessProjectionKnown(CompilerHarnessCOracleProjection())" \
+    "CompilerHarnessProjectionKnown(CompilerHarnessSelfHostedProjection())" \
     "!CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount())" \
     "CompilerHarnessComparableArtifactPathCount() > 0" \
-    "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount() - 1) == CompilerHarnessActualComparableArtifactPath()" \
+    "CompilerHarnessComparableArtifactPathKnown(CompilerHarnessExpectedComparableArtifactPath())" \
+    "CompilerHarnessComparableArtifactPathKnown(CompilerHarnessActualComparableArtifactPath())" \
     "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount()) == \"\"" \
     "c_oracle" \
     "llvm_oracle" \
@@ -692,6 +697,15 @@ for term in \
     "CompilerHarnessRowCount() == 8" \
     "CompilerHarnessProjectionCount() == 3" \
     "CompilerHarnessComparableArtifactPathCount() == 2"; do
+    forbid_text "src/self_hosted/compiler/test_harness_owner.pgy" "$term"
+done
+for term in \
+    "CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow()" \
+    "CompilerHarnessRowAt(CompilerHarnessRowCount() - 1) == CompilerHarnessProjectionRow()" \
+    "CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection()" \
+    "CompilerHarnessProjectionAt(CompilerHarnessProjectionCount() - 1) == CompilerHarnessSelfHostedProjection()" \
+    "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()" \
+    "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount() - 1) == CompilerHarnessActualComparableArtifactPath()"; do
     forbid_text "src/self_hosted/compiler/test_harness_owner.pgy" "$term"
 done
 
