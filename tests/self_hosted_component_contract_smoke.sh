@@ -716,6 +716,7 @@ require_owner_surface codegen \
     "input/ast_text_row_fact_owner.pgy" \
     "input/ast_text_array_literal_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
+    "input/ast_text_function_signature_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
     "input/ast_text_local_binding_owner.pgy" \
@@ -2101,12 +2102,38 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunc
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectParameters(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBody(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBlock(arena, count, cur)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaModeOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaFunctionNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaParamModeOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaParamNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaParamTypeNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaReturnTypeNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaFunctionNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "struct CodegenFunctionSignatureContext"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenFunctionSignatureContextFor"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamModeOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamTypeNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaReturnTypeNameOrDie"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_function_signature_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFunctionNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamModeOrDie(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamModeName(mode)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextParamModeName(mode)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeOrDie(arena, cur[0], owner_name)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, cur[0], signature_context)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaReturnTypeNameOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, cur[0], owner_name)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaModeOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeOrDie(arena, cur[0], owner_name)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let fname: String = CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let p_name: String = CodegenAstArenaAtomOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "ParamModeCsvAppend(modes, CodegenAstArenaModeOrDie(arena, j))"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let p_mode: Int = CodegenAstArenaModeOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeOrDie(arena, j, owner)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "rtype = CodegenAstArenaTypeNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsReturns(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFieldsHeader(arena, j)"
@@ -2118,8 +2145,9 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payloa
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaTypeNameOrDie(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamNameOrDie(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, signature_context)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCBindingName"

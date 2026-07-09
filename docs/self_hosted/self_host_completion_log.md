@@ -5390,3 +5390,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker for statement emission. It does
   not close the blocker because the owners still read transitional typed arena
   payload rows until typed statement rows replace the AST-text bridge.
+
+### 2026-07-09 -- Function signature facts leave function emission
+
+- Added `ast_text_function_signature_owner.pgy` for self-host codegen function
+  name, parameter mode/name/type, and return type facts.
+- Repointed `function_emit.pgy` so `EmitFunction`, `BuildFunctionEnv`,
+  `CollectRoleOperators`, and `CollectProtos` consume signature owner
+  accessors instead of directly reading arena atom/mode/type rows for function
+  signatures.
+- Tightened `self_hosted_component_contract_smoke.sh` so the codegen owner
+  surface includes the new function signature owner and `function_emit.pgy`
+  rejects reopening those direct signature payload reads.
+- This reduces the mixed AST-like tree blocker for function emission. It does
+  not close the blocker because the owner still reads transitional typed arena
+  payload rows until typed declaration rows replace the AST-text bridge.

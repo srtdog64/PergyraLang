@@ -1,0 +1,40 @@
+// Self-host codegen AST-text function signature facts.
+//
+// Function emission owns C signature/prototype rendering. This owner owns the
+// input facts for function names, parameter rows, and return rows.
+
+import "ast_text_typed_arena_owner.pgy";
+
+struct CodegenFunctionSignatureContext {
+    let owner_name: String;
+}
+
+func CodegenFunctionSignatureContextFor(owner_name: String) -> CodegenFunctionSignatureContext {
+    return CodegenFunctionSignatureContext(owner_name);
+}
+
+func CodegenAstArenaFunctionNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsFunction(arena, node_id) {
+        Die(Concat("expected Function declaration at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaParamModeOrDie(arena: AstArena, node_id: Int) -> Int {
+    return CodegenAstArenaModeOrDie(arena, node_id);
+}
+
+func CodegenAstArenaParamNameOrDie(arena: AstArena, node_id: Int) -> String {
+    return CodegenAstArenaAtomOrDie(arena, node_id);
+}
+
+func CodegenAstArenaParamTypeNameOrDie(arena: AstArena, node_id: Int, context: CodegenFunctionSignatureContext) -> String {
+    return CodegenAstArenaParamTypeOrDie(arena, node_id, context.owner_name);
+}
+
+func CodegenAstArenaReturnTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
+    if !CodegenAstArenaIsReturns(arena, node_id) {
+        Die(Concat("expected Returns row at typed AST node: ", ToString(node_id)));
+    }
+    return CodegenAstArenaTypeNameOrDie(arena, node_id);
+}
