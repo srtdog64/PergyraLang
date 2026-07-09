@@ -12,6 +12,18 @@ func ParserFixtureExpectedPath(base: String) -> String {
     return Concat(Concat(ParserFixtureDir(), "/"), Concat(base, "_ast.txt"));
 }
 
+func ParserFixtureManifestCount() -> Int {
+    return 188;
+}
+
+func ParserFixtureDuplicateCoverageCount() -> Int {
+    return 1;
+}
+
+func ParserFixturePayloadFixtureCount() -> Int {
+    return ParserFixtureManifestCount() - ParserFixtureDuplicateCoverageCount();
+}
+
 func ParserFixturePathEndsWith(path: String, suffix: String) -> Bool {
     let path_len: Int = StringLength(path);
     let suffix_len: Int = StringLength(suffix);
@@ -74,7 +86,7 @@ func ParserFixtureManifestRows() -> Array<String> {
 func ParserFixtureManifestReady() -> Bool {
     let rows: Array<String> = ParserFixtureManifestRows();
     let i: Int = 0;
-    if ArrayLength(rows) != 188 {
+    if ArrayLength(rows) != ParserFixtureManifestCount() {
         return false;
     }
     while i < ArrayLength(rows) {

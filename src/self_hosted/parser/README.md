@@ -30,8 +30,10 @@ inventing a second AST serialization format.
   statement shape itself.
 - `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
   and `for` compact AST header/block emission.
-- `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines
-  used by the 187-fixture parity harness.
+- `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines.
+  The parser manifest owner emits the 188-row parity manifest, while the AST
+  payload contract consumes the manifest-owned 187-fixture payload frontier
+  after subtracting the duplicate coverage row.
 - `expected/clean.txt` - expected stdout when run on the default source.
 - `intent.md` - contract, current grammar surface, and latest fixture/scale
   coverage result.

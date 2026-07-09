@@ -36,6 +36,20 @@ rewrite history.
 - This is a SoT closure on the existing lexer payload contract; it does not
   change the lexer fixture frontier or the headline substitution percentage.
 
+## 2026-07-10 - Parser payload fixture count consumes manifest owner
+
+- Added manifest-owned parser fixture count facts:
+  `ParserFixtureManifestCount()`, `ParserFixtureDuplicateCoverageCount()`, and
+  `ParserFixturePayloadFixtureCount()`.
+- Repointed `ParserAstTreePayloadFixtureCount()` to consume the manifest-owned
+  payload frontier instead of carrying the historical `187` literal locally.
+  The parser parity manifest remains 188 rows because it intentionally includes
+  external `examples/hello.pgy` plus duplicate `generic_class` coverage; the
+  payload contract now derives its 187-fixture frontier by subtracting that
+  duplicate coverage row.
+- Tightened self-host component and compiler-world contracts so the parser AST
+  payload contract cannot reintroduce the second local fixture-count source.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

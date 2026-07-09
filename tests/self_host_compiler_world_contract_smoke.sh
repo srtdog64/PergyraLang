@@ -512,9 +512,11 @@ for term in \
     "func ParserAstTreePayloadSchema" \
     "pgy.selfhost.parser-ast-tree.v1" \
     "func ParserAstTreePayloadFixtureCount" \
+    'import "fixture_manifest_owner.pgy";' \
+    "return ParserFixturePayloadFixtureCount();" \
     "func ParserAstTreePayloadRootReady" \
     "func ParserAstTreePayloadContractReady" \
-    "ParserAstTreePayloadFixtureCount() != 187" \
+    "ParserAstTreePayloadFixtureCount() != ParserFixturePayloadFixtureCount()" \
     "AppendImplicitMain(\"\", body)" \
     "StringIndexOf(tree_text, \"  Function: Main\")"; do
     require_text "src/self_hosted/parser/tree_text_owner.pgy" "$term"

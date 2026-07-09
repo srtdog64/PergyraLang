@@ -1,5 +1,7 @@
 // Self-host parser compact AST text formatting owner.
 
+import "fixture_manifest_owner.pgy";
+
 // Produce a string of `n` ASCII spaces, used to indent AST output.
 func IndentStr(n: Int) -> String {
     let s: String = "";
@@ -40,7 +42,7 @@ func ParserAstTreePayloadSchema() -> String {
 }
 
 func ParserAstTreePayloadFixtureCount() -> Int {
-    return 187;
+    return ParserFixturePayloadFixtureCount();
 }
 
 func ParserAstTreePayloadRootReady() -> Bool {
@@ -62,7 +64,7 @@ func ParserAstTreePayloadContractReady() -> Bool {
     if ParserAstTreePayloadSchema() == "" {
         return false;
     }
-    if ParserAstTreePayloadFixtureCount() != 187 {
+    if ParserAstTreePayloadFixtureCount() != ParserFixturePayloadFixtureCount() {
         return false;
     }
     if !ParserAstTreePayloadRootReady() {
