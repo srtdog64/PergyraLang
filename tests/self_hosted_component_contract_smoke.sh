@@ -417,8 +417,11 @@ require_stage_world_binding "codegen" "EmissionZone" "ProgramEmitter" "EmitProgr
 
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureAt"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureCoverageReady"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func EmitMirParityFixtureManifest"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityFixtureCount()"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "DirWalk(MirParityCodegenFixtureDir())"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityManifestContains(path)"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 95;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'

@@ -8,6 +8,19 @@ func MirParityFixtureCount() -> Int {
     return 95;
 }
 
+func MirParityCodegenFixtureDir() -> String {
+    return "src/self_hosted/codegen/fixture";
+}
+
+func MirParityPathEndsWith(path: String, suffix: String) -> Bool {
+    let path_len: Int = StringLength(path);
+    let suffix_len: Int = StringLength(suffix);
+    if suffix_len > path_len {
+        return false;
+    }
+    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+}
+
 func MirParityFixtureAt(index: Int) -> String {
     if index == 0 { return "src/self_hosted/mir_lower/fixture/let_log.pgy"; }
     if index == 1 { return "src/self_hosted/mir_lower/fixture/multilet.pgy"; }
@@ -109,6 +122,30 @@ func MirParityFixtureAt(index: Int) -> String {
     return "";
 }
 
+func MirParityManifestContains(path: String) -> Bool {
+    let i: Int = 0;
+    while i < MirParityFixtureCount() {
+        if MirParityFixtureAt(i) == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func MirParityCodegenFixtureCoverageReady() -> Bool with caps io_read {
+    let entries: Array<String> = DirWalk(MirParityCodegenFixtureDir());
+    let i: Int = 0;
+    while i < ArrayLength(entries) {
+        let path: String = entries[i];
+        if MirParityPathEndsWith(path, ".pgy") && !MirParityManifestContains(path) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func MirParityFixtureManifestReady() -> Bool with caps io_read {
     let i: Int = 0;
     while i < MirParityFixtureCount() {
@@ -118,7 +155,7 @@ func MirParityFixtureManifestReady() -> Bool with caps io_read {
         }
         i = i + 1;
     }
-    return true;
+    return MirParityCodegenFixtureCoverageReady();
 }
 
 func EmitMirParityFixtureManifest() -> Void with caps io_read {

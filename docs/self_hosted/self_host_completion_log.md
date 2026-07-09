@@ -5884,3 +5884,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   95 fixtures, still with 0 clean rejects.
 - The MIR path now covers 26 MIR-lower fixtures, all 68 committed codegen
   fixtures, and the example-origin `examples/binary_search.pgy` fixture.
+
+### 2026-07-10 -- MIR parity manifest owns codegen fixture coverage
+
+- Added `MirParityCodegenFixtureCoverageReady()` to the MIR parity fixture
+  manifest owner.
+- The manifest owner now walks `src/self_hosted/codegen/fixture` and refuses to
+  emit the MIR parity fixture list if any committed codegen fixture is absent
+  from the MIR fact-only path.
+- Tightened `self_hosted_component_contract_smoke.sh` so this coverage contract
+  cannot be removed without failing the component contract gate.
