@@ -33,7 +33,8 @@ The parity set currently covers:
   comparator; use `make self-host-backend-tri-compare-extended-test-smoke` for
   the opt-in 29-case C/LLVM closure gate)
 - `completeness_impact_planner` (changed-path JSON plus `run_group_plan`
-  projection for runner-consumable proof-gate groups)
+  projection for runner-consumable proof-gate groups; the paired run-group
+  runner validates all groups and executes a bounded prefix)
 - `module_manifest_resolver`
 - `stdlib_dispatch_inventory_checker`
 - `doc_link_checker`

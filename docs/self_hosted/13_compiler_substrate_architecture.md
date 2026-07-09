@@ -247,7 +247,10 @@ mapping from path classes. The same planner also emits
 `pgy.selfhost.completeness-impact-run-groups.v1` through `--run-groups`, a
 line-oriented `run_group_plan` artifact compared by `ArtifactZone`; shell
 runners consume that projection instead of parsing JSON or reconstructing
-groups. It deliberately does not inspect git state or infer an import graph;
+groups. `completeness_impact_run_group_runner.sh` is the bounded execution
+boundary for that projection: by default it validates every group and executes
+the first group, while `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS` can widen the
+run. It deliberately does not inspect git state or infer an import graph;
 callers must pass the changed paths and later rungs must replace the coarse
 path classes with owner-owned dependency fingerprints.
 

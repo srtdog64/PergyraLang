@@ -75,6 +75,18 @@ rewrite history.
   planner's JSON artifact and run-group plan artifact are both checked under
   C/LLVM tool parity.
 
+## 2026-07-10 - Completeness run-group plan gets a bounded runner
+
+- Added `tests/self_hosted/parity/completeness_impact_run_group_runner.sh`.
+  It consumes the planner's `pgy.selfhost.completeness-impact-run-groups.v1`
+  TSV projection, validates all groups, and executes a bounded prefix of the
+  proof-gate plan without rebuilding path-class impact decisions in shell.
+- Added `self-host-completeness-impact-runner-test-smoke` and wired it into
+  `self-host-completeness-impact-test-smoke`. The default runner smoke executes
+  the first run group, so the source/stage filter envs are proven against the
+  real `self-host-completeness-smoke` boundary while keeping the routine gate
+  bounded.
+
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 
 - Added recursive scalar-field collection facts to `json_fact_table.pgy`:
