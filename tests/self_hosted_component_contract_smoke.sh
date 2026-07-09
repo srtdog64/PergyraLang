@@ -874,7 +874,7 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 12"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C source slot auto-release requires MIR ABI runtime function row"
@@ -1168,7 +1168,7 @@ require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetForbiddenLossBudgetFallbackReason())"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TYPE(\\\"Array<Long>\\\""
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TAGGED_TYPE(\\\"Option<Int>\\\""
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_extract_inner_type_suffix_owned"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowDefaultReturnValueAt(UnwrapOption(row))"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue()"

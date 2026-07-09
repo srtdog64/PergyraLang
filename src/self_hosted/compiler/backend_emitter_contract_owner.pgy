@@ -55,7 +55,7 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
-    if index == 0 { return "mir_abi_resource_runtime_fn(effective_layout, op_name)"; }
+    if index == 0 { return "mir_abi_resource_runtime_row_by_type_name("; }
     if index == 1 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
     if index == 2 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
     if index == 3 { return "mir_abi_resource_runtime_row_by_kind("; }

@@ -43,6 +43,26 @@ transpiler_mir_resource_format_addr(char *out,
         indirect ? "%s" : "&%s", name);
 }
 
+static const char *
+transpiler_mir_resource_expected_call_shape(bool secure,
+                                           const char *operation)
+{
+    if (operation == NULL)
+        return NULL;
+    if (strcmp(operation, "Claim") == 0)
+        return secure ? "token_ptr_to_container" : "returns_container";
+    if (strcmp(operation, "Read") == 0)
+        return secure ? "container_ptr_token_ptr_to_value"
+                      : "container_ptr_to_value";
+    if (strcmp(operation, "Write") == 0)
+        return secure ? "container_ptr_value_token_ptr_to_void"
+                      : "container_ptr_value_to_void";
+    if (strcmp(operation, "Release") == 0)
+        return secure ? "container_ptr_token_ptr_to_void"
+                      : "container_ptr_to_void";
+    return NULL;
+}
+
 bool
 transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                 CodeBuf *out,
@@ -54,6 +74,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *fn = NULL;
     const char *suffix = NULL;
     const MIRTypeLayout *effective_layout = layout;
+    const MIRResourceRuntimeRow *runtime_row = NULL;
     char suffix_buf[96];
     char inner_name_buf[128];
     const char *slot_anchor;
@@ -87,12 +108,16 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     }
 
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
-        const char *layout_fn = mir_abi_resource_runtime_fn(effective_layout, op_name);
         if (effective_layout->abi_type_name != NULL)
             effective_abi_type_name = effective_layout->abi_type_name;
-        if (layout_fn != NULL) {
-            fn = layout_fn;
-            suffix = transpiler_extract_type_suffix_from_fn(layout_fn);
+        if (effective_layout->abi_type_name != NULL) {
+            runtime_row = mir_abi_resource_runtime_row_by_type_name(
+                effective_layout->abi_type_name, op_name);
+        }
+        if (runtime_row != NULL && runtime_row->runtime_fn != NULL) {
+            fn = runtime_row->runtime_fn;
+            suffix = transpiler_extract_type_suffix_from_fn(
+                runtime_row->runtime_fn);
         }
         if (inner_name == NULL
             && effective_layout->abi_type_name != NULL
@@ -135,8 +160,10 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         }
 
         if (has_resource_kind) {
-            fn = mir_abi_resource_runtime_fn_by_kind(kind, inner_name, op_name);
-            if (fn != NULL) {
+            runtime_row = mir_abi_resource_runtime_row_by_kind(
+                kind, inner_name, op_name);
+            if (runtime_row != NULL && runtime_row->runtime_fn != NULL) {
+                fn = runtime_row->runtime_fn;
                 if (!sanitize_c_suffix(inner_name, suffix_buf,
                         sizeof(suffix_buf)))
                     return false;
@@ -162,8 +189,12 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             if (fn == NULL
                 && effective_layout != NULL
                 && effective_layout->runtime_fn != NULL) {
-                fn = mir_abi_resource_runtime_fn(effective_layout, op_name);
-                if (fn != NULL) {
+                if (effective_layout->abi_type_name != NULL) {
+                    runtime_row = mir_abi_resource_runtime_row_by_type_name(
+                        effective_layout->abi_type_name, op_name);
+                }
+                if (runtime_row != NULL && runtime_row->runtime_fn != NULL) {
+                    fn = runtime_row->runtime_fn;
                     suffix = transpiler_extract_type_suffix_from_fn(fn);
                 }
             }
@@ -212,6 +243,25 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 "MIR resource operation payload", inner_c_buf,
                 sizeof(inner_c_buf))) {
             inner_c = inner_c_buf;
+        }
+    }
+
+    if (runtime_row != NULL) {
+        const char *expected_shape =
+            transpiler_mir_resource_expected_call_shape(is_secure_slot,
+                                                        op_name);
+        if (runtime_row->call_shape == NULL ||
+            (expected_shape != NULL &&
+             strcmp(runtime_row->call_shape, expected_shape) != 0)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C MIR resource op '%s' requires MIR ABI call shape %s",
+                op_name != NULL ? op_name : "<op>",
+                expected_shape != NULL ? expected_shape : "<known>");
+            return false;
         }
     }
 

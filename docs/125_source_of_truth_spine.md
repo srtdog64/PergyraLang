@@ -412,15 +412,17 @@ Current beta closure snapshot:
   (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
   `mir_abi_lookup(...)` accepts exact ABI row names only; runtime function
   names are payloads on ABI rows, not a fallback source of layout truth.
-  Slot-like C MIR resource operations consume ABI-owned runtime rows for
-  Claim/Read/Write/Release instead of synthesizing those names from type
-  suffixes. Source-level C slot builtins, C expression slot runtime rows,
-  `let slot` claim/initializer writes, LLVM slot identifier auto-read, and
-  LLVM slot/device builtins now consume concrete `MIRResourceRuntimeRow`
-  records through `mir_abi_resource_runtime_row_by_kind(...)` and validate the
-  row-owned `call_shape` before emission. LLVM Slot/SecureSlot/DeviceSlot
-  declaration registries, LLVM pin/unpin declaration registries, MIR resource
-  op emission, pin cleanup, slot method calls, slot assignment writes,
+  Slot-like C MIR resource operations consume concrete ABI-owned runtime rows
+  for Claim/Read/Write/Release instead of synthesizing those names from type
+  suffixes. C MIR resource-op emission, source-level C slot builtins, C
+  expression slot runtime rows, `let slot` claim/initializer writes, LLVM slot
+  identifier auto-read, and LLVM slot/device builtins now consume concrete
+  `MIRResourceRuntimeRow` records through
+  `mir_abi_resource_runtime_row_by_type_name(...)` /
+  `mir_abi_resource_runtime_row_by_kind(...)` and validate the row-owned
+  `call_shape` before emission. LLVM Slot/SecureSlot/DeviceSlot declaration
+  registries, LLVM pin/unpin declaration registries, pin cleanup, slot method
+  calls, slot assignment writes,
   with-slot cleanup releases, and statement auto-release cleanup are still
   compatibility consumers of the same ABI owner through symbol-returning row
   accessors until they are cut over to concrete row records. Source-level

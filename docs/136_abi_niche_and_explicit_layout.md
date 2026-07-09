@@ -61,13 +61,13 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   `{ data, length, capacity, allocator }`. The ABI owner models the real
   `PgyArray_*` runtime shape; a backend-local 3-field `{ data, len, cap }`
   reconstruction is wrong.
-- Slot-like MIR resource operations must consume explicit ABI rows. C
-  source-level slot builtins, C expression slot runtime rows, `let slot`
-  claim/initializer writes, LLVM identifier read emission, and LLVM
-  slot/device builtins already consume concrete `MIRResourceRuntimeRow` records
-  and validate the MIR-owned `call_shape`. Other resource callsites still
-  consume symbol-returning row accessors as compatibility paths until they are
-  cut over to concrete row records. Source-level
+- Slot-like MIR resource operations must consume explicit ABI rows. C MIR
+  resource-op emission, C source-level slot builtins, C expression slot runtime
+  rows, `let slot` claim/initializer writes, LLVM identifier read emission, and
+  LLVM slot/device builtins already consume concrete `MIRResourceRuntimeRow`
+  records and validate the MIR-owned `call_shape`. Other resource callsites
+  still consume symbol-returning row accessors as compatibility paths until
+  they are cut over to concrete row records. Source-level
   `with slot` alias claim/release emission uses those same Claim/Release rows.
   MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` uses the same Claim
   rows. C class field-claim helpers also consume Claim rows from this ABI

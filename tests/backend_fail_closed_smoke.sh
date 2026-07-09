@@ -160,7 +160,11 @@ grep -Fq "C source slot builtin %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "MIR resource op '%s' is missing runtime ABI layout metadata" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
-grep -Fq "mir_abi_resource_runtime_fn(effective_layout, op_name)" \
+grep -Fq "mir_abi_resource_runtime_row_by_type_name(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"

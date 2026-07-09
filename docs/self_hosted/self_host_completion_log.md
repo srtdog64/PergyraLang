@@ -5612,3 +5612,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The production ABI blocker remains open: MIR resource-op emission, pin
   emission/cleanup, LLVM runtime declaration registries, and remaining
   slot/member callsites still have symbol-only compatibility consumers.
+
+### 2026-07-09 -- C MIR resource ops consume runtime-call row records
+
+- Repointed `transpiler_mir_resource_op_core.c` from symbol-returning
+  `mir_abi_resource_runtime_fn(...)` / `mir_abi_resource_runtime_fn_by_kind(...)`
+  calls to concrete `MIRResourceRuntimeRow` lookups.
+- C MIR Claim/Read/Write/Release emission now validates the MIR-owned
+  `call_shape` before rendering the runtime call.
+- Updated `abi_ownership_shape_smoke.sh`, `backend_fail_closed_smoke.sh`, the
+  self-host backend-emitter contract owner, and the ABI-layout row contract
+  owner so this core MIR path cannot regress to symbol-only lookup.
+- The production ABI blocker remains open for pin emission/cleanup, LLVM
+  runtime declaration registries, and remaining slot/member compatibility
+  callsites.

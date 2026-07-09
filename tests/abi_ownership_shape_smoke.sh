@@ -135,7 +135,9 @@ require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_SECURE_PIN_OPS("Secu
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("DeviceSlot<Int>"'
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("DeviceSlot<Long>"'
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
-require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
+require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_type_name("
+require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_mir_resource_op_core.c" "runtime_row->call_shape"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
 require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
