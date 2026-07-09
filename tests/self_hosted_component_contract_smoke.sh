@@ -4270,6 +4270,9 @@ require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" '"backend-output-com
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local comparator_source="${3:-}"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'comparator_source="$(pgy_selfhost_backend_output_comparator_source "$label" "$build_dir")"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "TestHarness backend-output comparator source must be repo-relative"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "PGY_SELFHOST_TEST_HARNESS_MANIFEST_COMPILED_DIRS"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "PGY_SELFHOST_BACKEND_OUTPUT_COMPARATOR_COMPILED_DIRS"
+require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'return 0'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local comparator_source="${3:-$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy}"'
 reject_text "tests/self_hosted/parity/llvm_leg_helpers.sh" 'local manifest_source="$ROOT_DIR/src/self_hosted/compiler/test_harness_manifest.pgy"'
 require_text "tests/self_hosted/parity/llvm_leg_helpers.sh" "pgy_selfhost_compile_test_harness_manifest"
@@ -5034,14 +5037,20 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'csrc="$ROOT_DIR/src
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"'
 require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/run/codegen_run_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityExpectedFixtureCount"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureRows"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureCount"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureAt"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func EmitDriverParityFixtureManifest"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityFixtureCount()"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'DriverParityFixtureAt(i)'
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpectedFixtureCount()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureDir()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 68;"
+reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
+reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
+reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
@@ -5056,6 +5065,7 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 68'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -5080,6 +5090,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 68'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'

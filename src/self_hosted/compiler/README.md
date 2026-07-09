@@ -164,15 +164,16 @@ stage-artifact, and target-capability readiness facts. The AST and C artifact
 edges are named separately (`CompileSourceToAst`, `CompileAstToC`, and
 `CompileSourceToC`). `driver_rung0_main.pgy` is the runnable boundary for those
 facts, and `tests/self_hosted/parity/driver_rung0_parity.sh` compares the
-assembled AST/C outputs against the C oracle. It is not a second driver graph;
-the owner still only assembles parser and codegen facts.
+assembled AST/C outputs against the C oracle across the same 68 committed
+codegen parity fixtures named by `codegen_run_owner.pgy`. It is not a second
+driver graph; the owner still only assembles parser and codegen facts.
 
 `driver_cli_owner.pgy` is the DRV-1 CLI surface owner. It consumes the DRV-0
 artifact functions and owns only argv shape: source path, `--emit-ast` /
 `--emit-c`, and `-o` artifact writes. `driver_rung1_main.pgy` is the runnable
 boundary for that surface, and `tests/self_hosted/parity/driver_rung1_parity.sh`
-checks stdout and file-output parity without moving artifact generation out of
-the stage owners.
+checks stdout and file-output parity across that shared driver fixture frontier
+without moving artifact generation out of the stage owners.
 
 `world.pgy` is the current scaffold. It is parse-gated by
 `make self-host-compiler-world-contract-test-smoke` and wired into

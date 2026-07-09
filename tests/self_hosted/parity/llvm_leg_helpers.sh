@@ -90,6 +90,12 @@ pgy_selfhost_compile_test_harness_manifest() {
     local manifest_bin
     local compile_log
 
+    case "|${PGY_SELFHOST_TEST_HARNESS_MANIFEST_COMPILED_DIRS:-}|" in
+        *"|$build_dir|"*)
+            return 0
+            ;;
+    esac
+
     manifest_source="$(pgy_selfhost_test_harness_manifest_source "$label")"
     manifest_bin="$(pgy_selfhost_test_harness_manifest_bin "$build_dir")"
     mkdir -p "$build_dir"
@@ -102,6 +108,7 @@ pgy_selfhost_compile_test_harness_manifest() {
         cat "$compile_log" >&2
         exit 1
     fi
+    PGY_SELFHOST_TEST_HARNESS_MANIFEST_COMPILED_DIRS="${PGY_SELFHOST_TEST_HARNESS_MANIFEST_COMPILED_DIRS:-}|$build_dir"
 }
 
 pgy_selfhost_read_test_harness_manifest() {
@@ -167,6 +174,12 @@ pgy_selfhost_compile_backend_output_comparator() {
     local comparator_bin
     local compile_log
 
+    case "|${PGY_SELFHOST_BACKEND_OUTPUT_COMPARATOR_COMPILED_DIRS:-}|" in
+        *"|$build_dir|"*)
+            return 0
+            ;;
+    esac
+
     if [[ -z "$comparator_source" ]]; then
         comparator_source="$(pgy_selfhost_backend_output_comparator_source "$label" "$build_dir")"
     fi
@@ -182,6 +195,7 @@ pgy_selfhost_compile_backend_output_comparator() {
         cat "$compile_log" >&2
         exit 1
     fi
+    PGY_SELFHOST_BACKEND_OUTPUT_COMPARATOR_COMPILED_DIRS="${PGY_SELFHOST_BACKEND_OUTPUT_COMPARATOR_COMPILED_DIRS:-}|$build_dir"
 }
 
 pgy_selfhost_compare_expected_text_artifact_with_owner() {

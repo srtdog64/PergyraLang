@@ -337,8 +337,9 @@ functions: `CompileSourceToAst`, `CompileAstToC`, and `CompileSourceToC`.
 `src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
 boundary for those facts. `tests/self_hosted/parity/driver_rung0_parity.sh`
 compares assembled AST text against a separately built self-parser AST producer
-and assembled emitted C against the current codegen oracle, so DRV-0 is a
-landed artifact rung. It deliberately does not own parser facts or codegen
+and assembled emitted C against the current codegen oracle across the 68
+committed codegen parity fixtures named by `codegen_run_owner.pgy`, so DRV-0 is
+a landed artifact rung. It deliberately does not own parser facts or codegen
 emission facts; those remain in their stage owners.
 
 ## Codegen Architecture

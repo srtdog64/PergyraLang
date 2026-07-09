@@ -5894,3 +5894,19 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   from the MIR fact-only path.
 - Tightened `self_hosted_component_contract_smoke.sh` so this coverage contract
   cannot be removed without failing the component contract gate.
+
+### 2026-07-10 -- Driver rungs consume the codegen fixture frontier
+
+- Repointed `driver_rung0_owner.pgy` so DRV-0/DRV-1 fixture manifests consume
+  `CodegenParityFixtureManifestRows()` from `codegen_run_owner.pgy` instead of
+  carrying a separate three-sample fixture list.
+- Ratcheted both driver parity runners to 68 fixtures, matching the committed
+  codegen parity frontier, and tightened the component contract so hard-coded
+  driver fixture paths cannot return.
+- Added process-local compile caching in the shared LLVM/parity helper for the
+  TestHarness manifest and backend output comparator. This keeps the broader
+  DRV fixture frontier from recompiling the comparator for every artifact
+  comparison while still rebuilding on the next script invocation.
+- This broadens the driver artifact rung without claiming released/native
+  driver replacement: the driver still assembles self-parser and self-codegen
+  facts and compares against the current oracle.

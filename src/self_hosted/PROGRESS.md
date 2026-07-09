@@ -125,6 +125,9 @@ the compiler driver now has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
 diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2i
 buffered transport/request/response/session/document-state/feature-shape/session-state/hover-content rungs
 (docs/150).
+The DRV-0/DRV-1 artifact rungs consume the same 68 committed codegen parity
+fixture frontier as `codegen_run_owner.pgy`; this broadens artifact assembly
+coverage but does not count as released/native driver replacement.
 C LSP also exposes `pgy-lsp --dump-diagnostics <src>` as a live oracle
 plumbing path for LSP diagnostics shape checks and fixture-level canonical
 event comparison across clean plus logical/undefined/type/condition/unary

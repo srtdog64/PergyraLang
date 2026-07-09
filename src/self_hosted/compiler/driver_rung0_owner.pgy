@@ -11,6 +11,7 @@ import "target_capability_owner.pgy";
 import "../parser/source_path_owner.pgy";
 import "../parser/program_parse_owner.pgy";
 import "../codegen/emission/program_emit.pgy";
+import "../codegen/run/codegen_run_owner.pgy";
 
 func CompilerDriverRung0Ready() -> Bool with caps io_read {
     if !CompilerStagePathManifestReady() {
@@ -44,21 +45,42 @@ func CompileSourceToC(source_path: String) -> String with caps io_read {
     return CompileAstToC(ast_text);
 }
 
+func DriverParityExpectedFixtureCount() -> Int {
+    return 68;
+}
+
+func DriverParityFixtureRows() -> Array<String> {
+    let bases: Array<String> = CodegenParityFixtureManifestRows();
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(bases) {
+        let base: String = bases[i];
+        ArrayPush(rows, Concat(Concat(CodegenParityFixtureDir(), "/"), Concat(base, ".pgy")));
+        i = i + 1;
+    }
+    return rows;
+}
+
 func DriverParityFixtureCount() -> Int {
-    return 3;
+    return ArrayLength(DriverParityFixtureRows());
 }
 
 func DriverParityFixtureAt(index: Int) -> String {
-    if index == 0 { return "examples/hello.pgy"; }
-    if index == 1 { return "src/self_hosted/codegen/fixture/func_call.pgy"; }
-    if index == 2 { return "src/self_hosted/codegen/fixture/struct_param.pgy"; }
-    return "";
+    let rows: Array<String> = DriverParityFixtureRows();
+    if index < 0 || index >= ArrayLength(rows) {
+        return "";
+    }
+    return rows[index];
 }
 
 func DriverParityFixtureManifestReady() -> Bool with caps io_read {
+    let rows: Array<String> = DriverParityFixtureRows();
+    if ArrayLength(rows) != DriverParityExpectedFixtureCount() {
+        return false;
+    }
     let i: Int = 0;
-    while i < DriverParityFixtureCount() {
-        let fixture: String = DriverParityFixtureAt(i);
+    while i < ArrayLength(rows) {
+        let fixture: String = rows[i];
         if fixture == "" || !FileExists(fixture) {
             return false;
         }
@@ -71,9 +93,10 @@ func EmitDriverParityFixtureManifest() -> Void with caps io_read {
     if !DriverParityFixtureManifestReady() {
         Exit(1);
     }
+    let rows: Array<String> = DriverParityFixtureRows();
     let i: Int = 0;
-    while i < DriverParityFixtureCount() {
-        Log(DriverParityFixtureAt(i));
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
         i = i + 1;
     }
 }
