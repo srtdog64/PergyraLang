@@ -1,1 +1,1 @@
-{"schema":"pgy.selfhost.backend-emitter-contract-negative.v1","ok":false,"counts":{"required":20,"forbidden":6,"missing_required":0,"forbidden_hits":1},"findings":[{"kind":"forbidden_hit","path":"src/codegen/llvm_runtime.c","term":"llvm_runtime_slot_name"}]}
+{"schema":"pgy.selfhost.backend-emitter-contract-negative.v1","ok":false,"counts":{"required":20,"forbidden":11,"missing_required":0,"forbidden_hits":1},"findings":[{"kind":"forbidden_hit","path":"src/codegen/llvm_runtime.c","term":"llvm_runtime_slot_name"}]}

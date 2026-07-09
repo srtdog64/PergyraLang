@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -15,32 +14,12 @@
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
 #include "transpiler_mir_reason_classifier.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_declarator.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
-
-static const char *
-transpiler_func_flow_slot_runtime_fn(TranspilerCtx *ctx,
-                                     MIRResourceAbiKind kind,
-                                     const char *inner_type,
-                                     const char *operation)
-{
-    const char *runtime_fn =
-        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
-    if (runtime_fn != NULL)
-        return runtime_fn;
-
-    transpiler_set_backend_error_with_hints(
-        ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        "C source with-slot %s requires MIR ABI runtime function row",
-        operation != NULL ? operation : "<unknown>");
-    return NULL;
-}
 
 void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
@@ -265,7 +244,6 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     bool is_secure    = ast_with_is_secure(node);
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
-    MIRResourceAbiKind slot_kind;
     const char *claim_fn;
     const char *release_fn;
 
@@ -283,9 +261,8 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    slot_kind = is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT;
-    claim_fn = transpiler_func_flow_slot_runtime_fn(ctx, slot_kind, inner, "Claim");
-    release_fn = transpiler_func_flow_slot_runtime_fn(ctx, slot_kind, inner, "Release");
+    claim_fn = transpiler_slot_runtime_fn(ctx, is_secure, inner, "Claim");
+    release_fn = transpiler_slot_runtime_fn(ctx, is_secure, inner, "Release");
     if (claim_fn == NULL || release_fn == NULL)
         return;
 

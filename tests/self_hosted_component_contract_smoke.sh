@@ -873,7 +873,7 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenHitsCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 20"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 11"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
@@ -881,7 +881,7 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "row-
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/transpiler_mir_pin_emit.c"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/llvm_mir_pin_region.c"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C source slot auto-release requires MIR ABI runtime function row"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "transpiler_slot_runtime_fn("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'strncmp(fn, \"pgy_claim_secure_\"'
@@ -926,7 +926,7 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":20'
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":6'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":11'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_input.json" "pgy.selfhost.backend-emitter-contract-negative.v1"

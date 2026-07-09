@@ -580,7 +580,7 @@ grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
-grep -Fq "C expression slot %s requires MIR ABI runtime function row" \
+grep -Fq "C slot operation %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
 grep -Fq "transpiler_emit_nominal_container_runtime_rows" \
     "$ROOT_DIR/src/codegen/transpiler_slot_runtime_row.c"
@@ -607,10 +607,13 @@ if grep -F "PGY_BOX_DEFINE(%s, %s)" \
     echo "[backend-fail-closed] nominal box runtime rows must be emitted by transpiler_slot_runtime_row" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "transpiler_slot_runtime_fn(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
-grep -Fq "C slot method %s requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C slot methods must consume transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "row->call_shape" \
@@ -737,10 +740,13 @@ if grep -F 'pgy_claim_secure_%s(&%s_token)' \
     echo "[backend-fail-closed] C let secure-slot Claim must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "transpiler_slot_runtime_fn(" \
     "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
-grep -Fq "C source with-slot %s requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source with-slot must consume transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 if grep -F 'pgy_claim_%s()' \
     "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source with-slot Claim must consume MIR ABI runtime rows" >&2
@@ -751,10 +757,13 @@ if grep -F 'pgy_claim_secure_%s(&%s_token)' \
     echo "[backend-fail-closed] C source secure with-slot Claim must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "transpiler_slot_runtime_fn(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
-grep -Fq "C MIR destructuring %s requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C MIR destructuring must consume transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 if grep -F 'pgy_claim_%s()' \
     "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C MIR ClaimSlot destructuring must consume MIR ABI runtime rows" >&2
@@ -765,10 +774,13 @@ if grep -F 'pgy_claim_secure_%s(&%s)' \
     echo "[backend-fail-closed] C MIR ClaimSecureSlot destructuring must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "transpiler_slot_runtime_fn(" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
-grep -Fq "C class field slot Claim requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C class field slot claims must consume transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 if grep -F 'pgy_claim_%s()' \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C class field Slot claim must consume MIR ABI runtime rows" >&2
@@ -779,10 +791,13 @@ if grep -F 'pgy_claim_secure_%s(&self.%s)' \
     echo "[backend-fail-closed] C class field SecureSlot claim must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "transpiler_slot_runtime_fn(" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
-grep -Fq "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c" >/dev/null; then
+    echo "[backend-fail-closed] C stdlib Slot<T> Clone must consume transpiler_slot_runtime_row" >&2
+    exit 1
+fi
 if grep -F 'PgySlot_%s _c = pgy_claim_%s()' \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c" >/dev/null; then
     echo "[backend-fail-closed] C stdlib Slot<T> Clone claim must consume MIR ABI runtime rows" >&2

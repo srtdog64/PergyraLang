@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
-#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
@@ -27,6 +26,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_slot_runtime_row.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -53,19 +53,7 @@ transpiler_stdlib_slot_runtime_fn(TranspilerCtx *ctx,
                                   const char *inner_type,
                                   const char *operation)
 {
-    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-        MIR_RESOURCE_ABI_SLOT, inner_type, operation);
-    if (runtime_fn != NULL)
-        return runtime_fn;
-
-    transpiler_set_backend_error_with_hints(
-        ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row",
-        operation != NULL ? operation : "<unknown>");
-    return NULL;
+    return transpiler_slot_runtime_fn(ctx, false, inner_type, operation);
 }
 
 static bool

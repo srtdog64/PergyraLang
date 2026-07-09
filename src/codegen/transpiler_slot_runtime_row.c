@@ -57,7 +57,7 @@ transpiler_slot_runtime_fn(TranspilerCtx *ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_INSPECT_MIR_INVENTORY,
-        "C expression slot %s requires MIR ABI runtime function row",
+        "C slot operation %s requires MIR ABI runtime function row",
         operation != NULL ? operation : "<unknown>");
     return NULL;
 }

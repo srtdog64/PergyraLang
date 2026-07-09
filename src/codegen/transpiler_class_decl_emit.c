@@ -7,7 +7,6 @@
 #include <string.h>
 
 #include "../compiler/mir.h"
-#include "../compiler/mir_abi_layout.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
@@ -80,25 +79,6 @@ transpiler_class_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
         surface_kind != NULL ? surface_kind : "class generated name");
 }
 
-static const char *
-transpiler_class_slot_claim_runtime_fn(TranspilerCtx *ctx,
-                                       MIRResourceAbiKind kind,
-                                       const char *inner_type)
-{
-    const char *runtime_fn =
-        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, "Claim");
-    if (runtime_fn != NULL)
-        return runtime_fn;
-
-    transpiler_set_backend_error_with_hints(
-        ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        "C class field slot Claim requires MIR ABI runtime function row");
-    return NULL;
-}
-
 static void
 emit_one_field_slot_claim_meta(TranspilerCtx *ctx,
                                const MIRDeclFieldClaim *claim)
@@ -111,16 +91,14 @@ emit_one_field_slot_claim_meta(TranspilerCtx *ctx,
     if (slot == NULL || suffix == NULL)
         return;
     if (mir_decl_field_claim_is_secure(claim) && token != NULL) {
-        claim_fn = transpiler_class_slot_claim_runtime_fn(
-            ctx, MIR_RESOURCE_ABI_SECURE_SLOT, suffix);
+        claim_fn = transpiler_slot_runtime_fn(ctx, true, suffix, "Claim");
         if (claim_fn == NULL)
             return;
         codebuf_write(ctx->out,
             "    self.%s = %s(&self.%s);\n",
             slot, claim_fn, token);
     } else if (!mir_decl_field_claim_is_secure(claim)) {
-        claim_fn = transpiler_class_slot_claim_runtime_fn(
-            ctx, MIR_RESOURCE_ABI_SLOT, suffix);
+        claim_fn = transpiler_slot_runtime_fn(ctx, false, suffix, "Claim");
         if (claim_fn == NULL)
             return;
         codebuf_write(ctx->out,
@@ -149,16 +127,14 @@ emit_one_field_slot_claim(TranspilerCtx *ctx, ASTNode *group)
         ? ast_generic_param_name(ast_call_generic_arg(init, 0)) : "Int";
     if (callee != NULL && strcmp(callee, "ClaimSecureSlot") == 0
         && ast_let_destructure_name_count(group) >= 2) {
-        claim_fn = transpiler_class_slot_claim_runtime_fn(
-            ctx, MIR_RESOURCE_ABI_SECURE_SLOT, suffix);
+        claim_fn = transpiler_slot_runtime_fn(ctx, true, suffix, "Claim");
         if (claim_fn == NULL)
             return;
         codebuf_write(ctx->out,
             "    self.%s = %s(&self.%s);\n",
             slot, claim_fn, ast_let_destructure_name(group, 1));
     } else if (callee != NULL && strcmp(callee, "ClaimSlot") == 0) {
-        claim_fn = transpiler_class_slot_claim_runtime_fn(
-            ctx, MIR_RESOURCE_ABI_SLOT, suffix);
+        claim_fn = transpiler_slot_runtime_fn(ctx, false, suffix, "Claim");
         if (claim_fn == NULL)
             return;
         codebuf_write(ctx->out,

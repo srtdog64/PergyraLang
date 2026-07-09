@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
-#include "../compiler/mir_abi_layout.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
@@ -29,6 +28,7 @@
 #include "transpiler_specialization_registry.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_role_ability_helpers.h"
+#include "transpiler_slot_runtime_row.h"
 #include "transpiler_symbols.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -62,20 +62,7 @@ member_slot_runtime_fn(TranspilerCtx *ctx,
                        const char *inner_type,
                        const char *operation)
 {
-    const char *runtime_fn = mir_abi_resource_runtime_fn_by_kind(
-        secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
-        inner_type, operation);
-    if (runtime_fn != NULL)
-        return runtime_fn;
-
-    transpiler_set_backend_error_with_hints(
-        ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        "C slot method %s requires MIR ABI runtime function row",
-        operation != NULL ? operation : "<unknown>");
-    return NULL;
+    return transpiler_slot_runtime_fn(ctx, secure, inner_type, operation);
 }
 
 char *
