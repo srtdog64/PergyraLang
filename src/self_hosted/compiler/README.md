@@ -104,13 +104,14 @@ AIR header/type tokens, JSON count fields, finding kind, and negative self-test
 path. `backend_air_access_checker` consumes those facts, walks `src/codegen`
 with `DirWalk`, rejects AIR header/type tokens in backend sources, and is gated
 by `self-host-backend-air-access-parity-test-smoke`.
-The native/backend ABI layout contract is intentionally tied back to the same
-`abi_layout_row_owner.pgy` rather than a second shell list:
-`backend_abi_layout_contract_checker` consumes those rows through the
-TestHarness manifest, requires selected native MIR ABI layout and runtime
-function consumer terms, and rejects old `_rel` alias or runtime-name synthesis
-terms. Its parity gate proves clean, missing-required, missing-input, and
-forbidden-hit paths across C/LLVM-built self-host tools under
+The native/backend ABI layout contract has its own owner,
+`backend_abi_layout_contract_owner.pgy`, and imports `abi_layout_row_owner.pgy`
+instead of carrying a second shell list. The checker consumes required and
+forbidden `(path, term)` rows through named membership predicates, uses ordered
+rows only for artifact emission, requires selected native MIR ABI layout and
+runtime function consumer terms, and rejects old `_rel` alias or runtime-name
+synthesis terms. Its parity gate proves clean, missing-required, missing-input,
+and forbidden-hit paths across C/LLVM-built self-host tools under
 `self-host-backend-abi-layout-contract-parity-test-smoke`.
 `runtime_call_abi_row_owner.pgy` now also projects the native
 Slot/SecureSlot/DeviceSlot MIR resource runtime-call table as `native-resource`
@@ -122,8 +123,9 @@ compiler-world facts, not codegen implementation details:
 `compatibility_evolution_owner.pgy`, `compatibility_evolution_manifest.pgy`,
 `air_evidence_owner.pgy`, `sandbox_capability_owner.pgy`,
 `sandbox_capability_manifest.pgy`, `symbol_table_owner.pgy`,
-`abi_layout_row_owner.pgy`, `artifact_zone_owner.pgy`,
-`test_harness_owner.pgy`, and `subprocess_runner_owner.pgy`. These files own
+`abi_layout_row_owner.pgy`, `backend_abi_layout_contract_owner.pgy`,
+`artifact_zone_owner.pgy`, `test_harness_owner.pgy`, and
+`subprocess_runner_owner.pgy`. These files own
 vocabulary envelopes only. A surface remains active until C, LLVM, and
 self-hosted consumers use those rows as data rather than rediscovering the same
 facts from shell scripts, emitted text, or backend-local fallbacks.

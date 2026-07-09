@@ -55,7 +55,7 @@ Backend AIR access report delta, 2026-07-08:
 `backend_air_access_checker/report_owner.pgy` now owns the checker report JSON
 shape, count rows, finding objects, and report-owner readiness predicate.
 `main.pgy` walks backend source files and scans forbidden AIR terms only.
-| Backend ABI layout contract | `abi_layout_row_owner.pgy`, `backend_abi_layout_contract_checker`, TestHarness backend-contract paths | `self-host-backend-abi-layout-contract-parity-test-smoke`, `self-host-component-contract-test-smoke` | Native/backend ABI layout closure now starts from the same compiler-world ABI row owner instead of a separate shell-only list. The checker requires selected native MIR ABI layout rows, runtime-function consumers, and native `MIRAbiTargetPolicy` rows carrying the current `selfhost-c` projection/fact/fallback policy. It rejects old alias/runtime-name synthesis terms such as `_rel` spellings and suffix extraction, consumes the negative schema, count-field names, and finding-kind vocabulary from the ABI owner, and proves clean, missing-required, missing-input, and forbidden-hit artifacts through both C-built and LLVM-built tools when LLVM is available. The broad `abi-ownership-shape-test-smoke` remains the full production backstop until native C, LLVM, and self-hosted backend consumers all read the same concrete row table. |
+| Backend ABI layout contract | `backend_abi_layout_contract_owner.pgy`, `abi_layout_row_owner.pgy`, `backend_abi_layout_contract_checker`, TestHarness backend-contract paths | `self-host-backend-abi-layout-contract-parity-test-smoke`, `self-host-component-contract-test-smoke`, `self-host-compiler-world-contract-test-smoke` | Native/backend ABI layout closure now has a dedicated backend source-contract owner that imports the compiler-world ABI row owner instead of carrying a separate shell-only list. The checker requires selected native MIR ABI layout rows, runtime-function consumers, and native `MIRAbiTargetPolicy` rows carrying the current `selfhost-c` projection/fact/fallback policy. It rejects old alias/runtime-name synthesis terms such as `_rel` spellings and suffix extraction, consumes the negative schema, count-field names, and finding-kind vocabulary from the contract owner, and proves clean, missing-required, missing-input, and forbidden-hit artifacts through both C-built and LLVM-built tools when LLVM is available. Readiness consumes required/forbidden rows by named `(path, term)` membership plus out-of-range boundary checks; ordered rows remain only the artifact/projection shape. The broad `abi-ownership-shape-test-smoke` remains the full production backstop until native C, LLVM, and self-hosted backend consumers all read the same concrete row table. |
 Backend ABI layout report delta, 2026-07-08:
 `backend_abi_layout_contract_checker/report_owner.pgy` now owns the checker
 report JSON shape, count rows, finding objects, and report-owner readiness
@@ -454,6 +454,14 @@ capability owner and projects a `target_policy` row that binds `selfhost-c` to
 the accepted `cpu-c,self-hosted` projections, the required
 `layout_shape,materialization_reason` facts, and the supported fallback reasons.
 This keeps target acceptance out of backend-local ABI spelling decisions.
+
+Backend ABI layout contract delta, 2026-07-10:
+`backend_abi_layout_contract_owner.pgy` now owns the native/backend ABI source
+contract rows separately from the cross-backend ABI row table. It imports
+`abi_layout_row_owner.pgy`, consumes `CompilerAbiLayoutRowsReady()`, and proves
+required/forbidden backend source terms by named `(path, term)` membership
+instead of treating row order as readiness truth. The ordered rows remain the
+stable checker artifact shape only.
 
 TestHarness delta, 2026-07-08: the compatibility-evolution manifest path suite
 now lives in `test_harness_tool_paths_owner.pgy` beside the compatibility

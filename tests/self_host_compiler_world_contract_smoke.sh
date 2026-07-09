@@ -74,6 +74,7 @@ require_file "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.
 require_file "src/self_hosted/compiler/test_harness_manifest.pgy"
 require_file "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_file "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy"
 require_file "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
@@ -100,6 +101,7 @@ require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPIL
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_TEST_HARNESS_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_AUTHORITY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_BACKEND_ABI_LAYOUT_CONTRACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_TARGET_POLICY_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
@@ -129,6 +131,7 @@ require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_o
 require_max_lines "src/self_hosted/compiler/test_harness_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/subprocess_runner_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
@@ -431,6 +434,7 @@ for term in \
     "func CompilerParityPathAt" \
     "func CompilerWorldManifestPathAt" \
     "func CompilerWorldProjectionPrefixCount" \
+    "func CompilerBackendAbiLayoutContractOwnerPath" \
     "func CompilerWorldProjectionPathAt"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
@@ -447,6 +451,7 @@ for term in \
     "return CompilerTestHarnessManifestPath();" \
     "return CompilerSubprocessRunnerOwnerPath();" \
     "return CompilerAbiLayoutRowOwnerPath();" \
+    "return CompilerBackendAbiLayoutContractOwnerPath();" \
     "return CompilerAbiLayoutTargetPolicyOwnerPath();" \
     "return CompilerAbiLayoutRowManifestPath();" \
     "return CompilerSymbolTableOwnerPath();" \
@@ -467,12 +472,13 @@ for term in \
     "CompilerWorldManifestPathAt(CompilerWorldManifestPathCount()) != \"\"" \
     "CompilerWorldProjectionPathAt(CompilerWorldProjectionPrefixCount()) != CompilerWorldManifestPathAt(0)" \
     "CompilerWorldProjectionPathAt(CompilerWorldProjectionPathCount()) != \"\"" \
+    "CompilerBackendAbiLayoutContractOwnerPath() == \"\"" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
-    "if index < 23" \
-    "CompilerStagePathAt(index - 18)" \
-    "if index < 31" \
-    "CompilerParityPathAt(index - 23)" \
+    "if index < 24" \
+    "CompilerStagePathAt(index - 19)" \
+    "if index < 32" \
+    "CompilerParityPathAt(index - 24)" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -481,8 +487,8 @@ for term in \
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
 forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerParityPathCount() != 8"
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 36"
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 39"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 37"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 40"
 
 for term in \
     "func CompilerStageArtifactRowReady" \
@@ -914,6 +920,7 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/subprocess_runner_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/symbol_table_owner.pgy"

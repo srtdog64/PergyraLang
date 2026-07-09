@@ -1240,32 +1240,58 @@ require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "func
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "func CompilerAbiLayoutTargetPolicyFallbacksAt"
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "func CompilerAbiLayoutTargetPolicyKnown"
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "func CompilerAbiLayoutTargetPolicyReady"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutContractSchema"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutNegativeSchema"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingInputFinding"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredFinding"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitFinding"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredCountField"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenCountField"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredCountField"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitsCountField"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutOwnerNotReadyMessage"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredPathAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutRequiredTermAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenPathAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutForbiddenTermAt"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutRequiredCount() == 13"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "const MIRAbiTargetPolicy *mir_abi_target_policy"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" '\"layout_shape,materialization_reason\"'
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" '\"unsupported_shape,forbidden_loss_budget\"'
+require_file "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy"
+require_max_lines "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 'import "abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutContractSchema"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutNegativeSchema"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutMissingInputFinding"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredFinding"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitFinding"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutRequiredCountField"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenCountField"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutMissingRequiredCountField"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenHitsCountField"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutOwnerNotReadyMessage"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutRequiredPathAt"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutRequiredTermAt"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutRequiredRowKnown"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutPrimaryRequiredPath"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutPrimaryRequiredTerm"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenPathAt"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenTermAt"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutForbiddenRowKnown"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutPrimaryForbiddenPath"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutPrimaryForbiddenTerm"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "func CompilerBackendAbiLayoutContractReady"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerAbiLayoutRowsReady()"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutRequiredPathAt(CompilerBackendAbiLayoutRequiredCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutRequiredTermAt(CompilerBackendAbiLayoutRequiredCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutForbiddenPathAt(CompilerBackendAbiLayoutForbiddenCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutForbiddenTermAt(CompilerBackendAbiLayoutForbiddenCount()) == \"\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutRequiredRowKnown("
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutForbiddenRowKnown("
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutPrimaryRequiredPath(),"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutPrimaryRequiredTerm())"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutPrimaryForbiddenPath(),"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutPrimaryForbiddenTerm())"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "const MIRAbiTargetPolicy *mir_abi_target_policy"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" '\"layout_shape,materialization_reason\"'
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" '\"unsupported_shape,forbidden_loss_budget\"'
 require_text "src/compiler/mir_abi_layout.h" "typedef struct MIRAbiTargetPolicy"
 require_text "src/compiler/mir_abi_layout.h" "const MIRAbiTargetPolicy *mir_abi_target_policy"
 require_text "src/compiler/mir_abi_layout.c" "static const MIRAbiTargetPolicy k_abi_target_policy_table[]"
 require_text "src/compiler/mir_abi_layout.c" '"selfhost-c", "cpu-c,self-hosted"'
 require_text "src/compiler/mir_abi_layout.c" '"layout_shape,materialization_reason"'
 require_text "src/compiler/mir_abi_layout.c" '"unsupported_shape,forbidden_loss_budget"'
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutForbiddenCount() == 5"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerBackendAbiLayoutContractReady()"
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutRequiredCount() == 13"
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "CompilerBackendAbiLayoutForbiddenCount() == 5"
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 'CompilerBackendAbiLayoutRequiredPathAt(0) == "src/compiler/mir_abi_layout.c"'
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 'CompilerBackendAbiLayoutRequiredTermAt(0) == "ABI_TYPE(\"Array<Long>\""'
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 'CompilerBackendAbiLayoutForbiddenPathAt(0) == "src/compiler/mir_abi_resource_runtime.c"'
+reject_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" 'CompilerBackendAbiLayoutForbiddenTermAt(0) == "Slot<Int>_rel"'
+reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "func CompilerBackendAbiLayoutContractSchema"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutConcreteRowCount() > 0"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "CompilerAbiLayoutRowTypeNameAt(CompilerAbiLayoutConcreteRowCount()) == \"\""
@@ -1293,10 +1319,10 @@ require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "CompilerTargetFactKnown(CompilerTargetMaterializationReasonFact())"
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetUnsupportedShapeFallbackReason())"
 require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetForbiddenLossBudgetFallbackReason())"
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TYPE(\\\"Array<Long>\\\""
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "ABI_TAGGED_TYPE(\\\"Option<Int>\\\""
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
-require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "mir_extract_inner_type_suffix_owned"
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "ABI_TYPE(\\\"Array<Long>\\\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "ABI_TAGGED_TYPE(\\\"Option<Int>\\\""
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
+require_text "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy" "mir_extract_inner_type_suffix_owned"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutRowDefaultReturnValueAt(UnwrapOption(row))"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "CompilerAbiLayoutPayloadFreeEnumDefaultReturnValue()"
 reject_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" 'CompilerAbiLayoutRowFactAt(0) == "decl_name"'
@@ -1374,9 +1400,9 @@ require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/mai
 require_max_lines "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy"
-require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "../../compiler/backend_abi_layout_contract_owner.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" 'import "report_owner.pgy";'
-require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
+require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 'import "../../compiler/backend_abi_layout_contract_owner.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/report_owner.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingRequiredSelfTestMode"
 require_text "src/self_hosted/tools/backend_abi_layout_contract_checker/main.pgy" "BackendAbiLayoutMissingInputSelfTestMode"

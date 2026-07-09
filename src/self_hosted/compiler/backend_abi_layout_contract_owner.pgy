@@ -1,0 +1,158 @@
+// Self-host compiler backend ABI-layout contract owner.
+//
+// Owns native/backend ABI source checks while tying readiness back to the
+// cross-backend ABI row owner.
+
+import "abi_layout_row_owner.pgy";
+
+func CompilerBackendAbiLayoutContractSchema() -> String {
+    return "pgy.selfhost.backend-abi-layout-contract.v1";
+}
+func CompilerBackendAbiLayoutNegativeSchema() -> String {
+    return "pgy.selfhost.backend-abi-layout-contract-negative.v1";
+}
+func CompilerBackendAbiLayoutMissingInputFinding() -> String {
+    return "missing_input";
+}
+func CompilerBackendAbiLayoutMissingRequiredFinding() -> String {
+    return "missing_required";
+}
+func CompilerBackendAbiLayoutForbiddenHitFinding() -> String {
+    return "forbidden_hit";
+}
+func CompilerBackendAbiLayoutRequiredCountField() -> String {
+    return "required";
+}
+func CompilerBackendAbiLayoutForbiddenCountField() -> String {
+    return "forbidden";
+}
+func CompilerBackendAbiLayoutMissingRequiredCountField() -> String {
+    return "missing_required";
+}
+func CompilerBackendAbiLayoutForbiddenHitsCountField() -> String {
+    return "forbidden_hits";
+}
+func CompilerBackendAbiLayoutOwnerNotReadyMessage() -> String {
+    return "BACKEND_ABI_LAYOUT_CONTRACT ERROR: owner is not ready";
+}
+func CompilerBackendAbiLayoutRequiredCount() -> Int {
+    return 13;
+}
+func CompilerBackendAbiLayoutRequiredPathAt(index: Int) -> String {
+    if index >= 0 && index <= 3 { return "src/compiler/mir_abi_layout.c"; }
+    if index == 4 { return "src/compiler/mir_abi_resource_runtime.c"; }
+    if index == 5 { return "src/compiler/mir_abi_layout.h"; }
+    if index == 6 { return "src/codegen/transpiler_mir_resource_op_core.c"; }
+    if index == 7 { return "src/compiler/mir_abi_resource_runtime.c"; }
+    if index == 8 || index == 9 { return "src/compiler/mir_abi_layout.h"; }
+    if index >= 10 && index <= 12 { return "src/compiler/mir_abi_layout.c"; }
+    return "";
+}
+func CompilerBackendAbiLayoutRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "ABI_TYPE(\"Array<Long>\""; }
+    if index == 1 { return "ABI_TAGGED_TYPE(\"Option<Int>\""; }
+    if index == 2 { return "ABI_TAGGED_TYPE(\"Option<Float>\""; }
+    if index == 3 { return "ABI_TAGGED_TYPE(\"Option<Double>\""; }
+    if index == 4 { return "ABI_SECURE_RESOURCE_OPS(\"SecureSlot<Long>\""; }
+    if index == 5 { return "mir_abi_resource_runtime_fn_by_kind"; }
+    if index == 6 { return "mir_abi_resource_runtime_row_by_type_name("; }
+    if index == 7 { return "Runtime function spelling is payload carried"; }
+    if index == 8 { return "typedef struct MIRAbiTargetPolicy"; }
+    if index == 9 { return "const MIRAbiTargetPolicy *mir_abi_target_policy"; }
+    if index == 10 { return "\"selfhost-c\", \"cpu-c,self-hosted\""; }
+    if index == 11 { return "\"layout_shape,materialization_reason\""; }
+    if index == 12 { return "\"unsupported_shape,forbidden_loss_budget\""; }
+    return "";
+}
+func CompilerBackendAbiLayoutRequiredRowKnown(path: String, term: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendAbiLayoutRequiredCount() {
+        if CompilerBackendAbiLayoutRequiredPathAt(index) == path &&
+            CompilerBackendAbiLayoutRequiredTermAt(index) == term {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+func CompilerBackendAbiLayoutPrimaryRequiredPath() -> String {
+    return "src/compiler/mir_abi_layout.c";
+}
+func CompilerBackendAbiLayoutPrimaryRequiredTerm() -> String {
+    return "ABI_TYPE(\"Array<Long>\"";
+}
+func CompilerBackendAbiLayoutForbiddenCount() -> Int {
+    return 5;
+}
+func CompilerBackendAbiLayoutForbiddenPathAt(index: Int) -> String {
+    if index >= 0 && index < CompilerBackendAbiLayoutForbiddenCount() {
+        return "src/compiler/mir_abi_resource_runtime.c";
+    }
+    return "";
+}
+func CompilerBackendAbiLayoutForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "Slot<Int>_rel"; }
+    if index == 1 { return "mir_abi_format_owned(\"%s_rel\""; }
+    if index == 2 { return "mir_abi_lookup_runtime_fmt"; }
+    if index == 3 { return "mir_extract_inner_type_suffix_owned"; }
+    if index == 4 { return "runtime function name pattern"; }
+    return "";
+}
+func CompilerBackendAbiLayoutForbiddenRowKnown(path: String, term: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerBackendAbiLayoutForbiddenCount() {
+        if CompilerBackendAbiLayoutForbiddenPathAt(index) == path &&
+            CompilerBackendAbiLayoutForbiddenTermAt(index) == term {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+func CompilerBackendAbiLayoutPrimaryForbiddenPath() -> String {
+    return "src/compiler/mir_abi_resource_runtime.c";
+}
+func CompilerBackendAbiLayoutPrimaryForbiddenTerm() -> String {
+    return "Slot<Int>_rel";
+}
+func CompilerBackendAbiLayoutContractReady() -> Bool {
+    return CompilerAbiLayoutRowsReady() &&
+        CompilerBackendAbiLayoutContractSchema() != "" &&
+        CompilerBackendAbiLayoutNegativeSchema() != "" &&
+        CompilerBackendAbiLayoutMissingInputFinding() != "" &&
+        CompilerBackendAbiLayoutMissingRequiredFinding() != "" &&
+        CompilerBackendAbiLayoutForbiddenHitFinding() != "" &&
+        CompilerBackendAbiLayoutRequiredCountField() != "" &&
+        CompilerBackendAbiLayoutForbiddenCountField() != "" &&
+        CompilerBackendAbiLayoutMissingRequiredCountField() != "" &&
+        CompilerBackendAbiLayoutForbiddenHitsCountField() != "" &&
+        CompilerBackendAbiLayoutOwnerNotReadyMessage() != "" &&
+        CompilerBackendAbiLayoutRequiredPathAt(CompilerBackendAbiLayoutRequiredCount()) == "" &&
+        CompilerBackendAbiLayoutRequiredTermAt(CompilerBackendAbiLayoutRequiredCount()) == "" &&
+        CompilerBackendAbiLayoutForbiddenPathAt(CompilerBackendAbiLayoutForbiddenCount()) == "" &&
+        CompilerBackendAbiLayoutForbiddenTermAt(CompilerBackendAbiLayoutForbiddenCount()) == "" &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            CompilerBackendAbiLayoutPrimaryRequiredPath(),
+            CompilerBackendAbiLayoutPrimaryRequiredTerm()) &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            "src/compiler/mir_abi_layout.c",
+            "ABI_TAGGED_TYPE(\"Option<Int>\"") &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            "src/compiler/mir_abi_resource_runtime.c",
+            "ABI_SECURE_RESOURCE_OPS(\"SecureSlot<Long>\"") &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            "src/codegen/transpiler_mir_resource_op_core.c",
+            "mir_abi_resource_runtime_row_by_type_name(") &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            "src/compiler/mir_abi_layout.h",
+            "const MIRAbiTargetPolicy *mir_abi_target_policy") &&
+        CompilerBackendAbiLayoutRequiredRowKnown(
+            "src/compiler/mir_abi_layout.c",
+            "\"layout_shape,materialization_reason\"") &&
+        CompilerBackendAbiLayoutForbiddenRowKnown(
+            CompilerBackendAbiLayoutPrimaryForbiddenPath(),
+            CompilerBackendAbiLayoutPrimaryForbiddenTerm()) &&
+        CompilerBackendAbiLayoutForbiddenRowKnown(
+            "src/compiler/mir_abi_resource_runtime.c",
+            "mir_extract_inner_type_suffix_owned");
+}

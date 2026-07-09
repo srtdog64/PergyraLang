@@ -1,9 +1,9 @@
 // Self-host backend ABI layout contract checker.
 //
-// Consumes abi_layout_row_owner.pgy rows and verifies that native MIR/backend
+// Consumes backend_abi_layout_contract_owner.pgy rows and verifies that native MIR/backend
 // ABI files keep layout/runtime spelling behind MIR-owned facts.
 
-import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/backend_abi_layout_contract_owner.pgy";
 import "report_owner.pgy";
 
 func BackendAbiLayoutMissingRequiredSelfTestMode() -> String {
@@ -22,7 +22,7 @@ func RunBackendAbiLayoutMissingRequiredSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutMissingRequiredFinding(),
-        CompilerBackendAbiLayoutRequiredPathAt(0),
+        CompilerBackendAbiLayoutPrimaryRequiredPath(),
         "definitely_missing_backend_abi_layout_term"));
     Log(BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
@@ -33,7 +33,7 @@ func RunBackendAbiLayoutMissingInputSelfTest() -> Void {
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutMissingInputFinding(),
         "src/compiler/definitely_missing_backend_abi_layout_input.c",
-        CompilerBackendAbiLayoutRequiredTermAt(0)));
+        CompilerBackendAbiLayoutPrimaryRequiredTerm()));
     Log(BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
 }
@@ -42,8 +42,8 @@ func RunBackendAbiLayoutForbiddenHitSelfTest() -> Void {
     let findings: Array<String> = [];
     ArrayPush(findings, BackendAbiLayoutFinding(
         CompilerBackendAbiLayoutForbiddenHitFinding(),
-        CompilerBackendAbiLayoutForbiddenPathAt(0),
-        CompilerBackendAbiLayoutForbiddenTermAt(0)));
+        CompilerBackendAbiLayoutPrimaryForbiddenPath(),
+        CompilerBackendAbiLayoutPrimaryForbiddenTerm()));
     Log(BackendAbiLayoutReport(0, 1, findings, CompilerBackendAbiLayoutNegativeSchema()));
     Exit(1);
 }

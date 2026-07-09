@@ -68,6 +68,10 @@ func CompilerAbiLayoutRowOwnerPath() -> String {
     return "src/self_hosted/compiler/abi_layout_row_owner.pgy";
 }
 
+func CompilerBackendAbiLayoutContractOwnerPath() -> String {
+    return "src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy";
+}
+
 func CompilerAbiLayoutTargetPolicyOwnerPath() -> String {
     return "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy";
 }
@@ -195,7 +199,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 36;
+    return 37;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -212,22 +216,23 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
     if index == 10 { return CompilerTestHarnessManifestPath(); }
     if index == 11 { return CompilerSubprocessRunnerOwnerPath(); }
     if index == 12 { return CompilerAbiLayoutRowOwnerPath(); }
-    if index == 13 { return CompilerAbiLayoutTargetPolicyOwnerPath(); }
-    if index == 14 { return CompilerAbiLayoutRowManifestPath(); }
-    if index == 15 { return CompilerSymbolTableOwnerPath(); }
-    if index == 16 { return CompilerStageArtifactOwnerPath(); }
-    if index == 17 { return CompilerOwnerManifestPath(); }
-    if index < 23 {
-        return CompilerStagePathAt(index - 18);
+    if index == 13 { return CompilerBackendAbiLayoutContractOwnerPath(); }
+    if index == 14 { return CompilerAbiLayoutTargetPolicyOwnerPath(); }
+    if index == 15 { return CompilerAbiLayoutRowManifestPath(); }
+    if index == 16 { return CompilerSymbolTableOwnerPath(); }
+    if index == 17 { return CompilerStageArtifactOwnerPath(); }
+    if index == 18 { return CompilerOwnerManifestPath(); }
+    if index < 24 {
+        return CompilerStagePathAt(index - 19);
     }
-    if index < 31 {
-        return CompilerParityPathAt(index - 23);
+    if index < 32 {
+        return CompilerParityPathAt(index - 24);
     }
-    if index == 31 { return CompilerAuthorityOwnerPath(); }
-    if index == 32 { return CompilerDriverRung0OwnerPath(); }
-    if index == 33 { return CompilerDriverRung0MainPath(); }
-    if index == 34 { return CompilerDriverCliOwnerPath(); }
-    if index == 35 { return CompilerDriverRung1MainPath(); }
+    if index == 32 { return CompilerAuthorityOwnerPath(); }
+    if index == 33 { return CompilerDriverRung0OwnerPath(); }
+    if index == 34 { return CompilerDriverRung0MainPath(); }
+    if index == 35 { return CompilerDriverCliOwnerPath(); }
+    if index == 36 { return CompilerDriverRung1MainPath(); }
     return "";
 }
 
@@ -256,6 +261,7 @@ func CompilerStagePathManifestReady() -> Bool with caps io_read {
     if CompilerWorldPath() == "" { return false; }
     if CompilerSandboxCapabilityOwnerPath() == "" { return false; }
     if CompilerSandboxCapabilityManifestPath() == "" { return false; }
+    if CompilerBackendAbiLayoutContractOwnerPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
     if CompilerStagePathAt(CompilerStagePathCount() - 1) == "" { return false; }
     if CompilerStagePathAt(CompilerStagePathCount()) != "" { return false; }

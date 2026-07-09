@@ -3,7 +3,7 @@
 // Owns JSON report and finding shapes. The checker entrypoint owns backend
 // source scanning against ABI/layout contract rows.
 
-import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/backend_abi_layout_contract_owner.pgy";
 import "../../lib/json_emit.pgy";
 
 func BackendAbiLayoutFinding(kind: String, path: String, term: String) -> String {
@@ -39,14 +39,14 @@ func BackendAbiLayoutReportOwnerReady() -> Bool {
     let findings: Array<String> = [
         BackendAbiLayoutFinding(
             CompilerBackendAbiLayoutMissingRequiredFinding(),
-            CompilerBackendAbiLayoutRequiredPathAt(0),
-            CompilerBackendAbiLayoutRequiredTermAt(0))
+            CompilerBackendAbiLayoutPrimaryRequiredPath(),
+            CompilerBackendAbiLayoutPrimaryRequiredTerm())
     ];
     let missing_input_findings: Array<String> = [
         BackendAbiLayoutFinding(
             CompilerBackendAbiLayoutMissingInputFinding(),
             "src/compiler/definitely_missing_backend_abi_layout_input.c",
-            CompilerBackendAbiLayoutRequiredTermAt(0))
+            CompilerBackendAbiLayoutPrimaryRequiredTerm())
     ];
     return StringIndexOf(
         BackendAbiLayoutReport(1, 0, findings, CompilerBackendAbiLayoutNegativeSchema()),

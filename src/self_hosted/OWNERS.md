@@ -276,6 +276,8 @@ compiler-stage `.pgy` source to be listed here.
   rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
+- `src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy` -- backend
+  ABI-layout required/forbidden source contract rows tied to the ABI row owner.
 - `src/self_hosted/compiler/abi_layout_target_policy_owner.pgy` -- ABI layout
   target projection and fallback-policy facts.
 - `src/self_hosted/compiler/abi_layout_row_manifest.pgy` -- runnable ABI row

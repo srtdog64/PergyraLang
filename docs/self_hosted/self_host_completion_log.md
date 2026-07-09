@@ -6146,3 +6146,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component contract so the old backend-emitter count/index
   readiness shape cannot return while the parity gate continues to prove the
   clean and three negative artifacts across C/LLVM-built self-host tools.
+
+### 2026-07-10 -- Backend ABI layout contract splits from ABI rows
+
+- Added `backend_abi_layout_contract_owner.pgy` as the owner for native/backend
+  ABI source required/forbidden terms while importing `abi_layout_row_owner.pgy`
+  for the cross-backend ABI row readiness dependency.
+- Repointed the backend ABI layout checker self-tests and report owner to the
+  contract owner and to named primary rows instead of `At(0)` positional rows.
+- Repointed `CompilerBackendAbiLayoutContractReady()` from representative
+  count/index checks to named `(path, term)` membership plus out-of-range
+  boundary checks, keeping ordered rows only as the checker artifact shape.
+- Registered the new owner in `PgyCompilerWorld` path manifests, OWNERS, and
+  component/compiler-world contracts so the split cannot become a hidden shell
+  side list.
