@@ -226,6 +226,14 @@ invalidation is solved. A change to any production self-host source invalidates
 the current cache; later rungs may replace `source-set` with precise
 import/module graph fingerprints after that graph is Pergyra-owned.
 
+The matching rung0 impact plan is also fact-owned:
+`completeness_ledger_owner.pgy` emits
+`pgy.selfhost.completeness-impact.v1`, mapping source patterns to the
+`PGY_SELFHOST_COMPLETENESS_SOURCES` /
+`PGY_SELFHOST_COMPLETENESS_STAGES` knobs and the required proof gate. This is
+not yet automatic dependency invalidation; it is the owner-owned contract that
+prevents changed-source impact from living as an unreviewed shell list.
+
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit
 unsupported input, and must not depend on `HOLD` surfaces.

@@ -266,7 +266,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/subprocess_runner_owner.pgy` -- capability envelope
   for oracle subprocess execution without raw shell escape.
 - `src/self_hosted/compiler/completeness_ledger_owner.pgy` -- M2 source
-  inventory, semantic target mapping, and monotone stage-pass minima.
+  inventory, semantic target mapping, monotone stage-pass minima, incremental
+  cache facts, and rung0 impact-plan rows.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
 - `src/self_hosted/compiler/abi_layout_target_policy_owner.pgy` -- ABI layout

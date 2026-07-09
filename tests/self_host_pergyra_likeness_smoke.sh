@@ -143,7 +143,9 @@ SENTINEL_MAX=0
 # 761 -> 771 (2026-07-09): Result core semantic consumption now carries payload
 # absence as Option<String> and self-host codegen check uses a structural
 # verifier instead of materializing the full emitted C artifact.
-RESULT_USE_MIN=771
+# 771 -> 777 (2026-07-09): completeness impact-plan rows now expose proof-gate
+# lookup through Option<String> facts instead of a total string fallback.
+RESULT_USE_MIN=777
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

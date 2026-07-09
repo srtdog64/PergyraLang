@@ -4606,10 +4606,27 @@ completeness_min_count="$(grep -F "return 205;" "$ROOT_DIR/src/self_hosted/compi
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlanSchema"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactSuiteName"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "self-host-completeness-impact-plan"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRowAt"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactProofGateFor"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "Option<String>"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "PGY_SELFHOST_COMPLETENESS_SOURCES"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerCompletenessImpactSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerCompletenessImpactPlan()"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"source-set"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-source"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"compiler-executable"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-executable"'
+require_text "Makefile" "self-host-completeness-impact-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/completeness_impact_manifest.sh"
+require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "self-host-completeness-impact-plan"
+require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "pgy.selfhost.completeness-impact.v1"
+require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
+require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'CACHE_SCHEMA="pgy.selfhost.completeness-cache.v1"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'BUILD_DIR="$ROOT_DIR/$BUILD_DIR"'

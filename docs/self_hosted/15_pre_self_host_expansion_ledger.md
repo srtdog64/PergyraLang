@@ -585,6 +585,14 @@ This is intentionally coarse: it speeds repeated proof runs but invalidates on
 any production self-host source change until the import/module graph is a
 Pergyra-owned fingerprint.
 
+Completeness impact delta, 2026-07-09: the same owner now emits
+`pgy.selfhost.completeness-impact.v1`, a rung0 impact plan that maps
+self-host source patterns to `PGY_SELFHOST_COMPLETENESS_SOURCES`,
+`PGY_SELFHOST_COMPLETENESS_STAGES`, and the required proof gate. The
+`self-host-completeness-impact-test-smoke` gate compiles the Pergyra
+TestHarness manifest and verifies those rows against the Make targets and
+runner knobs, so impact routing is no longer only a shell convention.
+
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.
 It no longer creates a build-dir `main.pgy` alias or copies the self-hosted

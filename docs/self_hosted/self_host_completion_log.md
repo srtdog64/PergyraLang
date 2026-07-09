@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - Completeness impact plan becomes owner-owned
+
+- Added `pgy.selfhost.completeness-impact.v1` rows to
+  `completeness_ledger_owner.pgy`, mapping self-host source patterns to the
+  existing completeness source/stage filter env vars and proof gates.
+- Projected the impact plan through `test_harness_manifest.pgy` so shell
+  runners can consume owner rows instead of local impact lists.
+- Added `self-host-completeness-impact-test-smoke` to compile the Pergyra
+  TestHarness manifest and verify the impact rows against Make targets and
+  runner env knobs.
+
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 
 - Added recursive scalar-field collection facts to `json_fact_table.pgy`:
