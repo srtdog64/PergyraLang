@@ -421,6 +421,7 @@ for term in \
     "func CompilerStageWorldBindingAt" \
     "func CompilerParityPathAt" \
     "func CompilerWorldManifestPathAt" \
+    "func CompilerWorldProjectionPrefixCount" \
     "func CompilerWorldProjectionPathAt"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
@@ -448,9 +449,15 @@ for term in \
     "return CompilerDriverRung0ParityPath();" \
     "return CompilerDriverRung1ParityPath();" \
     "return CompilerOwnerManifestPath();" \
-    "CompilerParityPathCount() != 8" \
-    "CompilerWorldManifestPathCount() != 36" \
-    "CompilerWorldProjectionPathCount() != 39" \
+    "CompilerWorldProjectionPathCount() != CompilerWorldManifestPathCount() + CompilerWorldProjectionPrefixCount()" \
+    "CompilerStagePathAt(CompilerStagePathCount() - 1)" \
+    "CompilerStagePathAt(CompilerStagePathCount()) != \"\"" \
+    "CompilerParityPathAt(CompilerParityPathCount() - 1)" \
+    "CompilerParityPathAt(CompilerParityPathCount()) != \"\"" \
+    "CompilerWorldManifestPathAt(CompilerWorldManifestPathCount() - 1)" \
+    "CompilerWorldManifestPathAt(CompilerWorldManifestPathCount()) != \"\"" \
+    "CompilerWorldProjectionPathAt(CompilerWorldProjectionPrefixCount()) != CompilerWorldManifestPathAt(0)" \
+    "CompilerWorldProjectionPathAt(CompilerWorldProjectionPathCount()) != \"\"" \
     "compiler-world-paths" \
     "CompilerStagePathManifestReady" \
     "if index < 23" \
@@ -464,6 +471,9 @@ for term in \
     "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerParityPathCount() != 8"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 36"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 39"
 
 for term in \
     "func CompilerStageArtifactRowReady" \

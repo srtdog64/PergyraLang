@@ -72,6 +72,17 @@ rewrite history.
 - Verified the codegen bootstrap fixpoint after the source change:
   `SELF-HOSTING OK`, `gen2 == gen3` at 9916 generated-C lines.
 
+## 2026-07-10 - Compiler path manifest readiness consumes count owners
+
+- Repointed `CompilerStagePathManifestReady()` so it no longer rechecks
+  `CompilerParityPathCount()`, `CompilerWorldManifestPathCount()`, and
+  `CompilerWorldProjectionPathCount()` against parallel numeric literals.
+- Added `CompilerWorldProjectionPrefixCount()` and made projection path count
+  and projection indexing consume that prefix fact.
+- Tightened the compiler-world contract so readiness validates owner-count
+  boundaries and projection derivation, while forbidding the old direct
+  `8`/`36`/`39` count comparisons from returning.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

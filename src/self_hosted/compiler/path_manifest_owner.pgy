@@ -231,37 +231,47 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerWorldProjectionPrefixCount() -> Int {
+    return 3;
+}
+
 func CompilerWorldProjectionPathCount() -> Int {
-    return CompilerWorldManifestPathCount() + 3;
+    return CompilerWorldManifestPathCount() + CompilerWorldProjectionPrefixCount();
 }
 
 func CompilerWorldProjectionPathAt(index: Int) -> String {
     if index == 0 { return SelfHostSourceDir(); }
     if index == 1 { return SelfHostTestDir(); }
     if index == 2 { return SelfHostParityDir(); }
-    return CompilerWorldManifestPathAt(index - 3);
+    return CompilerWorldManifestPathAt(index - CompilerWorldProjectionPrefixCount());
 }
 
 func CompilerStagePathManifestReady() -> Bool with caps io_read {
-    if CompilerStagePathCount() != 5 { return false; }
-    if CompilerParityPathCount() != 8 { return false; }
-    if CompilerWorldManifestPathCount() != 36 { return false; }
-    if CompilerWorldProjectionPathCount() != 39 { return false; }
+    if CompilerStagePathCount() <= 0 { return false; }
+    if CompilerParityPathCount() <= 0 { return false; }
+    if CompilerWorldManifestPathCount() <= 0 { return false; }
+    if CompilerWorldProjectionPathCount() != CompilerWorldManifestPathCount() + CompilerWorldProjectionPrefixCount() { return false; }
     if CompilerWorldPathProjectionSuiteName() == "" { return false; }
     if SelfHostSourceDir() == "" { return false; }
     if CompilerWorldPath() == "" { return false; }
     if CompilerSandboxCapabilityOwnerPath() == "" { return false; }
     if CompilerSandboxCapabilityManifestPath() == "" { return false; }
     if CompilerStagePathAt(0) == "" { return false; }
-    if CompilerStagePathAt(4) == "" { return false; }
+    if CompilerStagePathAt(CompilerStagePathCount() - 1) == "" { return false; }
+    if CompilerStagePathAt(CompilerStagePathCount()) != "" { return false; }
     if CompilerStageWorldBindingAt(0) == "" { return false; }
-    if CompilerStageWorldBindingAt(4) == "" { return false; }
+    if CompilerStageWorldBindingAt(CompilerStagePathCount() - 1) == "" { return false; }
+    if CompilerStageWorldBindingAt(CompilerStagePathCount()) != "" { return false; }
     if CompilerParityPathAt(0) == "" { return false; }
-    if CompilerParityPathAt(7) == "" { return false; }
+    if CompilerParityPathAt(CompilerParityPathCount() - 1) == "" { return false; }
+    if CompilerParityPathAt(CompilerParityPathCount()) != "" { return false; }
     if CompilerWorldManifestPathAt(0) == "" { return false; }
-    if CompilerWorldManifestPathAt(33) == "" { return false; }
+    if CompilerWorldManifestPathAt(CompilerWorldManifestPathCount() - 1) == "" { return false; }
+    if CompilerWorldManifestPathAt(CompilerWorldManifestPathCount()) != "" { return false; }
     if CompilerWorldProjectionPathAt(0) != SelfHostSourceDir() { return false; }
     if CompilerWorldProjectionPathAt(2) != SelfHostParityDir() { return false; }
-    if CompilerWorldProjectionPathAt(36) != CompilerWorldManifestPathAt(33) { return false; }
+    if CompilerWorldProjectionPathAt(CompilerWorldProjectionPrefixCount()) != CompilerWorldManifestPathAt(0) { return false; }
+    if CompilerWorldProjectionPathAt(CompilerWorldProjectionPathCount() - 1) != CompilerWorldManifestPathAt(CompilerWorldManifestPathCount() - 1) { return false; }
+    if CompilerWorldProjectionPathAt(CompilerWorldProjectionPathCount()) != "" { return false; }
     return true;
 }
