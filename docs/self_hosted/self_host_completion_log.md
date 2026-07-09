@@ -5493,3 +5493,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   The blocker remains active until typed statement/declaration payload rows
   replace the transitional arena value and auxiliary-value rows behind the
   facts.
+
+### 2026-07-09 -- Backend-emitter contract absorbs C slot fail-closed rows
+
+- Expanded `backend_emitter_contract_owner.pgy` from 5 to 12 required rows so
+  the self-host checker now covers the current C slot/resource fail-closed
+  runtime-row callsites from the broad native backend gate.
+- Updated the backend-emitter expected clean and negative artifacts so their
+  row counts come from the owner contract rather than a stale shell-only count.
+- Tightened `self_hosted_component_contract_smoke.sh` so the expanded row count
+  and representative C slot/resource runtime-row diagnostics remain load-bearing.
+- This moves more of the MIR-owned runtime-call truth contract into hard
+  self-host parity. It still does not close the full production ABI blocker
+  because native C/LLVM backends must eventually consume the same concrete
+  runtime-call ABI row table instead of only proving selected source terms.

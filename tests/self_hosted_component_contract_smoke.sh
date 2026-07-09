@@ -872,11 +872,13 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterMissingRequiredCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenHitsCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 5"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 12"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_fn_by_kind("
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C source slot auto-release requires MIR ABI runtime function row"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_runtime_slot_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "llvm_domain_slot_format_runtime_name"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'strncmp(fn, \"pgy_claim_secure_\"'
@@ -920,7 +922,7 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":5'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":12'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":6'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"

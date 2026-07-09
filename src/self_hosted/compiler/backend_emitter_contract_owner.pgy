@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 5;
+    return 12;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -44,6 +44,13 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 2 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
     if index == 3 { return "src/codegen/llvm_expr_slot_device_calls.c"; }
     if index == 4 { return "src/codegen/llvm_stmt.c"; }
+    if index == 5 { return "src/codegen/transpiler_block_emit.c"; }
+    if index == 6 { return "src/codegen/transpiler_expr_call_member_emit.c"; }
+    if index == 7 { return "src/codegen/transpiler_let_slot_emit.c"; }
+    if index == 8 { return "src/codegen/transpiler_func_class_flow_emit.c"; }
+    if index == 9 { return "src/codegen/transpiler_mir_destructure_emit.c"; }
+    if index == 10 { return "src/codegen/transpiler_class_decl_emit.c"; }
+    if index == 11 { return "src/codegen/transpiler_expr_stdlib_builtin.c"; }
     return "";
 }
 
@@ -53,6 +60,13 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 2 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
     if index == 3 { return "mir_abi_resource_runtime_fn_by_kind("; }
     if index == 4 { return "mir_abi_resource_runtime_fn_by_kind("; }
+    if index == 5 { return "C source slot auto-release requires MIR ABI runtime function row"; }
+    if index == 6 { return "C slot method %s requires MIR ABI runtime function row"; }
+    if index == 7 { return "C let-slot %s requires MIR ABI runtime function row"; }
+    if index == 8 { return "C source with-slot %s requires MIR ABI runtime function row"; }
+    if index == 9 { return "C MIR destructuring %s requires MIR ABI runtime function row"; }
+    if index == 10 { return "C class field slot Claim requires MIR ABI runtime function row"; }
+    if index == 11 { return "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row"; }
     return "";
 }
 
@@ -81,7 +95,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterContractReady() -> Bool {
-    return CompilerBackendEmitterRequiredCount() == 5 &&
+    return CompilerBackendEmitterRequiredCount() == 12 &&
         CompilerBackendEmitterNegativeSchema() != "" &&
         CompilerBackendEmitterMissingInputFinding() != "" &&
         CompilerBackendEmitterMissingRequiredFinding() != "" &&
@@ -95,6 +109,8 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterRequiredTermAt(0) != "" &&
         CompilerBackendEmitterRequiredTermAt(1) != "" &&
         CompilerBackendEmitterRequiredTermAt(3) == "mir_abi_resource_runtime_fn_by_kind(" &&
+        CompilerBackendEmitterRequiredTermAt(5) == "C source slot auto-release requires MIR ABI runtime function row" &&
+        CompilerBackendEmitterRequiredTermAt(11) == "C stdlib Slot<T> Clone %s requires MIR ABI runtime function row" &&
         CompilerBackendEmitterForbiddenCount() == 6 &&
         CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
         CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&
