@@ -5921,3 +5921,11 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   example-origin fixture and projects codegen rows from the shared owner.
 - Tightened the component contract so copied codegen fixture paths cannot return
   to the MIR manifest.
+
+### 2026-07-10 -- MIR payload count consumes the manifest owner
+
+- Repointed `MirFactGraphPayloadFixtureCount()` to return
+  `MirParityFixtureCount()` instead of carrying its own `95` literal.
+- Tightened the component and compiler-world contracts so the payload contract
+  cannot reopen a second fixture-count source of truth while the shell parity
+  ratchet still checks the current 95-fixture frontier.

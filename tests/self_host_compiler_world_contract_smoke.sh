@@ -536,7 +536,8 @@ for term in \
     "func MirFactGraphPayloadFixtureCount" \
     "func MirFactGraphPayloadRootReady" \
     "func MirFactGraphPayloadContractReady" \
-    "MirFactGraphPayloadFixtureCount() != 95" \
+    "return MirParityFixtureCount();" \
+    "MirParityFixtureCount() != MirFactGraphPayloadFixtureCount()" \
     "MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema())" \
     "MirDeclArrayBounds(json, decls)" \
     "MirRoutineObjectBoundsAt(json, 0, routine)" \
@@ -544,6 +545,7 @@ for term in \
     "MirObjectStringFactOpt(json, inst[0], inst[1], \"source_type\")"; do
     require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "$term"
 done
+forbid_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 95"
 
 for term in \
     "JsonFieldArrayBounds(json," \

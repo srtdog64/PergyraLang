@@ -8,7 +8,7 @@ func MirFactGraphPayloadSchema() -> String {
 }
 
 func MirFactGraphPayloadFixtureCount() -> Int {
-    return 95;
+    return MirParityFixtureCount();
 }
 
 func MirFactGraphPayloadRootReady() -> Bool {
@@ -53,9 +53,6 @@ func MirFactGraphPayloadRootReady() -> Bool {
 
 func MirFactGraphPayloadContractReady() -> Bool {
     if MirFactGraphPayloadSchema() != "pgy.mir.v1" {
-        return false;
-    }
-    if MirFactGraphPayloadFixtureCount() != 95 {
         return false;
     }
     if MirParityFixtureCount() != MirFactGraphPayloadFixtureCount() {
