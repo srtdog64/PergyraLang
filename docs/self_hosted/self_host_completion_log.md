@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - ABI TestHarness paths consume named paths
+
+- Split `test_harness_abi_paths_owner.pgy` out of the shared TestHarness tool
+  path owner for ABI layout row and runtime-call ABI row path suites.
+- Added `CompilerHarnessAbiLayoutRowsPathKnown(...)` and
+  `CompilerHarnessRuntimeCallAbiRowsPathKnown(...)`, then repointed both
+  readiness checks from fixed `PathCount() == 2` and positional `PathAt(0..1)`
+  checks to named path membership plus out-of-range boundary checks.
+- Kept the ordered path rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while removing row position as ABI path-suite
+  truth.
+
 ## 2026-07-10 - Compatibility TestHarness paths consume named paths
 
 - Added `CompilerHarnessCompatibilityCorpusPathKnown(...)` and

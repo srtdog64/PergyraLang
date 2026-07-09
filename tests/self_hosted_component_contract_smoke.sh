@@ -1383,13 +1383,26 @@ require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "14|Option<
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "15|Option<Double>|pgy_option_double|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "target_policy_count=1"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "target_policy|0|selfhost-c|cpu-c,self-hosted|layout_shape,materialization_reason|unsupported_shape,forbidden_loss_budget"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
+require_file "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy"
+require_max_lines "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathKnown"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathKnown(CompilerHarnessAbiLayoutRowsToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathKnown(CompilerHarnessAbiLayoutRowsExpectedPath())"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathAt(CompilerHarnessAbiLayoutRowsPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessAbiLayoutRowsReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathCount() == 2"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathAt(0) == CompilerHarnessAbiLayoutRowsToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathAt(1) == CompilerHarnessAbiLayoutRowsExpectedPath()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "func EmitAbiLayoutRowsPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessAbiLayoutRowsSuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 require_file "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
 require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh" '"abi-layout-rows"'
@@ -1526,11 +1539,19 @@ require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "87|n
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "134|native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "207|native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "236|native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathAt"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsSuiteName"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathAt"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathKnown"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathKnown(CompilerHarnessRuntimeCallAbiRowsToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathKnown(CompilerHarnessRuntimeCallAbiRowsExpectedPath())"
+require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathAt(CompilerHarnessRuntimeCallAbiRowsPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsReady()"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathAt"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathCount() == 2"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathAt(0) == CompilerHarnessRuntimeCallAbiRowsToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathAt(1) == CompilerHarnessRuntimeCallAbiRowsExpectedPath()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitRuntimeCallAbiRowsPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessRuntimeCallAbiRowsSuiteName()"
 require_file "tests/self_hosted/parity/runtime_call_abi_row_manifest_parity.sh"
@@ -3952,6 +3973,7 @@ reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarn
 require_file "src/self_hosted/tools/backend_output_comparator/expected/mismatch.json"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_inventory_paths_owner.pgy";'
@@ -4254,6 +4276,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessL
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_compatibility_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
