@@ -6105,3 +6105,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component and compiler-world contracts so AIR evidence
   readiness cannot return to index-position truth while the AIR graph validator
   continues to consume the envelope before fixture validation.
+
+### 2026-07-10 -- Subprocess runner consumes oracle facts by membership
+
+- Repointed subprocess fact, use-case, and oracle env-allowlist readiness from
+  fixed `Count() == N` and representative `At(n)` checks to membership loops
+  plus out-of-range boundary checks in `subprocess_runner_owner.pgy`.
+- Changed `backend_output_comparator` to consume
+  `CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase())`
+  instead of reading `CompilerSubprocessUseCaseAt(0)`.
+- Kept ordered env-allowlist projection stable for expected artifacts while
+  removing row position as the subprocess bridge truth.

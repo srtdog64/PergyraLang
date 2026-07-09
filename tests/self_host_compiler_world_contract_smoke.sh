@@ -692,8 +692,10 @@ done
 for term in \
     "func CompilerSubprocessSchema" \
     "CompilerSubprocessRunnerReady" \
-    "CompilerSubprocessFactCount() == 7" \
-    "CompilerSubprocessUseCaseCount() == 3" \
+    "CompilerSubprocessFactCount() > 0" \
+    "CompilerSubprocessFactAt(CompilerSubprocessFactCount()) == \"\"" \
+    "CompilerSubprocessUseCaseCount() > 0" \
+    "CompilerSubprocessUseCaseAt(CompilerSubprocessUseCaseCount()) == \"\"" \
     "CompilerSubprocessExecutablePathFact" \
     "CompilerSubprocessArgvFact" \
     "CompilerSubprocessCwdFact" \
@@ -715,6 +717,8 @@ for term in \
     "CompilerSubprocessOracleCompareTimeoutMsValue" \
     "CompilerSubprocessOracleCompareTimeoutMs" \
     "CompilerSubprocessOracleCompareEnvAllowlistCount" \
+    "CompilerSubprocessOracleCompareEnvAllowlistCount() > 0" \
+    "CompilerSubprocessOracleCompareEnvAllowlistAt(CompilerSubprocessOracleCompareEnvAllowlistCount()) == \"\"" \
     "CompilerSubprocessEnvPathName" \
     "CompilerSubprocessEnvPgyBinName" \
     "CompilerSubprocessEnvBackendRunTimeoutName" \

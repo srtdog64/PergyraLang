@@ -43,7 +43,6 @@ func ComparatorSourceFields(
     if !CompilerArtifactKindKnown(artifact_kind) ||
         !CompilerTestHarnessReady() ||
         !CompilerSubprocessRunnerReady() ||
-        CompilerSubprocessUseCaseAt(0) != CompilerSubprocessOracleCompareUseCase() ||
         !CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase()) {
         Log("BACKEND COMPARATOR OWNER ERROR artifact/test-harness/subprocess rows not ready");
         Exit(1);

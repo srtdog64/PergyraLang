@@ -46,13 +46,14 @@ func CompilerSubprocessExitFact() -> String {
 }
 
 func CompilerSubprocessFactKnown(fact: String) -> Bool {
-    return fact == CompilerSubprocessExecutablePathFact() ||
-        fact == CompilerSubprocessArgvFact() ||
-        fact == CompilerSubprocessCwdFact() ||
-        fact == CompilerSubprocessEnvAllowlistFact() ||
-        fact == CompilerSubprocessTimeoutMsFact() ||
-        fact == CompilerSubprocessStreamFact() ||
-        fact == CompilerSubprocessExitFact();
+    let i: Int = 0;
+    while i < CompilerSubprocessFactCount() {
+        if CompilerSubprocessFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CompilerSubprocessFactAt(index: Int) -> String {
@@ -90,9 +91,14 @@ func CompilerSubprocessArtifactProbeUseCase() -> String {
 }
 
 func CompilerSubprocessUseCaseKnown(use_case: String) -> Bool {
-    return use_case == CompilerSubprocessOracleCompareUseCase() ||
-        use_case == CompilerSubprocessFixtureBuildUseCase() ||
-        use_case == CompilerSubprocessArtifactProbeUseCase();
+    let i: Int = 0;
+    while i < CompilerSubprocessUseCaseCount() {
+        if CompilerSubprocessUseCaseAt(i) == use_case {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CompilerSubprocessOracleCompareTimeoutMsValue() -> Int {
@@ -132,19 +138,23 @@ func CompilerSubprocessOracleCompareEnvAllowlistAt(index: Int) -> String {
 }
 
 func CompilerSubprocessOracleCompareEnvAllowlistKnown(name: String) -> Bool {
-    return name == CompilerSubprocessOracleCompareEnvAllowlistAt(0) ||
-        name == CompilerSubprocessOracleCompareEnvAllowlistAt(1) ||
-        name == CompilerSubprocessOracleCompareEnvAllowlistAt(2) ||
-        name == CompilerSubprocessOracleCompareEnvAllowlistAt(3);
+    let i: Int = 0;
+    while i < CompilerSubprocessOracleCompareEnvAllowlistCount() {
+        if CompilerSubprocessOracleCompareEnvAllowlistAt(i) == name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CompilerSubprocessOracleCompareEnvAllowlist() -> String {
-    let names: Array<String> = [
-        CompilerSubprocessOracleCompareEnvAllowlistAt(0),
-        CompilerSubprocessOracleCompareEnvAllowlistAt(1),
-        CompilerSubprocessOracleCompareEnvAllowlistAt(2),
-        CompilerSubprocessOracleCompareEnvAllowlistAt(3)
-    ];
+    let names: Array<String> = [];
+    let i: Int = 0;
+    while i < CompilerSubprocessOracleCompareEnvAllowlistCount() {
+        ArrayPush(names, CompilerSubprocessOracleCompareEnvAllowlistAt(i));
+        i = i + 1;
+    }
     return StringJoin(names, ",");
 }
 
@@ -193,21 +203,13 @@ func CompilerSubprocessPlanJsonReady() -> Bool {
 }
 
 func CompilerSubprocessOracleComparePlanReady() -> Bool {
-    return CompilerSubprocessFactCount() == 7 &&
-        CompilerSubprocessUseCaseCount() == 3 &&
-        CompilerSubprocessUseCaseAt(0) == CompilerSubprocessOracleCompareUseCase() &&
-        CompilerSubprocessUseCaseAt(1) == CompilerSubprocessFixtureBuildUseCase() &&
-        CompilerSubprocessUseCaseAt(2) == CompilerSubprocessArtifactProbeUseCase() &&
+    return CompilerSubprocessFactCount() > 0 &&
+        CompilerSubprocessFactAt(CompilerSubprocessFactCount()) == "" &&
+        CompilerSubprocessUseCaseCount() > 0 &&
+        CompilerSubprocessUseCaseAt(CompilerSubprocessUseCaseCount()) == "" &&
         CompilerSubprocessUseCaseKnown(CompilerSubprocessOracleCompareUseCase()) &&
         CompilerSubprocessUseCaseKnown(CompilerSubprocessFixtureBuildUseCase()) &&
         CompilerSubprocessUseCaseKnown(CompilerSubprocessArtifactProbeUseCase()) &&
-        CompilerSubprocessFactAt(0) == CompilerSubprocessExecutablePathFact() &&
-        CompilerSubprocessFactAt(1) == CompilerSubprocessArgvFact() &&
-        CompilerSubprocessFactAt(2) == CompilerSubprocessCwdFact() &&
-        CompilerSubprocessFactAt(3) == CompilerSubprocessEnvAllowlistFact() &&
-        CompilerSubprocessFactAt(4) == CompilerSubprocessTimeoutMsFact() &&
-        CompilerSubprocessFactAt(5) == CompilerSubprocessStreamFact() &&
-        CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
         CompilerSubprocessFactKnown(CompilerSubprocessExecutablePathFact()) &&
         CompilerSubprocessFactKnown(CompilerSubprocessArgvFact()) &&
         CompilerSubprocessFactKnown(CompilerSubprocessCwdFact()) &&
@@ -217,9 +219,10 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
         CompilerSubprocessFactKnown(CompilerSubprocessExitFact()) &&
         CompilerSubprocessOracleCompareTimeoutMsValue() > 0 &&
         CompilerSubprocessOracleCompareTimeoutMs() == ToString(CompilerSubprocessOracleCompareTimeoutMsValue()) &&
-        CompilerSubprocessOracleCompareEnvAllowlistCount() == 4 &&
-        CompilerSubprocessOracleCompareEnvAllowlistAt(0) == CompilerSubprocessEnvPathName() &&
-        CompilerSubprocessOracleCompareEnvAllowlistAt(1) == CompilerSubprocessEnvPgyBinName() &&
+        CompilerSubprocessOracleCompareEnvAllowlistCount() > 0 &&
+        CompilerSubprocessOracleCompareEnvAllowlistAt(CompilerSubprocessOracleCompareEnvAllowlistCount()) == "" &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvPathName()) &&
+        CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvPgyBinName()) &&
         CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvBackendRunTimeoutName()) &&
         CompilerSubprocessOracleCompareEnvAllowlistKnown(CompilerSubprocessEnvSelfHostBuildDirName()) &&
         CompilerSubprocessOracleCompareTimeoutMs() != "" &&
@@ -228,9 +231,9 @@ func CompilerSubprocessOracleComparePlanReady() -> Bool {
 }
 
 func CompilerSubprocessRunnerReady() -> Bool with caps env {
-    return CompilerSubprocessFactAt(0) == CompilerSubprocessExecutablePathFact() &&
-        CompilerSubprocessFactAt(1) == CompilerSubprocessArgvFact() &&
-        CompilerSubprocessFactAt(3) == CompilerSubprocessEnvAllowlistFact() &&
-        CompilerSubprocessFactAt(6) == CompilerSubprocessExitFact() &&
+    return CompilerSubprocessFactKnown(CompilerSubprocessExecutablePathFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessArgvFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessEnvAllowlistFact()) &&
+        CompilerSubprocessFactKnown(CompilerSubprocessExitFact()) &&
         CompilerSubprocessOracleComparePlanReady();
 }
