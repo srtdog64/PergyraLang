@@ -59,6 +59,33 @@ for path in "$TOOL_SOURCE"; do
     fi
 done
 
+RUNNER_ARGS=("${CLEAN_ARGS[@]}")
+if [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE:-}" ]]; then
+    if [[ ! -f "$PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE" ]]; then
+        echo "[self-host-completeness-impact-runner] changed-path file missing: $PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE" >&2
+        exit 1
+    fi
+    RUNNER_ARGS=()
+    while IFS= read -r changed_path || [[ -n "$changed_path" ]]; do
+        changed_path="${changed_path%$'\r'}"
+        [[ -n "$changed_path" ]] || continue
+        RUNNER_ARGS+=("$changed_path")
+    done < "$PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
+elif [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS:-}" ]]; then
+    RUNNER_ARGS=()
+    IFS=',' read -r -a changed_path_items <<< "$PGY_SELFHOST_IMPACT_CHANGED_PATHS"
+    for changed_path in "${changed_path_items[@]}"; do
+        changed_path="${changed_path%$'\r'}"
+        [[ -n "$changed_path" ]] || continue
+        RUNNER_ARGS+=("$changed_path")
+    done
+fi
+
+if [[ "${#RUNNER_ARGS[@]}" -eq 0 ]]; then
+    echo "[self-host-completeness-impact-runner] no changed paths provided" >&2
+    exit 1
+fi
+
 PLANNER_BIN="$BUILD_DIR/completeness_impact_planner_c.exe"
 PLANNER_COMPILE_LOG="$BUILD_DIR/completeness_impact_planner_c.compile.log"
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
@@ -71,7 +98,7 @@ if ! pgy_require_runnable_binary_here "self-host-completeness-impact-runner" "$P
     exit 1
 fi
 
-if ! (cd "$ROOT_DIR" && "$PLANNER_BIN" --run-groups "${CLEAN_ARGS[@]}" | tr -d '\r' >"$PLAN_FILE"); then
+if ! (cd "$ROOT_DIR" && "$PLANNER_BIN" --run-groups "${RUNNER_ARGS[@]}" | tr -d '\r' >"$PLAN_FILE"); then
     echo "[self-host-completeness-impact-runner] planner run-group projection failed" >&2
     cat "$PLAN_FILE" >&2 || true
     exit 1

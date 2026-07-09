@@ -605,10 +605,12 @@ planner now also exposes the same groups through `--run-groups` as
 `pgy.selfhost.completeness-impact-run-groups.v1`; that TSV projection is
 compared as the `run_group_plan` artifact kind. The paired run-group runner
 validates every group and executes a bounded prefix of the plan without
-reconstructing path classes in shell. This remains rung0 routing, not full
-dependency invalidation: it does not inspect git state or import graphs, and
-later rungs must replace coarse path classes with owner-owned dependency
-fingerprints.
+reconstructing path classes in shell. Callers can supply actual changed paths
+through `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
+`PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`; the runner forwards those paths to
+the Pergyra planner and does not inspect git state. This remains rung0 routing,
+not full dependency invalidation: later rungs must replace coarse path classes
+with owner-owned dependency fingerprints.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.

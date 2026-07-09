@@ -90,6 +90,19 @@ rewrite history.
   normal self-host preparation path now proves the planner output is executable,
   not only comparable.
 
+## 2026-07-10 - Completeness runner accepts caller-owned changed paths
+
+- Extended `completeness_impact_run_group_runner.sh` so callers can provide
+  actual changed paths through `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
+  `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`.
+- The runner still consumes the Pergyra-owned run-group projection for proof
+  gate execution, but it no longer has to rely on the representative clean
+  fixture paths when an upstream CI or developer boundary already knows the
+  changed paths.
+- Tightened the self-host component contract so the runner cannot grow its own
+  git-state inspection path; git diff/status/ls-files remain the responsibility
+  of an outer caller until a Pergyra-owned dependency fingerprint graph exists.
+
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 
 - Added recursive scalar-field collection facts to `json_fact_table.pgy`:
