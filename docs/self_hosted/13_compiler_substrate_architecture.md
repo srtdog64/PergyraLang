@@ -250,7 +250,8 @@ runners consume that projection instead of parsing JSON or reconstructing
 groups. `completeness_impact_run_group_runner.sh` is the bounded execution
 boundary for that projection: by default it validates every group and executes
 the first group, while `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS` can widen the
-run. It accepts caller-owned changed-path input through
+run to a larger numeric prefix or to `all` affected groups. It accepts
+caller-owned changed-path input through
 `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
 `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`, then passes those paths directly to
 the Pergyra planner. It deliberately does not inspect git state or infer an

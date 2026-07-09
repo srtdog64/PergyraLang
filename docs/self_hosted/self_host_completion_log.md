@@ -95,6 +95,9 @@ rewrite history.
 - Extended `completeness_impact_run_group_runner.sh` so callers can provide
   actual changed paths through `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
   `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`.
+- Extended `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS` with `all`, so callers can
+  execute every affected proof-gate group without re-counting planner rows in
+  shell.
 - The runner still consumes the Pergyra-owned run-group projection for proof
   gate execution, but it no longer has to rely on the representative clean
   fixture paths when an upstream CI or developer boundary already knows the

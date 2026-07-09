@@ -605,7 +605,9 @@ planner now also exposes the same groups through `--run-groups` as
 `pgy.selfhost.completeness-impact-run-groups.v1`; that TSV projection is
 compared as the `run_group_plan` artifact kind. The paired run-group runner
 validates every group and executes a bounded prefix of the plan without
-reconstructing path classes in shell. Callers can supply actual changed paths
+reconstructing path classes in shell. `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS`
+accepts a numeric prefix or `all`, so callers can execute every affected group
+without counting planner rows in shell. Callers can supply actual changed paths
 through `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
 `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`; the runner forwards those paths to
 the Pergyra planner and does not inspect git state. This remains rung0 routing,

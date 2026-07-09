@@ -122,8 +122,11 @@ if [[ "$EXECUTE_MODE" != "0" && "$EXECUTE_MODE" != "1" ]]; then
     echo "[self-host-completeness-impact-runner] PGY_SELFHOST_IMPACT_RUNNER_EXECUTE must be 0 or 1" >&2
     exit 1
 fi
-if ! [[ "$MAX_GROUPS" =~ ^[0-9]+$ ]]; then
-    echo "[self-host-completeness-impact-runner] PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS must be a non-negative integer" >&2
+MAX_GROUPS_ALL=0
+if [[ "$MAX_GROUPS" == "all" ]]; then
+    MAX_GROUPS_ALL=1
+elif ! [[ "$MAX_GROUPS" =~ ^[0-9]+$ ]]; then
+    echo "[self-host-completeness-impact-runner] PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS must be a non-negative integer or all" >&2
     exit 1
 fi
 
@@ -172,7 +175,7 @@ while IFS= read -r line; do
     fi
 
     group_count=$((group_count + 1))
-    if [[ "$EXECUTE_MODE" == "1" && "$executed_count" -lt "$MAX_GROUPS" ]]; then
+    if [[ "$EXECUTE_MODE" == "1" && ( "$MAX_GROUPS_ALL" == "1" || "$executed_count" -lt "$MAX_GROUPS" ) ]]; then
         echo "[self-host-completeness-impact-runner] executing $proof_gate impact_ids=$impact_ids"
         env MAKEFLAGS= PGY_BIN="$PGY" "${env_args[@]}" "$MAKE_BIN" --no-print-directory -C "$ROOT_DIR" "$proof_gate"
         executed_count=$((executed_count + 1))

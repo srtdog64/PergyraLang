@@ -4673,6 +4673,8 @@ require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "-
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "assert_llvm_leg"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "pgy.selfhost.completeness-impact-run-groups.v1"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS"
+require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "MAX_GROUPS_ALL"
+require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "non-negative integer or all"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "RUNNER_ARGS"
