@@ -5463,3 +5463,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker inside the input owner surface.
   The blocker remains active until typed statement payload rows replace the
   transitional arena value row behind the fact.
+
+### 2026-07-09 -- For range-end checks consume one owner fact
+
+- Added `CodegenForRangeEndFact` inside `ast_text_for_stmt_owner.pgy` as the
+  single transitional fact row for the optional `For` range-end payload.
+- Repointed `CodegenAstArenaForIsRange(...)` and
+  `CodegenAstArenaForRangeEndOrDie(...)` so both consume an `Option<String>`
+  view of that fact instead of each reopening
+  `TypedAstArenaAuxValueText(arena, node_id)`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the `For` owner must
+  expose the fact seam and may read the auxiliary payload only once.
+- This reduces the mixed AST-like tree blocker inside the input owner surface.
+  The blocker remains active until typed statement payload rows replace the
+  transitional arena auxiliary-value row behind the fact.

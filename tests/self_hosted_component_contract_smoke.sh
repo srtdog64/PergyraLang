@@ -2362,6 +2362,14 @@ require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func C
 require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeEndOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForEachCollectionOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "struct CodegenForRangeEndFact"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeEndFactAt"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenForRangeEndText"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "let fact: CodegenForRangeEndFact = CodegenAstArenaForRangeEndFactAt(arena, node_id)"
+require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "return IsSome(CodegenForRangeEndText(fact))"
+for_range_end_reads="$(grep -c 'TypedAstArenaAuxValueText(arena, node_id)' "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" || true)"
+[[ "$for_range_end_reads" -eq 1 ]] ||
+    fail "ast_text_for_stmt_owner must read range-end payload only in the fact constructor"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_for_stmt_owner.pgy";'
 reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaLogArgumentOrDie"
 reject_text "src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy" "func CodegenAstArenaReturnValueOrDie"

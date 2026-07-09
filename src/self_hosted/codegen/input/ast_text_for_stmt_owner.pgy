@@ -6,6 +6,29 @@
 
 import "ast_text_typed_arena_owner.pgy";
 
+struct CodegenForRangeEndFact {
+    let has_range_end: Bool;
+    let range_end: String;
+}
+
+func CodegenAstArenaForRangeEndFactAt(arena: AstArena, node_id: Int) -> CodegenForRangeEndFact {
+    if !CodegenAstArenaIsForStmt(arena, node_id) {
+        return CodegenForRangeEndFact(false, "");
+    }
+    let range_end: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+    if !IsSome(range_end) {
+        return CodegenForRangeEndFact(false, "");
+    }
+    return CodegenForRangeEndFact(true, UnwrapOption(range_end));
+}
+
+func CodegenForRangeEndText(fact: CodegenForRangeEndFact) -> Option<String> {
+    if !fact.has_range_end {
+        return None;
+    }
+    return Some(fact.range_end);
+}
+
 func CodegenAstArenaForLoopVarOrDie(arena: AstArena, node_id: Int) -> String {
     if !CodegenAstArenaIsForStmt(arena, node_id) {
         Die(Concat("expected for statement at typed AST node: ", ToString(node_id)));
@@ -17,7 +40,8 @@ func CodegenAstArenaForIsRange(arena: AstArena, node_id: Int) -> Bool {
     if !CodegenAstArenaIsForStmt(arena, node_id) {
         return false;
     }
-    return IsSome(TypedAstArenaAuxValueText(arena, node_id));
+    let fact: CodegenForRangeEndFact = CodegenAstArenaForRangeEndFactAt(arena, node_id);
+    return IsSome(CodegenForRangeEndText(fact));
 }
 
 func CodegenAstArenaForRangeStartOrDie(arena: AstArena, node_id: Int) -> String {
@@ -31,7 +55,8 @@ func CodegenAstArenaForRangeEndOrDie(arena: AstArena, node_id: Int) -> String {
     if !CodegenAstArenaIsForStmt(arena, node_id) {
         Die(Concat("expected for statement at typed AST node: ", ToString(node_id)));
     }
-    let range_end: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+    let fact: CodegenForRangeEndFact = CodegenAstArenaForRangeEndFactAt(arena, node_id);
+    let range_end: Option<String> = CodegenForRangeEndText(fact);
     if !IsSome(range_end) {
         Die(Concat("expected range end at typed AST node: ", ToString(node_id)));
     }

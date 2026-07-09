@@ -135,7 +135,9 @@ SENTINEL_MAX=0
 # projection.
 # 743 -> 746 (2026-07-09): try-let initializer lowering now consumes a single
 # fact seam through an Option<String> view instead of reopening arena payloads.
-RESULT_USE_MIN=746
+# 746 -> 750 (2026-07-09): `For` range-end lowering now consumes a single fact
+# seam through an Option<String> view instead of reopening the auxiliary row.
+RESULT_USE_MIN=750
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
