@@ -49,16 +49,16 @@ slot_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
     return buf;
 }
 
-static const char *
-slot_builtin_runtime_fn_by_kind(TranspilerCtx *ctx,
-                                MIRResourceAbiKind kind,
-                                const char *inner_type,
-                                const char *operation)
+static const MIRResourceRuntimeRow *
+slot_builtin_runtime_row_by_kind(TranspilerCtx *ctx,
+                                 MIRResourceAbiKind kind,
+                                 const char *inner_type,
+                                 const char *operation)
 {
-    const char *runtime_fn =
-        mir_abi_resource_runtime_fn_by_kind(kind, inner_type, operation);
-    if (runtime_fn != NULL)
-        return runtime_fn;
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
+    if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL)
+        return row;
 
     transpiler_set_backend_error_with_hints(
         ctx,
@@ -68,6 +68,17 @@ slot_builtin_runtime_fn_by_kind(TranspilerCtx *ctx,
         "C source slot builtin %s requires MIR ABI runtime function row",
         operation != NULL ? operation : "<unknown>");
     return NULL;
+}
+
+static const char *
+slot_builtin_runtime_fn_by_kind(TranspilerCtx *ctx,
+                                MIRResourceAbiKind kind,
+                                const char *inner_type,
+                                const char *operation)
+{
+    const MIRResourceRuntimeRow *row =
+        slot_builtin_runtime_row_by_kind(ctx, kind, inner_type, operation);
+    return row != NULL ? row->runtime_fn : NULL;
 }
 
 static const char *

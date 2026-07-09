@@ -5579,3 +5579,21 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This closes one more runtime-call ABI SoT seam. The production ABI blocker
   remains open until C/LLVM emitters consume the concrete row records directly
   for call emission.
+
+### 2026-07-09 -- Runtime-call ABI row records enter backend consumers
+
+- Added the public `MIRResourceRuntimeRow` view plus
+  `mir_abi_resource_runtime_row_at`, `mir_abi_resource_runtime_row_by_type_name`,
+  and `mir_abi_resource_runtime_row_by_kind` so backend code can consume a
+  row record instead of asking only for a runtime symbol string.
+- Refactored the native resource runtime table so domain, target kind,
+  materialization, and call shape are stored on the table row itself.
+- Repointed representative C and LLVM consumers:
+  `transpiler_slot_builtin_emit.c` now resolves source slot builtins through
+  row records, and `llvm_expr_identifier_slot_helpers.c` validates the MIR-owned
+  auto-read call shape before emitting the runtime call.
+- Tightened `abi_ownership_shape_smoke.sh` and `backend_fail_closed_smoke.sh`
+  so these representative consumers cannot regress to symbol-only lookup.
+- This does not finish the production ABI blocker; the remaining callsites
+  still need to move from `mir_abi_resource_runtime_fn_by_kind` /
+  `mir_abi_resource_runtime_fn_by_type_name` to concrete row-record consumption.

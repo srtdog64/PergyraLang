@@ -121,19 +121,19 @@ require_term "src/compiler/mir_abi_layout.c" '"layout_shape,materialization_reas
 require_term "src/compiler/mir_abi_layout.c" '"unsupported_shape,forbidden_loss_budget"'
 require_term "src/compiler/mir_abi_resource_runtime.c" "native-resource"
 require_term "src/compiler/mir_abi_resource_runtime.c" "mir_abi_resource_row"
-require_term "src/compiler/mir_abi_resource_runtime.c" "MIRResourceRuntimeFnRow"
+require_term "src/compiler/mir_abi_resource_runtime.c" "MIRResourceRuntimeRow"
 require_term "src/runtime/pgy_abi_spec.h" "allocator provenance as a fourth field"
 require_term "src/compiler/mir_abi_layout.c" 'ABI_TYPE("Array<Long>"'
 require_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("allocator", pgy_abi_array_int, allocator)'
 reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("len", pgy_abi_array_int, len)'
 reject_term "src/compiler/mir_abi_layout.c" 'ABI_FIELD_STRUCT("cap", pgy_abi_array_int, cap)'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("Slot<Int>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("SecureSlot<Int>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("SecureSlot<Long>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PIN_OPS("Slot<Int>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PIN_OPS("SecureSlot<Int>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("DeviceSlot<Int>"'
-require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OPS("DeviceSlot<Long>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_SECURE_RESOURCE_OPS("SecureSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_SECURE_RESOURCE_OPS("SecureSlot<Long>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_PIN_OPS("Slot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_SECURE_PIN_OPS("SecureSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("DeviceSlot<Int>"'
+require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_PLAIN_RESOURCE_OPS("DeviceSlot<Long>"'
 require_term "src/compiler/mir_abi_resource_runtime.c" 'ABI_RESOURCE_OP("DeviceSlot<Int>", "SubmitRead"'
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_fn(effective_layout, op_name)"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
@@ -176,11 +176,14 @@ reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_s
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release", suf)'
 require_term "src/compiler/mir_abi_layout.h" "MIRResourceAbiKind"
+require_term "src/compiler/mir_abi_layout.h" "typedef struct MIRResourceRuntimeRow"
+require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_row_by_kind"
 require_term "src/compiler/mir_abi_layout.h" "mir_abi_resource_runtime_fn_by_kind"
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_term "src/codegen/llvm_expr_slot_device_calls.c" "MIR_RESOURCE_ABI_DEVICE_SLOT"
-require_term "src/codegen/llvm_expr_identifier_slot_helpers.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/llvm_expr_identifier_slot_helpers.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/llvm_expr_identifier_slot_helpers.c" "runtime_row->call_shape"
 require_term "src/codegen/llvm_expr_identifier_slot_helpers.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_term "src/codegen/llvm_expr_call_methods_domain_slice.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_expr_call_methods_domain_slice.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
@@ -189,7 +192,8 @@ require_term "src/codegen/llvm_expr_assignment_member_projection.c" "MIR_RESOURC
 require_term "src/codegen/llvm_stmt_let_resources.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_stmt_with.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_stmt.c" "mir_abi_resource_runtime_fn_by_kind("
-require_term "src/codegen/transpiler_slot_builtin_emit.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/transpiler_slot_builtin_emit.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
 require_term "src/codegen/transpiler_slot_runtime_row.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_slot_runtime_row.c" "C expression slot %s requires MIR ABI runtime function row"

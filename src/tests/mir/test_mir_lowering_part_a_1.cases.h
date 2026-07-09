@@ -140,6 +140,12 @@ test_mir_lowering_part_a(void)
             MIR_RESOURCE_ABI_DEVICE_SLOT, "Vec2", "Read");
         const char *nested_write = mir_abi_resource_runtime_fn_by_kind(
             MIR_RESOURCE_ABI_SLOT, "Array<Int>", "Write");
+        const MIRResourceRuntimeRow *slot_row =
+            mir_abi_resource_runtime_row_by_kind(
+                MIR_RESOURCE_ABI_SLOT, "Int", "Read");
+        const MIRResourceRuntimeRow *constructed_row =
+            mir_abi_resource_runtime_row_by_kind(
+                MIR_RESOURCE_ABI_SECURE_SLOT, "Vec2", "Write");
 
         EXPECT(slot_claim != NULL
                && slot_write != NULL
@@ -152,7 +158,15 @@ test_mir_lowering_part_a(void)
                && strcmp(secure_claim, "pgy_claim_secure_Vec2") == 0
                && strcmp(secure_release, "pgy_secure_release_Vec2") == 0
                && strcmp(device_read, "pgy_device_read_Vec2") == 0
-               && strcmp(nested_write, "pgy_write_Array_Int") == 0);
+               && strcmp(nested_write, "pgy_write_Array_Int") == 0
+               && slot_row != NULL
+               && strcmp(slot_row->domain, "native-resource") == 0
+               && strcmp(slot_row->runtime_fn, "pgy_read_Int") == 0
+               && strcmp(slot_row->call_shape, "container_ptr_to_value") == 0
+               && constructed_row != NULL
+               && strcmp(constructed_row->domain, "constructed-resource") == 0
+               && strcmp(constructed_row->runtime_fn, "pgy_secure_write_Vec2") == 0
+               && strcmp(constructed_row->call_shape, "container_ptr_value_token_ptr_to_void") == 0);
         EXPECT(mir_abi_resource_runtime_fn_by_kind(
                    MIR_RESOURCE_ABI_SLOT, "Unknown", "Claim") == NULL);
     }

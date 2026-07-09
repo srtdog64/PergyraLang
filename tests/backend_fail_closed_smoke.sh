@@ -152,7 +152,9 @@ grep -Fq "C backend: slot builtin expression formatting failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C backend: slot builtin expression allocation failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C source slot builtin %s requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
@@ -281,7 +283,9 @@ grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "MIR_RESOURCE_ABI_DEVICE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "MIR_RESOURCE_ABI_SECURE_SLOT" \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
