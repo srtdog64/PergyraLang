@@ -2872,7 +2872,7 @@ clean-scratch:
 	"$(BASH)" -c "rm -rf '$(PROJECT_ROOT)'/.tmp"
 
 build-resource-report:
-	"$(BASH)" -c 'set -eu; echo "[build-resource] filesystem for $(PROJECT_ROOT)"; df -Pk "$(PROJECT_ROOT)" || true; echo "[build-resource] local artifact roots"; find "$(PROJECT_ROOT)" -maxdepth 1 \( -name ".tmp" -o -name "build" -o -name "bin" -o -name "build-*" -o -name "bin-*" \) -type d -print | sed "s#^$(PROJECT_ROOT)/#  #"; if [ "$${PGY_BUILD_RESOURCE_DEEP:-0}" = "1" ]; then echo "[build-resource] deep sizes (KiB)"; for p in "$(PROJECT_ROOT)"/.tmp "$(PROJECT_ROOT)"/build "$(PROJECT_ROOT)"/bin "$(PROJECT_ROOT)"/build-* "$(PROJECT_ROOT)"/bin-*; do [ -e "$$p" ] && du -sk "$$p"; done | sort -nr | awk '"'"'{ printf "%10s KiB %s\n", $$1, $$2 }'"'"' | head -30; fi'
+	"$(BASH)" scripts/build_resource_report.sh "$(PROJECT_ROOT)"
 
 clean-local-variant-artifacts:
 	"$(BASH)" -c 'set -eu; find "$(PROJECT_ROOT)" -maxdepth 1 -type d \( -name "build-*" -o -name "bin-*" \) -prune -exec rm -rf -- {} +'

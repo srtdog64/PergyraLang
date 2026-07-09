@@ -33,6 +33,12 @@ mingw32-make clean-scratch              # removes .tmp only
 mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
 ```
 
+The default resource report is intentionally shallow. It lists artifact roots
+and free space without recursively counting files. Use
+`PGY_BUILD_RESOURCE_DEEP=1` only when you need exact size/file-count evidence;
+on Windows/Git Bash, scanning tens of thousands of scratch files can itself
+make the desktop feel stalled.
+
 Do not run broad CI targets when the repo drive has less than about 10 GiB free.
 Use the narrow gate named by the source-of-truth seam first. For low-pressure
 local builds, prefer:
@@ -43,6 +49,22 @@ PGY_DEV_COMPILER_JOBS=4 mingw32-make dev-compiler  # explicit opt-in parallelism
 mingw32-make LLVM_ENABLED=0 all        # C-only, pgy + pgy-lsp
 mingw32-make abi-ownership-shape-test-smoke
 ```
+
+2026-07-09 local measurement on Windows/MinGW:
+
+- forced serial C-only compiler rebuild, tests excluded, debug symbols off:
+  peak sampled working set 267 MB, peak sampled private memory 251 MB, max
+  matching build processes 5;
+- link-only follow-up: peak sampled working set 32 MB;
+- local artifact pressure was dominated by `.tmp/self_hosted`, not compiler
+  RSS: about 395 MB across more than 20k files.
+
+So a stalled desktop is not automatically evidence of a compiler heap leak. If
+single `compiler` builds stay below a few hundred MB but broad smokes stall the
+machine, treat the first suspect as scratch/file-count pressure from self-host
+and backend parity artifacts. Run `PGY_BUILD_RESOURCE_DEEP=1 mingw32-make
+build-resource-report`; if `.tmp/self_hosted` or backend campaign scratch owns
+the file count, use `mingw32-make clean-scratch` before broad local CI.
 
 ---
 
