@@ -78,11 +78,12 @@ transpiler_block_pin_address_too_long(TranspilerCtx *ctx)
 }
 
 static const MIRResourceRuntimeRow *
-transpiler_block_pin_runtime_row(TranspilerCtx *ctx,
-                                 MIRResourceAbiKind kind,
-                                 bool secure,
-                                 const char *inner_type,
-                                 const char *operation)
+transpiler_block_slot_runtime_row(TranspilerCtx *ctx,
+                                  MIRResourceAbiKind kind,
+                                  bool secure,
+                                  const char *inner_type,
+                                  const char *operation,
+                                  const char *message)
 {
     const char *expected_shape =
         transpiler_slot_runtime_expected_call_shape(secure, operation);
@@ -99,7 +100,9 @@ transpiler_block_pin_runtime_row(TranspilerCtx *ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_INSPECT_MIR_INVENTORY,
-        "pin block requires MIR ABI runtime function rows");
+        message != NULL
+            ? message
+            : "C source slot operation requires MIR ABI runtime function row");
     return NULL;
 }
 
@@ -130,10 +133,12 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
     pin_op = ast_block_pin_view_is_write(node) ? "PinWrite" : "PinRead";
     abi_kind = slot->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
                                : MIR_RESOURCE_ABI_SLOT;
-    pin_row = transpiler_block_pin_runtime_row(
-        ctx, abi_kind, slot->is_secure, slot->inner_type, pin_op);
-    cleanup_row = transpiler_block_pin_runtime_row(
-        ctx, abi_kind, slot->is_secure, slot->inner_type, "UnpinCleanup");
+    pin_row = transpiler_block_slot_runtime_row(
+        ctx, abi_kind, slot->is_secure, slot->inner_type, pin_op,
+        "pin block requires MIR ABI runtime function rows");
+    cleanup_row = transpiler_block_slot_runtime_row(
+        ctx, abi_kind, slot->is_secure, slot->inner_type, "UnpinCleanup",
+        "pin block requires MIR ABI runtime function rows");
     if (pin_row == NULL || cleanup_row == NULL)
         return false;
 
@@ -201,16 +206,16 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
             SlotVarEntry *e = &ctx->slot_vars[i];
             if (e->released)
                 continue;
-            const char *release_fn = mir_abi_resource_runtime_fn_by_kind(
-                e->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
-                             : MIR_RESOURCE_ABI_SLOT,
-                e->inner_type, "Release");
-            if (release_fn == NULL) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
+            const MIRResourceRuntimeRow *release_row =
+                transpiler_block_slot_runtime_row(
+                    ctx,
+                    e->is_secure ? MIR_RESOURCE_ABI_SECURE_SLOT
+                                 : MIR_RESOURCE_ABI_SLOT,
+                    e->is_secure,
+                    e->inner_type,
+                    "Release",
                     "C source slot auto-release requires MIR ABI runtime function row");
+            if (release_row == NULL) {
                 auto_release_failed = true;
                 break;
             }
@@ -230,11 +235,11 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
                 }
                 codebuf_write(ctx->out,
                     "%s(&%s, &%s);\n",
-                    release_fn, e->name, token_name);
+                    release_row->runtime_fn, e->name, token_name);
             } else {
                 codebuf_write(ctx->out,
                     "%s(&%s);\n",
-                    release_fn, e->name);
+                    release_row->runtime_fn, e->name);
             }
         }
 

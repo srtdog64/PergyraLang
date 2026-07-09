@@ -450,12 +450,12 @@ require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(%s)))
 require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_block_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_block_emit.c" "transpiler_slot_runtime_expected_call_shape"
-require_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_block_emit.c" '"PinRead"'
 require_term "src/codegen/transpiler_block_emit.c" '"PinWrite"'
 require_term "src/codegen/transpiler_block_emit.c" '"UnpinCleanup"'
 require_term "src/codegen/transpiler_block_emit.c" '"Release"'
 require_term "src/codegen/transpiler_block_emit.c" "C source slot auto-release requires MIR ABI runtime function row"
+reject_term "src/codegen/transpiler_block_emit.c" "mir_abi_resource_runtime_fn_by_kind("
 reject_term "src/codegen/transpiler_block_emit.c" "transpiler_block_pin_expected_call_shape"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_pin_%s_%s"
 reject_term "src/codegen/transpiler_block_emit.c" "pgy_secure_pin_%s_%s"

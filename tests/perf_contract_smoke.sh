@@ -955,8 +955,6 @@ grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
-    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinWrite"' \
@@ -966,6 +964,8 @@ grep -Fq '"UnpinCleanup"' \
 grep -Fq '"Release"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "C source slot auto-release requires MIR ABI runtime function row" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+! grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 ! grep -Fq "pgy_pin_%s_%s" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"

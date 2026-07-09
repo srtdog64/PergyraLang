@@ -467,8 +467,6 @@ grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "transpiler_slot_runtime_expected_call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
-    "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq '"PinWrite"' \
@@ -479,6 +477,11 @@ grep -Fq '"Release"' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
 grep -Fq "C source slot auto-release requires MIR ABI runtime function row" \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] C source pin/auto-release must consume MIR ABI runtime row records" >&2
+    exit 1
+fi
 if grep -F 'pgy_pin_%s_%s' \
     "$ROOT_DIR/src/codegen/transpiler_block_emit.c" >/dev/null; then
     echo "[backend-fail-closed] C source pin enter must consume MIR ABI runtime rows" >&2
