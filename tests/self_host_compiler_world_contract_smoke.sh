@@ -784,8 +784,23 @@ for term in \
     "func CompilerAbiLayoutTargetPolicyRequiredFactsAt" \
     "func CompilerAbiLayoutTargetPolicyFallbacksAt" \
     "func CompilerAbiLayoutTargetPolicyKnown" \
+    "func CompilerAbiLayoutTargetPolicyRowKnown" \
+    "CompilerAbiLayoutTargetPolicyCount() > 0" \
+    "CompilerAbiLayoutTargetPolicyAbiAt(CompilerAbiLayoutTargetPolicyCount()) == \"\"" \
+    "CompilerAbiLayoutTargetPolicyProjectionSetAt(CompilerAbiLayoutTargetPolicyCount()) == \"\"" \
+    "CompilerAbiLayoutTargetPolicyRequiredFactsAt(CompilerAbiLayoutTargetPolicyCount()) == \"\"" \
+    "CompilerAbiLayoutTargetPolicyFallbacksAt(CompilerAbiLayoutTargetPolicyCount()) == \"\"" \
+    "CompilerAbiLayoutTargetPolicyRowKnown(" \
     "func CompilerAbiLayoutTargetPolicyReady"; do
     require_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "$term"
+done
+for term in \
+    "CompilerAbiLayoutTargetPolicyCount() == 1" \
+    "CompilerAbiLayoutTargetPolicyAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi()" \
+    "CompilerAbiLayoutTargetPolicyProjectionSetAt(0) ==" \
+    "CompilerAbiLayoutTargetPolicyRequiredFactsAt(0) ==" \
+    "CompilerAbiLayoutTargetPolicyFallbacksAt(0) =="; do
+    forbid_text "src/self_hosted/compiler/abi_layout_target_policy_owner.pgy" "$term"
 done
 
 for term in \

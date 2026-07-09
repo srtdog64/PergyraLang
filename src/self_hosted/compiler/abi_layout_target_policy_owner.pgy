@@ -54,16 +54,37 @@ func CompilerAbiLayoutTargetPolicyKnown(abi_name: String) -> Bool {
     return false;
 }
 
+func CompilerAbiLayoutTargetPolicyRowKnown(
+    abi_name: String,
+    projection_set: String,
+    required_facts: String,
+    fallbacks: String
+) -> Bool {
+    let i: Int = 0;
+    while i < CompilerAbiLayoutTargetPolicyCount() {
+        if CompilerAbiLayoutTargetPolicyAbiAt(i) == abi_name &&
+            CompilerAbiLayoutTargetPolicyProjectionSetAt(i) == projection_set &&
+            CompilerAbiLayoutTargetPolicyRequiredFactsAt(i) == required_facts &&
+            CompilerAbiLayoutTargetPolicyFallbacksAt(i) == fallbacks {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CompilerAbiLayoutTargetPolicyReady() -> Bool {
-    return CompilerAbiLayoutTargetPolicyCount() == 1 &&
-        CompilerAbiLayoutTargetPolicyAbiAt(0) == CompilerAbiLayoutSelfHostedCAbi() &&
-        CompilerAbiLayoutTargetPolicyProjectionSetAt(0) ==
-            Concat(Concat(CompilerTargetCpuCProjection(), ","), CompilerTargetSelfHostedProjection()) &&
-        CompilerAbiLayoutTargetPolicyRequiredFactsAt(0) ==
-            Concat(Concat(CompilerTargetLayoutShapeFact(), ","), CompilerTargetMaterializationReasonFact()) &&
-        CompilerAbiLayoutTargetPolicyFallbacksAt(0) ==
-            Concat(Concat(CompilerTargetUnsupportedShapeFallbackReason(), ","), CompilerTargetForbiddenLossBudgetFallbackReason()) &&
+    return CompilerAbiLayoutTargetPolicyCount() > 0 &&
+        CompilerAbiLayoutTargetPolicyAbiAt(CompilerAbiLayoutTargetPolicyCount()) == "" &&
+        CompilerAbiLayoutTargetPolicyProjectionSetAt(CompilerAbiLayoutTargetPolicyCount()) == "" &&
+        CompilerAbiLayoutTargetPolicyRequiredFactsAt(CompilerAbiLayoutTargetPolicyCount()) == "" &&
+        CompilerAbiLayoutTargetPolicyFallbacksAt(CompilerAbiLayoutTargetPolicyCount()) == "" &&
         CompilerAbiLayoutTargetPolicyKnown(CompilerAbiLayoutSelfHostedCAbi()) &&
+        CompilerAbiLayoutTargetPolicyRowKnown(
+            CompilerAbiLayoutSelfHostedCAbi(),
+            Concat(Concat(CompilerTargetCpuCProjection(), ","), CompilerTargetSelfHostedProjection()),
+            Concat(Concat(CompilerTargetLayoutShapeFact(), ","), CompilerTargetMaterializationReasonFact()),
+            Concat(Concat(CompilerTargetUnsupportedShapeFallbackReason(), ","), CompilerTargetForbiddenLossBudgetFallbackReason())) &&
         CompilerTargetProjectionKnown(CompilerTargetCpuCProjection()) &&
         CompilerTargetProjectionKnown(CompilerTargetSelfHostedProjection()) &&
         CompilerTargetFactKnown(CompilerTargetLayoutShapeFact()) &&

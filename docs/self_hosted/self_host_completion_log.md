@@ -49,6 +49,17 @@ rewrite history.
   readiness checks cannot return while ordered rows remain available for
   TestHarness manifest emission.
 
+## 2026-07-10 - ABI target-policy readiness consumes row membership
+
+- Added `CompilerAbiLayoutTargetPolicyRowKnown(...)` to the ABI target-policy
+  owner.
+- Repointed `CompilerAbiLayoutTargetPolicyReady()` from `Count() == 1` and
+  fixed `At(0)` field comparisons to row membership plus out-of-range field
+  boundary checks.
+- Kept the ordered `target_policy|0|...` artifact row stable for
+  `abi_layout_row_manifest.pgy`, while removing row position as the target
+  acceptance truth.
+
 ## 2026-07-10 - Parser payload fixture count consumes manifest owner
 
 - Added manifest-owned parser fixture count facts:

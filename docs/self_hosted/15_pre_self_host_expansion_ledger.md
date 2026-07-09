@@ -462,6 +462,12 @@ the accepted `cpu-c,self-hosted` projections, the required
 `layout_shape,materialization_reason` facts, and the supported fallback reasons.
 This keeps target acceptance out of backend-local ABI spelling decisions.
 
+ABI target-policy delta, 2026-07-10: `CompilerAbiLayoutTargetPolicyReady()`
+now consumes `CompilerAbiLayoutTargetPolicyRowKnown(...)` plus out-of-range
+field boundary checks instead of proving readiness from `Count() == 1` and
+fixed `At(0)` field comparisons. The ordered `target_policy|0|...` row remains
+the manifest artifact shape only.
+
 Backend ABI layout contract delta, 2026-07-10:
 `backend_abi_layout_contract_owner.pgy` now owns the native/backend ABI source
 contract rows separately from the cross-backend ABI row table. It imports
