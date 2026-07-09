@@ -819,12 +819,18 @@ require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func Compil
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetProjectionKnown"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFactKnown"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "func CompilerTargetFallbackReasonKnown"
-require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()"
-require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact()"
-require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason()"
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(CompilerTargetProjectionCount()) == \"\""
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(CompilerTargetFactCount()) == \"\""
+require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(CompilerTargetFallbackReasonCount()) == \"\""
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionKnown(CompilerTargetCpuCProjection())"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactKnown(CompilerTargetAuthorityEvidenceFact())"
 require_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonKnown(CompilerTargetMissingAuthorityEvidenceFallbackReason())"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionCount() == 3"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactCount() == 8"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonCount() == 5"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFactAt(0) == CompilerTargetIntentGraphFact()"
+reject_text "src/self_hosted/compiler/target_capability_owner.pgy" "CompilerTargetFallbackReasonAt(0) == CompilerTargetUnsupportedShapeFallbackReason()"
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(0) == "cpu-c"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(1) == "cpu-llvm"'
 reject_text "src/self_hosted/compiler/target_capability_owner.pgy" 'CompilerTargetProjectionAt(2) == "self-hosted"'

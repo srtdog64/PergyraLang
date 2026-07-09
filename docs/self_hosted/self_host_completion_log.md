@@ -6049,3 +6049,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component and compiler-world contracts so the old
   `CompilerSymbolTableRowCount() == 7`, `SymbolTableRowAt(0) == ...`, and
   `SymbolProjectionAt(0) == ...` readiness shape cannot return.
+
+### 2026-07-10 -- Target capability readiness consumes named facts only
+
+- Repointed `CompilerTargetCapabilityEnvelopeReady()` from fixed projection,
+  target-fact, and fallback-reason indexes to named `Known(...)` membership
+  checks plus out-of-range boundary checks.
+- Kept the manifest's ordered projection/fact/fallback artifact intact, but
+  made readiness insensitive to row insertion order.
+- Tightened the component and compiler-world contracts so the old
+  `ProjectionCount() == 3`, `FactCount() == 8`, `FallbackReasonCount() == 5`,
+  and `At(0) == ...` readiness shape cannot return.

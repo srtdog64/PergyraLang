@@ -777,13 +777,16 @@ for term in \
     "return \"cpu-c\"" \
     "return \"cpu-llvm\"" \
     "return \"self-hosted\"" \
-    "CompilerTargetProjectionAt(0) == CompilerTargetCpuCProjection()" \
-    "CompilerTargetProjectionAt(1) == CompilerTargetCpuLlvmProjection()" \
-    "CompilerTargetProjectionAt(2) == CompilerTargetSelfHostedProjection()" \
+    "CompilerTargetProjectionAt(CompilerTargetProjectionCount()) == \"\"" \
+    "CompilerTargetProjectionKnown(CompilerTargetCpuCProjection())" \
+    "CompilerTargetProjectionKnown(CompilerTargetCpuLlvmProjection())" \
+    "CompilerTargetProjectionKnown(CompilerTargetSelfHostedProjection())" \
     "func CompilerTargetFactAt" \
-    "CompilerTargetFactCount() == 8" \
+    "CompilerTargetFactAt(CompilerTargetFactCount()) == \"\"" \
+    "CompilerTargetFactKnown(CompilerTargetMaterializationReasonFact())" \
     "func CompilerTargetFallbackReasonAt" \
-    "CompilerTargetFallbackReasonCount() == 5" \
+    "CompilerTargetFallbackReasonAt(CompilerTargetFallbackReasonCount()) == \"\"" \
+    "CompilerTargetFallbackReasonKnown(CompilerTargetHostOnlySlotBoundaryFallbackReason())" \
     "func CompilerTargetCapabilityEnvelopeReady" \
     "intent_graph" \
     "effect_set" \
