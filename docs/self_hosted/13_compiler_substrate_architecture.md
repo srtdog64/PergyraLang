@@ -198,6 +198,14 @@ Incremental compilation is required for self-host scale, but it must be
 fact-owner based. A file timestamp or emitted-text cache would reintroduce the
 same source-of-truth drift that the hard self-host gates are removing.
 
+`src/self_hosted/compiler/incremental_fact_graph_owner.pgy` now owns the named
+future graph contract: `pgy.selfhost.incremental-fact-graph.v1`, the reusable
+stage artifacts, the dependency fingerprint axes, and the clean-vs-incremental
+verifier vocabulary. The current completeness harness still owns only rung0
+coarse caching through `pgy.selfhost.completeness-cache.v1`; the graph owner is
+the SoT for replacing that coarse source-set key with precise import/module
+fingerprints later.
+
 The cache key for a reusable stage artifact must include the source bytes hash,
 import/module graph fingerprint, language/runtime/stdlib/capability/target
 profile, stage owner schema version, ABI/runtime row fingerprints, and tool

@@ -25,6 +25,21 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Incremental fact graph gets a self-host owner
+
+- Added `src/self_hosted/compiler/incremental_fact_graph_owner.pgy` as the
+  owner for future precise invalidation. It names
+  `pgy.selfhost.incremental-fact-graph.v1`, stage artifact kinds, dependency
+  fingerprint axes, cache-hit/missing-fact policy, and clean-vs-incremental
+  verifier vocabulary.
+- Wired `CompilerIncrementalFactGraphReady()` into `CompilerTestHarnessReady()`
+  so TestHarness readiness now consumes the incremental graph contract rather
+  than leaving incrementality as prose under the completeness ledger.
+- Promoted the M2 completeness minima from 206 to 207 because the incremental
+  graph owner is a production self-host source. The contract deliberately keeps
+  the existing `pgy.selfhost.completeness-cache.v1` cache coarse until
+  import/module graph fingerprints become Pergyra-owned.
+
 ## 2026-07-09 - Completeness impact plan becomes owner-owned
 
 - Added `pgy.selfhost.completeness-impact.v1` rows to

@@ -4616,14 +4616,27 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 195
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 203;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 205;"
-completeness_min_count="$(grep -F "return 206;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206;"
+completeness_min_count="$(grep -F "return 207;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 206-source closed slice"
+    fail "self-host completeness minima drifted below the 207-source closed slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "pgy.selfhost.incremental-fact-graph.v1"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphRung0CacheSchema"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerCompletenessIncrementalCacheSchema()"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "source-bytes-hash"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "import-graph-fingerprint"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "abi-row-fingerprint"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "runtime-call-row-fingerprint"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "clean-vs-incremental-artifact-parity"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "unsupported-fact-fail-closed"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "fail-closed-recompute-no-text-recovery"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "incremental_fact_graph_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerIncrementalFactGraphReady()"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlanSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRunGroupsSchema"

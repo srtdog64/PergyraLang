@@ -270,6 +270,10 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/completeness_ledger_owner.pgy` -- M2 source
   inventory, semantic target mapping, monotone stage-pass minima, incremental
   cache facts, and rung0 impact-plan rows.
+- `src/self_hosted/compiler/incremental_fact_graph_owner.pgy` -- compiler-scale
+  incremental fact graph schema, dependency axes, reusable artifact kinds, and
+  clean/incremental verifier vocabulary. The current completeness cache remains
+  rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
 - `src/self_hosted/compiler/abi_layout_target_policy_owner.pgy` -- ABI layout

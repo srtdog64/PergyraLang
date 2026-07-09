@@ -18,9 +18,10 @@ The latest broad parity refresh was `make self-host-preparation-test-smoke`
 on 2026-07-09: it completed green with 203 real sources accepted by both
 selfcheck backends, codegen bootstrap `gen2 == gen3` at 9816 generated-C lines,
 DRV-0/DRV-1 driver parity, LSP parity, backend tri-compare, and MIR JSON rung-0b
-parity over 86 fixtures. A later focused completeness refresh on 2026-07-09
-raised the M2 ledger to 206/206 through lexer/parser/semantic/codegen/full
-pipeline.
+parity over 86 fixtures. A later focused completeness refresh on 2026-07-10
+raised the M2 ledger to 207/207 after the incremental fact graph owner landed;
+the changed-source impact run proved the incremental graph, completeness
+ledger, and TestHarness owner sources through lexer/parser/semantic/codegen.
 
 ## Headline Number
 
@@ -83,7 +84,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-206 production self-host source files across lexer, parser, semantic, codegen,
+207 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The real-source semantic selfcheck uses the broad
 203-source C/LLVM gate from the latest parity preparation refresh over the current accepted semantic subset,
 including the codegen run boundary, lexer run/fixture-manifest owners, emission
@@ -505,7 +506,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 206 production self-host
+   The M2 completeness ledger also now checks all 207 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

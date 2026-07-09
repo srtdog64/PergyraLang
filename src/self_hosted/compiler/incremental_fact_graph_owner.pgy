@@ -1,0 +1,148 @@
+// Self-host incremental fact graph owner.
+//
+// This is the contract for future compiler-scale incrementality. It does not
+// claim precise import invalidation is implemented yet; it names the fact graph
+// and verifier axes that any reusable artifact must consume.
+
+import "completeness_ledger_owner.pgy";
+
+func CompilerIncrementalFactGraphSchema() -> String {
+    return "pgy.selfhost.incremental-fact-graph.v1";
+}
+
+func CompilerIncrementalFactGraphRung0CacheSchema() -> String {
+    return CompilerCompletenessIncrementalCacheSchema();
+}
+
+func CompilerIncrementalFactGraphStageCount() -> Int {
+    return 9;
+}
+
+func CompilerIncrementalFactGraphStageAt(index: Int) -> String {
+    if index == 0 { return "source-bytes"; }
+    if index == 1 { return "token-stream"; }
+    if index == 2 { return "ast-tree"; }
+    if index == 3 { return "semantic-verdict"; }
+    if index == 4 { return "mir-fact-graph"; }
+    if index == 5 { return "abi-layout-rows"; }
+    if index == 6 { return "air-evidence"; }
+    if index == 7 { return "emitted-artifact"; }
+    if index == 8 { return "parity-evidence"; }
+    return "";
+}
+
+func CompilerIncrementalFactGraphDependencyCount() -> Int {
+    return 12;
+}
+
+func CompilerIncrementalFactGraphDependencyAt(index: Int) -> String {
+    if index == 0 { return "source-bytes-hash"; }
+    if index == 1 { return "import-graph-fingerprint"; }
+    if index == 2 { return "language-profile"; }
+    if index == 3 { return "runtime-profile"; }
+    if index == 4 { return "stdlib-profile"; }
+    if index == 5 { return "capability-profile"; }
+    if index == 6 { return "target-profile"; }
+    if index == 7 { return "owner-schema-version"; }
+    if index == 8 { return "abi-row-fingerprint"; }
+    if index == 9 { return "runtime-call-row-fingerprint"; }
+    if index == 10 { return "tool-executable"; }
+    if index == 11 { return "oracle-executable"; }
+    return "";
+}
+
+func CompilerIncrementalFactGraphArtifactCount() -> Int {
+    return 9;
+}
+
+func CompilerIncrementalFactGraphArtifactAt(index: Int) -> String {
+    if index == 0 { return "tokens"; }
+    if index == 1 { return "ast-text"; }
+    if index == 2 { return "semantic-verdict"; }
+    if index == 3 { return "mir-json"; }
+    if index == 4 { return "air-json"; }
+    if index == 5 { return "abi-layout-rows"; }
+    if index == 6 { return "emitted-c"; }
+    if index == 7 { return "run-output"; }
+    if index == 8 { return "parity-artifact"; }
+    return "";
+}
+
+func CompilerIncrementalFactGraphVerifierCount() -> Int {
+    return 5;
+}
+
+func CompilerIncrementalFactGraphVerifierAt(index: Int) -> String {
+    if index == 0 { return "clean-vs-incremental-artifact-parity"; }
+    if index == 1 { return "dependency-fingerprint-match"; }
+    if index == 2 { return "owner-fact-presence"; }
+    if index == 3 { return "schema-version-match"; }
+    if index == 4 { return "unsupported-fact-fail-closed"; }
+    return "";
+}
+
+func CompilerIncrementalFactGraphCacheHitPolicy() -> String {
+    return "verify-consumed-owner-facts-before-reuse";
+}
+
+func CompilerIncrementalFactGraphMissingFactPolicy() -> String {
+    return "fail-closed-recompute-no-text-recovery";
+}
+
+func CompilerIncrementalFactGraphReady() -> Bool {
+    if CompilerIncrementalFactGraphSchema() != "pgy.selfhost.incremental-fact-graph.v1" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphRung0CacheSchema() != "pgy.selfhost.completeness-cache.v1" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphStageCount() != 9 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphStageAt(0) != "source-bytes" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphStageAt(4) != "mir-fact-graph" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphStageAt(8) != "parity-evidence" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphDependencyCount() != 12 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphDependencyAt(0) != "source-bytes-hash" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphDependencyAt(1) != "import-graph-fingerprint" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphDependencyAt(8) != "abi-row-fingerprint" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphDependencyAt(9) != "runtime-call-row-fingerprint" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactCount() != 9 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactAt(3) != "mir-json" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphArtifactAt(5) != "abi-layout-rows" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierCount() != 5 {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierAt(0) != "clean-vs-incremental-artifact-parity" {
+        return false;
+    }
+    if CompilerIncrementalFactGraphVerifierAt(4) != "unsupported-fact-fail-closed" {
+        return false;
+    }
+    return CompilerIncrementalFactGraphCacheHitPolicy() ==
+        "verify-consumed-owner-facts-before-reuse" &&
+        CompilerIncrementalFactGraphMissingFactPolicy() ==
+        "fail-closed-recompute-no-text-recovery";
+}

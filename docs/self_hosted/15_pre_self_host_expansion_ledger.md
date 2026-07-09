@@ -567,7 +567,7 @@ or `CodegenAstArenaKindIs` directly. This keeps aggregate runtime/header
 decisions from reopening raw kind-row scans.
 
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
-M2 minima at 206 for source inventory, lexer, parser, semantic, codegen,
+M2 minima at 207 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
 parity preparation run proved the prior 203/203 ledger through C and LLVM
 selfcheck legs; the focused completeness gate now prevents the new production
@@ -584,6 +584,21 @@ source path, check target, tool executable, and producer executable in the key.
 This is intentionally coarse: it speeds repeated proof runs but invalidates on
 any production self-host source change until the import/module graph is a
 Pergyra-owned fingerprint.
+
+Incremental fact graph delta, 2026-07-10:
+`incremental_fact_graph_owner.pgy` now owns the future precise invalidation
+contract separately from the rung0 completeness cache. It names
+`pgy.selfhost.incremental-fact-graph.v1`, the reusable stage artifacts
+(`tokens`, `ast-text`, `semantic-verdict`, `mir-json`, `air-json`,
+`abi-layout-rows`, `emitted-c`, `run-output`, and `parity-artifact`), the
+dependency axes (`source-bytes-hash`, `import-graph-fingerprint`,
+language/runtime/stdlib/capability/target profiles, owner schema versions,
+ABI/runtime-call row fingerprints, and executable fingerprints), and the
+verifier vocabulary (`clean-vs-incremental-artifact-parity`,
+`dependency-fingerprint-match`, `owner-fact-presence`, `schema-version-match`,
+and `unsupported-fact-fail-closed`). This does not claim precise incremental
+compilation is done; it prevents future cache work from becoming timestamp or
+emitted-text reuse outside the fact-owner graph.
 
 Completeness impact delta, 2026-07-09: the same owner now emits
 `pgy.selfhost.completeness-impact.v1`, a rung0 impact plan that maps

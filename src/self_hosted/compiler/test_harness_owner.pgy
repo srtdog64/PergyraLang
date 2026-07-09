@@ -18,6 +18,7 @@ import "test_harness_mir_json_paths_owner.pgy";
 import "test_harness_codegen_bootstrap_paths_owner.pgy";
 import "test_harness_lsp_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
+import "incremental_fact_graph_owner.pgy";
 
 func CompilerTestHarnessSchema() -> String {
     return "pgy.selfhost.test-harness.v1";
@@ -157,6 +158,7 @@ func CompilerTestHarnessReady() -> Bool {
         CompilerHarnessMirJsonParityReady() &&
         CompilerHarnessCodegenBootstrapRowsReady() &&
         CompilerCompletenessLedgerReady() &&
+        CompilerIncrementalFactGraphReady() &&
         CompilerHarnessBackendOutputComparatorReady() &&
         CompilerHarnessAirGraphJsonValidatorReady() &&
         CompilerHarnessDiagnosticCatalogReady() &&
