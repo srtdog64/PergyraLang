@@ -366,6 +366,7 @@ func CompatibilityCorpusReport(
 }
 
 func CompatibilityEvolutionReportOwnerReady() -> Bool {
+    let complete_count: Int = CompilerCompatibilityChangeCount();
     return StringIndexOf(CompatibilityMalformedRowSelfTestReport(0), CompilerCompatibilityCorpusNegativeSchema()) >= 0 &&
         StringIndexOf(CompatibilityInvalidCodefixSelfTestReport(0, 1), CompilerCompatibilityMissingCodefixStatusFinding()) >= 0 &&
         StringIndexOf(CompatibilityInvalidDiagnosticIdSelfTestReport(0, 1), CompilerCompatibilityMissingDiagnosticIdFinding()) >= 0 &&
@@ -374,5 +375,5 @@ func CompatibilityEvolutionReportOwnerReady() -> Bool {
         StringIndexOf(CompatibilityInvalidObsoleteMigrationSelfTestReport(1, 0, 1), CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding()) >= 0 &&
         StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingSourceFinding()) >= 0 &&
         StringIndexOf(CompatibilityMissingSurfaceSelfTestReport(), CompilerCompatibilityMissingStdlibModuleFinding()) >= 0 &&
-        StringIndexOf(CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 1, 1, 0), CompilerCompatibilityCorpusSchema()) >= 0;
+        StringIndexOf(CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, complete_count, complete_count, complete_count, complete_count, complete_count, complete_count, 1, 1, 0), CompilerCompatibilityCorpusSchema()) >= 0;
 }

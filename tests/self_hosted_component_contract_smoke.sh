@@ -1598,6 +1598,8 @@ require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityInvalidObsoleteMigrationSelfTestReport"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityMissingSurfaceSelfTestReport"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "func CompatibilityEvolutionReportOwnerReady"
+require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "let complete_count: Int = CompilerCompatibilityChangeCount()"
+reject_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "CompatibilityCorpusReport(1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 1, 1, 0)"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "JsonEmitObject"
 require_text "src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/compatibility_evolution_checker/main.pgy" "JsonEmitObject"

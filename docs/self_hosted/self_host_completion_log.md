@@ -5421,3 +5421,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This reduces the mixed AST-like tree blocker for declaration emission. It
   does not close the blocker because the owner still reads transitional typed
   arena payload rows until typed declaration rows replace the AST-text bridge.
+
+### 2026-07-09 -- Compatibility corpus report count consumes owner fact
+
+- Repointed `compatibility_evolution_checker/report_owner.pgy` so its readiness
+  self-check consumes `CompilerCompatibilityChangeCount()` for complete-row
+  counts instead of restating the current seed corpus size as a local literal.
+- Tightened `self_hosted_component_contract_smoke.sh` so the report owner must
+  bind `complete_count` from `CompatibilityEvolutionZone` and rejects reopening
+  the old repeated `9` complete-count call.
+- This keeps the compatibility corpus consumer aligned with the production-bar
+  rule: the compatibility owner owns cardinality; report emission only consumes
+  that fact.
