@@ -5857,3 +5857,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The production ABI blocker remains open for LLVM Slot/SecureSlot/DeviceSlot
   runtime declaration registries, LLVM/source with-slot cleanup releases, and
   remaining slot/member compatibility callsites.
+
+### 2026-07-10 -- MIR JSON fact-only frontier expands to 90 fixtures
+
+- Added `array_index_assign`, `long_scalar`, `option_try`, and
+  `string_equality_concat` to the MIR parity fixture manifest owner.
+- Raised the MIR fact graph payload count and parity shell ratchet from 86 to
+  90 fixtures, with the clean-reject count still at 0.
+- Updated the hard self-host scorecard, status ledger, production-bar review,
+  and self-host progress ledger so the current frontier says 90 PASS / 0 gap
+  plus 0 clean rejects.
+- This broadens the actual `pgy --mir-json | mir_lower | codegen == C oracle`
+  compiler-core replacement path across Long scalar flow, array index
+  assignment, `Option` `?` propagation, and string equality-plus-concat flow.

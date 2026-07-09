@@ -48,7 +48,7 @@ self-hosting 선언으로 받고 레버리지를 thesis(던전크롤러)로 돌�
 | parser | 20,579 | 8,127 | ~52% (187 fixture, 120/121 예제) | **YES — 완전성 필요** |
 | semantic | 46,203 | 2,716 | rung-2 subset(bounded body check만) = **6%** | **YES — 최대 벽** |
 | codegen | 107,123 | 4,821 | rung-0..20, **gen2==gen3 self-host** | subset 자기부트 완료 |
-| mir_lower | — | — | fact-only 86 PASS / 0 gap (rung-0b CFG subset) | 부분 |
+| mir_lower | — | — | fact-only 90 PASS / 0 gap (rung-0b CFG subset) | 부분 |
 | runtime | 29,627 | 0 | **0% — 설계상 C 잔류**(런타임 커널은 self-host 대상 아님) | N/A |
 | compiler(driver) | 43,304 | 0 | DRV-0/1 landed(별도 집계) | §5 |
 | lsp | 1,037 | 0 | LSP-0..2i landed(별도 집계, **0% core**) | 임계경로 **아님** |

@@ -158,11 +158,13 @@ subset.
   self-host via-run timeout, the array destructure binding surface, plain class
   declaration/method lowering, payload-free enum lowering, `Result<Int>` `?`
   early-return flow, `Result<Int>` core constructors/inspection helpers,
-  `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators, and
-  `Join`/`ToFloat` string utility flow, and the example-origin
+  `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators,
+  `Join`/`ToFloat` string utility flow, Long scalar flow, array index
+  assignment, `Option` `?` propagation, and string equality-plus-concat flow,
+  and the example-origin
   `binary_search` fixture and the Int role operator-dispatch fixture. The
   coverage boundary is now measured
-  at **86 PASS / 0 gap plus 0 clean rejects** across the committed
+  at **90 PASS / 0 gap plus 0 clean rejects** across the committed
   MIR-lower/codegen/example fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
   self-hosted codegen pre-passes. Role declaration facts are consumed for the

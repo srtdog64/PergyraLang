@@ -179,11 +179,13 @@ nominal declarations are reconstructed from MIR `nominal_kind`/field facts with
 their exact AST labels, payload-free enum declarations are reconstructed from
 MIR variant facts, and `Option<Int>` match branches consume MIR-owned variant
 and binding facts. Array sort/map/filter/reverse combinators, `Result<Int>` core
-constructors and inspection helpers, and `Join`/`ToFloat` string utility flow
-also run through this MIR-JSON path. Ability declarations are reconstructed from MIR method
+constructors and inspection helpers, `Join`/`ToFloat` string utility flow, Long
+scalar flow, array index assignment, `Option` `?` propagation, and string
+equality-plus-concat flow also run through this MIR-JSON path. Ability
+declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 86 PASS / 0 gap plus 0 clean rejects through this
+inventory is now measured at 90 PASS / 0 gap plus 0 clean rejects through this
 path. Role declarations now flow as MIR-owned `kind:"role"` facts with
 `for_type`, impl ability spans, and method signature facts; the supported
 Int/`Arithmetic.Add` operator dispatch path is now consumed by self-hosted

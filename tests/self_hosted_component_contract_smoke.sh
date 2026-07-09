@@ -420,7 +420,7 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirPar
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func EmitMirParityFixtureManifest"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityFixtureCount()"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 86;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 90;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"examples/binary_search.pgy"'
@@ -429,8 +429,8 @@ require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureMani
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "86 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "86 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "90 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "90 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -3076,7 +3076,7 @@ require_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'MirDocumentSc
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadContractReady"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func MirFactGraphPayloadSchema"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
-require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 86"
+require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 90"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirParityFixtureCount() != MirFactGraphPayloadFixtureCount()"
 require_text "src/self_hosted/mir_lower/main.pgy" "RunMirLowerFromArgs(Args())"
 require_text "src/self_hosted/mir_lower/run_owner.pgy" "func RunMirLowerFromArgs"
