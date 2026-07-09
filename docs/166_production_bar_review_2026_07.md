@@ -121,13 +121,13 @@ latest broad preparation parity run makes that evidence stronger than the
 earlier source-owner slice. On 2026-07-09,
 `make self-host-preparation-parity-test-smoke` completed green with:
 
-- 195 real self-hosted sources accepted by the C and LLVM selfcheck legs.
-- M2 completeness ledger at `sources=195`, with `lexer=195`, `parser=195`,
-  `semantic=195`, `codegen=195`, and `full_pipeline=195`.
+- 203 real self-hosted sources accepted by the C and LLVM selfcheck legs.
+- M2 completeness ledger at `sources=203`, with `lexer=203`, `parser=203`,
+  `semantic=203`, `codegen=203`, and `full_pipeline=203`.
 - Parser parity over 188 source/fixture rows on C and LLVM parser binaries.
 - Semantic parity over 108 fixtures on C and LLVM checker binaries.
 - Codegen parity over 68 fixtures on C and LLVM-built codegen tools.
-- Bootstrap fixpoint `gen2 == gen3` at 8560 generated-C lines.
+- Bootstrap fixpoint `gen2 == gen3` at 9816 generated-C lines.
 - `SELF-HOSTING OK`: the Pergyra-built codegen builds lexer, parser, semantic,
   `mir_lower`, 13 gate/audit tools, and the backend fuzz generator with outputs
   matching the oracle-built tools.
@@ -241,8 +241,8 @@ same slice.
   `lex_parse=183`, `lex_parse_semantic=183`, and `full_pipeline=183`.
 - Follow-up broad parity refresh: after the runtime-call ABI rows and ABI
   owner split, `make self-host-preparation-parity-test-smoke` completed at
-  `sources=195`, with lexer/parser/semantic/codegen and `full_pipeline` all at
-  195/195, and the bootstrap fixpoint at 8560 generated-C lines.
+  `sources=203`, with lexer/parser/semantic/codegen and `full_pipeline` all at
+  203/203, and the bootstrap fixpoint at 9816 generated-C lines.
 
 That is enough to close the stale "hidden main staging" concern for the active
 self-host preparation path. It is not enough to call production readiness done:

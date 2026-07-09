@@ -545,9 +545,9 @@ manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
 source or expected artifact paths.
 
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
-M2 minima at 195 for source inventory, lexer, parser, semantic, codegen,
+M2 minima at 203 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
-parity preparation run proved the same 195/195 ledger through C and LLVM
+parity preparation run proved the same 203/203 ledger through C and LLVM
 selfcheck legs, so new production self-host sources cannot enter the inventory
 without passing the full staged completeness path.
 

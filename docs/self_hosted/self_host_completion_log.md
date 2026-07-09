@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - Completeness minima promoted to 203
+
+- Promoted `CompilerCompletenessLedger` minima from the 195-source slice to
+  203 for source inventory, lexer, parser, semantic, codegen, lex+parse,
+  lex+parse+semantic, and full-pipeline intersection.
+- Updated the component contract so `return 195;` is rejected and all eight
+  minima must carry the 203-source closed slice.
+- Synchronized the progress, M2, production-bar, and red-team docs with the
+  latest all-in-one `self-host-preparation-test-smoke` evidence: 203/203 staged
+  completeness and a codegen bootstrap fixpoint at 9816 generated-C lines.
+
 ## 2026-07-09 - Completeness minima promoted to 195
 
 - Promoted `CompilerCompletenessLedger` minima from the historical 155-source

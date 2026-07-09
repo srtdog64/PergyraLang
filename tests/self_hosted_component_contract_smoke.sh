@@ -4565,11 +4565,12 @@ reject_text "tests/self_hosted/parity/selfcheck_sources.sh" "SELF_SOURCES"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 148;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 154;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 155;"
-completeness_min_count="$(grep -F "return 195;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 195;"
+completeness_min_count="$(grep -F "return 203;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 195-source closed slice"
+    fail "self-host completeness minima drifted below the 203-source closed slice"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

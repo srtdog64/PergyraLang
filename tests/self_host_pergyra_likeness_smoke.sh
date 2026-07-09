@@ -126,7 +126,7 @@ SENTINEL_MAX=0
 # absence as Option<Int> instead of a literal -1 sentinel.
 # 712 -> 716 (2026-07-08): current tracked self-host source after compiler
 # world/sandbox owner wiring; keep errors-as-data adoption load-bearing.
-# 716 -> 730 (2026-07-09): 195-source completeness promotion and backend ABI
+# 716 -> 730 (2026-07-09): 203-source completeness promotion and backend ABI
 # contract owners increased typed Result/Option usage; keep it load-bearing.
 # 730 -> 734 (2026-07-09): expression usage matching split into a dedicated
 # owner, with Result-based known-group validation instead of silent unknown
