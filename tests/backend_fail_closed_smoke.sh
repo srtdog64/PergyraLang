@@ -166,13 +166,17 @@ grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
 grep -Fq "runtime_row->call_shape" \
     "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
+grep -Fq "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")" \
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
+grep -Fq '"returns_container"' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
+grep -Fq '"container_ptr_to_value"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"container_ptr_value_to_void"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq '"container_ptr_to_void"' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
@@ -187,6 +191,11 @@ grep -Fq '"Unpin"' \
 if grep -F 'llvm_runtime_slot_name' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
+    "$ROOT_DIR/src/codegen/llvm_runtime.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM slot runtime declarations must consume runtime ABI row records, not symbol-only accessors" >&2
     exit 1
 fi
 if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)' \
@@ -209,7 +218,7 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
     echo "[backend-fail-closed] LLVM slot release declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name," \
+grep -Fq "device_abi_type_name" \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
 grep -Fq '"SubmitRead"' \
     "$ROOT_DIR/src/codegen/llvm_runtime.c"
@@ -238,13 +247,17 @@ if grep -F 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read
     echo "[backend-fail-closed] LLVM device slot submit-read declaration must consume MIR ABI runtime function rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")" \
+grep -Fq "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")" \
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")" \
+grep -Fq '"token_ptr_to_container"' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")" \
+grep -Fq '"container_ptr_token_ptr_to_value"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"container_ptr_value_token_ptr_to_void"' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
+grep -Fq '"container_ptr_token_ptr_to_void"' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
 grep -Fq '"PinRead"' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c"
@@ -259,6 +272,11 @@ grep -Fq '"Unpin"' \
 if grep -F 'llvm_runtime_secure_slot_name' \
     "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM secure slot runtime declarations must not synthesize runtime function names locally" >&2
+    exit 1
+fi
+if grep -F 'mir_abi_resource_runtime_fn_by_type_name(' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_secure_slot_decl.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM secure slot runtime declarations must consume runtime ABI row records, not symbol-only accessors" >&2
     exit 1
 fi
 if grep -F 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)' \

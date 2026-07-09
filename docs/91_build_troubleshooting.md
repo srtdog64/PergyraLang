@@ -6,6 +6,41 @@
 
 ---
 
+## 0. Resource pressure first
+
+If the desktop hangs during local builds, check disk and scratch pressure before
+debugging compiler logic.
+
+Observed local pressure pattern:
+
+- `make all` builds only `pgy` and `pgy-lsp`; test binaries are behind
+  `all-with-tests` and test targets.
+- `make clean` removes only the active `BUILD_DIR` and `BIN_DIR`.
+- Ad-hoc roots such as `build-codex*`, `bin-codex*`, `build-llvm*`, and
+  `.tmp/self_hosted/*` are intentionally ignored, but they can accumulate.
+- LLVM-enabled links are the heaviest local step. With low free disk, linker and
+  test scratch writes can make the machine look frozen.
+
+Useful commands:
+
+```sh
+mingw32-make build-resource-report
+PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report  # slower exact sizes
+mingw32-make clean-scratch              # removes .tmp only
+mingw32-make clean-local-artifacts      # removes build/bin, .tmp, build-*, bin-*
+```
+
+Do not run broad CI targets when the repo drive has less than about 10 GiB free.
+Use the narrow gate named by the source-of-truth seam first. For low-pressure
+local builds, prefer:
+
+```sh
+mingw32-make LLVM_ENABLED=0 all
+mingw32-make abi-ownership-shape-test-smoke
+```
+
+---
+
 ## 1. "Nothing to be done for 'bin/pgy.exe'"
 
 ### 증상

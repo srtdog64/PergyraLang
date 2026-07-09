@@ -12,6 +12,36 @@
 
 #include "../compiler/mir_abi_layout.h"
 
+#include <string.h>
+
+static const MIRResourceRuntimeRow *
+llvm_runtime_resource_row_or_error(LLVMGenCtx *ctx,
+    const char *abi_type_name,
+    const char *operation,
+    const char *expected_call_shape,
+    const char *missing_message)
+{
+    const MIRResourceRuntimeRow *row =
+        mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation);
+
+    if (row == NULL || row->runtime_fn == NULL || row->call_shape == NULL) {
+        llvm_set_error(ctx, "%s", missing_message != NULL
+            ? missing_message
+            : "runtime ABI row is missing");
+        return NULL;
+    }
+    if (expected_call_shape == NULL ||
+        strcmp(row->call_shape, expected_call_shape) != 0) {
+        llvm_set_error(ctx,
+            "LLVM runtime declaration for %s %s requires MIR ABI call shape %s",
+            abi_type_name != NULL ? abi_type_name : "<unknown>",
+            operation != NULL ? operation : "<unknown>",
+            expected_call_shape != NULL ? expected_call_shape : "<missing>");
+        return NULL;
+    }
+    return row;
+}
+
 static bool
 llvm_runtime_export_name(char *out,
     size_t out_size,
@@ -93,149 +123,153 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         LLVMTypeRef ptr_ty = LLVMPointerType(slot_ty, 0);
 
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Claim");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot claim runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "Claim",
+                  "returns_container",
+                  "slot claim runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
         { LLVMTypeRef params[] = { ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Write");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot write runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "Write",
+                  "container_ptr_value_to_void",
+                  "slot write runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Read");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot read runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "Read",
+                  "container_ptr_to_value",
+                  "slot read runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name, "Release");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot release runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "Release",
+                  "container_ptr_to_void",
+                  "slot release runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
-                                                       "PinRead");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot pin-read runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "PinRead",
+                  "container_ptr_to_pinned_view",
+                  "slot pin-read runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
-          runtime_fn = mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
-                                                               "PinWrite");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot pin-write runtime ABI row is missing");
+          row = llvm_runtime_resource_row_or_error(ctx, abi_type_name,
+              "PinWrite", "container_ptr_to_pinned_view",
+              "slot pin-write runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0), ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
-                                                       "PinReadInit");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot pin-read init runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name,
+                  "PinReadInit", "pinned_view_ptr_container_ptr_to_void",
+                  "slot pin-read init runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
-          runtime_fn = mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
-                                                               "PinWriteInit");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot pin-write init runtime ABI row is missing");
+          row = llvm_runtime_resource_row_or_error(ctx, abi_type_name,
+              "PinWriteInit", "pinned_view_ptr_container_ptr_to_void",
+              "slot pin-write init runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(abi_type_name,
-                                                       "Unpin");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "slot unpin runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, abi_type_name, "Unpin",
+                  "pinned_view_ptr_to_void",
+                  "slot unpin runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
-                                                       "Claim");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "device slot claim runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
+                  "Claim", "returns_container",
+                  "device slot claim runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
         { LLVMTypeRef params[] = { ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
-                                                       "Write");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "device slot write runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
+                  "Write", "container_ptr_value_to_void",
+                  "device slot write runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
-                                                       "Read");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "device slot read runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
+                  "Read", "container_ptr_to_value",
+                  "device slot read runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
-                                                       "Release");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "device slot release runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
+                  "Release", "container_ptr_to_void",
+                  "device slot release runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 1, 0);
-          const char *runtime_fn =
-              mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,
-                                                       "SubmitRead");
-          if (runtime_fn == NULL) {
-              llvm_set_error(ctx, "device slot submit-read runtime ABI row is missing");
+          const MIRResourceRuntimeRow *row =
+              llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
+                  "SubmitRead", "container_ptr_to_task_handle",
+                  "device slot submit-read runtime ABI row is missing");
+          if (row == NULL) {
               return;
           }
-          LLVMValueRef fn = LLVMAddFunction(ctx->module, runtime_fn, ft);
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_task_handle); }
     }
 

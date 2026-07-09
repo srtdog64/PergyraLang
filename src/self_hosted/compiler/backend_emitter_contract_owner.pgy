@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 18;
+    return 20;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -57,13 +57,15 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 15 { return "src/codegen/transpiler_block_emit.c"; }
     if index == 16 { return "src/codegen/llvm_mir_pin_region.c"; }
     if index == 17 { return "src/codegen/llvm_mir_pin_region.c"; }
+    if index == 18 { return "src/codegen/llvm_runtime.c"; }
+    if index == 19 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
     return "";
 }
 
 func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 0 { return "mir_abi_resource_runtime_row_by_type_name("; }
-    if index == 1 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
-    if index == 2 { return "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"; }
+    if index == 1 { return "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"; }
+    if index == 2 { return "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"; }
     if index == 3 { return "mir_abi_resource_runtime_row_by_kind("; }
     if index == 4 { return "mir_abi_resource_runtime_fn_by_kind("; }
     if index == 5 { return "C source slot auto-release requires MIR ABI runtime function row"; }
@@ -79,6 +81,8 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 15 { return "row->call_shape"; }
     if index == 16 { return "mir_abi_resource_runtime_row_by_kind("; }
     if index == 17 { return "row->call_shape"; }
+    if index == 18 { return "row->call_shape"; }
+    if index == 19 { return "row->call_shape"; }
     return "";
 }
 
@@ -107,7 +111,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterContractReady() -> Bool {
-    return CompilerBackendEmitterRequiredCount() == 18 &&
+    return CompilerBackendEmitterRequiredCount() == 20 &&
         CompilerBackendEmitterNegativeSchema() != "" &&
         CompilerBackendEmitterMissingInputFinding() != "" &&
         CompilerBackendEmitterMissingRequiredFinding() != "" &&
@@ -131,6 +135,10 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterRequiredPathAt(16) == "src/codegen/llvm_mir_pin_region.c" &&
         CompilerBackendEmitterRequiredTermAt(16) == "mir_abi_resource_runtime_row_by_kind(" &&
         CompilerBackendEmitterRequiredTermAt(17) == "row->call_shape" &&
+        CompilerBackendEmitterRequiredPathAt(18) == "src/codegen/llvm_runtime.c" &&
+        CompilerBackendEmitterRequiredTermAt(18) == "row->call_shape" &&
+        CompilerBackendEmitterRequiredPathAt(19) == "src/codegen/llvm_runtime_secure_slot_decl.c" &&
+        CompilerBackendEmitterRequiredTermAt(19) == "row->call_shape" &&
         CompilerBackendEmitterForbiddenCount() == 6 &&
         CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
         CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&

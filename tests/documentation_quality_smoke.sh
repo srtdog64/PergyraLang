@@ -650,6 +650,11 @@ for term in "${slot_pinning_terms[@]}"; do
 done
 
 build_troubleshooting_terms=(
+    "Resource pressure first"
+    "mingw32-make build-resource-report"
+    "PGY_BUILD_RESOURCE_DEEP=1 mingw32-make build-resource-report"
+    "mingw32-make clean-local-artifacts"
+    "less than about 10 GiB free"
     "Shared \`build/\` 병렬 실행 금지"
     "file in wrong format"
     "BUILD_DIR=/tmp/pgy-a-build"

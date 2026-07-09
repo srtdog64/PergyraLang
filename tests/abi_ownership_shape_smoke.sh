@@ -139,39 +139,43 @@ require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_r
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_mir_resource_op_core.c" "runtime_row->call_shape"
 reject_term "src/codegen/transpiler_mir_resource_op_core.c" "transpiler_format_slot_runtime_fn"
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")"
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name,"
+require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
+require_term "src/codegen/llvm_runtime.c" "row->call_shape"
+require_term "src/codegen/llvm_runtime.c" '"returns_container"'
+require_term "src/codegen/llvm_runtime.c" '"container_ptr_to_value"'
+require_term "src/codegen/llvm_runtime.c" '"container_ptr_value_to_void"'
+require_term "src/codegen/llvm_runtime.c" '"container_ptr_to_void"'
 require_term "src/codegen/llvm_runtime.c" '"PinRead"'
 require_term "src/codegen/llvm_runtime.c" '"PinWrite"'
 require_term "src/codegen/llvm_runtime.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_runtime.c" '"Unpin"'
 require_term "src/compiler/mir_abi_resource_runtime.c" '"UnpinCleanup"'
+reject_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name("
 reject_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)'
-require_term "src/codegen/llvm_runtime.c" "mir_abi_resource_runtime_fn_by_type_name(device_abi_type_name,"
+require_term "src/codegen/llvm_runtime.c" "device_abi_type_name"
 require_term "src/codegen/llvm_runtime.c" '"SubmitRead"'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim_device", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_read", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_write", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)'
 reject_term "src/codegen/llvm_runtime.c" 'llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)'
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Read\")"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Write\")"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Release\")"
-require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name(abi_type_name,"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "row->call_shape"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"token_ptr_to_container"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"container_ptr_token_ptr_to_value"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"container_ptr_value_token_ptr_to_void"'
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"container_ptr_token_ptr_to_void"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinRead"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWrite"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinReadInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_runtime_secure_slot_decl.c" '"Unpin"'
+reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" "mir_abi_resource_runtime_fn_by_type_name("
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" "llvm_runtime_secure_slot_name"
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)'
 reject_term "src/codegen/llvm_runtime_secure_slot_decl.c" 'llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_read", suf)'

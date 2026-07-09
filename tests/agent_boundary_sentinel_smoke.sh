@@ -58,16 +58,20 @@ if grep -Fq "169_agent_boundary_sentinel_library" "$ROOT_DIR/$FORTRAN_REL"; then
 fi
 
 PYTHON_BIN="${PYTHON:-}"
+NODE_BIN=""
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
+    elif command -v node >/dev/null 2>&1; then
+        NODE_BIN="$(command -v node)"
     else
-        fail "missing python for JSON validation"
+        fail "missing python or node for JSON validation"
     fi
 fi
 
+if [[ -n "$PYTHON_BIN" ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR/$JSON_REL" <<'PY'
 import json
 import sys
@@ -143,5 +147,93 @@ missing_ids = required_ids - ids
 if missing_ids:
     raise SystemExit("missing sentinel ids: " + ", ".join(sorted(missing_ids)))
 PY
+else
+"$NODE_BIN" - "$ROOT_DIR/$JSON_REL" <<'JS'
+const fs = require("fs");
+
+const path = process.argv[2] || process.argv[1];
+const data = JSON.parse(fs.readFileSync(path, "utf8"));
+
+const requiredTop = [
+  "schema",
+  "owner_doc",
+  "plane",
+  "not_language_feature",
+  "separate_from",
+  "status",
+  "updated",
+  "sentinels",
+];
+const missingTop = requiredTop.filter((key) => !(key in data));
+if (missingTop.length > 0) {
+  throw new Error("missing top-level fields: " + missingTop.sort().join(", "));
+}
+if (data.schema !== "pgy.agent.boundary-sentinels.v1") {
+  throw new Error("unexpected schema");
+}
+if (data.owner_doc !== "docs/169_agent_boundary_sentinel_library.md") {
+  throw new Error("owner_doc drift");
+}
+if (data.plane !== "repository-authoring-gate") {
+  throw new Error("plane drift");
+}
+if (data.not_language_feature !== true) {
+  throw new Error("not_language_feature drift");
+}
+if (data.separate_from !== "docs/168_fortran_parallel_evidence.md") {
+  throw new Error("separate_from drift");
+}
+if (data.status !== "repository-gate") {
+  throw new Error("status drift");
+}
+
+const sentinels = data.sentinels;
+if (!Array.isArray(sentinels) || sentinels.length < 10) {
+  throw new Error("expected at least ten sentinel rows");
+}
+
+const requiredItem = [
+  "id",
+  "if_pattern",
+  "wrong_boundary",
+  "why_wrong",
+  "turn_toward",
+  "owner",
+  "gate_candidate",
+];
+const ids = new Set();
+for (const item of sentinels) {
+  const missing = requiredItem.filter((key) => !(key in item));
+  if (missing.length > 0) {
+    throw new Error(`${item.id || "<unknown>"} missing fields: ${missing.sort().join(", ")}`);
+  }
+  if (ids.has(item.id)) {
+    throw new Error("duplicate id: " + item.id);
+  }
+  ids.add(item.id);
+  for (const key of requiredItem) {
+    if (typeof item[key] !== "string" || item[key].trim() === "") {
+      throw new Error(`${item.id} has empty ${key}`);
+    }
+  }
+}
+
+const requiredIds = [
+  "fortran-parallel-plane-confusion",
+  "semantic-source-reread",
+  "backend-compat-fallback",
+  "selfhost-main-artifact-parse",
+  "hidden-runtime-materialization",
+  "parallel-growable-raw-pointer",
+  "lane-as-vector-proof",
+  "backend-local-layout",
+  "shell-semantic-oracle",
+];
+const missingIds = requiredIds.filter((id) => !ids.has(id));
+if (missingIds.length > 0) {
+  throw new Error("missing sentinel ids: " + missingIds.sort().join(", "));
+}
+JS
+fi
 
 echo "[agent-boundary-sentinel] structured boundary sentinels ok"

@@ -872,10 +872,10 @@ require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterMissingRequiredCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterForbiddenHitsCountField"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "func CompilerBackendEmitterOwnerNotReadyMessage"
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 18"
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterRequiredCount() == 20"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "CompilerBackendEmitterForbiddenCount() == 6"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name("
-require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" 'mir_abi_resource_runtime_fn_by_type_name(abi_type_name, \"Claim\")'
+require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_type_name(abi_type_name, operation)"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "mir_abi_resource_runtime_row_by_kind("
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "row->call_shape"
 require_text "src/self_hosted/compiler/backend_emitter_contract_owner.pgy" "src/codegen/transpiler_mir_pin_emit.c"
@@ -925,7 +925,7 @@ reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "J
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" "JsonEmitArray(findings)"
 reject_text "src/self_hosted/tools/backend_emitter_contract_checker/main.pgy" 'import "../../lib/json_emit.pgy";'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" "pgy.selfhost.backend-emitter-contract.v1"
-require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":18'
+require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"required":20'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/clean.json" '"forbidden":6'
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "pgy.selfhost.backend-emitter-contract-negative.v1"
 require_text "src/self_hosted/tools/backend_emitter_contract_checker/expected/missing_required.json" "definitely_missing_backend_contract_term"
@@ -5250,6 +5250,10 @@ require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target c
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Target capability envelope (native/global consumers) |'
 require_text "Makefile" "clean-scratch:"
 require_text "Makefile" "'\$(PROJECT_ROOT)'/.tmp"
+require_text "Makefile" "build-resource-report:"
+require_text "Makefile" "clean-local-artifacts: clean clean-scratch clean-local-variant-artifacts"
+require_text "tests/self_hosted/parity/README.md" "make build-resource-report"
+require_text "tests/self_hosted/parity/README.md" "make clean-local-artifacts"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_c_artifact_with_bounded_log"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "PGY_SELFHOST_CC_LOG_LIMIT_BYTES"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" 'removes the ignored `.tmp` scratch zone'

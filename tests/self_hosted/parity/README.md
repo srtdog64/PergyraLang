@@ -77,6 +77,10 @@ Minimum parity contract for each tool:
   backend-compare scratch artifacts without touching build outputs. The target
   resets the whole ignored `.tmp` scratch zone, and bootstrap compiler logs must
   stay bounded evidence artifacts rather than unbounded compiler stderr dumps.
+- use `make build-resource-report` before broad local CI runs when the machine
+  feels stalled. `make clean-local-artifacts` is the explicit heavier reset for
+  ignored root-level `build-*` / `bin-*` variants plus `.tmp`; it is not part of
+  normal narrow-gate work.
 - never leave `.exe`, `.o`, `.d`, or probe artifacts beside
   `src/self_hosted/tools/*/main.pgy`.
 
