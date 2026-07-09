@@ -133,7 +133,9 @@ SENTINEL_MAX=0
 # 734 -> 743 (2026-07-09): expression usage lane selection now uses a typed
 # CodegenExpressionParts row with explicit presence bits and Option-backed lane
 # projection.
-RESULT_USE_MIN=743
+# 743 -> 746 (2026-07-09): try-let initializer lowering now consumes a single
+# fact seam through an Option<String> view instead of reopening arena payloads.
+RESULT_USE_MIN=746
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

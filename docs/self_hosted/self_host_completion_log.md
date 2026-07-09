@@ -5449,3 +5449,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This narrows the remaining mixed AST-like tree blocker to one bridge seam.
   The blocker remains active until typed/tagged expression rows replace the
   transitional arena text behind `CodegenExpressionParts`.
+
+### 2026-07-09 -- Try-let initializer checks consume one owner fact
+
+- Added `CodegenLetTryInitializerFact` inside `ast_text_try_let_owner.pgy` as
+  the single transitional fact row for `Let` initializer text used by try-let
+  lowering.
+- Repointed `CodegenAstArenaLetInitializerHasTry(...)` and
+  `CodegenAstArenaLetTryInner(...)` so both consume an `Option<String>` view of
+  the fact instead of each reopening `TypedAstArenaValueText(arena, node_id)`.
+- Tightened `self_hosted_component_contract_smoke.sh` so the try-let owner must
+  expose the fact seam and may read the initializer payload only once.
+- This reduces the mixed AST-like tree blocker inside the input owner surface.
+  The blocker remains active until typed statement payload rows replace the
+  transitional arena value row behind the fact.

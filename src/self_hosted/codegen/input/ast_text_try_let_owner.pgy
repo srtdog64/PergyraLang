@@ -6,26 +6,45 @@
 import "ast_text_typed_arena_owner.pgy";
 import "../text/text_owner.pgy";
 
-func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool {
+struct CodegenLetTryInitializerFact {
+    let has_initializer: Bool;
+    let initializer: String;
+}
+
+func CodegenAstArenaLetTryInitializerFactAt(arena: AstArena, node_id: Int) -> CodegenLetTryInitializerFact {
     if !CodegenAstArenaIsLetStmt(arena, node_id) {
-        return false;
+        return CodegenLetTryInitializerFact(false, "");
     }
     let value: Option<String> = TypedAstArenaValueText(arena, node_id);
     if !IsSome(value) {
+        return CodegenLetTryInitializerFact(false, "");
+    }
+    return CodegenLetTryInitializerFact(true, UnwrapOption(value));
+}
+
+func CodegenLetTryInitializerText(fact: CodegenLetTryInitializerFact) -> Option<String> {
+    if !fact.has_initializer {
+        return None;
+    }
+    return Some(fact.initializer);
+}
+
+func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool {
+    let fact: CodegenLetTryInitializerFact = CodegenAstArenaLetTryInitializerFactAt(arena, node_id);
+    let initializer: Option<String> = CodegenLetTryInitializerText(fact);
+    if !IsSome(initializer) {
         return false;
     }
-    return ContainsOutsideStrings(UnwrapOption(value), "(?");
+    return ContainsOutsideStrings(UnwrapOption(initializer), "(?");
 }
 
 func CodegenAstArenaLetTryInner(arena: AstArena, node_id: Int) -> Option<String> {
-    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+    let fact: CodegenLetTryInitializerFact = CodegenAstArenaLetTryInitializerFactAt(arena, node_id);
+    let initializer: Option<String> = CodegenLetTryInitializerText(fact);
+    if !IsSome(initializer) {
         return None;
     }
-    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
-    if !IsSome(value) {
-        return None;
-    }
-    let e: String = StringTrim(UnwrapOption(value));
+    let e: String = StringTrim(UnwrapOption(initializer));
     let n: Int = StringLength(e);
     if n < 4 || CodegenCharAt(e, 0) != "(" || CodegenCharAt(e, 1) != "?" || CodegenCharAt(e, n - 1) != ")" {
         return None;
