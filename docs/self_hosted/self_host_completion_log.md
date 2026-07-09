@@ -5555,3 +5555,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   runtime-call ABI artifact and the native MIR resource runtime-call row table.
   The production ABI blocker remains open until C and LLVM emitters consume the
   concrete rows directly.
+
+### 2026-07-09 -- Native runtime-call rows expose artifact shape facts
+
+- Extended the native `mir_abi_resource_runtime_row_*` API with row domain,
+  target kind, and materialization accessors.
+- Updated the artifact comparison test so `native-resource`, `function`, and
+  `mir_abi_resource_row` come from the MIR row owner instead of test-local
+  constants.
+- Tightened `abi_ownership_shape_smoke.sh` against dropping those row-shape
+  facts from the native ABI owner.

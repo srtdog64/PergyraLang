@@ -126,7 +126,7 @@ test_mir_lowering_part_a(void)
                && opt_string->niche_none_pattern == NULL);
     }
 
-    TEST("MIR ABI owner synthesizes constructed resource runtime rows");
+    TEST("MIR ABI owner synthesizes constructed resource runtime spellings");
     {
         const char *slot_claim = mir_abi_resource_runtime_fn_by_kind(
             MIR_RESOURCE_ABI_SLOT, "Vec2", "Claim");
@@ -160,9 +160,12 @@ test_mir_lowering_part_a(void)
     TEST("MIR ABI resource runtime row table exposes native resource rows");
     {
         EXPECT(mir_abi_resource_runtime_row_count() == 150);
-        EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(0), "Slot<Int>") == 0
+        EXPECT(strcmp(mir_abi_resource_runtime_row_domain(0), "native-resource") == 0
+               && strcmp(mir_abi_resource_runtime_row_type_name(0), "Slot<Int>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(0), "Claim") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(0), "pgy_claim_Int") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(0), "pgy_claim_Int") == 0
+               && strcmp(mir_abi_resource_runtime_row_target_kind(0), "function") == 0
+               && strcmp(mir_abi_resource_runtime_row_materialization(0), "mir_abi_resource_row") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(47), "SecureSlot<String>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(47), "Write") == 0
                && strcmp(mir_abi_resource_runtime_row_symbol(47), "pgy_secure_write_String") == 0);
@@ -178,9 +181,12 @@ test_mir_lowering_part_a(void)
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(149), "DeviceSlot<String>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(149), "SubmitRead") == 0
                && strcmp(mir_abi_resource_runtime_row_symbol(149), "pgy_submit_device_read_String") == 0);
-        EXPECT(mir_abi_resource_runtime_row_type_name(150) == NULL
+        EXPECT(mir_abi_resource_runtime_row_domain(150) == NULL
+               && mir_abi_resource_runtime_row_type_name(150) == NULL
                && mir_abi_resource_runtime_row_operation(150) == NULL
-               && mir_abi_resource_runtime_row_symbol(150) == NULL);
+               && mir_abi_resource_runtime_row_symbol(150) == NULL
+               && mir_abi_resource_runtime_row_target_kind(150) == NULL
+               && mir_abi_resource_runtime_row_materialization(150) == NULL);
     }
 
     TEST("MIR ABI native resource rows match self-host runtime-call artifact");

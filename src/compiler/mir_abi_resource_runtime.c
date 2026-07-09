@@ -154,6 +154,14 @@ mir_abi_resource_runtime_row_count(void)
 }
 
 const char *
+mir_abi_resource_runtime_row_domain(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return "native-resource";
+}
+
+const char *
 mir_abi_resource_runtime_row_type_name(size_t index)
 {
     if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
@@ -175,6 +183,22 @@ mir_abi_resource_runtime_row_symbol(size_t index)
     if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
         return NULL;
     return k_abi_resource_runtime_fn_table[index].runtime_fn;
+}
+
+const char *
+mir_abi_resource_runtime_row_target_kind(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return "function";
+}
+
+const char *
+mir_abi_resource_runtime_row_materialization(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return "mir_abi_resource_row";
 }
 
 static bool

@@ -504,18 +504,24 @@ format_expected_native_resource_row_suffix(size_t native_index,
                                            char *dst,
                                            size_t dst_size)
 {
+    const char *domain = mir_abi_resource_runtime_row_domain(native_index);
     const char *type_name = mir_abi_resource_runtime_row_type_name(native_index);
     const char *operation = mir_abi_resource_runtime_row_operation(native_index);
     const char *symbol = mir_abi_resource_runtime_row_symbol(native_index);
+    const char *target_kind = mir_abi_resource_runtime_row_target_kind(native_index);
+    const char *materialization =
+        mir_abi_resource_runtime_row_materialization(native_index);
     int written;
 
-    if (type_name == NULL || operation == NULL || symbol == NULL ||
+    if (domain == NULL || type_name == NULL || operation == NULL ||
+        symbol == NULL || target_kind == NULL || materialization == NULL ||
         dst == NULL || dst_size == 0)
         return false;
 
     written = snprintf(dst, dst_size,
-                       "native-resource|%s.%s|%s|function|mir_abi_resource_row",
-                       type_name, operation, symbol);
+                       "%s|%s.%s|%s|%s|%s",
+                       domain, type_name, operation, symbol, target_kind,
+                       materialization);
     return written >= 0 && (size_t)written < dst_size;
 }
 
