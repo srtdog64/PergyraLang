@@ -6095,3 +6095,13 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   manifest/corpus parity, but made readiness independent of row insertion
   order across source, ABI, behavior, diagnostic, AIR, MIR, runtime trace,
   capability profile, and stdlib compatibility surfaces.
+
+### 2026-07-10 -- AIR evidence readiness consumes named proof facts
+
+- Added `CompilerAirEvidenceFactKnown(...)` to the compiler AIR evidence owner.
+- Repointed `CompilerAirEvidenceEnvelopeReady()` from fixed
+  `FactCount() == 7` and representative `FactAt(n)` checks to named proof-fact
+  membership plus an out-of-range boundary check.
+- Tightened the component and compiler-world contracts so AIR evidence
+  readiness cannot return to index-position truth while the AIR graph validator
+  continues to consume the envelope before fixture validation.

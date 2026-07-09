@@ -3365,8 +3365,13 @@ require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAir
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceSlotOwnershipFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceMaterializationReasonFact"
 require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceLossBudgetFact"
-require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact()"
-require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact()"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "func CompilerAirEvidenceFactKnown"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(CompilerAirEvidenceFactCount()) == \"\""
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactKnown(CompilerAirEvidenceIntentGraphFact())"
+require_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact())"
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactCount() == 7"
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact()"
+reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" "CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact()"
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(0) == "intent_graph"'
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(1) == "effect_set"'
 reject_text "src/self_hosted/compiler/air_evidence_owner.pgy" 'CompilerAirEvidenceFactAt(2) == "authority_evidence"'

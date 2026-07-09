@@ -50,13 +50,25 @@ func CompilerAirEvidenceFactAt(index: Int) -> String {
     return "";
 }
 
+func CompilerAirEvidenceFactKnown(fact: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerAirEvidenceFactCount() {
+        if CompilerAirEvidenceFactAt(i) == fact {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CompilerAirEvidenceEnvelopeReady() -> Bool {
-    return CompilerAirEvidenceFactCount() == 7 &&
-        CompilerAirEvidenceFactAt(0) == CompilerAirEvidenceIntentGraphFact() &&
-        CompilerAirEvidenceFactAt(1) == CompilerAirEvidenceEffectSetFact() &&
-        CompilerAirEvidenceFactAt(2) == CompilerAirEvidenceAuthorityEvidenceFact() &&
-        CompilerAirEvidenceFactAt(3) == CompilerAirEvidenceCoordinationFact() &&
-        CompilerAirEvidenceFactAt(4) == CompilerAirEvidenceSlotOwnershipFact() &&
-        CompilerAirEvidenceFactAt(5) == CompilerAirEvidenceMaterializationReasonFact() &&
-        CompilerAirEvidenceFactAt(6) == CompilerAirEvidenceLossBudgetFact();
+    return CompilerAirEvidenceFactCount() > 0 &&
+        CompilerAirEvidenceFactAt(CompilerAirEvidenceFactCount()) == "" &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceIntentGraphFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceEffectSetFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceAuthorityEvidenceFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceCoordinationFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceSlotOwnershipFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceMaterializationReasonFact()) &&
+        CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact());
 }

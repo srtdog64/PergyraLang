@@ -594,8 +594,12 @@ done
 
 for term in \
     "func CompilerAirEvidenceSchema" \
+    "func CompilerAirEvidenceFactKnown" \
     "CompilerAirEvidenceEnvelopeReady" \
-    "CompilerAirEvidenceFactCount() == 7" \
+    "CompilerAirEvidenceFactCount() > 0" \
+    "CompilerAirEvidenceFactAt(CompilerAirEvidenceFactCount()) == \"\"" \
+    "CompilerAirEvidenceFactKnown(CompilerAirEvidenceIntentGraphFact())" \
+    "CompilerAirEvidenceFactKnown(CompilerAirEvidenceLossBudgetFact())" \
     "intent_graph" \
     "authority_evidence" \
     "coordination" \
