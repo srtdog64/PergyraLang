@@ -3563,6 +3563,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerSa
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRuntimeMaterializationArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedLlvmArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedSelfHostedArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerRunGroupPlanArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDiagnosticsArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspTransportFrameArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspTransportStreamArtifactKind"
@@ -3570,7 +3571,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLs
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspResponseEmissionArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspSessionReplayArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerLspDocumentStoreArtifactKind"
-require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 23"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindCount() == 24"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind()"
@@ -3594,6 +3595,7 @@ require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifac
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "CompilerArtifactKindAt(23) == CompilerRunGroupPlanArtifactKind()"
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(0) == "diagnostics"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(1) == "air_json"'
 reject_text "src/self_hosted/compiler/artifact_zone_owner.pgy" 'CompilerArtifactKindAt(2) == "mir_json"'
@@ -4610,10 +4612,13 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfh
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlanSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRunGroupsSchema"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact-run-groups.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactSuiteName"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "self-host-completeness-impact-plan"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlannerSuiteName"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "self-host-completeness-impact-planner-paths"
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlannerExpectedRunGroupsPath"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlannerPathAt"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRowAt"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactProofGateFor"
@@ -4638,9 +4643,11 @@ require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SEL
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "self-host-completeness-impact-planner-paths"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_read_test_harness_manifest"
-require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "expected 9 path rows"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "expected 10 path rows"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" '"run_output"'
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" '"run_group_plan"'
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "--run-groups"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "assert_llvm_leg"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "completeness_impact_planner|src/self_hosted/tools/completeness_impact_planner/main.pgy"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manifest expected 14 bootstrap tool rows"
@@ -4649,6 +4656,8 @@ require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impor
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPatternMatches"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerCsvAppendUnique"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRunGroupItem"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRunGroupLine"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRunGroupsText"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerImpactItem"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 0)"
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerRowField(row, 1)"
@@ -4660,6 +4669,8 @@ require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" '"impa
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" '"run_groups"'
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" '"impacts"'
 require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "pgy.selfhost.completeness-impact-planner.v1"
+require_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "CompilerCompletenessImpactRunGroupsSchema()"
+require_text "src/self_hosted/tools/completeness_impact_planner/expected/clean.run_groups.tsv" "schema=pgy.selfhost.completeness-impact-run-groups.v1"
 reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" "ImpactPlannerPathMatches(impact_id"
 reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "selfhost-production-source"'
 reject_text "src/self_hosted/tools/completeness_impact_planner/main.pgy" 'impact_id == "parser-source"'

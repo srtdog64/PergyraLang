@@ -63,6 +63,18 @@ rewrite history.
   values per gate so a future runner can execute the plan without rebuilding
   path-to-env aggregation in shell.
 
+## 2026-07-10 - Completeness run groups become runner-consumable artifacts
+
+- Added `pgy.selfhost.completeness-impact-run-groups.v1` as the line-oriented
+  run-group projection emitted by `completeness_impact_planner --run-groups`.
+  This gives runners a direct TSV plan instead of forcing shell to parse JSON or
+  rebuild groups from matched impact rows.
+- Added `run_group_plan` to `ArtifactZone` so the new projection is compared by
+  the shared backend output comparator with an explicit artifact kind.
+- Extended `self-host-completeness-impact-planner-test-smoke` so the Pergyra
+  planner's JSON artifact and run-group plan artifact are both checked under
+  C/LLVM tool parity.
+
 ## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
 
 - Added recursive scalar-field collection facts to `json_fact_table.pgy`:

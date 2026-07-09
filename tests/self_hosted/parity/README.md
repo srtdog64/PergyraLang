@@ -32,7 +32,8 @@ The parity set currently covers:
 - `backend_output_tri_compare` (C/LLVM outputs checked by the Pergyra
   comparator; use `make self-host-backend-tri-compare-extended-test-smoke` for
   the opt-in 29-case C/LLVM closure gate)
-- `completeness_impact_planner`
+- `completeness_impact_planner` (changed-path JSON plus `run_group_plan`
+  projection for runner-consumable proof-gate groups)
 - `module_manifest_resolver`
 - `stdlib_dispatch_inventory_checker`
 - `doc_link_checker`

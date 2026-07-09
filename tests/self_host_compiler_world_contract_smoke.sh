@@ -567,7 +567,7 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 23" \
+    "CompilerArtifactKindCount() == 24" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
@@ -580,6 +580,7 @@ for term in \
     "CompilerCompatibilityEvolutionArtifactKind" \
     "CompilerTargetCapabilityArtifactKind" \
     "CompilerSandboxCapabilityArtifactKind" \
+    "CompilerRunGroupPlanArtifactKind" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
     "CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind()" \
@@ -603,8 +604,10 @@ for term in \
     "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()" \
     "CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind()" \
     "CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind()" \
+    "CompilerArtifactKindAt(23) == CompilerRunGroupPlanArtifactKind()" \
     "emitted_self_hosted" \
-    "run_output"; do
+    "run_output" \
+    "run_group_plan"; do
     require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "$term"
 done
 

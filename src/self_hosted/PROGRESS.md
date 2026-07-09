@@ -386,7 +386,7 @@ keeps running fine with or without them.
 | `air_graph_ref_integrity`         | 143           | AIR graph dangling endpoint check |
 | `air_graph_reachability`          | 166           | AIR graph root reachability/worklist check |
 | `backend_output_comparator`       | 135           | paired text diff verdict |
-| `completeness_impact_planner`     | 145           | changed-path impact rows -> proof-gate plan |
+| `completeness_impact_planner`     | 351           | changed-path impact rows -> proof-gate/run-group plan |
 | `compatibility_evolution_checker` | 65            | compatibility seed corpus coverage check |
 | `module_manifest_resolver`        | 121           | language_module_manifest.json |
 | `stdlib_dispatch_inventory_checker` | 107         | C/LLVM dispatch table count parity |
@@ -397,7 +397,7 @@ keeps running fine with or without them.
 | `ast_read_surface_checker`        | 219           | CFG/MIR SoT ratchet parity |
 | `linter`                          | 182           | LSP-style diagnostic JSON parity |
 | `runtime_boundary_checker`        | 82            | native-kernel vs portable-policy runtime boundary |
-| **Total peripheral**              | **3004**      | |
+| **Total peripheral**              | **3210**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.

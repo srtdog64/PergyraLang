@@ -7,7 +7,7 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 23;
+    return 24;
 }
 
 func CompilerDiagnosticsArtifactKind() -> String {
@@ -64,6 +64,10 @@ func CompilerEmittedSelfHostedArtifactKind() -> String {
 
 func CompilerRunOutputArtifactKind() -> String {
     return "run_output";
+}
+
+func CompilerRunGroupPlanArtifactKind() -> String {
+    return "run_group_plan";
 }
 
 func CompilerLspDiagnosticsArtifactKind() -> String {
@@ -126,6 +130,7 @@ func CompilerArtifactKindAt(index: Int) -> String {
     if index == 20 { return CompilerLspHoverContentArtifactKind(); }
     if index == 21 { return CompilerTargetCapabilityArtifactKind(); }
     if index == 22 { return CompilerSandboxCapabilityArtifactKind(); }
+    if index == 23 { return CompilerRunGroupPlanArtifactKind(); }
     return "";
 }
 
@@ -141,7 +146,7 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindCount() == 23 &&
+    return CompilerArtifactKindCount() == 24 &&
         CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
         CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
         CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
@@ -164,5 +169,6 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind() &&
         CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind() &&
         CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind() &&
-        CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind();
+        CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind() &&
+        CompilerArtifactKindAt(23) == CompilerRunGroupPlanArtifactKind();
 }

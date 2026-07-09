@@ -51,6 +51,10 @@ func CompilerCompletenessImpactPlanSchema() -> String {
     return "pgy.selfhost.completeness-impact.v1";
 }
 
+func CompilerCompletenessImpactRunGroupsSchema() -> String {
+    return "pgy.selfhost.completeness-impact-run-groups.v1";
+}
+
 func CompilerCompletenessImpactSuiteName() -> String {
     return "self-host-completeness-impact-plan";
 }
@@ -71,20 +75,25 @@ func CompilerCompletenessImpactPlannerExpectedUnmatchedPath() -> String {
     return "src/self_hosted/tools/completeness_impact_planner/expected/unmatched.json";
 }
 
+func CompilerCompletenessImpactPlannerExpectedRunGroupsPath() -> String {
+    return "src/self_hosted/tools/completeness_impact_planner/expected/clean.run_groups.tsv";
+}
+
 func CompilerCompletenessImpactPlannerPathCount() -> Int {
-    return 9;
+    return 10;
 }
 
 func CompilerCompletenessImpactPlannerPathAt(index: Int) -> String {
     if index == 0 { return CompilerCompletenessImpactPlannerToolSourcePath(); }
     if index == 1 { return CompilerCompletenessImpactPlannerExpectedCleanPath(); }
     if index == 2 { return CompilerCompletenessImpactPlannerExpectedUnmatchedPath(); }
-    if index == 3 { return "src/self_hosted/compiler/completeness_ledger_owner.pgy"; }
-    if index == 4 { return "src/self_hosted/parser/main.pgy"; }
-    if index == 5 { return "src/self_hosted/codegen/emission/program_emit.pgy"; }
-    if index == 6 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
-    if index == 7 { return "tests/self_hosted_component_contract_smoke.sh"; }
-    if index == 8 { return "README.md"; }
+    if index == 3 { return CompilerCompletenessImpactPlannerExpectedRunGroupsPath(); }
+    if index == 4 { return "src/self_hosted/compiler/completeness_ledger_owner.pgy"; }
+    if index == 5 { return "src/self_hosted/parser/main.pgy"; }
+    if index == 6 { return "src/self_hosted/codegen/emission/program_emit.pgy"; }
+    if index == 7 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
+    if index == 8 { return "tests/self_hosted_component_contract_smoke.sh"; }
+    if index == 9 { return "README.md"; }
     return "";
 }
 
@@ -446,10 +455,12 @@ func CompilerCompletenessLedgerReady() -> Bool {
         StringLength(CompilerCompletenessFullPipelineBaselineSuiteName()) > 0 &&
         StringLength(CompilerCompletenessIncrementalCacheSchema()) > 0 &&
         StringLength(CompilerCompletenessImpactPlanSchema()) > 0 &&
+        StringLength(CompilerCompletenessImpactRunGroupsSchema()) > 0 &&
         StringLength(CompilerCompletenessImpactSuiteName()) > 0 &&
         StringLength(CompilerCompletenessImpactPlannerSuiteName()) > 0 &&
-        CompilerCompletenessImpactPlannerPathCount() == 9 &&
+        CompilerCompletenessImpactPlannerPathCount() == 10 &&
         CompilerCompletenessImpactPlannerPathAt(0) == CompilerCompletenessImpactPlannerToolSourcePath() &&
+        CompilerCompletenessImpactPlannerPathAt(3) == CompilerCompletenessImpactPlannerExpectedRunGroupsPath() &&
         CompilerCompletenessCacheFingerprintCount() == 8 &&
         CompilerCompletenessCacheFingerprintAt(0) == "source-set" &&
         CompilerCompletenessCacheFingerprintAt(5) == "compiler-executable" &&

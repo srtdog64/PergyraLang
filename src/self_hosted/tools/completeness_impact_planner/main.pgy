@@ -111,6 +111,25 @@ func ImpactPlannerRunGroupItem(
     return JsonEmitObject(fields);
 }
 
+func ImpactPlannerRunGroupLine(
+    gate: String,
+    source_env: String,
+    source_values: String,
+    stage_env: String,
+    stage_value: String,
+    impact_ids: String
+) -> String {
+    let fields: Array<String> = [
+        gate,
+        source_env,
+        source_values,
+        stage_env,
+        stage_value,
+        impact_ids
+    ];
+    return StringJoin(fields, "\t");
+}
+
 func ImpactPlannerImpactItem(
     impact_id: String,
     pattern: String,
@@ -133,7 +152,7 @@ func ImpactPlannerImpactItem(
     return JsonEmitObject(fields);
 }
 
-func ImpactPlannerJson(paths: Array<String>) -> String {
+func ImpactPlannerReport(paths: Array<String>, format: String) -> String {
     let matched_impacts: Array<String> = [];
     let impact_items: Array<String> = [];
     let group_gates: Array<String> = [];
@@ -144,6 +163,7 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
     let group_impact_ids: Array<String> = [];
     let proof_gates: Array<String> = [];
     let findings: Array<String> = [];
+    let unmatched_paths: Array<String> = [];
     let unmatched: Int = 0;
     let path_i: Int = 0;
     while path_i < ArrayLength(paths) {
@@ -222,6 +242,7 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         }
         if !path_matched {
             unmatched = unmatched + 1;
+            ArrayPush(unmatched_paths, path);
             if ArrayLength(findings) < 8 {
                 ArrayPush(findings, ImpactPlannerFinding(path));
             }
@@ -251,6 +272,32 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
         );
         group_out_i = group_out_i + 1;
     }
+    if format == "run-groups" {
+        let lines: Array<String> = [
+            Concat("schema=", CompilerCompletenessImpactRunGroupsSchema())
+        ];
+        let line_i: Int = 0;
+        while line_i < ArrayLength(group_gates) {
+            ArrayPush(
+                lines,
+                ImpactPlannerRunGroupLine(
+                    group_gates[line_i],
+                    group_source_envs[line_i],
+                    group_source_values[line_i],
+                    group_stage_envs[line_i],
+                    group_stage_values[line_i],
+                    group_impact_ids[line_i]
+                )
+            );
+            line_i = line_i + 1;
+        }
+        let finding_i: Int = 0;
+        while finding_i < ArrayLength(unmatched_paths) {
+            ArrayPush(lines, Concat("finding\tunmatched_path\t", unmatched_paths[finding_i]));
+            finding_i = finding_i + 1;
+        }
+        return StringJoin(lines, "\n");
+    }
     let counts_fields: Array<String> = [
         JsonEmitFieldNumber("changed_paths", ToString(ArrayLength(paths))),
         JsonEmitFieldNumber("matched_impacts", ToString(ArrayLength(matched_impacts))),
@@ -272,11 +319,33 @@ func ImpactPlannerJson(paths: Array<String>) -> String {
     return JsonEmitObject(report_fields);
 }
 
+func ImpactPlannerJson(paths: Array<String>) -> String {
+    return ImpactPlannerReport(paths, "json");
+}
+
+func ImpactPlannerRunGroupsText(paths: Array<String>) -> String {
+    return ImpactPlannerReport(paths, "run-groups");
+}
+
 func Main() -> Void {
-    let paths: Array<String> = Args();
-    let report: String = ImpactPlannerJson(paths);
+    let args: Array<String> = Args();
+    let paths: Array<String> = [];
+    let format: String = "json";
+    let arg_i: Int = 0;
+    if ArrayLength(args) > 0 && args[0] == "--run-groups" {
+        format = "run-groups";
+        arg_i = 1;
+    }
+    while arg_i < ArrayLength(args) {
+        ArrayPush(paths, args[arg_i]);
+        arg_i = arg_i + 1;
+    }
+    let report: String = ImpactPlannerReport(paths, format);
     Log(report);
-    if StringContains(report, "\"ok\":false") {
+    if format == "run-groups" && StringContains(report, "finding\tunmatched_path\t") {
+        Exit(1);
+    }
+    if format == "json" && StringContains(report, "\"ok\":false") {
         Exit(1);
     }
 }

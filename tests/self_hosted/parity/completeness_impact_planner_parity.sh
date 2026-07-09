@@ -40,8 +40,8 @@ while IFS= read -r line; do
     harness_paths+=("$line")
 done < "$HARNESS_PATHS_FILE"
 
-if [[ "${#harness_paths[@]}" -ne 9 ]]; then
-    echo "[self-host-parity:completeness-impact-planner] expected 9 path rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 10 ]]; then
+    echo "[self-host-parity:completeness-impact-planner] expected 10 path rows, got ${#harness_paths[@]}" >&2
     cat "$HARNESS_PATHS_FILE" >&2
     exit 1
 fi
@@ -49,10 +49,11 @@ fi
 TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
 EXPECTED_CLEAN="$ROOT_DIR/${harness_paths[1]}"
 EXPECTED_UNMATCHED="$ROOT_DIR/${harness_paths[2]}"
-CLEAN_ARGS=("${harness_paths[@]:3:5}")
-UNMATCHED_ARG="${harness_paths[8]}"
+EXPECTED_RUN_GROUPS="$ROOT_DIR/${harness_paths[3]}"
+CLEAN_ARGS=("${harness_paths[@]:4:5}")
+UNMATCHED_ARG="${harness_paths[9]}"
 
-for path in "$TOOL_SOURCE" "$EXPECTED_CLEAN" "$EXPECTED_UNMATCHED"; do
+for path in "$TOOL_SOURCE" "$EXPECTED_CLEAN" "$EXPECTED_UNMATCHED" "$EXPECTED_RUN_GROUPS"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:completeness-impact-planner] missing input: $path" >&2
         exit 1
@@ -88,6 +89,23 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$EXPECTED_CLEAN" \
     "$CLEAN_OUT" \
     "run_output"
+
+RUN_GROUPS_OUT="$BUILD_DIR/run_groups.out"
+set +e
+(cd "$ROOT_DIR" && "$CLEAN_BIN" --run-groups "${CLEAN_ARGS[@]}" 2>/dev/null | pgy_selfhost_normalize_text_artifact >"$RUN_GROUPS_OUT")
+RUN_GROUPS_RC=$?
+set -e
+if [[ "$RUN_GROUPS_RC" -ne 0 ]]; then
+    echo "[self-host-parity:completeness-impact-planner] run-groups run failed rc=$RUN_GROUPS_RC" >&2
+    cat "$RUN_GROUPS_OUT" >&2
+    exit 1
+fi
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-parity:completeness-impact-planner" \
+    "$BUILD_DIR" \
+    "$EXPECTED_RUN_GROUPS" \
+    "$RUN_GROUPS_OUT" \
+    "run_group_plan"
 
 UNMATCHED_OUT="$BUILD_DIR/unmatched.out"
 set +e
