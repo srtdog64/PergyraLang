@@ -752,8 +752,11 @@ done
 for term in \
     "func CompilerSymbolTableSchema" \
     "CompilerSymbolTableReady" \
-    "CompilerSymbolTableRowCount() == 7" \
-    "CompilerSymbolProjectionAt" \
+    "func CompilerSymbolTableRowKnown" \
+    "func CompilerSymbolProjectionKnown" \
+    "CompilerSymbolTableRowAt(CompilerSymbolTableRowCount()) == \"\"" \
+    "CompilerSymbolProjectionAt(CompilerSymbolProjectionCount()) == \"\"" \
+    "CompilerSymbolProjectionKnown(CompilerSymbolSelfHostedSymbolRow())" \
     "CompilerSymbolCQualifiedName" \
     "source_owner" \
     "namespace_path" \

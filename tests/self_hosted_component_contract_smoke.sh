@@ -1042,8 +1042,17 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolLlvmSymbolRow"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolSelfHostedSymbolRow"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCollisionPolicyRow"
-require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowAt(0) == CompilerSymbolSourceOwnerRow()"
-require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolProjectionAt(0) == CompilerSymbolCSymbolRow()"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolTableRowIndex"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolTableRowKnown"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolProjectionIndex"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolProjectionKnown"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowAt(CompilerSymbolTableRowCount()) == \"\""
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolProjectionAt(CompilerSymbolProjectionCount()) == \"\""
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowKnown(CompilerSymbolSourceOwnerRow())"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolProjectionKnown(CompilerSymbolSelfHostedSymbolRow())"
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowCount() == 7"
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolTableRowAt(0) == CompilerSymbolSourceOwnerRow()"
+reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" "CompilerSymbolProjectionAt(0) == CompilerSymbolCSymbolRow()"
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(0) == "source_owner"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(1) == "source_name"'
 reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolTableRowAt(2) == "namespace_path"'

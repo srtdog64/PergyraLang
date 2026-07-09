@@ -41,6 +41,35 @@ func CompilerSymbolProjectionAt(index: Int) -> String {
     if index == 2 { return CompilerSymbolSelfHostedSymbolRow(); }
     return "";
 }
+func CompilerSymbolTableRowIndex(row_name: String) -> Option<Int> {
+    let i: Int = 0;
+    while i < CompilerSymbolTableRowCount() {
+        if CompilerSymbolTableRowAt(i) == row_name {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+func CompilerSymbolTableRowKnown(row_name: String) -> Bool {
+    return IsSome(CompilerSymbolTableRowIndex(row_name));
+}
+func CompilerSymbolProjectionCount() -> Int {
+    return 3;
+}
+func CompilerSymbolProjectionIndex(row_name: String) -> Option<Int> {
+    let i: Int = 0;
+    while i < CompilerSymbolProjectionCount() {
+        if CompilerSymbolProjectionAt(i) == row_name {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+func CompilerSymbolProjectionKnown(row_name: String) -> Bool {
+    return IsSome(CompilerSymbolProjectionIndex(row_name));
+}
 func CompilerSymbolRequireTable() -> Void {
     if !CompilerSymbolTableReady() {
         Log("SYMBOL ERROR: compiler symbol table owner is not ready");
@@ -174,15 +203,18 @@ func CompilerSymbolCEnumVariantName(enum_name: String, variant_name: String) -> 
     return CompilerSymbolCQualifiedName(enum_name, variant_name);
 }
 func CompilerSymbolTableReady() -> Bool {
-    return CompilerSymbolTableRowCount() == 7 &&
-        CompilerSymbolTableRowAt(0) == CompilerSymbolSourceOwnerRow() &&
-        CompilerSymbolTableRowAt(1) == CompilerSymbolSourceNameRow() &&
-        CompilerSymbolTableRowAt(2) == CompilerSymbolNamespacePathRow() &&
-        CompilerSymbolTableRowAt(3) == CompilerSymbolCSymbolRow() &&
-        CompilerSymbolTableRowAt(4) == CompilerSymbolLlvmSymbolRow() &&
-        CompilerSymbolTableRowAt(5) == CompilerSymbolSelfHostedSymbolRow() &&
-        CompilerSymbolTableRowAt(6) == CompilerSymbolCollisionPolicyRow() &&
-        CompilerSymbolProjectionAt(0) == CompilerSymbolCSymbolRow() &&
-        CompilerSymbolProjectionAt(1) == CompilerSymbolLlvmSymbolRow() &&
-        CompilerSymbolProjectionAt(2) == CompilerSymbolSelfHostedSymbolRow();
+    return CompilerSymbolTableRowCount() > 0 &&
+        CompilerSymbolTableRowAt(CompilerSymbolTableRowCount()) == "" &&
+        CompilerSymbolTableRowKnown(CompilerSymbolSourceOwnerRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolSourceNameRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolNamespacePathRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolCSymbolRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolLlvmSymbolRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolSelfHostedSymbolRow()) &&
+        CompilerSymbolTableRowKnown(CompilerSymbolCollisionPolicyRow()) &&
+        CompilerSymbolProjectionCount() > 0 &&
+        CompilerSymbolProjectionAt(CompilerSymbolProjectionCount()) == "" &&
+        CompilerSymbolProjectionKnown(CompilerSymbolCSymbolRow()) &&
+        CompilerSymbolProjectionKnown(CompilerSymbolLlvmSymbolRow()) &&
+        CompilerSymbolProjectionKnown(CompilerSymbolSelfHostedSymbolRow());
 }

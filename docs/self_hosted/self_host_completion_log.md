@@ -6037,3 +6037,15 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   `self_hosted_component_contract_smoke.sh` so readiness cannot reintroduce
   the `CompilerRuntimeCallAbiConcreteRowCount() == 237` or `RowAt(22) ==`
   position-as-truth checks.
+
+### 2026-07-10 -- Symbol table readiness consumes named row facts
+
+- Added `CompilerSymbolTableRowIndex` / `CompilerSymbolTableRowKnown` and
+  `CompilerSymbolProjectionIndex` / `CompilerSymbolProjectionKnown` to the
+  self-host compiler symbol table owner.
+- Repointed `CompilerSymbolTableReady()` from fixed row/projection index
+  comparisons to named fact membership plus explicit out-of-range boundary
+  checks.
+- Tightened the component and compiler-world contracts so the old
+  `CompilerSymbolTableRowCount() == 7`, `SymbolTableRowAt(0) == ...`, and
+  `SymbolProjectionAt(0) == ...` readiness shape cannot return.
