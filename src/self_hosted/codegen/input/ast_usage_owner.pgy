@@ -6,6 +6,7 @@
 
 import "ast_text_typed_arena_owner.pgy";
 import "ast_expression_usage_owner.pgy";
+import "ast_type_usage_owner.pgy";
 
 struct CodegenRuntimeUsageFacts {
     let uses_args: Bool;
@@ -34,24 +35,6 @@ struct CodegenRuntimeUsageFacts {
     let uses_random: Bool;
 }
 
-func CodegenAstArenaTypePartContains(part: Option<String>, needle: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    return StringIndexOf(UnwrapOption(part), needle) >= 0;
-}
-
-func CodegenAstArenaTypeFactPresent(arena: AstArena, count: Int, needle: String) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaTypePartContains(TypedAstArenaTypeName(arena, i), needle) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
 func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
     let i: Int = 0;
     while i < count {
@@ -65,23 +48,24 @@ func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool 
 
 func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts = CodegenExpressionUsageFactsFromArena(arena, count);
+    let type_usage: CodegenTypeUsageFacts = CodegenTypeUsageFactsFromArena(arena, count);
     let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());
-    let uses_str: Bool = CodegenAstArenaTypeFactPresent(arena, count, "String")
+    let uses_str: Bool = type_usage.has_string
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString());
     let uses_math: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupMath());
     let uses_array_sort: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArraySort());
     let uses_array_reverse: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayReverse());
     let uses_array_map: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayMap());
     let uses_array_filter: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayFilter());
-    let uses_result: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Result<")
+    let uses_result: Bool = type_usage.has_result
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupResult());
-    let uses_option: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Option<")
+    let uses_option: Bool = type_usage.has_option
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
         || CodegenExpressionUsageHasNone(expr_usage);
-    let uses_bool: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Bool") || uses_array_filter || uses_result || uses_option;
+    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option;
     let uses_exit: Bool = CodegenAstArenaKindPresent(arena, count, 17)
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
-    let uses_array: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Array<")
+    let uses_array: Bool = type_usage.has_array
         || CodegenAstArenaKindPresent(arena, count, 19)
         || CodegenAstArenaKindPresent(arena, count, 18)
         || CodegenAstArenaKindPresent(arena, count, 16)
@@ -91,7 +75,7 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
         || uses_array_map
         || uses_array_filter
         || uses_args;
-    let uses_ast_text_node_array: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Array<CodegenAstTextNode");
+    let uses_ast_text_node_array: Bool = type_usage.has_ast_text_node_array;
     let uses_io: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupIo());
     let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
     let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());
@@ -100,7 +84,7 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupLog());
     let uses_fhandle: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFileHandle());
     let uses_print: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupPrint());
-    let uses_float: Bool = CodegenAstArenaTypeFactPresent(arena, count, "Float")
+    let uses_float: Bool = type_usage.has_float
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupFloat());
     let uses_random_value: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupRandomValue());
     let uses_seed_random: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSeedRandom());

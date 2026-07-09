@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -16,10 +16,11 @@ gate first, and escalate to the heavy preparation/parity bundle only when a
 broader compiler-world artifact changed or broad parity is explicitly requested.
 The latest broad parity refresh was `make self-host-preparation-test-smoke`
 on 2026-07-09: it completed green with 203 real sources accepted by both
-selfcheck backends, M2 completeness at 203/203 through
-lexer/parser/semantic/codegen/full pipeline, codegen bootstrap `gen2 == gen3` at
-9816 generated-C lines, DRV-0/DRV-1 driver parity, LSP parity, backend
-tri-compare, and MIR JSON rung-0b parity over 86 fixtures.
+selfcheck backends, codegen bootstrap `gen2 == gen3` at 9816 generated-C lines,
+DRV-0/DRV-1 driver parity, LSP parity, backend tri-compare, and MIR JSON rung-0b
+parity over 86 fixtures. A later focused completeness refresh on 2026-07-09
+raised the M2 ledger to 204/204 through lexer/parser/semantic/codegen/full
+pipeline.
 
 ## Headline Number
 
@@ -82,7 +83,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-203 production self-host source files across lexer, parser, semantic, codegen,
+204 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The real-source semantic selfcheck uses the broad
 203-source C/LLVM gate from the latest parity preparation refresh over the current accepted semantic subset,
 including the codegen run boundary, lexer run/fixture-manifest owners, emission
@@ -433,7 +434,7 @@ The realistic incremental path toward genuine self-host:
    oracle. Recursive import expansion is now owned by `source_bundle_owner.pgy`,
    and the import-backed call fixture proves signatures are consumed from the
   source bundle instead of from a hidden single-file `main` assumption. The
-  real-source selfcheck now feeds 203 accepted self-host owner/source files
+  real-source selfcheck now feeds 204 accepted self-host owner/source files
    through that source-bundle owner rather than a generated import-stripped
    unit. The accepted manifest spans lexer/parser/mir-lower/codegen/compiler-world
   entrypoints, the lexer and mir_lower run/fixture-manifest owners, the compiler path manifest
@@ -503,7 +504,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 203 production self-host
+   The M2 completeness ledger also now checks all 204 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

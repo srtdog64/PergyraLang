@@ -2024,8 +2024,12 @@ reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func C
 reject_text "src/self_hosted/codegen/input/ast_text_inventory_owner.pgy" "func CodegenAstTextExpect(texts:"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "struct CodegenRuntimeUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenRuntimeUsageFactsFromArena"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" 'import "ast_expression_usage_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" 'import "ast_type_usage_owner.pgy";'
+require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "struct CodegenTypeUsageFacts"
+require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "func CodegenTypeUsageFactsFromArena"
+require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
+require_text "src/self_hosted/codegen/input/ast_type_usage_owner.pgy" "TypedAstArenaTypeName(arena, i)"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionParts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_atom: Bool"
@@ -2047,9 +2051,12 @@ require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAs
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 13)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count, 17)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageFactsFromArena(arena, count)"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenTypeUsageFactsFromArena(arena, count)"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs())"
 require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString())"
-require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaTypeFactPresent(arena, count, \"Array<\")"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_array"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_ast_text_node_array"
+require_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "type_usage.has_float"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "ContainsCallOutsideStrings(UnwrapOption(part), callee)"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaAtomText(arena, node_id)"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "TypedAstArenaValueText(arena, node_id)"
@@ -2063,6 +2070,9 @@ reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Type
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinCallPresent(arena, count, \""
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaBuiltinGroupPresent(arena, count"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "ContainsCallOutsideStrings"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaTypeFactPresent(arena, count"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaTypeName(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAtomText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaValueText(arena, i)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaAuxValueText(arena, i)"
@@ -4566,11 +4576,12 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 148
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 154;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 155;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 195;"
-completeness_min_count="$(grep -F "return 203;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 203;"
+completeness_min_count="$(grep -F "return 204;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 203-source closed slice"
+    fail "self-host completeness minima drifted below the 204-source closed slice"
 
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'

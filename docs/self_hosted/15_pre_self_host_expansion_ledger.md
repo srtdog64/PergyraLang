@@ -544,12 +544,21 @@ manifest path suites now live in `test_harness_tool_paths_owner.pgy`. The core
 `CompilerTestHarnessReady()`, but it no longer owns those concrete manifest
 source or expected artifact paths.
 
+TypedAst delta, 2026-07-09: `ast_type_usage_owner.pgy` now owns codegen
+type-surface usage rows (`String`, `Result`, `Option`, `Bool`, `Array`,
+`Array<CodegenAstTextNode>`, and `Float`). `ast_usage_owner.pgy` consumes the
+typed usage fact row and is forbidden by the component contract from scanning
+`TypedAstArenaTypeName(...)` directly. This keeps runtime/header aggregate
+decisions behind a named owner instead of letting one aggregate owner re-open a
+type-name row fallback.
+
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
-M2 minima at 203 for source inventory, lexer, parser, semantic, codegen,
+M2 minima at 204 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
-parity preparation run proved the same 203/203 ledger through C and LLVM
-selfcheck legs, so new production self-host sources cannot enter the inventory
-without passing the full staged completeness path.
+parity preparation run proved the prior 203/203 ledger through C and LLVM
+selfcheck legs; the focused completeness gate now prevents the new production
+self-host source from entering the inventory without passing the full staged
+completeness path.
 
 TestHarness delta, 2026-07-06: `stable_subset_section_checker_parity.sh` now
 compiles and runs the manifest-projected stable-subset checker source in place.

@@ -1,0 +1,46 @@
+// Codegen type usage fact owner.
+//
+// Runtime/header usage decisions need type-surface facts, but the aggregate
+// runtime usage owner should not scan typed arena type-name rows itself.
+
+import "ast_text_typed_arena_owner.pgy";
+
+struct CodegenTypeUsageFacts {
+    let has_string: Bool;
+    let has_result: Bool;
+    let has_option: Bool;
+    let has_bool: Bool;
+    let has_array: Bool;
+    let has_ast_text_node_array: Bool;
+    let has_float: Bool;
+}
+
+func CodegenAstArenaTypePartContains(part: Option<String>, needle: String) -> Bool {
+    if !IsSome(part) {
+        return false;
+    }
+    return StringIndexOf(UnwrapOption(part), needle) >= 0;
+}
+
+func CodegenAstArenaTypeFactPresent(arena: AstArena, count: Int, needle: String) -> Bool {
+    let i: Int = 0;
+    while i < count {
+        if CodegenAstArenaTypePartContains(TypedAstArenaTypeName(arena, i), needle) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenTypeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenTypeUsageFacts {
+    return CodegenTypeUsageFacts(
+        CodegenAstArenaTypeFactPresent(arena, count, "String"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Result<"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Option<"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Bool"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Array<"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Array<CodegenAstTextNode"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Float")
+    );
+}

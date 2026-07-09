@@ -251,13 +251,13 @@ Sandbox capability and frame-budget gate
 Stdlib L2 doctrine pass
 Non-Overclaim Rules
 Do not claim native WASM, WIT, NPU, GPU, or dataflow backend readiness
-203 real self-hosted sources
+204 real self-hosted sources
 SELF-HOSTING OK
 compatibility_evolution_manifest.pgy
 self-host-compatibility-evolution-parity-test-smoke
 sources=173
 sources=175
-sources=203
+sources=204
 all nine compatibility surfaces
 EOF
 

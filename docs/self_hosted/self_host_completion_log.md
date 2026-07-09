@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - Type usage facts enter codegen input ownership
+
+- Added `ast_type_usage_owner.pgy` as the named owner for codegen type-surface
+  usage facts consumed by runtime/header decisions.
+- Repointed `ast_usage_owner.pgy` so aggregate runtime usage consumes
+  `CodegenTypeUsageFactsFromArena(...)` instead of scanning
+  `TypedAstArenaTypeName(...)` rows itself.
+- Tightened the component contract so the aggregate owner cannot reintroduce a
+  type-name row scan, and promoted M2 completeness minima from 203 to 204 for
+  source inventory, lexer, parser, semantic, codegen, lex+parse,
+  lex+parse+semantic, and full-pipeline intersection.
+
 ## 2026-07-09 - Completeness minima promoted to 203
 
 - Promoted `CompilerCompletenessLedger` minima from the 195-source slice to
