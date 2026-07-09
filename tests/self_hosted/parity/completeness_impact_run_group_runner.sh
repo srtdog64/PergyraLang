@@ -59,12 +59,20 @@ for path in "$TOOL_SOURCE"; do
     fi
 done
 
+REQUIRE_CHANGED_PATHS="${PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS:-0}"
+if [[ "$REQUIRE_CHANGED_PATHS" != "0" && "$REQUIRE_CHANGED_PATHS" != "1" ]]; then
+    echo "[self-host-completeness-impact-runner] PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS must be 0 or 1" >&2
+    exit 1
+fi
+
+changed_paths_provided=0
 RUNNER_ARGS=("${CLEAN_ARGS[@]}")
 if [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE:-}" ]]; then
     if [[ ! -f "$PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE" ]]; then
         echo "[self-host-completeness-impact-runner] changed-path file missing: $PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE" >&2
         exit 1
     fi
+    changed_paths_provided=1
     RUNNER_ARGS=()
     while IFS= read -r changed_path || [[ -n "$changed_path" ]]; do
         changed_path="${changed_path%$'\r'}"
@@ -72,6 +80,7 @@ if [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE:-}" ]]; then
         RUNNER_ARGS+=("$changed_path")
     done < "$PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
 elif [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS:-}" ]]; then
+    changed_paths_provided=1
     RUNNER_ARGS=()
     IFS=',' read -r -a changed_path_items <<< "$PGY_SELFHOST_IMPACT_CHANGED_PATHS"
     for changed_path in "${changed_path_items[@]}"; do
@@ -81,6 +90,10 @@ elif [[ -n "${PGY_SELFHOST_IMPACT_CHANGED_PATHS:-}" ]]; then
     done
 fi
 
+if [[ "$REQUIRE_CHANGED_PATHS" == "1" && "$changed_paths_provided" != "1" ]]; then
+    echo "[self-host-completeness-impact-runner] changed-path input required" >&2
+    exit 1
+fi
 if [[ "${#RUNNER_ARGS[@]}" -eq 0 ]]; then
     echo "[self-host-completeness-impact-runner] no changed paths provided" >&2
     exit 1

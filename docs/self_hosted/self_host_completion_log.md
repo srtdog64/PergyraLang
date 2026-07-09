@@ -95,6 +95,9 @@ rewrite history.
 - Extended `completeness_impact_run_group_runner.sh` so callers can provide
   actual changed paths through `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
   `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`.
+- Added `PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS`, used by the new
+  `self-host-preparation-impact-test-smoke` Make entrypoint so impact mode
+  cannot silently fall back to representative clean fixture paths.
 - Extended `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS` with `all`, so callers can
   execute every affected proof-gate group without re-counting planner rows in
   shell.

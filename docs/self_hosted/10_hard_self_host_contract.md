@@ -154,6 +154,10 @@ The Makefile keeps the fast and heavy paths separate:
   documentation, owner shape, and compiler-world parsing.
 - `self-host-preparation-parity-test-smoke` runs the heavy C/LLVM/Pergyra
   parity bundle.
+- `self-host-preparation-impact-test-smoke` is the changed-path entrypoint. It
+  requires caller-supplied changed paths, runs the Pergyra-owned impact runner
+  with `PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS=all`, and does not inspect git
+  state itself.
 - `self-host-completeness-smoke` is the M2 completeness ledger: it counts the
   production self-host source inventory through lexer, parser, semantic, and
   codegen stage checks. It also records cumulative pipeline intersections

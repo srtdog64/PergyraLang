@@ -272,6 +272,11 @@ substrate checks; it does not run the full parity bundle.
 `make self-host-preparation-parity-test-smoke` is the optional heavy path. It
 runs the C/LLVM/Pergyra fixture comparisons and bootstrap checks.
 
+`make self-host-preparation-impact-test-smoke` is the changed-path path. It
+requires `PGY_SELFHOST_IMPACT_CHANGED_PATHS` or
+`PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`, then executes every affected
+Pergyra-owned run group without re-running the whole heavy bundle.
+
 `make self-host-preparation-test-smoke` is intentionally much heavier. It is not
 the normal compiler build; it is the development/CI wrapper that runs the quick
 contract gate plus the heavy parity gate. A long runtime there usually means the

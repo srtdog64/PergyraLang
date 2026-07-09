@@ -134,6 +134,9 @@ The architecture is executable policy:
 - `make self-host-preparation-contract-test-smoke` includes that shape gate.
 - `make self-host-preparation-parity-test-smoke` remains the heavier
   C/LLVM/Pergyra evidence path.
+- `make self-host-preparation-impact-test-smoke` is the changed-path evidence
+  path: the caller supplies changed paths, and the Pergyra impact runner chooses
+  every affected proof-gate group.
 
 This document is a shape contract, not a release claim that the compiler is
 already fully self-hosted.

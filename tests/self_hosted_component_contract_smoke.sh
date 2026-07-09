@@ -4650,9 +4650,16 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" '"tool-exe
 require_text "Makefile" "self-host-completeness-impact-test-smoke"
 require_text "Makefile" "self-host-completeness-impact-planner-test-smoke"
 require_text "Makefile" "self-host-completeness-impact-runner-test-smoke"
+require_text "Makefile" "self-host-preparation-impact-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_manifest.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_planner_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
+require_make_target_text \
+    "self-host-preparation-impact-test-smoke" \
+    "PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS=1"
+require_make_target_text \
+    "self-host-preparation-impact-test-smoke" \
+    "PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS=all"
 require_make_target_text \
     "self-host-preparation-parity-test-smoke" \
     "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
@@ -4675,6 +4682,8 @@ require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" 
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_RUNNER_MAX_GROUPS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "MAX_GROUPS_ALL"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "non-negative integer or all"
+require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_RUNNER_REQUIRE_CHANGED_PATHS"
+require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "changed-path input required"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "RUNNER_ARGS"

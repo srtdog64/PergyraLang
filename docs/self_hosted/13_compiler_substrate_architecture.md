@@ -256,7 +256,9 @@ caller-owned changed-path input through
 `PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE`, then passes those paths directly to
 the Pergyra planner. It deliberately does not inspect git state or infer an
 import graph; callers own the changed-path source, and later rungs must replace
-the coarse path classes with owner-owned dependency fingerprints.
+the coarse path classes with owner-owned dependency fingerprints. The Make
+entrypoint for that mode is `self-host-preparation-impact-test-smoke`, which
+requires changed-path input and runs every affected group.
 
 The pre-self-host expansion ledger is the ratchet for that rule: a hard rung may
 consume `READY` surfaces, must treat `ACTIVE` surfaces as blockers or explicit
