@@ -30,12 +30,24 @@ func CompilerHarnessTargetCapabilityEnvelopePathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessTargetCapabilityEnvelopePathKnown(path: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerHarnessTargetCapabilityEnvelopePathCount() {
+        if CompilerHarnessTargetCapabilityEnvelopePathAt(index) == path {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
 func CompilerHarnessTargetCapabilityEnvelopeReady() -> Bool {
     return CompilerHarnessTargetCapabilityEnvelopeSuiteName() != "" &&
-        CompilerHarnessTargetCapabilityEnvelopePathCount() == 3 &&
-        CompilerHarnessTargetCapabilityEnvelopePathAt(0) == CompilerHarnessTargetCapabilityEnvelopeToolSourcePath() &&
-        CompilerHarnessTargetCapabilityEnvelopePathAt(1) == CompilerHarnessTargetCapabilityEnvelopeExpectedPath() &&
-        CompilerHarnessTargetCapabilityEnvelopePathAt(2) == CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath();
+        CompilerHarnessTargetCapabilityEnvelopePathCount() > 0 &&
+        CompilerHarnessTargetCapabilityEnvelopePathAt(CompilerHarnessTargetCapabilityEnvelopePathCount()) == "" &&
+        CompilerHarnessTargetCapabilityEnvelopePathKnown(CompilerHarnessTargetCapabilityEnvelopeToolSourcePath()) &&
+        CompilerHarnessTargetCapabilityEnvelopePathKnown(CompilerHarnessTargetCapabilityEnvelopeExpectedPath()) &&
+        CompilerHarnessTargetCapabilityEnvelopePathKnown(CompilerHarnessTargetCapabilityEnvelopeMissingFactExpectedPath());
 }
 
 func CompilerHarnessSandboxCapabilitySuiteName() -> String {
@@ -65,10 +77,22 @@ func CompilerHarnessSandboxCapabilityPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessSandboxCapabilityPathKnown(path: String) -> Bool {
+    let index: Int = 0;
+    while index < CompilerHarnessSandboxCapabilityPathCount() {
+        if CompilerHarnessSandboxCapabilityPathAt(index) == path {
+            return true;
+        }
+        index = index + 1;
+    }
+    return false;
+}
+
 func CompilerHarnessSandboxCapabilityReady() -> Bool {
     return CompilerHarnessSandboxCapabilitySuiteName() != "" &&
-        CompilerHarnessSandboxCapabilityPathCount() == 3 &&
-        CompilerHarnessSandboxCapabilityPathAt(0) == CompilerHarnessSandboxCapabilityToolSourcePath() &&
-        CompilerHarnessSandboxCapabilityPathAt(1) == CompilerHarnessSandboxCapabilityExpectedPath() &&
-        CompilerHarnessSandboxCapabilityPathAt(2) == CompilerHarnessSandboxCapabilityMissingBudgetExpectedPath();
+        CompilerHarnessSandboxCapabilityPathCount() > 0 &&
+        CompilerHarnessSandboxCapabilityPathAt(CompilerHarnessSandboxCapabilityPathCount()) == "" &&
+        CompilerHarnessSandboxCapabilityPathKnown(CompilerHarnessSandboxCapabilityToolSourcePath()) &&
+        CompilerHarnessSandboxCapabilityPathKnown(CompilerHarnessSandboxCapabilityExpectedPath()) &&
+        CompilerHarnessSandboxCapabilityPathKnown(CompilerHarnessSandboxCapabilityMissingBudgetExpectedPath());
 }

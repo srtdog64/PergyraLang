@@ -49,6 +49,17 @@ rewrite history.
   readiness checks cannot return while ordered rows remain available for
   TestHarness manifest emission.
 
+## 2026-07-10 - Target TestHarness path suites consume named paths
+
+- Added `CompilerHarnessTargetCapabilityEnvelopePathKnown(...)` and
+  `CompilerHarnessSandboxCapabilityPathKnown(...)` to the target/sandbox
+  TestHarness path owner.
+- Repointed target-capability and sandbox-capability path-suite readiness from
+  fixed `PathCount() == 3` and positional `PathAt(0..2)` checks to named path
+  membership plus out-of-range boundary checks.
+- Kept the ordered path rows stable for `test_harness_manifest.pgy` and the
+  parity runners, while removing row position as the path-suite truth.
+
 ## 2026-07-10 - ABI target-policy readiness consumes row membership
 
 - Added `CompilerAbiLayoutTargetPolicyRowKnown(...)` to the ABI target-policy
