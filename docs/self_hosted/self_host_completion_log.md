@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Compatibility TestHarness paths consume named paths
+
+- Added `CompilerHarnessCompatibilityCorpusPathKnown(...)` and
+  `CompilerHarnessCompatibilityEvolutionPathKnown(...)` to the TestHarness
+  compatibility path owner.
+- Repointed compatibility-corpus and compatibility-evolution path readiness
+  from fixed `PathCount() == N` and positional `PathAt(0..N)` checks to named
+  path membership plus out-of-range boundary checks.
+- Kept ordered path rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while removing row position as the
+  compatibility path-suite truth.
+
 ## 2026-07-10 - Backend contract TestHarness paths consume named paths
 
 - Added `CompilerHarnessBackendEmitterContractPathKnown(...)`,

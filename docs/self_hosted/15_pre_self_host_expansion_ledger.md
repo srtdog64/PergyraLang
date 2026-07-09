@@ -121,6 +121,14 @@ backend-ABI-layout contract path suites now consume named path membership
 checks instead of `PathCount() == N` and representative `PathAt(0..N)`
 readiness. Ordered path rows remain the stable manifest artifact shape only.
 
+TestHarness delta, 2026-07-10: compatibility-corpus and
+compatibility-evolution path suites moved to
+`test_harness_compatibility_paths_owner.pgy` and now consume named path membership
+(`CompilerHarnessCompatibilityCorpusPathKnown` and
+`CompilerHarnessCompatibilityEvolutionPathKnown`) plus out-of-range boundary
+checks instead of `PathCount() == N` and representative `PathAt(0..N)`
+readiness. Ordered path rows remain the stable manifest artifact shape only.
+
 TypedAst delta, 2026-07-07: `typed_ast_node_skeleton.pgy` no longer uses a
 single placeholder `nodes: Array<Int>` row. The owner now carries parallel
 typed node facts (`kind`, `atom`, `has_atom`, child span, child edges, and atom

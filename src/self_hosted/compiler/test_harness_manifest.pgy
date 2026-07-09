@@ -4,6 +4,7 @@
 // parity scripts may execute these records, but must not own the suite list.
 import "test_harness_owner.pgy";
 import "test_harness_tool_paths_owner.pgy";
+import "test_harness_compatibility_paths_owner.pgy";
 import "test_harness_target_paths_owner.pgy";
 import "test_harness_backend_contract_paths_owner.pgy";
 import "test_harness_comparator_paths_owner.pgy";

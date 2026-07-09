@@ -239,6 +239,8 @@ compiler-stage `.pgy` source to be listed here.
   backend-output comparator source, expected verdict, and fixture path suite.
 - `src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy` --
   backend compare smoke and extended fixture case suites.
+- `src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy` --
+  compatibility evolution manifest and corpus checker path suites.
 - `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared
   parity tool/input path suites consumed by test harness manifests.
 - `src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy` --
