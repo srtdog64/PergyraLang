@@ -91,6 +91,20 @@ and backend parity artifacts. Run `PGY_BUILD_RESOURCE_DEEP=1 mingw32-make
 build-resource-report`; if `.tmp/self_hosted` or backend campaign scratch owns
 the file count, use `mingw32-make clean-scratch` before broad local CI.
 
+For a self-host owner edit, do not rerun the 204-source completeness ledger
+until the focused slice is stable. Use the source filter with the relevant
+stage first:
+
+```sh
+PGY_SELFHOST_COMPLETENESS_STAGES=codegen \
+PGY_SELFHOST_COMPLETENESS_SOURCES=src/self_hosted/codegen/input/ast_type_usage_owner.pgy \
+mingw32-make self-host-completeness-smoke
+```
+
+The source filter is local validation only. It requires every selected source
+to pass every selected stage, but it does not prove source-count minima,
+pipeline identity, or the full 204-source replacement ledger.
+
 ---
 
 ## 1. "Nothing to be done for 'bin/pgy.exe'"

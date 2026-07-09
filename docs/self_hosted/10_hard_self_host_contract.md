@@ -171,6 +171,13 @@ The Makefile keeps the fast and heavy paths separate:
   does not update or prove the cumulative pipeline identity ratchet; the
   unfiltered completeness smoke remains the CI/load-bearing proof. Makefile and
   platform CI step lists must not set this variable directly.
+- `PGY_SELFHOST_COMPLETENESS_SOURCES` may additionally name a comma- or
+  space-separated set of manifest-owned `.pgy` paths for local owner-isolation
+  checks. Source-filtered mode must pass every selected source through every
+  selected stage, but it intentionally does not satisfy source-count minima or
+  pipeline identity baselines. It exists to avoid rerunning all 204 production
+  sources after a single owner edit; it is never a replacement for the
+  unfiltered CI proof.
 - `self-host-preparation-test-smoke` is the development/CI wrapper that runs
   both.
 

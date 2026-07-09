@@ -62,11 +62,24 @@ read_manifest "parser-parity-paths" "$PARSER_PATH_MANIFEST"
 read_manifest "semantic-parity-paths" "$SEMANTIC_PATH_MANIFEST"
 read_manifest "codegen-parity-paths" "$CODEGEN_PATH_MANIFEST"
 
-SOURCES=()
+ALL_SOURCES=()
 while IFS= read -r line; do
     [[ -n "$line" ]] || continue
-    SOURCES+=("$line")
+    ALL_SOURCES+=("$line")
 done < <(grep -E '[.]pgy$' "$SOURCE_MANIFEST" | sort)
+SOURCES=("${ALL_SOURCES[@]}")
+
+source_known() {
+    local wanted="$1"
+    local src
+
+    for src in "${ALL_SOURCES[@]}"; do
+        if [[ "$src" == "$wanted" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 STAGES=()
 while IFS= read -r line; do
@@ -120,8 +133,35 @@ if [[ -n "${PGY_SELFHOST_COMPLETENESS_STAGES:-}" ]]; then
     STAGES=("${FILTERED_STAGES[@]}")
 fi
 
+SOURCE_FILTER_RUN=0
+if [[ -n "${PGY_SELFHOST_COMPLETENESS_SOURCES:-}" ]]; then
+    SOURCE_FILTER_RUN=1
+    FILTERED_SOURCES=()
+    IFS=', ' read -r -a SOURCE_FILTER_ITEMS <<< "$PGY_SELFHOST_COMPLETENESS_SOURCES"
+    for src in "${SOURCE_FILTER_ITEMS[@]}"; do
+        [[ -n "$src" ]] || continue
+        src="${src//\\//}"
+        src="${src#./}"
+        if [[ "$src" != *.pgy ]]; then
+            echo "[self-host-completeness] source filter is not a .pgy source: $src" >&2
+            exit 1
+        fi
+        if ! source_known "$src"; then
+            echo "[self-host-completeness] unknown source filter: $src" >&2
+            exit 1
+        fi
+        FILTERED_SOURCES+=("$src")
+    done
+    if [[ "${#FILTERED_SOURCES[@]}" -eq 0 ]]; then
+        echo "[self-host-completeness] empty source filter" >&2
+        exit 1
+    fi
+    SOURCES=("${FILTERED_SOURCES[@]}")
+fi
+
 FULL_STAGE_RUN=0
-if [[ "${#STAGES[@]}" -eq 4 ]] \
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] \
+    && [[ "${#STAGES[@]}" -eq 4 ]] \
     && stage_selected lexer \
     && stage_selected parser \
     && stage_selected semantic \
@@ -390,7 +430,8 @@ print_stage_failures() {
 }
 
 SOURCE_COUNT="${#SOURCES[@]}"
-if (( SOURCE_COUNT < SOURCE_MIN )); then
+SOURCE_TOTAL_COUNT="${#ALL_SOURCES[@]}"
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && (( SOURCE_COUNT < SOURCE_MIN )); then
     echo "[self-host-completeness] source count regressed: $SOURCE_COUNT < $SOURCE_MIN" >&2
     exit 1
 fi
@@ -462,25 +503,48 @@ PARSER_PASS="$(stage_pass parser)"
 SEMANTIC_PASS="$(stage_pass semantic)"
 CODEGEN_PASS="$(stage_pass codegen)"
 
-if stage_selected lexer && (( LEXER_PASS < LEXER_PASS_MIN )); then
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && stage_selected lexer && (( LEXER_PASS < LEXER_PASS_MIN )); then
     echo "[self-host-completeness] lexer pass count regressed: $LEXER_PASS < $LEXER_PASS_MIN" >&2
     print_stage_failures lexer
     exit 1
 fi
-if stage_selected parser && (( PARSER_PASS < PARSER_PASS_MIN )); then
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && stage_selected parser && (( PARSER_PASS < PARSER_PASS_MIN )); then
     echo "[self-host-completeness] parser pass count regressed: $PARSER_PASS < $PARSER_PASS_MIN" >&2
     print_stage_failures parser
     exit 1
 fi
-if stage_selected semantic && (( SEMANTIC_PASS < SEMANTIC_PASS_MIN )); then
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && stage_selected semantic && (( SEMANTIC_PASS < SEMANTIC_PASS_MIN )); then
     echo "[self-host-completeness] semantic pass count regressed: $SEMANTIC_PASS < $SEMANTIC_PASS_MIN" >&2
     print_stage_failures semantic
     exit 1
 fi
-if stage_selected codegen && (( CODEGEN_PASS < CODEGEN_PASS_MIN )); then
+if [[ "$SOURCE_FILTER_RUN" -eq 0 ]] && stage_selected codegen && (( CODEGEN_PASS < CODEGEN_PASS_MIN )); then
     echo "[self-host-completeness] codegen pass count regressed: $CODEGEN_PASS < $CODEGEN_PASS_MIN" >&2
     print_stage_failures codegen
     exit 1
+fi
+
+if [[ "$SOURCE_FILTER_RUN" -eq 1 ]]; then
+    if stage_selected lexer && (( LEXER_PASS != SOURCE_COUNT )); then
+        echo "[self-host-completeness] filtered lexer pass count incomplete: $LEXER_PASS != $SOURCE_COUNT" >&2
+        print_stage_failures lexer
+        exit 1
+    fi
+    if stage_selected parser && (( PARSER_PASS != SOURCE_COUNT )); then
+        echo "[self-host-completeness] filtered parser pass count incomplete: $PARSER_PASS != $SOURCE_COUNT" >&2
+        print_stage_failures parser
+        exit 1
+    fi
+    if stage_selected semantic && (( SEMANTIC_PASS != SOURCE_COUNT )); then
+        echo "[self-host-completeness] filtered semantic pass count incomplete: $SEMANTIC_PASS != $SOURCE_COUNT" >&2
+        print_stage_failures semantic
+        exit 1
+    fi
+    if stage_selected codegen && (( CODEGEN_PASS != SOURCE_COUNT )); then
+        echo "[self-host-completeness] filtered codegen pass count incomplete: $CODEGEN_PASS != $SOURCE_COUNT" >&2
+        print_stage_failures codegen
+        exit 1
+    fi
 fi
 
 if [[ "$FULL_STAGE_RUN" -eq 1 ]]; then
@@ -509,6 +573,10 @@ if [[ "$FULL_STAGE_RUN" -eq 1 ]]; then
     echo "[self-host-completeness] failure manifests: $BUILD_DIR/{lexer,parser,semantic,codegen}_failures.txt"
     echo "[self-host-completeness] pipeline manifests: $BUILD_DIR/{lex_parse,lex_parse_semantic,full_pipeline}_passes.txt"
 else
-    echo "[self-host-completeness] focused ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS stages=${STAGES[*]}"
+    if [[ "$SOURCE_FILTER_RUN" -eq 1 ]]; then
+        echo "[self-host-completeness] focused source-filter ledger ok: sources=$SOURCE_COUNT total_sources=$SOURCE_TOTAL_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS stages=${STAGES[*]}"
+    else
+        echo "[self-host-completeness] focused ledger ok: sources=$SOURCE_COUNT lexer=$LEXER_PASS parser=$PARSER_PASS semantic=$SEMANTIC_PASS codegen=$CODEGEN_PASS stages=${STAGES[*]}"
+    fi
     echo "[self-host-completeness] focused failure manifests: $BUILD_DIR/{lexer,parser,semantic,codegen}_failures.txt"
 fi
