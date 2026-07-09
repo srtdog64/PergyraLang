@@ -274,6 +274,9 @@ require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFact
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonArrayObjectFactFieldCount"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonObjectFactStringFieldEquals"
 require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonDocumentFactStringFieldEquals"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonScalarToken"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonCollectScalarFieldValues"
+require_text "src/self_hosted/lib/json_fact_table.pgy" "func JsonScalarFieldValues"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let keys: Array<String>;"
 reject_text "src/self_hosted/lib/json_fact_table.pgy" "let value_starts: Array<Int>;"
 reject_text "src/self_hosted/lib/json.pgy" 'import "json_emit.pgy";'
@@ -3196,11 +3199,14 @@ require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" '
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitObject(report_fields)"
 require_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" "JsonEmitArray("
 reject_text "src/self_hosted/tools/air_graph_json_validator/report_owner.pgy" 'let json_parts: Array<String>'
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json_fact_table.pgy";'
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json.pgy";'
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" 'import "../../lib/json_scan.pgy";'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphSummaryIntField"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphScalarFieldValues"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphCollectScalarFieldValues"
+require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "return JsonScalarFieldValues(content, field)"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphCollectScalarFieldValues"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func AirGraphScalarToken"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func RequiredGraphFeatureKeys"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func CountMissingGraphFeatureKeys"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "func BuildMissingGraphFeatureFindingFacts"
@@ -3210,8 +3216,8 @@ require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "Js
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFactNumberFieldOpt(summary, field)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonObjectFactHasField(root, key)"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "AirGraphScalarFieldValues(content, key)"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let value_end_opt: Option<Int> = JsonValueEnd(content,"
-require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "let item_end_opt: Option<Int> = JsonValueEnd(content,"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "ReadJsonString(content,"
+reject_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" "JsonValueEnd(content,"
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"execution_lane"'
 require_text "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy" '"boundary_capture"'
 require_text "src/self_hosted/tools/air_graph_json_validator/run_owner.pgy" 'import "../../compiler/air_evidence_owner.pgy";'

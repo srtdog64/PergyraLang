@@ -42,7 +42,7 @@ rule for pre-self-host expansion.
 | Deterministic collections | `MapKeys`, `SetValues` over scalar compiler keys | `stage4-determinism-test-smoke` | stable diagnostics, codegen, MIR JSON, cache keys |
 | Allocator lanes | `AllocatorScratch`, `AllocatorResult`, `AllocatorPersistent`, `AllocatorDestroy` | `runtime-abi-lifetime-test-smoke`, `abi-ownership-shape-test-smoke` | scratch/result/persistent compiler-pass lanes |
 | Diagnostic rendering | `src/self_hosted/lib/diagnostic.pgy` | diagnostic catalog and semantic parity gates | no raw diagnostic construction in entrypoints |
-| JSON read/emit primitives | `src/self_hosted/lib/json_scan.pgy`, `src/self_hosted/lib/json.pgy`, `src/self_hosted/lib/json_fact_table.pgy`, `src/self_hosted/lib/json_emit.pgy` | component contract and real-source selfcheck | `json_scan.pgy` owns cursor/string scan primitives; `json.pgy` owns shared string/number/span reads and document number-field reads; `json_fact_table.pgy` owns bounded object and array-object boundary facts plus document string-field equality facts; `json_emit.pgy` owns JSON string escaping plus field/object/array emission for fact-shaped tools, and emit consumers import it directly |
+| JSON read/emit primitives | `src/self_hosted/lib/json_scan.pgy`, `src/self_hosted/lib/json.pgy`, `src/self_hosted/lib/json_fact_table.pgy`, `src/self_hosted/lib/json_emit.pgy` | component contract and real-source selfcheck | `json_scan.pgy` owns cursor/string scan primitives; `json.pgy` owns shared string/number/span reads and document number-field reads; `json_fact_table.pgy` owns bounded object, array-object boundary facts, document string-field equality facts, and recursive scalar-field facts; `json_emit.pgy` owns JSON string escaping plus field/object/array emission for fact-shaped tools, and emit consumers import it directly |
 | MIR body facts | MIR source-shape / expression / source-local facts | `cfg-body-dataflow-test-smoke`, `ast-read-surface-smoke`, `self-host-mir-json-parity-test-smoke` | fact-only MIR lowering for the supported subset |
 | Raw/FFI policy | scoped raw/unsafe boundary documents and runtime gates | `raw-escape-contract-test-smoke` | normal compiler slices stay out of raw pointer escape |
 | Bit/layout boundary | `bits(..., order=...)`, `reinterpret(..., layout/endian/abi/world=...)` policy | `abi-ownership-shape-test-smoke`, language contract gates | no hidden logical-bit or backend-local layout defaults |
@@ -75,6 +75,12 @@ forbidden-hit artifacts only.
 | Basic nominal-record arrays | LLVM array registry `elem_name` facts plus raw record-array runtime exports | `backend_compare/record_array_basic` through C and LLVM | `Array<NominalRecord>` can be created, passed as a parameter, pushed, set, popped, indexed, and used for member access without reopening AST type guessing |
 | DRV-0 artifact gate | `src/self_hosted/compiler/driver_rung0_owner.pgy`, `src/self_hosted/compiler/driver_rung0_main.pgy` | `self-host-driver-rung0-parity-test-smoke` | source path -> self-parser AST text -> self-codegen emitted C is assembled in one Pergyra owner boundary and compared against `pgy --ast` plus the current codegen oracle |
 | Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates | Comparable diagnostics, LSP, AST text, AIR/MIR JSON, ABI/layout, runtime-call ABI, materialization, emitted C/LLVM/self-hosted, and run-output artifacts now route equality verdicts through `backend_output_comparator` with explicit artifact kinds. Consumer parity scripts must not recompute artifact equality in shell; the comparator's own parity rung is limited to expected-JSON bootstrap comparison plus mismatch and missing-input fixtures. |
+
+StableJson delta, 2026-07-09: `json_fact_table.pgy` now owns recursive
+scalar-field collection through `JsonScalarFieldValues(...)`. The AIR graph
+validator consumes that shared fact and is ratcheted against reintroducing local
+`ReadJsonString` / `JsonValueEnd` recursive scalar scans. This narrows the
+ACTIVE Stable JSON blocker without claiming a complete shared DOM.
 
 ## Active Blockers
 

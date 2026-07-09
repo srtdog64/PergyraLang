@@ -25,6 +25,17 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-09 - AIR graph scalar scans move into JSON fact ownership
+
+- Added recursive scalar-field collection facts to `json_fact_table.pgy`:
+  `JsonScalarToken`, `JsonCollectScalarFieldValues`, and
+  `JsonScalarFieldValues`.
+- Repointed `air_graph_json_validator/scan_owner.pgy` so graph-wide scalar
+  reads consume that shared JSON fact owner instead of carrying a local
+  recursive JSON scanner.
+- Tightened the component contract so the AIR graph scanner cannot reintroduce
+  local `ReadJsonString` / `JsonValueEnd` scalar recursion.
+
 ## 2026-07-09 - Completeness harness gets a fact-owned cache rung
 
 - Added a rung0 incremental cache contract to `completeness_ledger_owner.pgy`:
