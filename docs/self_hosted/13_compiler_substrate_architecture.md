@@ -208,7 +208,10 @@ fingerprints later.
 `self-host-completeness-incremental-cache-parity-test-smoke` is the first
 executable verifier for that vocabulary: it compares a focused clean
 completeness `ledger.tsv` artifact with cache-prime and cache-hit runs, and it
-fails unless the cache-hit run reports an actual cache hit.
+fails unless the cache-hit run reports an actual cache hit. Its source and
+stage filters are emitted by `EmitCompilerIncrementalCacheParityPlan()` through
+the TestHarness manifest, so the shell runner consumes an owner row instead of
+owning the default path.
 
 The cache key for a reusable stage artifact must include the source bytes hash,
 import/module graph fingerprint, language/runtime/stdlib/capability/target

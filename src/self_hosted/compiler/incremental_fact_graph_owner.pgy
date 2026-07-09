@@ -14,6 +14,18 @@ func CompilerIncrementalFactGraphRung0CacheSchema() -> String {
     return CompilerCompletenessIncrementalCacheSchema();
 }
 
+func CompilerIncrementalCacheParitySuiteName() -> String {
+    return "self-host-incremental-cache-parity";
+}
+
+func CompilerIncrementalCacheParityDefaultSource() -> String {
+    return "src/self_hosted/compiler/incremental_fact_graph_owner.pgy";
+}
+
+func CompilerIncrementalCacheParityDefaultStages() -> String {
+    return "lexer,parser,semantic,codegen";
+}
+
 func CompilerIncrementalFactGraphStageCount() -> Int {
     return 9;
 }
@@ -89,11 +101,30 @@ func CompilerIncrementalFactGraphMissingFactPolicy() -> String {
     return "fail-closed-recompute-no-text-recovery";
 }
 
+func EmitCompilerIncrementalCacheParityPlan() -> Void {
+    Log(Concat("schema=", CompilerIncrementalFactGraphSchema()));
+    Log(Concat("cache_schema=", CompilerIncrementalFactGraphRung0CacheSchema()));
+    Log(Concat("source=", CompilerIncrementalCacheParityDefaultSource()));
+    Log(Concat("stages=", CompilerIncrementalCacheParityDefaultStages()));
+    Log(Concat("verifier=", CompilerIncrementalFactGraphVerifierAt(0)));
+    Log(Concat("cache_hit_policy=", CompilerIncrementalFactGraphCacheHitPolicy()));
+    Log(Concat("missing_fact_policy=", CompilerIncrementalFactGraphMissingFactPolicy()));
+}
+
 func CompilerIncrementalFactGraphReady() -> Bool {
     if CompilerIncrementalFactGraphSchema() != "pgy.selfhost.incremental-fact-graph.v1" {
         return false;
     }
     if CompilerIncrementalFactGraphRung0CacheSchema() != "pgy.selfhost.completeness-cache.v1" {
+        return false;
+    }
+    if CompilerIncrementalCacheParitySuiteName() != "self-host-incremental-cache-parity" {
+        return false;
+    }
+    if CompilerIncrementalCacheParityDefaultSource() != "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" {
+        return false;
+    }
+    if CompilerIncrementalCacheParityDefaultStages() != "lexer,parser,semantic,codegen" {
         return false;
     }
     if CompilerIncrementalFactGraphStageCount() != 9 {

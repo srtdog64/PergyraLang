@@ -189,9 +189,11 @@ The Makefile keeps the fast and heavy paths separate:
   clean/cache proof. It runs a focused completeness ledger once with the cache
   disabled, then twice with the cache enabled, and compares the stable
   `ledger.tsv` plus focused summary artifacts. It must observe a real cache
-  hit. This proves the current pass-marker cache does not change the focused
-  completeness artifact; it is not a claim that precise import-graph
-  invalidation is complete.
+  hit. The default source and stage filters come from
+  `CompilerIncrementalCacheParitySuiteName()` in the Pergyra incremental fact
+  graph owner, not from shell-local path constants. This proves the current
+  pass-marker cache does not change the focused completeness artifact; it is
+  not a claim that precise import-graph invalidation is complete.
 - `PGY_SELFHOST_COMPLETENESS_CACHE=0` disables the local completeness cache.
   The default rung0 cache reuses only stage-tool builds and verified pass
   artifacts keyed by `pgy.selfhost.completeness-cache.v1`, the full production

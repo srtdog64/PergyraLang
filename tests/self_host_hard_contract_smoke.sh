@@ -104,6 +104,12 @@ require_text "Makefile" "tests/self_host_compiler_world_contract_smoke.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_ledger.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_incremental_cache_parity.sh"
 require_text "Makefile" "self-host-preparation-test-smoke:"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" \
+    "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" \
+    "self-host-incremental-cache-parity"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" \
+    "CompilerIncrementalCacheParitySuiteName"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "Normal compiler builds must not imply the heavy self-host parity bundle."
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \

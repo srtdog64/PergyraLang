@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Incremental cache parity consumes owner plan
+
+- Moved the default source/stage filters for
+  `completeness_incremental_cache_parity.sh` behind
+  `EmitCompilerIncrementalCacheParityPlan()` in
+  `incremental_fact_graph_owner.pgy`.
+- Wired `test_harness_manifest.pgy` to emit the
+  `self-host-incremental-cache-parity` suite so the shell runner consumes the
+  Pergyra owner row instead of hard-coding the owner source path locally.
+
 ## 2026-07-10 - Completeness cache gets clean/cache parity gate
 
 - Added `tests/self_hosted/parity/completeness_incremental_cache_parity.sh`.

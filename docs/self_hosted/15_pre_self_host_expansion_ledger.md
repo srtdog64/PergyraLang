@@ -605,9 +605,11 @@ Incremental cache parity delta, 2026-07-10:
 the first executable clean-vs-cache proof for that graph. It runs the focused
 completeness ledger with cache disabled, then cache-prime and cache-hit modes,
 compares the stable `ledger.tsv` and focused summary artifacts, and requires a
-reported cache hit. `self-host-preparation-parity-test-smoke` calls this gate
-after the full completeness ledger, so rung0 cache reuse is no longer only a
-performance convenience.
+reported cache hit. The default source/stage filters are emitted by
+`EmitCompilerIncrementalCacheParityPlan()` from the Pergyra owner and consumed
+through the TestHarness manifest. `self-host-preparation-parity-test-smoke`
+calls this gate after the full completeness ledger, so rung0 cache reuse is no
+longer only a performance convenience.
 
 Completeness impact delta, 2026-07-09: the same owner now emits
 `pgy.selfhost.completeness-impact.v1`, a rung0 impact plan that maps

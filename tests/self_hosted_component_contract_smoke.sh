@@ -4628,6 +4628,11 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func Comp
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "pgy.selfhost.incremental-fact-graph.v1"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalFactGraphRung0CacheSchema"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerCompletenessIncrementalCacheSchema()"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalCacheParitySuiteName"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "self-host-incremental-cache-parity"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "EmitCompilerIncrementalCacheParityPlan"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalCacheParityDefaultSource"
+require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "CompilerIncrementalCacheParityDefaultStages"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "source-bytes-hash"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "import-graph-fingerprint"
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "abi-row-fingerprint"
@@ -4637,6 +4642,9 @@ require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "unsupp
 require_text "src/self_hosted/compiler/incremental_fact_graph_owner.pgy" "fail-closed-recompute-no-text-recovery"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "incremental_fact_graph_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerIncrementalFactGraphReady()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "incremental_fact_graph_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerIncrementalCacheParitySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerIncrementalCacheParityPlan()"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactPlanSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-impact.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessImpactRunGroupsSchema"
@@ -4765,11 +4773,20 @@ require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_BUILD_DIR"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "pgy_selfhost_read_test_harness_manifest"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "self-host-incremental-cache-parity"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "manifest_value source"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "manifest_value stages"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "manifest_value verifier"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "verify-consumed-owner-facts-before-reuse"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "fail-closed-recompute-no-text-recovery"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "clean-vs-cache parity gate"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "cache_hit"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "ledger.tsv"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "focused source-filter ledger ok"
 require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "cache-hit run did not report a cache hit"
+reject_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" 'SOURCE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_SOURCE:-src/self_hosted/compiler/incremental_fact_graph_owner.pgy}"'
+reject_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" 'STAGE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_STAGES:-lexer,parser,semantic,codegen}"'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" '.tmp/self_hosted/completeness/ast/${safe}.ast.txt'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'count_stage "$stage" | tee -a "$LEDGER"'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'stage_result="$(count_stage "$stage")"'

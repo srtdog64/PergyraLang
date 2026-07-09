@@ -19,6 +19,7 @@ import "test_harness_mir_json_paths_owner.pgy";
 import "test_harness_codegen_bootstrap_paths_owner.pgy";
 import "test_harness_lsp_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
+import "incremental_fact_graph_owner.pgy";
 import "path_manifest_owner.pgy";
 
 func EmitBackendTriSmokeCases() -> Void {
@@ -583,6 +584,10 @@ func Main() -> Void {
     }
     if args[0] == CompilerCompletenessFullPipelineBaselineSuiteName() {
         EmitCompilerCompletenessFullPipelineBaseline();
+        return;
+    }
+    if args[0] == CompilerIncrementalCacheParitySuiteName() {
+        EmitCompilerIncrementalCacheParityPlan();
         return;
     }
     if args[0] == CompilerCompletenessImpactSuiteName() { EmitCompilerCompletenessImpactPlan(); return; }

@@ -8,9 +8,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
 if [[ ! -x "$PGY" ]]; then
@@ -22,11 +25,57 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-SOURCE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_SOURCE:-src/self_hosted/compiler/incremental_fact_graph_owner.pgy}"
-STAGE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_STAGES:-lexer,parser,semantic,codegen}"
 BUILD_ROOT="${PGY_SELFHOST_INCREMENTAL_CACHE_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/incremental_cache_parity}"
 mkdir -p "$BUILD_ROOT"
 WORK_DIR="$(mktemp -d "$BUILD_ROOT/run.XXXXXX")"
+MANIFEST_FILE="$WORK_DIR/incremental_cache_parity_plan.txt"
+
+pgy_selfhost_read_test_harness_manifest \
+    "self-host-incremental-cache" \
+    "$WORK_DIR/manifest" \
+    "self-host-incremental-cache-parity" \
+    "$MANIFEST_FILE"
+
+manifest_value() {
+    local key="$1"
+    local value
+    value="$(grep -E "^${key}=" "$MANIFEST_FILE" | tail -1 | cut -d= -f2-)"
+    if [[ -z "$value" ]]; then
+        echo "[self-host-incremental-cache] missing manifest key: $key" >&2
+        cat "$MANIFEST_FILE" >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+SCHEMA="$(manifest_value schema)"
+CACHE_SCHEMA="$(manifest_value cache_schema)"
+SOURCE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_SOURCE:-$(manifest_value source)}"
+STAGE_FILTER="${PGY_SELFHOST_INCREMENTAL_CACHE_STAGES:-$(manifest_value stages)}"
+VERIFIER_NAME="$(manifest_value verifier)"
+CACHE_HIT_POLICY="$(manifest_value cache_hit_policy)"
+MISSING_FACT_POLICY="$(manifest_value missing_fact_policy)"
+
+if [[ "$SCHEMA" != "pgy.selfhost.incremental-fact-graph.v1" ]]; then
+    echo "[self-host-incremental-cache] unexpected schema: $SCHEMA" >&2
+    exit 1
+fi
+if [[ "$CACHE_SCHEMA" != "pgy.selfhost.completeness-cache.v1" ]]; then
+    echo "[self-host-incremental-cache] unexpected cache schema: $CACHE_SCHEMA" >&2
+    exit 1
+fi
+if [[ "$VERIFIER_NAME" != "clean-vs-incremental-artifact-parity" ]]; then
+    echo "[self-host-incremental-cache] unexpected verifier: $VERIFIER_NAME" >&2
+    exit 1
+fi
+if [[ "$CACHE_HIT_POLICY" != "verify-consumed-owner-facts-before-reuse" ]]; then
+    echo "[self-host-incremental-cache] unexpected cache-hit policy: $CACHE_HIT_POLICY" >&2
+    exit 1
+fi
+if [[ "$MISSING_FACT_POLICY" != "fail-closed-recompute-no-text-recovery" ]]; then
+    echo "[self-host-incremental-cache] unexpected missing-fact policy: $MISSING_FACT_POLICY" >&2
+    exit 1
+fi
 
 run_ledger() {
     local label="$1"
