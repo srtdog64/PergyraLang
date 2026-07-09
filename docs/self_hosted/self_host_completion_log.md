@@ -6024,3 +6024,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component and compiler-world contracts so the payload contract
   cannot reopen a second fixture-count source of truth while the shell parity
   ratchet still checks the current 95-fixture frontier.
+
+### 2026-07-10 -- Runtime-call ABI readiness consumes row keys
+
+- Added `CompilerRuntimeCallAbiRowIndex(domain, operation)` and
+  `CompilerRuntimeCallAbiRowFor(domain, operation)` to the self-host
+  runtime-call ABI row owner.
+- Repointed `CompilerRuntimeCallAbiRowsReady()` so representative runtime helper
+  and native-resource rows are checked by their `domain|operation` key instead
+  of fixed artifact indexes.
+- Kept the runnable manifest's ordered artifact output intact, but tightened
+  `self_hosted_component_contract_smoke.sh` so readiness cannot reintroduce
+  the `CompilerRuntimeCallAbiConcreteRowCount() == 237` or `RowAt(22) ==`
+  position-as-truth checks.

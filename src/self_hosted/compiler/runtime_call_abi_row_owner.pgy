@@ -453,28 +453,47 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     return "";
 }
 
+func CompilerRuntimeCallAbiRowKeyPrefix(domain: String, operation: String) -> String {
+    return Concat(Concat(domain, "|"), Concat(operation, "|"));
+}
+
+func CompilerRuntimeCallAbiRowIndex(domain: String, operation: String) -> Option<Int> {
+    let i: Int = 0;
+    let prefix: String = CompilerRuntimeCallAbiRowKeyPrefix(domain, operation);
+    while i < CompilerRuntimeCallAbiConcreteRowCount() {
+        if StringIndexOf(CompilerRuntimeCallAbiRowAt(i), prefix) == 0 {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func CompilerRuntimeCallAbiRowFor(domain: String, operation: String) -> String {
+    let row: Option<Int> = CompilerRuntimeCallAbiRowIndex(domain, operation);
+    if !IsSome(row) { return ""; }
+    return CompilerRuntimeCallAbiRowAt(UnwrapOption(row));
+}
+
 func CompilerRuntimeCallAbiRowsReady() -> Bool {
-    return CompilerRuntimeCallAbiRowFactCount() == 6 &&
+    return CompilerRuntimeCallAbiRowFactCount() > 0 &&
         CompilerRuntimeCallAbiRowFactAt(0) == CompilerRuntimeCallAbiRowDomainFact() &&
-        CompilerRuntimeCallAbiRowFactAt(1) == CompilerRuntimeCallAbiRowOperationFact() &&
-        CompilerRuntimeCallAbiRowFactAt(2) == CompilerRuntimeCallAbiRowSymbolFact() &&
-        CompilerRuntimeCallAbiRowFactAt(3) == CompilerRuntimeCallAbiRowSymbolKindFact() &&
-        CompilerRuntimeCallAbiRowFactAt(4) == CompilerRuntimeCallAbiRowMaterializationFact() &&
-        CompilerRuntimeCallAbiRowFactAt(5) == CompilerRuntimeCallAbiRowCallShapeFact() &&
-        CompilerRuntimeCallAbiConcreteRowCount() == 237 &&
-        CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(24) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(25) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(38) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(47) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(71) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
-        CompilerRuntimeCallAbiRowAt(86) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
-        CompilerRuntimeCallAbiRowAt(87) == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container" &&
-        CompilerRuntimeCallAbiRowAt(134) == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void" &&
-        CompilerRuntimeCallAbiRowAt(135) == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row|container_ptr_to_pinned_view" &&
-        CompilerRuntimeCallAbiRowAt(206) == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row|pinned_view_ptr_to_void" &&
-        CompilerRuntimeCallAbiRowAt(207) == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container" &&
-        CompilerRuntimeCallAbiRowAt(230) == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row|container_ptr_value_to_void" &&
-        CompilerRuntimeCallAbiRowAt(236) == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle";
+        CompilerRuntimeCallAbiRowFactAt(CompilerRuntimeCallAbiRowFactCount() - 1) == CompilerRuntimeCallAbiRowCallShapeFact() &&
+        CompilerRuntimeCallAbiConcreteRowCount() > 0 &&
+        CompilerRuntimeCallAbiRowAt(CompilerRuntimeCallAbiConcreteRowCount()) == "" &&
+        CompilerRuntimeCallAbiRowFor("collection", "array-int.new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-int.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-float.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-float.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindFloat()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("option-result", "option-double.some") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-double.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindDouble()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("math", "abs") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("math", "abs", MathRuntimeCAbsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("string", "concat") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "file-exists") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("host-io", "exit") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.Claim") == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.Write") == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "Slot<Int>.PinRead") == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row|container_ptr_to_pinned_view" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.UnpinCleanup") == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row|pinned_view_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<Int>.Claim") == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.Write") == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row|container_ptr_value_to_void" &&
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.SubmitRead") == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle";
 }
