@@ -246,9 +246,11 @@ names or supported target-library call names. `strcmp`, `sqrt`, `pow`, `floor`,
 `compiler/runtime_call_abi_row_owner.pgy` projects those collection,
 Option/Result, math, string, and host-I/O call symbols plus the native
 Slot/SecureSlot/DeviceSlot MIR resource runtime-call table into a runnable
-`runtime_call_abi` artifact. `self-host-runtime-call-abi-row-parity-test-smoke`
-compiles that projection through C and LLVM when available, so runtime helper
-spelling changes are visible as ABI-row diffs instead of backend-local drift.
+`runtime_call_abi` artifact. The artifact records call shape as an owner fact,
+so runtime helper spelling and argument/return shape changes are visible as
+ABI-row diffs instead of backend-local drift.
+`self-host-runtime-call-abi-row-parity-test-smoke` compiles that projection
+through C and LLVM when available.
 `self-host-component-contract-test-smoke` also rejects quoted `pgy_*` runtime
 helper names and supported target-library call names under `emission/`,
 `text/`, and `input/`; new call spellings must enter through `runtime_abi/`

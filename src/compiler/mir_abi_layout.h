@@ -38,6 +38,7 @@ const char *mir_abi_resource_runtime_row_operation(size_t index);
 const char *mir_abi_resource_runtime_row_symbol(size_t index);
 const char *mir_abi_resource_runtime_row_target_kind(size_t index);
 const char *mir_abi_resource_runtime_row_materialization(size_t index);
+const char *mir_abi_resource_runtime_row_call_shape(size_t index);
 void mir_abi_table_init(void);
 
 #endif /* PGY_MIR_ABI_LAYOUT_H */

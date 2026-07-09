@@ -201,6 +201,52 @@ mir_abi_resource_runtime_row_materialization(size_t index)
     return "mir_abi_resource_row";
 }
 
+static const char *
+mir_abi_resource_runtime_call_shape(const char *type_name,
+                                    const char *resource_op_name)
+{
+    bool is_secure = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+
+    if (resource_op_name == NULL)
+        return NULL;
+
+    if (strcmp(resource_op_name, "Claim") == 0)
+        return is_secure ? "token_ptr_to_container" : "returns_container";
+    if (strcmp(resource_op_name, "Read") == 0)
+        return is_secure ? "container_ptr_token_ptr_to_value"
+                         : "container_ptr_to_value";
+    if (strcmp(resource_op_name, "Release") == 0)
+        return is_secure ? "container_ptr_token_ptr_to_void"
+                         : "container_ptr_to_void";
+    if (strcmp(resource_op_name, "Write") == 0)
+        return is_secure ? "container_ptr_value_token_ptr_to_void"
+                         : "container_ptr_value_to_void";
+    if (strcmp(resource_op_name, "PinRead") == 0 ||
+        strcmp(resource_op_name, "PinWrite") == 0)
+        return is_secure ? "container_ptr_token_ptr_to_pinned_view"
+                         : "container_ptr_to_pinned_view";
+    if (strcmp(resource_op_name, "PinReadInit") == 0 ||
+        strcmp(resource_op_name, "PinWriteInit") == 0)
+        return is_secure ? "pinned_view_ptr_container_ptr_token_ptr_to_void"
+                         : "pinned_view_ptr_container_ptr_to_void";
+    if (strcmp(resource_op_name, "Unpin") == 0 ||
+        strcmp(resource_op_name, "UnpinCleanup") == 0)
+        return "pinned_view_ptr_to_void";
+    if (strcmp(resource_op_name, "SubmitRead") == 0)
+        return "container_ptr_to_task_handle";
+    return NULL;
+}
+
+const char *
+mir_abi_resource_runtime_row_call_shape(size_t index)
+{
+    if (index >= PGY_ABI_RESOURCE_RUNTIME_FN_COUNT)
+        return NULL;
+    return mir_abi_resource_runtime_call_shape(
+        k_abi_resource_runtime_fn_table[index].abi_type_name,
+        k_abi_resource_runtime_fn_table[index].resource_op_name);
+}
+
 static bool
 abi_runtime_suffix_copy(const char *type_name, char *buf, size_t buf_size)
 {

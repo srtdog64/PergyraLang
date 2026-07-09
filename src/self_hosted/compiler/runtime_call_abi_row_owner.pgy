@@ -12,11 +12,11 @@ import "../codegen/runtime_abi/option_result_runtime_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
 
 func CompilerRuntimeCallAbiRowSchema() -> String {
-    return "pgy.selfhost.runtime-call-abi-row.v1";
+    return "pgy.selfhost.runtime-call-abi-row.v2";
 }
 
 func CompilerRuntimeCallAbiRowFactCount() -> Int {
-    return 5;
+    return 6;
 }
 
 func CompilerRuntimeCallAbiRowDomainFact() -> String { return "domain"; }
@@ -24,6 +24,7 @@ func CompilerRuntimeCallAbiRowOperationFact() -> String { return "operation"; }
 func CompilerRuntimeCallAbiRowSymbolFact() -> String { return "symbol"; }
 func CompilerRuntimeCallAbiRowSymbolKindFact() -> String { return "symbol_kind"; }
 func CompilerRuntimeCallAbiRowMaterializationFact() -> String { return "materialization"; }
+func CompilerRuntimeCallAbiRowCallShapeFact() -> String { return "call_shape"; }
 
 func CompilerRuntimeCallAbiRowFactAt(index: Int) -> String {
     if index == 0 { return CompilerRuntimeCallAbiRowDomainFact(); }
@@ -31,6 +32,7 @@ func CompilerRuntimeCallAbiRowFactAt(index: Int) -> String {
     if index == 2 { return CompilerRuntimeCallAbiRowSymbolFact(); }
     if index == 3 { return CompilerRuntimeCallAbiRowSymbolKindFact(); }
     if index == 4 { return CompilerRuntimeCallAbiRowMaterializationFact(); }
+    if index == 5 { return CompilerRuntimeCallAbiRowCallShapeFact(); }
     return "";
 }
 
@@ -57,12 +59,158 @@ struct CompilerRuntimeCallAbiRowInput {
     let materialization: String;
 }
 
+func CompilerRuntimeCallAbiNativeResourceCallShape(operation: String) -> String {
+    let is_secure_resource: Bool = StringContains(operation, "SecureSlot<");
+    if StringContains(operation, ".SubmitRead") {
+        return "container_ptr_to_task_handle";
+    }
+    if StringContains(operation, ".PinReadInit") || StringContains(operation, ".PinWriteInit") {
+        if is_secure_resource { return "pinned_view_ptr_container_ptr_token_ptr_to_void"; }
+        return "pinned_view_ptr_container_ptr_to_void";
+    }
+    if StringContains(operation, ".PinRead") || StringContains(operation, ".PinWrite") {
+        if is_secure_resource { return "container_ptr_token_ptr_to_pinned_view"; }
+        return "container_ptr_to_pinned_view";
+    }
+    if StringContains(operation, ".UnpinCleanup") || StringContains(operation, ".Unpin") {
+        return "pinned_view_ptr_to_void";
+    }
+    if StringContains(operation, ".Claim") {
+        if is_secure_resource { return "token_ptr_to_container"; }
+        return "returns_container";
+    }
+    if StringContains(operation, ".Read") {
+        if is_secure_resource { return "container_ptr_token_ptr_to_value"; }
+        return "container_ptr_to_value";
+    }
+    if StringContains(operation, ".Release") {
+        if is_secure_resource { return "container_ptr_token_ptr_to_void"; }
+        return "container_ptr_to_void";
+    }
+    if StringContains(operation, ".Write") {
+        if is_secure_resource { return "container_ptr_value_token_ptr_to_void"; }
+        return "container_ptr_value_to_void";
+    }
+    return "unknown_native_resource_call_shape";
+}
+
+func CompilerRuntimeCallAbiCollectionCallShape(operation: String) -> String {
+    if StringContains(operation, ".new") { return "returns_collection"; }
+    if StringContains(operation, ".push") { return "collection_value_to_void"; }
+    if StringContains(operation, ".set") { return "collection_index_value_to_void"; }
+    if StringContains(operation, ".get") { return "collection_index_to_value"; }
+    if StringContains(operation, ".len") { return "collection_to_int"; }
+    if StringContains(operation, ".pop") { return "collection_to_value"; }
+    if StringContains(operation, ".sort") || StringContains(operation, ".reverse") {
+        return "collection_to_collection";
+    }
+    if StringContains(operation, ".map") || StringContains(operation, ".filter") {
+        return "collection_callback_to_collection";
+    }
+    return "collection_runtime_call";
+}
+
+func CompilerRuntimeCallAbiOptionResultCallShape(operation: String) -> String {
+    if StringContains(operation, ".some") { return "value_to_option"; }
+    if StringContains(operation, ".none") { return "returns_option"; }
+    if operation == "option.is-some" { return "option_to_bool"; }
+    if operation == "option.unwrap" { return "option_to_value"; }
+    if operation == "result.ok" || operation == "result.err" { return "value_to_result"; }
+    if operation == "result.is-ok" || operation == "result.is-err" { return "result_to_bool"; }
+    if operation == "result.unwrap" { return "result_to_value"; }
+    if operation == "result.unwrap-or" { return "result_value_to_value"; }
+    return "option_result_runtime_call";
+}
+
+func CompilerRuntimeCallAbiMathCallShape(operation: String) -> String {
+    if operation == "abs" { return "int_to_int"; }
+    if operation == "min" || operation == "max" { return "int_int_to_int"; }
+    if operation == "pow" { return "double_double_to_double"; }
+    if operation == "seed-random" { return "int_to_void"; }
+    if operation == "random" { return "returns_int"; }
+    return "float_to_float";
+}
+
+func CompilerRuntimeCallAbiStringCallShape(operation: String) -> String {
+    if operation == "concat" { return "string_string_to_string"; }
+    if operation == "log" || operation == "print" { return "string_to_void"; }
+    if operation == "formatted-print" { return "format_varargs_to_int"; }
+    if operation == "compare" { return "string_string_to_int"; }
+    if operation == "length" { return "string_to_int"; }
+    if operation == "contains" { return "string_string_to_bool"; }
+    if operation == "index-of" { return "string_string_to_int"; }
+    if operation == "split" { return "string_string_to_array_string"; }
+    if operation == "to-int" { return "string_to_int"; }
+    if operation == "to-float" { return "string_to_float"; }
+    if operation == "trim" || operation == "to-upper" || operation == "to-lower" {
+        return "string_to_string";
+    }
+    if operation == "replace" { return "string_string_string_to_string"; }
+    if operation == "char-code" { return "string_to_int"; }
+    if operation == "char-at-n" { return "string_int_to_string"; }
+    if operation == "sub-contains-with-len" || operation == "sub-equals-with-len" || operation == "sub-starts-with-len" {
+        return "string_int_string_int_to_bool";
+    }
+    if operation == "sub-index-of-with-len" { return "string_int_string_int_to_int"; }
+    if operation == "substring" { return "string_int_int_to_string"; }
+    if operation == "join" { return "array_string_string_to_string"; }
+    if operation == "to-string" { return "value_to_string"; }
+    return "string_runtime_call";
+}
+
+func CompilerRuntimeCallAbiHostIoCallShape(operation: String) -> String {
+    if operation == "file-exists" || operation == "path-allowed" {
+        return "string_to_bool";
+    }
+    if operation == "write-file" { return "string_string_to_bool"; }
+    if operation == "file-open" || operation == "secure-file-open" {
+        return "string_string_to_handle";
+    }
+    if operation == "file-write" { return "handle_string_to_bool"; }
+    if operation == "file-close" { return "handle_to_void"; }
+    if operation == "file-read" { return "handle_to_string"; }
+    if operation == "read-file" { return "string_to_string"; }
+    if operation == "read-stdin" { return "returns_string"; }
+    if operation == "dir-walk" { return "string_to_array_string"; }
+    if operation == "dir-walk-rec" { return "string_array_string_to_void"; }
+    if operation == "string-compare" { return "string_string_to_int"; }
+    if operation == "args" { return "returns_array_string"; }
+    if operation == "exit" { return "int_to_noreturn"; }
+    return "host_io_runtime_call";
+}
+
+func CompilerRuntimeCallAbiCallShape(domain: String, operation: String, materialization: String) -> String {
+    if domain == "native-resource" {
+        return CompilerRuntimeCallAbiNativeResourceCallShape(operation);
+    }
+    if domain == "collection" {
+        return CompilerRuntimeCallAbiCollectionCallShape(operation);
+    }
+    if domain == "option-result" {
+        return CompilerRuntimeCallAbiOptionResultCallShape(operation);
+    }
+    if domain == "math" {
+        return CompilerRuntimeCallAbiMathCallShape(operation);
+    }
+    if domain == "string" {
+        return CompilerRuntimeCallAbiStringCallShape(operation);
+    }
+    if domain == "host-io" {
+        return CompilerRuntimeCallAbiHostIoCallShape(operation);
+    }
+    if materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() {
+        return "target_library_call";
+    }
+    return "runtime_helper_call";
+}
+
 func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String {
     let row: String = Concat(input.domain, "|");
     row = Concat(row, Concat(input.operation, "|"));
     row = Concat(row, Concat(input.symbol, "|"));
     row = Concat(row, "function|");
-    return Concat(row, input.materialization);
+    row = Concat(row, Concat(input.materialization, "|"));
+    return Concat(row, CompilerRuntimeCallAbiCallShape(input.domain, input.operation, input.materialization));
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
@@ -306,12 +454,13 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
 }
 
 func CompilerRuntimeCallAbiRowsReady() -> Bool {
-    return CompilerRuntimeCallAbiRowFactCount() == 5 &&
+    return CompilerRuntimeCallAbiRowFactCount() == 6 &&
         CompilerRuntimeCallAbiRowFactAt(0) == CompilerRuntimeCallAbiRowDomainFact() &&
         CompilerRuntimeCallAbiRowFactAt(1) == CompilerRuntimeCallAbiRowOperationFact() &&
         CompilerRuntimeCallAbiRowFactAt(2) == CompilerRuntimeCallAbiRowSymbolFact() &&
         CompilerRuntimeCallAbiRowFactAt(3) == CompilerRuntimeCallAbiRowSymbolKindFact() &&
         CompilerRuntimeCallAbiRowFactAt(4) == CompilerRuntimeCallAbiRowMaterializationFact() &&
+        CompilerRuntimeCallAbiRowFactAt(5) == CompilerRuntimeCallAbiRowCallShapeFact() &&
         CompilerRuntimeCallAbiConcreteRowCount() == 237 &&
         CompilerRuntimeCallAbiRowAt(0) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(22) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("option-result", "option-int.some", OptionResultRuntimeCOptionSomeFnForPayloadKind(OptionResultRuntimeOptionPayloadKindInt()), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
@@ -321,11 +470,11 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowAt(47) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("string", "concat", StringRuntimeCConcatFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(71) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "file-exists", HostIORuntimeCFileExistsFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
         CompilerRuntimeCallAbiRowAt(86) == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("host-io", "exit", HostIORuntimeCExitFn(), CompilerRuntimeCallAbiMaterialTargetLibrary())) &&
-        CompilerRuntimeCallAbiRowAt(87) == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(134) == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(135) == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(206) == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(207) == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(230) == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row" &&
-        CompilerRuntimeCallAbiRowAt(236) == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row";
+        CompilerRuntimeCallAbiRowAt(87) == "native-resource|Slot<Int>.Claim|pgy_claim_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowAt(134) == "native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowAt(135) == "native-resource|Slot<Int>.PinRead|pgy_pin_read_Int|function|mir_abi_resource_row|container_ptr_to_pinned_view" &&
+        CompilerRuntimeCallAbiRowAt(206) == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row|pinned_view_ptr_to_void" &&
+        CompilerRuntimeCallAbiRowAt(207) == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container" &&
+        CompilerRuntimeCallAbiRowAt(230) == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row|container_ptr_value_to_void" &&
+        CompilerRuntimeCallAbiRowAt(236) == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle";
 }

@@ -165,28 +165,35 @@ test_mir_lowering_part_a(void)
                && strcmp(mir_abi_resource_runtime_row_operation(0), "Claim") == 0
                && strcmp(mir_abi_resource_runtime_row_symbol(0), "pgy_claim_Int") == 0
                && strcmp(mir_abi_resource_runtime_row_target_kind(0), "function") == 0
-               && strcmp(mir_abi_resource_runtime_row_materialization(0), "mir_abi_resource_row") == 0);
+               && strcmp(mir_abi_resource_runtime_row_materialization(0), "mir_abi_resource_row") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(0), "returns_container") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(47), "SecureSlot<String>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(47), "Write") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(47), "pgy_secure_write_String") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(47), "pgy_secure_write_String") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(47), "container_ptr_value_token_ptr_to_void") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(48), "Slot<Int>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(48), "PinRead") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(48), "pgy_pin_read_Int") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(48), "pgy_pin_read_Int") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(48), "container_ptr_to_pinned_view") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(119), "SecureSlot<String>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(119), "UnpinCleanup") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(119), "pgy_secure_unpin_cleanup_String") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(119), "pgy_secure_unpin_cleanup_String") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(119), "pinned_view_ptr_to_void") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(120), "DeviceSlot<Int>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(120), "Claim") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(120), "pgy_claim_device_Int") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(120), "pgy_claim_device_Int") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(120), "returns_container") == 0);
         EXPECT(strcmp(mir_abi_resource_runtime_row_type_name(149), "DeviceSlot<String>") == 0
                && strcmp(mir_abi_resource_runtime_row_operation(149), "SubmitRead") == 0
-               && strcmp(mir_abi_resource_runtime_row_symbol(149), "pgy_submit_device_read_String") == 0);
+               && strcmp(mir_abi_resource_runtime_row_symbol(149), "pgy_submit_device_read_String") == 0
+               && strcmp(mir_abi_resource_runtime_row_call_shape(149), "container_ptr_to_task_handle") == 0);
         EXPECT(mir_abi_resource_runtime_row_domain(150) == NULL
                && mir_abi_resource_runtime_row_type_name(150) == NULL
                && mir_abi_resource_runtime_row_operation(150) == NULL
                && mir_abi_resource_runtime_row_symbol(150) == NULL
                && mir_abi_resource_runtime_row_target_kind(150) == NULL
-               && mir_abi_resource_runtime_row_materialization(150) == NULL);
+               && mir_abi_resource_runtime_row_materialization(150) == NULL
+               && mir_abi_resource_runtime_row_call_shape(150) == NULL);
     }
 
     TEST("MIR ABI native resource rows match self-host runtime-call artifact");

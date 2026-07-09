@@ -5565,3 +5565,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   constants.
 - Tightened `abi_ownership_shape_smoke.sh` against dropping those row-shape
   facts from the native ABI owner.
+
+### 2026-07-09 -- Runtime-call ABI rows carry call-shape facts
+
+- Added `call_shape` as the sixth `runtime_call_abi` row fact and bumped the
+  self-host row artifact schema to `pgy.selfhost.runtime-call-abi-row.v2`.
+- Added native `mir_abi_resource_runtime_row_call_shape(...)` so Slot,
+  SecureSlot, DeviceSlot, pin/unpin, and submit-read call signatures are exposed
+  by the MIR ABI row owner instead of being inferred by backend tests.
+- Updated the self-host artifact and native comparison so every
+  `native-resource` row must match the MIR-owned call shape, not just domain,
+  operation, symbol, target kind, and materialization.
+- This closes one more runtime-call ABI SoT seam. The production ABI blocker
+  remains open until C/LLVM emitters consume the concrete row records directly
+  for call emission.
