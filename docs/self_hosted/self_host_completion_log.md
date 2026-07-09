@@ -6060,3 +6060,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component and compiler-world contracts so the old
   `ProjectionCount() == 3`, `FactCount() == 8`, `FallbackReasonCount() == 5`,
   and `At(0) == ...` readiness shape cannot return.
+
+### 2026-07-10 -- ArtifactZone readiness consumes artifact-kind membership
+
+- Repointed `CompilerArtifactZoneReady()` from the 24 fixed artifact-kind index
+  checks to `CompilerArtifactKindKnown(...)` membership plus an out-of-range
+  boundary check.
+- Kept ordered `CompilerArtifactKindAt(index)` for manifest/projection output,
+  but made readiness independent of artifact insertion order.
+- Tightened the component and compiler-world contracts so the old
+  `CompilerArtifactKindCount() == 24` and representative
+  `CompilerArtifactKindAt(n) == ...` readiness shape cannot return.

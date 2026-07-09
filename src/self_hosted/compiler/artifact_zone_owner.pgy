@@ -146,29 +146,30 @@ func CompilerArtifactKindKnown(kind: String) -> Bool {
 }
 
 func CompilerArtifactZoneReady() -> Bool {
-    return CompilerArtifactKindCount() == 24 &&
-        CompilerArtifactKindAt(0) == CompilerDiagnosticsArtifactKind() &&
-        CompilerArtifactKindAt(1) == CompilerAirJsonArtifactKind() &&
-        CompilerArtifactKindAt(2) == CompilerMirJsonArtifactKind() &&
-        CompilerArtifactKindAt(3) == CompilerAbiLayoutArtifactKind() &&
-        CompilerArtifactKindAt(4) == CompilerRuntimeCallAbiArtifactKind() &&
-        CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind() &&
-        CompilerArtifactKindAt(6) == CompilerRuntimeMaterializationArtifactKind() &&
-        CompilerArtifactKindAt(7) == CompilerEmittedCArtifactKind() &&
-        CompilerArtifactKindAt(8) == CompilerEmittedLlvmArtifactKind() &&
-        CompilerArtifactKindAt(9) == CompilerEmittedSelfHostedArtifactKind() &&
-        CompilerArtifactKindAt(10) == CompilerRunOutputArtifactKind() &&
-        CompilerArtifactKindAt(11) == CompilerAstTextArtifactKind() &&
-        CompilerArtifactKindAt(12) == CompilerLspDiagnosticsArtifactKind() &&
-        CompilerArtifactKindAt(13) == CompilerLspTransportFrameArtifactKind() &&
-        CompilerArtifactKindAt(14) == CompilerLspTransportStreamArtifactKind() &&
-        CompilerArtifactKindAt(15) == CompilerLspRequestDispatchArtifactKind() &&
-        CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind() &&
-        CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind() &&
-        CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind() &&
-        CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind() &&
-        CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind() &&
-        CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind() &&
-        CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind() &&
-        CompilerArtifactKindAt(23) == CompilerRunGroupPlanArtifactKind();
+    return CompilerArtifactKindCount() > 0 &&
+        CompilerArtifactKindAt(CompilerArtifactKindCount()) == "" &&
+        CompilerArtifactKindKnown(CompilerDiagnosticsArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerAirJsonArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerMirJsonArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerAbiLayoutArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerRuntimeCallAbiArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerCompatibilityEvolutionArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerRuntimeMaterializationArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerEmittedCArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerEmittedLlvmArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerEmittedSelfHostedArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerRunOutputArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerAstTextArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspDiagnosticsArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspTransportFrameArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspTransportStreamArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspRequestDispatchArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspResponseEmissionArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspSessionReplayArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspDocumentStoreArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspSessionStateArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerLspHoverContentArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerTargetCapabilityArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerSandboxCapabilityArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerRunGroupPlanArtifactKind());
 }

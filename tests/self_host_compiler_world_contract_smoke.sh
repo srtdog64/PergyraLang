@@ -598,7 +598,9 @@ done
 for term in \
     "func CompilerArtifactSchema" \
     "CompilerArtifactZoneReady" \
-    "CompilerArtifactKindCount() == 24" \
+    "CompilerArtifactKindCount() > 0" \
+    "CompilerArtifactKindAt(CompilerArtifactKindCount()) == \"\"" \
+    "CompilerArtifactKindKnown(CompilerDiagnosticsArtifactKind())" \
     "diagnostics" \
     "air_json" \
     "mir_json" \
@@ -614,10 +616,10 @@ for term in \
     "CompilerRunGroupPlanArtifactKind" \
     "runtime_materialization" \
     "CompilerRunOutputArtifactKind" \
-    "CompilerArtifactKindAt(5) == CompilerCompatibilityEvolutionArtifactKind()" \
-    "CompilerArtifactKindAt(9) == CompilerEmittedSelfHostedArtifactKind()" \
-    "CompilerArtifactKindAt(10) == CompilerRunOutputArtifactKind()" \
-    "CompilerArtifactKindAt(11) == CompilerAstTextArtifactKind()" \
+    "CompilerArtifactKindKnown(CompilerCompatibilityEvolutionArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerEmittedSelfHostedArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerRunOutputArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerAstTextArtifactKind())" \
     "CompilerLspDiagnosticsArtifactKind" \
     "CompilerLspTransportFrameArtifactKind" \
     "CompilerLspTransportStreamArtifactKind" \
@@ -627,15 +629,15 @@ for term in \
     "CompilerLspDocumentStoreArtifactKind" \
     "CompilerLspSessionStateArtifactKind" \
     "CompilerLspHoverContentArtifactKind" \
-    "CompilerArtifactKindAt(15) == CompilerLspRequestDispatchArtifactKind()" \
-    "CompilerArtifactKindAt(16) == CompilerLspResponseEmissionArtifactKind()" \
-    "CompilerArtifactKindAt(17) == CompilerLspSessionReplayArtifactKind()" \
-    "CompilerArtifactKindAt(18) == CompilerLspDocumentStoreArtifactKind()" \
-    "CompilerArtifactKindAt(19) == CompilerLspSessionStateArtifactKind()" \
-    "CompilerArtifactKindAt(20) == CompilerLspHoverContentArtifactKind()" \
-    "CompilerArtifactKindAt(21) == CompilerTargetCapabilityArtifactKind()" \
-    "CompilerArtifactKindAt(22) == CompilerSandboxCapabilityArtifactKind()" \
-    "CompilerArtifactKindAt(23) == CompilerRunGroupPlanArtifactKind()" \
+    "CompilerArtifactKindKnown(CompilerLspRequestDispatchArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerLspResponseEmissionArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerLspSessionReplayArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerLspDocumentStoreArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerLspSessionStateArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerLspHoverContentArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerTargetCapabilityArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerSandboxCapabilityArtifactKind())" \
+    "CompilerArtifactKindKnown(CompilerRunGroupPlanArtifactKind())" \
     "emitted_self_hosted" \
     "run_output" \
     "run_group_plan"; do
