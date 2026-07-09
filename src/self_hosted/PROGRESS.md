@@ -22,9 +22,12 @@ parity over 86 fixtures. Later focused refreshes on 2026-07-10
 raised the M2 ledger to 207/207 after the incremental fact graph owner landed;
 the changed-source impact run proved the incremental graph, completeness
 ledger, and TestHarness owner sources through lexer/parser/semantic/codegen;
-the MIR JSON fact-only frontier then moved to 90 fixtures by adding Long
+the MIR JSON fact-only frontier then moved to 95 fixtures. It first added Long
 scalar flow, array index assignment, `Option` `?` propagation, and string
-equality-plus-concat surfaces.
+equality-plus-concat surfaces, then closed the remaining committed codegen
+fixture surfaces: C-reserved binding spelling, payload-free enum match
+comparison projection, Float signatures, seeded random flow, and string-array
+index return flow.
 
 ## Headline Number
 
@@ -156,11 +159,13 @@ payload-free enum declarations through MIR-owned variant facts,
 break edges after non-empty statement blocks, inferred `Random()` Int locals,
 match-case integer pattern conditions, runtime-aligned absolute-path I/O policy,
 file read/write, Long scalar flow, array index assignment, `Option` `?`
-propagation, string equality-plus-concat flow, and phi-bearing loop headers
-classified by CFG backedges rather than phi presence alone, plus MIR-owned array
-destructure binding facts), gated by
+propagation, string equality-plus-concat flow, C-reserved binding spelling,
+payload-free enum match comparison projection, Float signatures, seeded random
+flow, string-array index return flow, and phi-bearing loop headers classified
+by CFG backedges rather than phi presence alone, plus MIR-owned array destructure
+binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 90 fixtures plus 0 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 95 fixtures plus 0 clean-reject
 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -178,7 +183,7 @@ expression, source-local, CFG, match-case, I/O policy, typed struct field
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, payload-free enum surfaces, and the Int role
 operator dispatch surface. The committed MIR-lower/codegen fixture inventory is
-currently **90 PASS / 0 gap plus 0 clean rejects** through this
+currently **95 PASS / 0 gap plus 0 clean rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
 instead of collapsing those labels to a generic class alias. Ability
@@ -197,10 +202,11 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-90, the clean-reject inventory must stay at 0, the scorecard must cite the same
-90 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
+95, the clean-reject inventory must stay at 0, the scorecard must cite the same
+95 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
-as an example-origin fixture, not only purpose-built self-host/codegen fixtures.
+as an example-origin fixture after all 68 committed self-host codegen fixtures,
+not only purpose-built MIR-lower fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the

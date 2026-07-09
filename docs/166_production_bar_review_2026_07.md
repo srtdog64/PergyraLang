@@ -140,7 +140,7 @@ earlier source-owner slice. On 2026-07-09,
 - DRV-0 artifact parity and DRV-1 CLI parity over C and LLVM driver rungs.
 - LSP diagnostics, transport, request/response, session, document-store,
   session-state, and hover-content parity over C and LLVM.
-- MIR JSON rung-0b parity over 90 fixtures through
+- MIR JSON rung-0b parity over 95 fixtures through
   `pgy --mir-json | mir_lower | codegen == C oracle`.
 
 This is a broad parity/preparation evidence refresh, not a claim that the

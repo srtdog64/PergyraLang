@@ -153,8 +153,8 @@ read_mir_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$MIR_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 90 ]]; then
-        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 90" >&2
+    if [[ "${#FIXTURES[@]}" -ne 95 ]]; then
+        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 95" >&2
         exit 1
     fi
 }

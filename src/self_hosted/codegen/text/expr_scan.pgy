@@ -4,6 +4,7 @@
 
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "enum_literal_owner.pgy";
 import "../type_facts/type_env.pgy";
 
 func ReplaceAll(s: String, from: String, to: String) -> String {
@@ -304,6 +305,26 @@ func RewriteBool(e: String, env: String) -> String {
                 tail = ") != 0)";
             }
             return Concat("(", Concat(StringRuntimeCStringCompareFn(), Concat("(", Concat(RewriteExpr(lhs, env), Concat(", ", Concat(RewriteExpr(rhs, env), tail))))));
+        }
+        let lhs_kind: String = ExprKind(lhs, env);
+        let rhs_kind: String = ExprKind(rhs, env);
+        let op_text: String = " == ";
+        if !is_eq {
+            op_text = " != ";
+        }
+        if LookupKindType(env, lhs_kind, "enum") == "payload_free" {
+            let rhs_enum_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(rhs, lhs_kind, env);
+            if IsSome(rhs_enum_opt) {
+                let rhs_enum: EnumLiteralProjectionFact = UnwrapOption(rhs_enum_opt);
+                return Concat("(", Concat(RewriteExpr(lhs, env), Concat(op_text, Concat(rhs_enum.c_value, ")"))));
+            }
+        }
+        if LookupKindType(env, rhs_kind, "enum") == "payload_free" {
+            let lhs_enum_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(lhs, rhs_kind, env);
+            if IsSome(lhs_enum_opt) {
+                let lhs_enum: EnumLiteralProjectionFact = UnwrapOption(lhs_enum_opt);
+                return Concat("(", Concat(lhs_enum.c_value, Concat(op_text, Concat(RewriteExpr(rhs, env), ")"))));
+            }
         }
     }
     return RewriteTokens(s, env);

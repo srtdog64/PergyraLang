@@ -5,7 +5,7 @@
 // consumes this manifest, but does not own the rows.
 
 func MirParityFixtureCount() -> Int {
-    return 90;
+    return 95;
 }
 
 func MirParityFixtureAt(index: Int) -> String {
@@ -99,8 +99,13 @@ func MirParityFixtureAt(index: Int) -> String {
     if index == 86 { return "src/self_hosted/codegen/fixture/long_scalar.pgy"; }
     if index == 87 { return "src/self_hosted/codegen/fixture/option_try.pgy"; }
     if index == 88 { return "src/self_hosted/codegen/fixture/string_equality_concat.pgy"; }
+    if index == 89 { return "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"; }
+    if index == 90 { return "src/self_hosted/codegen/fixture/enum_match.pgy"; }
+    if index == 91 { return "src/self_hosted/codegen/fixture/float_signature.pgy"; }
+    if index == 92 { return "src/self_hosted/codegen/fixture/seed_random.pgy"; }
+    if index == 93 { return "src/self_hosted/codegen/fixture/string_array_index_return.pgy"; }
 
-    if index == 89 { return "examples/binary_search.pgy"; }
+    if index == 94 { return "examples/binary_search.pgy"; }
     return "";
 }
 

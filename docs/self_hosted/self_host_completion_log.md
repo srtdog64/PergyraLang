@@ -5870,3 +5870,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This broadens the actual `pgy --mir-json | mir_lower | codegen == C oracle`
   compiler-core replacement path across Long scalar flow, array index
   assignment, `Option` `?` propagation, and string equality-plus-concat flow.
+
+### 2026-07-10 -- MIR JSON fact-only frontier reaches all codegen fixtures
+
+- Added the remaining committed self-host codegen fixtures to the MIR parity
+  manifest: `c_reserved_binding`, `enum_match`, `float_signature`,
+  `seed_random`, and `string_array_index_return`.
+- Repointed self-host codegen boolean equality rewriting so payload-free enum
+  comparisons consume the enum literal projection owner; `d == North` now
+  lowers through `Direction_North` instead of emitting an undefined bare C
+  symbol.
+- Raised the MIR fact graph payload count and parity shell ratchet from 90 to
+  95 fixtures, still with 0 clean rejects.
+- The MIR path now covers 26 MIR-lower fixtures, all 68 committed codegen
+  fixtures, and the example-origin `examples/binary_search.pgy` fixture.

@@ -181,11 +181,13 @@ MIR variant facts, and `Option<Int>` match branches consume MIR-owned variant
 and binding facts. Array sort/map/filter/reverse combinators, `Result<Int>` core
 constructors and inspection helpers, `Join`/`ToFloat` string utility flow, Long
 scalar flow, array index assignment, `Option` `?` propagation, and string
-equality-plus-concat flow also run through this MIR-JSON path. Ability
+equality-plus-concat flow, C-reserved binding spelling, payload-free enum match
+comparison projection, Float signatures, seeded random flow, and string-array
+index return flow also run through this MIR-JSON path. Ability
 declarations are reconstructed from MIR method
 signature facts and treated as zero-artifact declaration hosts by the
 self-hosted codegen pre-passes. The committed MIR-lower/codegen fixture
-inventory is now measured at 90 PASS / 0 gap plus 0 clean rejects through this
+inventory is now measured at 95 PASS / 0 gap plus 0 clean rejects through this
 path. Role declarations now flow as MIR-owned `kind:"role"` facts with
 `for_type`, impl ability spans, and method signature facts; the supported
 Int/`Arithmetic.Add` operator dispatch path is now consumed by self-hosted

@@ -160,11 +160,13 @@ subset.
   early-return flow, `Result<Int>` core constructors/inspection helpers,
   `Option<Int>` value/match lowering, array sort/map/filter/reverse combinators,
   `Join`/`ToFloat` string utility flow, Long scalar flow, array index
-  assignment, `Option` `?` propagation, and string equality-plus-concat flow,
+  assignment, `Option` `?` propagation, string equality-plus-concat flow,
+  C-reserved binding spelling, payload-free enum match comparison projection,
+  Float signatures, seeded random flow, and string-array index return flow,
   and the example-origin
   `binary_search` fixture and the Int role operator-dispatch fixture. The
   coverage boundary is now measured
-  at **90 PASS / 0 gap plus 0 clean rejects** across the committed
+  at **95 PASS / 0 gap plus 0 clean rejects** across the committed
   MIR-lower/codegen/example fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
   self-hosted codegen pre-passes. Role declaration facts are consumed for the

@@ -536,7 +536,7 @@ for term in \
     "func MirFactGraphPayloadFixtureCount" \
     "func MirFactGraphPayloadRootReady" \
     "func MirFactGraphPayloadContractReady" \
-    "MirFactGraphPayloadFixtureCount() != 90" \
+    "MirFactGraphPayloadFixtureCount() != 95" \
     "MirDocumentSchemaEquals(json, MirFactGraphPayloadSchema())" \
     "MirDeclArrayBounds(json, decls)" \
     "MirRoutineObjectBoundsAt(json, 0, routine)" \
