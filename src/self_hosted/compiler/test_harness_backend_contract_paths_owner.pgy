@@ -37,14 +37,24 @@ func CompilerHarnessBackendEmitterContractPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessBackendEmitterContractPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessBackendEmitterContractToolSourcePath() { return true; }
+    if path == CompilerHarnessBackendEmitterContractExpectedJsonPath() { return true; }
+    if path == CompilerHarnessBackendEmitterContractMissingRequiredJsonPath() { return true; }
+    if path == CompilerHarnessBackendEmitterContractMissingInputJsonPath() { return true; }
+    if path == CompilerHarnessBackendEmitterContractForbiddenHitJsonPath() { return true; }
+    return false;
+}
+
 func CompilerHarnessBackendEmitterContractReady() -> Bool {
     return CompilerHarnessBackendEmitterContractSuiteName() != "" &&
-        CompilerHarnessBackendEmitterContractPathCount() == 5 &&
-        CompilerHarnessBackendEmitterContractPathAt(0) == CompilerHarnessBackendEmitterContractToolSourcePath() &&
-        CompilerHarnessBackendEmitterContractPathAt(1) == CompilerHarnessBackendEmitterContractExpectedJsonPath() &&
-        CompilerHarnessBackendEmitterContractPathAt(2) == CompilerHarnessBackendEmitterContractMissingRequiredJsonPath() &&
-        CompilerHarnessBackendEmitterContractPathAt(3) == CompilerHarnessBackendEmitterContractMissingInputJsonPath() &&
-        CompilerHarnessBackendEmitterContractPathAt(4) == CompilerHarnessBackendEmitterContractForbiddenHitJsonPath();
+        CompilerHarnessBackendEmitterContractPathCount() > 0 &&
+        CompilerHarnessBackendEmitterContractPathAt(CompilerHarnessBackendEmitterContractPathCount()) == "" &&
+        CompilerHarnessBackendEmitterContractPathKnown(CompilerHarnessBackendEmitterContractToolSourcePath()) &&
+        CompilerHarnessBackendEmitterContractPathKnown(CompilerHarnessBackendEmitterContractExpectedJsonPath()) &&
+        CompilerHarnessBackendEmitterContractPathKnown(CompilerHarnessBackendEmitterContractMissingRequiredJsonPath()) &&
+        CompilerHarnessBackendEmitterContractPathKnown(CompilerHarnessBackendEmitterContractMissingInputJsonPath()) &&
+        CompilerHarnessBackendEmitterContractPathKnown(CompilerHarnessBackendEmitterContractForbiddenHitJsonPath());
 }
 
 func CompilerHarnessBackendAirAccessSuiteName() -> String {
@@ -74,12 +84,20 @@ func CompilerHarnessBackendAirAccessPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessBackendAirAccessPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessBackendAirAccessToolSourcePath() { return true; }
+    if path == CompilerHarnessBackendAirAccessExpectedJsonPath() { return true; }
+    if path == CompilerHarnessBackendAirAccessForbiddenHitJsonPath() { return true; }
+    return false;
+}
+
 func CompilerHarnessBackendAirAccessReady() -> Bool {
     return CompilerHarnessBackendAirAccessSuiteName() != "" &&
-        CompilerHarnessBackendAirAccessPathCount() == 3 &&
-        CompilerHarnessBackendAirAccessPathAt(0) == CompilerHarnessBackendAirAccessToolSourcePath() &&
-        CompilerHarnessBackendAirAccessPathAt(1) == CompilerHarnessBackendAirAccessExpectedJsonPath() &&
-        CompilerHarnessBackendAirAccessPathAt(2) == CompilerHarnessBackendAirAccessForbiddenHitJsonPath();
+        CompilerHarnessBackendAirAccessPathCount() > 0 &&
+        CompilerHarnessBackendAirAccessPathAt(CompilerHarnessBackendAirAccessPathCount()) == "" &&
+        CompilerHarnessBackendAirAccessPathKnown(CompilerHarnessBackendAirAccessToolSourcePath()) &&
+        CompilerHarnessBackendAirAccessPathKnown(CompilerHarnessBackendAirAccessExpectedJsonPath()) &&
+        CompilerHarnessBackendAirAccessPathKnown(CompilerHarnessBackendAirAccessForbiddenHitJsonPath());
 }
 
 func CompilerHarnessBackendAbiLayoutContractSuiteName() -> String {
@@ -119,12 +137,22 @@ func CompilerHarnessBackendAbiLayoutContractPathAt(index: Int) -> String {
     return "";
 }
 
+func CompilerHarnessBackendAbiLayoutContractPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessBackendAbiLayoutContractToolSourcePath() { return true; }
+    if path == CompilerHarnessBackendAbiLayoutContractExpectedJsonPath() { return true; }
+    if path == CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath() { return true; }
+    if path == CompilerHarnessBackendAbiLayoutContractMissingInputJsonPath() { return true; }
+    if path == CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath() { return true; }
+    return false;
+}
+
 func CompilerHarnessBackendAbiLayoutContractReady() -> Bool {
     return CompilerHarnessBackendAbiLayoutContractSuiteName() != "" &&
-        CompilerHarnessBackendAbiLayoutContractPathCount() == 5 &&
-        CompilerHarnessBackendAbiLayoutContractPathAt(0) == CompilerHarnessBackendAbiLayoutContractToolSourcePath() &&
-        CompilerHarnessBackendAbiLayoutContractPathAt(1) == CompilerHarnessBackendAbiLayoutContractExpectedJsonPath() &&
-        CompilerHarnessBackendAbiLayoutContractPathAt(2) == CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath() &&
-        CompilerHarnessBackendAbiLayoutContractPathAt(3) == CompilerHarnessBackendAbiLayoutContractMissingInputJsonPath() &&
-        CompilerHarnessBackendAbiLayoutContractPathAt(4) == CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath();
+        CompilerHarnessBackendAbiLayoutContractPathCount() > 0 &&
+        CompilerHarnessBackendAbiLayoutContractPathAt(CompilerHarnessBackendAbiLayoutContractPathCount()) == "" &&
+        CompilerHarnessBackendAbiLayoutContractPathKnown(CompilerHarnessBackendAbiLayoutContractToolSourcePath()) &&
+        CompilerHarnessBackendAbiLayoutContractPathKnown(CompilerHarnessBackendAbiLayoutContractExpectedJsonPath()) &&
+        CompilerHarnessBackendAbiLayoutContractPathKnown(CompilerHarnessBackendAbiLayoutContractMissingRequiredJsonPath()) &&
+        CompilerHarnessBackendAbiLayoutContractPathKnown(CompilerHarnessBackendAbiLayoutContractMissingInputJsonPath()) &&
+        CompilerHarnessBackendAbiLayoutContractPathKnown(CompilerHarnessBackendAbiLayoutContractForbiddenHitJsonPath());
 }

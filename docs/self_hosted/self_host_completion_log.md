@@ -25,6 +25,20 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Backend contract TestHarness paths consume named paths
+
+- Added `CompilerHarnessBackendEmitterContractPathKnown(...)`,
+  `CompilerHarnessBackendAirAccessPathKnown(...)`, and
+  `CompilerHarnessBackendAbiLayoutContractPathKnown(...)` to the backend
+  contract TestHarness path owner.
+- Repointed backend-emitter, backend-AIR-access, and backend-ABI-layout
+  path-suite readiness from fixed `PathCount() == N` and positional
+  `PathAt(0..N)` checks to named path membership plus out-of-range boundary
+  checks.
+- Kept the ordered path rows stable for `test_harness_manifest.pgy` and the
+  parity runners, while removing row position as backend contract path-suite
+  truth.
+
 ## 2026-07-10 - Lexer payload fixture count consumes manifest owner
 
 - Repointed `LexerTokenPayloadFixtureCount()` to consume

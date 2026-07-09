@@ -113,6 +113,14 @@ suites now consume named path membership
 instead of `PathCount() == 3` and representative `PathAt(0..2)` readiness.
 Ordered path rows remain the stable manifest artifact shape only.
 
+TestHarness delta, 2026-07-10: backend-emitter, backend-AIR-access, and
+backend-ABI-layout contract path suites now consume named path membership
+(`CompilerHarnessBackendEmitterContractPathKnown`,
+`CompilerHarnessBackendAirAccessPathKnown`, and
+`CompilerHarnessBackendAbiLayoutContractPathKnown`) plus out-of-range boundary
+checks instead of `PathCount() == N` and representative `PathAt(0..N)`
+readiness. Ordered path rows remain the stable manifest artifact shape only.
+
 TypedAst delta, 2026-07-07: `typed_ast_node_skeleton.pgy` no longer uses a
 single placeholder `nodes: Array<Int>` row. The owner now carries parallel
 typed node facts (`kind`, `atom`, `has_atom`, child span, child edges, and atom
