@@ -83,6 +83,18 @@ rewrite history.
   boundaries and projection derivation, while forbidding the old direct
   `8`/`36`/`39` count comparisons from returning.
 
+## 2026-07-10 - TestHarness readiness consumes count owners
+
+- Added `CompilerHarnessRowIndexKnown()` so core TestHarness row readiness can
+  check valid and out-of-bounds row indexes through the row-count owner instead
+  of assuming the current final index.
+- Repointed `CompilerTestHarnessReady()` so row, projection, and comparable
+  artifact-path last-entry checks consume `*Count() - 1`, with explicit
+  out-of-bounds checks at `*Count()`.
+- Tightened the compiler-world and self-host component contracts so readiness
+  cannot reintroduce the old direct `8`/`3`/`2` count comparisons or fixed
+  final-index checks.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

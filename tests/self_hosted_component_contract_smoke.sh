@@ -3673,6 +3673,7 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "JsonEmi
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'let json_parts: Array<String>'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'src/self_hosted/tools/backend_output_comparator/fixture/'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionIndexKnown"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRowIndexKnown"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessProjectionOrExit"
 require_text "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" "func CompilerHarnessComparableArtifactPathAt"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessFindingCap"
@@ -3979,11 +3980,16 @@ reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarn
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriExtendedCasesReady"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendTriSuiteReady"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(0) == CompilerHarnessSourcePathRow()"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(CompilerHarnessRowCount() - 1) == CompilerHarnessProjectionRow()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowIndexKnown(CompilerHarnessRowCount() - 1)"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "!CompilerHarnessRowIndexKnown(CompilerHarnessRowCount())"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(0) == CompilerHarnessCOracleProjection()"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(CompilerHarnessProjectionCount() - 1) == CompilerHarnessSelfHostedProjection()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount() - 1)"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "!CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount())"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(0) == CompilerHarnessExpectedComparableArtifactPath()"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount() - 1) == CompilerHarnessActualComparableArtifactPath()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLinterParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessModuleManifestResolverReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessStableSubsetSectionReady()"
@@ -4132,9 +4138,12 @@ reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRo
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(5) == "expected_stdout"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(6) == "expected_exit"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessRowAt(7) == "projection"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRowAt(7) == CompilerHarnessProjectionRow()"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(0) == "c_oracle"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(1) == "llvm_oracle"'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" 'CompilerHarnessProjectionAt(2) == "self_hosted"'
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessProjectionAt(2) == CompilerHarnessSelfHostedProjection()"
+reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessComparableArtifactPathAt(1) == CompilerHarnessActualComparableArtifactPath()"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareTimeoutMs"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessOracleCompareEnvAllowlist"
 require_text "src/self_hosted/compiler/subprocess_runner_owner.pgy" "func CompilerSubprocessPlanSchema"

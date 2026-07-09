@@ -645,18 +645,33 @@ done
 for term in \
     "func CompilerTestHarnessSchema" \
     "CompilerTestHarnessReady" \
-    "CompilerHarnessRowCount() == 8" \
+    "func CompilerHarnessRowIndexKnown" \
+    "CompilerHarnessRowCount() > 0" \
+    "CompilerHarnessRowAt(CompilerHarnessRowCount() - 1) == CompilerHarnessProjectionRow()" \
+    "CompilerHarnessRowIndexKnown(CompilerHarnessRowCount() - 1)" \
+    "!CompilerHarnessRowIndexKnown(CompilerHarnessRowCount())" \
     "source_path" \
     "expected_diagnostic" \
     "expected_air_json" \
     "expected_mir_json" \
     "expected_abi_layout" \
-    "CompilerHarnessProjectionCount() == 3" \
-    "CompilerHarnessComparableArtifactPathCount() == 2" \
+    "CompilerHarnessProjectionCount() > 0" \
+    "CompilerHarnessProjectionAt(CompilerHarnessProjectionCount() - 1) == CompilerHarnessSelfHostedProjection()" \
+    "!CompilerHarnessProjectionIndexKnown(CompilerHarnessProjectionCount())" \
+    "CompilerHarnessComparableArtifactPathCount() > 0" \
+    "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount() - 1) == CompilerHarnessActualComparableArtifactPath()" \
+    "CompilerHarnessComparableArtifactPathAt(CompilerHarnessComparableArtifactPathCount()) == \"\"" \
     "c_oracle" \
     "llvm_oracle" \
     "self_hosted"; do
     require_text "src/self_hosted/compiler/test_harness_owner.pgy" "$term"
+done
+
+for term in \
+    "CompilerHarnessRowCount() == 8" \
+    "CompilerHarnessProjectionCount() == 3" \
+    "CompilerHarnessComparableArtifactPathCount() == 2"; do
+    forbid_text "src/self_hosted/compiler/test_harness_owner.pgy" "$term"
 done
 
 for term in \
