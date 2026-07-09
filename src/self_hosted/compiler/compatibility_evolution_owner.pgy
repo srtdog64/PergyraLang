@@ -42,6 +42,17 @@ func CompilerCompatibilitySurfaceAt(index: Int) -> String {
     return "";
 }
 
+func CompilerCompatibilitySurfaceKnown(surface: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerCompatibilitySurfaceCount() {
+        if CompilerCompatibilitySurfaceAt(i) == surface {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CompilerObsoleteMigrationFieldCount() -> Int {
     return 7;
 }
@@ -69,6 +80,18 @@ func CompilerCompatibilityChangeKindAt(index: Int) -> String {
     if index == 3 { return CompilerCompatibilityRequiredChangeKind(); }
     return "";
 }
+
+func CompilerCompatibilityChangeKindKnown(kind: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeKindCount() {
+        if CompilerCompatibilityChangeKindAt(i) == kind {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CompilerCompatibilityWarningFromVersion() -> String { return "0.8"; }
 func CompilerCompatibilityErrorFromVersion() -> String { return "0.9"; }
 func CompilerCompatibilityRemoveFromVersion() -> String { return "1.0"; }
@@ -94,6 +117,17 @@ func CompilerObsoleteMigrationFieldAt(index: Int) -> String {
     if index == 5 { return CompilerObsoleteRemoveFromField(); }
     if index == 6 { return CompilerObsoleteCodefixStatusField(); }
     return "";
+}
+
+func CompilerObsoleteMigrationFieldKnown(field: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerObsoleteMigrationFieldCount() {
+        if CompilerObsoleteMigrationFieldAt(i) == field {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func CompilerCompatibilityChangeCount() -> Int {
@@ -200,34 +234,53 @@ func CompilerCompatibilityChangeRowAt(index: Int) -> String {
     return "";
 }
 
+func CompilerCompatibilityChangeRowFieldAt(row: String, index: Int) -> String {
+    let parts: Array<String> = Split(row, CompilerCompatibilityChangeRowDelimiter());
+    if index >= 0 && index < ArrayLength(parts) {
+        return parts[index];
+    }
+    return "";
+}
+
+func CompilerCompatibilityChangeRowForSurface(surface: String) -> String {
+    let i: Int = 0;
+    while i < CompilerCompatibilityChangeCount() {
+        let row: String = CompilerCompatibilityChangeRowAt(i);
+        if CompilerCompatibilityChangeRowFieldAt(row, CompilerCompatibilityChangeSurfaceFieldIndex()) == surface {
+            return row;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
 func CompilerCompatibilityEvolutionReady() -> Bool {
-    return CompilerCompatibilitySurfaceCount() == 9 &&
-        CompilerCompatibilitySurfaceAt(0) == CompilerSourceCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(1) == CompilerAbiBinaryCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(2) == CompilerBehaviorCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(3) == CompilerDiagnosticCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(4) == CompilerAirEvidenceCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(5) == CompilerMirJsonCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(6) == CompilerRuntimeTraceCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(7) == CompilerCapabilityProfileCompatibilitySurface() &&
-        CompilerCompatibilitySurfaceAt(8) == CompilerStdlibModuleCompatibilitySurface() &&
-        CompilerObsoleteMigrationFieldCount() == 7 &&
-        CompilerObsoleteMigrationFieldAt(0) == CompilerObsoleteDiagnosticIdField() &&
-        CompilerObsoleteMigrationFieldAt(1) == CompilerObsoleteReplacementField() &&
-        CompilerObsoleteMigrationFieldAt(2) == CompilerObsoleteMigrationUrlField() &&
-        CompilerObsoleteMigrationFieldAt(3) == CompilerObsoleteWarningFromField() &&
-        CompilerObsoleteMigrationFieldAt(4) == CompilerObsoleteErrorFromField() &&
-        CompilerObsoleteMigrationFieldAt(5) == CompilerObsoleteRemoveFromField() &&
-        CompilerObsoleteMigrationFieldAt(6) == CompilerObsoleteCodefixStatusField() &&
-        CompilerCompatibilityObsoleteChangeKind() != "" &&
-        CompilerCompatibilityBreakingChangeKind() != "" &&
-        CompilerCompatibilityBehaviorChangeKind() != "" &&
-        CompilerCompatibilityRequiredChangeKind() != "" &&
-        CompilerCompatibilityChangeKindCount() == 4 &&
-        CompilerCompatibilityChangeKindAt(0) == CompilerCompatibilityObsoleteChangeKind() &&
-        CompilerCompatibilityChangeKindAt(1) == CompilerCompatibilityBreakingChangeKind() &&
-        CompilerCompatibilityChangeKindAt(2) == CompilerCompatibilityBehaviorChangeKind() &&
-        CompilerCompatibilityChangeKindAt(3) == CompilerCompatibilityRequiredChangeKind() &&
+    return CompilerCompatibilitySurfaceCount() > 0 &&
+        CompilerCompatibilitySurfaceAt(CompilerCompatibilitySurfaceCount()) == "" &&
+        CompilerCompatibilitySurfaceKnown(CompilerSourceCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerAbiBinaryCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerBehaviorCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerDiagnosticCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerAirEvidenceCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerMirJsonCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerRuntimeTraceCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerCapabilityProfileCompatibilitySurface()) &&
+        CompilerCompatibilitySurfaceKnown(CompilerStdlibModuleCompatibilitySurface()) &&
+        CompilerObsoleteMigrationFieldCount() > 0 &&
+        CompilerObsoleteMigrationFieldAt(CompilerObsoleteMigrationFieldCount()) == "" &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteDiagnosticIdField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteReplacementField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteMigrationUrlField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteWarningFromField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteErrorFromField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteRemoveFromField()) &&
+        CompilerObsoleteMigrationFieldKnown(CompilerObsoleteCodefixStatusField()) &&
+        CompilerCompatibilityChangeKindCount() > 0 &&
+        CompilerCompatibilityChangeKindAt(CompilerCompatibilityChangeKindCount()) == "" &&
+        CompilerCompatibilityChangeKindKnown(CompilerCompatibilityObsoleteChangeKind()) &&
+        CompilerCompatibilityChangeKindKnown(CompilerCompatibilityBreakingChangeKind()) &&
+        CompilerCompatibilityChangeKindKnown(CompilerCompatibilityBehaviorChangeKind()) &&
+        CompilerCompatibilityChangeKindKnown(CompilerCompatibilityRequiredChangeKind()) &&
         CompilerCompatibilityWarningFromVersion() != "" &&
         CompilerCompatibilityErrorFromVersion() != "" &&
         CompilerCompatibilityRemoveFromVersion() != "" &&
@@ -272,14 +325,15 @@ func CompilerCompatibilityEvolutionReady() -> Bool {
         CompilerCompatibilityMissingObsoleteFinding() != "" &&
         CompilerCompatibilityMissingObsoleteMigrationEnvelopeFinding() != "" &&
         CompilerCompatibilityUnknownCodefixSelfTestStatus() != "" &&
-        CompilerCompatibilityChangeCount() == 9 &&
-        StringContains(CompilerCompatibilityChangeRowAt(0), CompilerCompatibilityCodefixAvailableStatus()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(1), CompilerCompatibilityManualMigrationStatus()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(2), CompilerCompatibilityNoCodefixStatus()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(3), CompilerBehaviorCompatibilitySurface()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(4), CompilerAirEvidenceCompatibilitySurface()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(5), CompilerMirJsonCompatibilitySurface()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(6), CompilerRuntimeTraceCompatibilitySurface()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(7), CompilerCapabilityProfileCompatibilitySurface()) &&
-        StringContains(CompilerCompatibilityChangeRowAt(8), CompilerStdlibModuleCompatibilitySurface());
+        CompilerCompatibilityChangeCount() > 0 &&
+        CompilerCompatibilityChangeRowAt(CompilerCompatibilityChangeCount()) == "" &&
+        StringContains(CompilerCompatibilityChangeRowForSurface(CompilerSourceCompatibilitySurface()), CompilerCompatibilityCodefixAvailableStatus()) &&
+        StringContains(CompilerCompatibilityChangeRowForSurface(CompilerAbiBinaryCompatibilitySurface()), CompilerCompatibilityManualMigrationStatus()) &&
+        StringContains(CompilerCompatibilityChangeRowForSurface(CompilerDiagnosticCompatibilitySurface()), CompilerCompatibilityNoCodefixStatus()) &&
+        CompilerCompatibilityChangeRowForSurface(CompilerBehaviorCompatibilitySurface()) != "" &&
+        CompilerCompatibilityChangeRowForSurface(CompilerAirEvidenceCompatibilitySurface()) != "" &&
+        CompilerCompatibilityChangeRowForSurface(CompilerMirJsonCompatibilitySurface()) != "" &&
+        CompilerCompatibilityChangeRowForSurface(CompilerRuntimeTraceCompatibilitySurface()) != "" &&
+        CompilerCompatibilityChangeRowForSurface(CompilerCapabilityProfileCompatibilitySurface()) != "" &&
+        CompilerCompatibilityChangeRowForSurface(CompilerStdlibModuleCompatibilitySurface()) != "";
 }

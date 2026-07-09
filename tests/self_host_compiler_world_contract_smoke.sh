@@ -204,11 +204,15 @@ for term in \
     "func CompilerCompatibilityEvolutionSchema" \
     "func CompilerCompatibilitySurfaceCount" \
     "func CompilerCompatibilitySurfaceAt" \
+    "func CompilerCompatibilitySurfaceKnown" \
     "func CompilerCompatibilityEvolutionReady" \
     "func CompilerCompatibilityChangeCount" \
     "func CompilerCompatibilityChangeRowAt" \
-    "CompilerCompatibilitySurfaceCount() == 9" \
-    "CompilerCompatibilityChangeCount() == 9" \
+    "func CompilerCompatibilityChangeRowForSurface" \
+    "CompilerCompatibilitySurfaceAt(CompilerCompatibilitySurfaceCount()) == \"\"" \
+    "CompilerCompatibilityChangeRowAt(CompilerCompatibilityChangeCount()) == \"\"" \
+    "CompilerCompatibilitySurfaceKnown(CompilerSourceCompatibilitySurface())" \
+    "CompilerCompatibilityChangeRowForSurface(CompilerStdlibModuleCompatibilitySurface())" \
     "source" \
     "abi_binary" \
     "behavior" \
@@ -220,7 +224,12 @@ for term in \
     "stdlib_module" \
     "func CompilerObsoleteMigrationFieldCount" \
     "func CompilerObsoleteMigrationFieldAt" \
-    "CompilerObsoleteMigrationFieldCount() == 7" \
+    "func CompilerObsoleteMigrationFieldKnown" \
+    "func CompilerCompatibilityChangeKindKnown" \
+    "CompilerObsoleteMigrationFieldAt(CompilerObsoleteMigrationFieldCount()) == \"\"" \
+    "CompilerCompatibilityChangeKindAt(CompilerCompatibilityChangeKindCount()) == \"\"" \
+    "CompilerObsoleteMigrationFieldKnown(CompilerObsoleteCodefixStatusField())" \
+    "CompilerCompatibilityChangeKindKnown(CompilerCompatibilityRequiredChangeKind())" \
     "diagnostic_id" \
     "replacement" \
     "migration_url" \

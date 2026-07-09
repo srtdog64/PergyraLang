@@ -6082,3 +6082,16 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   capabilities, budgets, ambient-denial rules, and host-call boundary rules.
 - Tightened the component contract so the old `Count() == N` and representative
   `At(n) == ...` readiness shape cannot return.
+
+### 2026-07-10 -- Compatibility evolution readiness consumes named surfaces
+
+- Added named membership checks for compatibility surfaces, obsolete migration
+  fields, and compatibility change kinds in `compatibility_evolution_owner.pgy`.
+- Repointed `CompilerCompatibilityEvolutionReady()` from fixed
+  `SurfaceAt(n)`, `ObsoleteMigrationFieldAt(n)`, `ChangeKindAt(n)`, and
+  `ChangeRowAt(n)` positions to out-of-range boundary checks plus
+  `Known(...)`/`ChangeRowForSurface(...)` lookups.
+- Kept the ordered compatibility-evolution artifact and corpus rows stable for
+  manifest/corpus parity, but made readiness independent of row insertion
+  order across source, ABI, behavior, diagnostic, AIR, MIR, runtime trace,
+  capability profile, and stdlib compatibility surfaces.
