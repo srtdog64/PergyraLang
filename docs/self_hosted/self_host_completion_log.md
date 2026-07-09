@@ -6071,3 +6071,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Tightened the component and compiler-world contracts so the old
   `CompilerArtifactKindCount() == 24` and representative
   `CompilerArtifactKindAt(n) == ...` readiness shape cannot return.
+
+### 2026-07-10 -- Sandbox capability readiness consumes named envelope facts
+
+- Repointed `CompilerSandboxCapabilityEnvelopeReady()` from fixed
+  capability/frame-budget/ambient-rule/boundary-rule counts and representative
+  indexes to named `Known(...)` membership plus out-of-range boundary checks.
+- Kept the ordered sandbox capability manifest intact for stable artifact
+  comparison, but made readiness independent of insertion order across
+  capabilities, budgets, ambient-denial rules, and host-call boundary rules.
+- Tightened the component contract so the old `Count() == N` and representative
+  `At(n) == ...` readiness shape cannot return.

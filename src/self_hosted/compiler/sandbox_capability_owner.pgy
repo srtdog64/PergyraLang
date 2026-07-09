@@ -139,27 +139,40 @@ func CompilerSandboxBoundaryRuleKnown(rule: String) -> Bool {
 }
 
 func CompilerSandboxCapabilityEnvelopeReady() -> Bool {
-    return CompilerSandboxCapabilityCount() == 8 &&
-        CompilerSandboxCapabilityAt(0) == CompilerSandboxFilesystemCapability() &&
-        CompilerSandboxCapabilityAt(4) == CompilerSandboxSubprocessCapability() &&
-        CompilerSandboxCapabilityAt(7) == CompilerSandboxInputCapability() &&
+    return CompilerSandboxCapabilityCount() > 0 &&
+        CompilerSandboxCapabilityAt(CompilerSandboxCapabilityCount()) == "" &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxFilesystemCapability()) &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxNetworkCapability()) &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxClockCapability()) &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxRandomCapability()) &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxSubprocessCapability()) &&
         CompilerSandboxCapabilityKnown(CompilerSandboxRenderCapability()) &&
         CompilerSandboxCapabilityKnown(CompilerSandboxStorageCapability()) &&
-        CompilerSandboxFrameBudgetCount() == 9 &&
-        CompilerSandboxFrameBudgetAt(0) == CompilerSandboxFuelBudget() &&
-        CompilerSandboxFrameBudgetAt(1) == CompilerSandboxHostCallBudget() &&
-        CompilerSandboxFrameBudgetAt(5) == CompilerSandboxMemoryBudget() &&
-        CompilerSandboxFrameBudgetAt(8) == CompilerSandboxWallClockBudget() &&
+        CompilerSandboxCapabilityKnown(CompilerSandboxInputCapability()) &&
+        CompilerSandboxFrameBudgetCount() > 0 &&
+        CompilerSandboxFrameBudgetAt(CompilerSandboxFrameBudgetCount()) == "" &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxFuelBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxHostCallBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxDrawCommandBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxAudioCommandBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxStorageOpBudget()) &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxMemoryBudget()) &&
         CompilerSandboxFrameBudgetKnown(CompilerSandboxQueuedEventBudget()) &&
         CompilerSandboxFrameBudgetKnown(CompilerSandboxStreamByteBudget()) &&
-        CompilerSandboxAmbientRuleCount() == 8 &&
-        CompilerSandboxAmbientRuleAt(0) == "no_ambient_filesystem" &&
-        CompilerSandboxAmbientRuleAt(4) == "no_ambient_subprocess" &&
+        CompilerSandboxFrameBudgetKnown(CompilerSandboxWallClockBudget()) &&
+        CompilerSandboxAmbientRuleCount() > 0 &&
+        CompilerSandboxAmbientRuleAt(CompilerSandboxAmbientRuleCount()) == "" &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_filesystem") &&
         CompilerSandboxAmbientRuleKnown("no_ambient_network") &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_clock") &&
         CompilerSandboxAmbientRuleKnown("no_ambient_random") &&
-        CompilerSandboxBoundaryRuleCount() == 3 &&
-        CompilerSandboxBoundaryRuleAt(0) == CompilerSandboxNoDefaultSubprocessRule() &&
-        CompilerSandboxBoundaryRuleAt(1) == CompilerSandboxNoUnboundedHostCallRule() &&
-        CompilerSandboxBoundaryRuleAt(2) == CompilerSandboxNoBlockingWithoutPoolRule() &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_subprocess") &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_storage") &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_render") &&
+        CompilerSandboxAmbientRuleKnown("no_ambient_input") &&
+        CompilerSandboxBoundaryRuleCount() > 0 &&
+        CompilerSandboxBoundaryRuleAt(CompilerSandboxBoundaryRuleCount()) == "" &&
+        CompilerSandboxBoundaryRuleKnown(CompilerSandboxNoDefaultSubprocessRule()) &&
+        CompilerSandboxBoundaryRuleKnown(CompilerSandboxNoUnboundedHostCallRule()) &&
         CompilerSandboxBoundaryRuleKnown(CompilerSandboxNoBlockingWithoutPoolRule());
 }
