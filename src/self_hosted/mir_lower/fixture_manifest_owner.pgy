@@ -4,21 +4,22 @@
 // `pgy --mir-json` output is in the supported fact subset. The shell runner
 // consumes this manifest, but does not own the rows.
 
+import "../codegen/fixture_manifest_owner.pgy";
+
+func MirParityCoreFixtureCount() -> Int {
+    return 26;
+}
+
+func MirParityCodegenFixtureExpectedCount() -> Int {
+    return 68;
+}
+
+func MirParityExampleFixtureCount() -> Int {
+    return 1;
+}
+
 func MirParityFixtureCount() -> Int {
-    return 95;
-}
-
-func MirParityCodegenFixtureDir() -> String {
-    return "src/self_hosted/codegen/fixture";
-}
-
-func MirParityPathEndsWith(path: String, suffix: String) -> Bool {
-    let path_len: Int = StringLength(path);
-    let suffix_len: Int = StringLength(suffix);
-    if suffix_len > path_len {
-        return false;
-    }
-    return Substring(path, path_len - suffix_len, suffix_len) == suffix;
+    return MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount() + MirParityExampleFixtureCount();
 }
 
 func MirParityFixtureAt(index: Int) -> String {
@@ -49,76 +50,20 @@ func MirParityFixtureAt(index: Int) -> String {
     if index == 24 { return "src/self_hosted/mir_lower/fixture/whileloop.pgy"; }
     if index == 25 { return "src/self_hosted/mir_lower/fixture/forloop.pgy"; }
 
-    if index == 26 { return "src/self_hosted/codegen/fixture/args_probe.pgy"; }
-    if index == 27 { return "src/self_hosted/codegen/fixture/array_combinators.pgy"; }
-    if index == 28 { return "src/self_hosted/codegen/fixture/array_max.pgy"; }
-    if index == 29 { return "src/self_hosted/codegen/fixture/array_param.pgy"; }
-    if index == 30 { return "src/self_hosted/codegen/fixture/array_pop.pgy"; }
-    if index == 31 { return "src/self_hosted/codegen/fixture/array_push.pgy"; }
-    if index == 32 { return "src/self_hosted/codegen/fixture/array_reverse.pgy"; }
-    if index == 33 { return "src/self_hosted/codegen/fixture/array_sum.pgy"; }
-    if index == 34 { return "src/self_hosted/codegen/fixture/bool_logic.pgy"; }
-    if index == 35 { return "src/self_hosted/codegen/fixture/builtin_name_literal.pgy"; }
-    if index == 36 { return "src/self_hosted/codegen/fixture/concat.pgy"; }
-    if index == 37 { return "src/self_hosted/codegen/fixture/defer_scope.pgy"; }
-    if index == 38 { return "src/self_hosted/codegen/fixture/dir_walk.pgy"; }
-    if index == 39 { return "src/self_hosted/codegen/fixture/else_if_chain.pgy"; }
-    if index == 40 { return "src/self_hosted/codegen/fixture/exit_guard.pgy"; }
-    if index == 41 { return "src/self_hosted/codegen/fixture/file_handle.pgy"; }
-    if index == 42 { return "src/self_hosted/codegen/fixture/io_absolute_policy.pgy"; }
-    if index == 43 { return "src/self_hosted/codegen/fixture/float_math.pgy"; }
-    if index == 44 { return "src/self_hosted/codegen/fixture/for_each.pgy"; }
-    if index == 45 { return "src/self_hosted/codegen/fixture/for_continue.pgy"; }
-    if index == 46 { return "src/self_hosted/codegen/fixture/for_sum.pgy"; }
-    if index == 47 { return "src/self_hosted/codegen/fixture/func_call.pgy"; }
-    if index == 48 { return "src/self_hosted/codegen/fixture/func_recursive.pgy"; }
-    if index == 49 { return "src/self_hosted/codegen/fixture/hello.pgy"; }
-    if index == 50 { return "src/self_hosted/codegen/fixture/if_else.pgy"; }
-    if index == 51 { return "src/self_hosted/codegen/fixture/int_arith.pgy"; }
-    if index == 52 { return "src/self_hosted/codegen/fixture/int_neg.pgy"; }
-    if index == 53 { return "src/self_hosted/codegen/fixture/int_subdiv.pgy"; }
-    if index == 54 { return "src/self_hosted/codegen/fixture/io_probe.pgy"; }
-    if index == 55 { return "src/self_hosted/codegen/fixture/log_int_direct.pgy"; }
-    if index == 56 { return "src/self_hosted/codegen/fixture/log_trailing_newline.pgy"; }
-    if index == 57 { return "src/self_hosted/codegen/fixture/mixed_int_str.pgy"; }
-    if index == 58 { return "src/self_hosted/codegen/fixture/nested_concat.pgy"; }
-    if index == 59 { return "src/self_hosted/codegen/fixture/nested_ctrl.pgy"; }
-    if index == 60 { return "src/self_hosted/codegen/fixture/option_int_core.pgy"; }
-    if index == 61 { return "src/self_hosted/codegen/fixture/option_string_core.pgy"; }
-    if index == 62 { return "src/self_hosted/codegen/fixture/result_int_core.pgy"; }
-    if index == 63 { return "src/self_hosted/codegen/fixture/result_try.pgy"; }
-    if index == 64 { return "src/self_hosted/codegen/fixture/str_array.pgy"; }
-    if index == 65 { return "src/self_hosted/codegen/fixture/str_array_concat.pgy"; }
-    if index == 66 { return "src/self_hosted/codegen/fixture/str_array_push.pgy"; }
-    if index == 67 { return "src/self_hosted/codegen/fixture/str_builtins.pgy"; }
-    if index == 68 { return "src/self_hosted/codegen/fixture/str_builtins2.pgy"; }
-    if index == 69 { return "src/self_hosted/codegen/fixture/str_case_math.pgy"; }
-    if index == 70 { return "src/self_hosted/codegen/fixture/str_greet.pgy"; }
-    if index == 71 { return "src/self_hosted/codegen/fixture/str_indexof.pgy"; }
-    if index == 72 { return "src/self_hosted/codegen/fixture/str_reassign.pgy"; }
-    if index == 73 { return "src/self_hosted/codegen/fixture/str_trim.pgy"; }
-    if index == 74 { return "src/self_hosted/codegen/fixture/struct_mixed_fields.pgy"; }
-    if index == 75 { return "src/self_hosted/codegen/fixture/struct_nested_fields.pgy"; }
-    if index == 76 { return "src/self_hosted/codegen/fixture/struct_param.pgy"; }
-    if index == 77 { return "src/self_hosted/codegen/fixture/struct_point.pgy"; }
-    if index == 78 { return "src/self_hosted/codegen/fixture/string_concat_op.pgy"; }
-    if index == 79 { return "src/self_hosted/codegen/fixture/string_equality.pgy"; }
-    if index == 80 { return "src/self_hosted/codegen/fixture/string_utils_core.pgy"; }
-    if index == 81 { return "src/self_hosted/codegen/fixture/two_logs.pgy"; }
-    if index == 82 { return "src/self_hosted/codegen/fixture/while_break.pgy"; }
-    if index == 83 { return "src/self_hosted/codegen/fixture/while_sum.pgy"; }
-    if index == 84 { return "src/self_hosted/codegen/fixture/write_file.pgy"; }
-    if index == 85 { return "src/self_hosted/codegen/fixture/array_index_assign.pgy"; }
-    if index == 86 { return "src/self_hosted/codegen/fixture/long_scalar.pgy"; }
-    if index == 87 { return "src/self_hosted/codegen/fixture/option_try.pgy"; }
-    if index == 88 { return "src/self_hosted/codegen/fixture/string_equality_concat.pgy"; }
-    if index == 89 { return "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"; }
-    if index == 90 { return "src/self_hosted/codegen/fixture/enum_match.pgy"; }
-    if index == 91 { return "src/self_hosted/codegen/fixture/float_signature.pgy"; }
-    if index == 92 { return "src/self_hosted/codegen/fixture/seed_random.pgy"; }
-    if index == 93 { return "src/self_hosted/codegen/fixture/string_array_index_return.pgy"; }
+    let codegen_start: Int = MirParityCoreFixtureCount();
+    let codegen_end: Int = MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount();
+    if index >= codegen_start && index < codegen_end {
+        let bases: Array<String> = CodegenParityFixtureManifestRows();
+        let codegen_index: Int = index - codegen_start;
+        if codegen_index < 0 || codegen_index >= ArrayLength(bases) {
+            return "";
+        }
+        return CodegenParityFixtureSourcePath(bases[codegen_index]);
+    }
 
-    if index == 94 { return "examples/binary_search.pgy"; }
+    if index == MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount() {
+        return "examples/binary_search.pgy";
+    }
     return "";
 }
 
@@ -134,11 +79,17 @@ func MirParityManifestContains(path: String) -> Bool {
 }
 
 func MirParityCodegenFixtureCoverageReady() -> Bool with caps io_read {
-    let entries: Array<String> = DirWalk(MirParityCodegenFixtureDir());
+    let bases: Array<String> = CodegenParityFixtureManifestRows();
+    if ArrayLength(bases) != MirParityCodegenFixtureExpectedCount() {
+        return false;
+    }
     let i: Int = 0;
-    while i < ArrayLength(entries) {
-        let path: String = entries[i];
-        if MirParityPathEndsWith(path, ".pgy") && !MirParityManifestContains(path) {
+    while i < ArrayLength(bases) {
+        let path: String = CodegenParityFixtureSourcePath(bases[i]);
+        if !FileExists(path) {
+            return false;
+        }
+        if MirParityFixtureAt(MirParityCoreFixtureCount() + i) != path {
             return false;
         }
         i = i + 1;

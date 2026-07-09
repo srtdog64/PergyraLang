@@ -11,7 +11,7 @@ import "target_capability_owner.pgy";
 import "../parser/source_path_owner.pgy";
 import "../parser/program_parse_owner.pgy";
 import "../codegen/emission/program_emit.pgy";
-import "../codegen/run/codegen_run_owner.pgy";
+import "../codegen/fixture_manifest_owner.pgy";
 
 func CompilerDriverRung0Ready() -> Bool with caps io_read {
     if !CompilerStagePathManifestReady() {
@@ -55,7 +55,7 @@ func DriverParityFixtureRows() -> Array<String> {
     let i: Int = 0;
     while i < ArrayLength(bases) {
         let base: String = bases[i];
-        ArrayPush(rows, Concat(Concat(CodegenParityFixtureDir(), "/"), Concat(base, ".pgy")));
+        ArrayPush(rows, CodegenParityFixtureSourcePath(base));
         i = i + 1;
     }
     return rows;

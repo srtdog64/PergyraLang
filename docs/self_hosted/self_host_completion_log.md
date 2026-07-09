@@ -5898,8 +5898,8 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 ### 2026-07-10 -- Driver rungs consume the codegen fixture frontier
 
 - Repointed `driver_rung0_owner.pgy` so DRV-0/DRV-1 fixture manifests consume
-  `CodegenParityFixtureManifestRows()` from `codegen_run_owner.pgy` instead of
-  carrying a separate three-sample fixture list.
+  `CodegenParityFixtureManifestRows()` from `codegen/fixture_manifest_owner.pgy`
+  instead of carrying a separate three-sample fixture list.
 - Ratcheted both driver parity runners to 68 fixtures, matching the committed
   codegen parity frontier, and tightened the component contract so hard-coded
   driver fixture paths cannot return.
@@ -5910,3 +5910,14 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - This broadens the driver artifact rung without claiming released/native
   driver replacement: the driver still assembles self-parser and self-codegen
   facts and compares against the current oracle.
+
+### 2026-07-10 -- Codegen fixture frontier becomes a shared owner
+
+- Split `src/self_hosted/codegen/fixture_manifest_owner.pgy` out of the codegen
+  run boundary so fixture discovery is owned by a lightweight manifest owner.
+- Repointed codegen run, DRV-0/DRV-1, and MIR parity fixture manifests to
+  consume that owner. The MIR manifest no longer carries a copied 68-row
+  codegen fixture list; it keeps only the MIR-specific core rows plus the
+  example-origin fixture and projects codegen rows from the shared owner.
+- Tightened the component contract so copied codegen fixture paths cannot return
+  to the MIR manifest.

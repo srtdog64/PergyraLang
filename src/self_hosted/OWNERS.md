@@ -288,6 +288,9 @@ compiler-stage `.pgy` source to be listed here.
   fact vocabulary for C/LLVM/self-hosted projections, including struct field,
   source-to-C binding, inout parameter, foreach loop temporary, and try/match
   emission temporary spelling.
+- `src/self_hosted/codegen/fixture_manifest_owner.pgy` -- committed codegen
+  parity fixture frontier shared by codegen parity, MIR parity, and driver
+  artifact rungs.
 - `src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy` -- local,
   parameter, and loop source-reference rewrite from `type_env` `cbind` rows.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact

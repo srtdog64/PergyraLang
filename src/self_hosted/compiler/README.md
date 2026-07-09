@@ -165,8 +165,9 @@ edges are named separately (`CompileSourceToAst`, `CompileAstToC`, and
 `CompileSourceToC`). `driver_rung0_main.pgy` is the runnable boundary for those
 facts, and `tests/self_hosted/parity/driver_rung0_parity.sh` compares the
 assembled AST/C outputs against the C oracle across the same 68 committed
-codegen parity fixtures named by `codegen_run_owner.pgy`. It is not a second
-driver graph; the owner still only assembles parser and codegen facts.
+codegen parity fixtures named by `codegen/fixture_manifest_owner.pgy`. It is
+not a second driver graph; the owner still only assembles parser and codegen
+facts.
 
 `driver_cli_owner.pgy` is the DRV-1 CLI surface owner. It consumes the DRV-0
 artifact functions and owns only argv shape: source path, `--emit-ast` /

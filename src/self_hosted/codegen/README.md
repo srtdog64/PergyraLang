@@ -257,6 +257,10 @@ helper names and supported target-library call names under `emission/`,
 `text/`, and `input/`; new call spellings must enter through `runtime_abi/`
 owners before codegen participants can consume them.
 
+`fixture_manifest_owner.pgy` owns the committed codegen parity fixture frontier.
+The run boundary emits that manifest, and later hard-substitution gates consume
+the same owner instead of carrying parallel fixture lists.
+
 Parity gate: `tests/self_hosted/parity/codegen_parity.sh` builds `main.pgy`
 through the requested backend set, builds the self-host parser as the AST text
 producer, asks `RunCodegenFromArgs --fixture-manifest` for the active codegen

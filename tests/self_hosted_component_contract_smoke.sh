@@ -420,12 +420,15 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirPar
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureCoverageReady"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func EmitMirParityFixtureManifest"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityFixtureCount()"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "DirWalk(MirParityCodegenFixtureDir())"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityManifestContains(path)"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" 'import "../codegen/fixture_manifest_owner.pgy";'
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureManifestRows()"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 95;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 68;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
+reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
+reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"examples/binary_search.pgy"'
 require_text "src/self_hosted/mir_lower/run_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureManifest()"
@@ -750,6 +753,7 @@ require_owner_surface codegen \
     "input/ast_kind_usage_owner.pgy" \
     "input/ast_type_usage_owner.pgy" \
     "input/ast_usage_owner.pgy" \
+    "fixture_manifest_owner.pgy" \
     "run/codegen_run_owner.pgy" \
     "text/text_owner.pgy" \
     "type_facts/type_env.pgy" \
@@ -4970,10 +4974,13 @@ require_file "src/self_hosted/codegen/fixture/long_scalar.pgy"
 require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func CodegenParityFixtureManifestRows"
+require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureSourcePath"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "CodegenParityExpectedPath(base)"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" 'import "../fixture_manifest_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func EmitCodegenParityFixtureManifest"
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
-require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityExpectedPath(base)"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/codegen/fixture/long_scalar.pgy" "func AddLong(x: Long, y: Long) -> Long"
 require_text "src/self_hosted/codegen/expected/long_scalar_stdout.txt" "15"
@@ -5037,7 +5044,7 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'csrc="$ROOT_DIR/src
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"'
 require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/run/codegen_run_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/fixture_manifest_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityExpectedFixtureCount"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureRows"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureCount"
@@ -5045,7 +5052,7 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParit
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func EmitDriverParityFixtureManifest"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpectedFixtureCount()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureDir()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 68;"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
