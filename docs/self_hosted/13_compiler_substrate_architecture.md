@@ -205,6 +205,10 @@ verifier vocabulary. The current completeness harness still owns only rung0
 coarse caching through `pgy.selfhost.completeness-cache.v1`; the graph owner is
 the SoT for replacing that coarse source-set key with precise import/module
 fingerprints later.
+`self-host-completeness-incremental-cache-parity-test-smoke` is the first
+executable verifier for that vocabulary: it compares a focused clean
+completeness `ledger.tsv` artifact with cache-prime and cache-hit runs, and it
+fails unless the cache-hit run reports an actual cache hit.
 
 The cache key for a reusable stage artifact must include the source bytes hash,
 import/module graph fingerprint, language/runtime/stdlib/capability/target

@@ -4759,6 +4759,17 @@ require_text "tests/self_hosted/parity/completeness_ledger.sh" "producer-executa
 require_text "tests/self_hosted/parity/completeness_ledger.sh" "cache: schema="
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'printf '"'"'%s\tpass=%s\tfail=%s\n'"'"' "$stage" "$pass" "$fail" | tee -a "$LEDGER"'
 require_text "tests/self_hosted/parity/completeness_ledger.sh" 'count_stage "$stage"'
+require_text "Makefile" "self-host-completeness-incremental-cache-parity-test-smoke"
+require_text "Makefile" "tests/self_hosted/parity/completeness_incremental_cache_parity.sh"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_CACHE"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_BUILD_DIR"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "clean-vs-cache parity gate"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "cache_hit"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "ledger.tsv"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "focused source-filter ledger ok"
+require_text "tests/self_hosted/parity/completeness_incremental_cache_parity.sh" "cache-hit run did not report a cache hit"
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" '.tmp/self_hosted/completeness/ast/${safe}.ast.txt'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'count_stage "$stage" | tee -a "$LEDGER"'
 reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'stage_result="$(count_stage "$stage")"'

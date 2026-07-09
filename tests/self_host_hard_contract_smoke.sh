@@ -98,14 +98,18 @@ require_text "Makefile" "self-host-preparation-parity-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-test-smoke"
 require_text "Makefile" "self-host-preparation-impact-changed-paths-test-smoke"
 require_text "Makefile" "self-host-completeness-smoke"
+require_text "Makefile" "self-host-completeness-incremental-cache-parity-test-smoke"
 require_text "Makefile" "tests/self_host_hard_contract_smoke.sh"
 require_text "Makefile" "tests/self_host_compiler_world_contract_smoke.sh"
 require_text "Makefile" "tests/self_hosted/parity/completeness_ledger.sh"
+require_text "Makefile" "tests/self_hosted/parity/completeness_incremental_cache_parity.sh"
 require_text "Makefile" "self-host-preparation-test-smoke:"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "Normal compiler builds must not imply the heavy self-host parity bundle."
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "self-host-completeness-smoke"
+require_text "docs/self_hosted/10_hard_self_host_contract.md" \
+    "self-host-completeness-incremental-cache-parity-test-smoke"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \
     "self-host-preparation-impact-test-smoke"
 require_text "docs/self_hosted/10_hard_self_host_contract.md" \

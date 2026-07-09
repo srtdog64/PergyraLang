@@ -600,6 +600,15 @@ and `unsupported-fact-fail-closed`). This does not claim precise incremental
 compilation is done; it prevents future cache work from becoming timestamp or
 emitted-text reuse outside the fact-owner graph.
 
+Incremental cache parity delta, 2026-07-10:
+`tests/self_hosted/parity/completeness_incremental_cache_parity.sh` now provides
+the first executable clean-vs-cache proof for that graph. It runs the focused
+completeness ledger with cache disabled, then cache-prime and cache-hit modes,
+compares the stable `ledger.tsv` and focused summary artifacts, and requires a
+reported cache hit. `self-host-preparation-parity-test-smoke` calls this gate
+after the full completeness ledger, so rung0 cache reuse is no longer only a
+performance convenience.
+
 Completeness impact delta, 2026-07-09: the same owner now emits
 `pgy.selfhost.completeness-impact.v1`, a rung0 impact plan that maps
 self-host source patterns to `PGY_SELFHOST_COMPLETENESS_SOURCES`,

@@ -182,9 +182,16 @@ The Makefile keeps the fast and heavy paths separate:
   space-separated set of manifest-owned `.pgy` paths for local owner-isolation
   checks. Source-filtered mode must pass every selected source through every
   selected stage, but it intentionally does not satisfy source-count minima or
-  pipeline identity baselines. It exists to avoid rerunning all 205 production
+  pipeline identity baselines. It exists to avoid rerunning all 207 production
   sources after a single owner edit; it is never a replacement for the
   unfiltered CI proof.
+- `self-host-completeness-incremental-cache-parity-test-smoke` is the rung0
+  clean/cache proof. It runs a focused completeness ledger once with the cache
+  disabled, then twice with the cache enabled, and compares the stable
+  `ledger.tsv` plus focused summary artifacts. It must observe a real cache
+  hit. This proves the current pass-marker cache does not change the focused
+  completeness artifact; it is not a claim that precise import-graph
+  invalidation is complete.
 - `PGY_SELFHOST_COMPLETENESS_CACHE=0` disables the local completeness cache.
   The default rung0 cache reuses only stage-tool builds and verified pass
   artifacts keyed by `pgy.selfhost.completeness-cache.v1`, the full production

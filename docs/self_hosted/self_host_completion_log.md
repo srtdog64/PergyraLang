@@ -25,6 +25,16 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Completeness cache gets clean/cache parity gate
+
+- Added `tests/self_hosted/parity/completeness_incremental_cache_parity.sh`.
+  It runs the focused completeness ledger in clean/no-cache, cache-prime, and
+  cache-hit modes, compares the stable `ledger.tsv` plus focused summary
+  artifacts, and fails unless the cache-hit run reports an actual cache hit.
+- Added `self-host-completeness-incremental-cache-parity-test-smoke` and wired
+  it into `self-host-preparation-parity-test-smoke`. This is still a rung0
+  pass-marker cache proof, not precise import/module invalidation.
+
 ## 2026-07-10 - Incremental fact graph gets a self-host owner
 
 - Added `src/self_hosted/compiler/incremental_fact_graph_owner.pgy` as the
