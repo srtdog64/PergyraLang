@@ -60,6 +60,18 @@ rewrite history.
 - Tightened the self-host component and compiler-world contracts so the old
   direct semantic fixture-count comparison cannot return.
 
+## 2026-07-10 - Typed AST arena payload frontier gets a named fact
+
+- Added `TypedAstArenaPayloadFixtureFrontierCount()` as the explicit frontier
+  fact for the single synthetic typed AST arena bootstrap fixture.
+- Repointed `TypedAstArenaPayloadFixtureCount()` and
+  `TypedAstArenaPayloadContractReady()` so the codegen emission stage consumes
+  that named frontier fact instead of comparing directly against `1`.
+- Tightened the self-host component and compiler-world contracts so the old
+  direct typed-arena payload fixture comparison cannot return.
+- Verified the codegen bootstrap fixpoint after the source change:
+  `SELF-HOSTING OK`, `gen2 == gen3` at 9916 generated-C lines.
+
 ## 2026-07-10 - Incremental cache parity consumes owner plan
 
 - Moved the default source/stage filters for

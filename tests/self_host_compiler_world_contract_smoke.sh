@@ -554,6 +554,19 @@ done
 forbid_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 95"
 
 for term in \
+    "func TypedAstArenaPayloadSchema" \
+    "pgy.selfhost.typed-ast-arena.v1" \
+    "func TypedAstArenaPayloadFixtureCount" \
+    "func TypedAstArenaPayloadFixtureFrontierCount" \
+    "func TypedAstArenaPayloadContractReady" \
+    "return TypedAstArenaPayloadFixtureFrontierCount();" \
+    "TypedAstArenaPayloadFixtureCount() != TypedAstArenaPayloadFixtureFrontierCount()" \
+    "let arena: AstArena = TypedAstArenaFixture()"; do
+    require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "$term"
+done
+forbid_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "TypedAstArenaPayloadFixtureCount() != 1"
+
+for term in \
     "JsonFieldArrayBounds(json," \
     "JsonArrayObjectBoundsAt(json," \
     "JsonObjectFieldValueBounds(json,"; do

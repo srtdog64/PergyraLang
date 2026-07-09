@@ -286,8 +286,12 @@ func TypedAstArenaPayloadSchema() -> String {
     return "pgy.selfhost.typed-ast-arena.v1";
 }
 
-func TypedAstArenaPayloadFixtureCount() -> Int {
+func TypedAstArenaPayloadFixtureFrontierCount() -> Int {
     return 1;
+}
+
+func TypedAstArenaPayloadFixtureCount() -> Int {
+    return TypedAstArenaPayloadFixtureFrontierCount();
 }
 
 func TypedAstArenaRootTraversalReady() -> Bool {
@@ -383,7 +387,7 @@ func TypedAstArenaPayloadContractReady() -> Bool {
     if TypedAstArenaPayloadSchema() != "pgy.selfhost.typed-ast-arena.v1" {
         return false;
     }
-    if TypedAstArenaPayloadFixtureCount() != 1 {
+    if TypedAstArenaPayloadFixtureCount() != TypedAstArenaPayloadFixtureFrontierCount() {
         return false;
     }
     if !TypedAstArenaRootTraversalReady() {
