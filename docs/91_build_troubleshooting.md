@@ -52,9 +52,10 @@ mingw32-make abi-ownership-shape-test-smoke
 
 2026-07-09 local measurement on Windows/MinGW:
 
-- forced serial C-only compiler rebuild, tests excluded, debug symbols off:
-  peak sampled working set 267 MB, peak sampled private memory 251 MB, max
-  matching build processes 5;
+- forced serial C-only compiler object rebuild, tests excluded, debug symbols
+  off: peak sampled working set 267 MB, peak sampled private memory 251 MB,
+  max matching build processes 5. The measurement command used a PowerShell
+  backslash path and failed only at the final link response-file boundary;
 - link-only follow-up: peak sampled working set 32 MB;
 - local artifact pressure was dominated by `.tmp/self_hosted`, not compiler
   RSS: about 395 MB across more than 20k files.
