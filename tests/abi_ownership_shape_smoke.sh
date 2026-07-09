@@ -471,10 +471,13 @@ require_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_emit_plain_pin_inline
 require_term "src/codegen/llvm_mir_pin_region.c" "LLVMBuildStructGEP2(ctx->builder, slot_ty, slot_ptr_arg, 1"
 reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_pin_%s_init_%s"
 reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_pin_%s_init_%s"
+require_term "src/codegen/llvm_mir_pin_region.c" "mir_abi_resource_runtime_row_by_kind("
+require_term "src/codegen/llvm_mir_pin_region.c" "row->call_shape"
 require_term "src/codegen/llvm_mir_pin_region.c" '"PinReadInit"'
 require_term "src/codegen/llvm_mir_pin_region.c" '"PinWriteInit"'
 require_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_emit_plain_pin_inline_exit"
 require_term "src/codegen/llvm_mir_pin_region.c" '"Unpin"'
+reject_term "src/codegen/llvm_mir_pin_region.c" "mir_abi_resource_runtime_fn_by_kind("
 reject_term "src/codegen/llvm_mir_pin_region.c" "pgy_secure_unpin_%s"
 reject_term "src/codegen/llvm_mir_pin_region.c" "llvm_mir_unpin_name"
 

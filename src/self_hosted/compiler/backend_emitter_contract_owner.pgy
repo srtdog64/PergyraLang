@@ -35,7 +35,7 @@ func CompilerBackendEmitterOwnerNotReadyMessage() -> String {
 }
 
 func CompilerBackendEmitterRequiredCount() -> Int {
-    return 16;
+    return 18;
 }
 
 func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
@@ -55,6 +55,8 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 13 { return "src/codegen/transpiler_mir_pin_emit.c"; }
     if index == 14 { return "src/codegen/transpiler_block_emit.c"; }
     if index == 15 { return "src/codegen/transpiler_block_emit.c"; }
+    if index == 16 { return "src/codegen/llvm_mir_pin_region.c"; }
+    if index == 17 { return "src/codegen/llvm_mir_pin_region.c"; }
     return "";
 }
 
@@ -75,6 +77,8 @@ func CompilerBackendEmitterRequiredTermAt(index: Int) -> String {
     if index == 13 { return "row->call_shape"; }
     if index == 14 { return "mir_abi_resource_runtime_row_by_kind("; }
     if index == 15 { return "row->call_shape"; }
+    if index == 16 { return "mir_abi_resource_runtime_row_by_kind("; }
+    if index == 17 { return "row->call_shape"; }
     return "";
 }
 
@@ -103,7 +107,7 @@ func CompilerBackendEmitterForbiddenTermAt(index: Int) -> String {
 }
 
 func CompilerBackendEmitterContractReady() -> Bool {
-    return CompilerBackendEmitterRequiredCount() == 16 &&
+    return CompilerBackendEmitterRequiredCount() == 18 &&
         CompilerBackendEmitterNegativeSchema() != "" &&
         CompilerBackendEmitterMissingInputFinding() != "" &&
         CompilerBackendEmitterMissingRequiredFinding() != "" &&
@@ -124,6 +128,9 @@ func CompilerBackendEmitterContractReady() -> Bool {
         CompilerBackendEmitterRequiredTermAt(13) == "row->call_shape" &&
         CompilerBackendEmitterRequiredPathAt(14) == "src/codegen/transpiler_block_emit.c" &&
         CompilerBackendEmitterRequiredTermAt(15) == "row->call_shape" &&
+        CompilerBackendEmitterRequiredPathAt(16) == "src/codegen/llvm_mir_pin_region.c" &&
+        CompilerBackendEmitterRequiredTermAt(16) == "mir_abi_resource_runtime_row_by_kind(" &&
+        CompilerBackendEmitterRequiredTermAt(17) == "row->call_shape" &&
         CompilerBackendEmitterForbiddenCount() == 6 &&
         CompilerBackendEmitterForbiddenPathAt(0) == "src/codegen/llvm_runtime.c" &&
         CompilerBackendEmitterForbiddenTermAt(0) == "llvm_runtime_slot_name" &&

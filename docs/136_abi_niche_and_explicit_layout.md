@@ -65,8 +65,8 @@ runtime ABI into `MIRTypeLayout` facts. This means:
   resource-op emission, C source-level slot builtins, C expression slot runtime
   rows, `let slot` claim/initializer writes, C MIR pin enter/exit emission,
   source-level C pin block cleanup attributes, source statement auto-release,
-  LLVM identifier read emission, and LLVM slot/device builtins already consume
-  concrete
+  LLVM identifier read emission, LLVM MIR pin-region emission, and LLVM
+  slot/device builtins already consume concrete
   `MIRResourceRuntimeRow` records and validate the MIR-owned `call_shape`.
   C pin emitters get expected call shapes from
   `transpiler_slot_runtime_expected_call_shape(...)`, not local pin-only

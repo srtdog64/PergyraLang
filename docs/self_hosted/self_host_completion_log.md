@@ -5661,3 +5661,18 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - The production ABI blocker remains open for LLVM pin/unpin declaration
   registries, LLVM pin-region emission, LLVM/source with-slot cleanup releases,
   and remaining slot/member compatibility callsites.
+
+### 2026-07-09 -- LLVM MIR pin-region emission consumes runtime-call row records
+
+- Repointed secure LLVM MIR pin-region enter/exit emission in
+  `llvm_mir_pin_region.c` from symbol-returning
+  `mir_abi_resource_runtime_fn_by_kind(...)` to concrete
+  `MIRResourceRuntimeRow` records for PinReadInit/PinWriteInit and Unpin.
+- The LLVM pin-region emission path now validates the row-owned `call_shape`
+  before looking up the registered runtime function.
+- Tightened `abi_ownership_shape_smoke.sh`, `backend_fail_closed_smoke.sh`,
+  `perf_contract_smoke.sh`, and the self-host backend-emitter contract owner so
+  the LLVM pin-region path cannot regress to symbol-only runtime ABI lookup.
+- The production ABI blocker remains open for LLVM Slot/SecureSlot/DeviceSlot
+  runtime declaration registries, LLVM/source with-slot cleanup releases, and
+  remaining slot/member compatibility callsites.

@@ -425,12 +425,13 @@ Current beta closure snapshot:
   the concrete row records for PinRead/PinWrite, Unpin/UnpinCleanup, and
   Release, with expected call shapes supplied
   by `transpiler_slot_runtime_expected_call_shape(...)` rather than local
-  emitter tables. LLVM Slot/SecureSlot/DeviceSlot
+  emitter tables. LLVM MIR pin-region emission consumes concrete rows for
+  PinReadInit/PinWriteInit and Unpin before looking up registered runtime
+  functions. LLVM Slot/SecureSlot/DeviceSlot
   declaration registries, LLVM pin/unpin declaration registries, LLVM
-  pin-region emission, slot method calls, slot assignment writes,
-  and with-slot cleanup releases are still compatibility consumers of the same
-  ABI owner through symbol-returning row accessors until they are cut over to
-  concrete row records. Source-level
+  slot method calls, slot assignment writes, and with-slot cleanup releases are
+  still compatibility consumers of the same ABI owner through symbol-returning
+  row accessors until they are cut over to concrete row records. Source-level
   `with slot` alias claim/release emission consumes the same rows for Claim
   and Release. C MIR destructuring for `ClaimSlot`/`ClaimSecureSlot` consumes
   the Claim rows as well. C class field-claim helpers consume Claim rows from

@@ -517,7 +517,9 @@ if grep -F 'pgy_secure_release_%s(&%s, &%s_token);' \
     echo "[backend-fail-closed] C source secure auto-release must consume MIR ABI runtime rows" >&2
     exit 1
 fi
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
+grep -Fq "mir_abi_resource_runtime_row_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+grep -Fq "row->call_shape" \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq '"PinReadInit"' \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
@@ -525,6 +527,11 @@ grep -Fq '"PinWriteInit"' \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq '"Unpin"' \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+if grep -F "mir_abi_resource_runtime_fn_by_kind(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM MIR pin-region emission must consume MIR ABI runtime row records" >&2
+    exit 1
+fi
 if grep -F 'pgy_secure_pin_%s_init_%s' \
     "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM secure pin enter must consume MIR ABI runtime rows" >&2
