@@ -45,57 +45,6 @@ func CompilerHarnessLinterParityReady() -> Bool {
     return CompilerHarnessLinterParitySuiteName() != "";
 }
 
-func CompilerHarnessStableSubsetSectionSuiteName() -> String {
-    return "stable-subset-section-paths";
-}
-
-func CompilerHarnessStableSubsetSectionToolSourcePath() -> String {
-    return "src/self_hosted/tools/stable_subset_section_checker/main.pgy";
-}
-
-func CompilerHarnessStableSubsetSectionExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/stable_subset_section_checker/expected/clean.json";
-}
-
-func CompilerHarnessStableSubsetSectionInputManifestPath() -> String {
-    return "docs/107_beta_stable_subset.md";
-}
-
-func CompilerHarnessStableSubsetSectionMissingAnchor() -> String {
-    return "## 3. Ownership Stable Subset";
-}
-
-func CompilerHarnessStableSubsetSectionMissingJsonPath() -> String {
-    return "src/self_hosted/tools/stable_subset_section_checker/expected/missing_section.json";
-}
-
-func CompilerHarnessStableSubsetSectionPathCount() -> Int {
-    return 5;
-}
-
-func CompilerHarnessStableSubsetSectionPathAt(index: Int) -> String {
-    if index == 0 { return CompilerHarnessStableSubsetSectionToolSourcePath(); }
-    if index == 1 { return CompilerHarnessStableSubsetSectionExpectedJsonPath(); }
-    if index == 2 { return CompilerHarnessStableSubsetSectionInputManifestPath(); }
-    if index == 3 { return CompilerHarnessStableSubsetSectionMissingAnchor(); }
-    if index == 4 { return CompilerHarnessStableSubsetSectionMissingJsonPath(); }
-    return "";
-}
-
-func CompilerHarnessStableSubsetSectionReady() -> Bool {
-    if CompilerHarnessStableSubsetSectionPathCount() != 5 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < CompilerHarnessStableSubsetSectionPathCount() {
-        if CompilerHarnessStableSubsetSectionPathAt(i) == "" {
-            return false;
-        }
-        i = i + 1;
-    }
-    return CompilerHarnessStableSubsetSectionSuiteName() != "";
-}
-
 func CompilerHarnessDocLinkCheckerSuiteName() -> String {
     return "doc-link-checker-paths";
 }

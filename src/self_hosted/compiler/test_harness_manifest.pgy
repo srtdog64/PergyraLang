@@ -18,6 +18,7 @@ import "test_harness_diagnostic_paths_owner.pgy";
 import "test_harness_ast_surface_paths_owner.pgy";
 import "test_harness_lexer_paths_owner.pgy";
 import "test_harness_runtime_boundary_paths_owner.pgy";
+import "test_harness_stable_subset_paths_owner.pgy";
 import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";

@@ -51,6 +51,19 @@ rewrite history.
   shape for shell parity runners, while making the runtime-boundary owner the
   path truth for the native-runtime-vs-self-host boundary claim.
 
+## 2026-07-10 - Stable-subset TestHarness paths move to stable-subset owner
+
+- Split `test_harness_stable_subset_paths_owner.pgy` out of the shared
+  TestHarness tool path owner for the stable-subset checker source, expected
+  clean artifact, input manifest, missing-section anchor, and negative artifact.
+- Added `CompilerHarnessStableSubsetSectionPathKnown(...)` and repointed
+  `CompilerHarnessStableSubsetSectionReady()` from fixed `PathCount() == 5` and
+  positional `PathAt(0..4)` checks to named path membership plus an
+  out-of-range boundary check.
+- Kept the ordered rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while making the stable-subset owner the path
+  truth for the beta stable-subset contract checker.
+
 ## 2026-07-10 - AST read-surface paths move to source-surface owner
 
 - Split `test_harness_ast_surface_paths_owner.pgy` out of the shared TestHarness

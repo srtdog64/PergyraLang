@@ -262,6 +262,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy` --
   runtime-boundary checker source, expected artifact, and missing-term path
   suite.
+- `src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy` --
+  stable-subset checker source, expected artifact, input manifest, and
+  missing-section path suite.
 - `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1
   driver, parser, and codegen source path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy` -- codegen
