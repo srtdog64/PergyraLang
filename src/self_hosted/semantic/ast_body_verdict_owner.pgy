@@ -115,11 +115,13 @@ func SemanticAstBodyVerdictContractReady() -> Bool {
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            artifact, signatures, locals
+            artifact, signatures, constructors, locals
         );
     let assignment_rows: SemanticAstAssignmentFacts =
         SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
@@ -127,16 +129,17 @@ func SemanticAstBodyVerdictContractReady() -> Bool {
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
     let iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types, statement_rows
+            artifact, signatures, constructors, locals, initializer_types,
+            statement_rows
         );
     let assignment_types: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types, statement_rows,
-            iteration_types, assignment_rows
+            artifact, signatures, constructors, locals, initializer_types,
+            statement_rows, iteration_types, assignment_rows
         );
     let statement_types: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types,
+            artifact, signatures, constructors, locals, initializer_types,
             iteration_types, statement_rows
         );
     return SemanticAstBodyVerdictFromFacts(

@@ -1,0 +1,255 @@
+// Nominal constructor facts derived once from the parser-owned AST artifact.
+//
+// Expression typing consumes these rows instead of rescanning source text for
+// class/struct fields. Field order is constructor parameter order.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "diagnostic_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstNominalConstructorFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    names: Array<String>;
+    return_type_names: Array<String>;
+    param_starts: Array<Int>;
+    param_counts: Array<Int>;
+    param_type_names: Array<String>;
+}
+
+func SemanticAstNominalConstructorError(node_id: Int, fact: String) -> String {
+    return SemanticError2(
+        "nominal_constructor_fact_invalid",
+        "node_id", ToString(node_id),
+        "missing_fact", fact
+    );
+}
+
+func SemanticAstNominalConstructorFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstNominalConstructorFacts {
+    let node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let return_types: Array<String> = [];
+    let param_starts: Array<Int> = [];
+    let param_counts: Array<Int> = [];
+    let param_types: Array<String> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let diagnostic_code: String = "";
+    let diagnostic_message: String = "";
+    if !ok {
+        diagnostic_code = "ast_artifact_invalid";
+        diagnostic_message = SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstNominalConstructorFacts"
+        );
+    }
+
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindNominalDeclTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let name_opt: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        if !IsSome(name_opt) || StringLength(UnwrapOption(name_opt)) == 0 {
+            ok = false;
+            diagnostic_code = "nominal_constructor_fact_invalid";
+            diagnostic_message = SemanticAstNominalConstructorError(
+                node_id, "nominal_name"
+            );
+            continue;
+        }
+
+        let param_start: Int = ArrayLength(param_types);
+        let saw_fields: Bool = false;
+        let child_index: Int = 0;
+        let child_opt: Option<Int> = TypedAstArenaChildAt(
+            artifact.arena, node_id, child_index
+        );
+        while IsSome(child_opt) && ok {
+            let child_id: Int = UnwrapOption(child_opt);
+            if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindFieldsHeaderTag()
+            ) {
+                if saw_fields {
+                    ok = false;
+                    diagnostic_code = "nominal_constructor_fact_invalid";
+                    diagnostic_message = SemanticAstNominalConstructorError(
+                        child_id, "duplicate_fields_row"
+                    );
+                    continue;
+                }
+                saw_fields = true;
+                let field_index: Int = 0;
+                let field_opt: Option<Int> = TypedAstArenaChildAt(
+                    artifact.arena, child_id, field_index
+                );
+                while IsSome(field_opt) && ok {
+                    let field_id: Int = UnwrapOption(field_opt);
+                    if !TypedAstArenaNodeKindIs(
+                        artifact.arena, field_id, TypedAstKindFieldTag()
+                    ) {
+                        ok = false;
+                        diagnostic_code = "nominal_constructor_fact_invalid";
+                        diagnostic_message = SemanticAstNominalConstructorError(
+                            field_id, "field_kind"
+                        );
+                        continue;
+                    }
+                    let field_type_opt: Option<String> = TypedAstArenaTypeName(
+                        artifact.arena, field_id
+                    );
+                    if !IsSome(field_type_opt) ||
+                        StringLength(UnwrapOption(field_type_opt)) == 0 {
+                        ok = false;
+                        diagnostic_code = "nominal_constructor_fact_invalid";
+                        diagnostic_message = SemanticAstNominalConstructorError(
+                            field_id, "field_type"
+                        );
+                        continue;
+                    }
+                    ArrayPush(
+                        param_types,
+                        SemanticCanonicalTypeName(UnwrapOption(field_type_opt))
+                    );
+                    field_index = field_index + 1;
+                    field_opt = TypedAstArenaChildAt(
+                        artifact.arena, child_id, field_index
+                    );
+                }
+            }
+            child_index = child_index + 1;
+            child_opt = TypedAstArenaChildAt(
+                artifact.arena, node_id, child_index
+            );
+        }
+        if !ok {
+            continue;
+        }
+        let name: String = UnwrapOption(name_opt);
+        ArrayPush(node_ids, node_id);
+        ArrayPush(names, name);
+        ArrayPush(return_types, name);
+        ArrayPush(param_starts, param_start);
+        ArrayPush(param_counts, ArrayLength(param_types) - param_start);
+        node_id = node_id + 1;
+    }
+    return SemanticAstNominalConstructorFacts(
+        ok, diagnostic_code, diagnostic_message, artifact.count,
+        node_ids, names, return_types, param_starts, param_counts, param_types
+    );
+}
+
+func SemanticAstNominalConstructorCount(
+    facts: SemanticAstNominalConstructorFacts
+) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstNominalConstructorRowsReady(
+    facts: SemanticAstNominalConstructorFacts
+) -> Bool {
+    let count: Int = SemanticAstNominalConstructorCount(facts);
+    if !facts.ok || ArrayLength(facts.names) != count ||
+        ArrayLength(facts.return_type_names) != count ||
+        ArrayLength(facts.param_starts) != count ||
+        ArrayLength(facts.param_counts) != count {
+        return false;
+    }
+    let expected_param_count: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if facts.param_starts[i] != expected_param_count ||
+            facts.param_counts[i] < 0 {
+            return false;
+        }
+        expected_param_count = expected_param_count + facts.param_counts[i];
+        i = i + 1;
+    }
+    return expected_param_count == ArrayLength(facts.param_type_names);
+}
+
+func SemanticAstNominalConstructorParamTypeAt(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    param_index: Int
+) -> Option<String> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        param_index < 0 || param_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(
+        facts.param_type_names[
+            facts.param_starts[constructor_index] + param_index
+        ]
+    );
+}
+
+func SemanticAstNominalConstructorFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstNominalConstructorFacts
+) -> Bool {
+    let rebuilt: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let count: Int = SemanticAstNominalConstructorCount(facts);
+    if !SemanticAstNominalConstructorRowsReady(facts) || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        SemanticAstNominalConstructorCount(rebuilt) != count ||
+        ArrayLength(facts.names) != count ||
+        ArrayLength(facts.return_type_names) != count ||
+        ArrayLength(facts.param_starts) != count ||
+        ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.param_type_names) !=
+            ArrayLength(rebuilt.param_type_names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.names[i] != rebuilt.names[i] ||
+            facts.return_type_names[i] != rebuilt.return_type_names[i] ||
+            facts.param_starts[i] != rebuilt.param_starts[i] ||
+            facts.param_counts[i] != rebuilt.param_counts[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    let p: Int = 0;
+    while p < ArrayLength(facts.param_type_names) {
+        if facts.param_type_names[p] != rebuilt.param_type_names[p] {
+            return false;
+        }
+        p = p + 1;
+    }
+    return true;
+}
+
+func SemanticAstNominalConstructorFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n      value: String\n      count: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: String\n        Body:\n          Block:\n            Return: self.value\n"
+    );
+    let facts: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let first: Option<String> = SemanticAstNominalConstructorParamTypeAt(
+        facts, 0, 0
+    );
+    let second: Option<String> = SemanticAstNominalConstructorParamTypeAt(
+        facts, 0, 1
+    );
+    return SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts) &&
+        SemanticAstNominalConstructorCount(facts) == 1 &&
+        facts.names[0] == "Box" && facts.return_type_names[0] == "Box" &&
+        facts.param_counts[0] == 2 && IsSome(first) && IsSome(second) &&
+        UnwrapOption(first) == "String" && UnwrapOption(second) == "Int";
+}

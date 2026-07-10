@@ -23,8 +23,14 @@ by the sibling modules:
   header facts.
 - `routine_lower.pgy` owns CFG/body reconstruction for a selected routine.
 - `stmt_render.pgy` owns statement/expression rendering from MIR facts.
-- `error_owner.pgy` owns the fail-closed diagnostic boundary.
+- `error_owner.pgy` owns the stage-specific `MirLowerFailClosed` boundary so
+  MIR lowering can be linked into a compiler binary without redefining the
+  codegen/global `Die` surface.
 
 Unsupported declaration or instruction facts must fail closed with
 `MIR-LOWER ERROR`; they must not be reconstructed by re-reading source AST text.
 The executable contract is `make self-host-mir-json-parity-test-smoke`.
+The integrated contract is
+`make self-host-driver-rung2-body-parity-test-smoke`; C still owns MIR JSON
+production, while the Pergyra driver owns MIR consumption, semantic
+verification, and C projection.

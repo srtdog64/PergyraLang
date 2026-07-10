@@ -16,11 +16,11 @@ func EmitDeclFields(json: String, decl_start: Int, decl_end: Int, owner_name: St
     while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "fields", row, field_bounds) {
         let fname: String = MirObjectStringFact(json, field_bounds[0], field_bounds[1], "name");
         if StringLength(fname) == 0 {
-            Die(Concat("malformed field name fact: ", owner_name));
+            MirLowerFailClosed(Concat("malformed field name fact: ", owner_name));
         }
         let ftype: String = MirObjectStringFact(json, field_bounds[0], field_bounds[1], "type");
         if StringLength(ftype) == 0 {
-            Die(Concat("field is missing type fact: ", fname));
+            MirLowerFailClosed(Concat("field is missing type fact: ", fname));
         }
         out = Concat(out, Concat("      ", Concat(fname, Concat(": ", Concat(ftype, "\n")))));
         row = row + 1;
@@ -35,11 +35,11 @@ func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: 
     while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "methods", row, method_bounds) {
         let mname: String = MirObjectStringFact(json, method_bounds[0], method_bounds[1], "name");
         if StringLength(mname) == 0 {
-            Die(Concat("class declaration has unnamed method fact: ", owner_name));
+            MirLowerFailClosed(Concat("class declaration has unnamed method fact: ", owner_name));
         }
         let routine_pos: Option<Int> = FindRoutineByOwnerName(json, owner_name, mname);
         if !IsSome(routine_pos) {
-            Die(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
+            MirLowerFailClosed(Concat("class method is missing routine fact: ", Concat(owner_name, Concat(".", mname))));
         }
         out = Concat(out, EmitRoutineTree(json, UnwrapOption(routine_pos), "      "));
         row = row + 1;
@@ -53,7 +53,7 @@ func EmitClassMethods(json: String, decl_start: Int, decl_end: Int, owner_name: 
 func EmitAbilityMethodParams(json: String, method_start: Int, method_end: Int, ability_name: String, method_name: String) -> String {
     let params_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, method_start, method_end, "params", params_bounds) {
-        Die(Concat("ability method is missing params fact: ", Concat(ability_name, Concat(".", method_name))));
+        MirLowerFailClosed(Concat("ability method is missing params fact: ", Concat(ability_name, Concat(".", method_name))));
     }
     let out: String = "";
     let param_bounds: Array<Int> = [0, 0];
@@ -61,7 +61,7 @@ func EmitAbilityMethodParams(json: String, method_start: Int, method_end: Int, a
     while MirObjectArrayObjectBoundsAt(json, method_start, method_end, "params", row, param_bounds) {
         let pname: String = MirObjectStringFact(json, param_bounds[0], param_bounds[1], "name");
         if StringLength(pname) == 0 {
-            Die(Concat("ability method has unnamed param fact: ", Concat(ability_name, Concat(".", method_name))));
+            MirLowerFailClosed(Concat("ability method has unnamed param fact: ", Concat(ability_name, Concat(".", method_name))));
         }
         let ptype: String = MirObjectStringFact(json, param_bounds[0], param_bounds[1], "type");
         out = Concat(out, Concat("        ", pname));
@@ -77,7 +77,7 @@ func EmitAbilityMethodParams(json: String, method_start: Int, method_end: Int, a
 func EmitAbilityMethods(json: String, decl_start: Int, decl_end: Int, ability_name: String) -> String {
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, decl_start, decl_end, "methods", methods_bounds) {
-        Die(Concat("ability declaration is missing methods fact: ", ability_name));
+        MirLowerFailClosed(Concat("ability declaration is missing methods fact: ", ability_name));
     }
     let out: String = "";
     let method_bounds: Array<Int> = [0, 0];
@@ -85,11 +85,11 @@ func EmitAbilityMethods(json: String, decl_start: Int, decl_end: Int, ability_na
     while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "methods", row, method_bounds) {
         let mname: String = MirObjectStringFact(json, method_bounds[0], method_bounds[1], "name");
         if StringLength(mname) == 0 {
-            Die(Concat("ability declaration has unnamed method fact: ", ability_name));
+            MirLowerFailClosed(Concat("ability declaration has unnamed method fact: ", ability_name));
         }
         let ret: String = MirObjectStringFact(json, method_bounds[0], method_bounds[1], "return");
         if StringLength(ret) == 0 {
-            Die(Concat("ability method is missing return fact: ", Concat(ability_name, Concat(".", mname))));
+            MirLowerFailClosed(Concat("ability method is missing return fact: ", Concat(ability_name, Concat(".", mname))));
         }
         out = Concat(out, Concat("    Function: ", Concat(mname, "\n")));
         out = Concat(out, "      Parameters:\n");
@@ -109,18 +109,18 @@ func EmitRoleMethods(json: String, decl_start: Int, decl_end: Int, role_name: St
     let out: String = "";
     let methods_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, decl_start, decl_end, "methods", methods_bounds) {
-        Die(Concat("role declaration is missing methods fact: ", role_name));
+        MirLowerFailClosed(Concat("role declaration is missing methods fact: ", role_name));
     }
     let method_bounds: Array<Int> = [0, 0];
     let row: Int = 0;
     while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "methods", row, method_bounds) {
         let mname: String = MirObjectStringFact(json, method_bounds[0], method_bounds[1], "name");
         if StringLength(mname) == 0 {
-            Die(Concat("role declaration has unnamed method fact: ", role_name));
+            MirLowerFailClosed(Concat("role declaration has unnamed method fact: ", role_name));
         }
         let routine_pos: Option<Int> = FindRoutineByOwnerName(json, role_name, mname);
         if !IsSome(routine_pos) {
-            Die(Concat("role method is missing routine fact: ", Concat(role_name, Concat(".", mname))));
+            MirLowerFailClosed(Concat("role method is missing routine fact: ", Concat(role_name, Concat(".", mname))));
         }
         out = Concat(out, EmitRoutineTreeWithSelfType(json, UnwrapOption(routine_pos), "      ", for_type));
         row = row + 1;
@@ -139,7 +139,7 @@ func EmitRoleDecl(json: String, decl_start: Int, decl_end: Int, role_name: Strin
 func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: String) -> String {
     let variants_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, decl_start, decl_end, "variants", variants_bounds) {
-        Die(Concat("enum declaration is missing variants fact: ", enum_name));
+        MirLowerFailClosed(Concat("enum declaration is missing variants fact: ", enum_name));
     }
     let out: String = "";
     let variant_bounds: Array<Int> = [0, 0];
@@ -147,11 +147,11 @@ func EmitEnumDecl(json: String, decl_start: Int, decl_end: Int, enum_name: Strin
     while MirObjectArrayObjectBoundsAt(json, decl_start, decl_end, "variants", row, variant_bounds) {
         let vname: String = MirObjectStringFact(json, variant_bounds[0], variant_bounds[1], "name");
         if StringLength(vname) == 0 {
-            Die(Concat("malformed enum variant name fact: ", enum_name));
+            MirLowerFailClosed(Concat("malformed enum variant name fact: ", enum_name));
         }
         let pc: String = MirObjectNumberFact(json, variant_bounds[0], variant_bounds[1], "param_count");
         if pc != "0" {
-            Die(Concat("payload enum variants are not supported in self-host subset: ", Concat(enum_name, Concat(".", vname))));
+            MirLowerFailClosed(Concat("payload enum variants are not supported in self-host subset: ", Concat(enum_name, Concat(".", vname))));
         }
         if StringLength(out) > 0 {
             out = Concat(out, ", ");
@@ -192,16 +192,16 @@ func EmitStructDecls(json: String) -> String {
             if ast_type == "AST_CLASS_DECL" && StringLength(nominal_kind) > 0 {
                 display_kind = nominal_kind;
             }
-            Die(Concat("unsupported MIR declaration in self-host subset: ", Concat(display_kind, Concat(" ", uname))));
+            MirLowerFailClosed(Concat("unsupported MIR declaration in self-host subset: ", Concat(display_kind, Concat(" ", uname))));
         }
         let sname: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "name");
         if StringLength(sname) == 0 {
-            Die(Concat(kind, " declaration is missing name fact"));
+            MirLowerFailClosed(Concat(kind, " declaration is missing name fact"));
         }
         if kind == "role" {
             let for_type: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "for_type");
             if StringLength(for_type) == 0 {
-                Die(Concat("role declaration is missing for_type fact: ", sname));
+                MirLowerFailClosed(Concat("role declaration is missing for_type fact: ", sname));
             }
             out = Concat(out, EmitRoleDecl(json, decl_bounds[0], decl_bounds[1], sname, for_type));
         }

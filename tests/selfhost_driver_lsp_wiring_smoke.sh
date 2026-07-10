@@ -85,6 +85,11 @@ grep -Fq 'self-host-live-replacement-test-smoke' "$ROOT_DIR/Makefile" ||
     fail "DRV-2 live replacement gate is not wired into Makefile"
 grep -Fq 'pgy --self-driver <source.pgy>' "$DOC" ||
     fail "DRV-2 live replacement CLI is not documented"
+grep -Fq '`--mir-json <file>`' "$DOC" ||
+    fail "DRV-2 integrated MIR bridge CLI is not documented"
+grep -Fq 'mir_fixtures=${#mir_fixture_rows[@]}' \
+    "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh" ||
+    fail "DRV-2 MIR integration gate is not wired into the landed parity runner"
 if printf '%s\n' "$rows" | grep -Fq "| LSP-2 | planned |"; then
     case "$(cat "$DOC")" in
         *G-LSP-STREAM*) ;;

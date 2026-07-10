@@ -5,6 +5,7 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
 
@@ -28,12 +29,41 @@ func SemanticAstExpressionScopeVisible(
 
 func SemanticAstExpressionFunctionTables(
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     inout names: Array<String>,
     inout returns: Array<String>,
     inout params: Array<String>
 ) -> Bool {
     if !SeedSemanticBuiltinSignatures(names, returns, params) {
         return false;
+    }
+    if !SemanticAstNominalConstructorRowsReady(constructors) {
+        return false;
+    }
+    let constructor_index: Int = 0;
+    while constructor_index < SemanticAstNominalConstructorCount(constructors) {
+        ArrayPush(names, constructors.names[constructor_index]);
+        ArrayPush(returns, constructors.return_type_names[constructor_index]);
+        let constructor_params: String = "";
+        let param_index: Int = 0;
+        while param_index < constructors.param_counts[constructor_index] {
+            let param_type: Option<String> =
+                SemanticAstNominalConstructorParamTypeAt(
+                    constructors, constructor_index, param_index
+                );
+            if !IsSome(param_type) {
+                return false;
+            }
+            if StringLength(constructor_params) > 0 {
+                constructor_params = Concat(constructor_params, "|");
+            }
+            constructor_params = Concat(
+                constructor_params, UnwrapOption(param_type)
+            );
+            param_index = param_index + 1;
+        }
+        ArrayPush(params, constructor_params);
+        constructor_index = constructor_index + 1;
     }
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
@@ -213,6 +243,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let names: Array<String> = [];
@@ -223,7 +255,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let modes: Array<String> = [];
     let inferred: Array<String> = ["Int", "Int"];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns, function_params
+        signatures, constructors,
+        function_names, function_returns, function_params
     ) || !SemanticAstExpressionSeedParameters(
         signatures, locals.function_node_ids[0], names, types
     ) || !SemanticAstExpressionSeedParameterModes(

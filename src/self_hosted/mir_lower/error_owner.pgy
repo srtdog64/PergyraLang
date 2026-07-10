@@ -1,6 +1,6 @@
 // Shared self-hosted mir_lower diagnostic boundary.
 
-func Die(msg: String) -> Void {
+func MirLowerFailClosed(msg: String) -> Void {
     Log(Concat("MIR-LOWER ERROR: ", msg));
     Exit(1);
 }

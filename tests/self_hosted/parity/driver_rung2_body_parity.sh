@@ -28,6 +28,7 @@ BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver_rung2}"
 DRIVER_PATHS="$BUILD_DIR/driver_paths.txt"
 SEMANTIC_PATHS="$BUILD_DIR/semantic_paths.txt"
 FIXTURE_ROWS="$BUILD_DIR/fixture_rows.txt"
+MIR_FIXTURE_ROWS="$BUILD_DIR/mir_fixture_rows.txt"
 mkdir -p "$BUILD_DIR"
 rm -f "$BUILD_DIR"/*.baseline.c
 
@@ -96,6 +97,49 @@ if [[ "${#fixture_rows[@]}" -ne 19 ]]; then
     echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 19" >&2
     exit 1
 fi
+if ! (cd "$ROOT_DIR" && "$C_DRIVER" --mir-fixture-manifest \
+    >"$MIR_FIXTURE_ROWS"); then
+    echo "[self-host-parity:driver-rung2] MIR fixture manifest emission failed" >&2
+    exit 1
+fi
+mir_fixture_rows=()
+while IFS= read -r line; do
+    line="${line%$'\r'}"
+    [[ -n "$line" ]] && mir_fixture_rows+=("$line")
+done <"$MIR_FIXTURE_ROWS"
+if [[ "${#mir_fixture_rows[@]}" -ne 4 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 4" >&2
+    exit 1
+fi
+
+for fixture_rel in "${mir_fixture_rows[@]}"; do
+    fixture_abs="$ROOT_DIR/$fixture_rel"
+    base="$(basename "$fixture_rel" .pgy)"
+    mir_json="$BUILD_DIR/${base}.mir.json"
+    oracle_bin="$BUILD_DIR/${base}.oracle.exe"
+    [[ -f "$fixture_abs" ]] || {
+        echo "[self-host-parity:driver-rung2] missing MIR fixture: $fixture_rel" >&2
+        exit 1
+    }
+    (cd "$ROOT_DIR" && "$PGY" --mir-json \
+        "$(pgy_path_for_compiler "$PGY" "$fixture_abs")" 2>/dev/null) \
+        | tr -d '\r' >"$mir_json"
+    grep -Fq '"schema":"pgy.mir.v1"' "$mir_json" || {
+        echo "[self-host-parity:driver-rung2] missing MIR schema: $fixture_rel" >&2
+        exit 1
+    }
+    if ! (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$fixture_abs")" --backend=c \
+        -o "$(pgy_path_for_compiler "$PGY" "$oracle_bin")" \
+        >"$BUILD_DIR/${base}.oracle.compile.log" 2>&1); then
+        echo "[self-host-parity:driver-rung2] C oracle compile failed: $fixture_rel" >&2
+        cat "$BUILD_DIR/${base}.oracle.compile.log" >&2
+        exit 1
+    fi
+    "$oracle_bin" >"$BUILD_DIR/${base}.oracle.run.raw"
+    tr -d '\r' <"$BUILD_DIR/${base}.oracle.run.raw" \
+        >"$BUILD_DIR/${base}.oracle.run"
+done
 
 BACKENDS="${PGY_SELFHOST_DRIVER_BACKENDS:-c llvm}"
 ran=0
@@ -162,6 +206,45 @@ for backend in $BACKENDS; do
                 "$expected" "$actual" "diagnostics"
         fi
     done
+    for fixture_rel in "${mir_fixture_rows[@]}"; do
+        base="$(basename "$fixture_rel" .pgy)"
+        mir_json="$BUILD_DIR/${base}.mir.json"
+        mir_json_arg="$(pgy_selfhost_path_relative_to_root "$mir_json")"
+        actual="$BUILD_DIR/${base}_${backend}.mir.c"
+        err="$BUILD_DIR/${base}_${backend}.mir.err"
+        if ! (cd "$ROOT_DIR" && "$DRIVER_BIN" --mir-json \
+            "$mir_json_arg" \
+            >"$actual.raw" 2>"$err"); then
+            echo "[self-host-parity:driver-rung2] $backend MIR integration failed: $base" >&2
+            cat "$actual.raw" "$err" >&2
+            exit 1
+        fi
+        tr -d '\r' <"$actual.raw" >"$actual"
+        rm -f "$actual.raw"
+        if ! "$CC" -x c -std=c11 "$actual" \
+            -o "$BUILD_DIR/${base}_${backend}.mir.exe" \
+            >"$BUILD_DIR/${base}_${backend}.mir.cc.log" 2>&1; then
+            echo "[self-host-parity:driver-rung2] integrated MIR C compile failed: $backend/$base" >&2
+            cat "$BUILD_DIR/${base}_${backend}.mir.cc.log" >&2
+            exit 1
+        fi
+        "$BUILD_DIR/${base}_${backend}.mir.exe" \
+            >"$BUILD_DIR/${base}_${backend}.mir.run.raw"
+        tr -d '\r' <"$BUILD_DIR/${base}_${backend}.mir.run.raw" \
+            >"$BUILD_DIR/${base}_${backend}.mir.run"
+        pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+            "driver-rung2:$backend:$base:mir-run" "$BUILD_DIR" \
+            "$BUILD_DIR/${base}.oracle.run" \
+            "$BUILD_DIR/${base}_${backend}.mir.run" "run_output"
+        mir_baseline="$BUILD_DIR/${base}.mir.baseline.c"
+        if [[ ! -f "$mir_baseline" ]]; then
+            cp "$actual" "$mir_baseline"
+        else
+            pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+                "driver-rung2:$backend:$base:mir-c" "$BUILD_DIR" \
+                "$mir_baseline" "$actual" "emitted_c"
+        fi
+    done
     ran=$((ran + 1))
 done
 
@@ -169,4 +252,4 @@ if [[ "$ran" -eq 0 ]]; then
     echo "[self-host-parity:driver-rung2] no backend ran" >&2
     exit 1
 fi
-echo "[self-host-parity:driver-rung2] artifact body verdict parity ok: backends=$ran fixtures=${#fixture_rows[@]}"
+echo "[self-host-parity:driver-rung2] artifact body + MIR bridge parity ok: backends=$ran body_fixtures=${#fixture_rows[@]} mir_fixtures=${#mir_fixture_rows[@]}"

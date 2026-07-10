@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -38,7 +38,8 @@ source-to-AST-to-C pipeline, not a whole-compiler claim. Semantic analysis owns
 executable `Main` cardinality, signatures, local declaration/function/scope,
 initializer, iteration, assignment, expression-use, return, condition, and
 ordered body-verdict rows. The latest codegen bootstrap fixes `gen2 == gen3` at
-13,561 generated-C lines. MIR lowering is not yet integrated into this driver.
+13,561 generated-C lines. DRV-2 now integrates the bounded MIR consumer; the
+fixed-point bootstrap driver still excludes MIR production.
 The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-
@@ -66,6 +67,20 @@ Wiring the current source scanner into the driver would create a second parser
 and does not count.
 
 ## Headline Number
+
+### Three-axis scorecard
+
+These numbers must not be collapsed into one percentage:
+
+| Axis | Current evidence | Meaning |
+|------|------------------|---------|
+| Implementation inventory | 24,152 frontend/backend LOC; 36,525 compiler-core LOC; 8.59% of the measured C reference volume | Pergyra compiler code exists; this is not substitution. |
+| Bounded executable replacement | DRV-2 has 19 source semantic fixtures, 4 integrated MIR-consumer fixtures, and the standalone fact-only MIR path has 95 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Released/default replacement | 0% | `pgy` still uses the C-owned source-to-MIR producer and native driver unless `--self-driver` is selected. |
+
+The scorecard prevents two false claims: implementation volume must not be
+reported as native replacement, and native replacement at 0% must not erase
+measured progress in bounded executable rungs.
 
 **Hard self-host contract (2026-06-22):** hard self-host is now gated as
 staged substitution rather than tracked as a separate cleanup project. The
@@ -134,7 +149,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-240 production self-host source files across lexer, parser, semantic, codegen,
+241 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -194,6 +209,13 @@ through both C-built and LLVM-built drivers, compares emitted C or diagnostics,
 and C-compiles every positive artifact. The builtin signature table, canonical
 type-name owner, and shared source character/trivia scanner are single owners;
 the integrated driver may not recover these facts from source text.
+The same executable now accepts `--mir-json <file>` and composes the existing
+MIR fact consumer directly into the artifact verifier. Four intersection
+fixtures (linear local/log, range loop, recursive calls, and nominal method
+construction) require C/LLVM-built drivers to emit identical C and run-equal to
+the native C oracle. This is real
+MIR-consumer integration, but source-to-MIR JSON production is still the C
+oracle bridge and the default native compiler path remains unreplaced.
 
 The same slice removed two compiler-scale quadratic scans. Typed AST parent and
 child rows now use an indentation stack plus CSR-style child offsets, and AST
@@ -214,9 +236,11 @@ compiler now emits MIR JSON (`pgy --mir-json`, schema `pgy.mir.v1`) with the CFG
 skeleton, explicit expression/source-shape facts (`expr0`, `expr1`,
 `source_type`), source-local type facts (`source_locals`), and a transitional
 `ast` compatibility text field captured by the MIR source-shape owner. A new
-Pergyra tool `src/self_hosted/mir_lower/` consumes that JSON and reconstructs the
-`--ast` tree, which the existing codegen lowers to C. The whole MIR -> C path is
-now Pergyra and run-equivalent to the C backend on the supported rung-0b CFG
+Pergyra owner graph `src/self_hosted/mir_lower/` consumes that JSON and
+reconstructs the `--ast` tree, which the existing codegen lowers to C. It is
+available both as a standalone tool and inside DRV-2 before the same semantic
+artifact verifier. The whole MIR -> C path is Pergyra and run-equivalent to the
+C backend on the supported rung-0b CFG
 subset (linear code, signatures/return, if/else, nested if, while, and
 `for i in a..b`), plus selected codegen fixture surfaces that already lower from
 MIR facts (args, arrays, Bool/string/Float builtins, Bool-literal branch
@@ -286,7 +310,7 @@ not only purpose-built MIR-lower fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
 owner rather than living as one monolithic `main.pgy`: `error_owner` owns the
-diagnostic boundary, `mir_json_input_owner` owns argv/file/schema input gating,
+stage-specific `MirLowerFailClosed` boundary, `mir_json_input_owner` owns argv/file/schema input gating,
 `json_fact_read` owns bounded JSON/MIR fact access, `decl_lower` owns declaration
 inventory reconstruction, `program_lower` owns document-order Program assembly
 and supported routine selection, `routine_inventory_owner` owns routine
@@ -320,10 +344,11 @@ value with a shared element buffer, so `ArraySet` persists across calls but
 `GenerateC`, leaving prototypes empty (fixtures worked only because callees
 precede callers). Fixed with a `CollectProtos` pre-pass.
 
-This is the codegen *component* self-hosting, not the whole compiler: the
-self-host codegen is a standalone AST->C emitter for the supported subset, not a
-replacement of the C backend's MIR-lowering. HIR/MIR, the rest of codegen,
-runtime and released/native compiler driver/LSP replacement remain 0%.
+This is component and bounded integrated-driver self-hosting, not the whole
+compiler. DRV-2 now composes the Pergyra MIR consumer, semantic verifier, and
+codegen for the supported intersection, but the C oracle still produces MIR
+JSON. Source-to-MIR synthesis, the rest of codegen, runtime, and released/native
+compiler driver/LSP replacement remain 0%.
 The compiler driver has DRV-0/DRV-1 artifact rungs, and LSP has LSP-0
 diagnostic payload, LSP-1 squiggle-policy, and LSP-2a..LSP-2i buffered
 transport/request/response/session/document-state/feature-shape/session-state/
@@ -431,15 +456,15 @@ only observe text artifacts the C compiler produces. Their LOC is
 
 ## Component Coverage
 
-| Component       | C LOC   | Pergyra LOC | Coverage | Status            |
-|-----------------|---------|-------------|----------|-------------------|
-| `src/lexer/`    |     921 |         677 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is entrypoint-only; run-boundary, fixture manifest, source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`), and the lexer run/fixture-manifest owners are part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
-| `src/parser/`   |   20579 |        8127 | ~52%     | `src/self_hosted/parser/` parses 188 source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
-| `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 110 fixtures, including Option `?` payload propagation and Result core consumption. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
-| `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 68 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen and integrated parser/codegen driver have separate byte-identical `gen2 == gen3` fixed points. Out-of-subset input is an observable `Exit(1)`; semantic and MIR are not part of this executable fixed point. |
+| Component       | C LOC   | Pergyra implementation LOC | Executable coverage | Status            |
+|-----------------|---------|----------------------------|---------------------|-------------------|
+| `src/lexer/`    |     921 |         825 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is entrypoint-only; run-boundary, fixture manifest, source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`), and the lexer run/fixture-manifest owners are part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
+| `src/parser/`   |   20579 |        8355 | ~52%     | `src/self_hosted/parser/` parses 188 source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
+| `src/semantic/` |   46203 |        7733 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 110 fixtures, including Option `?` payload propagation and Result core consumption. Artifact-native DRV-2 additionally owns signatures, nominal constructors, locals, assignments, iteration, statement typing, and ordered body verdicts without source rescanning. |
+| `src/codegen/`  |  107123 |        7220 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 68 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen and integrated parser/codegen driver have separate byte-identical `gen2 == gen3` fixed points. Out-of-subset input is an observable `Exit(1)`; the released default path remains C-owned. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
-| `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->semantic-analysis->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 17,536-line `gen2 == gen3` fixed point. Function signatures and local declaration/scope facts are artifact-native, but initializer/body semantics and MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
-| `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered multi-document store owner, LSP-2g no-index feature response shape owner, LSP-2h buffered session-state owner, and LSP-2i bounded hover-content owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
+| `src/compiler/` |   43304 |        9326 | bounded DRV-2; released 0% | `driver_pipeline_owner.pgy` owns the shared source->AST->semantic-analysis->C spine. DRV-2 now composes artifact-native body semantics and the bounded MIR consumer, while the C oracle still owns source-to-MIR production. This is executable replacement evidence, not shipped-driver replacement. |
+| `src/lsp/`      |    1037 |        2066 | bounded LSP-2i; released 0% | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, and LSP-2a..LSP-2i buffered transport/session/document/hover owners exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed. |
 | **Live inventory** | `make self-host-progress-metric-test-smoke` | `make self-host-progress-metric-test-smoke` | not a substitution percentage | lexer/parser/semantic/codegen implementation volume and the wider compiler-core inventory are measured at gate time |
 
 Notes:
@@ -593,7 +618,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 240 production self-host
+   The M2 completeness ledger also now checks all 241 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

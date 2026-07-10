@@ -49,6 +49,12 @@ grep -Fq "Released/native replacement remains 0%" "$PROGRESS" ||
     fail "PROGRESS must state the current default-path replacement truth"
 grep -Fq "Explicit bounded replacement: DRV-2 is" "$PROGRESS" ||
     fail "PROGRESS lost the live bounded replacement claim"
+grep -Fq "### Three-axis scorecard" "$PROGRESS" ||
+    fail "PROGRESS lost the implementation/bounded/released scorecard"
+grep -Fq "| Bounded executable replacement |" "$PROGRESS" ||
+    fail "PROGRESS lost bounded executable replacement evidence"
+grep -Fq "| Released/default replacement | 0% |" "$PROGRESS" ||
+    fail "PROGRESS blurred bounded progress with default replacement"
 grep -Fq "self-host-progress-metric-test-smoke" "$PROGRESS" ||
     fail "PROGRESS does not name this executable metric"
 grep -Fq "implementation volume is not substitution" "$README" ||

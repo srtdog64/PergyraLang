@@ -95,10 +95,10 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         let match_subject: String = MirObjectStringFact(json, kp, inst_end, "expr0");
         let pattern_count: Int = MirObjectArrayStringFactCount(json, kp, inst_end, "match_patterns");
         if StringLength(match_subject) == 0 || pattern_count == 0 {
-            Die("match-case branch is missing MIR subject/pattern facts");
+            MirLowerFailClosed("match-case branch is missing MIR subject/pattern facts");
         }
         if pattern_count > 1 {
-            Die("multi-pattern match cases are outside the self-host MIR subset");
+            MirLowerFailClosed("multi-pattern match cases are outside the self-host MIR subset");
         }
         let pattern: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_patterns", 0);
         let variant: String = MirObjectStringFact(json, kp, inst_end, "match_variant");
@@ -148,12 +148,12 @@ func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
     let match_subject2: String = MirObjectStringFact(json, kp, inst_end, "expr0");
     let binding: String = MirObjectArrayStringFactAt(json, kp, inst_end, "match_bindings", 0);
     if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
-        Die("Some match case is missing subject or binding MIR fact");
+        MirLowerFailClosed("Some match case is missing subject or binding MIR fact");
     }
     let subject_type: String = SourceLocalType(json, routine_start, routine_end, match_subject2);
     let inner_type: String = OptionInnerTypeName(subject_type);
     if StringLength(inner_type) == 0 {
-        Die(Concat("Some match case subject is not a known Option type: ", match_subject2));
+        MirLowerFailClosed(Concat("Some match case subject is not a known Option type: ", match_subject2));
     }
     return Concat(indent, Concat("Let: ", Concat(binding, Concat(" : ",
         Concat(inner_type, Concat(" = UnwrapOption(", Concat(match_subject2, ")\n")))))));
@@ -351,7 +351,7 @@ func EmitRegion(json: String, routine_start: Int, span_end: Int,
 func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
     let routine_name_end_opt: Option<Int> = RoutineNameEnd(json, rpos);
     if !IsSome(routine_name_end_opt) {
-        Die("malformed routine name");
+        MirLowerFailClosed("malformed routine name");
     }
     let routine_name_end: Int = UnwrapOption(routine_name_end_opt);
     let routine: String = RoutineName(json, rpos);
@@ -367,7 +367,7 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     while param_row < param_count {
         let pname: String = RoutineParamNameAt(json, rpos, header_end, param_row);
         if StringLength(pname) == 0 {
-            Die(Concat("routine parameter is missing name fact: ", routine));
+            MirLowerFailClosed(Concat("routine parameter is missing name fact: ", routine));
         }
         let ptype: String = RoutineParamTypeAt(json, rpos, header_end, param_row);
         if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
@@ -388,12 +388,12 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
 
     let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end);
     if !IsSome(bp) {
-        Die(Concat("routine is missing blocks fact: ", routine));
+        MirLowerFailClosed(Concat("routine is missing blocks fact: ", routine));
     }
     let region: String = EmitRegion(json, routine_name_end, span_end, "0", "",
         Concat(item_pad, "  "), "", "");
     if StringLength(region) == 0 {
-        Die(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
+        MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
     return Concat(out, region);
 }

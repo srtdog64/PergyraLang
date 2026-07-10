@@ -116,6 +116,10 @@ The active hard rungs are:
   fixture surfaces, plus clean rejection for unsupported declaration facts,
   chained through the self-hosted codegen and compared against the C backend
   oracle.
+- `src/self_hosted/compiler/driver_rung2_owner.pgy`: one executable verifier
+  for source artifacts and C-oracle-produced MIR JSON artifacts. Both inputs
+  converge on `AstTreeArtifact`; missing or unsupported MIR facts fail closed
+  and never reopen source scanning.
 
 Peripheral tools under `src/self_hosted/tools/` remain useful dogfood, but they
 do not count as compiler-internal substitution unless they replace a compiler
@@ -182,7 +186,7 @@ The Makefile keeps the fast and heavy paths separate:
   space-separated set of manifest-owned `.pgy` paths for local owner-isolation
   checks. Source-filtered mode must pass every selected source through every
   selected stage, but it intentionally does not satisfy source-count minima or
-  pipeline identity baselines. It exists to avoid rerunning all 240 production
+  pipeline identity baselines. It exists to avoid rerunning all 241 production
   sources after a single owner edit; it is never a replacement for the
   unfiltered CI proof.
 - `self-host-completeness-incremental-cache-parity-test-smoke` is the rung0

@@ -627,6 +627,7 @@ require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
+require_file "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 require_file "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
 require_file "src/self_hosted/semantic/diagnostic_code_owner.pgy"
@@ -2309,12 +2310,20 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func Sem
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
+require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "struct SemanticAstNominalConstructorFacts"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsContractReady"
+reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "SeedNominalConstructors("
+reject_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "LoadSemanticSource"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "struct SemanticAstLocalBindingFacts"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingInitializerAt"
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsContractReady"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "local_bindings: SemanticAstLocalBindingFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "constructors: SemanticAstNominalConstructorFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "assignments: SemanticAstAssignmentFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "statements: SemanticAstStatementFacts;"
 require_file "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy"
@@ -2374,17 +2383,32 @@ require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileArtifactToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileMirJsonToCVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput(mir_json_path)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirFactGraphPayloadContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "semantic_analysis.constructors"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 4;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "LoadSemanticSource"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"ast":'
+require_text "src/self_hosted/mir_lower/error_owner.pgy" "func MirLowerFailClosed"
+reject_text "src/self_hosted/mir_lower/error_owner.pgy" "func Die("
+mir_lower_die_calls="$(grep -R -F -n 'Die(' "$ROOT_DIR/src/self_hosted/mir_lower" --include='*.pgy' || true)"
+[[ -z "$mir_lower_die_calls" ]] ||
+    fail "mir_lower reopened the global Die diagnostic alias"
 require_file "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "struct SemanticAstIterationTypeFacts"
@@ -2400,6 +2424,8 @@ require_text "src/pgy_driver.c" "driver_run_self_host_command"
 require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
 require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-self-driver")'
 require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = "--emit-c-verified"'
+require_text "src/compiler/self_host_driver.c" 'mir_json_mode = strcmp(argv[0], "--mir-json") == 0'
+require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = argv[1]'
 require_text "src/compiler/self_host_driver.c" "pgy_exec_argv(child_argv, false)"
 require_text "src/compiler/self_host_driver.c" "self-host driver is unavailable"
 reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
@@ -2408,6 +2434,8 @@ require_file "tests/self_host_live_replacement_smoke.sh"
 require_text "Makefile" "self-host-compiler:"
 require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compiler"
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
+require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'
+require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"
 require_text "tests/self_host_live_replacement_smoke.sh" "missing self driver silently fell back"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIndentOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaProvenanceOrDie"
@@ -3491,8 +3519,10 @@ reject_regex_under "src/self_hosted/codegen/text" '"(strcmp|sqrt|pow|floor|ceil|
 reject_regex_under "src/self_hosted/codegen/input" '"(strcmp|sqrt|pow|floor|ceil|atof|exit)"'
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "struct OptionStructRuntimeFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "struct OptionStructDefinitionBlockFact"
+require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "requires_bool_header: Bool;"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeStructOptionFact"
 require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCStructOptionDefinitionBlock"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "option_struct_block_fact.requires_bool_header"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "OptionResultRuntimeStructOptionFact(type_name, struct_env)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCStructOptionDefinitionBlock(base_env)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "struct OptionExprEmissionFact"
@@ -5324,11 +5354,11 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 225;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 226;"
-completeness_min_count="$(grep -F "return 240;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+completeness_min_count="$(grep -F "return 241;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 240-source owner-merged slice"
+    fail "self-host completeness minima drifted below the 241-source owner-merged slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"

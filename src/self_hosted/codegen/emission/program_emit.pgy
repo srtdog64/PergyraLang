@@ -354,7 +354,8 @@ func GenerateCUnitFromSemanticArtifact(
     let uses_array_filter: Bool = usage.uses_array_filter;
     let uses_result: Bool = usage.uses_result;
     let uses_option: Bool = usage.uses_option;
-    let uses_bool: Bool = usage.uses_bool;
+    let uses_bool: Bool = usage.uses_bool ||
+        option_struct_block_fact.requires_bool_header;
     let uses_exit: Bool = usage.uses_exit;
     let uses_array: Bool = usage.uses_array;
     let uses_ast_text_node_array: Bool = usage.uses_ast_text_node_array;

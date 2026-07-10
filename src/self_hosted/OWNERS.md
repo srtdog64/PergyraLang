@@ -79,6 +79,9 @@ compiler-stage `.pgy` source to be listed here.
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, parameter, mode, and return signature facts.
+- `src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy` --
+  artifact-bound nominal constructor name, return type, and ordered field-type
+  rows consumed by expression typing; source constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
   payload facts.
@@ -150,7 +153,8 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction.
-- `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower diagnostics.
+- `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower-specific
+  `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
@@ -388,8 +392,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/driver_rung1_main.pgy` -- DRV-1 runnable artifact
   boundary; ownership remains in `driver_cli_owner.pgy`.
 - `src/self_hosted/compiler/driver_rung2_owner.pgy` -- hard artifact-body
-  semantic source-to-C owner; joins initializer, assignment, expression-use,
-  call, return, and condition evidence for DRV-2.
+  semantic source/MIR-to-C owner; joins initializer, iteration, assignment,
+  expression-use, call, return, and condition evidence after source and MIR
+  JSON inputs converge on one `AstTreeArtifact` verifier.
 - `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
   semantic boundary; ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts

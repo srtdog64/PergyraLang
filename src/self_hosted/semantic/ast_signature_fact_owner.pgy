@@ -32,15 +32,23 @@ func SemanticAstSignatureError(node_id: Int, fact: String) -> String {
 
 func SemanticAstFunctionOwnerName(arena: AstArena, function_node_id: Int) -> Option<String> {
     let parent: Option<Int> = TypedAstArenaParentId(arena, function_node_id);
-    if !IsSome(parent) {
-        return Some("");
+    let remaining: Int = TypedAstArenaNodeCount(arena);
+    while IsSome(parent) && remaining > 0 {
+        let parent_id: Int = UnwrapOption(parent);
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindNominalDeclTag()
+        ) || TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindRoleDeclTag()
+        ) {
+            return TypedAstArenaAtomText(arena, parent_id);
+        }
+        parent = TypedAstArenaParentId(arena, parent_id);
+        remaining = remaining - 1;
     }
-    let parent_id: Int = UnwrapOption(parent);
-    if !TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindNominalDeclTag()) &&
-        !TypedAstArenaNodeKindIs(arena, parent_id, TypedAstKindRoleDeclTag()) {
-        return Some("");
+    if IsSome(parent) {
+        return None;
     }
-    return TypedAstArenaAtomText(arena, parent_id);
+    return Some("");
 }
 
 func SemanticAstFunctionSignatureFactsFromArtifact(
@@ -542,7 +550,7 @@ func SemanticAstFunctionParamModeAt(
 
 func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Class: Box\n    Fields:\n    Function: Get\n      Parameters:\n        self\n        index: Int\n      Returns: String\n      Body:\n        Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Get\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
     let facts: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -565,7 +573,7 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
         return false;
     }
     let stale: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Class: Box\n    Fields:\n    Function: Set\n      Parameters:\n        self\n        index: Int\n      Returns: String\n      Body:\n        Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Set\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
     if SemanticAstFunctionSignatureFactsMatchArtifact(stale, facts) {
         return false;

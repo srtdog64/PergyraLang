@@ -60,6 +60,7 @@ func SemanticAstStatementExpectedReturnType(
 func SemanticAstStatementTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
@@ -73,18 +74,25 @@ func SemanticAstStatementTypeFactsFromArtifact(
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "signature");
     }
+    if !SemanticAstNominalConstructorFactsMatchArtifact(
+        artifact, constructors
+    ) {
+        return SemanticAstStatementTypeStructuralError(
+            artifact, "constructor"
+        );
+    }
     if !SemanticAstLocalBindingFactsMatchArtifact(
         artifact, signatures, locals
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "local");
     }
     if !SemanticAstInitializerTypeFactsMatchArtifact(
-        artifact, signatures, locals, initializer_types
+        artifact, signatures, constructors, locals, initializer_types
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "initializer");
     }
     if !SemanticAstIterationTypeFactsMatchArtifact(
-        artifact, signatures, locals, initializer_types,
+        artifact, signatures, constructors, locals, initializer_types,
         statements, iteration_types
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "iteration");
@@ -98,7 +106,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns, function_params
+        signatures, constructors,
+        function_names, function_returns, function_params
     ) {
         return SemanticAstStatementTypeStructuralError(
             artifact, "function_table"
@@ -274,6 +283,7 @@ func SemanticAstStatementFirstDiagnosticMessage(
 func SemanticAstStatementTypeFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
@@ -282,7 +292,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
 ) -> Bool {
     let rebuilt: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types,
+            artifact, signatures, constructors, locals, initializer_types,
             iteration_types, statements
         );
     let n: Int = ArrayLength(facts.node_ids);
@@ -319,23 +329,28 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(valid);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
     let initializers: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsFromArtifact(valid, signatures, locals);
+        SemanticAstInitializerTypeFactsFromArtifact(
+            valid, signatures, constructors, locals
+        );
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(valid, signatures);
     let iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            valid, signatures, locals, initializers, statements
+            valid, signatures, constructors, locals, initializers, statements
         );
     let facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            valid, signatures, locals, initializers, iterations, statements
+            valid, signatures, constructors, locals, initializers,
+            iterations, statements
         );
     if !SemanticAstStatementTypeFactsMatchArtifact(
-        valid, signatures, locals, initializers, iterations, statements,
-        facts
+        valid, signatures, constructors, locals, initializers, iterations,
+        statements, facts
     ) || !SemanticAstStatementTypesAllVerified(facts) ||
         ArrayLength(facts.node_ids) != 3 ||
         facts.expected_type_names[0] != "Bool" ||
@@ -347,22 +362,26 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
     );
     let bad_signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(bad);
+    let bad_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(bad);
     let bad_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(bad, bad_signatures);
     let bad_initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            bad, bad_signatures, bad_locals
+            bad, bad_signatures, bad_constructors, bad_locals
         );
     let bad_statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(bad, bad_signatures);
     let bad_iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            bad, bad_signatures, bad_locals, bad_initializers,
+            bad, bad_signatures, bad_constructors, bad_locals,
+            bad_initializers,
             bad_statements
         );
     let bad_facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            bad, bad_signatures, bad_locals, bad_initializers,
+            bad, bad_signatures, bad_constructors, bad_locals,
+            bad_initializers,
             bad_iterations, bad_statements
         );
     return !SemanticAstStatementTypesAllVerified(bad_facts) &&

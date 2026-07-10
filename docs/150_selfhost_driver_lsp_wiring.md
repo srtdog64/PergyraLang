@@ -72,6 +72,11 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   bounded driver binary를 만들고 `pgy --self-driver <source.pgy>`가 그
   binary를 실제 실행한다. `self-host-live-replacement-test-smoke`는 launcher
   artifact/diagnostic 동등성과 missing-binary fail-closed를 잠근다.
+  같은 binary의 `--mir-json <file>` 모드는 C oracle이 만든 `pgy.mir.v1`을
+  Pergyra `mir_lower` owner로 소비한 뒤 동일 `AstTreeArtifact` semantic
+  verifier와 codegen으로 합류한다. 교집합 4개 fixture는 C/LLVM-built
+  driver emitted-C 동등성과 C oracle run-output 동등성을 잠근다. 이는
+  MIR consumer의 실경로 치환이며 source-to-MIR 생산 치환은 아직 아니다.
 - **DRV-3 — 네이티브 컴파일과 플래그 뒤 교체 (차단: G-EXEC)**:
   `pgy --self-driver`류가 지원 subset에서 C driver와 run-equal이어야 한다.
   cc/gcc subprocess는 명시 capability, env allowlist, timeout envelope를

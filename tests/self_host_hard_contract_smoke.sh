@@ -90,6 +90,14 @@ require_text "tests/self_hosted/README.md" \
     '`src/self_hosted/` is for Pergyra source owners.'
 require_text "src/self_hosted/PROGRESS.md" \
     "Hard self-host contract"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func CompileMirJsonToCVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "return CompileArtifactToCVerified(artifact);"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "artifact body + MIR bridge parity ok"
+forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CheckProgram("
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"

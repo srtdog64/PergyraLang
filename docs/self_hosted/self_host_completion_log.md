@@ -6592,3 +6592,22 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Fixed C value-result lowering so a nested `inout` return expression is
   evaluated before outer copy-out; a C/LLVM differential fixture prevents the
   lost-update regression.
+
+### 2026-07-11 -- DRV-2 composes the self-host MIR consumer
+
+- Refactored DRV-2 around one `CompileArtifactToCVerified` owner so source and
+  MIR JSON inputs converge before semantic verification and codegen.
+- Added `pgy --self-driver --mir-json <file>` as an explicit bridge path. The C
+  oracle produces `pgy.mir.v1`; Pergyra owns reconstruction, semantic verdicts,
+  and C emission with no source-text fallback.
+- Renamed the MIR-lower global `Die` definition to `MirLowerFailClosed`, removing
+  the stage collision that prevented MIR-lower and codegen owners from sharing
+  one binary.
+- Extended DRV-2 parity with four MIR intersection fixtures. C/LLVM-built
+  drivers must emit identical C, compile it, and run-equal to the native C
+  oracle; malformed schema input must fail through the MIR diagnostic owner.
+- Added `SemanticAstNominalConstructorFacts` so nominal construction and method
+  programs consume parser-owned ordered field rows instead of the legacy source
+  constructor scan. The `class_method` fixture now crosses the integrated MIR
+  boundary, and nominal Option helper emission carries its required Bool-header
+  fact into C header projection.

@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
@@ -20,6 +21,7 @@ struct SemanticAstArtifactVerdict {
 struct SemanticAstArtifactAnalysis {
     verdict: SemanticAstArtifactVerdict;
     signatures: SemanticAstFunctionSignatureFacts;
+    constructors: SemanticAstNominalConstructorFacts;
     local_bindings: SemanticAstLocalBindingFacts;
     assignments: SemanticAstAssignmentFacts;
     statements: SemanticAstStatementFacts;
@@ -118,6 +120,8 @@ func SemanticAstArtifactAnalyze(
 ) -> SemanticAstArtifactAnalysis {
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     if !signatures.ok {
         let rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
             signatures.diagnostic_code,
@@ -133,8 +137,29 @@ func SemanticAstArtifactAnalyze(
         let empty_statements: SemanticAstStatementFacts =
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
-            rejected, signatures, empty_locals, empty_assignments,
+            rejected, signatures, constructors, empty_locals, empty_assignments,
             empty_statements
+        );
+    }
+    if !constructors.ok {
+        let rejected_constructor: SemanticAstArtifactVerdict =
+            SemanticAstArtifactVerdictError(
+                constructors.diagnostic_code,
+                constructors.diagnostic_message,
+                artifact.count,
+                0,
+                requires_entrypoint
+            );
+        let constructor_locals: SemanticAstLocalBindingFacts =
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+        let constructor_assignments: SemanticAstAssignmentFacts =
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
+        let constructor_statements: SemanticAstStatementFacts =
+            SemanticAstStatementFactsFromArtifact(artifact, signatures);
+        return SemanticAstArtifactAnalysis(
+            rejected_constructor, signatures, constructors,
+            constructor_locals, constructor_assignments,
+            constructor_statements
         );
     }
     let local_bindings: SemanticAstLocalBindingFacts =
@@ -152,7 +177,8 @@ func SemanticAstArtifactAnalyze(
         let rejected_statements: SemanticAstStatementFacts =
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
-            rejected2, signatures, local_bindings, rejected_assignments,
+            rejected2, signatures, constructors, local_bindings,
+            rejected_assignments,
             rejected_statements
         );
     }
@@ -167,7 +193,7 @@ func SemanticAstArtifactAnalyze(
             requires_entrypoint
         );
         return SemanticAstArtifactAnalysis(
-            rejected3, signatures, local_bindings, assignments,
+            rejected3, signatures, constructors, local_bindings, assignments,
             SemanticAstStatementFactsFromArtifact(artifact, signatures)
         );
     }
@@ -182,13 +208,15 @@ func SemanticAstArtifactAnalyze(
             requires_entrypoint
         );
         return SemanticAstArtifactAnalysis(
-            rejected4, signatures, local_bindings, assignments, statements
+            rejected4, signatures, constructors, local_bindings,
+            assignments, statements
         );
     }
     let verdict: SemanticAstArtifactVerdict =
         SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
     return SemanticAstArtifactAnalysis(
-        verdict, signatures, local_bindings, assignments, statements
+        verdict, signatures, constructors, local_bindings, assignments,
+        statements
     );
 }
 
@@ -201,6 +229,8 @@ func SemanticAstArtifactAnalysisMatches(
         artifact, analysis.verdict, requires_entrypoint
     ) && SemanticAstFunctionSignatureFactsMatchArtifact(
         artifact, analysis.signatures
+    ) && SemanticAstNominalConstructorFactsMatchArtifact(
+        artifact, analysis.constructors
     ) && SemanticAstLocalBindingFactsMatchArtifact(
         artifact, analysis.signatures, analysis.local_bindings
     ) && SemanticAstAssignmentFactsMatchArtifact(
@@ -219,6 +249,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
     if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
         valid_analysis.verdict.main_count != 1 ||
         SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 ||
+        SemanticAstNominalConstructorCount(valid_analysis.constructors) != 0 ||
         SemanticAstLocalBindingCount(valid_analysis.local_bindings) != 1 ||
         SemanticAstAssignmentCount(valid_analysis.assignments) != 0 ||
         SemanticAstStatementCount(valid_analysis.statements) != 0 {

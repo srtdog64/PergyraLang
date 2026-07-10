@@ -89,6 +89,7 @@ func SemanticAstIterationSeedVisibleRows(
 func SemanticAstIterationTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts
@@ -96,10 +97,12 @@ func SemanticAstIterationTypeFactsFromArtifact(
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
+        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
+            artifact, constructors
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
         ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, locals, initializer_types
+            artifact, signatures, constructors, locals, initializer_types
         ) || !SemanticAstStatementFactsMatchArtifact(
             artifact, signatures, statements
         ) {
@@ -109,7 +112,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns, function_params
+        signatures, constructors,
+        function_names, function_returns, function_params
     ) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
@@ -245,6 +249,7 @@ func SemanticAstIterationSeedVisibleBindings(
 func SemanticAstIterationTypeFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts,
@@ -252,7 +257,8 @@ func SemanticAstIterationTypeFactsMatchArtifact(
 ) -> Bool {
     let rebuilt: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types, statements
+            artifact, signatures, constructors, locals, initializer_types,
+            statements
         );
     let n: Int = SemanticAstIterationTypeCount(facts);
     if !facts.ok || !rebuilt.ok ||
@@ -284,20 +290,24 @@ func SemanticAstIterationTypeFactsContractReady() -> Bool {
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            artifact, signatures, locals
+            artifact, signatures, constructors, locals
         );
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
     let facts: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            artifact, signatures, locals, initializers, statements
+            artifact, signatures, constructors, locals, initializers,
+            statements
         );
     return SemanticAstIterationTypeFactsMatchArtifact(
-        artifact, signatures, locals, initializers, statements, facts
+        artifact, signatures, constructors, locals, initializers,
+        statements, facts
     ) && SemanticAstIterationTypeCount(facts) == 1 &&
         facts.verified[0] == 1 && facts.binding_type_names[0] == "Int";
 }

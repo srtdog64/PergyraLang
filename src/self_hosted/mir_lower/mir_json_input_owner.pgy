@@ -8,7 +8,7 @@ import "json_fact_read.pgy";
 
 func MirJsonInputPath(args: Array<String>) -> String {
     if ArrayLength(args) < 1 {
-        Die("usage: mir_lower <mir-json-file>");
+        MirLowerFailClosed("usage: mir_lower <mir-json-file>");
     }
     return args[0];
 }
@@ -16,10 +16,10 @@ func MirJsonInputPath(args: Array<String>) -> String {
 func MirJsonReadInput(path: String) -> String {
     let json: String = ReadFile(path);
     if StringLength(json) == 0 {
-        Die(Concat("empty or unreadable MIR-JSON file: ", path));
+        MirLowerFailClosed(Concat("empty or unreadable MIR-JSON file: ", path));
     }
     if !MirDocumentSchemaEquals(json, "pgy.mir.v1") {
-        Die("input is not a pgy.mir.v1 MIR-JSON document");
+        MirLowerFailClosed("input is not a pgy.mir.v1 MIR-JSON document");
     }
     return json;
 }

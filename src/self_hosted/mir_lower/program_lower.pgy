@@ -13,13 +13,13 @@ func EmitMirProgramTree(json: String) -> String {
     let total: Int = 0;
     let rpos_opt: Option<Int> = FindRoutine(json, 0);
     if !IsSome(rpos_opt) {
-        Die("no routine name in MIR-JSON");
+        MirLowerFailClosed("no routine name in MIR-JSON");
     }
     while IsSome(rpos_opt) {
         let rpos: Int = UnwrapOption(rpos_opt);
         let nend_opt: Option<Int> = RoutineNameEnd(json, rpos);
         if !IsSome(nend_opt) {
-            Die("malformed routine name");
+            MirLowerFailClosed("malformed routine name");
         }
         let nend: Int = UnwrapOption(nend_opt);
         let span_end: Int = RoutineSpanEnd(json, nend);
@@ -33,7 +33,7 @@ func EmitMirProgramTree(json: String) -> String {
     }
 
     if total == 0 {
-        Die("no supported routines found in MIR-JSON document");
+        MirLowerFailClosed("no supported routines found in MIR-JSON document");
     }
     return out;
 }

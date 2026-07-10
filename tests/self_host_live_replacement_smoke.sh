@@ -6,6 +6,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -26,6 +27,8 @@ command -v "$CC" >/dev/null 2>&1 || { echo "[self-host-live] missing C compiler:
 
 positive="src/self_hosted/semantic/fixture/valid_call_int.pgy"
 negative="src/self_hosted/semantic/fixture/bad_return_type.pgy"
+mir_source="src/self_hosted/mir_lower/fixture/let_log.pgy"
+bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
 (cd "$ROOT_DIR" && "$PGY" --self-driver "$positive") >"$WORK_DIR/launcher.c"
@@ -56,6 +59,63 @@ cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/launcher.norm" || {
     exit 1
 }
 
+(cd "$ROOT_DIR" && "$PGY" --mir-json \
+    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$mir_source")" 2>/dev/null) \
+    | tr -d '\r' >"$WORK_DIR/live.mir.json"
+grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/live.mir.json" || {
+    echo "[self-host-live] C oracle did not produce MIR JSON bridge artifact" >&2
+    exit 1
+}
+live_mir_arg="$(pgy_selfhost_path_relative_to_root "$WORK_DIR/live.mir.json")"
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json \
+    "$live_mir_arg") \
+    >"$WORK_DIR/direct-mir.c"
+(cd "$ROOT_DIR" && "$PGY" --self-driver --mir-json \
+    "$live_mir_arg") \
+    >"$WORK_DIR/launcher-mir.c"
+cmp -s "$WORK_DIR/direct-mir.c" "$WORK_DIR/launcher-mir.c" || {
+    echo "[self-host-live] launcher MIR C artifact differs from direct DRV-2" >&2
+    exit 1
+}
+"$CC" -x c -std=c11 "$WORK_DIR/launcher-mir.c" \
+    -o "$WORK_DIR/launcher-mir-program" >"$WORK_DIR/mir.cc.log" 2>&1 || {
+        cat "$WORK_DIR/mir.cc.log" >&2
+        exit 1
+    }
+(cd "$ROOT_DIR" && "$PGY" \
+    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$mir_source")" --backend=c \
+    -o "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/oracle-mir-program")" \
+    >"$WORK_DIR/oracle-mir.compile.log" 2>&1)
+"$WORK_DIR/launcher-mir-program" | tr -d '\r' >"$WORK_DIR/launcher-mir.run"
+"$WORK_DIR/oracle-mir-program" | tr -d '\r' >"$WORK_DIR/oracle-mir.run"
+cmp -s "$WORK_DIR/oracle-mir.run" "$WORK_DIR/launcher-mir.run" || {
+    echo "[self-host-live] integrated MIR run output differs from C oracle" >&2
+    exit 1
+}
+
+set +e
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \
+    >"$WORK_DIR/direct-bad-mir.out" 2>"$WORK_DIR/direct-bad-mir.err"
+direct_bad_mir_rc=$?
+(cd "$ROOT_DIR" && "$PGY" --self-driver --mir-json "$bad_mir") \
+    >"$WORK_DIR/launcher-bad-mir.out" 2>"$WORK_DIR/launcher-bad-mir.err"
+launcher_bad_mir_rc=$?
+set -e
+[[ "$direct_bad_mir_rc" -ne 0 && "$launcher_bad_mir_rc" -eq "$direct_bad_mir_rc" ]] || {
+    echo "[self-host-live] bad MIR exit drift: direct=$direct_bad_mir_rc launcher=$launcher_bad_mir_rc" >&2
+    exit 1
+}
+tr -d '\r' <"$WORK_DIR/direct-bad-mir.out" >"$WORK_DIR/direct-bad-mir.norm"
+tr -d '\r' <"$WORK_DIR/launcher-bad-mir.out" >"$WORK_DIR/launcher-bad-mir.norm"
+cmp -s "$WORK_DIR/direct-bad-mir.norm" "$WORK_DIR/launcher-bad-mir.norm" || {
+    echo "[self-host-live] bad MIR diagnostic differs from direct DRV-2" >&2
+    exit 1
+}
+grep -Fq "MIR-LOWER ERROR" "$WORK_DIR/launcher-bad-mir.norm" || {
+    echo "[self-host-live] bad MIR did not fail through MIR owner" >&2
+    exit 1
+}
+
 set +e
 PGY_SELF_DRIVER_BIN="$WORK_DIR/missing-driver" "$PGY" --self-driver "$positive" \
     >"$WORK_DIR/missing.out" 2>"$WORK_DIR/missing.err"
@@ -70,4 +130,4 @@ grep -Fq "self-host driver is unavailable" "$WORK_DIR/missing.err" || {
     exit 1
 }
 
-echo "[self-host-live] explicit DRV-2 replacement path is artifact-equal and fail-closed"
+echo "[self-host-live] explicit DRV-2 source/MIR replacement paths are artifact-equal and fail-closed"

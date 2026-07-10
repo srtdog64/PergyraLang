@@ -45,14 +45,14 @@ func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: I
     let init: String = StringTrim(expr0);
     let elem_type: String = DestructureElementType(json, routine_start, routine_end, init);
     if StringLength(init) == 0 {
-        Die("destructure instruction is missing initializer fact");
+        MirLowerFailClosed("destructure instruction is missing initializer fact");
     }
     if StringLength(elem_type) == 0 {
-        Die(Concat("destructure initializer element type is unknown: ", init));
+        MirLowerFailClosed(Concat("destructure initializer element type is unknown: ", init));
     }
     let binding_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, inst_start, inst_end, "destructure_bindings", binding_bounds) {
-        Die("destructure instruction is missing binding-name facts");
+        MirLowerFailClosed("destructure instruction is missing binding-name facts");
     }
 
     let out: String = "";
@@ -73,7 +73,7 @@ func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: I
         name = MirObjectArrayStringFactAt(json, inst_start, inst_end, "destructure_bindings", index);
     }
     if index == 0 {
-        Die("destructure instruction has no binding-name facts");
+        MirLowerFailClosed("destructure instruction has no binding-name facts");
     }
     return out;
 }
@@ -87,7 +87,7 @@ func StmtToTreeLine(stmt: String) -> String {
         let rest: String = Substring(s, 4, StringLength(s) - 4);
         let colon: Int = StringIndexOf(rest, ":");
         if colon < 0 {
-            Die(Concat("let without type annotation: ", s));
+            MirLowerFailClosed(Concat("let without type annotation: ", s));
         }
         let name: String = StringTrim(Substring(rest, 0, colon));
         let after: String = StringTrim(Substring(rest, colon + 1, StringLength(rest) - (colon + 1)));
@@ -100,7 +100,7 @@ func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
                           indent: String) -> String {
     let body_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, inst_start, inst_end, "defer_body", body_bounds) {
-        Die("defer instruction is missing body facts");
+        MirLowerFailClosed("defer instruction is missing body facts");
     }
 
     let out: String = Concat(indent, "Defer:\n");
@@ -113,7 +113,7 @@ func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
         stmt = MirObjectArrayStringFactAt(json, inst_start, inst_end, "defer_body", emitted);
     }
     if emitted == 0 {
-        Die("defer instruction body facts are empty");
+        MirLowerFailClosed("defer instruction body facts are empty");
     }
     return out;
 }
@@ -129,7 +129,7 @@ func RenderStmtFromFacts(kind: String, source_type: String,
         if StringLength(expr0) > 0 && StringLength(expr1) > 0 {
             return Concat("Assign: ", Concat(expr0, Concat(" = ", expr1)));
         }
-        Die("assignment instruction is missing target/value MIR facts");
+        MirLowerFailClosed("assignment instruction is missing target/value MIR facts");
         return "";
     }
     if kind == "def" {

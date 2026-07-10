@@ -6,6 +6,7 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
@@ -46,11 +47,14 @@ func SemanticAstInitializerTypeStructuralError(
 func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts
 ) -> SemanticAstInitializerTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
+        ) || !SemanticAstNominalConstructorFactsMatchArtifact(
+            artifact, constructors
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
         ) {
@@ -61,7 +65,8 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns, function_params
+        signatures, constructors,
+        function_names, function_returns, function_params
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
@@ -199,12 +204,13 @@ func SemanticAstInitializerFirstDiagnosticMessage(
 func SemanticAstInitializerTypeFactsMatchArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     facts: SemanticAstInitializerTypeFacts
 ) -> Bool {
     let rebuilt: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            artifact, signatures, locals
+            artifact, signatures, constructors, locals
         );
     let n: Int = SemanticAstInitializerTypeCount(facts);
     if !facts.ok || !rebuilt.ok ||
@@ -239,14 +245,16 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
     );
     let valid_signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let valid_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(valid);
     let valid_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, valid_signatures);
     let valid_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            valid, valid_signatures, valid_locals
+            valid, valid_signatures, valid_constructors, valid_locals
         );
     if !SemanticAstInitializerTypeFactsMatchArtifact(
-        valid, valid_signatures, valid_locals, valid_facts
+        valid, valid_signatures, valid_constructors, valid_locals, valid_facts
     ) || !SemanticAstInitializerTypesAllVerified(valid_facts) ||
         SemanticAstInitializerTypeCount(valid_facts) != 2 ||
         valid_facts.inferred_type_names[0] != "Int" ||
@@ -259,13 +267,16 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
     );
     let mismatch_signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(mismatch);
+    let mismatch_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(mismatch);
     let mismatch_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(
             mismatch, mismatch_signatures
         );
     let mismatch_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            mismatch, mismatch_signatures, mismatch_locals
+            mismatch, mismatch_signatures, mismatch_constructors,
+            mismatch_locals
         );
     if SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
         SemanticAstInitializerFirstDiagnosticCode(mismatch_facts) !=
@@ -278,11 +289,13 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
     );
     let unknown_signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(unknown);
+    let unknown_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(unknown);
     let unknown_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(unknown, unknown_signatures);
     let unknown_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            unknown, unknown_signatures, unknown_locals
+            unknown, unknown_signatures, unknown_constructors, unknown_locals
         );
     return !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
         SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
