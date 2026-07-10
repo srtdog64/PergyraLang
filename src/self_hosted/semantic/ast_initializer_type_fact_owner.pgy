@@ -1,0 +1,390 @@
+// Semantic initializer type facts derived from parser-owned artifact facts.
+//
+// This owner never re-scans source text. It joins function signatures, lexical
+// local-binding rows, and the initializer payload already captured by the
+// semantic local-binding owner.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "expr_type_owner.pgy";
+import "builtin_signature_owner.pgy";
+
+struct SemanticAstInitializerTypeFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    expression_texts: Array<String>;
+    inferred_type_names: Array<String>;
+    verified: Array<Int>;
+    diagnostic_codes: Array<String>;
+    diagnostic_messages: Array<String>;
+}
+
+func SemanticAstInitializerTypeStructuralError(
+    artifact: AstTreeArtifact
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFacts(
+        false,
+        "ast_artifact_invalid",
+        SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstInitializerTypeFacts"
+        ),
+        artifact.count,
+        empty_ints, empty_strings, empty_strings, empty_ints,
+        empty_strings, empty_strings
+    );
+}
+
+func SemanticAstInitializerScopeVisible(
+    arena: AstArena,
+    scope_node_id: Int,
+    use_node_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(use_node_id);
+    let traversed: Int = 0;
+    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
+        let node_id: Int = UnwrapOption(cursor);
+        if node_id == scope_node_id {
+            return true;
+        }
+        cursor = TypedAstArenaParentId(arena, node_id);
+        traversed = traversed + 1;
+    }
+    return false;
+}
+
+func SemanticAstInitializerFunctionTables(
+    signatures: SemanticAstFunctionSignatureFacts,
+    inout names: Array<String>,
+    inout returns: Array<String>
+) -> Bool {
+    let builtin_params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(names, returns, builtin_params) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
+        let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+            signatures, i
+        );
+        if !IsSome(name) || !IsSome(return_type) {
+            return false;
+        }
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(returns, UnwrapOption(return_type));
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerSeedParameters(
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>
+) -> Bool {
+    let signature_index_opt: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index_opt) {
+        return false;
+    }
+    let signature_index: Int = UnwrapOption(signature_index_opt);
+    let count_opt: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, signature_index
+    );
+    if !IsSome(count_opt) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < UnwrapOption(count_opt) {
+        let name: Option<String> = SemanticAstFunctionParamNameAt(
+            signatures, signature_index, i
+        );
+        let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+            signatures, signature_index, i
+        );
+        if !IsSome(name) || !IsSome(type_name) {
+            return false;
+        }
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(types, UnwrapOption(type_name));
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerSeedPriorLocals(
+    artifact: AstTreeArtifact,
+    locals: SemanticAstLocalBindingFacts,
+    inferred_types: Array<String>,
+    current_index: Int,
+    inout names: Array<String>,
+    inout types: Array<String>
+) -> Bool {
+    let current_node_id: Int = locals.node_ids[current_index];
+    let current_function_id: Int = locals.function_node_ids[current_index];
+    let i: Int = 0;
+    while i < current_index {
+        if locals.function_node_ids[i] == current_function_id &&
+            SemanticAstInitializerScopeVisible(
+                artifact.arena, locals.scope_node_ids[i], current_node_id
+            ) {
+            let type_name: String = "";
+            let declared: Option<String> =
+                SemanticAstLocalBindingDeclaredTypeAt(locals, i);
+            if IsSome(declared) {
+                type_name = UnwrapOption(declared);
+            } else if i < ArrayLength(inferred_types) {
+                type_name = inferred_types[i];
+            }
+            if type_name == "" {
+                return false;
+            }
+            ArrayPush(names, locals.names[i]);
+            ArrayPush(types, type_name);
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts
+) -> SemanticAstInitializerTypeFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    if !SemanticAstInitializerFunctionTables(
+        signatures, function_names, function_returns
+    ) {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+
+    let node_ids: Array<Int> = [];
+    let expression_texts: Array<String> = [];
+    let inferred_type_names: Array<String> = [];
+    let verified: Array<Int> = [];
+    let diagnostic_codes: Array<String> = [];
+    let diagnostic_messages: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstLocalBindingCount(locals) {
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        if !SemanticAstInitializerSeedParameters(
+            signatures, locals.function_node_ids[i], names, types
+        ) || !SemanticAstInitializerSeedPriorLocals(
+            artifact, locals, inferred_type_names, i, names, types
+        ) {
+            return SemanticAstInitializerTypeStructuralError(artifact);
+        }
+        let expression: String = locals.initializer_texts[i];
+        let inferred: String = ExprType(
+            expression, names, types, function_names, function_returns
+        );
+        let row_verified: Int = 1;
+        let row_code: String = "";
+        let row_message: String = "";
+        if inferred == "Unknown" || inferred == "" {
+            row_verified = 0;
+            row_code = "initializer_type_unresolved";
+            row_message = SemanticError2(
+                "initializer_type_unresolved",
+                "binding", locals.names[i],
+                "initializer", expression
+            );
+        } else {
+            let declared: Option<String> =
+                SemanticAstLocalBindingDeclaredTypeAt(locals, i);
+            if IsSome(declared) && !ExpressionAssignableTo(
+                UnwrapOption(declared), inferred, expression
+            ) {
+                row_verified = 0;
+                row_code = "let_type_mismatch";
+                row_message = SemanticError2(
+                    "let_type_mismatch",
+                    "expected", UnwrapOption(declared),
+                    "actual", inferred
+                );
+            }
+        }
+        ArrayPush(node_ids, locals.node_ids[i]);
+        ArrayPush(expression_texts, expression);
+        ArrayPush(inferred_type_names, inferred);
+        ArrayPush(verified, row_verified);
+        ArrayPush(diagnostic_codes, row_code);
+        ArrayPush(diagnostic_messages, row_message);
+        i = i + 1;
+    }
+    return SemanticAstInitializerTypeFacts(
+        true, "", "", artifact.count, node_ids, expression_texts,
+        inferred_type_names, verified, diagnostic_codes,
+        diagnostic_messages
+    );
+}
+
+func SemanticAstInitializerTypeCount(
+    facts: SemanticAstInitializerTypeFacts
+) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstInitializerTypesAllVerified(
+    facts: SemanticAstInitializerTypeFacts
+) -> Bool {
+    if !facts.ok {
+        return false;
+    }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerFirstDiagnosticCode(
+    facts: SemanticAstInitializerTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_code;
+    }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_codes[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstInitializerFirstDiagnosticMessage(
+    facts: SemanticAstInitializerTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_message;
+    }
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(facts) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_messages[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstInitializerTypeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    facts: SemanticAstInitializerTypeFacts
+) -> Bool {
+    let rebuilt: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, locals
+        );
+    let n: Int = SemanticAstInitializerTypeCount(facts);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        rebuilt.artifact_node_count != facts.artifact_node_count ||
+        SemanticAstInitializerTypeCount(rebuilt) != n ||
+        ArrayLength(facts.expression_texts) != n ||
+        ArrayLength(facts.inferred_type_names) != n ||
+        ArrayLength(facts.verified) != n ||
+        ArrayLength(facts.diagnostic_codes) != n ||
+        ArrayLength(facts.diagnostic_messages) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.expression_texts[i] != facts.expression_texts[i] ||
+            rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
+            rebuilt.verified[i] != facts.verified[i] ||
+            rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerTypeFactsContractReady() -> Bool {
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n"
+    );
+    let valid_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let valid_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(valid, valid_signatures);
+    let valid_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            valid, valid_signatures, valid_locals
+        );
+    if !SemanticAstInitializerTypeFactsMatchArtifact(
+        valid, valid_signatures, valid_locals, valid_facts
+    ) || !SemanticAstInitializerTypesAllVerified(valid_facts) ||
+        SemanticAstInitializerTypeCount(valid_facts) != 2 ||
+        valid_facts.inferred_type_names[0] != "Int" ||
+        valid_facts.inferred_type_names[1] != "Int" {
+        return false;
+    }
+
+    let mismatch: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: bad : Int = \"x\"\n"
+    );
+    let mismatch_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(mismatch);
+    let mismatch_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            mismatch, mismatch_signatures
+        );
+    let mismatch_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            mismatch, mismatch_signatures, mismatch_locals
+        );
+    if SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
+        SemanticAstInitializerFirstDiagnosticCode(mismatch_facts) !=
+            "let_type_mismatch" {
+        return false;
+    }
+
+    let unknown: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: bad : Int = Mystery()\n"
+    );
+    let unknown_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(unknown);
+    let unknown_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(unknown, unknown_signatures);
+    let unknown_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            unknown, unknown_signatures, unknown_locals
+        );
+    return !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
+        SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
+            "initializer_type_unresolved";
+}

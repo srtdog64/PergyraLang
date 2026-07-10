@@ -26,13 +26,13 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
         if i >= end {
             break;
         }
-        if MatchKeyword(content, i, "let") {
+        if SemanticMatchKeyword(content, i, "let") {
             i = i + 3;
-            let first_name: String = ReadIdent(content, i, cursor);
+            let first_name: String = SemanticReadIdent(content, i, cursor);
             i = cursor[0];
             let name: String = first_name;
             if first_name == "mut" {
-                name = ReadIdent(content, i, cursor);
+                name = SemanticReadIdent(content, i, cursor);
                 i = cursor[0];
             }
             let declared_type: String = "Unknown";
@@ -87,7 +87,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             i = semi + 1;
             continue;
         }
-        if MatchKeyword(content, i, "return") {
+        if SemanticMatchKeyword(content, i, "return") {
             i = i + 6;
             let return_semi: Int = FindStatementEnd(content, i, end);
             let return_call_error: String = CheckCall(Substring(content, i, return_semi - i), names, types, modes, func_names, func_rets, func_params);
@@ -122,9 +122,9 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             i = return_semi + 1;
             continue;
         }
-        if MatchKeyword(content, i, "if") || MatchKeyword(content, i, "while") {
+        if SemanticMatchKeyword(content, i, "if") || SemanticMatchKeyword(content, i, "while") {
             let cond_start: Int = i + 2;
-            if MatchKeyword(content, i, "while") {
+            if SemanticMatchKeyword(content, i, "while") {
                 cond_start = i + 5;
             }
             let block_open: Int = FindBlockOpen(content, cond_start, end);
@@ -162,9 +162,9 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                     return block_error;
                 }
                 i = block_close + 1;
-                if MatchKeyword(content, i, "else") {
+                if SemanticMatchKeyword(content, i, "else") {
                     let else_start: Int = SkipWhitespaceAndComments(content, i) + 4;
-                    if MatchKeyword(content, else_start, "if") {
+                    if SemanticMatchKeyword(content, else_start, "if") {
                         i = else_start;
                         continue;
                     }
@@ -185,8 +185,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             }
             continue;
         }
-        if MatchKeyword(content, i, "for") {
-            let loop_var: String = ReadIdent(content, i + 3, cursor);
+        if SemanticMatchKeyword(content, i, "for") {
+            let loop_var: String = SemanticReadIdent(content, i + 3, cursor);
             let after_var: Int = cursor[0];
             let for_in: Option<Int> = ExpectLiteral(content, after_var, "in");
             let for_open: Int = FindBlockOpen(content, after_var, end);
@@ -219,7 +219,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             }
             continue;
         }
-        let asn_name: String = ReadIdent(content, i, cursor);
+        let asn_name: String = SemanticReadIdent(content, i, cursor);
         let asn_after: Int = SkipWhitespaceAndComments(content, cursor[0]);
         if StringLength(asn_name) > 0 && CharAt(content, asn_after) == "=" && CharAt(content, asn_after + 1) != "=" {
             if !EnvContainsName(names, asn_name) {
@@ -274,7 +274,7 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
     let types: Array<String> = [];
     let modes: Array<String> = [];
     let i: Int = func_pos + 4;
-    let fn_name: String = ReadIdent(content, i, cursor);
+    let fn_name: String = SemanticReadIdent(content, i, cursor);
     i = cursor[0];
     let open_match: Option<Int> = ExpectLiteral(content, i, "(");
     if !IsSome(open_match) || StringLength(fn_name) == 0 {
@@ -288,13 +288,13 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
             i = i + 1;
             break;
         }
-        let first_name: String = ReadIdent(content, i, cursor);
+        let first_name: String = SemanticReadIdent(content, i, cursor);
         i = cursor[0];
         let param_name: String = first_name;
         let param_mode: String = "default_param";
         if first_name == "inout" || first_name == "ref" || first_name == "own" {
             param_mode = Concat(first_name, "_param");
-            param_name = ReadIdent(content, i, cursor);
+            param_name = SemanticReadIdent(content, i, cursor);
             i = cursor[0];
         }
         let colon_match: Option<Int> = ExpectLiteral(content, i, ":");
@@ -325,13 +325,13 @@ func CheckFunction(content: String, func_pos: Int, inout cursor_out: Array<Int>,
         i = cursor[0];
     }
     i = SkipWhitespaceAndComments(content, i);
-    if MatchKeyword(content, i, "with") {
+    if SemanticMatchKeyword(content, i, "with") {
         let caps_probe: Int = SkipWhitespaceAndComments(content, i + 4);
-        if MatchKeyword(content, caps_probe, "caps") {
+        if SemanticMatchKeyword(content, caps_probe, "caps") {
             i = caps_probe + 4;
             while true {
                 i = SkipWhitespaceAndComments(content, i);
-                let cap_name: String = ReadIdent(content, i, cursor);
+                let cap_name: String = SemanticReadIdent(content, i, cursor);
                 i = cursor[0];
                 i = SkipWhitespaceAndComments(content, i);
                 if CharAt(content, i) == "," {

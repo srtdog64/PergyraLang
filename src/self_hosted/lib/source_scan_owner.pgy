@@ -1,0 +1,61 @@
+// Shared source character and trivia scanning owner.
+
+func SourceCharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 || i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+func IsAlpha(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    return StringIndexOf(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c
+    ) >= 0;
+}
+
+func IsDigit(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    return StringIndexOf("0123456789", c) >= 0;
+}
+
+func IsAlphaNum(c: String) -> Bool {
+    return IsAlpha(c) || IsDigit(c);
+}
+
+func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
+    let n: Int = StringLength(content);
+    let i: Int = start;
+    while i < n {
+        let c: String = SourceCharAt(content, i);
+        if c == " " || c == "\t" || c == "\n" || c == "\r" {
+            i = i + 1;
+            continue;
+        }
+        if c == "/" && SourceCharAt(content, i + 1) == "/" {
+            while i < n && SourceCharAt(content, i) != "\n" {
+                i = i + 1;
+            }
+            continue;
+        }
+        if c == "/" && SourceCharAt(content, i + 1) == "*" {
+            i = i + 2;
+            while i < n {
+                if SourceCharAt(content, i) == "*" &&
+                    SourceCharAt(content, i + 1) == "/" {
+                    i = i + 2;
+                    break;
+                }
+                i = i + 1;
+            }
+            continue;
+        }
+        return i;
+    }
+    return i;
+}

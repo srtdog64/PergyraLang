@@ -80,8 +80,15 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, parameter, mode, and return signature facts.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
-  local binding node, function, scope, name, and declared-type facts.
+  local binding node, function, scope, name, declared-type, and initializer
+  payload facts.
+- `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
+  native initializer expression type verdicts joined from signature, scope,
+  local-binding, and initializer payload facts without source re-scanning.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
+- `src/self_hosted/semantic/builtin_signature_owner.pgy` -- canonical builtin
+  name, return-type, and parameter-type rows shared by source and artifact
+  semantic paths.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks
@@ -93,6 +100,13 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
 - `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source bundle.
 - `src/self_hosted/semantic/text_scan_owner.pgy` -- semantic text scanning.
+
+## Shared Source Scan
+
+- `src/self_hosted/lib/source_scan_owner.pgy` -- common character class and
+  whitespace/comment traversal facts consumed by parser and semantic. Their
+  distinct keyword/identifier cursor policies remain explicitly named in the
+  stage owners.
 
 ## HIR
 
@@ -139,7 +153,6 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_text_try_let_owner.pgy` -- AST text try-let initializer shape and inner-expression facts.
 - `src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy` -- AST text indexed assignment target shape, receiver, and index-expression facts.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
-- `src/self_hosted/codegen/input/ast_local_initializer_codegen_view_owner.pgy` -- transitional HIR expression-payload view for local initializers.
 - `src/self_hosted/codegen/input/ast_text_assignment_owner.pgy` -- AST text assignment target and RHS facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
@@ -353,6 +366,10 @@ compiler-stage `.pgy` source to be listed here.
   for source path, artifact mode, and optional output path.
 - `src/self_hosted/compiler/driver_rung1_main.pgy` -- DRV-1 runnable artifact
   boundary; ownership remains in `driver_cli_owner.pgy`.
+- `src/self_hosted/compiler/driver_rung2_owner.pgy` -- hard initializer-verdict
+  source-to-C owner; computes semantic type evidence only for DRV-2.
+- `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
+  semantic boundary; ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts
   (abilities + roles) for the sensitive compiler-world boundaries: semantic
   verdict, C emission, subprocess planning, and parity judgement.

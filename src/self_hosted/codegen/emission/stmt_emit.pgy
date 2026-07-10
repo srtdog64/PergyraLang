@@ -11,7 +11,6 @@ import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
-import "../input/ast_local_initializer_codegen_view_owner.pgy";
 import "../input/ast_text_assignment_owner.pgy";
 import "../input/ast_text_for_stmt_owner.pgy";
 import "../input/ast_text_statement_payload_owner.pgy";
@@ -72,7 +71,9 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
-    let expr: String = CodegenAstArenaLetInitializerOrDie(arena, idx);
+    let expr: String = CodegenSemanticLocalBindingInitializerOrDie(
+        local_bindings, idx
+    );
     if type_name == "Int" {
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")))));
@@ -105,14 +106,17 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, array_kind, c_name));
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
-        if !CodegenAstArenaLetInitializerStartsArrayLiteral(arena, idx) {
+        if !CodegenSemanticLetInitializerStartsArrayLiteral(local_bindings, idx) {
             return Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";")))));
         }
         let out: String = Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(new_fn, "();")))));
-        let element_count: Int = CodegenAstArenaLetArrayLiteralElementCount(arena, idx);
+        let element_count: Int = CodegenSemanticLetArrayLiteralElementCount(local_bindings, idx);
         let element_index: Int = 0;
         while element_index < element_count {
-            let elem_opt: Option<String> = CodegenAstArenaLetArrayLiteralElementAt(arena, idx, element_index);
+            let elem_opt: Option<String> =
+                CodegenSemanticLetArrayLiteralElementAt(
+                    local_bindings, idx, element_index
+                );
             if IsSome(elem_opt) {
                 let ev: String = EmitCollectionElementValue(array_kind, UnwrapOption(elem_opt), env_box[0], array_kind_code);
                 out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(c_name, Concat(", ", Concat(ev, ");")))))));
@@ -156,7 +160,7 @@ func EmitTryLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, i
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
     let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
-    let inner_opt: Option<String> = CodegenAstArenaLetTryInner(arena, idx);
+    let inner_opt: Option<String> = CodegenSemanticLetTryInner(local_bindings, idx);
     if !IsSome(inner_opt) {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
@@ -359,7 +363,7 @@ func EmitStmtList(count: Int, arena: AstArena, local_bindings: SemanticAstLocalB
             Die(Concat("unexpected over-indented AST line: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
         }
         if CodegenAstArenaIsLetStmt(arena, idx) {
-            if CodegenAstArenaLetInitializerHasTry(arena, idx) {
+            if CodegenSemanticLetInitializerHasTry(local_bindings, idx) {
                 result = Concat(result, Concat(pad, Concat(EmitTryLet(local_bindings, arena, idx, env_box, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
             } else {
                 result = Concat(result, Concat(pad, Concat(EmitLet(local_bindings, arena, idx, env_box), "\n")));

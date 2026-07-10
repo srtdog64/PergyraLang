@@ -1,9 +1,9 @@
-// Self-host codegen AST-text array literal facts.
+// Self-host codegen array literal shape over semantic initializer facts.
 //
-// This owner keeps transitional array literal shape and element splitting out of
-// emission participants while the codegen rung still consumes AST text payloads.
+// The semantic local-binding owner carries the initializer payload. This owner
+// only projects its array-literal shape for emission.
 
-import "ast_arena_codegen_view_owner.pgy";
+import "semantic_local_binding_codegen_view_owner.pgy";
 import "../text/expr_sequence_owner.pgy";
 
 struct CodegenLetArrayLiteralFact {
@@ -11,15 +11,23 @@ struct CodegenLetArrayLiteralFact {
     let initializer: String;
 }
 
-func CodegenAstArenaLetArrayLiteralFactAt(arena: AstArena, node_id: Int) -> CodegenLetArrayLiteralFact {
-    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+func CodegenSemanticLetArrayLiteralFactAt(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> CodegenLetArrayLiteralFact {
+    let index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) {
         return CodegenLetArrayLiteralFact(false, "");
     }
-    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
-    if !IsSome(value) {
+    let initializer: Option<String> = SemanticAstLocalBindingInitializerAt(
+        facts, UnwrapOption(index)
+    );
+    if !IsSome(initializer) {
         return CodegenLetArrayLiteralFact(false, "");
     }
-    return CodegenLetArrayLiteralFact(true, UnwrapOption(value));
+    return CodegenLetArrayLiteralFact(true, UnwrapOption(initializer));
 }
 
 func CodegenLetArrayLiteralInitializerText(fact: CodegenLetArrayLiteralFact) -> Option<String> {
@@ -29,8 +37,12 @@ func CodegenLetArrayLiteralInitializerText(fact: CodegenLetArrayLiteralFact) -> 
     return Some(fact.initializer);
 }
 
-func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: Int) -> Bool {
-    let fact: CodegenLetArrayLiteralFact = CodegenAstArenaLetArrayLiteralFactAt(arena, node_id);
+func CodegenSemanticLetInitializerStartsArrayLiteral(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Bool {
+    let fact: CodegenLetArrayLiteralFact =
+        CodegenSemanticLetArrayLiteralFactAt(facts, node_id);
     let initializer: Option<String> = CodegenLetArrayLiteralInitializerText(fact);
     if !IsSome(initializer) {
         return false;
@@ -39,8 +51,12 @@ func CodegenAstArenaLetInitializerStartsArrayLiteral(arena: AstArena, node_id: I
     return StringLength(expr) > 0 && CodegenCharAt(expr, 0) == "[";
 }
 
-func CodegenAstArenaLetArrayLiteralBodyOrDie(arena: AstArena, node_id: Int) -> String {
-    let fact: CodegenLetArrayLiteralFact = CodegenAstArenaLetArrayLiteralFactAt(arena, node_id);
+func CodegenSemanticLetArrayLiteralBodyOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> String {
+    let fact: CodegenLetArrayLiteralFact =
+        CodegenSemanticLetArrayLiteralFactAt(facts, node_id);
     let initializer: Option<String> = CodegenLetArrayLiteralInitializerText(fact);
     if !IsSome(initializer) {
         Die(Concat("expected array literal initializer at typed AST node: ", ToString(node_id)));
@@ -64,10 +80,21 @@ func CodegenAstArenaArrayLiteralElementAt(body: String, index: Int) -> Option<St
     return ExprSequenceItemAt(body, index);
 }
 
-func CodegenAstArenaLetArrayLiteralElementCount(arena: AstArena, node_id: Int) -> Int {
-    return CodegenAstArenaArrayLiteralElementCount(CodegenAstArenaLetArrayLiteralBodyOrDie(arena, node_id));
+func CodegenSemanticLetArrayLiteralElementCount(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Int {
+    return CodegenAstArenaArrayLiteralElementCount(
+        CodegenSemanticLetArrayLiteralBodyOrDie(facts, node_id)
+    );
 }
 
-func CodegenAstArenaLetArrayLiteralElementAt(arena: AstArena, node_id: Int, index: Int) -> Option<String> {
-    return CodegenAstArenaArrayLiteralElementAt(CodegenAstArenaLetArrayLiteralBodyOrDie(arena, node_id), index);
+func CodegenSemanticLetArrayLiteralElementAt(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int,
+    index: Int
+) -> Option<String> {
+    return CodegenAstArenaArrayLiteralElementAt(
+        CodegenSemanticLetArrayLiteralBodyOrDie(facts, node_id), index
+    );
 }

@@ -151,7 +151,6 @@ require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy" 600
-require_max_lines "src/self_hosted/codegen/input/ast_local_initializer_codegen_view_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_artifact_verdict_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
@@ -452,8 +451,11 @@ for term in \
     "func CompilerDriverRung0MainPath" \
     "func CompilerDriverCliOwnerPath" \
     "func CompilerDriverRung1MainPath" \
+    "func CompilerDriverRung2OwnerPath" \
+    "func CompilerDriverRung2MainPath" \
     "func CompilerDriverRung0ParityPath" \
     "func CompilerDriverRung1ParityPath" \
+    "func CompilerDriverRung2ParityPath" \
     "func CompilerOwnerManifestPath" \
     "func CompilerWorldPathProjectionSuiteName" \
     "func CompilerStagePathManifestReady" \
@@ -490,8 +492,11 @@ for term in \
     "return CompilerDriverRung0MainPath();" \
     "return CompilerDriverCliOwnerPath();" \
     "return CompilerDriverRung1MainPath();" \
+    "return CompilerDriverRung2OwnerPath();" \
+    "return CompilerDriverRung2MainPath();" \
     "return CompilerDriverRung0ParityPath();" \
     "return CompilerDriverRung1ParityPath();" \
+    "return CompilerDriverRung2ParityPath();" \
     "return CompilerOwnerManifestPath();" \
     "CompilerWorldProjectionPathCount() != CompilerWorldManifestPathCount() + CompilerWorldProjectionPrefixCount()" \
     "CompilerStagePathAt(CompilerStagePathCount() - 1)" \
@@ -507,9 +512,9 @@ for term in \
     "CompilerStagePathManifestReady" \
     "if index < 24" \
     "CompilerStagePathAt(index - 19)" \
-    "if index < 32" \
+    "if index < 33" \
     "CompilerParityPathAt(index - 24)" \
-    "return 39;" \
+    "return 42;" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -517,9 +522,9 @@ for term in \
     "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady"; do
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerParityPathCount() != 8"
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 39"
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 40"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerParityPathCount() != 9"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 42"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 45"
 
 for term in \
     "func CompilerStageArtifactRowReady" \
@@ -587,7 +592,7 @@ for term in \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
     "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
-    "SemanticDiagnosticCodeCount() != 21" \
+    "SemanticDiagnosticCodeCount() != 22" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
     require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"

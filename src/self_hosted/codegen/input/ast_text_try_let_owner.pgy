@@ -1,9 +1,9 @@
-// Self-host codegen AST-text try-let facts.
+// Self-host codegen try-let shape over semantic initializer facts.
 //
 // This owner keeps `let x: T = (?expr)` payload recognition and inner-expression
-// extraction out of typed arena projection and statement emission participants.
+// extraction out of statement emission. The payload itself is semantic-owned.
 
-import "ast_arena_codegen_view_owner.pgy";
+import "semantic_local_binding_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 
 struct CodegenLetTryInitializerFact {
@@ -11,15 +11,23 @@ struct CodegenLetTryInitializerFact {
     let initializer: String;
 }
 
-func CodegenAstArenaLetTryInitializerFactAt(arena: AstArena, node_id: Int) -> CodegenLetTryInitializerFact {
-    if !CodegenAstArenaIsLetStmt(arena, node_id) {
+func CodegenSemanticLetTryInitializerFactAt(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> CodegenLetTryInitializerFact {
+    let index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) {
         return CodegenLetTryInitializerFact(false, "");
     }
-    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
-    if !IsSome(value) {
+    let initializer: Option<String> = SemanticAstLocalBindingInitializerAt(
+        facts, UnwrapOption(index)
+    );
+    if !IsSome(initializer) {
         return CodegenLetTryInitializerFact(false, "");
     }
-    return CodegenLetTryInitializerFact(true, UnwrapOption(value));
+    return CodegenLetTryInitializerFact(true, UnwrapOption(initializer));
 }
 
 func CodegenLetTryInitializerText(fact: CodegenLetTryInitializerFact) -> Option<String> {
@@ -29,8 +37,12 @@ func CodegenLetTryInitializerText(fact: CodegenLetTryInitializerFact) -> Option<
     return Some(fact.initializer);
 }
 
-func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool {
-    let fact: CodegenLetTryInitializerFact = CodegenAstArenaLetTryInitializerFactAt(arena, node_id);
+func CodegenSemanticLetInitializerHasTry(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Bool {
+    let fact: CodegenLetTryInitializerFact =
+        CodegenSemanticLetTryInitializerFactAt(facts, node_id);
     let initializer: Option<String> = CodegenLetTryInitializerText(fact);
     if !IsSome(initializer) {
         return false;
@@ -38,8 +50,12 @@ func CodegenAstArenaLetInitializerHasTry(arena: AstArena, node_id: Int) -> Bool 
     return ContainsOutsideStrings(UnwrapOption(initializer), "(?");
 }
 
-func CodegenAstArenaLetTryInner(arena: AstArena, node_id: Int) -> Option<String> {
-    let fact: CodegenLetTryInitializerFact = CodegenAstArenaLetTryInitializerFactAt(arena, node_id);
+func CodegenSemanticLetTryInner(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Option<String> {
+    let fact: CodegenLetTryInitializerFact =
+        CodegenSemanticLetTryInitializerFactAt(facts, node_id);
     let initializer: Option<String> = CodegenLetTryInitializerText(fact);
     if !IsSome(initializer) {
         return None;

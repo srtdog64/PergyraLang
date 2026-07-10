@@ -3,24 +3,25 @@
 import "text_scan_owner.pgy";
 import "expr_type_owner.pgy";
 import "body_check_owner.pgy";
+import "builtin_signature_owner.pgy";
 
 func NominalDeclKeywordLength(content: String, start: Int) -> Int {
-    if MatchKeyword(content, start, "struct") {
+    if SemanticMatchKeyword(content, start, "struct") {
         return 6;
     }
-    if MatchKeyword(content, start, "class") {
+    if SemanticMatchKeyword(content, start, "class") {
         return 5;
     }
-    if MatchKeyword(content, start, "subject") {
+    if SemanticMatchKeyword(content, start, "subject") {
         return 7;
     }
-    if MatchKeyword(content, start, "object") {
+    if SemanticMatchKeyword(content, start, "object") {
         return 6;
     }
-    if MatchKeyword(content, start, "tobject") {
+    if SemanticMatchKeyword(content, start, "tobject") {
         return 7;
     }
-    if MatchKeyword(content, start, "vessel") {
+    if SemanticMatchKeyword(content, start, "vessel") {
         return 6;
     }
     return 0;
@@ -56,10 +57,10 @@ func NominalConstructorParams(content: String, body_open: Int, body_close: Int, 
             i = i + 1;
             continue;
         }
-        if MatchKeyword(content, i, "let") {
+        if SemanticMatchKeyword(content, i, "let") {
             i = i + 3;
         }
-        let field_name: String = ReadIdent(content, i, cursor);
+        let field_name: String = SemanticReadIdent(content, i, cursor);
         i = cursor[0];
         i = SkipWhitespaceAndComments(content, i);
         if StringLength(field_name) == 0 || CharAt(content, i) != ":" {
@@ -99,7 +100,7 @@ func SeedNominalConstructors(content: String, inout func_names: Array<String>, i
             scan = scan + 1;
             continue;
         }
-        let name: String = ReadIdent(content, scan + kw_len, cursor);
+        let name: String = SemanticReadIdent(content, scan + kw_len, cursor);
         let after_name: Int = cursor[0];
         if StringLength(name) == 0 {
             scan = scan + kw_len;
@@ -123,234 +124,9 @@ func CheckProgram(content: String) -> String {
     let func_names: Array<String> = [];
     let func_rets: Array<String> = [];
     let func_params: Array<String> = [];
-    ArrayPush(func_names, "StringLength");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "String");
-    ArrayPush(func_names, "StringIndexOf");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "ArrayLength");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Substring");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "String|Int|Int");
-    ArrayPush(func_names, "Concat");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "ReadFile");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "String");
-    ArrayPush(func_names, "ReadStdin");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Int");
-    ArrayPush(func_names, "WriteFile");
-    ArrayPush(func_rets, "Void");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "ToInt");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "ToFloat");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Sqrt");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Pow");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float|Float");
-    ArrayPush(func_names, "Floor");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Ceil");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Sin");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Cos");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Tan");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Asin");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Acos");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Atan");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Atan2");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float|Float");
-    ArrayPush(func_names, "Round");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Exp");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "MathLog");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Log10");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Log2");
-    ArrayPush(func_rets, "Float");
-    ArrayPush(func_params, "Float");
-    ArrayPush(func_names, "Random");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "Int");
-    ArrayPush(func_names, "SeedRandom");
-    ArrayPush(func_rets, "Void");
-    ArrayPush(func_params, "Int");
-    ArrayPush(func_names, "Abs");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Min");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
-    ArrayPush(func_names, "Max");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
-    ArrayPush(func_names, "Clamp");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "FileExists");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "String");
-    ArrayPush(func_names, "ToString");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "ToLower");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "ToUpper");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Trim");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Upper");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "StringReplace");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "StringContains");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "SubContainsWithLen");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "String|Int|Int|Int|String");
-    ArrayPush(func_names, "SubEqualsWithLen");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "String|Int|Int|Int|String");
-    ArrayPush(func_names, "SubIndexOfWithLen");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "String|Int|Int|Int|String");
-    ArrayPush(func_names, "SubStartsWithLen");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "String|Int|Int|String");
-    ArrayPush(func_names, "ArrayPush");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
-    ArrayPush(func_names, "ArrayPop");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "ArraySet");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "ArrayGet");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
-    ArrayPush(func_names, "Args");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "");
-    ArrayPush(func_names, "Log");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Print");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Exit");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "SelfHostDiagnostic_RenderOk");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "SelfHostDiagnostic_RenderError");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "SelfHostDiagnostic_Fact1");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown");
-    ArrayPush(func_names, "SelfHostDiagnostic_Fact2");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "SelfHostDiagnostic_Fact3");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
-    ArrayPush(func_names, "StringJoin");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|String");
-    ArrayPush(func_names, "Join");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown|String");
-    ArrayPush(func_names, "Split");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "StringSplit");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "String|String");
-    ArrayPush(func_names, "DirWalk");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "StringTrim");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "CharCode");
-    ArrayPush(func_rets, "Int");
-    ArrayPush(func_params, "String|Int|Int");
-    ArrayPush(func_names, "CharAt");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "String|Int");
-    ArrayPush(func_names, "CharAtN");
-    ArrayPush(func_rets, "String");
-    ArrayPush(func_params, "String|Int|Int");
-    ArrayPush(func_names, "Some");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "None");
-    ArrayPush(func_rets, "Option<Unknown>");
-    ArrayPush(func_params, "");
-    ArrayPush(func_names, "IsSome");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "UnwrapOption");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Ok");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Err");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "String");
-    ArrayPush(func_names, "IsOk");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "IsErr");
-    ArrayPush(func_rets, "Bool");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "Unwrap");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown");
-    ArrayPush(func_names, "UnwrapOr");
-    ArrayPush(func_rets, "Unknown");
-    ArrayPush(func_params, "Unknown|Unknown");
+    if !SeedSemanticBuiltinSignatures(func_names, func_rets, func_params) {
+        return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
+    }
     SeedNominalConstructors(content, func_names, func_rets, func_params);
     let n: Int = StringLength(content);
     let scan: Int = 0;
@@ -363,12 +139,12 @@ func CheckProgram(content: String) -> String {
             scan = SkipQuotedString(content, scan, n);
             continue;
         }
-        if !MatchKeyword(content, scan, "func") {
+        if !SemanticMatchKeyword(content, scan, "func") {
             scan = scan + 1;
             continue;
         }
         let name_pos: Int = scan + 4;
-        let fn_name: String = ReadIdent(content, name_pos, cursor);
+        let fn_name: String = SemanticReadIdent(content, name_pos, cursor);
         let after_name: Int = cursor[0];
         let open_match: Option<Int> = ExpectLiteral(content, after_name, "(");
         if !IsSome(open_match) || StringLength(fn_name) == 0 {
@@ -419,15 +195,15 @@ func CheckProgram(content: String) -> String {
             i = SkipQuotedString(content, i, n);
             continue;
         }
-        if MatchKeyword(content, i, "export") {
+        if SemanticMatchKeyword(content, i, "export") {
             i = i + 6;
             continue;
         }
-        if MatchKeyword(content, i, "async") {
+        if SemanticMatchKeyword(content, i, "async") {
             i = i + 5;
             continue;
         }
-        if MatchKeyword(content, i, "func") {
+        if SemanticMatchKeyword(content, i, "func") {
             let fn_error: String = CheckFunction(content, i, cursor, func_names, func_rets, func_params);
             if StringLength(fn_error) > 0 {
                 return fn_error;

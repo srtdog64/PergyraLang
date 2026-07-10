@@ -1,0 +1,117 @@
+// Canonical self-host semantic builtin signature table.
+
+func SemanticBuiltinSignatureRows() -> Array<String> {
+    return [
+        "StringLength^Int^String",
+        "StringIndexOf^Int^String|String",
+        "ArrayLength^Int^Unknown",
+        "Substring^String^String|Int|Int",
+        "Concat^String^String|String",
+        "ReadFile^String^String",
+        "ReadStdin^String^Int",
+        "WriteFile^Void^String|String",
+        "ToInt^Int^Unknown",
+        "ToFloat^Float^Unknown",
+        "Sqrt^Float^Float",
+        "Pow^Float^Float|Float",
+        "Floor^Float^Float",
+        "Ceil^Float^Float",
+        "Sin^Float^Float",
+        "Cos^Float^Float",
+        "Tan^Float^Float",
+        "Asin^Float^Float",
+        "Acos^Float^Float",
+        "Atan^Float^Float",
+        "Atan2^Float^Float|Float",
+        "Round^Float^Float",
+        "Exp^Float^Float",
+        "MathLog^Float^Float",
+        "Log10^Float^Float",
+        "Log2^Float^Float",
+        "Random^Int^Int",
+        "SeedRandom^Void^Int",
+        "Abs^Unknown^Unknown",
+        "Min^Unknown^Unknown|Unknown",
+        "Max^Unknown^Unknown|Unknown",
+        "Clamp^Unknown^Unknown|Unknown|Unknown",
+        "FileExists^Bool^String",
+        "ToString^String^Unknown",
+        "ToLower^String^Unknown",
+        "ToUpper^String^Unknown",
+        "Trim^String^Unknown",
+        "Upper^String^Unknown",
+        "StringReplace^String^Unknown|Unknown|Unknown",
+        "StringContains^Bool^String|String",
+        "SubContainsWithLen^Bool^String|Int|Int|Int|String",
+        "SubEqualsWithLen^Bool^String|Int|Int|Int|String",
+        "SubIndexOfWithLen^Int^String|Int|Int|Int|String",
+        "SubStartsWithLen^Bool^String|Int|Int|String",
+        "ArrayPush^Unknown^Unknown|Unknown",
+        "ArrayPop^Unknown^Unknown",
+        "ArraySet^Unknown^Unknown|Unknown|Unknown",
+        "ArrayGet^Unknown^Unknown|Unknown",
+        "Args^Unknown^none",
+        "Log^Unknown^Unknown",
+        "Print^Unknown^Unknown",
+        "Exit^Unknown^Unknown",
+        "SelfHostDiagnostic_RenderOk^String^Unknown",
+        "SelfHostDiagnostic_RenderError^String^Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown",
+        "SelfHostDiagnostic_Fact1^String^Unknown|Unknown",
+        "SelfHostDiagnostic_Fact2^String^Unknown|Unknown|Unknown|Unknown",
+        "SelfHostDiagnostic_Fact3^String^Unknown|Unknown|Unknown|Unknown|Unknown|Unknown",
+        "StringJoin^String^Unknown|String",
+        "Join^String^Unknown|String",
+        "Split^Unknown^String|String",
+        "StringSplit^Unknown^String|String",
+        "DirWalk^Unknown^Unknown",
+        "StringTrim^String^Unknown",
+        "CharCode^Int^String|Int|Int",
+        "CharAt^String^String|Int",
+        "CharAtN^String^String|Int|Int",
+        "Some^Unknown^Unknown",
+        "None^Option<Unknown>^none",
+        "IsSome^Bool^Unknown",
+        "UnwrapOption^Unknown^Unknown",
+        "Ok^Unknown^Unknown",
+        "Err^Unknown^String",
+        "IsOk^Bool^Unknown",
+        "IsErr^Bool^Unknown",
+        "Unwrap^Unknown^Unknown",
+        "UnwrapOr^Unknown^Unknown|Unknown"
+    ];
+}
+
+func SeedSemanticBuiltinSignatures(
+    inout names: Array<String>,
+    inout returns: Array<String>,
+    inout params: Array<String>
+) -> Bool {
+    let rows: Array<String> = SemanticBuiltinSignatureRows();
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        let parts: Array<String> = Split(rows[i], "^");
+        if ArrayLength(parts) != 3 {
+            return false;
+        }
+        let param_types: String = parts[2];
+        if param_types == "none" {
+            param_types = "";
+        }
+        ArrayPush(names, parts[0]);
+        ArrayPush(returns, parts[1]);
+        ArrayPush(params, param_types);
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticBuiltinSignatureContractReady() -> Bool {
+    let names: Array<String> = [];
+    let returns: Array<String> = [];
+    let params: Array<String> = [];
+    return SeedSemanticBuiltinSignatures(names, returns, params) &&
+        ArrayLength(names) == 76 && ArrayLength(returns) == 76 &&
+        ArrayLength(params) == 76 && names[0] == "StringLength" &&
+        returns[0] == "Int" && params[0] == "String" &&
+        names[48] == "Args" && params[48] == "";
+}

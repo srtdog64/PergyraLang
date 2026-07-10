@@ -25,6 +25,7 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "function_signature_invalid",
         "input_missing",
         "local_binding_invalid",
+        "initializer_type_unresolved",
         "unregistered_diagnostic_code"
     ];
     return codes;

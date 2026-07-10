@@ -57,10 +57,13 @@ without rebuilding the arena. Entrypoint cardinality and function owner/name,
 parameter name/type/mode, and return-type rows are derived once by semantic and
 consumed by function emission, prototype emission, role-operator lookup, and the
 codegen type environment. The deleted codegen-owned signature scanner cannot
-return. Local declaration name/type/scope facts now follow the same path and
-codegen no longer recovers them from the arena. The broader semantic substitute
-still scans source text for initializer expression typing and the remaining
-body verdict; those are the next valid compiler-pipeline facts to move.
+return. Local declaration name/type/scope/initializer-payload facts now follow
+the same path and codegen no longer recovers them from the arena.
+`SemanticAstInitializerTypeFacts` joins those rows with function signatures and
+lexical scope. The isolated DRV-2 `--emit-c-verified` path computes that fact
+and fails closed before codegen when an initializer type is unresolved or
+mismatched. DRV-0/DRV-1 remain the lightweight breadth path while the remaining
+assignment/use/body verdicts move off the separate source scanner.
 Wiring the current source scanner into the driver would create a second parser
 and does not count.
 
@@ -126,7 +129,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-228 production self-host source files across lexer, parser, semantic, codegen,
+232 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -174,6 +177,22 @@ artifact assembly coverage. The fixed point proves a real Pergyra-built
 source-to-C compiler loop, but neither it nor DRV parity counts as
 released/native driver replacement until semantic and MIR stages enter that
 same executable path.
+The separate DRV-2 `--emit-c-verified` entrypoint makes initializer typing a
+hard semantic precondition without calling the source-scanning checker. Its
+semantic cost is isolated from DRV-0/DRV-1 and ordinary codegen checks. It is a
+bounded hard-semantic rung, not a whole-body semantic replacement claim.
+The DRV-2 initializer gate runs six manifest-owned positive/negative fixtures
+through both C-built and LLVM-built drivers, compares emitted C or diagnostics,
+and C-compiles every positive artifact. The builtin signature table and shared
+source character/trivia scanner are now single owners because the integrated
+driver exposed their former duplicate definitions.
+
+The same slice removed two compiler-scale quadratic scans. Typed AST parent and
+child rows now use an indentation stack plus CSR-style child offsets, and AST
+text inventory uses one `Split(tree_text, "\n")` pass instead of one-character
+`Substring` scanning. On the 996,867-byte, 24,340-row DRV-1 artifact, the cached
+self-host codegen check measured 53,003 ms before the line-inventory change and
+374 ms after it on the same machine and generated artifact.
 C LSP also exposes `pgy-lsp --dump-diagnostics <src>` as a live oracle
 plumbing path for LSP diagnostics shape checks and fixture-level canonical
 event comparison across clean plus logical/undefined/type/condition/unary
@@ -566,7 +585,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 228 production self-host
+   The M2 completeness ledger also now checks all 232 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

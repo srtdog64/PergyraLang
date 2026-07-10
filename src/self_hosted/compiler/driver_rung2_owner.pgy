@@ -1,0 +1,81 @@
+// DRV-2 initializer-verdict driver owner.
+//
+// This hard rung computes initializer type evidence only when the verified
+// source-to-C path asks for it. DRV-0/DRV-1 breadth codegen does not pay this
+// semantic cost and cannot silently substitute the source-scanning checker.
+
+import "driver_pipeline_owner.pgy";
+import "../semantic/ast_initializer_type_fact_owner.pgy";
+
+func CompilerDriverRung2Ready() -> Bool {
+    return CompilerDriverPipelineReady() &&
+        SemanticBuiltinSignatureContractReady() &&
+        SemanticAstInitializerTypeFactsContractReady();
+}
+
+func DriverRung2FixtureRows() -> Array<String> {
+    return [
+        "valid_compound_local|ok",
+        "valid_call_int|ok",
+        "valid_option_none_literal|ok",
+        "bad_let_type|error",
+        "bad_inner_let_type|error",
+        "bad_call_assign|error"
+    ];
+}
+
+func DriverRung2ExpectedFixtureCount() -> Int {
+    return 6;
+}
+
+func EmitDriverRung2FixtureManifest() -> Void {
+    let rows: Array<String> = DriverRung2FixtureRows();
+    if ArrayLength(rows) != DriverRung2ExpectedFixtureCount() {
+        Exit(1);
+    }
+    let i: Int = 0;
+    while i < ArrayLength(rows) {
+        Log(rows[i]);
+        i = i + 1;
+    }
+}
+
+func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
+    if !CompilerDriverRung2Ready() {
+        Die("driver rung-2 semantic facts are not ready");
+    }
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(artifact, true);
+    if !semantic_analysis.verdict.ok {
+        Log(semantic_analysis.verdict.diagnostic_message);
+        Exit(1);
+    }
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact,
+            semantic_analysis.signatures,
+            semantic_analysis.local_bindings
+        );
+    if !initializer_types.ok {
+        Log(initializer_types.diagnostic_message);
+        Exit(1);
+    }
+    if !SemanticAstInitializerTypesAllVerified(initializer_types) {
+        Log(SemanticAstInitializerFirstDiagnosticMessage(initializer_types));
+        Exit(1);
+    }
+    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
+}
+
+func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
+    if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
+        EmitDriverRung2FixtureManifest();
+        return;
+    }
+    let source_path: String = ParserDefaultSourcePath(args);
+    if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
+        Die(Concat("unknown driver rung-2 mode: ", args[1]));
+    }
+    Log(CompileSourceToCVerified(source_path));
+}

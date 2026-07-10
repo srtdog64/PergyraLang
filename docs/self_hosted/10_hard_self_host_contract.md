@@ -182,7 +182,7 @@ The Makefile keeps the fast and heavy paths separate:
   space-separated set of manifest-owned `.pgy` paths for local owner-isolation
   checks. Source-filtered mode must pass every selected source through every
   selected stage, but it intentionally does not satisfy source-count minima or
-  pipeline identity baselines. It exists to avoid rerunning all 228 production
+  pipeline identity baselines. It exists to avoid rerunning all 232 production
   sources after a single owner edit; it is never a replacement for the
   unfiltered CI proof.
 - `self-host-completeness-incremental-cache-parity-test-smoke` is the rung0

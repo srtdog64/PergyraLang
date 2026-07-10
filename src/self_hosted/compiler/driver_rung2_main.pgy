@@ -1,0 +1,8 @@
+// DRV-2 initializer-verdict driver entrypoint.
+
+import "driver_rung2_owner.pgy";
+
+func Main() -> Void with caps env, io_read {
+    let run_args: Array<String> = Args();
+    RunDriverRung2FromArgs(run_args);
+}

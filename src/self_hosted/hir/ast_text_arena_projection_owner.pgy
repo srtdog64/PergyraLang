@@ -10,26 +10,94 @@ func CodegenAstTextArenaAtomFor(node: CodegenAstTextNode) -> String {
     return node.payload;
 }
 
-func CodegenAstTextParentFor(nodes: Array<CodegenAstTextNode>, index: Int) -> Option<Int> {
-    if index <= 0 {
-        return None;
-    }
-    let parent: Int = index - 1;
-    while parent >= 0 {
-        if nodes[parent].indent < nodes[index].indent {
-            return Some(parent);
+func CodegenAstTextParentRows(
+    nodes: Array<CodegenAstTextNode>,
+    count: Int
+) -> Array<Int> {
+    let parents: Array<Int> = [];
+    let active: Array<Int> = [];
+    let i: Int = 0;
+    while i < count {
+        while ArrayLength(active) > 0 &&
+            nodes[active[ArrayLength(active) - 1]].indent >= nodes[i].indent {
+            ArrayPop(active);
         }
-        parent = parent - 1;
+        if ArrayLength(active) == 0 {
+            ArrayPush(parents, TypedAstNoParentRow());
+        } else {
+            ArrayPush(parents, active[ArrayLength(active) - 1]);
+        }
+        ArrayPush(active, i);
+        i = i + 1;
     }
-    return None;
+    return parents;
 }
 
-func CodegenAstTextParentRowFor(nodes: Array<CodegenAstTextNode>, index: Int) -> Int {
-    let parent: Option<Int> = CodegenAstTextParentFor(nodes, index);
-    if !IsSome(parent) {
-        return TypedAstNoParentRow();
+func CodegenAstTextChildCounts(
+    parents: Array<Int>,
+    count: Int
+) -> Array<Int> {
+    let child_counts: Array<Int> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(child_counts, 0);
+        i = i + 1;
     }
-    return UnwrapOption(parent);
+    i = 0;
+    while i < count {
+        let parent: Int = parents[i];
+        if parent != TypedAstNoParentRow() {
+            ArraySet(child_counts, parent, child_counts[parent] + 1);
+        }
+        i = i + 1;
+    }
+    return child_counts;
+}
+
+func CodegenAstTextFirstChildren(
+    child_counts: Array<Int>
+) -> Array<Int> {
+    let first_children: Array<Int> = [];
+    let next: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(child_counts) {
+        ArrayPush(first_children, next);
+        next = next + child_counts[i];
+        i = i + 1;
+    }
+    return first_children;
+}
+
+func CodegenAstTextChildren(
+    parents: Array<Int>,
+    first_children: Array<Int>,
+    child_counts: Array<Int>
+) -> Array<Int> {
+    let children: Array<Int> = [];
+    let offsets: Array<Int> = [];
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(child_counts) {
+        ArrayPush(offsets, first_children[i]);
+        total = total + child_counts[i];
+        i = i + 1;
+    }
+    i = 0;
+    while i < total {
+        ArrayPush(children, 0);
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(parents) {
+        let parent: Int = parents[i];
+        if parent != TypedAstNoParentRow() {
+            let offset: Int = offsets[parent];
+            ArraySet(children, offset, i);
+            ArraySet(offsets, parent, offset + 1);
+        }
+        i = i + 1;
+    }
+    return children;
 }
 
 func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> AstArena {
@@ -43,12 +111,14 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
     let aux_values: Array<Int> = [];
     let has_aux_values: Array<Int> = [];
     let modes: Array<Int> = [];
-    let first_children: Array<Int> = [];
-    let child_counts: Array<Int> = [];
-    let parents: Array<Int> = [];
+    let parents: Array<Int> = CodegenAstTextParentRows(nodes, count);
+    let child_counts: Array<Int> = CodegenAstTextChildCounts(parents, count);
+    let first_children: Array<Int> = CodegenAstTextFirstChildren(child_counts);
+    let children: Array<Int> = CodegenAstTextChildren(
+        parents, first_children, child_counts
+    );
     let indents: Array<Int> = [];
     let provenance_texts: Array<String> = [];
-    let children: Array<Int> = [];
     let atom_table: Array<String> = [""];
     let i: Int = 0;
     while i < count {
@@ -87,18 +157,6 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
             ArrayPush(has_aux_values, 1);
         }
         ArrayPush(modes, nodes[i].mode);
-        ArrayPush(first_children, ArrayLength(children));
-        let direct: Int = 0;
-        let j: Int = i + 1;
-        while j < count && nodes[j].indent > nodes[i].indent {
-            if nodes[j].indent == nodes[i].indent + 2 {
-                ArrayPush(children, j);
-                direct = direct + 1;
-            }
-            j = j + 1;
-        }
-        ArrayPush(child_counts, direct);
-        ArrayPush(parents, CodegenAstTextParentRowFor(nodes, i));
         ArrayPush(indents, nodes[i].indent);
         ArrayPush(provenance_texts, nodes[i].text);
         i = i + 1;
@@ -111,6 +169,7 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
 
 func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, count: Int) -> Bool {
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
+    let expected_parents: Array<Int> = CodegenAstTextParentRows(nodes, count);
     if !TypedAstArenaParallelRowsReady(arena) || TypedAstArenaNodeCount(arena) != count {
         return false;
     }
@@ -121,11 +180,12 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
             return false;
         }
         let parent: Option<Int> = TypedAstArenaParentId(arena, i);
-        let expected_parent: Option<Int> = CodegenAstTextParentFor(nodes, i);
-        if IsSome(parent) != IsSome(expected_parent) {
+        let expected_parent_row: Int = expected_parents[i];
+        if expected_parent_row == TypedAstNoParentRow() && IsSome(parent) {
             return false;
         }
-        if IsSome(parent) && UnwrapOption(parent) != UnwrapOption(expected_parent) {
+        if expected_parent_row != TypedAstNoParentRow() &&
+            (!IsSome(parent) || UnwrapOption(parent) != expected_parent_row) {
             return false;
         }
         let indent: Option<Int> = TypedAstArenaIndent(arena, i);

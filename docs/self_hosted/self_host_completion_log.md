@@ -6,6 +6,29 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-10 - Initializer typing becomes a hard driver fact
+
+- Added `SemanticAstInitializerTypeFacts` as the sole artifact-native owner of
+  local initializer inferred types and row verdicts. It joins signature,
+  lexical scope, local binding, and initializer payload facts without reading
+  source text or calling the source-scanning semantic checker.
+- Added the DRV-2 `--emit-c-verified` entrypoint. Missing, unknown, undefined,
+  or mismatched initializer facts now stop before codegen on that hard path.
+- Kept DRV-0/DRV-1 lightweight for the existing 68-fixture codegen breadth
+  frontier. Initializer evidence is computed only by DRV-2, avoiding an
+  O(local-squared) fact join on every ordinary codegen check. Assignment/use/
+  body verdicts and MIR lowering are still open, so this is a bounded
+  hard-semantic rung rather than whole-compiler substitution.
+- Unified parser/semantic character-class and trivia scanning in
+  `lib/source_scan_owner.pgy`; semantic keyword/identifier reads retain their
+  distinct skip policy under explicit semantic names. Moved the 76 builtin
+  signature rows from `program_check_owner.pgy` into one owner consumed by both
+  source and artifact semantic paths.
+- Replaced quadratic AST parent/child scans with an indentation stack and
+  prefix child rows. Replaced character-by-character newline discovery with a
+  single line split. The cached codegen check for a 996,867-byte, 24,340-row
+  DRV-1 artifact changed from 53,003 ms to 374 ms on the same machine.
+
 ## Ground rules (BDFL)
 
 - **Verified rungs only.** No unverified fork of compiler code into Pergyra.
@@ -24,6 +47,20 @@ rewrite history.
   facts). Assisting sessions stay out of those files and work non-colliding
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
+
+## 2026-07-10 - Local initializer payload joins the semantic artifact
+
+- Extended `SemanticAstLocalBindingFacts` with artifact-bound initializer rows
+  and round-trip validation against the same parser-owned `AstTreeArtifact`.
+- Repointed `EmitLet` through the fail-closed semantic codegen view, then
+  deleted `ast_local_initializer_codegen_view_owner.pgy` without an alias.
+- Repointed array-literal and try-let shape projection to the same semantic row,
+  removing their direct `TypedAstArenaValueText` initializer reads as well.
+- Tightened the component and boundary-migration gates so direct
+  `CodegenAstArenaLetInitializerOrDie` reads and the retired file cannot return.
+- This closes initializer payload ownership only. Initializer expression type
+  verdicts, assignment/use validation, remaining body semantics, and MIR
+  lowering remain open before the integrated driver is a full replacement.
 
 ## 2026-07-10 - Local declarations become artifact-native semantic facts
 

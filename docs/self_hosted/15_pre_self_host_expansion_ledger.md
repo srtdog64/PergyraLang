@@ -100,7 +100,7 @@ expression facts remain compact-text backed.
 
 | Blocker | Required owner | Why it matters |
 |---|---|---|
-| Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | The AST-text bridge now has typed line nodes with parent edges, coarse kind rows, and function/return/role/nominal/enum-name/enum-variant/field/parameter/statement payload rows. `ast_text_row_fact_owner.pgy` derives name/type/value/aux-value/mode rows from `CodegenAstTextRowFactInput` once during inventory construction, and `hir/ast_text_arena_projection_owner.pgy` now projects those rows into arena atom/type/value/aux-value/mode facts. Function/declaration emission consumes those arena rows for names, return types, parameter names/types/modes, role target types, field names/types, and payload-free enum variant lists. `program_emit`, `function_emit`, and `stmt_emit` route emission traversal depth through typed arena indent/parent facts; program-level declaration routing, Main counting, event rejection, top-level function selection, declaration collector prepass routing, Parameters/Returns/Fields marker routing, statement-kind routing, and Body/Block/Then marker expectations consume typed arena kind/atom predicates; runtime/header usage facts consume typed arena type/kind facts and `CodegenExpressionUsageFacts` rows through `ast_usage_owner.pgy` rather than raw `CodegenAstTextNode` payload/kind scans, whole-AST scans, or line-text rescans. `stmt_emit` now consumes owner-owned statement facts instead of splitting AST lines locally; declaration facts via `ast_text_declaration_owner.pgy`, function signature facts via `semantic/ast_signature_fact_owner.pgy` and the fail-closed `semantic_signature_codegen_view_owner.pgy`, `Let` name/type/scope via `semantic/ast_local_binding_fact_owner.pgy` and the fail-closed `semantic_local_binding_codegen_view_owner.pgy`, `Let` initializer payload via the explicitly transitional `ast_local_initializer_codegen_view_owner.pgy`, `Let` array-literal initializer via `ast_text_array_literal_owner.pgy`, `Let` try-initializer shape via `ast_text_try_let_owner.pgy`, payload-free enum variant payloads via `ast_text_enum_variant_owner.pgy`, `Assign` target/RHS via `ast_text_assignment_owner.pgy`, `ArrayPush`/`ArraySet` payloads via `ast_text_collection_stmt_owner.pgy`, `For` loop-var/start/end/collection via `ast_text_for_stmt_owner.pgy`, and single-payload statement facts via `ast_text_statement_payload_owner.pgy` consume typed arena rows in emission. Parameter mode facts survive into codegen. Emission owners are now ratcheted against direct `CodegenAstTextNode.text` access, function/statement raw indent reads, targeted function/declaration `CodegenAstText*Name/Type/Mode` accessors, targeted enum-variant accessors, targeted program/function declaration predicates, targeted function marker predicates, targeted marker expectation calls, targeted declaration payload accessors, targeted single-payload statement accessors, targeted function-signature payload accessors, targeted `Let`/`Assign`/`ArrayPush`/`ArraySet`/`For` payload accessors, repeated try-initializer payload reads, repeated array-literal initializer reads, repeated payload-free enum variant payload reads, repeated `For` range-end payload reads, and raw-node usage-fact bridges. Runtime/header builtin callee vocabulary and expression token matching now live in `ast_expression_usage_owner.pgy`; the blocker remains active because that owner still derives expression usage from transitional arena atom/value/aux text until owned typed/tagged expression rows replace line-text semantics. |
+| Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | The AST-text bridge now has typed line nodes with parent edges, coarse kind rows, and function/return/role/nominal/enum-name/enum-variant/field/parameter/statement payload rows. `ast_text_row_fact_owner.pgy` derives name/type/value/aux-value/mode rows from `CodegenAstTextRowFactInput` once during inventory construction, and `hir/ast_text_arena_projection_owner.pgy` now projects those rows into arena atom/type/value/aux-value/mode facts. Function/declaration emission consumes those arena rows for names, return types, parameter names/types/modes, role target types, field names/types, and payload-free enum variant lists. `program_emit`, `function_emit`, and `stmt_emit` route emission traversal depth through typed arena indent/parent facts; program-level declaration routing, Main counting, event rejection, top-level function selection, declaration collector prepass routing, Parameters/Returns/Fields marker routing, statement-kind routing, and Body/Block/Then marker expectations consume typed arena kind/atom predicates; runtime/header usage facts consume typed arena type/kind facts and `CodegenExpressionUsageFacts` rows through `ast_usage_owner.pgy` rather than raw `CodegenAstTextNode` payload/kind scans, whole-AST scans, or line-text rescans. `stmt_emit` now consumes owner-owned statement facts instead of splitting AST lines locally; declaration facts via `ast_text_declaration_owner.pgy`, function signature facts via `semantic/ast_signature_fact_owner.pgy` and the fail-closed `semantic_signature_codegen_view_owner.pgy`, `Let` name/type/scope/initializer payload via `semantic/ast_local_binding_fact_owner.pgy` and the fail-closed `semantic_local_binding_codegen_view_owner.pgy`, `Let` array-literal initializer via `ast_text_array_literal_owner.pgy`, `Let` try-initializer shape via `ast_text_try_let_owner.pgy`, payload-free enum variant payloads via `ast_text_enum_variant_owner.pgy`, `Assign` target/RHS via `ast_text_assignment_owner.pgy`, `ArrayPush`/`ArraySet` payloads via `ast_text_collection_stmt_owner.pgy`, `For` loop-var/start/end/collection via `ast_text_for_stmt_owner.pgy`, and single-payload statement facts via `ast_text_statement_payload_owner.pgy` consume typed arena rows in emission. Parameter mode facts survive into codegen. Emission owners are now ratcheted against direct `CodegenAstTextNode.text` access, function/statement raw indent reads, targeted function/declaration `CodegenAstText*Name/Type/Mode` accessors, targeted enum-variant accessors, targeted program/function declaration predicates, targeted function marker predicates, targeted marker expectation calls, targeted declaration payload accessors, targeted single-payload statement accessors, targeted function-signature payload accessors, targeted `Let`/`Assign`/`ArrayPush`/`ArraySet`/`For` payload accessors, repeated try-initializer payload reads, repeated array-literal initializer reads, repeated payload-free enum variant payload reads, repeated `For` range-end payload reads, and raw-node usage-fact bridges. Runtime/header builtin callee vocabulary and expression token matching now live in `ast_expression_usage_owner.pgy`; the blocker remains active because that owner still derives expression usage from transitional arena atom/value/aux text until owned typed/tagged expression rows replace line-text semantics. |
 | Stable JSON parse/emit owner | schema-aware JSON reader/writer with diagnostics | Read primitives plus string/field/object/array emission are shared, all current self-hosted report schemas consume the object/array writer through the direct `json_emit.pgy` owner import, AIR/module validators consume schema or top-level field checks through owner-level fact tables rather than document-local helpers, AIR graph validator document-root schema equality consumes `JsonDocumentFactStringFieldEquals`, document-root required keys consume `JsonDocumentObjectFactTable` / `JsonObjectFactHasField`, and root `summary` count rows now consume `JsonObjectFactObjectTable` plus `JsonObjectFactNumberFieldOpt` instead of carrying raw summary bounds into the AIR scanner, AIR graph feature requirements (`compression_budget`, `compression_reason`, `execution_lane`, `boundary_capture`) are graph-wide scalar facts consumed through `AirGraphScalarFieldValues`, AIR graph live consumers share `AirGraphSummaryIntField` for summary count rows, AIR graph id/ref/reachability consumers share `AirGraphScalarFieldValues` for scalar graph facts instead of owning local `"id"`/`"from"`/`"to"`/`"root"` token scanners, `module_manifest_resolver` now consumes the root `modules` array and module-row count/field/equality facts through `JsonObjectFactTable` and `JsonArrayObjectFactTable` boundary facts so nested `"modules"` text cannot satisfy the root contract and resolver-local row scans cannot drift, and `mir_lower` schema validation consumes `MirDocumentSchemaEquals` from `json_fact_read.pgy` while declaration/routine root-array discovery/header/body-boundary/program assembly/routine CFG block/successor/instruction/source-local/statement-array/match-pattern lowering consumes MIR row/object/string/array facts through `json_fact_read.pgy`, `JsonArrayObjectFactTable`, and `routine_inventory_owner.pgy` instead of local schema substring, root `decls`/`routines` array scans, field-key, global name, `"blocks"` key, block marker, instruction kind, successor key, or suffix scans. Object string-field and number-field absence now have `Option<String>` fact APIs (`JsonObjectStringFieldOpt`, `JsonObjectNumberFieldOpt`, `JsonObjectFactStringFieldEquals`, `JsonDocumentFactStringFieldEquals`, `JsonObjectFactNumberFieldOpt`, `MirDocumentSchemaEquals`, `MirObjectStringFactOpt`, `MirObjectNumberFactOpt`), MIR fact graph and AIR graph summary/schema consumers use those facts instead of empty-string sentinels or document-local schema reads, and JSON emission has a separate `json_emit.pgy` owner instead of a transitive `json.pgy` import. This blocker remains active because most consumers still rely on bounded scan helpers rather than a complete shared JSON DOM/fact table. |
 | Subprocess runner | `src/self_hosted/compiler/subprocess_runner_owner.pgy` | The capability envelope now names executable path, argv, cwd, env allowlist, timeout, stdout/stderr, and exit code facts. `CompilerSubprocessOracleComparePlanReady()` consumes fact, use-case, and env-allowlist membership plus out-of-range boundary checks before subprocess evidence is consumed, instead of treating fact/use-case row order as readiness truth. Oracle timeout is now a numeric owner fact projected to the report string, and the env allowlist is projected to CSV only at the report boundary. `backend_output_comparator` now records the oracle-compare use case, stream fact, exit fact, and nested `pgy.selfhost.subprocess-plan.v1` JSON through named owner functions instead of positional fact indexes. It remains active until a Pergyra runner executes against that envelope instead of shell-only logic. |
 | Target capability envelope (native/global consumers) | `target_capability_owner.pgy`, `TargetCapabilityZone` | The current self-host C subset consumes the envelope, but native C/LLVM target-specific consumers still need to read the same envelope before the global surface is complete. AIR-overlapping target fact names remain target-envelope facts until the import/idempotence contract is checked and the target owner can consume `air_evidence_owner.pgy` directly. |
@@ -272,13 +272,14 @@ name/type/initializer and `Assign` target/RHS. The component contract rejects th
 old targeted `CodegenAstTextLetInitializer(...)` and `CodegenAstTextAssign*`
 payload accessors in `stmt_emit.pgy`.
 
-TypedAst delta, superseded 2026-07-10: the earlier codegen-local binding owner
-was retired. `semantic/ast_local_binding_fact_owner.pgy` now owns artifact-bound
-`Let` function, scope, name, and optional declared-type rows. The fail-closed
-`semantic_local_binding_codegen_view_owner.pgy` consumes those rows, while the
-explicitly transitional `ast_local_initializer_codegen_view_owner.pgy` exposes
-only the initializer expression payload until expression typing is semantic.
-Assignment target/RHS facts remain in `ast_text_assignment_owner.pgy`.
+TypedAst delta, 2026-07-10: the earlier codegen-local binding owner and the
+transitional initializer payload view are retired. The artifact-bound
+`semantic/ast_local_binding_fact_owner.pgy` now owns each `Let` function,
+scope, name, optional declared type, and initializer payload. The fail-closed
+`semantic_local_binding_codegen_view_owner.pgy` is the only codegen consumer;
+it cannot reconstruct a missing initializer from `AstArena`. Initializer
+expression typing is still open, and assignment target/RHS facts remain in
+`ast_text_assignment_owner.pgy`.
 
 TypedAst delta, superseded 2026-07-10: the earlier codegen-local function
 signature owner was retired. `semantic/ast_signature_fact_owner.pgy` now owns
@@ -363,19 +364,16 @@ rejects the old `TypedAstArena*Text(arena, i)` scan shape. This still does not
 close the blocker because `CodegenExpressionParts` is backed by transitional
 arena text until typed/tagged expression rows replace the bridge.
 
-TypedAst delta, 2026-07-09: try-let initializer recognition now has a single
-fact seam. `ast_text_try_let_owner.pgy` builds `CodegenLetTryInitializerFact`
-once for a `Let` row, and try-presence plus inner-expression extraction consume
-that fact through an `Option<String>` view instead of reopening the initializer
-payload independently. The component contract fixes the owner/fact names and
-rejects repeated direct initializer payload reads. This still does not close
-the blocker because the fact remains backed by the transitional arena value row
-until typed statement payload rows replace the bridge.
+TypedAst delta, superseded 2026-07-10: try-let initializer recognition has a
+single codegen shape seam. `ast_text_try_let_owner.pgy` builds
+`CodegenLetTryInitializerFact` from the semantic local-binding initializer row;
+it no longer reads the arena value lane. Try-presence and inner-expression
+extraction consume that one fact. Expression typing remains open.
 
-TypedAst delta, 2026-07-09: array-literal initializer recognition now has a
-single fact seam. `ast_text_array_literal_owner.pgy` builds
-`CodegenLetArrayLiteralFact` once for a `Let` row, and starts-with-array plus
-literal-body extraction consume an `Option<String>` view of that fact instead
+TypedAst delta, superseded 2026-07-10: array-literal initializer recognition
+has a single codegen shape seam. `ast_text_array_literal_owner.pgy` builds
+`CodegenLetArrayLiteralFact` from the semantic local-binding initializer row,
+and starts-with-array plus literal-body extraction consume that fact instead
 of reopening the initializer through the generic arena value accessor. The
 component contract fixes the fact owner and rejects repeated direct initializer
 payload reads.
@@ -749,6 +747,24 @@ parity remains 110/110, codegen parity remains 68/68, and the integrated driver
 fixed point is `gen2 == gen3` at 17,536 generated-C lines. Initializer expression
 typing, assignment/use/body semantic facts, and MIR lowering remain outside the
 executable and keep the blocker ACTIVE.
+
+Artifact-native initializer delta, 2026-07-10: local initializer text travels
+in `SemanticAstLocalBindingFacts`. Generic `Let`, array-literal, and try-let
+emission consume that row through fail-closed codegen views; the transitional
+initializer owner and all three direct arena reads are deleted.
+`SemanticAstInitializerTypeFacts` replaces the deleted alias-shaped file with
+a real semantic responsibility: it joins initializer payloads to signature and
+lexical-scope facts and records inferred type plus a fail-closed row verdict.
+The production inventory is 232, with no alias restored: the real semantic
+type owner, its DRV-2 owner/entrypoint, and the shared source-scan owner replace
+the deleted payload alias and parser/semantic duplicate scanner definitions.
+The builtin signature table is also a single owner consumed by both the legacy
+source checker and DRV-2; the old 76-entry push block no longer exists.
+The initializer owner deliberately treats an unknown type as unresolved rather
+than importing the source-oriented expression-validation surface merely to
+refine the error. DRV-2 exposes the verdict as `--emit-c-verified` and computes
+it only on the hard path; assignment/use/body semantic facts remain the next
+boundary.
 
 Completeness cache delta, 2026-07-09: `completeness_ledger_owner.pgy` now owns
 the rung0 incremental cache schema and fingerprint vocabulary for the

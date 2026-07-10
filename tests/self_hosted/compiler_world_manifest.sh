@@ -31,6 +31,8 @@ PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH="src/self_hosted/compiler/driver_rung0_o
 PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH="src/self_hosted/compiler/driver_rung0_main.pgy"
 PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH="src/self_hosted/compiler/driver_cli_owner.pgy"
 PGY_SELFHOST_COMPILER_DRIVER_RUNG1_MAIN_PATH="src/self_hosted/compiler/driver_rung1_main.pgy"
+PGY_SELFHOST_COMPILER_DRIVER_RUNG2_PATH="src/self_hosted/compiler/driver_rung2_owner.pgy"
+PGY_SELFHOST_COMPILER_DRIVER_RUNG2_MAIN_PATH="src/self_hosted/compiler/driver_rung2_main.pgy"
 
 PGY_SELFHOST_STAGE_PATHS=(
     "src/self_hosted/lexer/main.pgy"
@@ -53,6 +55,7 @@ PGY_SELFHOST_PARITY_PATHS=(
     "tests/self_hosted/parity/codegen_bootstrap.sh"
     "tests/self_hosted/parity/driver_rung0_parity.sh"
     "tests/self_hosted/parity/driver_rung1_parity.sh"
+    "tests/self_hosted/parity/driver_rung2_initializer_parity.sh"
 )
 
 PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
@@ -81,6 +84,8 @@ PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(
     "$PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
     "$PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH"
     "$PGY_SELFHOST_COMPILER_DRIVER_RUNG1_MAIN_PATH"
+    "$PGY_SELFHOST_COMPILER_DRIVER_RUNG2_PATH"
+    "$PGY_SELFHOST_COMPILER_DRIVER_RUNG2_MAIN_PATH"
     "src/self_hosted/OWNERS.md"
     "${PGY_SELFHOST_STAGE_PATHS[@]}"
     "${PGY_SELFHOST_PARITY_PATHS[@]}"

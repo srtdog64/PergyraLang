@@ -43,3 +43,17 @@ func CodegenSemanticLocalBindingDeclaredTypeOrDie(
     }
     return UnwrapOption(type_name);
 }
+
+func CodegenSemanticLocalBindingInitializerOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticLocalBindingIndexOrDie(facts, node_id);
+    let initializer: Option<String> = SemanticAstLocalBindingInitializerAt(
+        facts, index
+    );
+    if !IsSome(initializer) {
+        Die("semantic local-binding facts missing initializer");
+    }
+    return UnwrapOption(initializer);
+}

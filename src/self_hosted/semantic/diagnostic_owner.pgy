@@ -65,6 +65,9 @@ func SemanticReason(code: String) -> String {
     if code == "local_binding_invalid" {
         return "local binding facts are incomplete in the shared AST artifact";
     }
+    if code == "initializer_type_unresolved" {
+        return "initializer type cannot be resolved from semantic artifact facts";
+    }
     if code == "unregistered_diagnostic_code" {
         return "semantic diagnostic code is not registered in the code owner";
     }
@@ -130,6 +133,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "local_binding_invalid" {
         return "repair the parser-owned local binding fact instead of inferring it in codegen";
+    }
+    if code == "initializer_type_unresolved" {
+        return "add the missing signature or type fact instead of guessing in the backend";
     }
     if code == "unregistered_diagnostic_code" {
         return "add the code to diagnostic_code_owner before emitting it";
@@ -528,7 +534,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 21 {
+    if SemanticDiagnosticCodeCount() != 22 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

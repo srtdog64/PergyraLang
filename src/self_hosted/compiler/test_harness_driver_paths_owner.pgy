@@ -11,12 +11,20 @@ func CompilerHarnessDriverRung1SuiteName() -> String {
     return "driver-rung1-paths";
 }
 
+func CompilerHarnessDriverRung2SuiteName() -> String {
+    return "driver-rung2-paths";
+}
+
 func CompilerHarnessDriverRung0SourcePath() -> String {
     return "src/self_hosted/compiler/driver_rung0_main.pgy";
 }
 
 func CompilerHarnessDriverRung1SourcePath() -> String {
     return "src/self_hosted/compiler/driver_rung1_main.pgy";
+}
+
+func CompilerHarnessDriverRung2SourcePath() -> String {
+    return "src/self_hosted/compiler/driver_rung2_main.pgy";
 }
 
 func CompilerHarnessDriverBootstrapSourcePath() -> String {
@@ -44,6 +52,13 @@ func CompilerHarnessDriverRung0PathAt(index: Int) -> String {
 
 func CompilerHarnessDriverRung1PathAt(index: Int) -> String {
     if index == 0 { return CompilerHarnessDriverRung1SourcePath(); }
+    if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
+    if index == 2 { return CompilerHarnessDriverCodegenSourcePath(); }
+    return "";
+}
+
+func CompilerHarnessDriverRung2PathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDriverRung2SourcePath(); }
     if index == 1 { return CompilerHarnessDriverParserSourcePath(); }
     if index == 2 { return CompilerHarnessDriverCodegenSourcePath(); }
     return "";
@@ -77,16 +92,35 @@ func CompilerHarnessDriverRung1Ready() -> Bool {
     return CompilerHarnessDriverRung1SuiteName() != "";
 }
 
+func CompilerHarnessDriverRung2Ready() -> Bool {
+    if CompilerHarnessDriverRungPathCount() != 3 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerHarnessDriverRungPathCount() {
+        if CompilerHarnessDriverRung2PathAt(i) == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return CompilerHarnessDriverRung2SuiteName() != "";
+}
+
 func CompilerHarnessDriverPathsReady() -> Bool {
     return CompilerHarnessDriverRung0Ready() &&
         CompilerHarnessDriverRung1Ready() &&
+        CompilerHarnessDriverRung2Ready() &&
         CompilerHarnessDriverBootstrapSourcePath() != "" &&
         CompilerHarnessDriverParserSourcePath() ==
             CompilerHarnessDriverRung0PathAt(1) &&
         CompilerHarnessDriverParserSourcePath() ==
             CompilerHarnessDriverRung1PathAt(1) &&
+        CompilerHarnessDriverParserSourcePath() ==
+            CompilerHarnessDriverRung2PathAt(1) &&
         CompilerHarnessDriverCodegenSourcePath() ==
             CompilerHarnessDriverRung0PathAt(2) &&
         CompilerHarnessDriverCodegenSourcePath() ==
-            CompilerHarnessDriverRung1PathAt(2);
+            CompilerHarnessDriverRung1PathAt(2) &&
+        CompilerHarnessDriverCodegenSourcePath() ==
+            CompilerHarnessDriverRung2PathAt(2);
 }

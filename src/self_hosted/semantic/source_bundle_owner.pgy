@@ -79,7 +79,7 @@ func LoadSemanticSourceBundleVisit(path: String, inout seen_paths: Array<String>
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if MatchKeyword(content, i, "import") {
+        if SemanticMatchKeyword(content, i, "import") {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
@@ -115,7 +115,7 @@ func SemanticSourceSignatureStubText(source: SemanticSourceText) -> SemanticSour
             i = SkipBlockComment(content, i, n);
             continue;
         }
-        if MatchKeyword(content, i, "func") {
+        if SemanticMatchKeyword(content, i, "func") {
             let block_open: Int = FindBlockOpen(content, i, n);
             if block_open < n && CharAt(content, block_open) == "{" {
                 out = Concat(out, Substring(content, chunk_start, i - chunk_start));
@@ -159,7 +159,7 @@ func LoadSemanticSourceSignatureBundleVisit(path: String, inout seen_paths: Arra
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if MatchKeyword(content, i, "import") {
+        if SemanticMatchKeyword(content, i, "import") {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
@@ -198,7 +198,7 @@ func LoadSemanticSourceCheckBundle(root_path: String) -> SemanticSourceBundle {
             i = SourceBundleSkipString(content, i);
             continue;
         }
-        if MatchKeyword(content, i, "import") {
+        if SemanticMatchKeyword(content, i, "import") {
             let rel_path: String = SourceBundleReadImportPath(content, i + 6, cursor);
             i = cursor[0];
             if StringLength(rel_path) > 0 {
