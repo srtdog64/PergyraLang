@@ -98,9 +98,14 @@ emission. The stable decision fields are:
 - summary counters: `unproven_retain_count`, `inherent_concurrency_count`, and
   `slot_capability_retain_count`.
 
-The owner artifact is `pgy.air.graph.v1`. C and LLVM may consume these facts,
-but they must not rediscover the decision from source syntax, AST payloads, or
-backend-local runtime symbol choices.
+The owner artifact is `pgy.air.graph.v1`. It is not a backend input. A
+Projection Planner may consume the validated classification and copy only the
+approved target-facing rows into a `VerifiedProjectionPlan`. C, LLVM,
+SelfHosted, and future emitters consume that plan plus MIR/ABI facts; they must
+not read AIR or rediscover the decision from source syntax, AST payloads, or
+backend-local runtime symbol choices. Until the unified plan owner exists, AIR
+compression remains verifier/tooling evidence rather than permission for a
+backend-local erasure choice.
 
 These are not erasure decision points:
 
@@ -115,8 +120,9 @@ These are not erasure decision points:
 
 If AIR declares `erase` and physical residue survives outside an expected drift
 entry, the program has a compression-residue mismatch. If AIR declares `retain`
-or `summarize`, the backend must be able to point back to the AIR/MIR/ABI fact
-that justifies the remaining artifact.
+or `summarize`, the verified projection-plan row must cite the AIR certificate
+and MIR/ABI facts that justify the remaining artifact; the backend cites that
+plan row rather than reading AIR.
 
 ## Evidence-Amortization Cache Rule
 

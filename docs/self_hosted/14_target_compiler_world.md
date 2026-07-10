@@ -31,9 +31,15 @@ flowchart TD
     TD --> CG
     AL --> CG
 
-    CG --> CE["C Emission Zone"]
-    CG --> LE["LLVM Emission Zone"]
-    CG --> SE["SelfHosted Emission Zone"]
+    AE --> AC["Verified Evidence Certificate"]
+    CG --> CP["Candidate Projection Plan"]
+    AC --> CP
+    CP --> PV["Projection Plan Gate"]
+    PV --> VP["Verified Projection Plan"]
+
+    VP --> CE["C Emission Zone"]
+    VP --> LE["LLVM Emission Zone"]
+    VP --> SE["SelfHosted Emission Zone"]
 
     CE --> AZ["Artifact Zone"]
     LE --> AZ
@@ -53,9 +59,11 @@ The compiler flow owns five fact zones:
 | `MIR Fact` | CFG, body, routine, cleanup, ownership, and backend-consumed MIR facts |
 | `ABI Layout` | representation, field order, tuple/tag/niche policy, and ownership layout facts |
 
-Codegen is then one projection intent over those facts. C, LLVM, and
-self-hosted emission are peer projections. None of them owns a second semantic
-truth.
+Codegen is then one projection intent over those facts plus AIR's verified
+evidence certificate. It produces a candidate plan; the Projection Plan Gate
+validates that plan; C, LLVM, and self-hosted emission consume the resulting
+`VerifiedProjectionPlan` as peer projections. AIR itself is not a backend input,
+and none of the emitters owns a second semantic truth.
 
 This is also the future backend replacement boundary. A future tensor/NPU,
 dataflow, capability-machine, or other non-CPU emitter must attach below the
@@ -69,9 +77,11 @@ or `ABI Layout`.
 1. **Facts before backends.** Frontend, type, AIR, MIR, and ABI data are owned
    facts. Backend emitters consume them; they must not reconstruct them from
    source text, AST payloads, or backend-specific fallbacks.
-2. **Codegen is projection.** `Codegen Projection Intent` carries
-   MIR/type/ABI facts into backend artifacts. It is a projection nerve bundle,
-   not a new compiler kingdom.
+2. **Codegen is projection.** `Codegen Projection Intent` turns MIR/type/ABI and
+   target-capability facts plus AIR's evidence certificate into a candidate
+   plan. The Projection Plan Gate validates it, and the resulting
+   `VerifiedProjectionPlan` is the projection nerve bundle carried into backend
+   artifacts. It is not a new semantic IR or compiler kingdom.
 3. **SelfHosted is a peer emission.** C, LLVM, and SelfHosted are three
    emission zones. SelfHosted is not allowed to decide which C/LLVM oracle is
    correct until parity has promoted that slice.
@@ -81,9 +91,10 @@ or `ABI Layout`.
    classification, emitted text where stable, and run behavior.
    The runtime materialization classification is an artifact-zone fact, not a
    backend-local note.
-5. **AIR Evidence is a fact zone.** AIR is not an ornamental dump and not a
-   hidden codegen fallback. It owns proof-carrying evidence that can be measured
-   by erasure/materialization gates and consumed by verifier/parity paths.
+5. **AIR Evidence is a fact zone.** AIR is not an ornamental dump, a backend
+   input, or a hidden codegen fallback. It owns proof-carrying evidence and a
+   compact verification certificate consumed by the planner and measured by
+   erasure/materialization and parity paths.
 6. **No hidden materialization.** If a world, zone, intent, slot, authority, or
    runtime boundary survives into emitted code, the retaining owner fact must
    say why. Static hot paths may erase; open-world or FFI/raw boundaries may
@@ -148,7 +159,7 @@ projection-nerve rule. This target document adds the next gate direction:
 
 - a future AIR-evidence gate should reject unowned evidence drift;
 - a future codegen-projection gate should prove C, LLVM, and SelfHosted consume
-  the same MIR/type/ABI rows;
+  the same verified plan and MIR/type/ABI rows;
 - a future target-capability gate should prove any non-CPU projection consumes
   the same intent/effect/authority/slot/layout/loss envelope and explains every
   reject or CPU fallback;
@@ -167,3 +178,5 @@ projection-nerve rule. This target document adds the next gate direction:
 - `../semantics/14_air_erasure_measurement.md` - measured erased, summarized,
   and materialized runtime residue.
 - `../semantics/pass_contract_manifest.md` - pass-level owner contract.
+- `../180_compiler_logical_spine_handles_gates.md` - stable handles, movable
+  boundaries, migration protocol, and gate map.

@@ -1527,10 +1527,13 @@ layer facts to make evidence pass.
 AIR compression facts are also verification facts, not backend layout facts.
 `air_boundary.c` owns the initial `retain` / `summarize` / `erase` /
 `forbid` vocabulary for AIR intent and boundary nodes, and `pgy.air.graph.v1`
-exports `compression_budget` plus `compression_reason` for tools. Backends may
-consume these facts later, but they must not infer physical zone/world/intent
-carriers, padding, barriers, or runtime authority checks from source syntax
-alone. Physical layout remains owned by MIR/ABI layout facts.
+exports `compression_budget` plus `compression_reason` for tools. AIR is not a
+backend input. A Projection Planner may copy a validated classification into a
+target-facing `VerifiedProjectionPlan`; backends consume only that plan plus
+MIR/ABI facts. They must not infer physical zone/world/intent carriers, padding,
+barriers, or runtime authority checks from source syntax alone. Physical layout
+remains owned by MIR/ABI layout facts. The handle and migration frame is fixed
+in `docs/180_compiler_logical_spine_handles_gates.md`.
 
 The `retain_cause` refinement (inherent / policy / unproven = bucket A / B / C)
 is owned with the budget: `air_boundary.c::air_boundary_retain_cause` derives it

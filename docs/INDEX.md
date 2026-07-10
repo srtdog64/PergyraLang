@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-06
+Last updated: 2026-07-10
 
 Anti-hype update: 2026-04-29
 
@@ -18,6 +18,7 @@ and follow-up debt over older design notes.
 | [`100c_beta_dag_mir_abi_runtime.md`](100c_beta_dag_mir_abi_runtime.md) | DAG, MIR, ABI/runtime, parallel, and pain-point closure gates |
 | [`100d_beta_execution_log.md`](100d_beta_execution_log.md) | Immediate execution order and historical progress log |
 | [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) | Compiler source-of-truth ownership spine to stop A -> B -> A refactoring loops |
+| [`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md) | Current/target compiler graph, stable handle spine, movable ownership boundaries, migration protocol, and gate map |
 | [`152_validation_isolation_policy.md`](152_validation_isolation_policy.md) | Validation isolation policy: owner-impact decision, CI failure classification, and when not to run unrelated gates |
 | [`133_beta_completed_closure_archive.md`](133_beta_completed_closure_archive.md) | Completed beta-closure evidence moved out of the active checklist |
 | [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |

@@ -1,8 +1,12 @@
 # Pergyra 컴파일러 파이프라인 가이드
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-07-10
 
 이 문서는 "현재 저장소가 실제로 어떻게 동작하는가"를 설명한다. 이상적인 미래 설계가 아니라, 다음 기여자가 바로 코드를 따라 들어갈 수 있게 만드는 contributor guide다.
+
+논리적 owner/handle/gate의 현재-목표 구분은
+[`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md)가
+소유한다. 이 문서의 파일 순서를 목표 SoT 순서로 오해하면 안 된다.
 
 ## 1. 한눈에 보는 파이프라인
 
@@ -14,10 +18,12 @@
   -> import inline merge                [src/pgy_driver.c]
   -> semantic_analyze()                 [src/semantic/*]
   -> annotated AST
-  -> hir_lower()                        [src/compiler/hir.c]
-  -> dir_lower() + dir_validate()       [src/compiler/dir.c]
-  -> rir_lower() + rir_validate()       [src/compiler/rir.c]
-  -> mir_lower() + mir_validate()       [src/compiler/mir.c]
+  -> annotated AST fan-out
+       |-> hir_lower()                   [src/compiler/hir.c]
+       |-> dir_lower() + dir_validate()  [src/compiler/dir.c]
+       `-> rir_lower() + rir_validate()  [src/compiler/rir.c]
+           + HIR flow enrichment
+  -> mir_lower(HIR, RIR) + mir_validate()[src/compiler/mir.c]
   -> CompilerIRBundle
   -> backend dispatch                   [src/pgy_driver.c]
        -> LLVM backend (default if enabled)

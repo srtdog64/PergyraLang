@@ -15,6 +15,10 @@ cosmetic reshuffling.
   negative ratchet, then patch size and conventional architecture.
 - See `docs/131_ai_coding_atomic_units.md` section 3.1 for the objective-card
   template. An AI-probable next step is not proof of the right next step.
+- When ownership moves as the compiler grows, follow
+  `docs/180_compiler_logical_spine_handles_gates.md`: keep identity stable,
+  migrate consumers, fail closed, delete the old owner, and ratchet the old
+  read path. Do not leave dual-read or `new ? old` compatibility authority.
 
 ## Do Not Add These Anti-Patterns
 

@@ -160,6 +160,7 @@ required_files=(
     "docs/129_tex_semantics_lessons.md"
     "docs/130_c_backend_owner_migration_map.md"
     "docs/131_ai_coding_atomic_units.md"
+    "docs/180_compiler_logical_spine_handles_gates.md"
     "docs/134_language_surface_hygiene.md"
     "docs/135_backend_wasm_pointer_closure.md"
     "docs/139_golden_adt_verification_methodology.md"
@@ -250,6 +251,7 @@ index_terms=(
     "134_language_surface_hygiene.md"
     "135_backend_wasm_pointer_closure.md"
     "139_golden_adt_verification_methodology.md"
+    "180_compiler_logical_spine_handles_gates.md"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
@@ -1004,6 +1006,21 @@ for term in "${loss_contract_terms[@]}"; do
 done
 require_text "docs/37_compiler_contracts.md" "### Loss Contracts"
 require_text "docs/125_source_of_truth_spine.md" "## 9. Loss Contract Rule"
+
+compiler_spine_terms=(
+    "Stable handles, movable boundaries, gated migrations."
+    "Verified Projection Plan"
+    "Projection Plan Gate"
+    "Boundary Migration Protocol"
+    "Boundary Migration Gate"
+    "Source/Parser Artifact Gate"
+    "Stable Identity Gate"
+    "Build Resource Budget Gate"
+)
+for term in "${compiler_spine_terms[@]}"; do
+    require_text "docs/180_compiler_logical_spine_handles_gates.md" "$term"
+done
+require_text "AGENTS.md" "docs/180_compiler_logical_spine_handles_gates.md"
 
 remote_future_terms=(
     "RemoteFuture<T> -> await -> Result<T>"

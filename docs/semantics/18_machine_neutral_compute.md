@@ -1,6 +1,6 @@
 # 18. Machine-Neutral Compute Contract
 
-Last updated: 2026-06-27
+Last updated: 2026-07-10
 
 Status: `long-term-contract`
 
@@ -33,17 +33,27 @@ struct carriers, LLVM calling conventions, or pointer-layout facts.
 The lowering rule is:
 
 ```text
-source concept -> owner fact -> verifier/evidence -> backend projection
+source concept -> owner fact -> AIR verifier/evidence certificate
+               -> Projection Planner -> candidate plan
+               -> Projection Plan Gate -> VerifiedProjectionPlan
+               -> backend projection
 ```
 
 If the owner fact is missing, the compiler must fail closed. If the evidence is
-present, a backend may retain, summarize, erase, or specialize the source-level
-axis according to its own execution substrate.
+present, AIR certifies the allowed disposition. The Projection Planner may then
+retain, summarize, erase, or specialize the source-level axis according to the
+selected execution substrate, and the Projection Plan Gate checks that the plan
+cites the certificate. A backend emits the verified plan; it does not make the
+decision or read AIR directly.
 
 ## Projection Fact Envelope
 
-Every backend projection consumes an explicit fact envelope. The envelope is
-target-independent; the backend-specific lowering is not.
+Every projection candidate consumes an explicit machine-neutral fact envelope
+plus AIR's verified evidence certificate. The planner turns them into a
+target-specific candidate plan, the Projection Plan Gate validates it, and
+every backend projection consumes the resulting `VerifiedProjectionPlan`. The
+input envelope is target-independent; the plan and backend-specific lowering
+are not.
 
 | Fact family | Why a projection needs it |
 | --- | --- |
@@ -74,7 +84,7 @@ machine commitment:
 | AIR / evidence graph | Semantic fact IR for `intent`, `effect`, `authority`, `coordination`, and erasure obligations. | Target-neutral. |
 | DIR/RIR-style resource facts | Resource, ownership, boundary, capability, and handoff facts. | Mostly target-neutral; may carry target capability requirements. |
 | MIR | Backend semantic source of truth for CPU-family projections. CFG, SSA, cleanup, and ABI facts are allowed here. | CPU/C/LLVM projection-biased, not language ontology. |
-| Projection IR | Target-specific lowering for tensor/NPU/dataflow/GPU/distributed backends. | Target-specific and may be graph/schedule/placement shaped instead of CFG-shaped. |
+| Verified Projection Plan | AIR-verified target-specific rows over owner facts. C/LLVM plans may remain CFG/ABI shaped; tensor/NPU/dataflow/GPU plans may be graph/schedule/placement shaped. | Target-specific; backend emitters consume it mechanically. |
 
 The forbidden shape is:
 
@@ -141,14 +151,17 @@ tensor, GPU, or Fortran-class vectorization support.
 
 ## Non-Negotiable Rules
 
-1. AIR/MIR/ABI facts own execution meaning.
+1. HIR/DIR/RIR/MIR/ABI facts own language and execution meaning; AIR owns
+   verification/evidence, not backend execution truth.
 2. C/LLVM ABI details are backend projection facts, not source semantics.
-3. A backend must not physicalize `world`, `zone`, `intent`, or `slot` into a
-   runtime carrier, padding, barrier, pointer, or check unless an AIR/MIR/ABI
-   fact requires it.
-4. A backend may erase a source axis only through proof-gated erasure or an
-   explicit compression budget.
-5. A backend may specialize a source axis only if the specialized form keeps
+3. A Projection Planner must not physicalize `world`, `zone`, `intent`, or
+   `slot` into a runtime carrier, padding, barrier, pointer, or check unless an
+   owner fact requires it, AIR certifies the disposition, and the plan gate
+   validates the projected row.
+4. A Projection Planner may erase a source axis only through proof-gated
+   erasure or an explicit compression budget; a backend emits that verified
+   decision.
+5. A Projection Planner may specialize a source axis only if the specialized form keeps
    the same authority, effect, failure, and observable ordering contract.
 6. If a future substrate cannot represent the required facts, it is an
    unsupported projection, not a reason to weaken the language.
@@ -166,7 +179,8 @@ This is not a new direction. It is the reason the current closure work exists:
   convenience cache.
 - Abstraction compression says source axes can disappear only when evidence
   proves that runtime structure is unnecessary.
-- Proof-carrying IR starts from live AIR/MIR facts rather than backend output.
+- Proof-carrying IR starts from live owner facts and AIR verification rather
+  than backend output.
 - Backend parity keeps C and LLVM as validation anchors, not language owners.
 
 The long-term name for this direction is:
@@ -202,6 +216,8 @@ effects) - and tried to project it from **AIR-only facts**. The result:
   per-operation `effects_by_op[].capability_mask`, slot identity through `slots`
   rows carrying slot/op/routine, and authority contract requirements through
   boundary `required_abilities`.
+- Those facts are planner/verifier inputs. The future capability-machine
+  emitter must consume a `VerifiedProjectionPlan`, not `AIRProgram` directly.
 - Measured on the capability-machine fixtures (`03_secure_slot`,
   `05_zone_intent`, `01_slot_provable_with`, and `cap_random_demo`), these AIR
   facts are present in `--air-json` and validated by AIR graph invariants.
@@ -253,7 +269,9 @@ backend.
 A new non-CPU or non-von-Neumann backend may be called aligned with Pergyra only
 when all of these hold:
 
-- it consumes AIR/MIR/ABI owner facts instead of rereading source/AST;
+- its Projection Planner consumes owner facts and emits a
+  `VerifiedProjectionPlan`; the backend consumes that plan instead of AIR or
+  source/AST;
 - it fails closed when authority, effect, coordination, slot, or layout evidence
   is missing;
 - it has positive and negative golden tests for retained, summarized, erased,

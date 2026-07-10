@@ -77,8 +77,9 @@ forbidden to reread.
 
 This manifest is still coarse-grained. It should be split further when the
 implementation gains separately owned optimization passes, a direct wasm
-backend, source-level layout controls, backend consumption of AIR compression
-facts, or broader self-hosted compiler slices.
+backend, source-level layout controls, backend consumption of verified
+projection-plan rows derived from AIR-validated compression facts, or broader
+self-hosted compiler slices.
 The `parser_to_ast_loss` row is intentionally `manifest-tracked-doc-only`: it
 has moved into the machine-checked pass manifest, but the parser boundary still
 needs a dedicated enforcement gate before it can count as a closed loss
