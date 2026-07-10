@@ -3,15 +3,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-
 #include "../common/string_compat.h"
 
 typedef struct
 {
-    const char *name;
-    size_t      index;
-} HIRRoutineNameIndex;
+    uint32_t source_syntax_id;
+    uint32_t routine_id;
+} HIRRoutineSourceIndex;
 
 static bool
 hir_callgraph_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
@@ -34,8 +32,8 @@ hir_callgraph_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
 }
 
 static bool
-hir_append_index_unique(size_t **items, size_t *count,
-                        size_t *capacity, size_t value)
+hir_append_routine_id_unique(uint32_t **items, size_t *count,
+                             size_t *capacity, uint32_t value)
 {
     if (items == NULL || count == NULL || capacity == NULL)
         return false;
@@ -48,9 +46,10 @@ hir_append_index_unique(size_t **items, size_t *count,
 
     if (*count == *capacity) {
         size_t next_capacity = *capacity;
-        if (!hir_callgraph_next_capacity(&next_capacity, 4, sizeof(size_t)))
+        if (!hir_callgraph_next_capacity(&next_capacity, 4, sizeof(uint32_t)))
             return false;
-        size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
+        uint32_t *grown = realloc(*items,
+                                  next_capacity * sizeof(uint32_t));
         if (grown == NULL)
             return false;
         *items = grown;
@@ -62,22 +61,23 @@ hir_append_index_unique(size_t **items, size_t *count,
 }
 
 static int
-hir_routine_name_index_compare(const void *lhs, const void *rhs)
+hir_routine_source_index_compare(const void *lhs, const void *rhs)
 {
-    const HIRRoutineNameIndex *a = (const HIRRoutineNameIndex *)lhs;
-    const HIRRoutineNameIndex *b = (const HIRRoutineNameIndex *)rhs;
-    int name_cmp = strcmp(a->name, b->name);
+    const HIRRoutineSourceIndex *a = (const HIRRoutineSourceIndex *)lhs;
+    const HIRRoutineSourceIndex *b = (const HIRRoutineSourceIndex *)rhs;
 
-    if (name_cmp != 0)
-        return name_cmp;
-    return (a->index > b->index) - (a->index < b->index);
+    if (a->source_syntax_id != b->source_syntax_id)
+        return (a->source_syntax_id > b->source_syntax_id)
+            - (a->source_syntax_id < b->source_syntax_id);
+    return (a->routine_id > b->routine_id)
+        - (a->routine_id < b->routine_id);
 }
 
-static HIRRoutineNameIndex *
-hir_build_routine_name_index(const HIRMutableRoutineInventory *inventory,
-                             size_t *out_count)
+static HIRRoutineSourceIndex *
+hir_build_routine_source_index(const HIRMutableRoutineInventory *inventory,
+                               size_t *out_count)
 {
-    HIRRoutineNameIndex *index;
+    HIRRoutineSourceIndex *index;
     size_t count = 0;
 
     if (out_count == NULL)
@@ -85,58 +85,68 @@ hir_build_routine_name_index(const HIRMutableRoutineInventory *inventory,
     *out_count = 0;
     if (inventory == NULL || inventory->count == 0)
         return NULL;
-    if (inventory->count > SIZE_MAX / sizeof(HIRRoutineNameIndex))
+    if (inventory->count > SIZE_MAX / sizeof(HIRRoutineSourceIndex))
         return NULL;
 
-    index = calloc(inventory->count, sizeof(HIRRoutineNameIndex));
+    index = calloc(inventory->count, sizeof(HIRRoutineSourceIndex));
     if (index == NULL)
         return NULL;
 
     for (size_t i = 0; i < inventory->count; i++) {
         HIRRoutine *routine = hir_mutable_routine_inventory_get(inventory, i);
-        if (routine == NULL || routine->name == NULL)
+        if (routine == NULL || routine->source_syntax_id == 0)
             continue;
-        index[count].name = routine->name;
-        index[count].index = i;
+        index[count].source_syntax_id = routine->source_syntax_id;
+        index[count].routine_id = routine->routine_id;
         count++;
     }
 
-    qsort(index, count, sizeof(HIRRoutineNameIndex),
-          hir_routine_name_index_compare);
+    qsort(index, count, sizeof(HIRRoutineSourceIndex),
+          hir_routine_source_index_compare);
     *out_count = count;
     return index;
 }
 
-static ssize_t
-hir_lookup_routine_index_by_name(const HIRRoutineNameIndex *index,
-                                 size_t count,
-                                 const char *name)
+static uint32_t
+hir_lookup_routine_id_by_source(const HIRRoutineSourceIndex *index,
+                                size_t count,
+                                uint32_t source_syntax_id)
 {
-    HIRRoutineNameIndex key;
-    HIRRoutineNameIndex *found;
-    size_t pos;
-    size_t best;
+    size_t low = 0;
+    size_t high = count;
 
-    if (index == NULL || count == 0 || name == NULL)
-        return -1;
+    if (index == NULL || count == 0 || source_syntax_id == 0)
+        return 0;
 
-    key.name = name;
-    key.index = 0;
-    found = bsearch(&key, index, count, sizeof(HIRRoutineNameIndex),
-                    hir_routine_name_index_compare);
-    if (found == NULL)
-        return -1;
-
-    pos = (size_t)(found - index);
-    while (pos > 0 && strcmp(index[pos - 1].name, name) == 0)
-        pos--;
-    best = index[pos].index;
-    while (pos < count && strcmp(index[pos].name, name) == 0) {
-        if (index[pos].index < best)
-            best = index[pos].index;
-        pos++;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (index[mid].source_syntax_id < source_syntax_id) {
+            low = mid + 1;
+        } else if (index[mid].source_syntax_id > source_syntax_id) {
+            high = mid;
+        } else {
+            return index[mid].routine_id;
+        }
     }
-    return (ssize_t)best;
+    return 0;
+}
+
+static bool
+hir_source_identity_is_internal_routine_decl(const HIRProgram *hir,
+                                             uint32_t source_syntax_id)
+{
+    if (hir == NULL || source_syntax_id == 0)
+        return false;
+
+    for (size_t i = 0; i < hir->decl_count; i++) {
+        const HIRDecl *decl = &hir->decls[i];
+        if (decl->source_syntax_id != source_syntax_id)
+            continue;
+        return decl->kind == HIR_TOPLEVEL_FUNCTION
+            || decl->kind == HIR_TOPLEVEL_INTENT
+            || decl->kind == HIR_TOPLEVEL_EXECUTABLE;
+    }
+    return false;
 }
 
 static bool
@@ -145,25 +155,58 @@ hir_materialize_direct_call_edges(HIRProgram *hir, char **error_message)
     size_t routine_index_count = 0;
     HIRMutableRoutineInventory inventory;
     hir_mutable_routine_inventory_from_program(hir, &inventory);
-    HIRRoutineNameIndex *routine_index =
-        hir_build_routine_name_index(&inventory, &routine_index_count);
+    HIRRoutineSourceIndex *routine_index =
+        hir_build_routine_source_index(&inventory, &routine_index_count);
 
     if (inventory.count > 0 && routine_index == NULL)
         goto oom;
+    for (size_t i = 1; i < routine_index_count; i++) {
+        if (routine_index[i - 1].source_syntax_id
+            == routine_index[i].source_syntax_id) {
+            free(routine_index);
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR routine source identity collision");
+            }
+            return false;
+        }
+    }
 
     for (size_t i = 0; i < inventory.count; i++) {
         HIRRoutine *routine = hir_mutable_routine_inventory_get(&inventory, i);
         if (routine == NULL)
             goto oom;
+        if (routine->direct_call_count > 0
+            && (routine->direct_calls == NULL
+                || routine->direct_call_decl_ids == NULL)) {
+            free(routine_index);
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR direct-call identity facts are incomplete");
+            }
+            return false;
+        }
         for (size_t j = 0; j < routine->direct_call_count; j++) {
-            ssize_t callee = hir_lookup_routine_index_by_name(
-                routine_index, routine_index_count, routine->direct_calls[j]);
-            if (callee < 0)
+            uint32_t source_syntax_id = routine->direct_call_decl_ids[j];
+            uint32_t callee = hir_lookup_routine_id_by_source(
+                routine_index, routine_index_count, source_syntax_id);
+            if (callee == 0) {
+                if (hir_source_identity_is_internal_routine_decl(
+                        hir, source_syntax_id)) {
+                    free(routine_index);
+                    if (error_message != NULL) {
+                        *error_message = pergyra_strdup(
+                            "HIR internal call target has no RoutineId");
+                    }
+                    return false;
+                }
                 continue;
-            if (!hir_append_index_unique(&routine->callee_routine_ids,
-                                         &routine->callee_routine_count,
-                                         &routine->callee_routine_capacity,
-                                         (size_t)callee)) {
+            }
+            if (!hir_append_routine_id_unique(
+                    &routine->callee_routine_ids,
+                    &routine->callee_routine_count,
+                    &routine->callee_routine_capacity,
+                    callee)) {
                 goto oom;
             }
         }
@@ -176,6 +219,23 @@ oom:
     if (error_message != NULL)
         *error_message = pergyra_strdup("Out of memory");
     return false;
+}
+
+static HIRRoutine *
+hir_routine_by_id(const HIRMutableRoutineInventory *inventory,
+                  uint32_t routine_id)
+{
+    HIRRoutine *routine;
+
+    if (inventory == NULL || routine_id == 0
+        || routine_id > inventory->count) {
+        return NULL;
+    }
+    routine = hir_mutable_routine_inventory_get(
+        inventory, (size_t)routine_id - 1);
+    return routine != NULL && routine->routine_id == routine_id
+        ? routine
+        : NULL;
 }
 
 static bool
@@ -210,9 +270,9 @@ hir_propagate_entry_reachability(HIRProgram *hir)
             if (!routine->is_entry_reachable)
                 continue;
             for (size_t j = 0; j < routine->callee_routine_count; j++) {
-                size_t callee = routine->callee_routine_ids[j];
-                HIRRoutine *callee_routine =
-                    hir_mutable_routine_inventory_get(&inventory, callee);
+                uint32_t callee = routine->callee_routine_ids[j];
+                HIRRoutine *callee_routine = hir_routine_by_id(
+                    &inventory, callee);
                 if (callee_routine == NULL || callee_routine->is_entry_reachable) {
                     continue;
                 }

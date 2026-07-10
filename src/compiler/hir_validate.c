@@ -138,6 +138,65 @@ hir_validate(const HIRProgram *hir, char **error_message)
                 *error_message = pergyra_strdup("HIR validation has invalid routine inventory");
             return false;
         }
+        if (i >= UINT32_MAX || routine->routine_id != (uint32_t)(i + 1)) {
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR routine inventory has non-canonical RoutineId");
+            }
+            return false;
+        }
+        if (routine->kind != HIR_TOPLEVEL_EXECUTABLE
+            && routine->source_syntax_id == 0) {
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR source-backed routine is missing SyntaxNodeId");
+            }
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const HIRRoutine *prior = hir_routine_inventory_get(
+                &inventory, j);
+            if (routine->source_syntax_id != 0 && prior != NULL
+                && prior->source_syntax_id == routine->source_syntax_id) {
+                if (error_message != NULL) {
+                    *error_message = pergyra_strdup(
+                        "HIR routines share one source SyntaxNodeId");
+                }
+                return false;
+            }
+        }
+        if (routine->direct_call_count > 0
+            && (routine->direct_calls == NULL
+                || routine->direct_call_decl_ids == NULL)) {
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR direct-call facts are incomplete");
+            }
+            return false;
+        }
+        if (routine->callee_routine_count > 0
+            && routine->callee_routine_ids == NULL) {
+            if (error_message != NULL) {
+                *error_message = pergyra_strdup(
+                    "HIR callgraph edges are missing RoutineId storage");
+            }
+            return false;
+        }
+        for (size_t j = 0; j < routine->callee_routine_count; j++) {
+            uint32_t callee_id = routine->callee_routine_ids[j];
+            const HIRRoutine *callee = callee_id > 0
+                && callee_id <= inventory.count
+                ? hir_routine_inventory_get(&inventory,
+                    (size_t)callee_id - 1)
+                : NULL;
+            if (callee == NULL || callee->routine_id != callee_id) {
+                if (error_message != NULL) {
+                    *error_message = pergyra_strdup(
+                        "HIR callgraph edge references an invalid RoutineId");
+                }
+                return false;
+            }
+        }
         if (!routine->has_cfg) {
             if (routine->cfg.blocks != NULL || routine->cfg.block_count != 0) {
                 if (error_message != NULL) {

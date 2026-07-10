@@ -102,16 +102,15 @@ hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
                                          &routine->signature_type_ref_capacity)) {
         return false;
     }
-    return hir_collect_direct_calls(ast_func_body(func),
-                                    &routine->direct_calls,
-                                    &routine->direct_call_count,
-                                    &routine->direct_call_capacity);
+    return hir_collect_direct_calls(ast_func_body(func), routine);
 }
 
 static bool
 hir_append_routine(HIRProgram *hir, HIRRoutine *routine)
 {
     if (hir == NULL || routine == NULL)
+        return false;
+    if (hir->routine_count >= UINT32_MAX)
         return false;
     if (hir->routine_count == hir->routine_capacity) {
         size_t next_capacity = hir->routine_capacity;
@@ -123,6 +122,7 @@ hir_append_routine(HIRProgram *hir, HIRRoutine *routine)
         hir->routines = grown;
         hir->routine_capacity = next_capacity;
     }
+    routine->routine_id = (uint32_t)(hir->routine_count + 1);
     hir->routines[hir->routine_count] = *routine;
     hir->routine_count++;
     return true;
@@ -135,6 +135,7 @@ hir_discard_routine(HIRRoutine *routine)
         return;
     free((void *)routine->signature_type_refs);
     free((void *)routine->direct_calls);
+    free(routine->direct_call_decl_ids);
     pgy_arena_destroy(&routine->scratch);
 }
 
@@ -153,6 +154,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
     memset(&routine, 0, sizeof(routine));
     pgy_arena_init(&routine.scratch, 0);
     routine.decl_id = decl_id;
+    routine.source_syntax_id = ast_node_stable_id(method);
     routine.kind = HIR_TOPLEVEL_FUNCTION;
     routine.name = ast_declaration_name(method);
     routine.owner_name = owner_name;
@@ -327,24 +329,15 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
     }
     steps = ast_intent_decl_steps(intent, &step_count);
     if (priority_expr != NULL
-        && !hir_collect_direct_calls(priority_expr,
-                                     &routine->direct_calls,
-                                     &routine->direct_call_count,
-                                     &routine->direct_call_capacity)) {
+        && !hir_collect_direct_calls(priority_expr, routine)) {
         return false;
     }
     if (success_expr != NULL
-        && !hir_collect_direct_calls(success_expr,
-                                     &routine->direct_calls,
-                                     &routine->direct_call_count,
-                                     &routine->direct_call_capacity)) {
+        && !hir_collect_direct_calls(success_expr, routine)) {
         return false;
     }
     if (failure_expr != NULL
-        && !hir_collect_direct_calls(failure_expr,
-                                     &routine->direct_calls,
-                                     &routine->direct_call_count,
-                                     &routine->direct_call_capacity)) {
+        && !hir_collect_direct_calls(failure_expr, routine)) {
         return false;
     }
 
@@ -352,48 +345,26 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
         ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
-        if (!hir_collect_direct_calls(ast_intent_step_using_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_using_expr(step), routine))
             return false;
-        if (!hir_collect_direct_calls(ast_intent_step_pre_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_pre_expr(step), routine))
             return false;
-        if (!hir_collect_direct_calls(ast_intent_step_guard_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_guard_expr(step), routine))
             return false;
-        if (!hir_collect_direct_calls(ast_intent_step_post_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_post_expr(step), routine))
             return false;
-        if (!hir_collect_direct_calls(ast_intent_step_invariant_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_invariant_expr(step), routine))
             return false;
-        if (!hir_collect_direct_calls(ast_intent_step_expect_expr(step),
-                                      &routine->direct_calls,
-                                      &routine->direct_call_count,
-                                      &routine->direct_call_capacity))
+        if (!hir_collect_direct_calls(ast_intent_step_expect_expr(step), routine))
             return false;
         for (size_t j = 0; j < ast_intent_step_on_expr_count(step); j++) {
             if (!hir_collect_direct_calls(ast_intent_step_on_exprs(step, NULL)[j],
-                                          &routine->direct_calls,
-                                          &routine->direct_call_count,
-                                          &routine->direct_call_capacity))
+                                          routine))
                 return false;
         }
         for (size_t j = 0; j < ast_intent_step_compensate_expr_count(step); j++) {
             if (!hir_collect_direct_calls(ast_intent_step_compensate_exprs(step, NULL)[j],
-                                          &routine->direct_calls,
-                                          &routine->direct_call_count,
-                                          &routine->direct_call_capacity))
+                                          routine))
                 return false;
         }
     }
@@ -410,6 +381,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
     HIRDecl decl;
     memset(&decl, 0, sizeof(decl));
     decl.id = hir->decl_count;
+    decl.source_syntax_id = ast_node_stable_id(item.ast);
     decl.kind = item.kind;
     decl.phase = hir_phase_for_kind(item.kind);
     decl.ast = item.ast;
@@ -426,6 +398,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
         memset(&routine, 0, sizeof(routine));
         pgy_arena_init(&routine.scratch, 0);
         routine.decl_id = decl.id;
+        routine.source_syntax_id = ast_node_stable_id(item.ast);
         routine.kind = item.kind;
         routine.name = item.name;
         routine.ast = item.ast;

@@ -71,9 +71,6 @@ test_hir_lowering_part_a(void)
         const HIRRoutine *main_routine = hir_find_routine(hir, "Main", HIR_TOPLEVEL_FUNCTION);
         const HIRRoutine *helper_routine = hir_find_routine(hir, "Helper", HIR_TOPLEVEL_FUNCTION);
         const HIRRoutine *intent_routine = hir_find_routine(hir, "Purchase", HIR_TOPLEVEL_INTENT);
-        size_t helper_index = 0;
-        if (hir != NULL && helper_routine != NULL)
-            helper_index = (size_t)(helper_routine - hir->routines);
         EXPECT(hir != NULL
                && hir->decl_count >= 3
                && hir->routine_count >= 2
@@ -86,7 +83,10 @@ test_hir_lowering_part_a(void)
                && main_routine->direct_call_count == 1
                && main_routine->callee_routine_count == 1
                && helper_routine != NULL
-               && main_routine->callee_routine_ids[0] == helper_index
+               && main_routine->callee_routine_ids[0]
+                    == helper_routine->routine_id
+               && hir_find_routine_by_id(hir, helper_routine->routine_id)
+                    == helper_routine
                && strcmp(main_routine->direct_calls[0], "Helper") == 0
                && intent_routine != NULL
                && intent_routine->is_entry_reachable
@@ -97,6 +97,51 @@ test_hir_lowering_part_a(void)
                && intent_routine->callee_routine_count == 1
                && intent_routine->direct_call_count == 1
                && strcmp(intent_routine->direct_calls[0], "Helper") == 0);
+        hir_destroy(hir);
+    }
+
+    TEST("HIR callgraph joins same-name routines by stable identity");
+    {
+        const char *src =
+            "class Holder {\n"
+            "    func Helper() -> Int { return 9; }\n"
+            "}\n"
+            "func Helper() -> Int { return 1; }\n"
+            "func Main() -> Int { return Helper(); }\n";
+        HIRProgram *hir = lower_from_source(src);
+        const HIRRoutine *hosted = NULL;
+        const HIRRoutine *top_level = NULL;
+        const HIRRoutine *main_routine = hir_find_routine(
+            hir, "Main", HIR_TOPLEVEL_FUNCTION);
+        char *validation_error = NULL;
+
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                const HIRRoutine *candidate = &hir->routines[i];
+                if (candidate->name == NULL
+                    || strcmp(candidate->name, "Helper") != 0) {
+                    continue;
+                }
+                if (candidate->is_hosted)
+                    hosted = candidate;
+                else
+                    top_level = candidate;
+            }
+        }
+        EXPECT(hir != NULL
+               && hir_validate(hir, &validation_error)
+               && validation_error == NULL
+               && hosted != NULL
+               && top_level != NULL
+               && main_routine != NULL
+               && main_routine->callee_routine_count == 1
+               && main_routine->callee_routine_ids[0]
+                    == top_level->routine_id
+               && top_level->is_entry_reachable
+               && !hosted->is_entry_reachable
+               && hir_find_routine(hir, "Helper", HIR_TOPLEVEL_FUNCTION)
+                    == NULL);
+        free(validation_error);
         hir_destroy(hir);
     }
 

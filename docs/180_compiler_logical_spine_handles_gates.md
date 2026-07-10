@@ -67,8 +67,8 @@ systems at once:
 
 Measured examples make this concrete:
 
-- HIR callgraph and MIR method/routine joins use first-match name or
-  `(owner_name, method_name)` lookup;
+- HIR callgraph now joins semantic declaration targets to `RoutineId`; MIR
+  hosted-method/routine joins still use `(owner_name, method_name)` lookup;
 - C/LLVM intent inventory permits prefix-shaped compatibility matching;
 - AIR/RIR boundary evidence joins by names plus AST pointer/subtree matching;
 - semantic type metadata is keyed by `ASTNode * -> Type *`, then later MIR
@@ -286,7 +286,7 @@ migration vocabulary.
 |---|---|---|---|
 | Source/Parser Artifact Gate | bytes/tokens -> AST | `ABSENT` dedicated enforcement | stable source/syntax handles, recovery artifact totality, raw-source reread rejection |
 | Boundary Migration Gate | compiler owner movement | `LANDED`; manifest-backed and blocking CI | add each live owner move before shadow facts are consumed; keep all retired paths absent |
-| Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `PARTIAL`; merged-program `SyntaxNodeId` and semantic declaration placeholders are blocking CI | add revision/source-unit identities; exact routine/boundary/type/binding/value joins; stale/foreign ID rejection; name/prefix/AST join prohibition |
+| Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `PARTIAL`; merged-program `SyntaxNodeId`, semantic declaration placeholders, and HIR `RoutineId` call edges are blocking CI | add revision/source-unit identities; exact method/boundary/type/binding/value joins; stale/foreign ID rejection; remaining name/prefix/AST join prohibition |
 | HIR Totality Gate | AST -> typed semantic entities | `PARTIAL` | every stable declaration/local/body/type fact owned without semantic AST fallback |
 | DIR Referential Gate | HIR entity -> domain graph | `PARTIAL`; current initial lowering is AST-owned | make HIR/entity facts the input; typed references replace name/AST joins; edge totality corpus |
 | RIR Transition Gate | HIR/DIR resource facts -> state graph | `PARTIAL`; current initial lowering is AST-owned | remove AST-call recovery in validation; stable resource/boundary handles across join/loop/transfer/authority cases |
@@ -313,8 +313,9 @@ MIR `ValueId` as owner-issued records. Start by carrying them beside current
 pointers/strings, then retire semantic pointer/string joins one owner at a time
 through the migration protocol.
 
-The first negative corpus must include same-name routines under different
-owners, `Foo` versus `Foo_T` prefix collision, nested shadowing with different
+The negative corpus now covers same-name hosted and top-level routines for HIR
+callgraph linkage. It must expand to receiver/method joins, `Foo` versus
+`Foo_T` prefix collision, nested shadowing with different
 types, multiple boundaries on one source line, stale/foreign IDs, parser ID
 overflow, and ABI call-shape mismatch.
 

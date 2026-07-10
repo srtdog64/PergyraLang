@@ -40,6 +40,7 @@ run 'make language-contract-golden-test-smoke'
 run 'make boundary-migration-test-smoke'
 run 'PGY_STABLE_IDENTITY_BACKENDS="c llvm" make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" stable-identity-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" semantic-declaration-identity-test-smoke'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" hir-routine-identity-test-smoke'
 # Content-sandbox gate family (external red-team R6): capability + resource
 # budget, the qualitative + quantitative sandbox axes. Linux runs pgy natively
 # with LLVM enabled, so the dynamic gate's C/LLVM runtime fail-close parity is

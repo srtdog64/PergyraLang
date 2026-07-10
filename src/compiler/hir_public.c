@@ -69,8 +69,10 @@ hir_dump(const HIRProgram *hir, FILE *out)
         for (size_t i = 0; i < hir->routine_count; i++) {
             const HIRRoutine *routine = &hir->routines[i];
             fprintf(out,
-                    "    [%02zu] %-8s %-18s phase=%s calls=%zu callees=%zu hosted=%s action=%s exported=%s reachable=%s cf=%s\n",
+                    "    [%02zu] id=%u source=%u %-8s %-18s phase=%s calls=%zu callees=%zu hosted=%s action=%s exported=%s reachable=%s cf=%s\n",
                     i,
+                    routine->routine_id,
+                    routine->source_syntax_id,
                     hir_top_level_kind_name(routine->kind),
                     routine->name != NULL ? routine->name : "(anonymous)",
                     hir_phase_name(HIR_PHASE_ROUTINE),
@@ -249,6 +251,8 @@ hir_find_decl(const HIRProgram *hir, const char *name, HIRTopLevelKind kind)
 const HIRRoutine *
 hir_find_routine(const HIRProgram *hir, const char *name, HIRTopLevelKind kind)
 {
+    const HIRRoutine *match = NULL;
+
     if (hir == NULL || name == NULL)
         return NULL;
 
@@ -257,10 +261,23 @@ hir_find_routine(const HIRProgram *hir, const char *name, HIRTopLevelKind kind)
         if (routine->kind == kind
             && routine->name != NULL
             && strcmp(routine->name, name) == 0) {
-            return routine;
+            if (match != NULL)
+                return NULL;
+            match = routine;
         }
     }
-    return NULL;
+    return match;
+}
+
+const HIRRoutine *
+hir_find_routine_by_id(const HIRProgram *hir, uint32_t routine_id)
+{
+    const HIRRoutine *routine;
+
+    if (hir == NULL || routine_id == 0 || routine_id > hir->routine_count)
+        return NULL;
+    routine = &hir->routines[(size_t)routine_id - 1];
+    return routine->routine_id == routine_id ? routine : NULL;
 }
 
 void

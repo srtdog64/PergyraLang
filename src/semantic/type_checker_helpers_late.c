@@ -82,6 +82,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 display_name);
             return type_function_return_type(sym->type);
         }
+        if (sym->decl_syntax_id != 0
+            && !ast_call_set_semantic_callee_decl_id(
+                expr, sym->decl_syntax_id)) {
+            semantic_error(ctx, expr,
+                "Callable declaration identity requires an AST call site");
+            return TYPE_UNKNOWN;
+        }
     }
     sym->is_used = true;
     semantic_record_effect(ctx, type_function_effects(sym->type));

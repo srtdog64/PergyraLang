@@ -55,6 +55,57 @@ append_call_name(const char ***names, size_t *count, size_t *capacity, const cha
 }
 
 static bool
+append_direct_call(HIRRoutine *routine, const char *name, uint32_t decl_id)
+{
+    const char **names;
+    uint32_t *decl_ids;
+    size_t next_capacity;
+
+    if (routine == NULL || name == NULL || *name == '\0')
+        return routine != NULL;
+    for (size_t i = 0; i < routine->direct_call_count; i++) {
+        if ((decl_id != 0 && routine->direct_call_decl_ids[i] == decl_id)
+            || (decl_id == 0 && routine->direct_call_decl_ids[i] == 0
+                && routine->direct_calls[i] != NULL
+                && strcmp(routine->direct_calls[i], name) == 0)) {
+            return true;
+        }
+    }
+
+    if (routine->direct_call_count == routine->direct_call_capacity) {
+        next_capacity = routine->direct_call_capacity;
+        if (!hir_analysis_next_capacity(&next_capacity, 8,
+                                        sizeof(const char *))
+            || next_capacity > SIZE_MAX / sizeof(uint32_t)) {
+            return false;
+        }
+        names = malloc(next_capacity * sizeof(const char *));
+        decl_ids = malloc(next_capacity * sizeof(uint32_t));
+        if (names == NULL || decl_ids == NULL) {
+            free((void *)names);
+            free(decl_ids);
+            return false;
+        }
+        if (routine->direct_call_count > 0) {
+            memcpy((void *)names, routine->direct_calls,
+                   routine->direct_call_count * sizeof(const char *));
+            memcpy(decl_ids, routine->direct_call_decl_ids,
+                   routine->direct_call_count * sizeof(uint32_t));
+        }
+        free((void *)routine->direct_calls);
+        free(routine->direct_call_decl_ids);
+        routine->direct_calls = names;
+        routine->direct_call_decl_ids = decl_ids;
+        routine->direct_call_capacity = next_capacity;
+    }
+
+    routine->direct_calls[routine->direct_call_count] = name;
+    routine->direct_call_decl_ids[routine->direct_call_count] = decl_id;
+    routine->direct_call_count++;
+    return true;
+}
+
+static bool
 hir_collect_type_refs(ASTNode *type_node, const char ***names, size_t *count, size_t *capacity)
 {
     if (type_node == NULL)
@@ -266,10 +317,7 @@ hir_ast_contains_control_flow(ASTNode *node)
 }
 
 bool
-hir_collect_direct_calls(ASTNode *node,
-                         const char ***names,
-                         size_t *count,
-                         size_t *capacity)
+hir_collect_direct_calls(ASTNode *node, HIRRoutine *routine)
 {
     if (node == NULL)
         return true;
@@ -278,101 +326,101 @@ hir_collect_direct_calls(ASTNode *node,
         case AST_CALL:
             if (ast_call_callee(node) != NULL
                 && ast_call_callee(node)->type == AST_IDENTIFIER
-                && !append_call_name(names,
-                                     count,
-                                     capacity,
-                                     ast_identifier_name(ast_call_callee(node)))) {
+                && !append_direct_call(
+                    routine,
+                    ast_identifier_name(ast_call_callee(node)),
+                    ast_call_semantic_callee_decl_id(node))) {
                 return false;
             }
-            if (!hir_collect_direct_calls(ast_call_callee(node), names, count, capacity))
+            if (!hir_collect_direct_calls(ast_call_callee(node), routine))
                 return false;
             for (size_t i = 0; i < ast_call_arg_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_call_argument(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_call_argument(node, i), routine))
                     return false;
             }
             return true;
         case AST_BLOCK:
             for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_block_statement(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_block_statement(node, i), routine))
                     return false;
             }
             return true;
         case AST_RETURN:
-            return hir_collect_direct_calls(ast_return_value(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_return_value(node), routine);
         case AST_LET_DECL:
-            return hir_collect_direct_calls(ast_let_initializer(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_let_initializer(node), routine);
         case AST_ASSIGNMENT:
-            return hir_collect_direct_calls(ast_assignment_target(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_assignment_value(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_assignment_target(node), routine)
+                   && hir_collect_direct_calls(ast_assignment_value(node), routine);
         case AST_BINARY:
-            return hir_collect_direct_calls(ast_binary_left(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_binary_right(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_binary_left(node), routine)
+                   && hir_collect_direct_calls(ast_binary_right(node), routine);
         case AST_UNARY:
-            return hir_collect_direct_calls(ast_unary_operand(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_unary_operand(node), routine);
     case AST_MEMBER_ACCESS:
-            return hir_collect_direct_calls(ast_member_object(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_member_object(node), routine);
     case AST_ARRAY_ACCESS:
-            return hir_collect_direct_calls(ast_array_access_array(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_array_access_index(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_array_access_array(node), routine)
+                   && hir_collect_direct_calls(ast_array_access_index(node), routine);
         case AST_ARRAY_LITERAL:
             for (size_t i = 0; i < ast_array_literal_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_array_literal_element(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_array_literal_element(node, i), routine))
                     return false;
             }
             return true;
         case AST_IF_STMT:
-            return hir_collect_direct_calls(ast_if_condition(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_if_then_branch(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_if_else_branch(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_if_condition(node), routine)
+                   && hir_collect_direct_calls(ast_if_then_branch(node), routine)
+                   && hir_collect_direct_calls(ast_if_else_branch(node), routine);
         case AST_FOR_LOOP:
-            return hir_collect_direct_calls(ast_for_range_start(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_for_range_end(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_for_iterable(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_for_body(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_for_range_start(node), routine)
+                   && hir_collect_direct_calls(ast_for_range_end(node), routine)
+                   && hir_collect_direct_calls(ast_for_iterable(node), routine)
+                   && hir_collect_direct_calls(ast_for_body(node), routine);
         case AST_WHILE_LOOP:
-            return hir_collect_direct_calls(ast_while_condition(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_while_body(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_while_condition(node), routine)
+                   && hir_collect_direct_calls(ast_while_body(node), routine);
         case AST_MATCH_STMT:
-            if (!hir_collect_direct_calls(ast_match_subject(node), names, count, capacity))
+            if (!hir_collect_direct_calls(ast_match_subject(node), routine))
                 return false;
             for (size_t i = 0; i < ast_match_case_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_match_case_at(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_match_case_at(node, i), routine))
                     return false;
             }
-            return hir_collect_direct_calls(ast_match_default_body(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_match_default_body(node), routine);
         case AST_MATCH_CASE:
-            return hir_collect_direct_calls(ast_match_case_pattern(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_match_case_guard(node), names, count, capacity)
-                   && hir_collect_direct_calls(ast_match_case_body(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_match_case_pattern(node), routine)
+                   && hir_collect_direct_calls(ast_match_case_guard(node), routine)
+                   && hir_collect_direct_calls(ast_match_case_body(node), routine);
         case AST_SELECT_STMT:
             for (size_t i = 0; i < ast_select_case_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_select_case(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_select_case(node, i), routine))
                     return false;
             }
-            return hir_collect_direct_calls(ast_select_default_case(node), names, count, capacity);
+            return hir_collect_direct_calls(ast_select_default_case(node), routine);
         case AST_ASYNC_BLOCK:
             for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_async_block_statement(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_async_block_statement(node, i), routine))
                     return false;
             }
             return true;
         case AST_SPAWN_EXPR:
-            if (!hir_collect_direct_calls(ast_spawn_function(node), names, count, capacity))
+            if (!hir_collect_direct_calls(ast_spawn_function(node), routine))
                 return false;
             for (size_t i = 0; i < ast_spawn_arg_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_spawn_argument(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_spawn_argument(node, i), routine))
                     return false;
             }
             return true;
         case AST_TASK_GROUP:
             for (size_t i = 0; i < ast_task_group_task_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_task_group_task(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_task_group_task(node, i), routine))
                     return false;
             }
             return true;
         case AST_PARALLEL_BLOCK:
             for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_parallel_task(node, i), names, count, capacity))
+                if (!hir_collect_direct_calls(ast_parallel_task(node, i), routine))
                     return false;
             }
             return true;

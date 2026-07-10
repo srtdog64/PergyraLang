@@ -85,6 +85,7 @@ mandatory_targets=(
     "boundary-migration-test-smoke"
     "stable-identity-test-smoke"
     "semantic-declaration-identity-test-smoke"
+    "hir-routine-identity-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

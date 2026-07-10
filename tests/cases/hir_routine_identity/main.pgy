@@ -1,0 +1,13 @@
+class Holder {
+    func Helper() -> Int {
+        return 9;
+    }
+}
+
+func Helper() -> Int {
+    return 1;
+}
+
+func Main() -> Int {
+    return Helper();
+}

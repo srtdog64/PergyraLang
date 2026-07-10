@@ -45,6 +45,23 @@ ast_call_callee(const ASTNode* node)
     return node->data.call.callee;
 }
 
+uint32_t
+ast_call_semantic_callee_decl_id(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL
+        ? node->data.call.semantic_callee_decl_id
+        : 0;
+}
+
+bool
+ast_call_set_semantic_callee_decl_id(ASTNode *node, uint32_t decl_id)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    node->data.call.semantic_callee_decl_id = decl_id;
+    return true;
+}
+
 size_t
 ast_call_arg_count(const ASTNode* node)
 {

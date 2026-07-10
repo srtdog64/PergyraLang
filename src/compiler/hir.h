@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "../parser/ast.h"
@@ -51,6 +52,7 @@ typedef struct
 typedef struct
 {
     size_t           id;
+    uint32_t         source_syntax_id;
     HIRTopLevelKind  kind;
     HIRPhase         phase;
     ASTNode         *ast;
@@ -59,6 +61,8 @@ typedef struct
 
 typedef struct
 {
+    uint32_t         routine_id;
+    uint32_t         source_syntax_id;
     size_t           decl_id;
     HIRTopLevelKind  kind;
     const char      *name;
@@ -75,9 +79,10 @@ typedef struct
     size_t           signature_type_ref_count;
     size_t           signature_type_ref_capacity;
     const char     **direct_calls;
+    uint32_t        *direct_call_decl_ids;
     size_t           direct_call_count;
     size_t           direct_call_capacity;
-    size_t          *callee_routine_ids;
+    uint32_t        *callee_routine_ids;
     size_t           callee_routine_count;
     size_t           callee_routine_capacity;
     size_t           reachable_block_count;
@@ -307,6 +312,8 @@ const HIRDecl *hir_find_decl(const HIRProgram *hir,
 const HIRRoutine *hir_find_routine(const HIRProgram *hir,
                                    const char *name,
                                    HIRTopLevelKind kind);
+const HIRRoutine *hir_find_routine_by_id(const HIRProgram *hir,
+                                         uint32_t routine_id);
 void hir_routine_inventory_from_program(
         const HIRProgram *hir,
         HIRRoutineInventory *inventory);

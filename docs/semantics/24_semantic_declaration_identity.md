@@ -44,7 +44,9 @@ top-level declaration set. It is not yet a full `SymbolId` or `EntityId`:
 
 - symbol-table lookup remains name-indexed;
 - namespace flattening is not injective;
-- HIR callgraph routines still use textual first-match joins;
+- HIR callgraph linkage now lowers this identity into `RoutineId` edges under
+  `25_hir_routine_identity.md`; receiver dispatch and MIR hosted-method joins
+  remain open;
 - lexical bindings and SSA values still need `BindingId` and `ValueId`;
 - revision/foreign-ID rejection remains open.
 

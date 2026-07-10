@@ -21,7 +21,6 @@ struct ASTNode
     bool        has_explicit_export;
     bool        is_async_decl;
     uint32_t    stable_id;
-    
     /* Line and column information */
     uint32_t line;
     uint32_t column;
@@ -205,6 +204,7 @@ struct ASTNode
             size_t         arg_count;
             size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */
+            uint32_t       semantic_callee_decl_id;
         } call;
         
         /* Member access */

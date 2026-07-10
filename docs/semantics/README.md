@@ -56,6 +56,10 @@ Required shape for each proof document:
   partial, gate-backed semantic placeholder ownership. `Symbol` completes a
   forward declaration only when its kind and `SyntaxNodeId` match; line/column
   and same-name coalescing are forbidden identity sources.
+- [25_hir_routine_identity.md](25_hir_routine_identity.md): partial,
+  gate-backed HIR callgraph identity. Semantic declaration targets lower to
+  `RoutineId` edges; routine names remain observability only and ambiguous
+  name queries fail closed.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 
 Mechanized artifacts:

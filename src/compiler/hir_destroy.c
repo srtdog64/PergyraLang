@@ -47,6 +47,7 @@ hir_destroy(HIRProgram *hir)
             free(hir->routines[i].cfg.blocks);
             free((void *)hir->routines[i].signature_type_refs);
             free((void *)hir->routines[i].direct_calls);
+            free(hir->routines[i].direct_call_decl_ids);
             free(hir->routines[i].callee_routine_ids);
             pgy_arena_destroy(&hir->routines[i].scratch);
         }
