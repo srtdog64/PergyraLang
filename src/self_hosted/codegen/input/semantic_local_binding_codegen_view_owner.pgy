@@ -1,0 +1,45 @@
+// Fail-closed codegen view over semantic local-binding facts.
+
+import "../../semantic/ast_local_binding_fact_owner.pgy";
+import "../text/text_owner.pgy";
+
+func CodegenSemanticLocalBindingIndexOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Int {
+    let index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) {
+        Die(Concat(
+            "semantic local-binding facts missing node: ", ToString(node_id)
+        ));
+    }
+    return UnwrapOption(index);
+}
+
+func CodegenSemanticLocalBindingNameOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticLocalBindingIndexOrDie(facts, node_id);
+    let name: Option<String> = SemanticAstLocalBindingNameAt(facts, index);
+    if !IsSome(name) {
+        Die("semantic local-binding facts missing name");
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticLocalBindingDeclaredTypeOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticLocalBindingIndexOrDie(facts, node_id);
+    let type_name: Option<String> = SemanticAstLocalBindingDeclaredTypeAt(
+        facts, index
+    );
+    if !IsSome(type_name) {
+        Die("self-host codegen requires a semantic declared local type");
+    }
+    return UnwrapOption(type_name);
+}

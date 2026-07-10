@@ -10,7 +10,8 @@ import "../input/ast_text_array_literal_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/ast_text_indexed_assignment_owner.pgy";
-import "../input/ast_text_local_binding_owner.pgy";
+import "../input/semantic_local_binding_codegen_view_owner.pgy";
+import "../input/ast_local_initializer_codegen_view_owner.pgy";
 import "../input/ast_text_assignment_owner.pgy";
 import "../input/ast_text_for_stmt_owner.pgy";
 import "../input/ast_text_statement_payload_owner.pgy";
@@ -67,10 +68,10 @@ func EmitCollectionElementValue(kind: String, value_expr: String, env: String, k
     return IntEval(value_expr, env);
 }
 
-func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String {
-    let name: String = CodegenAstArenaLetNameOrDie(arena, idx);
+func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int, inout env_box: Array<String>) -> String {
+    let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
-    let type_name: String = CodegenAstArenaLetTypeNameOrDie(arena, idx);
+    let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
     let expr: String = CodegenAstArenaLetInitializerOrDie(arena, idx);
     if type_name == "Int" {
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "Int", c_name));
@@ -151,10 +152,10 @@ func EmitLet(arena: AstArena, idx: Int, inout env_box: Array<String>) -> String 
     return "";
 }
 
-func EmitTryLet(arena: AstArena, idx: Int, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
-    let name: String = CodegenAstArenaLetNameOrDie(arena, idx);
+func EmitTryLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int, inout env_box: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
+    let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
     let c_name: String = CompilerSymbolCBindingName(name);
-    let type_name: String = CodegenAstArenaLetTypeNameOrDie(arena, idx);
+    let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
     let inner_opt: Option<String> = CodegenAstArenaLetTryInner(arena, idx);
     if !IsSome(inner_opt) {
         Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
@@ -341,7 +342,7 @@ func EmitMatchCaseValue(pattern: String, subject_type: String, env: String) -> S
 // starting at line cur[0]. `pad` is the C indentation prefix. `env_box` carries
 // the mutable variable type environment; `cur_fn_ret` is the enclosing
 // function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
-func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
+func EmitStmtList(count: Int, arena: AstArena, local_bindings: SemanticAstLocalBindingFacts, stmt_indent: Int,
                   inout cur: Array<Int>, pad: String,
                   inout env_box: Array<String>, cur_fn_ret: String,
                   active_defers: String) -> String {
@@ -359,9 +360,9 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
         }
         if CodegenAstArenaIsLetStmt(arena, idx) {
             if CodegenAstArenaLetInitializerHasTry(arena, idx) {
-                result = Concat(result, Concat(pad, Concat(EmitTryLet(arena, idx, env_box, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
+                result = Concat(result, Concat(pad, Concat(EmitTryLet(local_bindings, arena, idx, env_box, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
             } else {
-                result = Concat(result, Concat(pad, Concat(EmitLet(arena, idx, env_box), "\n")));
+                result = Concat(result, Concat(pad, Concat(EmitLet(local_bindings, arena, idx, env_box), "\n")));
             }
             ArraySet(cur, 0, idx + 1);
         } else if CodegenAstArenaIsAssignStmt(arena, idx) {
@@ -394,7 +395,7 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             let defer_env: Array<String> = [env_box[0]];
-            let body: String = EmitStmtList(count, arena, stmt_indent + 4,
+            let body: String = EmitStmtList(count, arena, local_bindings, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
             deferred = Concat(body, deferred);
         } else if CodegenAstArenaIsArraySetStmt(arena, idx) {
@@ -500,14 +501,14 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
             }
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            result = Concat(result, EmitStmtList(count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(count, arena, local_bindings, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsWhileStmt(arena, idx) {
             let cond: String = WrapCond(CodegenAstArenaWhileConditionOrDie(arena, idx), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            result = Concat(result, EmitStmtList(count, arena, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(count, arena, local_bindings, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             result = Concat(result, Concat(pad, "}\n"));
         } else if CodegenAstArenaIsIfStmt(arena, idx) {
             let cond2: String = WrapCond(CodegenAstArenaIfConditionOrDie(arena, idx), env_box[0]);
@@ -515,7 +516,7 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            result = Concat(result, EmitStmtList(count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+            result = Concat(result, EmitStmtList(count, arena, local_bindings, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
             if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
                 if CodegenAstArenaIsElseIfAt(arena, count, cur[0]) {
@@ -523,11 +524,11 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
                     // (no `Block:`). Emit `} else ` and recurse on that If at its
                     // own indent; the nested if-chain closes itself.
                     result = Concat(result, Concat(pad, "} else "));
-                    result = Concat(result, EmitStmtList(count, arena, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(count, arena, local_bindings, CodegenAstArenaIndentOrDie(arena, cur[0]), cur, pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                 } else {
                     result = Concat(result, Concat(pad, "} else {\n"));
                     CodegenAstArenaExpectBlock(arena, count, cur);
-                    result = Concat(result, EmitStmtList(count, arena, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(count, arena, local_bindings, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret, Concat(deferred, active_defers)));
                     result = Concat(result, Concat(pad, "}\n"));
                 }
             } else {
@@ -562,7 +563,7 @@ func EmitStmtList(count: Int, arena: AstArena, stmt_indent: Int,
                     ArraySet(cur, 0, cur[0] + 1);
                     CodegenAstArenaExpectBlock(arena, count, cur);
                     let case_env: Array<String> = [env_box[0]];
-                    result = Concat(result, EmitStmtList(count, arena, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
+                    result = Concat(result, EmitStmtList(count, arena, local_bindings, stmt_indent + 6, cur, Concat(inner_pad, "    "), case_env, cur_fn_ret, Concat(deferred, active_defers)));
                     match_case_count = match_case_count + 1;
                 } else if CodegenAstArenaIsMatchDefaultStmt(arena, cur[0]) {
                     Die("match default is not supported in self-host codegen subset");

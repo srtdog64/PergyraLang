@@ -77,6 +77,10 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
+- `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
+  function owner, name, parameter, mode, and return signature facts.
+- `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
+  local binding node, function, scope, name, and declared-type facts.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
@@ -130,12 +134,12 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy` -- AST text array-literal initializer shape and top-level element facts.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
-- `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- shared-artifact function owner, name, parameter, mode, and return signature facts.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
 - `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.
 - `src/self_hosted/codegen/input/ast_text_try_let_owner.pgy` -- AST text try-let initializer shape and inner-expression facts.
 - `src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy` -- AST text indexed assignment target shape, receiver, and index-expression facts.
-- `src/self_hosted/codegen/input/ast_text_local_binding_owner.pgy` -- AST text local binding name/type/initializer facts.
+- `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
+- `src/self_hosted/codegen/input/ast_local_initializer_codegen_view_owner.pgy` -- transitional HIR expression-payload view for local initializers.
 - `src/self_hosted/codegen/input/ast_text_assignment_owner.pgy` -- AST text assignment target and RHS facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.

@@ -25,6 +25,30 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Local declarations become artifact-native semantic facts
+
+- Added `SemanticAstLocalBindingFacts` as the owner of local declaration node,
+  enclosing function, lexical block, name, and optional declared-type rows.
+  The verifier binds those rows back to the exact shared `AstTreeArtifact` and
+  rejects stale names, missing initializers, invalid scopes, and missing
+  function owners.
+- Retired `ast_text_local_binding_owner.pgy` without an alias. `EmitLet` and
+  `EmitTryLet` now consume semantic name/type rows; initializer expression text
+  remains explicitly isolated in `ast_local_initializer_codegen_view_owner.pgy`
+  until expression facts become typed HIR.
+- Extended the HIR row owner so untyped `Let: name = value` preserves the
+  binding name. Semantic facts accept the absent declared type, while the
+  current bounded codegen fails closed instead of inferring it locally.
+- Focused completeness passed the four changed/new owners through
+  lexer/parser/semantic/codegen 4/4 and measured 228 production sources; all M2
+  minima were raised to 228.
+- Verified the untyped-local negative boundary, C/LLVM semantic parity at
+  110/110, C/LLVM codegen parity at 68/68, and integrated driver
+  `gen2 == gen3` at 17,536 generated-C lines.
+- Honest boundary: initializer expression typing, assignment/use validation,
+  the remaining body verdict, and MIR lowering are still outside the executable
+  driver. Whole-compiler self-hosting remains incomplete.
+
 ## 2026-07-10 - Function signature facts become artifact-native
 
 - Added `SemanticAstFunctionSignatureFacts` as the single owner of function

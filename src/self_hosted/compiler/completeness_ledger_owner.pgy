@@ -234,35 +234,35 @@ func EmitCompilerCompletenessSemanticTargets() -> Void {
 }
 
 func CompilerCompletenessSourceMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessLexerPassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessParserPassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessSemanticPassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessCodegenPassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessLexParsePassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessLexParseSemanticPassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func CompilerCompletenessFullPipelinePassMin() -> Int {
-    return 226;
+    return 228;
 }
 
 func EmitCompilerCompletenessLexParseBaseline() -> Void {

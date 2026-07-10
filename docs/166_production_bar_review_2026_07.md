@@ -277,10 +277,10 @@ features:
 |---|---|
 | `MIR owns ABI` | `PARTIAL / BLOCKER`: `MIRTypeLayout`, native resource runtime-call rows, self-host ABI/runtime-call row artifacts, and negative backend contracts exist. Closure still requires every native C/LLVM aggregate/generic/runtime-call consumer to read concrete rows only. |
 | `AIR owns evidence` | `PASS` for the measured boundary: AIR schema/drift/lifetime registries exist and AIR stays outside backend input. Evidence lifetime policy remains `PARTIAL` because the registry gate proves enum/row correspondence more strongly than all discharge/retention combinations. |
-| `Backend emits only rows` | `PARTIAL`: selected backend-local synthesis is prohibited and self-host checkers mirror the contract, but the complete native backend consumer inventory has not reached row-only emission. |
+| `Backend emits only rows` | `PARTIAL`: AIR recovery and selected backend-local synthesis are prohibited, but the C MIR resource hook still recovers a layout type from an AST-backed DEF expression and rescans routine instructions. The complete native backend consumer inventory has therefore not reached row-only emission. |
 | `Runtime retains only safety-relevant tokens` | `PARTIAL`: retained-runtime attribution exists for measured fixtures; full runtime evidence-retention inventory is not closed. |
-| `Sandbox fails closed` | `PARTIAL / NOT PRODUCT READY`: capability and budget vocabulary/negative artifacts exist; lane-specific production executors and enforced host quotas do not. |
-| `Compatibility is corpus-backed` | `PARTIAL`: owner vocabulary and seed artifacts exist; old-version source/ABI/diagnostic/AIR/MIR/trace/capability/stdlib migration corpus is not yet complete. |
+| `Sandbox fails closed` | `PARTIAL / NOT PRODUCT READY`: native capability denial plus allocation/spawn/channel/wall-clock budgets fail closed on covered paths. Default `PGY_CAP_ALL`, the signed/content loader, ambient file/network chokepoints, lane-specific production executors, and complete frame/host-call quotas remain open. |
+| `Compatibility is corpus-backed` | `PARTIAL`: owner vocabulary and a nine-surface seed corpus exist; real old-version source/ABI/diagnostic/AIR/MIR/trace/capability/stdlib artifacts, migration targets, and production consumers are not yet complete. |
 
 AIR/backend access is not an unimplemented P0: native source lint, strict-vs-
 relaxed full-fixture non-impact, and a Pergyra-built backend AIR access checker
@@ -290,10 +290,11 @@ semantic analysis and MIR are absent from that executable. The typed AST arena o
 been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
 Parser now produces one HIR-owned `AstTreeArtifact`, and the integrated driver
 passes its typed arena through one `SemanticAstArtifactAnalysis` and into
-codegen without rebuilding it. The analysis owns executable `Main` cardinality
-and artifact-bound function signature rows; codegen no longer reconstructs
-those rows from the arena. The self-built driver fixed point is byte-identical
-at 17,304 generated-C lines. This is a bounded semantic hard rung, not broad
-semantic substitution. Local/body semantics and MIR remain outside the driver;
+codegen without rebuilding it. The analysis owns executable `Main` cardinality,
+artifact-bound function signature rows, and local declaration/function/scope
+rows; codegen no longer reconstructs those rows from the arena. The self-built
+driver fixed point is byte-identical at 17,536 generated-C lines. This is a
+bounded semantic hard rung, not broad semantic substitution. Initializer
+expression typing, the remaining body verdict, and MIR remain outside the driver;
 reusing the current semantic source scanner there would still be a second
 parser and is explicitly not counted as progress.

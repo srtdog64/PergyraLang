@@ -1,0 +1,296 @@
+// Semantic local-binding facts derived from the shared parser-owned artifact.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstLocalBindingFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    function_node_ids: Array<Int>;
+    scope_node_ids: Array<Int>;
+    names: Array<String>;
+    declared_type_names: Array<String>;
+    has_declared_types: Array<Int>;
+}
+
+func SemanticAstLocalBindingError(node_id: Int, fact: String) -> String {
+    return SemanticError2(
+        "local_binding_invalid",
+        "node_id", ToString(node_id),
+        "missing_fact", fact
+    );
+}
+
+func SemanticAstEnclosingFunctionNode(
+    arena: AstArena,
+    node_id: Int
+) -> Option<Int> {
+    let cursor: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    let traversed: Int = 0;
+    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
+        let parent_id: Int = UnwrapOption(cursor);
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindFuncDeclTag()
+        ) {
+            return Some(parent_id);
+        }
+        cursor = TypedAstArenaParentId(arena, parent_id);
+        traversed = traversed + 1;
+    }
+    return None;
+}
+
+func SemanticAstLocalBindingFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> SemanticAstLocalBindingFacts {
+    let node_ids: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
+    let scope_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let declared_type_names: Array<String> = [];
+    let has_declared_types: Array<Int> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact) &&
+        SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
+    let diagnostic_code: String = "";
+    let diagnostic_message: String = "";
+    if !ok {
+        diagnostic_code = "ast_artifact_invalid";
+        diagnostic_message = SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstLocalBindingFacts"
+        );
+    }
+
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindLetStmtTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let name: Option<String> = TypedAstArenaAtomText(
+            artifact.arena, node_id
+        );
+        let initializer: Option<String> = TypedAstArenaValueText(
+            artifact.arena, node_id
+        );
+        let scope: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        let function_node: Option<Int> = SemanticAstEnclosingFunctionNode(
+            artifact.arena, node_id
+        );
+        if !IsSome(name) || StringLength(UnwrapOption(name)) == 0 {
+            ok = false;
+            diagnostic_code = "local_binding_invalid";
+            diagnostic_message = SemanticAstLocalBindingError(
+                node_id, "binding_name"
+            );
+            continue;
+        }
+        if !IsSome(initializer) {
+            ok = false;
+            diagnostic_code = "local_binding_invalid";
+            diagnostic_message = SemanticAstLocalBindingError(
+                node_id, "initializer"
+            );
+            continue;
+        }
+        if !IsSome(scope) || !TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(scope), TypedAstKindBlockTag()
+        ) {
+            ok = false;
+            diagnostic_code = "local_binding_invalid";
+            diagnostic_message = SemanticAstLocalBindingError(
+                node_id, "scope_block"
+            );
+            continue;
+        }
+        if !IsSome(function_node) || !IsSome(
+            SemanticAstFunctionSignatureIndexForNode(
+                signatures, UnwrapOption(function_node)
+            )
+        ) {
+            ok = false;
+            diagnostic_code = "local_binding_invalid";
+            diagnostic_message = SemanticAstLocalBindingError(
+                node_id, "function_owner"
+            );
+            continue;
+        }
+        let declared_type: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, node_id
+        );
+        let declared_type_name: String = "";
+        let has_declared_type: Int = 0;
+        if IsSome(declared_type) {
+            declared_type_name = UnwrapOption(declared_type);
+            has_declared_type = 1;
+        }
+        ArrayPush(node_ids, node_id);
+        ArrayPush(function_node_ids, UnwrapOption(function_node));
+        ArrayPush(scope_node_ids, UnwrapOption(scope));
+        ArrayPush(names, UnwrapOption(name));
+        ArrayPush(declared_type_names, declared_type_name);
+        ArrayPush(has_declared_types, has_declared_type);
+        node_id = node_id + 1;
+    }
+    return SemanticAstLocalBindingFacts(
+        ok, diagnostic_code, diagnostic_message, artifact.count,
+        node_ids, function_node_ids, scope_node_ids, names,
+        declared_type_names, has_declared_types
+    );
+}
+
+func SemanticAstLocalBindingCount(facts: SemanticAstLocalBindingFacts) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstLocalBindingFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    facts: SemanticAstLocalBindingFacts
+) -> Bool {
+    let n: Int = SemanticAstLocalBindingCount(facts);
+    if !AstTreeArtifactReady(artifact) || !facts.ok ||
+        facts.artifact_node_count != artifact.count ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) ||
+        ArrayLength(facts.function_node_ids) != n ||
+        ArrayLength(facts.scope_node_ids) != n ||
+        ArrayLength(facts.names) != n ||
+        ArrayLength(facts.declared_type_names) != n ||
+        ArrayLength(facts.has_declared_types) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        let node_id: Int = facts.node_ids[i];
+        let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
+        let initializer: Option<String> = TypedAstArenaValueText(
+            artifact.arena, node_id
+        );
+        let scope: Option<Int> = TypedAstArenaParentId(artifact.arena, node_id);
+        let function_node: Option<Int> = SemanticAstEnclosingFunctionNode(
+            artifact.arena, node_id
+        );
+        let declared_type: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, node_id
+        );
+        if node_id < 0 || node_id >= artifact.count ||
+            (i > 0 && node_id <= facts.node_ids[i - 1]) ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, node_id, TypedAstKindLetStmtTag()
+            ) || !IsSome(name) || !IsSome(initializer) ||
+            UnwrapOption(name) != facts.names[i] ||
+            !IsSome(scope) || UnwrapOption(scope) != facts.scope_node_ids[i] ||
+            !TypedAstArenaNodeKindIs(
+                artifact.arena, facts.scope_node_ids[i], TypedAstKindBlockTag()
+            ) || !IsSome(function_node) ||
+            UnwrapOption(function_node) != facts.function_node_ids[i] ||
+            !IsSome(SemanticAstFunctionSignatureIndexForNode(
+                signatures, facts.function_node_ids[i]
+            )) {
+            return false;
+        }
+        if facts.has_declared_types[i] == 1 {
+            if !IsSome(declared_type) ||
+                UnwrapOption(declared_type) != facts.declared_type_names[i] {
+                return false;
+            }
+        } else if facts.has_declared_types[i] != 0 ||
+            IsSome(declared_type) ||
+            StringLength(facts.declared_type_names[i]) != 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    let actual_count: Int = 0;
+    let node_id2: Int = 0;
+    while node_id2 < artifact.count {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id2, TypedAstKindLetStmtTag()
+        ) {
+            actual_count = actual_count + 1;
+        }
+        node_id2 = node_id2 + 1;
+    }
+    return actual_count == n;
+}
+
+func SemanticAstLocalBindingIndexForNode(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < SemanticAstLocalBindingCount(facts) {
+        if facts.node_ids[i] == node_id {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstLocalBindingNameAt(
+    facts: SemanticAstLocalBindingFacts,
+    index: Int
+) -> Option<String> {
+    if index < 0 || index >= SemanticAstLocalBindingCount(facts) {
+        return None;
+    }
+    return Some(facts.names[index]);
+}
+
+func SemanticAstLocalBindingDeclaredTypeAt(
+    facts: SemanticAstLocalBindingFacts,
+    index: Int
+) -> Option<String> {
+    if index < 0 || index >= SemanticAstLocalBindingCount(facts) ||
+        facts.has_declared_types[index] == 0 {
+        return None;
+    }
+    return Some(facts.declared_type_names[index]);
+}
+
+func SemanticAstLocalBindingFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y = x\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let facts: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    if !SemanticAstLocalBindingFactsMatchArtifact(
+        artifact, signatures, facts
+    ) || SemanticAstLocalBindingCount(facts) != 2 ||
+        facts.names[0] != "x" || facts.declared_type_names[0] != "Int" ||
+        facts.has_declared_types[0] != 1 || facts.names[1] != "y" ||
+        facts.has_declared_types[1] != 0 ||
+        facts.function_node_ids[0] != facts.function_node_ids[1] ||
+        facts.scope_node_ids[0] == facts.scope_node_ids[1] {
+        return false;
+    }
+    let stale: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: z : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y = x\n"
+    );
+    if SemanticAstLocalBindingFactsMatchArtifact(stale, signatures, facts) {
+        return false;
+    }
+    let invalid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: bad : Int\n"
+    );
+    let invalid_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(invalid);
+    let invalid_facts: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(invalid, invalid_signatures);
+    return !invalid_facts.ok &&
+        invalid_facts.diagnostic_code == "local_binding_invalid";
+}

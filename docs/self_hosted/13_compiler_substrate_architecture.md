@@ -353,7 +353,7 @@ source/output-file boundary over the same pipeline owner. The strengthened
 the Pergyra-built codegen, and compares its
 emitted C against the C-oracle-built driver on a real source, then requires the
 integrated driver's own `gen2.c` and `gen3.c` to be byte-identical through the
-Pergyra-owned artifact comparator. The current run fixes at 17,304 C lines.
+Pergyra-owned artifact comparator. The current run fixes at 17,536 C lines.
 This proves the parser/shared-artifact-entrypoint-verdict/codegen spine
 self-eats; broader semantic analysis and MIR remain outside that executable and
 therefore outside the claim.

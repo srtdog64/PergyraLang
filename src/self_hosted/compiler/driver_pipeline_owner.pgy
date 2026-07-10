@@ -13,7 +13,8 @@ func CompilerDriverPipelineReady() -> Bool {
         TypedAstArenaPayloadContractReady() &&
         AstTreeArtifactPayloadContractReady() &&
         SemanticAstArtifactVerdictContractReady() &&
-        SemanticAstFunctionSignatureFactsContractReady();
+        SemanticAstFunctionSignatureFactsContractReady() &&
+        SemanticAstLocalBindingFactsContractReady();
 }
 
 func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with caps io_read {

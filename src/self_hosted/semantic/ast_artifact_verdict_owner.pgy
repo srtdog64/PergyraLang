@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
 
 struct SemanticAstArtifactVerdict {
     ok: Bool;
@@ -17,6 +18,7 @@ struct SemanticAstArtifactVerdict {
 struct SemanticAstArtifactAnalysis {
     verdict: SemanticAstArtifactVerdict;
     signatures: SemanticAstFunctionSignatureFacts;
+    local_bindings: SemanticAstLocalBindingFacts;
 }
 
 func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
@@ -120,11 +122,29 @@ func SemanticAstArtifactAnalyze(
             0,
             requires_entrypoint
         );
-        return SemanticAstArtifactAnalysis(rejected, signatures);
+        let empty_locals: SemanticAstLocalBindingFacts =
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+        return SemanticAstArtifactAnalysis(
+            rejected, signatures, empty_locals
+        );
+    }
+    let local_bindings: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    if !local_bindings.ok {
+        let rejected2: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
+            local_bindings.diagnostic_code,
+            local_bindings.diagnostic_message,
+            artifact.count,
+            0,
+            requires_entrypoint
+        );
+        return SemanticAstArtifactAnalysis(
+            rejected2, signatures, local_bindings
+        );
     }
     let verdict: SemanticAstArtifactVerdict =
         SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
-    return SemanticAstArtifactAnalysis(verdict, signatures);
+    return SemanticAstArtifactAnalysis(verdict, signatures, local_bindings);
 }
 
 func SemanticAstArtifactAnalysisMatches(
@@ -136,18 +156,21 @@ func SemanticAstArtifactAnalysisMatches(
         artifact, analysis.verdict, requires_entrypoint
     ) && SemanticAstFunctionSignatureFactsMatchArtifact(
         artifact, analysis.signatures
+    ) && SemanticAstLocalBindingFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.local_bindings
     );
 }
 
 func SemanticAstArtifactVerdictContractReady() -> Bool {
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n"
     );
     let valid_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyze(valid, true);
     if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
         valid_analysis.verdict.main_count != 1 ||
-        SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 {
+        SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 ||
+        SemanticAstLocalBindingCount(valid_analysis.local_bindings) != 1 {
         return false;
     }
     let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");

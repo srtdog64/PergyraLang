@@ -103,11 +103,12 @@ The fixed point (classic 3-stage bootstrap):
 First bounded fixed point landed on 2026-07-10. The Pergyra-built codegen builds
 an integrated `source -> self-parser -> self-codegen -> C` driver, and that
 driver rebuilds itself with byte-identical `gen2 == gen3` C artifacts (14,659
-lines in the first landing run; 17,304 after artifact-native function signature
+lines in the first landing run; 17,536 after artifact-native local binding
 analysis landed). This is Stage 5a evidence, not the terminus: the integrated
-executable checks `Main` cardinality and function signatures from the shared
-artifact, but local/body semantic analysis and MIR lowering remain outside it,
-and it does not replace the released native driver.
+executable checks `Main` cardinality, function signatures, and local
+declaration/scope facts from the shared artifact, but initializer/body semantic
+analysis and MIR lowering remain outside it, and it does not replace the
+released native driver.
 
 Whole-compiler entry remains gated until all of the following hold:
 

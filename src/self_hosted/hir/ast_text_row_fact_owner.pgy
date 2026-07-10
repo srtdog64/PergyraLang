@@ -70,6 +70,10 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         if IsSome(sep) {
             return Substring(payload, 0, UnwrapOption(sep));
         }
+        let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
+        if IsSome(assign_sep) {
+            return StringTrim(Substring(payload, 0, UnwrapOption(assign_sep)));
+        }
         return "";
     }
     if kind == TypedAstKindAssignStmtTag() {

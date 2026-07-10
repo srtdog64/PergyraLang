@@ -149,6 +149,9 @@ require_max_lines "src/self_hosted/compiler/driver_cli_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung1_main.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy" 600
+require_max_lines "src/self_hosted/codegen/input/ast_local_initializer_codegen_view_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_artifact_verdict_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
@@ -158,6 +161,7 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "TypedAstArena
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "AstTreeArtifactPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactVerdictContractReady()"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstFunctionSignatureFactsContractReady()"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstLocalBindingFactsContractReady()"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst"
@@ -583,7 +587,7 @@ for term in \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
     "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
-    "SemanticDiagnosticCodeCount() != 20" \
+    "SemanticDiagnosticCodeCount() != 21" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
     require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"

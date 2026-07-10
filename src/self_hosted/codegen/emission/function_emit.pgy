@@ -32,6 +32,7 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(count: Int, arena: AstArena,
                   signatures: SemanticAstFunctionSignatureFacts,
+                  local_bindings: SemanticAstLocalBindingFacts,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool) -> String {
     let function_node_id: Int = cur[0];
@@ -116,7 +117,7 @@ func EmitFunction(count: Int, arena: AstArena,
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
-    let body: String = EmitStmtList(count, arena, stmt_indent, cur, "    ", env_box, body_ret, copyout);
+    let body: String = EmitStmtList(count, arena, local_bindings, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
     let body_full: String = Concat(prologue, Concat(body, copyout));
