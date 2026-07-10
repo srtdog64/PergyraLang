@@ -13,11 +13,11 @@ type_is_mutable_collection_storage(const Type *type)
 }
 
 bool
-reject_default_param_collection_mutator_receiver(ASTNode *receiver_expr,
-                                                 const Type *receiver_type,
-                                                 const char *mutator_name,
-                                                 const char *container_kind,
-                                                 SemanticContext *ctx)
+reject_non_inout_param_collection_mutator_receiver(ASTNode *receiver_expr,
+                                                   const Type *receiver_type,
+                                                   const char *mutator_name,
+                                                   const char *container_kind,
+                                                   SemanticContext *ctx)
 {
     const char *receiver_name;
     Symbol *receiver_sym;
@@ -33,16 +33,17 @@ reject_default_param_collection_mutator_receiver(ASTNode *receiver_expr,
         ? scope_lookup(ctx->scope, receiver_name)
         : NULL;
     if (receiver_sym == NULL || !receiver_sym->is_parameter
-        || receiver_sym->param_mode != PARAM_MODE_DEFAULT)
+        || (receiver_sym->param_mode != PARAM_MODE_DEFAULT
+            && receiver_sym->param_mode != PARAM_MODE_REF))
         return false;
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
         PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
         PGY_FIX_MATCH_BUILTIN_SIGNATURE, receiver_expr,
-        "Collection mutator '%s' cannot target default value parameter '%s'.\n"
+        "Collection mutator '%s' cannot target non-inout parameter '%s'.\n"
         "Reason:\n"
         "- caller-visible %s mutation must be explicit at the function boundary\n"
-        "- default collection parameters are not a mutation contract\n"
+        "- default parameters are values and ref parameters are read-only borrows\n"
         "Fix:\n"
         "- spell the parameter as 'inout %s: %s' when caller mutation is intended\n"
         "- or mutate a local collection/sink and return the result",

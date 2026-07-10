@@ -159,6 +159,25 @@ semantic_assignment_target_path_scratch(ASTNode *expr, SemanticContext *ctx)
 }
 
 const char *
+semantic_addressable_boundary_root_name(ASTNode *expr)
+{
+    if (expr == NULL)
+        return NULL;
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+        return ast_identifier_name(expr);
+    case AST_MEMBER_ACCESS:
+        return semantic_addressable_boundary_root_name(
+            ast_member_object(expr));
+    case AST_ARRAY_ACCESS:
+        return semantic_addressable_boundary_root_name(
+            ast_array_access_array(expr));
+    default:
+        return NULL;
+    }
+}
+
+const char *
 semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr == NULL || ctx == NULL)

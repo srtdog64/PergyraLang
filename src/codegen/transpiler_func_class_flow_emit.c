@@ -177,7 +177,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                 && is_pointer_self_host_type_name(ctx, type_name)) {
                 TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
                 if (entry != NULL)
-                    entry->is_subject_ref = true;
+                    entry->is_indirect_ref = true;
             }
             if (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0) {

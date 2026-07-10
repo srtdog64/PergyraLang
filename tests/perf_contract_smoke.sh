@@ -1279,7 +1279,7 @@ grep -Fq "emit_call_user_function(ASTNode *call" \
 grep -Fq "transpiler_call_subject_arg_policy.c" "$ROOT_DIR/Makefile"
 grep -Fq "transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx" \
     "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
-grep -Fq "transpiler_call_arg_is_subject_ref(TranspilerCtx *ctx" \
+grep -Fq "transpiler_call_arg_is_indirect_ref(TranspilerCtx *ctx" \
     "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
 if grep -Fq "is_pointer_self_host_type_name(ctx, ptn)" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"; then

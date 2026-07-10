@@ -151,6 +151,10 @@ func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
     let env: String = "|";
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
+        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
+            i = i + 1;
+            continue;
+        }
         let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
         let fname: String = CodegenSemanticFunctionNameOrDie(signatures, i);
         let cname: String = CompilerSymbolCQualifiedName(owner, fname);
@@ -295,6 +299,10 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
     let block: String = "";
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
+        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
+            i = i + 1;
+            continue;
+        }
         let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
         let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
         let c_name: String = CompilerSymbolCQualifiedName(owner, name);

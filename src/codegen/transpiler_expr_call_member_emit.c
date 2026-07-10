@@ -190,7 +190,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (obj->type == AST_IDENTIFIER) {
                         TypedVarEntry *entry = lookup_typed_entry(ctx,
                             ast_identifier_name(obj));
-                        if (entry != NULL && entry->is_subject_ref)
+                        if (entry != NULL && entry->is_indirect_ref)
                             already_pointer = true;
                     }
                     if (use_self_cell && !already_pointer)
@@ -249,7 +249,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                             TypedVarEntry *entry = lookup_typed_entry(ctx,
                                 ast_identifier_name(arg_node));
-                            if (entry != NULL && entry->is_subject_ref)
+                            if (entry != NULL && entry->is_indirect_ref)
                                 already_pointer = true;
                         }
                         if (is_self_arg && current_class_uses_self_cell(ctx))

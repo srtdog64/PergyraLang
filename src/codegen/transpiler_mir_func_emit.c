@@ -208,6 +208,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         bool boundary_slot = false;
         bool secure_slot = false;
         bool event_handler_param = false;
+        MIRParamCarriage carriage =
+            transpiler_mir_routine_param_carriage(mir_routine, i);
+        bool pass_indirect =
+            transpiler_mir_routine_param_passes_indirect(mir_routine, i);
         /* Row 607: prefer the MIR-owned callable signature; the AST
            EventHandler node is only the fallback carrier. */
         const MIRCallableSig *param_callable =
@@ -274,9 +278,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
-            && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+            && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
-        if (p->mode == PARAM_MODE_MUT_REF) {
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
             transpiler_register_mut_ref_param(ctx, p->name, pt);
         } else if (boundary_slot) {
@@ -333,6 +338,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                    && type_name != NULL
                    && is_pointer_self_host_type_name(ctx, type_name)) {
             codebuf_write(params_sig, "%s *%s", pt, p->name);
+        } else if (pass_indirect) {
+            codebuf_write(params_sig, "const %s *%s", pt, p->name);
         } else {
             codebuf_write(params_sig, "%s %s", pt, p->name);
         }
@@ -438,6 +445,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
     for (size_t i = 0; i < func_param_count; i++) {
         FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
+        MIRParamCarriage carriage =
+            transpiler_mir_routine_param_carriage(mir_routine, i);
+        bool pass_indirect =
+            transpiler_mir_routine_param_passes_indirect(mir_routine, i);
         const char *type_name =
             transpiler_mir_routine_param_type_name(mir_routine, i);
         char *owned_type_name = NULL;
@@ -463,13 +474,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (type_name != NULL) {
             bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
                                || strncmp(type_name, "SecureSlot<", 11) == 0)
-                && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+                && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                    || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
             register_typed_var(ctx, p->name, type_name);
             if (p->name != NULL && strcmp(p->name, "self") != 0
-                && is_pointer_self_host_type_name(ctx, type_name)) {
+                && (is_pointer_self_host_type_name(ctx, type_name)
+                    || pass_indirect)) {
                 TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
                 if (entry != NULL)
-                    entry->is_subject_ref = true;
+                    entry->is_indirect_ref = true;
             }
             if (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0) {

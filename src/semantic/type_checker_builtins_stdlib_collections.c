@@ -149,7 +149,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, list_type, "ListPush", "list", ctx))
             return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
@@ -177,7 +177,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, list_type, "ListSet", "list", ctx))
             return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
@@ -205,7 +205,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         list_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, list_type, "ListRemove", "list", ctx))
             return TYPE_UNKNOWN;
         index_type = stdlib_collection_normalize_type(
@@ -278,7 +278,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         set_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, set_type, name, "set", ctx))
             return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
@@ -383,7 +383,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         queue_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, queue_type, "QueuePush", "queue", ctx))
             return TYPE_UNKNOWN;
         value_type = stdlib_collection_normalize_type(
@@ -410,7 +410,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         queue_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, queue_type, "QueuePop", "queue", ctx))
             return TYPE_UNKNOWN;
         if (type_is_constructed_named(queue_type, "Queue")
@@ -468,7 +468,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArrayPush", "array", ctx))
             return TYPE_UNKNOWN;
         val = stdlib_collection_normalize_type(
@@ -495,7 +495,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArraySet", "array", ctx))
             return TYPE_UNKNOWN;
         require_assignable(
@@ -524,7 +524,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, "ArrayPop", "array", ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))
@@ -542,7 +542,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             return TYPE_UNKNOWN;
         arr = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
-        if (reject_default_param_collection_mutator_receiver(
+        if (reject_non_inout_param_collection_mutator_receiver(
                 arg0, arr, name, "array", ctx))
             return TYPE_UNKNOWN;
         if (!type_is_constructed_named(arr, "Array"))

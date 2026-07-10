@@ -3,6 +3,37 @@
 #include <stdint.h>
 #include <string.h>
 
+const MIRDeclHeader *
+mir_find_decl_header(const MIRProgram *mir, const char *name)
+{
+    if (mir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *header = &mir->decl_headers[i];
+        if (header->name != NULL && strcmp(header->name, name) == 0)
+            return header;
+    }
+    return NULL;
+}
+
+const MIRDeclHeader *
+mir_find_decl_header_of_type(const MIRProgram *mir,
+                             ASTNodeType ast_type,
+                             const char *name)
+{
+    if (mir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *header = &mir->decl_headers[i];
+        if (header->ast_type == ast_type
+            && header->name != NULL
+            && strcmp(header->name, name) == 0) {
+            return header;
+        }
+    }
+    return NULL;
+}
+
 ASTNodeType
 mir_decl_header_ast_type_or(const MIRDeclHeader *header, ASTNodeType fallback)
 {

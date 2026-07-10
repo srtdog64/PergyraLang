@@ -81,6 +81,8 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         bool boundary_slot = false;
         bool secure_slot = false;
         bool event_handler_param = false;
+        MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        bool pass_indirect = false;
 
         if (allow_ast_compat) {
             p = ast_func_param(node, i);
@@ -91,6 +93,11 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         }
         if (p == NULL)
             continue;
+        carriage = allow_ast_compat
+            ? mir_param_carriage_from_source_mode(p->mode)
+            : transpiler_mir_routine_param_carriage(mir_routine, i);
+        pass_indirect = !allow_ast_compat
+            && transpiler_mir_routine_param_passes_indirect(mir_routine, i);
         if (type_name != NULL) {
             ensure_type_specializations_from_type_name_to(
                 ctx,
@@ -140,9 +147,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
-            && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+            && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                || carriage == MIR_PARAM_CARRIAGE_READONLY_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
-        if (p->mode == PARAM_MODE_MUT_REF) {
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
         } else if (boundary_slot) {
             char inner_buf[128];
@@ -179,6 +187,8 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                    && type_name != NULL
                    && is_pointer_self_host_type_name(ctx, type_name)) {
             codebuf_write(params_sig, "%s *%s", pt, p->name);
+        } else if (pass_indirect) {
+            codebuf_write(params_sig, "const %s *%s", pt, p->name);
         } else {
             codebuf_write(params_sig, "%s %s", pt, p->name);
         }

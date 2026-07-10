@@ -220,6 +220,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         const char *intent_param_type_name = NULL;
         bool handled = false;
         char *arg = NULL;
+        MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        bool pass_indirect = false;
 
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
             if (callee_has_mir_signature) {
@@ -234,6 +236,14 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                        && i < ast_func_param_count(decl)) {
                 param = ast_func_param(decl, i);
             }
+        }
+        if (param != NULL) {
+            carriage = callee_has_mir_signature
+                ? transpiler_mir_routine_param_carriage(callee_routine, i)
+                : mir_param_carriage_from_source_mode(param->mode);
+            pass_indirect = callee_has_mir_signature
+                && transpiler_mir_routine_param_passes_indirect(
+                    callee_routine, i);
         }
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
@@ -289,7 +299,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
 
         if (param != NULL && (param_type_name != NULL || param->type != NULL)
-            && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {
+            && (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                || carriage == MIR_PARAM_CARRIAGE_READONLY_REF)) {
             char *param_type_owned = NULL;
             const char *param_type = param_type_name;
             if (param_type == NULL) {
@@ -389,13 +400,15 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         free(param_type_for_ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
-        if (!handled && param != NULL && param->mode == PARAM_MODE_MUT_REF) {
+        if (!handled && param != NULL
+            && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(args_buf, "&%s", arg);
         } else if (!handled) {
-            if (transpiler_call_arg_needs_subject_address(ctx,
+            if (pass_indirect
+                || transpiler_call_arg_needs_subject_address(ctx,
                     param, param_type_name,
                     intent_param_type, intent_param_type_name)) {
-                if (transpiler_call_arg_is_subject_ref(ctx, arg_node))
+                if (transpiler_call_arg_is_indirect_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
                 else if (transpiler_call_arg_can_take_subject_address(arg_node))
                     codebuf_write(args_buf, "&%s", arg);
@@ -404,7 +417,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         PGY_CODE_C_TYPE_UNSUPPORTED,
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-                        "C backend: subject argument %zu for '%s' requires addressable storage",
+                        "C backend: indirect argument %zu for '%s' requires addressable storage",
                         i + 1, callee_name != NULL ? callee_name : "<call>");
                     free(arg);
                     free(callee_str);

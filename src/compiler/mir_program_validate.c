@@ -111,6 +111,43 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
             }
             return false;
         }
+        if (routine->has_signature && routine->param_count > 0
+            && routine->param_abi_facts == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' records parameters without carriage facts",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            return false;
+        }
+        for (size_t j = 0;
+             routine->has_signature && j < routine->param_count; j++) {
+            MIRParamCarriage carriage = routine->param_abi_facts[j].carriage;
+            if (carriage < MIR_PARAM_CARRIAGE_VALUE
+                || carriage > MIR_PARAM_CARRIAGE_OWNER_HANDLE) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' parameter[%zu] has invalid carriage fact",
+                        routine->name != NULL
+                            ? routine->name
+                            : "(anonymous)",
+                        j);
+                }
+                return false;
+            }
+            if (routine->param_abi_facts[j].pass_indirect
+                && carriage != MIR_PARAM_CARRIAGE_READONLY_REF) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' parameter[%zu] has indirect ABI without readonly-ref carriage",
+                        routine->name != NULL
+                            ? routine->name
+                            : "(anonymous)",
+                        j);
+                }
+                return false;
+            }
+        }
         for (size_t j = 0; j < routine->source_local_type_count; j++) {
             const MIRSourceLocalType *fact = &routine->source_local_types[j];
             if (fact->name == NULL || fact->type_name == NULL) {

@@ -1,0 +1,13 @@
+struct Pair {
+    let mut left: Int;
+    right: Int;
+}
+
+func Rewrite(ref pair: Pair) -> Void {
+    pair.left = 9;
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair(1, 2);
+    Rewrite(pair);
+}

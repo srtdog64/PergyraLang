@@ -76,7 +76,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                 ? scope_lookup(ctx->scope, array_name)
                 : NULL;
             if (array_sym != NULL
-                && reject_default_param_collection_mutator_receiver(
+                && reject_non_inout_param_collection_mutator_receiver(
                     array_node, array_sym->type, "array index assignment",
                     "array", ctx)) {
                 return target_type;
@@ -136,6 +136,24 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER) {
             const char *var_name = ast_identifier_name(obj_node);
             Symbol *sym = scope_lookup(ctx->scope, var_name);
+            if (sym != NULL && sym->is_parameter
+                && sym->param_mode == PARAM_MODE_REF) {
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE,
+                    PGY_CAUSE_IMMUTABLE_FIELD_WRITE,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                    expr,
+                    "Cannot write through read-only ref parameter '%s'.\n"
+                    "Reason:\n"
+                    "- ref is a non-owning read-only borrow\n"
+                    "- caller-visible mutation requires an inout boundary\n"
+                    "Fix:\n"
+                    "- spell the parameter as 'inout %s: ...' when mutation is intended\n"
+                    "- or construct and return a replacement value",
+                    var_name != NULL ? var_name : "<receiver>",
+                    var_name != NULL ? var_name : "value");
+                return target_type;
+            }
             if (sym != NULL && sym->type != NULL
                 && sym->type->kind == TYPE_KIND_CLASS
                 && sym->type->name != NULL) {

@@ -146,6 +146,9 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindRoleDeclTag() {
         return Substring(text, 6, StringLength(text) - 6);
     }
+    if kind == TypedAstKindAbilityDeclTag() {
+        return Substring(text, 9, StringLength(text) - 9);
+    }
     if kind == TypedAstKindNominalDeclTag() {
         if StartsWith(text, "Struct: ") {
             return Substring(text, 8, StringLength(text) - 8);

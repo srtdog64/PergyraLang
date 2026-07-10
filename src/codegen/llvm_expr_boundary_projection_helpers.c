@@ -198,6 +198,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         const char *inner = NULL;
         ASTNode *arg_node = arg_nodes[arg_idx++];
         bool pointer_self = false;
+        MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+        bool pass_indirect = false;
 
         if (allow_ast_compat) {
             p = ast_func_param(decl, i);
@@ -206,6 +208,13 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             p = llvm_mir_routine_param(routine, i);
             param_type_name = llvm_mir_routine_param_type_name(routine, i);
         }
+        if (p != NULL) {
+            carriage = allow_ast_compat
+                ? mir_param_carriage_from_source_mode(p->mode)
+                : llvm_mir_routine_param_carriage(routine, i);
+            pass_indirect = !allow_ast_compat
+                && llvm_mir_routine_param_passes_indirect(routine, i);
+        }
         inner = param_type_name != NULL
             ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
                 param_type_name, &is_secure)
@@ -213,11 +222,12 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         pointer_self = param_type_name != NULL
             ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
             : llvm_boundary_param_uses_pointer_self(ctx, p);
+        pointer_self = pointer_self || pass_indirect;
 
         if (ctx->has_error)
             return NULL;
 
-        if (p != NULL && p->mode == PARAM_MODE_MUT_REF
+        if (p != NULL && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
             && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             LLVMVarEntry mr_var;
             if (llvm_scope_lookup_snapshot(ctx,

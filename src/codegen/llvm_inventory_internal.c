@@ -207,6 +207,19 @@ llvm_mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
     return mir_routine_param_type_name(routine, index);
 }
 
+MIRParamCarriage
+llvm_mir_routine_param_carriage(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param_carriage(routine, index);
+}
+
+bool
+llvm_mir_routine_param_passes_indirect(const MIRRoutine *routine,
+                                       size_t index)
+{
+    return mir_routine_param_passes_indirect(routine, index);
+}
+
 ASTNode *
 llvm_mir_routine_return_type(const MIRRoutine *routine)
 {

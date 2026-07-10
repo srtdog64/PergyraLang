@@ -311,6 +311,10 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             LLVMValueRef alloca;
             const char *param_type_name =
                 llvm_mir_routine_param_type_name(routine, param_index);
+            MIRParamCarriage carriage =
+                llvm_mir_routine_param_carriage(routine, param_index);
+            bool pass_indirect =
+                llvm_mir_routine_param_passes_indirect(routine, param_index);
 
             if (p == NULL || (is_method && llvm_param_is_implicit_self_local(p))) {
                 continue;
@@ -360,12 +364,13 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 continue;
             }
 
-            if (param_type_name != NULL
+            if (pass_indirect
+                || (param_type_name != NULL
                 ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
                 : (p->type != NULL
-                    && llvm_mir_param_uses_pointer_self(ctx, p->type)))
+                    && llvm_mir_param_uses_pointer_self(ctx, p->type))))
                 pt = LLVMPointerType(pt, 0);
-            if (p->mode == PARAM_MODE_MUT_REF) {
+            if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
                 LLVMValueRef mr_ptr =
                     LLVMGetParam(fn, (unsigned)emitted_index++);
                 alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);

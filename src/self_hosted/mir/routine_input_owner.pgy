@@ -74,7 +74,7 @@ func SelfMirFunctionBodyBlock(
 }
 
 func SelfMirTypeIsNominal(
-    input: SelfMirRoutineInput, type_name: String
+    ref input: SelfMirRoutineInput, type_name: String
 ) -> Bool {
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(input.analysis.constructors) {
@@ -85,7 +85,7 @@ func SelfMirTypeIsNominal(
 }
 
 func SelfMirLoopAssignedLocal(
-    input: SelfMirRoutineInput, body_node_id: Int, local_name: String
+    ref input: SelfMirRoutineInput, body_node_id: Int, local_name: String
 ) -> Bool {
     let i: Int = 0;
     while i < SemanticAstAssignmentCount(input.analysis.assignments) {

@@ -32,6 +32,18 @@ func CodegenSemanticFunctionOwnerOrDie(
     return UnwrapOption(owner);
 }
 
+func CodegenSemanticFunctionRuntimeCallableOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Bool {
+    let runtime_callable: Option<Bool> =
+        SemanticAstFunctionRuntimeCallableAt(facts, signature_index);
+    if !IsSome(runtime_callable) {
+        Die("semantic signature facts missing runtime-callable classification");
+    }
+    return UnwrapOption(runtime_callable);
+}
+
 func CodegenSemanticFunctionNameOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int

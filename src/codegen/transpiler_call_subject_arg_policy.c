@@ -62,7 +62,7 @@ transpiler_call_arg_can_take_subject_address(ASTNode *arg_node)
 }
 
 bool
-transpiler_call_arg_is_subject_ref(TranspilerCtx *ctx, ASTNode *arg_node)
+transpiler_call_arg_is_indirect_ref(TranspilerCtx *ctx, ASTNode *arg_node)
 {
     TypedVarEntry *entry;
 
@@ -70,5 +70,5 @@ transpiler_call_arg_is_subject_ref(TranspilerCtx *ctx, ASTNode *arg_node)
         return false;
 
     entry = lookup_typed_entry(ctx, ast_identifier_name(arg_node));
-    return entry != NULL && entry->is_subject_ref;
+    return entry != NULL && entry->is_indirect_ref;
 }

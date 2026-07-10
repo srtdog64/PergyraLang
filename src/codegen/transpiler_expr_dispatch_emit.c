@@ -282,7 +282,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 if (source_status == 1 && source_path != NULL) {
                     TypedVarEntry *source_entry = lookup_typed_entry(ctx, entry->source_slot);
                     char *result = strdup_fmt(
-                        (source_entry != NULL && source_entry->is_subject_ref)
+                        (source_entry != NULL && source_entry->is_indirect_ref)
                             ? "%s->%s"
                             : "%s.%s",
                         entry->source_slot, source_path);
@@ -318,7 +318,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (member_object->type == AST_IDENTIFIER) {
             TypedVarEntry *entry = lookup_typed_entry(ctx,
                 ast_identifier_name(member_object));
-            if (entry != NULL && entry->is_subject_ref) {
+            if (entry != NULL && entry->is_indirect_ref) {
                 char *result = strdup_fmt("%s->%s", obj, member_name);
                 free(obj);
                 return result;

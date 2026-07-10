@@ -429,8 +429,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             routine.return_type = ast_func_return_type(routine.ast);
             routine.within_zone = ast_func_within_zone(routine.ast);
             routine.has_signature = true;
-            if (!mir_routine_signature_type_names_capture(&routine)) {
-                mir_routine_signature_type_names_clear(&routine);
+            if (!mir_routine_signature_metadata_capture(mir, &routine)) {
+                mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
                     *error_message = pergyra_strdup("out of memory");
@@ -439,7 +439,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             }
             if (!mir_routine_source_local_type_names_capture(mir, &routine)) {
                 mir_routine_source_local_type_names_clear(&routine);
-                mir_routine_signature_type_names_clear(&routine);
+                mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
                     *error_message = pergyra_strdup("out of memory");
@@ -461,7 +461,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !mir_materialize_cleanup_edges(&routine)
             || !mir_recompute_analysis(&routine)
             || !append_routine(mir, routine)) {
-            mir_routine_signature_type_names_clear(&routine);
+            mir_routine_signature_metadata_clear(&routine);
             pgy_arena_destroy(&routine.scratch);
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");

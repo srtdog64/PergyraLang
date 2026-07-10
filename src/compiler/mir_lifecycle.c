@@ -79,7 +79,7 @@ mir_destroy(MIRProgram *mir)
                     free((void *)routine->value_summaries[j].name);
             }
             free(routine->value_summaries);
-            mir_routine_signature_type_names_clear(routine);
+            mir_routine_signature_metadata_clear(routine);
             mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);
             pgy_arena_destroy(&routine->scratch);

@@ -294,7 +294,7 @@ emit_intent_step_validate_authority(CodeBuf *out,
             continue;
 
         entry = lookup_typed_entry(ctx, alias);
-        if (entry != NULL && entry->is_subject_ref)
+        if (entry != NULL && entry->is_indirect_ref)
             participant_present = transpiler_scratch_fmt(ctx, "(%s != NULL)", alias);
         if (zone_alias != NULL)
             zone_present = transpiler_scratch_fmt(ctx, "(%s != NULL)", zone_alias);

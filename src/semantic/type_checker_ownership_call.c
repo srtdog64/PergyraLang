@@ -446,9 +446,13 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     if (arg_expr->type != AST_IDENTIFIER) {
         const char *borrowed_root_name =
             semantic_borrowed_boundary_root_name(arg_expr, ctx);
+        const char *addressable_root_name =
+            semantic_addressable_boundary_root_name(arg_expr);
         if (pmode == PARAM_MODE_DEFAULT)
             return true;
-        if (borrowed_root_name == NULL) {
+        if (borrowed_root_name == NULL
+            && !(pmode == PARAM_MODE_REF
+                 && addressable_root_name != NULL)) {
             semantic_report_named_boundary_argument_required(
                 arg_expr,
                 arg_expr,
@@ -461,6 +465,8 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     }
 
     borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
+    if (borrowed_name == NULL && pmode == PARAM_MODE_REF)
+        borrowed_name = semantic_addressable_boundary_root_name(arg_expr);
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         unsigned callee_mask =
             semantic_callable_param_escape_summary(

@@ -259,7 +259,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 if (pointer_param) {
                     TypedVarEntry *entry = lookup_typed_entry(ctx, alias);
                     if (entry != NULL)
-                        entry->is_subject_ref = true;
+                        entry->is_indirect_ref = true;
                 }
                 free(type_name);
             }

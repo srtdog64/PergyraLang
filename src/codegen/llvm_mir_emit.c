@@ -310,6 +310,13 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     ? llvm_mir_routine_param_type_name(routine,
                         source_param_index)
                     : NULL;
+            MIRParamCarriage carriage = source_param_index != (size_t)-1
+                ? llvm_mir_routine_param_carriage(routine,
+                    source_param_index)
+                : MIR_PARAM_CARRIAGE_VALUE;
+            bool pass_indirect = source_param_index != (size_t)-1
+                && llvm_mir_routine_param_passes_indirect(routine,
+                    source_param_index);
             const char *slot_inner = param_type_name != NULL
                 ? llvm_boundary_slot_inner_name_from_type_name(ctx,
                     p,
@@ -338,13 +345,15 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                         ctx, func_decl, NULL, "function parameter");
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
-                if (param_type_name != NULL
+                if (pass_indirect
+                    || (param_type_name != NULL
                     ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
                     : (p != NULL && p->type != NULL
-                        && llvm_mir_param_uses_pointer_self(ctx, p->type))) {
+                        && llvm_mir_param_uses_pointer_self(ctx, p->type)))) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
-                if (p != NULL && p->mode == PARAM_MODE_MUT_REF) {
+                if (p != NULL
+                    && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
             }

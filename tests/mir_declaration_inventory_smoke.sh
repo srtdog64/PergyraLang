@@ -392,7 +392,7 @@ require_term "src/compiler/mir_decl_headers.c" \
     "case AST_FUNC_DECL"
 require_term "src/compiler/mir.h" \
     "mir_find_decl_header_of_type"
-require_term "src/compiler/mir_public_surface.c" \
+require_term "src/compiler/mir_decl_header_access.c" \
     "mir_find_decl_header_of_type(const MIRProgram *mir"
 require_term "src/codegen/llvm_inventory_decl_lookup.c" \
     "mir_find_decl_header_of_type(ctx->mir, decl_type, name)"
@@ -3478,7 +3478,7 @@ for term in \
     "ast_func_params(routine.ast, &routine.param_count)" \
     "routine.return_type = ast_func_return_type(routine.ast)" \
     "routine.within_zone = ast_func_within_zone(routine.ast)" \
-    "mir_routine_signature_type_names_capture(&routine)"; do
+    "mir_routine_signature_metadata_capture(mir, &routine)"; do
     require_term "src/compiler/mir.c" "$term"
 done
 require_term "src/compiler/mir_decl_headers.c" \

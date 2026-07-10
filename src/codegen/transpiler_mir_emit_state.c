@@ -161,7 +161,7 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
                 && is_pointer_self_host_type_name(ctx, type_name)) {
                 TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
                 if (entry != NULL)
-                    entry->is_subject_ref = true;
+                    entry->is_indirect_ref = true;
             }
             free(type_name);
         }

@@ -57,6 +57,22 @@ typedef enum
     MIR_SCOPE_INTENT
 } MIRScopeKind;
 
+/* Canonical parameter carriage. Source ParamMode is captured once while MIR
+ * signatures are lowered; ABI consumers must not reinterpret parser modes. */
+typedef enum
+{
+    MIR_PARAM_CARRIAGE_VALUE,
+    MIR_PARAM_CARRIAGE_READONLY_REF,
+    MIR_PARAM_CARRIAGE_VALUE_RESULT,
+    MIR_PARAM_CARRIAGE_OWNER_HANDLE
+} MIRParamCarriage;
+
+typedef struct
+{
+    MIRParamCarriage carriage;
+    bool             pass_indirect;
+} MIRParamAbiFact;
+
 typedef enum
 {
     MIR_INST_DEF,
@@ -288,6 +304,7 @@ typedef struct
     size_t             generic_param_count;
     FuncParam        **params;
     char             **param_type_names;
+    MIRParamAbiFact   *param_abi_facts;
     size_t             param_count;
     /* Row 607: lossless callable signature payload (parallel to
      * param_type_names). param_callable_sigs[i].is_callable is true when
@@ -532,6 +549,12 @@ size_t      mir_routine_param_count(const MIRRoutine *routine);
 FuncParam  *mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
+MIRParamCarriage mir_routine_param_carriage(const MIRRoutine *routine,
+                                            size_t index);
+bool mir_routine_param_passes_indirect(const MIRRoutine *routine,
+                                       size_t index);
+MIRParamCarriage mir_param_carriage_from_source_mode(ParamMode mode);
+const char *mir_param_carriage_name(MIRParamCarriage carriage);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
 const MIRCallableSig *mir_routine_param_callable_sig(const MIRRoutine *routine,

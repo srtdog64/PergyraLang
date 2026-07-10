@@ -82,7 +82,7 @@ typedef struct
     bool is_view;
     bool is_move_token;
     bool source_secure;
-    bool is_subject_ref;  /* subject parameter pointer; use -> for member access */
+    bool is_indirect_ref; /* pointer-carried binding; use -> for member access */
     bool is_projection_borrow; /* object projection borrowed from a local source */
 } TypedVarEntry;
 

@@ -153,6 +153,42 @@ mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
     return routine->param_type_names[index];
 }
 
+MIRParamCarriage
+mir_routine_param_carriage(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->param_abi_facts == NULL
+        || index >= routine->param_count) {
+        return MIR_PARAM_CARRIAGE_VALUE;
+    }
+    return routine->param_abi_facts[index].carriage;
+}
+
+bool
+mir_routine_param_passes_indirect(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_has_signature(routine)
+        && routine->param_abi_facts != NULL
+        && index < routine->param_count
+        && routine->param_abi_facts[index].pass_indirect;
+}
+
+const char *
+mir_param_carriage_name(MIRParamCarriage carriage)
+{
+    switch (carriage) {
+    case MIR_PARAM_CARRIAGE_READONLY_REF:
+        return "readonly-ref";
+    case MIR_PARAM_CARRIAGE_VALUE_RESULT:
+        return "value-result";
+    case MIR_PARAM_CARRIAGE_OWNER_HANDLE:
+        return "owner-handle";
+    case MIR_PARAM_CARRIAGE_VALUE:
+    default:
+        return "value";
+    }
+}
+
 ASTNode *
 mir_routine_return_type(const MIRRoutine *routine)
 {

@@ -12,6 +12,7 @@ struct SemanticAstFunctionSignatureFacts {
     artifact_node_count: Int;
     function_node_ids: Array<Int>;
     owner_names: Array<String>;
+    runtime_callables: Array<Bool>;
     names: Array<String>;
     return_types: Array<String>;
     param_starts: Array<Int>;
@@ -22,6 +23,11 @@ struct SemanticAstFunctionSignatureFacts {
     param_modes: Array<Int>;
 }
 
+struct SemanticAstFunctionOwnerFact {
+    name: String;
+    runtime_callable: Bool;
+}
+
 func SemanticAstSignatureError(node_id: Int, fact: String) -> String {
     return SemanticError2(
         "function_signature_invalid",
@@ -30,7 +36,10 @@ func SemanticAstSignatureError(node_id: Int, fact: String) -> String {
     );
 }
 
-func SemanticAstFunctionOwnerName(arena: AstArena, function_node_id: Int) -> Option<String> {
+func SemanticAstFunctionOwnerFactFromArena(
+    arena: AstArena,
+    function_node_id: Int
+) -> Option<SemanticAstFunctionOwnerFact> {
     let parent: Option<Int> = TypedAstArenaParentId(arena, function_node_id);
     let remaining: Int = TypedAstArenaNodeCount(arena);
     while IsSome(parent) && remaining > 0 {
@@ -39,10 +48,27 @@ func SemanticAstFunctionOwnerName(arena: AstArena, function_node_id: Int) -> Opt
             arena, parent_id, TypedAstKindNominalDeclTag()
         ) || TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindRoleDeclTag()
-        ) || TypedAstArenaNodeKindIs(
+        ) {
+            let name: Option<String> = TypedAstArenaAtomText(arena, parent_id);
+            if !IsSome(name) {
+                return None;
+            }
+            return Some(SemanticAstFunctionOwnerFact(
+                UnwrapOption(name), true
+            ));
+        }
+        if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindAbilityDeclTag()
         ) {
-            return TypedAstArenaAtomText(arena, parent_id);
+            let ability_name: Option<String> = TypedAstArenaAtomText(
+                arena, parent_id
+            );
+            if !IsSome(ability_name) {
+                return None;
+            }
+            return Some(SemanticAstFunctionOwnerFact(
+                UnwrapOption(ability_name), false
+            ));
         }
         parent = TypedAstArenaParentId(arena, parent_id);
         remaining = remaining - 1;
@@ -50,7 +76,7 @@ func SemanticAstFunctionOwnerName(arena: AstArena, function_node_id: Int) -> Opt
     if IsSome(parent) {
         return None;
     }
-    return Some("");
+    return Some(SemanticAstFunctionOwnerFact("", true));
 }
 
 func SemanticAstFunctionSignatureFactsFromArtifact(
@@ -58,6 +84,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
 ) -> SemanticAstFunctionSignatureFacts {
     let function_node_ids: Array<Int> = [];
     let owner_names: Array<String> = [];
+    let runtime_callables: Array<Bool> = [];
     let names: Array<String> = [];
     let return_types: Array<String> = [];
     let param_starts: Array<Int> = [];
@@ -93,8 +120,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             diagnostic_message = SemanticAstSignatureError(node_id, "function_name");
             continue;
         }
-        let owner: Option<String> =
-            SemanticAstFunctionOwnerName(artifact.arena, node_id);
+        let owner: Option<SemanticAstFunctionOwnerFact> =
+            SemanticAstFunctionOwnerFactFromArena(artifact.arena, node_id);
         if !IsSome(owner) {
             ok = false;
             diagnostic_code = "function_signature_invalid";
@@ -158,8 +185,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                             UnwrapOption(param_type)
                         );
                     } else if UnwrapOption(param_name) == "self" &&
-                        StringLength(UnwrapOption(owner)) > 0 {
-                        resolved_param_type = UnwrapOption(owner);
+                        StringLength(UnwrapOption(owner).name) > 0 {
+                        resolved_param_type = UnwrapOption(owner).name;
                     } else {
                         ok = false;
                         diagnostic_code = "function_signature_invalid";
@@ -239,7 +266,8 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             continue;
         }
         ArrayPush(function_node_ids, node_id);
-        ArrayPush(owner_names, UnwrapOption(owner));
+        ArrayPush(owner_names, UnwrapOption(owner).name);
+        ArrayPush(runtime_callables, UnwrapOption(owner).runtime_callable);
         ArrayPush(names, UnwrapOption(name));
         ArrayPush(return_types, return_type);
         ArrayPush(param_starts, param_start);
@@ -249,7 +277,7 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
 
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_code, diagnostic_message, artifact.count,
-        function_node_ids, owner_names, names, return_types,
+        function_node_ids, owner_names, runtime_callables, names, return_types,
         param_starts, param_counts, param_node_ids, param_names,
         param_types, param_modes
     );
@@ -276,12 +304,14 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
     let name: Option<String> = TypedAstArenaAtomText(
         artifact.arena, function_node_id
     );
-    let owner: Option<String> = SemanticAstFunctionOwnerName(
+    let owner: Option<SemanticAstFunctionOwnerFact> = SemanticAstFunctionOwnerFactFromArena(
         artifact.arena, function_node_id
     );
     if !IsSome(name) || !IsSome(owner) ||
         UnwrapOption(name) != facts.names[signature_index] ||
-        UnwrapOption(owner) != facts.owner_names[signature_index] {
+        UnwrapOption(owner).name != facts.owner_names[signature_index] ||
+        UnwrapOption(owner).runtime_callable !=
+            facts.runtime_callables[signature_index] {
         return false;
     }
 
@@ -328,8 +358,8 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                     );
                 } else if IsSome(parameter_name) &&
                     UnwrapOption(parameter_name) == "self" &&
-                    StringLength(UnwrapOption(owner)) > 0 {
-                    resolved_type = UnwrapOption(owner);
+                    StringLength(UnwrapOption(owner).name) > 0 {
+                    resolved_type = UnwrapOption(owner).name;
                 } else {
                     return false;
                 }
@@ -382,6 +412,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     if !AstTreeArtifactReady(artifact) || !facts.ok ||
         facts.artifact_node_count != artifact.count ||
         ArrayLength(facts.owner_names) != n ||
+        ArrayLength(facts.runtime_callables) != n ||
         ArrayLength(facts.names) != n ||
         ArrayLength(facts.return_types) != n ||
         ArrayLength(facts.param_starts) != n ||
@@ -445,6 +476,17 @@ func SemanticAstFunctionOwnerNameAt(
         return None;
     }
     return Some(facts.owner_names[signature_index]);
+}
+
+func SemanticAstFunctionRuntimeCallableAt(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Option<Bool> {
+    if signature_index < 0 ||
+        signature_index >= SemanticAstFunctionSignatureCount(facts) {
+        return None;
+    }
+    return Some(facts.runtime_callables[signature_index]);
 }
 
 func SemanticAstFunctionNameAt(
@@ -563,13 +605,15 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     let first_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 0);
     let second_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 1);
     let valid_rows: Bool = facts.owner_names[0] == "Box" &&
+        facts.runtime_callables[0] &&
         facts.names[0] == "Get" &&
         facts.return_types[0] == "String" && facts.param_counts[0] == 2 &&
         IsSome(first_param) && facts.param_names[UnwrapOption(first_param)] == "self" &&
         facts.param_types[UnwrapOption(first_param)] == "Box" &&
         IsSome(second_param) && facts.param_names[UnwrapOption(second_param)] == "index" &&
         facts.param_types[UnwrapOption(second_param)] == "Int" &&
-        facts.owner_names[1] == "" && facts.names[1] == "Main" &&
+        facts.owner_names[1] == "" && facts.runtime_callables[1] &&
+        facts.names[1] == "Main" &&
         facts.return_types[1] == "Void";
     if !valid_rows {
         return false;
@@ -585,6 +629,17 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     );
     let duplicate_facts: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(duplicate);
-    return !duplicate_facts.ok &&
-        duplicate_facts.diagnostic_code == "function_signature_invalid";
+    if duplicate_facts.ok ||
+        duplicate_facts.diagnostic_code != "function_signature_invalid" {
+        return false;
+    }
+    let ability_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Ability: Arithmetic\n    Function: Add\n      Parameters:\n        self\n      Returns: Int\n"
+    );
+    let ability_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(ability_artifact);
+    return ability_facts.ok &&
+        ArrayLength(ability_facts.owner_names) == 1 &&
+        ability_facts.owner_names[0] == "Arithmetic" &&
+        !ability_facts.runtime_callables[0];
 }

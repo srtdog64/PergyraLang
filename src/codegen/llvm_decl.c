@@ -200,6 +200,8 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             FuncParam *p;
             const char *param_type_name;
             const char *slot_inner = NULL;
+            MIRParamCarriage carriage = MIR_PARAM_CARRIAGE_VALUE;
+            bool pass_indirect = false;
 
             if (allow_ast_compat) {
                 p = ast_func_param(node, i);
@@ -210,20 +212,26 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             }
             if (p == NULL || p->name == NULL)
                 continue;
+            carriage = allow_ast_compat
+                ? mir_param_carriage_from_source_mode(p->mode)
+                : llvm_mir_routine_param_carriage(routine, i);
+            pass_indirect = !allow_ast_compat
+                && llvm_mir_routine_param_passes_indirect(routine, i);
             LLVMTypeRef pt = llvm_decl_required_param_type_name_first(
                 ctx, node, p, param_type_name);
             if (ctx->has_error || pt == NULL)
                 return;
-            if (param_type_name != NULL
+            if (pass_indirect
+                || (param_type_name != NULL
                 ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
                 : (p != NULL
                     && p->type != NULL
                     && ast_type_name(p->type) != NULL
                     && llvm_type_name_uses_pointer_self(ctx,
-                        ast_type_name(p->type)))) {
+                        ast_type_name(p->type))))) {
                 pt = LLVMPointerType(pt, 0);
             }
-            if (p != NULL && p->mode == PARAM_MODE_MUT_REF) {
+            if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
                 pt = LLVMPointerType(pt, 0);
             }
             slot_inner = param_type_name != NULL
@@ -232,7 +240,6 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                     param_type_name,
                     &is_secure)
                 : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
-            ParamMode pmode = (p != NULL) ? p->mode : PARAM_MODE_DEFAULT;
             if (slot_inner != NULL) {
                 unsigned slot_idx = pidx;
                 param_types[pidx++] = LLVMPointerType(pt, 0);
@@ -240,9 +247,10 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                  * pointer -> noalias; a ref slot is a read-only borrow
                  * (ReadView) -> readonly (may alias, so not noalias). */
                 if (param_attr != NULL) {
-                    if (pmode == PARAM_MODE_OWN || pmode == PARAM_MODE_DEFAULT)
+                    if (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE
+                        || carriage == MIR_PARAM_CARRIAGE_VALUE)
                         param_attr[slot_idx] = 1;
-                    else if (pmode == PARAM_MODE_REF)
+                    else if (carriage == MIR_PARAM_CARRIAGE_READONLY_REF)
                         param_attr[slot_idx] = 2;
                 }
                 if (is_secure) {
@@ -254,9 +262,9 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                 param_types[pidx++] = pt;
                 if (param_attr != NULL
                     && LLVMGetTypeKind(pt) == LLVMPointerTypeKind) {
-                    if (pmode == PARAM_MODE_OWN)
+                    if (carriage == MIR_PARAM_CARRIAGE_OWNER_HANDLE)
                         param_attr[val_idx] = 1;
-                    else if (pmode == PARAM_MODE_REF)
+                    else if (carriage == MIR_PARAM_CARRIAGE_READONLY_REF)
                         param_attr[val_idx] = 2;
                 }
             }

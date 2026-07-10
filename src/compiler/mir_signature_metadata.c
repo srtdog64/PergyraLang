@@ -3,8 +3,25 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
+
+MIRParamCarriage
+mir_param_carriage_from_source_mode(ParamMode mode)
+{
+    switch (mode) {
+    case PARAM_MODE_REF:
+        return MIR_PARAM_CARRIAGE_READONLY_REF;
+    case PARAM_MODE_MUT_REF:
+        return MIR_PARAM_CARRIAGE_VALUE_RESULT;
+    case PARAM_MODE_OWN:
+        return MIR_PARAM_CARRIAGE_OWNER_HANDLE;
+    case PARAM_MODE_DEFAULT:
+    default:
+        return MIR_PARAM_CARRIAGE_VALUE;
+    }
+}
 
 /* Row 607: free a callable signature descriptor. */
 static void
@@ -72,7 +89,7 @@ mir_callable_sig_build(const ASTNode *type_node, MIRCallableSig *out)
 }
 
 void
-mir_routine_signature_type_names_clear(MIRRoutine *routine)
+mir_routine_signature_metadata_clear(MIRRoutine *routine)
 {
     if (routine == NULL)
         return;
@@ -82,6 +99,8 @@ mir_routine_signature_type_names_clear(MIRRoutine *routine)
     }
     free(routine->param_type_names);
     routine->param_type_names = NULL;
+    free(routine->param_abi_facts);
+    routine->param_abi_facts = NULL;
     free(routine->return_type_name);
     routine->return_type_name = NULL;
     if (routine->param_callable_sigs != NULL) {
@@ -94,7 +113,8 @@ mir_routine_signature_type_names_clear(MIRRoutine *routine)
 }
 
 bool
-mir_routine_signature_type_names_capture(MIRRoutine *routine)
+mir_routine_signature_metadata_capture(const MIRProgram *program,
+                                       MIRRoutine *routine)
 {
     if (routine == NULL || !routine->has_signature)
         return true;
@@ -111,12 +131,31 @@ mir_routine_signature_type_names_capture(MIRRoutine *routine)
             sizeof(MIRCallableSig));
         if (routine->param_callable_sigs == NULL)
             return false;
+        routine->param_abi_facts = calloc(routine->param_count,
+            sizeof(MIRParamAbiFact));
+        if (routine->param_abi_facts == NULL)
+            return false;
         for (size_t i = 0; i < routine->param_count; i++) {
             FuncParam *param =
                 routine->params != NULL ? routine->params[i] : NULL;
+            ParamMode mode = param != NULL
+                ? param->mode
+                : PARAM_MODE_DEFAULT;
+            routine->param_abi_facts[i].carriage =
+                mir_param_carriage_from_source_mode(mode);
             if (param != NULL && param->type != NULL) {
                 routine->param_type_names[i] =
                     mir_capture_type_name(param->type, NULL);
+                if (routine->param_abi_facts[i].carriage
+                        == MIR_PARAM_CARRIAGE_READONLY_REF
+                    && routine->param_type_names[i] != NULL) {
+                    const MIRDeclHeader *header = mir_find_decl_header(
+                        program, routine->param_type_names[i]);
+                    routine->param_abi_facts[i].pass_indirect =
+                        header != NULL
+                        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+                            == AST_CLASS_DECL;
+                }
                 /* Row 607: when the rendered name is absent because the param
                    is an EventHandler, carry its shape losslessly in MIR. */
                 if (routine->param_type_names[i] == NULL)

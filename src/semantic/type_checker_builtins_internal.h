@@ -72,11 +72,12 @@ void reject_borrowed_boundary_container_store(ASTNode *value_expr,
                                               const char *container_kind,
                                               const char *container_name,
                                               SemanticContext *ctx);
-bool reject_default_param_collection_mutator_receiver(ASTNode *receiver_expr,
-                                                      const Type *receiver_type,
-                                                      const char *mutator_name,
-                                                      const char *container_kind,
-                                                      SemanticContext *ctx);
+bool reject_non_inout_param_collection_mutator_receiver(
+                                                       ASTNode *receiver_expr,
+                                                       const Type *receiver_type,
+                                                       const char *mutator_name,
+                                                       const char *container_kind,
+                                                       SemanticContext *ctx);
 bool reject_parallel_collection_mutator(ASTNode *expr,
                                         const char *name,
                                         bool mutates_storage,

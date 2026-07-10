@@ -386,6 +386,14 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
         fputs(",\"type\":", out);
         mir_json_emit_str_or_null(out,
             mir_routine_param_type_name(routine, p));
+        fputs(",\"carriage\":", out);
+        mir_json_emit_str(out, mir_param_carriage_name(
+            mir_routine_param_carriage(routine, p)));
+        fputs(",\"pass\":", out);
+        mir_json_emit_str(out,
+            mir_routine_param_passes_indirect(routine, p)
+                ? "indirect"
+                : "direct");
         fputc('}', out);
     }
     fputs("],\"return\":", out);
