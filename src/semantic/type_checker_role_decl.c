@@ -23,6 +23,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {

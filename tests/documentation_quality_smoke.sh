@@ -148,6 +148,7 @@ required_files=(
     "docs/semantics/09_abstraction_loss_contracts.md"
     "docs/semantics/boundary_migration_manifest.md"
     "docs/semantics/23_compiler_stable_identity.md"
+    "docs/semantics/24_semantic_declaration_identity.md"
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"

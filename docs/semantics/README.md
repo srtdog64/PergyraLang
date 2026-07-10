@@ -52,6 +52,10 @@ Required shape for each proof document:
   gate-backed `SyntaxNodeId` contract for parser results and final imported
   programs, including post-merge reassignment, duplicate rejection, and
   overflow fail-close behavior.
+- [24_semantic_declaration_identity.md](24_semantic_declaration_identity.md):
+  partial, gate-backed semantic placeholder ownership. `Symbol` completes a
+  forward declaration only when its kind and `SyntaxNodeId` match; line/column
+  and same-name coalescing are forbidden identity sources.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 
 Mechanized artifacts:

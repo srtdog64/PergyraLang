@@ -73,6 +73,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     if (program == NULL || program->type != AST_PROGRAM)
         return false;
 
+    /* Parsed/imported programs arrive finalized. Programmatic AST callers
+     * enter through the same AST-owned identity assignment boundary here. */
+    if (ast_node_stable_id(program) == 0
+        && !ast_assign_stable_ids(program)) {
+        semantic_error(ctx, program,
+            "Syntax node identity space exhausted before semantic analysis");
+        return false;
+    }
+
     ctx->program_root = program;
     if (!semantic_build_host_decl_index(ctx, program))
         return program_report_resolution_oom(ctx, program,
@@ -93,6 +102,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "type-alias placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 if (s != NULL)
                     s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
@@ -112,6 +122,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "class placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 if (s != NULL)
                     s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
@@ -124,6 +135,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "ability placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 if (s != NULL)
                     s->kind = SYMBOL_ABILITY;
                 scope_declare(ctx->scope, s);
@@ -182,6 +194,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "function placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_EVENT_DECL) {
@@ -215,6 +228,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "event placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_ENUM_DECL) {
@@ -233,6 +247,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "enum placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
             }
@@ -301,6 +316,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (s == NULL)
                         return program_report_resolution_oom(ctx, decl,
                             "extern placeholder symbol");
+                    symbol_mark_declaration(s, ast_node_stable_id(decl), true);
                     scope_declare(ctx->scope, s);
                 }
             }
@@ -350,6 +366,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "intent placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 s->kind = SYMBOL_INTENT;
                 scope_declare(ctx->scope, s);
             }
@@ -387,6 +404,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (s == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "domain placeholder symbol");
+                symbol_mark_declaration(s, ast_node_stable_id(stmt), true);
                 s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
             }

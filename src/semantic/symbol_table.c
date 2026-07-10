@@ -469,6 +469,35 @@ symbol_create_view(const char *name, Type *view_type,
 }
 
 void
+symbol_mark_declaration(Symbol *symbol, uint32_t syntax_id,
+                        bool is_forward_placeholder)
+{
+    if (symbol == NULL)
+        return;
+    symbol->decl_syntax_id = syntax_id;
+    symbol->is_forward_placeholder = is_forward_placeholder;
+}
+
+bool
+symbol_is_forward_declaration_for(const Symbol *symbol,
+                                  SymbolKind expected_kind,
+                                  uint32_t syntax_id)
+{
+    return symbol != NULL
+        && symbol->kind == expected_kind
+        && symbol->is_forward_placeholder
+        && syntax_id != 0
+        && symbol->decl_syntax_id == syntax_id;
+}
+
+void
+symbol_complete_forward_declaration(Symbol *symbol)
+{
+    if (symbol != NULL)
+        symbol->is_forward_placeholder = false;
+}
+
+void
 symbol_destroy(Symbol *sym)
 {
     if (sym == NULL)

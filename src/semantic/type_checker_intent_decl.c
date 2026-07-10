@@ -38,7 +38,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
 
-    if (existing != NULL && existing->kind != SYMBOL_INTENT) {
+    if (existing != NULL
+        && !symbol_is_forward_declaration_for(existing,
+            SYMBOL_INTENT, ast_node_stable_id(node))) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_REDECLARATION,
             PGY_CAUSE_INTENT_DUPLICATE_NAME,
@@ -46,9 +48,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             node, "Redeclaration of intent '%s'", name);
         return false;
     }
-    if (existing != NULL && existing->kind == SYMBOL_INTENT) {
+    if (existing != NULL) {
         if (!type_check_intent_update_existing_signature(node, existing, ctx))
             return false;
+        symbol_complete_forward_declaration(existing);
     }
 
     type_check_intent_resolve_binding_types(node, ctx);

@@ -1,0 +1,4 @@
+import "a.pgy";
+import "b.pgy";
+
+func Main() -> Void { Log(1); }

@@ -27,9 +27,8 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
-        bool is_self_predecl = existing->kind == SYMBOL_ABILITY
-            && existing->decl_line == node->line
-            && existing->decl_col == node->column;
+        bool is_self_predecl = symbol_is_forward_declaration_for(
+            existing, SYMBOL_ABILITY, ast_node_stable_id(node));
         if (!is_self_predecl) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_REDECLARATION,
@@ -38,6 +37,7 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
                 node, "Redeclaration of ability '%s'", name);
             return false;
         }
+        symbol_complete_forward_declaration(existing);
     } else {
         /* Register ability as a symbol so roles can reference it. */
         Symbol *sym = calloc(1, sizeof(Symbol));
@@ -46,6 +46,7 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         sym->type = TYPE_VOID; /* Abilities don't have a concrete type */
         sym->decl_line = node->line;
         sym->decl_col = node->column;
+        symbol_mark_declaration(sym, ast_node_stable_id(node), false);
         scope_declare(ctx->scope, sym);
     }
 

@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "diag_codes.h"
 
 bool
 type_check_enum_decl(ASTNode *node, SemanticContext *ctx)
@@ -7,11 +8,25 @@ type_check_enum_decl(ASTNode *node, SemanticContext *ctx)
     ASTNode *saved_nominal;
     size_t method_count = 0;
     ASTNode **methods;
+    Symbol *existing;
 
     if (node == NULL || node->type != AST_ENUM_DECL || ctx == NULL)
         return true;
 
     name = ast_enum_name(node);
+    existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL
+        && !symbol_is_forward_declaration_for(existing,
+            SYMBOL_CLASS, ast_node_stable_id(node))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+            node, "Redeclaration of enum '%s'", name);
+        return false;
+    }
+    symbol_complete_forward_declaration(existing);
+
     saved_nominal = ctx->current_nominal_decl;
     methods = ast_enum_methods(node, &method_count);
 

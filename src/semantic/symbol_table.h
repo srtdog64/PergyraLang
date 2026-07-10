@@ -82,6 +82,8 @@ struct Symbol
     Type*      type;
     uint32_t   decl_line;
     uint32_t   decl_col;
+    uint32_t   decl_syntax_id;
+    bool       is_forward_placeholder;
     bool       is_used;
     bool       is_consumed;
     bool       is_parameter;
@@ -224,6 +226,13 @@ Symbol* symbol_create_token(const char* name, const char* paired_slot,
 Symbol* symbol_create_view(const char* name, Type* view_type,
                            const char* source_slot,
                            uint32_t line, uint32_t col);
+
+void symbol_mark_declaration(Symbol* symbol, uint32_t syntax_id,
+                             bool is_forward_placeholder);
+bool symbol_is_forward_declaration_for(const Symbol* symbol,
+                                       SymbolKind expected_kind,
+                                       uint32_t syntax_id);
+void symbol_complete_forward_declaration(Symbol* symbol);
 
 void    symbol_destroy(Symbol* sym);
 

@@ -182,11 +182,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *func_sym = symbol_create_function(name, func_type,
                                                node->line, node->column);
+    symbol_mark_declaration(func_sym, ast_node_stable_id(node), false);
     /* If a forward-declaration placeholder exists from Pass 1,
        update its type instead of re-declaring. */
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL && existing->kind == SYMBOL_FUNCTION) {
+    if (symbol_is_forward_declaration_for(existing,
+            SYMBOL_FUNCTION, ast_node_stable_id(node))) {
         existing->type = func_type;
+        symbol_complete_forward_declaration(existing);
         symbol_destroy(func_sym);
     } else if (!scope_declare(ctx->scope, func_sym)) {
         semantic_error_with_hints(ctx,

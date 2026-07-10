@@ -2156,6 +2156,9 @@ boundary-migration-test-smoke:
 stable-identity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/stable_identity_contract_smoke.sh
 
+semantic-declaration-identity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/semantic_declaration_identity_smoke.sh
+
 verification-methodology-test-smoke:
 	"$(BASH)" tests/verification_methodology_smoke.sh
 
@@ -2963,6 +2966,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke
+.PHONY: semantic-declaration-identity-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
 

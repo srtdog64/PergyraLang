@@ -31,12 +31,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
+    if (symbol_is_forward_declaration_for(existing,
+            SYMBOL_CLASS, ast_node_stable_id(node))) {
         existing->kind = SYMBOL_WORLD;
         if (existing->type == NULL || existing->type == TYPE_VOID)
             existing->type = create_overlay_nominal_type(name);
+        symbol_complete_forward_declaration(existing);
         symbol_destroy(sym);
     } else if (existing != NULL) {
         semantic_error_with_hints(ctx,

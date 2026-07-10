@@ -32,11 +32,25 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 {
     bool ok = true;
     const char *event_name;
+    Symbol *existing;
 
     if (node == NULL || ctx == NULL || node->type != AST_EVENT_DECL)
         return false;
 
     event_name = ast_event_name(node);
+    existing = scope_lookup_current(ctx->scope, event_name);
+    if (existing != NULL
+        && !symbol_is_forward_declaration_for(existing,
+            SYMBOL_FUNCTION, ast_node_stable_id(node))) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_REDECLARATION,
+            PGY_CAUSE_SCOPE_DUPLICATE_SYMBOL,
+            PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
+            node, "Redeclaration of event '%s'", event_name);
+        return false;
+    }
+    symbol_complete_forward_declaration(existing);
+
     for (size_t i = 0; i < ast_event_param_count(node); i++) {
         ASTNode *param = ast_event_param(node, i);
         if (param == NULL)

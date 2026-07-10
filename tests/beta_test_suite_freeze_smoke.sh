@@ -84,6 +84,7 @@ mandatory_targets=(
     "language-contract-golden-test-smoke"
     "boundary-migration-test-smoke"
     "stable-identity-test-smoke"
+    "semantic-declaration-identity-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

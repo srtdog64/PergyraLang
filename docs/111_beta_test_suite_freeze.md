@@ -65,6 +65,7 @@ The beta release candidate must keep these gates green:
 - `make language-contract-golden-test-smoke`
 - `make boundary-migration-test-smoke`
 - `make stable-identity-test-smoke`
+- `make semantic-declaration-identity-test-smoke`
 - `make beta-readiness-checklist-test-smoke`
 - `make beta-test-suite-freeze-test-smoke`
 

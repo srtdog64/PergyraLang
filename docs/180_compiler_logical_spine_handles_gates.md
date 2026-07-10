@@ -286,7 +286,7 @@ migration vocabulary.
 |---|---|---|---|
 | Source/Parser Artifact Gate | bytes/tokens -> AST | `ABSENT` dedicated enforcement | stable source/syntax handles, recovery artifact totality, raw-source reread rejection |
 | Boundary Migration Gate | compiler owner movement | `LANDED`; manifest-backed and blocking CI | add each live owner move before shadow facts are consumed; keep all retired paths absent |
-| Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `PARTIAL`; merged-program `SyntaxNodeId` uniqueness and overflow are blocking CI | add revision/source-unit identities; exact routine/boundary/type/binding/value joins; stale/foreign ID rejection; name/prefix/AST join prohibition |
+| Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `PARTIAL`; merged-program `SyntaxNodeId` and semantic declaration placeholders are blocking CI | add revision/source-unit identities; exact routine/boundary/type/binding/value joins; stale/foreign ID rejection; name/prefix/AST join prohibition |
 | HIR Totality Gate | AST -> typed semantic entities | `PARTIAL` | every stable declaration/local/body/type fact owned without semantic AST fallback |
 | DIR Referential Gate | HIR entity -> domain graph | `PARTIAL`; current initial lowering is AST-owned | make HIR/entity facts the input; typed references replace name/AST joins; edge totality corpus |
 | RIR Transition Gate | HIR/DIR resource facts -> state graph | `PARTIAL`; current initial lowering is AST-owned | remove AST-call recovery in validation; stable resource/boundary handles across join/loop/transfer/authority cases |
@@ -396,7 +396,9 @@ Do not implement all handles at once.
 1. **LANDED:** boundary-migration manifest/gate and the completed local-binding
    move are blocking CI.
 2. **PARTIAL:** merged-program `SyntaxNodeId` is unique and fail-closed; add
-   source/revision/entity handles in shadow mode with parity checks.
+   semantic declaration placeholders now match by that ID rather than source
+   coordinates; add source/revision/entity handles in shadow mode with parity
+   checks.
 3. Move HIR declaration/local/body/type facts behind those handles.
 4. Carry resource/boundary handles through DIR -> RIR -> MIR -> AIR.
 5. Add the Verified Projection Plan over existing ABI/runtime-call/target rows.

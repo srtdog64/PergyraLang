@@ -149,6 +149,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *class_sym = symbol_create_function(name, class_type,
                                                 node->line, node->column);
+    symbol_mark_declaration(class_sym, ast_node_stable_id(node), false);
     class_sym->kind = SYMBOL_CLASS;
 
     /* Declare in the outer scope (step out of temporary generic scope).
@@ -159,11 +160,10 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         Scope *saved = ctx->scope;
         ctx->scope = target;
         Symbol *existing = scope_lookup_current(ctx->scope, name);
-        if (existing != NULL
-            && existing->kind == SYMBOL_CLASS
-            && existing->decl_line == (uint32_t)node->line
-            && existing->decl_col == (uint32_t)node->column) {
+        if (symbol_is_forward_declaration_for(existing,
+                SYMBOL_CLASS, ast_node_stable_id(node))) {
             existing->type = class_type;
+            symbol_complete_forward_declaration(existing);
             symbol_destroy(class_sym);
         } else if (!scope_declare(ctx->scope, class_sym)) {
             semantic_error_with_hints(ctx,
