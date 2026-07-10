@@ -149,6 +149,23 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
   payload contract and `NodeId` lookup facts.
 
+## MIR Producer
+
+- `src/self_hosted/mir/program_fact_owner.pgy` -- flat declaration, routine,
+  block, instruction, source-local, and use-row ownership.
+- `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
+  and source-shape classification for MIR facts.
+- `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
+  semantic-fact input bundle consumed by routine lowering.
+- `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
+  lowering as one value-state transformer with explicit loop/branch topology.
+- `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
+  deterministic instruction-ID canonicalization.
+- `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
+  required-fact verification.
+- `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
+  projection; it cannot read AST provenance.
+
 ## MIR Lower
 
 - `src/self_hosted/mir_lower/main.pgy` -- entrypoint only.

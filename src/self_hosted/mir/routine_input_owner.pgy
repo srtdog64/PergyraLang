@@ -1,0 +1,102 @@
+// Immutable typed-artifact and semantic-fact bundle for MIR routine lowering.
+
+import "../semantic/ast_artifact_verdict_owner.pgy";
+
+struct SelfMirRoutineInput {
+    artifact: AstTreeArtifact;
+    analysis: SemanticAstArtifactAnalysis;
+}
+
+func SelfMirNodeDescendsFrom(
+    arena: AstArena, node_id: Int, ancestor_id: Int
+) -> Bool {
+    let cursor: Option<Int> = Some(node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena) + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let current: Int = UnwrapOption(cursor);
+        if current == ancestor_id { return true; }
+        cursor = TypedAstArenaParentId(arena, current);
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        arena, node_id, child_index
+    );
+    while IsSome(child_opt) {
+        let child_id: Int = UnwrapOption(child_opt);
+        if TypedAstArenaNodeKindIs(arena, child_id, TypedAstKindBlockTag()) {
+            return Some(child_id);
+        }
+        let nested_index: Int = 0;
+        let nested_opt: Option<Int> = TypedAstArenaChildAt(
+            arena, child_id, nested_index
+        );
+        while IsSome(nested_opt) {
+            let nested_id: Int = UnwrapOption(nested_opt);
+            if TypedAstArenaNodeKindIs(
+                arena, nested_id, TypedAstKindBlockTag()
+            ) {
+                return Some(nested_id);
+            }
+            nested_index = nested_index + 1;
+            nested_opt = TypedAstArenaChildAt(
+                arena, child_id, nested_index
+            );
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(arena, node_id, child_index);
+    }
+    return None;
+}
+
+func SelfMirFunctionBodyBlock(
+    arena: AstArena, function_node_id: Int
+) -> Option<Int> {
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        arena, function_node_id, child_index
+    );
+    while IsSome(child_opt) {
+        let child_id: Int = UnwrapOption(child_opt);
+        if TypedAstArenaNodeKindIs(arena, child_id, TypedAstKindBodyTag()) {
+            return SelfMirControlBodyBlock(arena, child_id);
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(
+            arena, function_node_id, child_index
+        );
+    }
+    return None;
+}
+
+func SelfMirTypeIsNominal(
+    input: SelfMirRoutineInput, type_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(input.analysis.constructors) {
+        if input.analysis.constructors.names[i] == type_name { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SelfMirLoopAssignedLocal(
+    input: SelfMirRoutineInput, body_node_id: Int, local_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstAssignmentCount(input.analysis.assignments) {
+        if input.analysis.assignments.target_base_names[i] == local_name &&
+            SelfMirNodeDescendsFrom(
+                input.artifact.arena,
+                input.analysis.assignments.node_ids[i], body_node_id
+            ) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}

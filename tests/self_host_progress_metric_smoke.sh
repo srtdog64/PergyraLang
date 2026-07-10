@@ -31,6 +31,7 @@ pgy_compiler_core_loc="$(count_lines \
     "$ROOT_DIR/src/self_hosted/semantic" \
     "$ROOT_DIR/src/self_hosted/codegen" \
     "$ROOT_DIR/src/self_hosted/hir" \
+    "$ROOT_DIR/src/self_hosted/mir" \
     "$ROOT_DIR/src/self_hosted/mir_lower" \
     "$ROOT_DIR/src/self_hosted/compiler")"
 c_reference_loc="$(count_c_lines \

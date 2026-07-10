@@ -1,0 +1,315 @@
+// Shared AstTreeArtifact -> self-host MIR fact graph producer.
+
+import "program_fact_owner.pgy";
+import "routine_lower_owner.pgy";
+
+func SelfMirDeclarationsFromAnalysis(
+    analysis: SemanticAstArtifactAnalysis
+) -> SelfMirDeclarationRows {
+    let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
+    let kinds: Array<String> = rows.kinds;
+    let nominal_kinds: Array<String> = rows.nominal_kinds;
+    let names: Array<String> = rows.names;
+    let field_starts: Array<Int> = rows.field_starts;
+    let field_counts: Array<Int> = rows.field_counts;
+    let field_names: Array<String> = rows.field_names;
+    let field_types: Array<String> = rows.field_types;
+    let method_starts: Array<Int> = rows.method_starts;
+    let method_counts: Array<Int> = rows.method_counts;
+    let method_names: Array<String> = rows.method_names;
+    let method_returns: Array<String> = rows.method_returns;
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(analysis.constructors) {
+        ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
+        ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
+        ArrayPush(names, analysis.constructors.names[i]);
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, analysis.constructors.param_counts[i]);
+        let field_i: Int = 0;
+        while field_i < analysis.constructors.param_counts[i] {
+            let field_name: Option<String> =
+                SemanticAstNominalConstructorFieldNameAt(
+                    analysis.constructors, i, field_i
+                );
+            let field_type: Option<String> =
+                SemanticAstNominalConstructorParamTypeAt(
+                    analysis.constructors, i, field_i
+                );
+            if IsSome(field_name) && IsSome(field_type) {
+                ArrayPush(field_names, UnwrapOption(field_name));
+                ArrayPush(field_types, UnwrapOption(field_type));
+            }
+            field_i = field_i + 1;
+        }
+        ArrayPush(method_starts, ArrayLength(method_names));
+        let method_count: Int = 0;
+        let signature_i: Int = 0;
+        while signature_i < SemanticAstFunctionSignatureCount(
+            analysis.signatures
+        ) {
+            if analysis.signatures.owner_names[signature_i] ==
+                analysis.constructors.names[i] {
+                ArrayPush(
+                    method_names, analysis.signatures.names[signature_i]
+                );
+                ArrayPush(
+                    method_returns,
+                    analysis.signatures.return_types[signature_i]
+                );
+                method_count = method_count + 1;
+            }
+            signature_i = signature_i + 1;
+        }
+        ArrayPush(method_counts, method_count);
+        i = i + 1;
+    }
+    return SelfMirDeclarationRows(
+        kinds, nominal_kinds, names, field_starts, field_counts,
+        field_names, field_types, method_starts, method_counts,
+        method_names, method_returns
+    );
+}
+
+func SelfMirAppendCfg(
+    target: SelfMirCfgRows,
+    source: SelfMirCfgRows
+) -> SelfMirCfgRows {
+    let target_blocks: SelfMirBlockRows = target.blocks;
+    let block_ids: Array<Int> = target_blocks.ids;
+    let reachable: Array<Int> = target_blocks.reachable;
+    let instruction_starts: Array<Int> = target_blocks.instruction_starts;
+    let instruction_counts: Array<Int> = target_blocks.instruction_counts;
+    let has_true: Array<Int> = target_blocks.has_succ_true;
+    let succ_true: Array<Int> = target_blocks.succ_true;
+    let has_false: Array<Int> = target_blocks.has_succ_false;
+    let succ_false: Array<Int> = target_blocks.succ_false;
+    let instruction_offset: Int = ArrayLength(target.instructions.ids);
+    let block_i: Int = 0;
+    while block_i < ArrayLength(source.blocks.ids) {
+        ArrayPush(block_ids, source.blocks.ids[block_i]);
+        ArrayPush(reachable, source.blocks.reachable[block_i]);
+        ArrayPush(
+            instruction_starts,
+            source.blocks.instruction_starts[block_i] + instruction_offset
+        );
+        ArrayPush(
+            instruction_counts, source.blocks.instruction_counts[block_i]
+        );
+        ArrayPush(has_true, source.blocks.has_succ_true[block_i]);
+        ArrayPush(succ_true, source.blocks.succ_true[block_i]);
+        ArrayPush(has_false, source.blocks.has_succ_false[block_i]);
+        ArrayPush(succ_false, source.blocks.succ_false[block_i]);
+        block_i = block_i + 1;
+    }
+
+    let target_instructions: SelfMirInstructionRows = target.instructions;
+    let ids: Array<Int> = target_instructions.ids;
+    let kinds: Array<String> = target_instructions.kinds;
+    let names: Array<String> = target_instructions.names;
+    let results: Array<String> = target_instructions.results;
+    let arg0s: Array<String> = target_instructions.arg0s;
+    let arg1s: Array<String> = target_instructions.arg1s;
+    let expr0s: Array<String> = target_instructions.expr0s;
+    let expr1s: Array<String> = target_instructions.expr1s;
+    let source_types: Array<String> = target_instructions.source_types;
+    let use_starts: Array<Int> = target_instructions.use_starts;
+    let use_counts: Array<Int> = target_instructions.use_counts;
+    let uses: Array<String> = target_instructions.uses;
+    let use_offset: Int = ArrayLength(uses);
+    let instruction_i: Int = 0;
+    while instruction_i < ArrayLength(source.instructions.ids) {
+        ArrayPush(ids, source.instructions.ids[instruction_i]);
+        ArrayPush(kinds, source.instructions.kinds[instruction_i]);
+        ArrayPush(names, source.instructions.names[instruction_i]);
+        ArrayPush(results, source.instructions.results[instruction_i]);
+        ArrayPush(arg0s, source.instructions.arg0s[instruction_i]);
+        ArrayPush(arg1s, source.instructions.arg1s[instruction_i]);
+        ArrayPush(expr0s, source.instructions.expr0s[instruction_i]);
+        ArrayPush(expr1s, source.instructions.expr1s[instruction_i]);
+        ArrayPush(
+            source_types, source.instructions.source_types[instruction_i]
+        );
+        ArrayPush(
+            use_starts,
+            source.instructions.use_starts[instruction_i] + use_offset
+        );
+        ArrayPush(use_counts, source.instructions.use_counts[instruction_i]);
+        instruction_i = instruction_i + 1;
+    }
+    let use_i: Int = 0;
+    while use_i < ArrayLength(source.instructions.uses) {
+        ArrayPush(uses, source.instructions.uses[use_i]);
+        use_i = use_i + 1;
+    }
+    return SelfMirCfgRows(
+        SelfMirBlockRows(
+            block_ids, reachable, instruction_starts, instruction_counts,
+            has_true, succ_true, has_false, succ_false
+        ),
+        SelfMirInstructionRows(
+            ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
+            source_types, use_starts, use_counts, uses
+        )
+    );
+}
+
+func SelfMirAppendRoutine(
+    facts: SelfMirProgramFacts,
+    analysis: SemanticAstArtifactAnalysis,
+    signature_index: Int,
+    build: SelfMirRoutineBuild
+) -> SelfMirProgramFacts {
+    let rows: SelfMirRoutineRows = facts.routines;
+    let node_ids: Array<Int> = rows.node_ids;
+    let names: Array<String> = rows.names;
+    let kinds: Array<String> = rows.kinds;
+    let owners: Array<String> = rows.owners;
+    let return_types: Array<String> = rows.return_types;
+    let param_starts: Array<Int> = rows.param_starts;
+    let param_counts: Array<Int> = rows.param_counts;
+    let param_names: Array<String> = rows.param_names;
+    let param_types: Array<String> = rows.param_types;
+    let block_starts: Array<Int> = rows.block_starts;
+    let block_counts: Array<Int> = rows.block_counts;
+    let local_starts: Array<Int> = rows.local_starts;
+    let local_counts: Array<Int> = rows.local_counts;
+    let local_names: Array<String> = rows.local_names;
+    let local_types: Array<String> = rows.local_types;
+    ArrayPush(node_ids, analysis.signatures.function_node_ids[signature_index]);
+    ArrayPush(names, analysis.signatures.names[signature_index]);
+    let owner: String = analysis.signatures.owner_names[signature_index];
+    ArrayPush(owners, owner);
+    if owner == "" {
+        ArrayPush(kinds, "function");
+    } else {
+        ArrayPush(kinds, "method");
+    }
+    ArrayPush(return_types, analysis.signatures.return_types[signature_index]);
+    ArrayPush(param_starts, ArrayLength(param_names));
+    ArrayPush(param_counts, analysis.signatures.param_counts[signature_index]);
+    let param_i: Int = 0;
+    let param_start: Int = analysis.signatures.param_starts[signature_index];
+    while param_i < analysis.signatures.param_counts[signature_index] {
+        let row: Int = param_start + param_i;
+        ArrayPush(param_names, analysis.signatures.param_names[row]);
+        if owner != "" && analysis.signatures.param_names[row] == "self" {
+            ArrayPush(param_types, "");
+        } else {
+            ArrayPush(param_types, analysis.signatures.param_types[row]);
+        }
+        param_i = param_i + 1;
+    }
+    ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
+    ArrayPush(block_counts, ArrayLength(build.cfg.blocks.ids));
+    ArrayPush(local_starts, ArrayLength(local_names));
+    ArrayPush(local_counts, ArrayLength(build.local_names));
+    let local_i: Int = 0;
+    while local_i < ArrayLength(build.local_names) {
+        ArrayPush(local_names, build.local_names[local_i]);
+        ArrayPush(local_types, build.local_types[local_i]);
+        local_i = local_i + 1;
+    }
+    return SelfMirProgramFacts(
+        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.artifact_node_count, facts.declarations,
+        SelfMirRoutineRows(
+            node_ids, names, kinds, owners, return_types,
+            param_starts, param_counts, param_names, param_types,
+            block_starts, block_counts, local_starts, local_counts,
+            local_names, local_types
+        ),
+        SelfMirAppendCfg(facts.cfg, build.cfg)
+    );
+}
+
+func SelfMirInstructionIdPriority(kind: String) -> Int {
+    if kind == "phi" || kind == "branch" {
+        return 0;
+    }
+    if kind == "def" || kind == "loop-init" {
+        return 1;
+    }
+    return 2;
+}
+
+func SelfMirCanonicalInstructionIds(
+    facts: SelfMirProgramFacts
+) -> SelfMirProgramFacts {
+    let ids: Array<Int> = facts.cfg.instructions.ids;
+    let routine_i: Int = 0;
+    while routine_i < ArrayLength(facts.routines.names) {
+        let next_id: Int = 0;
+        let priority: Int = 0;
+        while priority < 3 {
+            let block_i: Int = 0;
+            while block_i < facts.routines.block_counts[routine_i] {
+                let block_row: Int =
+                    facts.routines.block_starts[routine_i] + block_i;
+                let instruction_i: Int = 0;
+                while instruction_i <
+                    facts.cfg.blocks.instruction_counts[block_row] {
+                    let instruction_row: Int =
+                        facts.cfg.blocks.instruction_starts[block_row] +
+                        instruction_i;
+                    if SelfMirInstructionIdPriority(
+                        facts.cfg.instructions.kinds[instruction_row]
+                    ) == priority {
+                        ArraySet(ids, instruction_row, next_id);
+                        next_id = next_id + 1;
+                    }
+                    instruction_i = instruction_i + 1;
+                }
+                block_i = block_i + 1;
+            }
+            priority = priority + 1;
+        }
+        routine_i = routine_i + 1;
+    }
+    let instructions: SelfMirInstructionRows = facts.cfg.instructions;
+    return SelfMirProgramFacts(
+        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.artifact_node_count, facts.declarations, facts.routines,
+        SelfMirCfgRows(
+            facts.cfg.blocks,
+            SelfMirInstructionRows(
+                ids, instructions.kinds, instructions.names,
+                instructions.results, instructions.arg0s, instructions.arg1s,
+                instructions.expr0s, instructions.expr1s,
+                instructions.source_types, instructions.use_starts,
+                instructions.use_counts, instructions.uses
+            )
+        )
+    );
+}
+
+func SelfMirProgramFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis
+) -> SelfMirProgramFacts {
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
+    if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
+        return SelfMirProgramFactsError(
+            facts, "mir_artifact_invalid",
+            "MIR producer requires matching semantic artifact facts"
+        );
+    }
+    facts = SelfMirProgramFacts(
+        true, "", "", artifact.count,
+        SelfMirDeclarationsFromAnalysis(analysis), facts.routines, facts.cfg
+    );
+    let input: SelfMirRoutineInput = SelfMirRoutineInput(artifact, analysis);
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
+        let build: SelfMirRoutineBuild = SelfMirRoutineFromInput(
+            input, analysis.signatures.function_node_ids[i]
+        );
+        if !build.ok {
+            return SelfMirProgramFactsError(
+                facts, "mir_lower_unsupported", build.diagnostic_message
+            );
+        }
+        facts = SelfMirAppendRoutine(facts, analysis, i, build);
+        i = i + 1;
+    }
+    return SelfMirCanonicalInstructionIds(facts);
+}

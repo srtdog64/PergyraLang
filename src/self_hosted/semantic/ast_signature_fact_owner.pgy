@@ -39,6 +39,8 @@ func SemanticAstFunctionOwnerName(arena: AstArena, function_node_id: Int) -> Opt
             arena, parent_id, TypedAstKindNominalDeclTag()
         ) || TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindRoleDeclTag()
+        ) || TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindAbilityDeclTag()
         ) {
             return TypedAstArenaAtomText(arena, parent_id);
         }

@@ -44,7 +44,8 @@ src/self_hosted/
     input/ run/ text/ type_facts/ abi_layout/ runtime_abi/ emission/
   mir_lower/                      -- MIR JSON fact-only lowering substitute
     main.pgy + owner modules + intent.md
-  air/  hir/  mir/                -- IR-stage placeholders
+  mir/                            -- bounded typed-artifact MIR producer + verifier
+  air/  hir/                      -- verification/HIR stage owners
   compiler/                       -- PgyCompilerWorld hard-substitution owner
   runtime/                        -- native runtime kernel stays C; portable policy can move
   lsp/                            -- language-server placeholder

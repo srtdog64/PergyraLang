@@ -95,7 +95,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompileArtifactToCVerified(artifact);"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    "artifact body + MIR bridge parity ok"
+    "producer-first source/MIR parity ok"
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CheckProgram("
 

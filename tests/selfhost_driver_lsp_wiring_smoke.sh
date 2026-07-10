@@ -86,7 +86,11 @@ grep -Fq 'self-host-live-replacement-test-smoke' "$ROOT_DIR/Makefile" ||
 grep -Fq 'pgy --self-driver <source.pgy>' "$DOC" ||
     fail "DRV-2 live replacement CLI is not documented"
 grep -Fq '`--mir-json <file>`' "$DOC" ||
-    fail "DRV-2 integrated MIR bridge CLI is not documented"
+    fail "DRV-2 producer-first MIR CLI is not documented"
+grep -Fq '`--emit-mir-json-verified`' "$DOC" ||
+    fail "DRV-2 self MIR producer CLI is not documented"
+grep -Fq '`--canonicalize-mir-json`' "$DOC" ||
+    fail "DRV-2 canonical MIR parity CLI is not documented"
 grep -Fq 'mir_fixtures=${#mir_fixture_rows[@]}' \
     "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_body_parity.sh" ||
     fail "DRV-2 MIR integration gate is not wired into the landed parity runner"

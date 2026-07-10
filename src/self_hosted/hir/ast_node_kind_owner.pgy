@@ -37,6 +37,24 @@ func TypedAstKindMatchStmtTag() -> Int { return 34; }
 func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
 
+func TypedAstNominalSubkindNone() -> Int { return 0; }
+func TypedAstNominalSubkindStruct() -> Int { return 1; }
+func TypedAstNominalSubkindClass() -> Int { return 2; }
+func TypedAstNominalSubkindSubject() -> Int { return 3; }
+func TypedAstNominalSubkindObject() -> Int { return 4; }
+func TypedAstNominalSubkindTObject() -> Int { return 5; }
+func TypedAstNominalSubkindVessel() -> Int { return 6; }
+
+func TypedAstNominalSubkindName(subkind: Int) -> String {
+    if subkind == TypedAstNominalSubkindStruct() { return "struct"; }
+    if subkind == TypedAstNominalSubkindClass() { return "class"; }
+    if subkind == TypedAstNominalSubkindSubject() { return "subject"; }
+    if subkind == TypedAstNominalSubkindObject() { return "object"; }
+    if subkind == TypedAstNominalSubkindTObject() { return "tobject"; }
+    if subkind == TypedAstNominalSubkindVessel() { return "vessel"; }
+    return "";
+}
+
 func TypedAstKindTags() -> Array<Int> {
     let tags: Array<Int> = [
         TypedAstKindUnknownTag(), TypedAstKindParametersTag(),
@@ -80,5 +98,16 @@ func TypedAstKindOwnerReady() -> Bool {
         }
         i = i + 1;
     }
-    return true;
+    return TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
+            "struct" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindSubject()) ==
+            "subject" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindObject()) ==
+            "object" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindTObject()) ==
+            "tobject" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindVessel()) ==
+            "vessel" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "";
 }

@@ -1,0 +1,181 @@
+// Structural verifier for the self-host MIR fact graph.
+
+import "program_fact_owner.pgy";
+
+func SelfMirParallelCount(count: Int, rows: Array<Int>) -> Bool {
+    return ArrayLength(rows) == count;
+}
+
+func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
+    return ArrayLength(rows) == count;
+}
+
+func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
+    let count: Int = ArrayLength(rows.names);
+    if !SelfMirParallelStringCount(count, rows.kinds) ||
+        !SelfMirParallelStringCount(count, rows.nominal_kinds) ||
+        !SelfMirParallelCount(count, rows.field_starts) ||
+        !SelfMirParallelCount(count, rows.field_counts) ||
+        !SelfMirParallelCount(count, rows.method_starts) ||
+        !SelfMirParallelCount(count, rows.method_counts) ||
+        ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) {
+        return false;
+    }
+    let field_cursor: Int = 0;
+    let method_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if rows.names[i] == "" || rows.kinds[i] == "" ||
+            rows.nominal_kinds[i] == "" ||
+            rows.field_starts[i] != field_cursor || rows.field_counts[i] < 0 ||
+            rows.method_starts[i] != method_cursor ||
+            rows.method_counts[i] < 0 {
+            return false;
+        }
+        field_cursor = field_cursor + rows.field_counts[i];
+        method_cursor = method_cursor + rows.method_counts[i];
+        i = i + 1;
+    }
+    return field_cursor == ArrayLength(rows.field_names) &&
+        method_cursor == ArrayLength(rows.method_names);
+}
+
+func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
+    let count: Int = ArrayLength(rows.ids);
+    if !SelfMirParallelStringCount(count, rows.kinds) ||
+        !SelfMirParallelStringCount(count, rows.names) ||
+        !SelfMirParallelStringCount(count, rows.results) ||
+        !SelfMirParallelStringCount(count, rows.arg0s) ||
+        !SelfMirParallelStringCount(count, rows.arg1s) ||
+        !SelfMirParallelStringCount(count, rows.expr0s) ||
+        !SelfMirParallelStringCount(count, rows.expr1s) ||
+        !SelfMirParallelStringCount(count, rows.source_types) ||
+        !SelfMirParallelCount(count, rows.use_starts) ||
+        !SelfMirParallelCount(count, rows.use_counts) {
+        return false;
+    }
+    let use_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        let kind: String = rows.kinds[i];
+        if rows.use_starts[i] != use_cursor || rows.use_counts[i] < 0 ||
+            (kind != "def" && kind != "stmt" && kind != "return" &&
+             kind != "branch" && kind != "phi" && kind != "loop-init") {
+            return false;
+        }
+        if (kind == "def" &&
+            (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
+             rows.source_types[i] == "")) ||
+            (kind == "stmt" && rows.expr0s[i] == "") ||
+            (kind == "return" && rows.expr0s[i] == "") ||
+            (kind == "branch" && rows.expr0s[i] == "") ||
+            (kind == "phi" && rows.results[i] == "") ||
+            (kind == "loop-init" &&
+             (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
+              rows.expr1s[i] == "")) {
+            return false;
+        }
+        use_cursor = use_cursor + rows.use_counts[i];
+        i = i + 1;
+    }
+    return use_cursor == ArrayLength(rows.uses);
+}
+
+func SelfMirBlockRowsReady(
+    blocks: SelfMirBlockRows,
+    instruction_count: Int
+) -> Bool {
+    let count: Int = ArrayLength(blocks.ids);
+    if !SelfMirParallelCount(count, blocks.reachable) ||
+        !SelfMirParallelCount(count, blocks.instruction_starts) ||
+        !SelfMirParallelCount(count, blocks.instruction_counts) ||
+        !SelfMirParallelCount(count, blocks.has_succ_true) ||
+        !SelfMirParallelCount(count, blocks.succ_true) ||
+        !SelfMirParallelCount(count, blocks.has_succ_false) ||
+        !SelfMirParallelCount(count, blocks.succ_false) {
+        return false;
+    }
+    let instruction_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if blocks.instruction_starts[i] != instruction_cursor ||
+            blocks.instruction_counts[i] < 0 ||
+            (blocks.reachable[i] != 0 && blocks.reachable[i] != 1) ||
+            (blocks.has_succ_true[i] != 0 &&
+             blocks.has_succ_true[i] != 1) ||
+            (blocks.has_succ_false[i] != 0 &&
+             blocks.has_succ_false[i] != 1) {
+            return false;
+        }
+        instruction_cursor = instruction_cursor + blocks.instruction_counts[i];
+        i = i + 1;
+    }
+    return instruction_cursor == instruction_count;
+}
+
+func SelfMirRoutineRowsReady(
+    rows: SelfMirRoutineRows,
+    blocks: SelfMirBlockRows
+) -> Bool {
+    let count: Int = ArrayLength(rows.node_ids);
+    if !SelfMirParallelStringCount(count, rows.names) ||
+        !SelfMirParallelStringCount(count, rows.kinds) ||
+        !SelfMirParallelStringCount(count, rows.owners) ||
+        !SelfMirParallelStringCount(count, rows.return_types) ||
+        !SelfMirParallelCount(count, rows.param_starts) ||
+        !SelfMirParallelCount(count, rows.param_counts) ||
+        !SelfMirParallelCount(count, rows.block_starts) ||
+        !SelfMirParallelCount(count, rows.block_counts) ||
+        !SelfMirParallelCount(count, rows.local_starts) ||
+        !SelfMirParallelCount(count, rows.local_counts) ||
+        ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
+        ArrayLength(rows.local_names) != ArrayLength(rows.local_types) {
+        return false;
+    }
+    let param_cursor: Int = 0;
+    let block_cursor: Int = 0;
+    let local_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if rows.names[i] == "" || rows.return_types[i] == "" ||
+            (rows.kinds[i] != "function" && rows.kinds[i] != "method") ||
+            (rows.kinds[i] == "method" && rows.owners[i] == "") ||
+            rows.param_starts[i] != param_cursor || rows.param_counts[i] < 0 ||
+            rows.block_starts[i] != block_cursor || rows.block_counts[i] <= 0 ||
+            rows.local_starts[i] != local_cursor || rows.local_counts[i] < 0 {
+            return false;
+        }
+        let block_i: Int = 0;
+        while block_i < rows.block_counts[i] {
+            let row: Int = rows.block_starts[i] + block_i;
+            if blocks.ids[row] != block_i ||
+                (blocks.has_succ_true[row] == 1 &&
+                 (blocks.succ_true[row] < 0 ||
+                  blocks.succ_true[row] >= rows.block_counts[i])) ||
+                (blocks.has_succ_false[row] == 1 &&
+                 (blocks.succ_false[row] < 0 ||
+                  blocks.succ_false[row] >= rows.block_counts[i])) {
+                return false;
+            }
+            block_i = block_i + 1;
+        }
+        param_cursor = param_cursor + rows.param_counts[i];
+        block_cursor = block_cursor + rows.block_counts[i];
+        local_cursor = local_cursor + rows.local_counts[i];
+        i = i + 1;
+    }
+    return param_cursor == ArrayLength(rows.param_names) &&
+        block_cursor == ArrayLength(blocks.ids) &&
+        local_cursor == ArrayLength(rows.local_names);
+}
+
+func SelfMirProgramFactsReady(facts: SelfMirProgramFacts) -> Bool {
+    return facts.ok && facts.artifact_node_count > 0 &&
+        SelfMirDeclarationRowsReady(facts.declarations) &&
+        SelfMirInstructionRowsReady(facts.cfg.instructions) &&
+        SelfMirBlockRowsReady(
+            facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
+        ) && SelfMirRoutineRowsReady(facts.routines, facts.cfg.blocks) &&
+        ArrayLength(facts.routines.node_ids) > 0;
+}

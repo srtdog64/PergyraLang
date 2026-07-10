@@ -1,0 +1,258 @@
+// Flat self-host MIR fact graph owner.
+//
+// The producer writes declaration, routine, block, and instruction rows here.
+// JSON and backend projections consume these rows; neither projection may
+// recover semantic facts from source or AST provenance text.
+
+struct SelfMirInstructionRows {
+    ids: Array<Int>;
+    kinds: Array<String>;
+    names: Array<String>;
+    results: Array<String>;
+    arg0s: Array<String>;
+    arg1s: Array<String>;
+    expr0s: Array<String>;
+    expr1s: Array<String>;
+    source_types: Array<String>;
+    use_starts: Array<Int>;
+    use_counts: Array<Int>;
+    uses: Array<String>;
+}
+
+struct SelfMirBlockRows {
+    ids: Array<Int>;
+    reachable: Array<Int>;
+    instruction_starts: Array<Int>;
+    instruction_counts: Array<Int>;
+    has_succ_true: Array<Int>;
+    succ_true: Array<Int>;
+    has_succ_false: Array<Int>;
+    succ_false: Array<Int>;
+}
+
+struct SelfMirCfgRows {
+    blocks: SelfMirBlockRows;
+    instructions: SelfMirInstructionRows;
+}
+
+struct SelfMirDeclarationRows {
+    kinds: Array<String>;
+    nominal_kinds: Array<String>;
+    names: Array<String>;
+    field_starts: Array<Int>;
+    field_counts: Array<Int>;
+    field_names: Array<String>;
+    field_types: Array<String>;
+    method_starts: Array<Int>;
+    method_counts: Array<Int>;
+    method_names: Array<String>;
+    method_returns: Array<String>;
+}
+
+struct SelfMirRoutineRows {
+    node_ids: Array<Int>;
+    names: Array<String>;
+    kinds: Array<String>;
+    owners: Array<String>;
+    return_types: Array<String>;
+    param_starts: Array<Int>;
+    param_counts: Array<Int>;
+    param_names: Array<String>;
+    param_types: Array<String>;
+    block_starts: Array<Int>;
+    block_counts: Array<Int>;
+    local_starts: Array<Int>;
+    local_counts: Array<Int>;
+    local_names: Array<String>;
+    local_types: Array<String>;
+}
+
+struct SelfMirProgramFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    declarations: SelfMirDeclarationRows;
+    routines: SelfMirRoutineRows;
+    cfg: SelfMirCfgRows;
+}
+
+func SelfMirInstructionRowsEmpty() -> SelfMirInstructionRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirInstructionRows(
+        ints, strings, strings, strings, strings, strings, strings, strings,
+        strings, ints, ints, strings
+    );
+}
+
+func SelfMirBlockRowsEmpty() -> SelfMirBlockRows {
+    let ints: Array<Int> = [];
+    return SelfMirBlockRows(ints, ints, ints, ints, ints, ints, ints, ints);
+}
+
+func SelfMirCfgRowsEmpty() -> SelfMirCfgRows {
+    return SelfMirCfgRows(
+        SelfMirBlockRowsEmpty(), SelfMirInstructionRowsEmpty()
+    );
+}
+
+func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirDeclarationRows(
+        strings, strings, strings, ints, ints, strings, strings,
+        ints, ints, strings, strings
+    );
+}
+
+func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirRoutineRows(
+        ints, strings, strings, strings, strings, ints, ints, strings,
+        strings, ints, ints, ints, ints, strings, strings
+    );
+}
+
+func SelfMirProgramFactsEmpty(artifact_node_count: Int) -> SelfMirProgramFacts {
+    return SelfMirProgramFacts(
+        true, "", "", artifact_node_count,
+        SelfMirDeclarationRowsEmpty(), SelfMirRoutineRowsEmpty(),
+        SelfMirCfgRowsEmpty()
+    );
+}
+
+func SelfMirProgramFactsError(
+    facts: SelfMirProgramFacts,
+    code: String,
+    message: String
+) -> SelfMirProgramFacts {
+    return SelfMirProgramFacts(
+        false, code, message, facts.artifact_node_count,
+        facts.declarations, facts.routines, facts.cfg
+    );
+}
+
+func SelfMirCfgAddBlock(cfg: SelfMirCfgRows) -> SelfMirCfgRows {
+    let blocks: SelfMirBlockRows = cfg.blocks;
+    let ids: Array<Int> = blocks.ids;
+    let reachable: Array<Int> = blocks.reachable;
+    let instruction_starts: Array<Int> = blocks.instruction_starts;
+    let instruction_counts: Array<Int> = blocks.instruction_counts;
+    let has_true: Array<Int> = blocks.has_succ_true;
+    let succ_true: Array<Int> = blocks.succ_true;
+    let has_false: Array<Int> = blocks.has_succ_false;
+    let succ_false: Array<Int> = blocks.succ_false;
+    ArrayPush(ids, ArrayLength(ids));
+    ArrayPush(reachable, 1);
+    ArrayPush(instruction_starts, ArrayLength(cfg.instructions.ids));
+    ArrayPush(instruction_counts, 0);
+    ArrayPush(has_true, 0);
+    ArrayPush(succ_true, 0);
+    ArrayPush(has_false, 0);
+    ArrayPush(succ_false, 0);
+    return SelfMirCfgRows(
+        SelfMirBlockRows(
+            ids, reachable, instruction_starts, instruction_counts,
+            has_true, succ_true, has_false, succ_false
+        ),
+        cfg.instructions
+    );
+}
+
+func SelfMirCfgSetSuccessors(
+    cfg: SelfMirCfgRows,
+    block_index: Int,
+    true_target: Int,
+    false_target: Int
+) -> SelfMirCfgRows {
+    let blocks: SelfMirBlockRows = cfg.blocks;
+    let has_true: Array<Int> = blocks.has_succ_true;
+    let succ_true: Array<Int> = blocks.succ_true;
+    let has_false: Array<Int> = blocks.has_succ_false;
+    let succ_false: Array<Int> = blocks.succ_false;
+    if true_target >= 0 {
+        ArraySet(has_true, block_index, 1);
+        ArraySet(succ_true, block_index, true_target);
+    }
+    if false_target >= 0 {
+        ArraySet(has_false, block_index, 1);
+        ArraySet(succ_false, block_index, false_target);
+    }
+    return SelfMirCfgRows(
+        SelfMirBlockRows(
+            blocks.ids, blocks.reachable, blocks.instruction_starts,
+            blocks.instruction_counts, has_true, succ_true,
+            has_false, succ_false
+        ),
+        cfg.instructions
+    );
+}
+
+func SelfMirCfgAddInstruction(
+    cfg: SelfMirCfgRows,
+    block_index: Int,
+    id: Int,
+    kind: String,
+    name: String,
+    result: String,
+    arg0: String,
+    arg1: String,
+    expr0: String,
+    expr1: String,
+    source_type: String,
+    row_uses: Array<String>
+) -> SelfMirCfgRows {
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let ids: Array<Int> = instructions.ids;
+    let kinds: Array<String> = instructions.kinds;
+    let names: Array<String> = instructions.names;
+    let results: Array<String> = instructions.results;
+    let arg0s: Array<String> = instructions.arg0s;
+    let arg1s: Array<String> = instructions.arg1s;
+    let expr0s: Array<String> = instructions.expr0s;
+    let expr1s: Array<String> = instructions.expr1s;
+    let source_types: Array<String> = instructions.source_types;
+    let use_starts: Array<Int> = instructions.use_starts;
+    let use_counts: Array<Int> = instructions.use_counts;
+    let uses: Array<String> = instructions.uses;
+    ArrayPush(ids, id);
+    ArrayPush(kinds, kind);
+    ArrayPush(names, name);
+    ArrayPush(results, result);
+    ArrayPush(arg0s, arg0);
+    ArrayPush(arg1s, arg1);
+    ArrayPush(expr0s, expr0);
+    ArrayPush(expr1s, expr1);
+    ArrayPush(source_types, source_type);
+    ArrayPush(use_starts, ArrayLength(uses));
+    ArrayPush(use_counts, ArrayLength(row_uses));
+    let i: Int = 0;
+    while i < ArrayLength(row_uses) {
+        ArrayPush(uses, row_uses[i]);
+        i = i + 1;
+    }
+    let counts: Array<Int> = cfg.blocks.instruction_counts;
+    ArraySet(counts, block_index, counts[block_index] + 1);
+    return SelfMirCfgRows(
+        SelfMirBlockRows(
+            cfg.blocks.ids, cfg.blocks.reachable,
+            cfg.blocks.instruction_starts, counts,
+            cfg.blocks.has_succ_true, cfg.blocks.succ_true,
+            cfg.blocks.has_succ_false, cfg.blocks.succ_false
+        ),
+        SelfMirInstructionRows(
+            ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
+            source_types, use_starts, use_counts, uses
+        )
+    );
+}
+
+func SelfMirCfgBlockCount(cfg: SelfMirCfgRows) -> Int {
+    return ArrayLength(cfg.blocks.ids);
+}
+
+func SelfMirCfgInstructionCount(cfg: SelfMirCfgRows) -> Int {
+    return ArrayLength(cfg.instructions.ids);
+}

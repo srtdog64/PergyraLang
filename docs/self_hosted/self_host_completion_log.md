@@ -6611,3 +6611,26 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   constructor scan. The `class_method` fixture now crosses the integrated MIR
   boundary, and nominal Option helper emission carries its required Bool-header
   fact into C header projection.
+
+### 2026-07-11 -- DRV-2 owns bounded source-to-MIR production
+
+- Added Pergyra-owned MIR program, expression, routine lowering, artifact
+  lowering, verifier, and JSON projection owners under `src/self_hosted/mir/`.
+  The producer consumes typed arena and semantic facts; it does not recover
+  semantic state from provenance or source text.
+- Added typed nominal-subkind and ordered nominal-field-name facts so MIR
+  declaration production does not reopen AST text scans for class/struct kind
+  or constructor field order.
+- Rewired DRV-2 source compilation through typed artifact -> semantic verifier
+  -> Pergyra MIR producer -> MIR verifier -> `pgy.mir.v1` -> Pergyra MIR
+  consumer -> codegen. The C MIR producer is now comparison-only on this rung.
+- Added `--emit-mir-json-verified` and `--canonicalize-mir-json` to the
+  self-host driver. The producer omits the transitional `ast` compatibility
+  field, and the gates reject its reintroduction.
+- Extended the four MIR intersection fixtures to compare canonical C-oracle and
+  Pergyra-produced MIR, emitted C, compiled execution, and C/LLVM-built
+  self-host driver outputs. Unsupported facts remain fail-closed.
+- Fixed the progress metric to include `src/self_hosted/mir/`. The current
+  measured implementation volume is 24,211 Pergyra LOC over 38,346 compiler
+  core LOC (8.61%); bounded DRV-2 replacement is live, while released/default
+  native replacement remains honestly 0%.

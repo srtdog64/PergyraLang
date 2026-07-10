@@ -14,6 +14,8 @@ import "../semantic/ast_body_verdict_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
+import "../mir/artifact_lower_owner.pgy";
+import "../mir/json_projection_owner.pgy";
 
 func CompilerDriverRung2Ready() -> Bool {
     return CompilerDriverPipelineReady() &&
@@ -28,7 +30,8 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstExpressionVerdictContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
-        MirFactGraphPayloadContractReady();
+        MirFactGraphPayloadContractReady() &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class";
 }
 
 func DriverRung2FixtureRows() -> Array<String> {
@@ -96,9 +99,9 @@ func EmitDriverRung2MirFixtureManifest() -> Void {
     }
 }
 
-func CompileArtifactToCVerified(
+func VerifyArtifactForDriverRung2(
     artifact: AstTreeArtifact
-) -> String {
+) -> SemanticAstArtifactAnalysis {
     if !CompilerDriverRung2Ready() {
         Die("driver rung-2 semantic facts are not ready");
     }
@@ -170,12 +173,62 @@ func CompileArtifactToCVerified(
         Log(body_verdict.diagnostic_message);
         Exit(1);
     }
+    return semantic_analysis;
+}
+
+func CompileArtifactToCVerified(
+    artifact: AstTreeArtifact
+) -> String {
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        VerifyArtifactForDriverRung2(artifact);
     return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
 }
 
-func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
-    return CompileArtifactToCVerified(
+func CompileArtifactToMirJsonVerified(
+    artifact: AstTreeArtifact
+) -> String {
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        VerifyArtifactForDriverRung2(artifact);
+    let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
+        artifact, semantic_analysis
+    );
+    if !SelfMirProgramFactsReady(mir_facts) {
+        if mir_facts.diagnostic_message != "" {
+            Log(mir_facts.diagnostic_message);
+        } else {
+            Log("self-host MIR producer emitted invalid fact rows");
+        }
+        Exit(1);
+    }
+    let json: String = SelfMirProgramJson(mir_facts);
+    if json == "" {
+        Log("self-host MIR JSON projection failed closed");
+        Exit(1);
+    }
+    return json;
+}
+
+func CompileSourceToMirJsonVerified(
+    source_path: String
+) -> String with caps io_read {
+    return CompileArtifactToMirJsonVerified(
         CompileSourceToAstArtifact(source_path)
+    );
+}
+
+func CanonicalizeMirJsonVerified(
+    mir_json_path: String
+) -> String with caps io_read {
+    let json: String = MirJsonReadInput(mir_json_path);
+    return CompileArtifactToMirJsonVerified(
+        AstTreeArtifactFromText(EmitMirProgramTree(json))
+    );
+}
+
+func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
+    let json: String = CompileSourceToMirJsonVerified(source_path);
+    return CompileArtifactToCVerified(
+        AstTreeArtifactFromText(EmitMirProgramTree(json))
     );
 }
 
@@ -194,6 +247,16 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
     }
     if ArrayLength(args) > 0 && args[0] == "--mir-fixture-manifest" {
         EmitDriverRung2MirFixtureManifest();
+        return;
+    }
+    if ArrayLength(args) == 2 &&
+        args[0] == "--emit-mir-json-verified" {
+        Log(CompileSourceToMirJsonVerified(args[1]));
+        return;
+    }
+    if ArrayLength(args) == 2 &&
+        args[0] == "--canonicalize-mir-json" {
+        Log(CanonicalizeMirJsonVerified(args[1]));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--mir-json" {

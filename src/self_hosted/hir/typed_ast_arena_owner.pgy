@@ -29,6 +29,7 @@ import "ast_node_kind_owner.pgy";
 
 struct AstNode {
     kind: Int;
+    nominal_subkind: Int;
     atom: Int;
     has_atom: Bool;
     type_name: Int;
@@ -46,6 +47,7 @@ struct AstNode {
 
 struct AstArena {
     kinds: Array<Int>;
+    nominal_subkinds: Array<Int>;
     atoms: Array<Int>;
     has_atoms: Array<Int>;
     type_names: Array<Int>;
@@ -70,6 +72,7 @@ func TypedAstNoParentRow() -> Int {
 
 func TypedAstArenaFixture() -> AstArena {
     let kinds: Array<Int> = [TypedAstKindProgramTag(), TypedAstKindFuncDeclTag(), TypedAstKindBlockTag()];
+    let nominal_subkinds: Array<Int> = [0, 0, 0];
     let atoms: Array<Int> = [0, 1, 0];
     let has_atoms: Array<Int> = [0, 1, 0];
     let type_names: Array<Int> = [0, 0, 0];
@@ -86,7 +89,8 @@ func TypedAstArenaFixture() -> AstArena {
     let provenance_texts: Array<String> = ["Program:", "Function: Main", "Block:"];
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
-    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names,
+    return AstArena(kinds, nominal_subkinds, atoms, has_atoms,
+        type_names, has_type_names,
         values, has_values, aux_values, has_aux_values, modes,
         first_children, child_counts, parents, indents, provenance_texts,
         children, atom_table);
@@ -98,7 +102,8 @@ func TypedAstArenaNodeCount(arena: AstArena) -> Int {
 
 func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
     let n: Int = TypedAstArenaNodeCount(arena);
-    return ArrayLength(arena.atoms) == n &&
+    return ArrayLength(arena.nominal_subkinds) == n &&
+        ArrayLength(arena.atoms) == n &&
         ArrayLength(arena.has_atoms) == n &&
         ArrayLength(arena.type_names) == n &&
         ArrayLength(arena.has_type_names) == n &&
@@ -130,6 +135,22 @@ func TypedAstArenaNodeKind(arena: AstArena, node_id: Int) -> Option<Int> {
 func TypedAstArenaNodeKindIs(arena: AstArena, node_id: Int, expected_kind: Int) -> Bool {
     let kind: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
     return IsSome(kind) && UnwrapOption(kind) == expected_kind;
+}
+
+func TypedAstArenaNominalSubkind(
+    arena: AstArena,
+    node_id: Int
+) -> Option<Int> {
+    if !TypedAstArenaHasNode(arena, node_id) || !TypedAstArenaNodeKindIs(
+        arena, node_id, TypedAstKindNominalDeclTag()
+    ) {
+        return None;
+    }
+    let subkind: Int = arena.nominal_subkinds[node_id];
+    if StringLength(TypedAstNominalSubkindName(subkind)) == 0 {
+        return None;
+    }
+    return Some(subkind);
 }
 
 func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> {

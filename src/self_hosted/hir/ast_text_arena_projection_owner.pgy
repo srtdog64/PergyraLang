@@ -33,6 +33,31 @@ func CodegenAstTextParentRows(
     return parents;
 }
 
+func CodegenAstTextNominalSubkindFor(node: CodegenAstTextNode) -> Int {
+    if node.kind != TypedAstKindNominalDeclTag() {
+        return TypedAstNominalSubkindNone();
+    }
+    if StartsWith(node.text, "Struct: ") {
+        return TypedAstNominalSubkindStruct();
+    }
+    if StartsWith(node.text, "Class: ") {
+        return TypedAstNominalSubkindClass();
+    }
+    if StartsWith(node.text, "Subject: ") {
+        return TypedAstNominalSubkindSubject();
+    }
+    if StartsWith(node.text, "Object: ") {
+        return TypedAstNominalSubkindObject();
+    }
+    if StartsWith(node.text, "TObject: ") {
+        return TypedAstNominalSubkindTObject();
+    }
+    if StartsWith(node.text, "Vessel: ") {
+        return TypedAstNominalSubkindVessel();
+    }
+    return TypedAstNominalSubkindNone();
+}
+
 func CodegenAstTextChildCounts(
     parents: Array<Int>,
     count: Int
@@ -102,6 +127,7 @@ func CodegenAstTextChildren(
 
 func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: Int) -> AstArena {
     let kinds: Array<Int> = [];
+    let nominal_subkinds: Array<Int> = [];
     let atoms: Array<Int> = [];
     let has_atoms: Array<Int> = [];
     let type_names: Array<Int> = [];
@@ -123,6 +149,9 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
     let i: Int = 0;
     while i < count {
         ArrayPush(kinds, nodes[i].kind);
+        ArrayPush(
+            nominal_subkinds, CodegenAstTextNominalSubkindFor(nodes[i])
+        );
         let atom_text: String = CodegenAstTextArenaAtomFor(nodes[i]);
         if atom_text == "" {
             ArrayPush(atoms, 0);
@@ -161,7 +190,8 @@ func CodegenAstTextTypedArenaFromNodes(nodes: Array<CodegenAstTextNode>, count: 
         ArrayPush(provenance_texts, nodes[i].text);
         i = i + 1;
     }
-    return AstArena(kinds, atoms, has_atoms, type_names, has_type_names,
+    return AstArena(kinds, nominal_subkinds, atoms, has_atoms,
+        type_names, has_type_names,
         values, has_values, aux_values, has_aux_values, modes,
         first_children, child_counts, parents, indents, provenance_texts,
         children, atom_table);
@@ -177,6 +207,16 @@ func CodegenAstTextTypedArenaProjectionReady(nodes: Array<CodegenAstTextNode>, c
     while i < count {
         let kind: Option<Int> = TypedAstArenaNodeKind(arena, i);
         if !IsSome(kind) || UnwrapOption(kind) != nodes[i].kind {
+            return false;
+        }
+        let expected_subkind: Int = CodegenAstTextNominalSubkindFor(nodes[i]);
+        let subkind: Option<Int> = TypedAstArenaNominalSubkind(arena, i);
+        if expected_subkind == TypedAstNominalSubkindNone() &&
+            IsSome(subkind) {
+            return false;
+        }
+        if expected_subkind != TypedAstNominalSubkindNone() &&
+            (!IsSome(subkind) || UnwrapOption(subkind) != expected_subkind) {
             return false;
         }
         let parent: Option<Int> = TypedAstArenaParentId(arena, i);

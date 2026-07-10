@@ -14,10 +14,12 @@ struct SemanticAstNominalConstructorFacts {
     diagnostic_message: String;
     artifact_node_count: Int;
     node_ids: Array<Int>;
+    nominal_kinds: Array<String>;
     names: Array<String>;
     return_type_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
+    field_names: Array<String>;
     param_type_names: Array<String>;
 }
 
@@ -33,10 +35,12 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstNominalConstructorFacts {
     let node_ids: Array<Int> = [];
+    let nominal_kinds: Array<String> = [];
     let names: Array<String> = [];
     let return_types: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
+    let field_names: Array<String> = [];
     let param_types: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let diagnostic_code: String = "";
@@ -61,11 +65,22 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         let name_opt: Option<String> = TypedAstArenaAtomText(
             artifact.arena, node_id
         );
+        let subkind_opt: Option<Int> = TypedAstArenaNominalSubkind(
+            artifact.arena, node_id
+        );
         if !IsSome(name_opt) || StringLength(UnwrapOption(name_opt)) == 0 {
             ok = false;
             diagnostic_code = "nominal_constructor_fact_invalid";
             diagnostic_message = SemanticAstNominalConstructorError(
                 node_id, "nominal_name"
+            );
+            continue;
+        }
+        if !IsSome(subkind_opt) {
+            ok = false;
+            diagnostic_code = "nominal_constructor_fact_invalid";
+            diagnostic_message = SemanticAstNominalConstructorError(
+                node_id, "nominal_kind"
             );
             continue;
         }
@@ -109,6 +124,18 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                     let field_type_opt: Option<String> = TypedAstArenaTypeName(
                         artifact.arena, field_id
                     );
+                    let field_name_opt: Option<String> = TypedAstArenaAtomText(
+                        artifact.arena, field_id
+                    );
+                    if !IsSome(field_name_opt) ||
+                        StringLength(UnwrapOption(field_name_opt)) == 0 {
+                        ok = false;
+                        diagnostic_code = "nominal_constructor_fact_invalid";
+                        diagnostic_message = SemanticAstNominalConstructorError(
+                            field_id, "field_name"
+                        );
+                        continue;
+                    }
                     if !IsSome(field_type_opt) ||
                         StringLength(UnwrapOption(field_type_opt)) == 0 {
                         ok = false;
@@ -118,6 +145,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                         );
                         continue;
                     }
+                    ArrayPush(field_names, UnwrapOption(field_name_opt));
                     ArrayPush(
                         param_types,
                         SemanticCanonicalTypeName(UnwrapOption(field_type_opt))
@@ -138,6 +166,10 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         }
         let name: String = UnwrapOption(name_opt);
         ArrayPush(node_ids, node_id);
+        ArrayPush(
+            nominal_kinds,
+            TypedAstNominalSubkindName(UnwrapOption(subkind_opt))
+        );
         ArrayPush(names, name);
         ArrayPush(return_types, name);
         ArrayPush(param_starts, param_start);
@@ -146,7 +178,8 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     }
     return SemanticAstNominalConstructorFacts(
         ok, diagnostic_code, diagnostic_message, artifact.count,
-        node_ids, names, return_types, param_starts, param_counts, param_types
+        node_ids, nominal_kinds, names, return_types, param_starts,
+        param_counts, field_names, param_types
     );
 }
 
@@ -160,7 +193,8 @@ func SemanticAstNominalConstructorRowsReady(
     facts: SemanticAstNominalConstructorFacts
 ) -> Bool {
     let count: Int = SemanticAstNominalConstructorCount(facts);
-    if !facts.ok || ArrayLength(facts.names) != count ||
+    if !facts.ok || ArrayLength(facts.nominal_kinds) != count ||
+        ArrayLength(facts.names) != count ||
         ArrayLength(facts.return_type_names) != count ||
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count {
@@ -170,13 +204,15 @@ func SemanticAstNominalConstructorRowsReady(
     let i: Int = 0;
     while i < count {
         if facts.param_starts[i] != expected_param_count ||
-            facts.param_counts[i] < 0 {
+            facts.param_counts[i] < 0 ||
+            StringLength(facts.nominal_kinds[i]) == 0 {
             return false;
         }
         expected_param_count = expected_param_count + facts.param_counts[i];
         i = i + 1;
     }
-    return expected_param_count == ArrayLength(facts.param_type_names);
+    return expected_param_count == ArrayLength(facts.field_names) &&
+        expected_param_count == ArrayLength(facts.param_type_names);
 }
 
 func SemanticAstNominalConstructorParamTypeAt(
@@ -196,6 +232,21 @@ func SemanticAstNominalConstructorParamTypeAt(
     );
 }
 
+func SemanticAstNominalConstructorFieldNameAt(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    if constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) ||
+        field_index < 0 || field_index >= facts.param_counts[constructor_index] {
+        return None;
+    }
+    return Some(
+        facts.field_names[facts.param_starts[constructor_index] + field_index]
+    );
+}
+
 func SemanticAstNominalConstructorFactsMatchArtifact(
     artifact: AstTreeArtifact,
     facts: SemanticAstNominalConstructorFacts
@@ -210,6 +261,7 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
         ArrayLength(facts.return_type_names) != count ||
         ArrayLength(facts.param_starts) != count ||
         ArrayLength(facts.param_counts) != count ||
+        ArrayLength(facts.field_names) != ArrayLength(rebuilt.field_names) ||
         ArrayLength(facts.param_type_names) !=
             ArrayLength(rebuilt.param_type_names) {
         return false;
@@ -217,6 +269,7 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
     let i: Int = 0;
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.nominal_kinds[i] != rebuilt.nominal_kinds[i] ||
             facts.names[i] != rebuilt.names[i] ||
             facts.return_type_names[i] != rebuilt.return_type_names[i] ||
             facts.param_starts[i] != rebuilt.param_starts[i] ||
@@ -227,7 +280,8 @@ func SemanticAstNominalConstructorFactsMatchArtifact(
     }
     let p: Int = 0;
     while p < ArrayLength(facts.param_type_names) {
-        if facts.param_type_names[p] != rebuilt.param_type_names[p] {
+        if facts.field_names[p] != rebuilt.field_names[p] ||
+            facts.param_type_names[p] != rebuilt.param_type_names[p] {
             return false;
         }
         p = p + 1;
@@ -247,9 +301,14 @@ func SemanticAstNominalConstructorFactsContractReady() -> Bool {
     let second: Option<String> = SemanticAstNominalConstructorParamTypeAt(
         facts, 0, 1
     );
+    let first_name: Option<String> = SemanticAstNominalConstructorFieldNameAt(
+        facts, 0, 0
+    );
     return SemanticAstNominalConstructorFactsMatchArtifact(artifact, facts) &&
         SemanticAstNominalConstructorCount(facts) == 1 &&
-        facts.names[0] == "Box" && facts.return_type_names[0] == "Box" &&
+        facts.nominal_kinds[0] == "class" && facts.names[0] == "Box" &&
+        facts.return_type_names[0] == "Box" &&
         facts.param_counts[0] == 2 && IsSome(first) && IsSome(second) &&
+        IsSome(first_name) && UnwrapOption(first_name) == "value" &&
         UnwrapOption(first) == "String" && UnwrapOption(second) == "Int";
 }

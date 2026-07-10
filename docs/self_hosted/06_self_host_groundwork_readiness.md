@@ -79,29 +79,31 @@ The first slice is now live as five rung-1 AIR graph consumers:
 - `air_graph_reachability`: every node is reachable from a declared root via a
   push-only worklist.
 
-These are still soft consumers, not compiler-core substitution. One already
-use the drift-guarded live AIR dump fixture; the next promotion is to feed
-reachability and id uniqueness from live `pgy --air-json` output and compare
-against C-owned summaries. A producer pass (Pergyra emitting HIR/MIR/C) is the
-larger second step and should follow only after at least one live-dump consumer
-is green on both backends.
+These AIR tools remain soft consumers rather than compiler-core substitution.
+That groundwork condition is now satisfied: the bounded DRV-2 path constructs
+typed AST and semantic artifacts, produces `pgy.mir.v1` with Pergyra-owned MIR
+fact owners, verifies the result, consumes it through the Pergyra MIR reader,
+and emits C. The native C compiler produces MIR only as comparison evidence for
+the four intersection fixtures; it is no longer the DRV-2 source path's MIR
+producer.
 
 ## Sequence
 
-1. Promote the remaining AIR graph consumers from fixture-shaped JSON to live
-   `pgy --air-json` input.
-2. Add the C-owned summary or oracle counts that the Pergyra consumers must
-   match.
-3. Keep the C/LLVM leg in `make self-host-preparation-test-smoke`.
-4. Add the one or two lib structures it needs (worklist, name index) under
-   `self_hosted/lib/`, each with its first consumer present.
-5. Only after a live-dump consumer pass is green do producer passes (HIR/MIR
-   emission in Pergyra) begin, lowest IR first.
+1. Keep live AIR graph consumers compared against C-owned summary evidence.
+2. Expand the bounded Pergyra MIR producer only with a matching fact owner,
+   verifier rule, positive fixture, and negative fail-closed fixture.
+3. Keep C/LLVM-built self-host executables artifact-equal while treating the C
+   compiler as an oracle rather than a live production dependency.
+4. Promote a producer slice into the default native path only after source,
+   canonical MIR JSON, emitted ABI, diagnostic, and run parity are green.
+5. Count implementation volume, bounded executable replacement, and released
+   default replacement separately; none may stand in for another.
 
 ## What is explicitly out of scope for groundwork
 
 - Adding language features: not needed, the surface is ready.
 - Writing lib data structures speculatively: forbidden until a consumer exists.
-- Producer passes before a consumer pass is green: sequenced later.
+- Whole-language producer coverage inferred from the bounded DRV-2 producer:
+  forbidden until the unsupported surface is implemented and gated.
 - Going below LLVM (own native backend): out of scope permanently; LLVM and the
   C backend stay the two targets, C as the parity oracle.

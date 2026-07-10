@@ -63,15 +63,39 @@ cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/launcher.norm" || {
     "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$mir_source")" 2>/dev/null) \
     | tr -d '\r' >"$WORK_DIR/live.mir.json"
 grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/live.mir.json" || {
-    echo "[self-host-live] C oracle did not produce MIR JSON bridge artifact" >&2
+    echo "[self-host-live] C oracle did not produce MIR comparison artifact" >&2
     exit 1
 }
 live_mir_arg="$(pgy_selfhost_path_relative_to_root "$WORK_DIR/live.mir.json")"
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified "$mir_source") \
+    | tr -d '\r' >"$WORK_DIR/direct-self.mir.json"
+(cd "$ROOT_DIR" && "$PGY" --self-driver \
+    --emit-mir-json-verified "$mir_source") \
+    | tr -d '\r' >"$WORK_DIR/launcher-self.mir.json"
+cmp -s "$WORK_DIR/direct-self.mir.json" "$WORK_DIR/launcher-self.mir.json" || {
+    echo "[self-host-live] launcher MIR producer differs from direct DRV-2" >&2
+    exit 1
+}
+if grep -Fq '"ast":' "$WORK_DIR/launcher-self.mir.json"; then
+    echo "[self-host-live] self MIR producer emitted AST compatibility text" >&2
+    exit 1
+fi
+self_mir_arg="$(pgy_selfhost_path_relative_to_root "$WORK_DIR/launcher-self.mir.json")"
+(cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-mir-json "$live_mir_arg") \
+    | tr -d '\r' >"$WORK_DIR/oracle.canonical.mir.json"
+(cd "$ROOT_DIR" && "$PGY" --self-driver \
+    --canonicalize-mir-json "$self_mir_arg") \
+    | tr -d '\r' >"$WORK_DIR/self.canonical.mir.json"
+cmp -s "$WORK_DIR/oracle.canonical.mir.json" \
+    "$WORK_DIR/self.canonical.mir.json" || {
+        echo "[self-host-live] self MIR canonical facts differ from C oracle" >&2
+        exit 1
+    }
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json \
-    "$live_mir_arg") \
+    "$self_mir_arg") \
     >"$WORK_DIR/direct-mir.c"
 (cd "$ROOT_DIR" && "$PGY" --self-driver --mir-json \
-    "$live_mir_arg") \
+    "$self_mir_arg") \
     >"$WORK_DIR/launcher-mir.c"
 cmp -s "$WORK_DIR/direct-mir.c" "$WORK_DIR/launcher-mir.c" || {
     echo "[self-host-live] launcher MIR C artifact differs from direct DRV-2" >&2
@@ -130,4 +154,4 @@ grep -Fq "self-host driver is unavailable" "$WORK_DIR/missing.err" || {
     exit 1
 }
 
-echo "[self-host-live] explicit DRV-2 source/MIR replacement paths are artifact-equal and fail-closed"
+echo "[self-host-live] producer-first DRV-2 source/MIR replacement paths are artifact-equal and fail-closed"

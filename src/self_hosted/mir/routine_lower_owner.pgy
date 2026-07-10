@@ -1,0 +1,540 @@
+// Artifact-native routine CFG lowering for the bounded hard self-host frontier.
+
+import "program_fact_owner.pgy";
+import "expression_fact_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+import "routine_input_owner.pgy";
+
+struct SelfMirRoutineBuild {
+    ok: Bool;
+    diagnostic_message: String;
+    cfg: SelfMirCfgRows;
+    current_block: Int;
+    next_instruction_id: Int;
+    terminated: Array<Int>;
+    local_names: Array<String>;
+    local_types: Array<String>;
+    local_versions: Array<Int>;
+}
+
+struct SelfMirRoutineState {
+    input: SelfMirRoutineInput;
+    build: SelfMirRoutineBuild;
+}
+
+func SelfMirRoutineBuildEmpty() -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(SelfMirCfgRowsEmpty());
+    let empty_strings: Array<String> = [];
+    let empty_ints: Array<Int> = [];
+    return SelfMirRoutineBuild(
+        true, "", cfg, 0, 0, [0], empty_strings, empty_strings, empty_ints
+    );
+}
+
+func SelfMirRoutineBuildError(
+    build: SelfMirRoutineBuild,
+    message: String
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineBuild(
+        false, message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAddBlock(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(build.cfg);
+    let terminated: Array<Int> = build.terminated;
+    ArrayPush(terminated, 0);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAtBlock(
+    build: SelfMirRoutineBuild,
+    block_index: Int
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, block_index,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineSetSuccessors(
+    build: SelfMirRoutineBuild,
+    block_index: Int,
+    true_target: Int,
+    false_target: Int
+) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgSetSuccessors(
+        build.cfg, block_index, true_target, false_target
+    );
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineTerminate(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
+    let terminated: Array<Int> = build.terminated;
+    ArraySet(terminated, build.current_block, 1);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAddInstruction(
+    build: SelfMirRoutineBuild,
+    kind: String,
+    name: String,
+    result: String,
+    arg0: String,
+    arg1: String,
+    expr0: String,
+    expr1: String,
+    source_type: String,
+    uses: Array<String>
+) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        build.cfg, build.current_block, build.next_instruction_id,
+        kind, name, result, arg0, arg1, expr0, expr1, source_type, uses
+    );
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id + 1, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineLocalIndex(
+    build: SelfMirRoutineBuild,
+    name: String
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(build.local_names) {
+        if build.local_names[i] == name {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SelfMirRoutineAddLocal(
+    build: SelfMirRoutineBuild,
+    name: String,
+    type_name: String,
+    initial_version: Int
+) -> SelfMirRoutineBuild {
+    if IsSome(SelfMirRoutineLocalIndex(build, name)) {
+        return SelfMirRoutineBuildError(
+            build, Concat("duplicate MIR source local: ", name)
+        );
+    }
+    let names: Array<String> = build.local_names;
+    let types: Array<String> = build.local_types;
+    let versions: Array<Int> = build.local_versions;
+    ArrayPush(names, name);
+    ArrayPush(types, type_name);
+    ArrayPush(versions, initial_version);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated, names, types, versions
+    );
+}
+
+func SelfMirRoutineSetLocalVersion(
+    build: SelfMirRoutineBuild,
+    local_index: Int,
+    version: Int
+) -> SelfMirRoutineBuild {
+    let versions: Array<Int> = build.local_versions;
+    ArraySet(versions, local_index, version);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, versions
+    );
+}
+
+func SelfMirSsaName(name: String, version: Int) -> String {
+    return Concat(name, Concat(".", ToString(version)));
+}
+
+func SelfMirExpressionUses(
+    build: SelfMirRoutineBuild,
+    expression: String
+) -> Array<String> {
+    let uses: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(build.local_names) {
+        if build.local_versions[i] > 0 && SelfMirTextContainsIdentifier(
+            expression, build.local_names[i]
+        ) {
+            ArrayPush(
+                uses,
+                SelfMirSsaName(build.local_names[i], build.local_versions[i])
+            );
+        }
+        i = i + 1;
+    }
+    return uses;
+}
+
+func SelfMirLowerBlockFromArtifact(
+    state: SelfMirRoutineState,
+    block_node_id: Int
+) -> SelfMirRoutineState {
+    let build: SelfMirRoutineBuild = state.build;
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        state.input.artifact.arena, block_node_id, child_index
+    );
+    while IsSome(child_opt) && build.ok {
+        let node_id: Int = UnwrapOption(child_opt);
+        if build.terminated[build.current_block] == 1 {
+            return SelfMirRoutineState(
+                state.input, SelfMirRoutineBuildError(
+                    build, "reachable statement follows terminal MIR instruction"
+                )
+            );
+        }
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            state.input.artifact.arena, node_id
+        );
+        if !IsSome(kind_opt) {
+            return SelfMirRoutineState(
+                state.input,
+                SelfMirRoutineBuildError(build, "MIR node kind is missing")
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        if kind == TypedAstKindLetStmtTag() {
+            let local_index_opt: Option<Int> =
+                SemanticAstLocalBindingIndexForNode(
+                    state.input.analysis.local_bindings, node_id
+                );
+            if !IsSome(local_index_opt) {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build, "MIR let is missing semantic local facts"
+                    )
+                );
+            }
+            let local_index: Int = UnwrapOption(local_index_opt);
+            if state.input.analysis.local_bindings.has_declared_types[local_index] != 1 {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build, "bounded MIR producer requires a local type fact"
+                    )
+                );
+            }
+            let local_name: String = state.input.analysis.local_bindings.names[local_index];
+            let local_type: String =
+                state.input.analysis.local_bindings.declared_type_names[local_index];
+            let expression: String =
+                state.input.analysis.local_bindings.initializer_texts[local_index];
+            build = SelfMirRoutineAddLocal(build, local_name, local_type, 1);
+            let arg1: String = "";
+            if SelfMirTypeIsNominal(state.input, local_type) {
+                arg1 = local_type;
+            }
+            build = SelfMirRoutineAddInstruction(
+                build, "def", "ssa-def", SelfMirSsaName(local_name, 1),
+                local_name, arg1, expression, local_type,
+                "AST_LET_DECL", SelfMirExpressionUses(build, expression)
+            );
+        } else if kind == TypedAstKindAssignStmtTag() {
+            let assignment_index_opt: Option<Int> =
+                SemanticAstAssignmentIndexForNode(
+                    state.input.analysis.assignments, node_id
+                );
+            if !IsSome(assignment_index_opt) {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build, "MIR assignment is missing semantic facts"
+                    )
+                );
+            }
+            let assignment_index: Int = UnwrapOption(assignment_index_opt);
+            let target: String =
+                state.input.analysis.assignments.target_base_names[assignment_index];
+            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
+            if !IsSome(local_opt) {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build,
+                        Concat("MIR assignment target is unknown: ", target)
+                    )
+                );
+            }
+            let local_index: Int = UnwrapOption(local_opt);
+            let expression: String =
+                state.input.analysis.assignments.value_texts[assignment_index];
+            let uses: Array<String> = SelfMirExpressionUses(build, expression);
+            let version: Int = build.local_versions[local_index] + 1;
+            build = SelfMirRoutineSetLocalVersion(build, local_index, version);
+            build = SelfMirRoutineAddInstruction(
+                build, "def", "ssa-def", SelfMirSsaName(target, version),
+                target, "", expression, target, "AST_ASSIGNMENT", uses
+            );
+        } else if kind == TypedAstKindContinueStmtTag() {
+            if IsSome(TypedAstArenaChildAt(
+                state.input.artifact.arena, block_node_id, child_index + 1
+            )) {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build,
+                        "bounded MIR producer only accepts terminal loop continue"
+                    )
+                );
+            }
+        } else if SemanticAstStatementKindTracked(kind) {
+            let statement_index_opt: Option<Int> =
+                SemanticAstStatementIndexForNode(
+                    state.input.analysis.statements, node_id
+                );
+            if !IsSome(statement_index_opt) {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build, "MIR statement is missing semantic facts"
+                    )
+                );
+            }
+            let statement_index: Int = UnwrapOption(statement_index_opt);
+            let payload: String =
+                state.input.analysis.statements.payload_texts[statement_index];
+            if kind == TypedAstKindLogStmtTag() ||
+                kind == TypedAstKindBareCallStmtTag() {
+                let expression: String = payload;
+                let arg0: String = "";
+                if kind == TypedAstKindLogStmtTag() {
+                    expression = Concat("Log(", Concat(payload, ")"));
+                    arg0 = "Log";
+                }
+                build = SelfMirRoutineAddInstruction(
+                    build, "stmt", "stmt", "", arg0, "", expression, "",
+                    "AST_CALL", SelfMirExpressionUses(build, expression)
+                );
+            } else if kind == TypedAstKindBareReturnStmtTag() ||
+                kind == TypedAstKindValueReturnStmtTag() {
+                build = SelfMirRoutineAddInstruction(
+                    build, "return", "return", "", "", "", payload, "",
+                    SelfMirExpressionSourceType(payload),
+                    SelfMirExpressionUses(build, payload)
+                );
+                build = SelfMirRoutineTerminate(build);
+            } else if kind == TypedAstKindIfStmtTag() {
+                let condition: String = payload;
+                let branch_block: Int = build.current_block;
+                build = SelfMirRoutineAddInstruction(
+                    build, "branch", "branch", "", "", "", condition, "",
+                    SelfMirExpressionSourceType(condition),
+                    SelfMirExpressionUses(build, condition)
+                );
+                let body_opt: Option<Int> = SelfMirControlBodyBlock(
+                    state.input.artifact.arena, node_id
+                );
+                if !IsSome(body_opt) {
+                    return SelfMirRoutineState(
+                        state.input, SelfMirRoutineBuildError(
+                            build, "MIR if body block is missing"
+                        )
+                    );
+                }
+                build = SelfMirRoutineAddBlock(build);
+                let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineAtBlock(build, then_block);
+                let then_state: SelfMirRoutineState =
+                    SelfMirLowerBlockFromArtifact(
+                        SelfMirRoutineState(state.input, build),
+                        UnwrapOption(body_opt)
+                    );
+                build = then_state.build;
+                let then_exit: Int = build.current_block;
+                build = SelfMirRoutineAddBlock(build);
+                let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                if build.terminated[then_exit] == 0 {
+                    build = SelfMirRoutineSetSuccessors(
+                        build, then_exit, merge_block, -1
+                    );
+                }
+                build = SelfMirRoutineSetSuccessors(
+                    build, branch_block, then_block, merge_block
+                );
+                build = SelfMirRoutineAtBlock(build, merge_block);
+            } else if kind == TypedAstKindWhileStmtTag() {
+                let body_opt2: Option<Int> = SelfMirControlBodyBlock(
+                    state.input.artifact.arena, node_id
+                );
+                if !IsSome(body_opt2) {
+                    return SelfMirRoutineState(
+                        state.input, SelfMirRoutineBuildError(
+                            build, "MIR while body block is missing"
+                        )
+                    );
+                }
+                let preheader: Int = build.current_block;
+                build = SelfMirRoutineAddBlock(build);
+                let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineSetSuccessors(
+                    build, preheader, header, -1
+                );
+                build = SelfMirRoutineAtBlock(build, header);
+                let local_i: Int = 0;
+                while local_i < ArrayLength(build.local_names) {
+                    if SelfMirLoopAssignedLocal(
+                        state.input, UnwrapOption(body_opt2),
+                        build.local_names[local_i]
+                    ) {
+                        let old_version: Int = build.local_versions[local_i];
+                        let phi_version: Int = old_version + 1;
+                        let future_version: Int = phi_version + 1;
+                        let phi_uses: Array<String> = [
+                            SelfMirSsaName(
+                                build.local_names[local_i], old_version
+                            ),
+                            SelfMirSsaName(
+                                build.local_names[local_i], future_version
+                            )
+                        ];
+                        build = SelfMirRoutineAddInstruction(
+                            build, "phi", build.local_names[local_i],
+                            SelfMirSsaName(
+                                build.local_names[local_i], phi_version
+                            ),
+                            "phi", "", "", "", "", phi_uses
+                        );
+                        build = SelfMirRoutineSetLocalVersion(
+                            build, local_i, phi_version
+                        );
+                    }
+                    local_i = local_i + 1;
+                }
+                let condition2: String = payload;
+                build = SelfMirRoutineAddInstruction(
+                    build, "branch", "branch", "", "", "", condition2, "",
+                    SelfMirExpressionSourceType(condition2),
+                    SelfMirExpressionUses(build, condition2)
+                );
+                build = SelfMirRoutineAddBlock(build);
+                let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineAtBlock(build, loop_body);
+                let while_state: SelfMirRoutineState =
+                    SelfMirLowerBlockFromArtifact(
+                        SelfMirRoutineState(state.input, build),
+                        UnwrapOption(body_opt2)
+                    );
+                build = while_state.build;
+                let body_exit: Int = build.current_block;
+                if build.terminated[body_exit] == 0 {
+                    build = SelfMirRoutineSetSuccessors(
+                        build, body_exit, header, -1
+                    );
+                }
+                build = SelfMirRoutineAddBlock(build);
+                let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineSetSuccessors(
+                    build, header, loop_body, loop_exit
+                );
+                build = SelfMirRoutineAtBlock(build, loop_exit);
+            } else if kind == TypedAstKindForStmtTag() {
+                let body_opt3: Option<Int> = SelfMirControlBodyBlock(
+                    state.input.artifact.arena, node_id
+                );
+                if !IsSome(body_opt3) {
+                    return SelfMirRoutineState(
+                        state.input, SelfMirRoutineBuildError(
+                            build, "MIR for body block is missing"
+                        )
+                    );
+                }
+                let binding: String = payload;
+                let start: String = state.input.analysis.statements.value_texts[
+                    statement_index
+                ];
+                let stop: String = state.input.analysis.statements.auxiliary_texts[
+                    statement_index
+                ];
+                build = SelfMirRoutineAddLocal(build, binding, "Int", 0);
+                let for_preheader: Int = build.current_block;
+                build = SelfMirRoutineAddInstruction(
+                    build, "loop-init", "loop-init", "", binding, "",
+                    start, stop, "AST_FOR_LOOP", SelfMirNoUses()
+                );
+                build = SelfMirRoutineAddBlock(build);
+                let for_header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineSetSuccessors(
+                    build, for_preheader, for_header, -1
+                );
+                build = SelfMirRoutineAtBlock(build, for_header);
+                build = SelfMirRoutineAddInstruction(
+                    build, "branch", "branch", "", binding, "", start,
+                    stop, "AST_FOR_LOOP", SelfMirNoUses()
+                );
+                build = SelfMirRoutineAddBlock(build);
+                let for_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineAtBlock(build, for_body);
+                let for_state: SelfMirRoutineState =
+                    SelfMirLowerBlockFromArtifact(
+                        SelfMirRoutineState(state.input, build),
+                        UnwrapOption(body_opt3)
+                    );
+                build = for_state.build;
+                let for_body_exit: Int = build.current_block;
+                if build.terminated[for_body_exit] == 0 {
+                    build = SelfMirRoutineSetSuccessors(
+                        build, for_body_exit, for_header, -1
+                    );
+                }
+                build = SelfMirRoutineAddBlock(build);
+                let for_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineSetSuccessors(
+                    build, for_header, for_body, for_exit
+                );
+                build = SelfMirRoutineAtBlock(build, for_exit);
+            } else {
+                return SelfMirRoutineState(
+                    state.input, SelfMirRoutineBuildError(
+                        build, "statement kind is outside bounded MIR producer"
+                    )
+                );
+            }
+        } else {
+            return SelfMirRoutineState(
+                state.input, SelfMirRoutineBuildError(
+                    build, "AST node is outside bounded MIR producer"
+                )
+            );
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(
+            state.input.artifact.arena, block_node_id, child_index
+        );
+    }
+    return SelfMirRoutineState(state.input, build);
+}
+
+func SelfMirRoutineFromInput(
+    input: SelfMirRoutineInput,
+    function_node_id: Int
+) -> SelfMirRoutineBuild {
+    let body_opt: Option<Int> = SelfMirFunctionBodyBlock(
+        input.artifact.arena, function_node_id
+    );
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    if !IsSome(body_opt) {
+        return SelfMirRoutineBuildError(build, "function body block is missing");
+    }
+    let state: SelfMirRoutineState = SelfMirLowerBlockFromArtifact(
+        SelfMirRoutineState(input, build), UnwrapOption(body_opt)
+    );
+    return state.build;
+}

@@ -1,0 +1,213 @@
+// pgy.mir.v1 JSON projection from verified self-host MIR fact rows.
+
+import "program_verify_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonOptionalString(value: String) -> String {
+    if value == "" {
+        return "null";
+    }
+    return JsonStringLiteral(value);
+}
+
+func SelfMirJsonInstruction(
+    facts: SelfMirProgramFacts,
+    instruction_index: Int
+) -> String {
+    let rows: SelfMirInstructionRows = facts.cfg.instructions;
+    let uses: Array<String> = [];
+    let use_i: Int = 0;
+    while use_i < rows.use_counts[instruction_index] {
+        ArrayPush(
+            uses,
+            JsonStringLiteral(
+                rows.uses[rows.use_starts[instruction_index] + use_i]
+            )
+        );
+        use_i = use_i + 1;
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldNumber("id", ToString(rows.ids[instruction_index])),
+        JsonEmitFieldString("kind", rows.kinds[instruction_index]),
+        JsonEmitFieldString("name", rows.names[instruction_index]),
+        JsonEmitFieldRaw(
+            "result", SelfMirJsonOptionalString(rows.results[instruction_index])
+        ),
+        JsonEmitFieldRaw(
+            "arg0", SelfMirJsonOptionalString(rows.arg0s[instruction_index])
+        ),
+        JsonEmitFieldRaw(
+            "arg1", SelfMirJsonOptionalString(rows.arg1s[instruction_index])
+        ),
+        JsonEmitFieldRaw(
+            "expr0", SelfMirJsonOptionalString(rows.expr0s[instruction_index])
+        ),
+        JsonEmitFieldRaw(
+            "expr1", SelfMirJsonOptionalString(rows.expr1s[instruction_index])
+        ),
+        JsonEmitFieldRaw(
+            "source_type",
+            SelfMirJsonOptionalString(rows.source_types[instruction_index])
+        ),
+        JsonEmitFieldRaw("match_patterns", "[]"),
+        JsonEmitFieldRaw("match_variant", "null"),
+        JsonEmitFieldRaw("match_bindings", "[]"),
+        JsonEmitFieldRaw("destructure_bindings", "[]"),
+        JsonEmitFieldRaw("uses", JsonEmitArray(uses))
+    ];
+    return JsonEmitObject(fields);
+}
+
+func SelfMirJsonBlock(
+    facts: SelfMirProgramFacts,
+    block_index: Int
+) -> String {
+    let blocks: SelfMirBlockRows = facts.cfg.blocks;
+    let instructions: Array<String> = [];
+    let i: Int = 0;
+    while i < blocks.instruction_counts[block_index] {
+        ArrayPush(
+            instructions,
+            SelfMirJsonInstruction(
+                facts, blocks.instruction_starts[block_index] + i
+            )
+        );
+        i = i + 1;
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldNumber("id", ToString(blocks.ids[block_index])),
+        JsonEmitFieldBool("reachable", blocks.reachable[block_index] == 1),
+        JsonEmitFieldRaw("instructions", JsonEmitArray(instructions))
+    ];
+    if blocks.has_succ_true[block_index] == 1 {
+        ArrayPush(
+            fields,
+            JsonEmitFieldNumber(
+                "succ_true", ToString(blocks.succ_true[block_index])
+            )
+        );
+    }
+    if blocks.has_succ_false[block_index] == 1 {
+        ArrayPush(
+            fields,
+            JsonEmitFieldNumber(
+                "succ_false", ToString(blocks.succ_false[block_index])
+            )
+        );
+    }
+    return JsonEmitObject(fields);
+}
+
+func SelfMirJsonRoutine(
+    facts: SelfMirProgramFacts,
+    routine_index: Int
+) -> String {
+    let rows: SelfMirRoutineRows = facts.routines;
+    let params: Array<String> = [];
+    let param_i: Int = 0;
+    while param_i < rows.param_counts[routine_index] {
+        let row: Int = rows.param_starts[routine_index] + param_i;
+        let fields: Array<String> = [
+            JsonEmitFieldString("name", rows.param_names[row]),
+            JsonEmitFieldRaw("type", SelfMirJsonOptionalString(rows.param_types[row]))
+        ];
+        ArrayPush(params, JsonEmitObject(fields));
+        param_i = param_i + 1;
+    }
+    let blocks: Array<String> = [];
+    let block_i: Int = 0;
+    while block_i < rows.block_counts[routine_index] {
+        ArrayPush(
+            blocks,
+            SelfMirJsonBlock(
+                facts, rows.block_starts[routine_index] + block_i
+            )
+        );
+        block_i = block_i + 1;
+    }
+    let locals: Array<String> = [];
+    let local_i: Int = 0;
+    while local_i < rows.local_counts[routine_index] {
+        let row2: Int = rows.local_starts[routine_index] + local_i;
+        let fields2: Array<String> = [
+            JsonEmitFieldString("name", rows.local_names[row2]),
+            JsonEmitFieldString("type", rows.local_types[row2])
+        ];
+        ArrayPush(locals, JsonEmitObject(fields2));
+        local_i = local_i + 1;
+    }
+    let fields3: Array<String> = [
+        JsonEmitFieldString("name", rows.names[routine_index]),
+        JsonEmitFieldString("kind", rows.kinds[routine_index])
+    ];
+    if rows.owners[routine_index] != "" {
+        ArrayPush(fields3, JsonEmitFieldString("owner", rows.owners[routine_index]));
+    }
+    ArrayPush(fields3, JsonEmitFieldRaw("params", JsonEmitArray(params)));
+    ArrayPush(fields3, JsonEmitFieldString("return", rows.return_types[routine_index]));
+    ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));
+    ArrayPush(fields3, JsonEmitFieldRaw("source_locals", JsonEmitArray(locals)));
+    return JsonEmitObject(fields3);
+}
+
+func SelfMirJsonDeclaration(
+    facts: SelfMirProgramFacts,
+    declaration_index: Int
+) -> String {
+    let rows: SelfMirDeclarationRows = facts.declarations;
+    let fields_rows: Array<String> = [];
+    let field_i: Int = 0;
+    while field_i < rows.field_counts[declaration_index] {
+        let row: Int = rows.field_starts[declaration_index] + field_i;
+        let field: Array<String> = [
+            JsonEmitFieldString("name", rows.field_names[row]),
+            JsonEmitFieldString("type", rows.field_types[row])
+        ];
+        ArrayPush(fields_rows, JsonEmitObject(field));
+        field_i = field_i + 1;
+    }
+    let methods: Array<String> = [];
+    let method_i: Int = 0;
+    while method_i < rows.method_counts[declaration_index] {
+        let row2: Int = rows.method_starts[declaration_index] + method_i;
+        let method: Array<String> = [
+            JsonEmitFieldString("name", rows.method_names[row2]),
+            JsonEmitFieldString("return", rows.method_returns[row2])
+        ];
+        ArrayPush(methods, JsonEmitObject(method));
+        method_i = method_i + 1;
+    }
+    let fields: Array<String> = [
+        JsonEmitFieldString("kind", rows.kinds[declaration_index]),
+        JsonEmitFieldString(
+            "nominal_kind", rows.nominal_kinds[declaration_index]
+        ),
+        JsonEmitFieldString("name", rows.names[declaration_index]),
+        JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
+        JsonEmitFieldRaw("methods", JsonEmitArray(methods))
+    ];
+    return JsonEmitObject(fields);
+}
+
+func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
+    if !SelfMirProgramFactsReady(facts) {
+        return "";
+    }
+    let declarations: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(facts.declarations.names) {
+        ArrayPush(declarations, SelfMirJsonDeclaration(facts, i));
+        i = i + 1;
+    }
+    let routines: Array<String> = [];
+    let r: Int = 0;
+    while r < ArrayLength(facts.routines.names) {
+        ArrayPush(routines, SelfMirJsonRoutine(facts, r));
+        r = r + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", "pgy.mir.v1"),
+        JsonEmitFieldRaw("decls", JsonEmitArray(declarations)),
+        JsonEmitFieldRaw("routines", JsonEmitArray(routines))
+    ]);
+}
