@@ -18434,3 +18434,17 @@ CI annotation 기준 실패 3종의 근인을 전부 확정. 수정 1건은 소�
 - 그 외 로컬 위생: 이번 진단 중 HEAD는 test-transpile 918/0, test-mir
   128/0, test-semantic 2794/0, 스크립트 게이트(evidence-lifetime/
   abstraction-loss/compiler-world) green — CI RED 2종 외의 추가 깨짐 없음.
+
+## 진행 노트 — CI 실패 전수 인벤토리 갱신 (2026-07-10 오후, 런 #1501 계열)
+
+gh 로그 실측 기준 현재 red 전체와 소유 매핑. "전부 실패"의 실체는 **원인
+5계열**이고 전부 좌표가 잡혀 있다:
+
+| 실패 | 플랫폼/잡 | 근인 | 소유/상태 |
+|---|---|---|---|
+| self-host-preparation (likeness 109) | mac/win/linux | self-host 스트림 String→String 증가(로컬 dirty는 110) | self-host 스트림, ratchet 복귀 필요 |
+| example-smoke + llvm-dnd-campaign | linux/win | with-slot 조기 release(`ba4cc576`, bisect 확정) | 칩 인계 완료(재현+메커니즘+실패접근 2건 포함) |
+| module-test-smoke | linux | 최신 커밋대(Die builtin/semantic ownership 계열) 신규 | self-host/semantic 스트림, 신규 — tail에 마지막 케이스 잘림, 재조사 필요 |
+| ir-pipeline-test-smoke | linux | 동상 — 3개 컴파일 후 Error 1 (diff류 추정) | 동상 |
+| inc-sentinel | linux | test-case include fragment 139>138 — ratchet 위반(신규 .cases.h 추가 시 경계 문서 미갱신) | 스트림, 기계적 |
+| backend-compare shard 7 | linux, **간헐**(13:07 green→14:03 red) | `parallel_backpressure_witness`의 **LLVM leg만 30s 행**(C=0/LLVM=124). blocked-send(cond_not_full) 경로 고유 — 핑퐁(blocked-recv)은 통과. 로컬 10ms(예산 1/3000)라 실체 있는 간헐 deadlock. .bc 인라인/실행기 차이/pool 크기/타이밍 가설 전부 실측 배제 | **칩 인계**(Linux stress 재현 필요). witness는 유지 — 이 발견이 목적한 R2/R3급 신호 |
