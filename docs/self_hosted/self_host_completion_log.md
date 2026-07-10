@@ -25,6 +25,27 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Function signature facts become artifact-native
+
+- Added `SemanticAstFunctionSignatureFacts` as the single owner of function
+  owner/name, parameter node/name/type/mode, and return-type rows derived from
+  the parser-owned `AstTreeArtifact`.
+- Repointed self-host function emission, prototype emission, role-operator
+  lookup, and function type-environment construction to that same table. The
+  codegen-owned `ast_text_function_signature_owner.pgy` was deleted without an
+  alias or compatibility fallback.
+- Strengthened artifact binding so a same-sized stale table cannot pass: the
+  verifier checks ordered function nodes, contiguous parameter ranges, owner
+  and payload equality, marker uniqueness, and complete function coverage.
+- Focused M2 completeness passed the two new/replacement owners through
+  lexer/parser/semantic/codegen 2/2 and measured 226 total production sources;
+  all M2 minima were raised to 226.
+- Verified structured no-`Main` rejection, byte-identical `hello` C, C/LLVM
+  semantic parity at 110/110, C/LLVM codegen parity at 68/68, and integrated
+  driver `gen2 == gen3` at 17,304 generated-C lines.
+- Honest boundary: local binding/body semantic facts and MIR lowering remain
+  outside the executable driver. Whole-compiler self-hosting is not complete.
+
 ## 2026-07-10 - First semantic verdict enters the self-eating driver
 
 - Added one canonical HIR node-kind owner and removed numeric kind meanings

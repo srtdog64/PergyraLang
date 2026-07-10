@@ -5,7 +5,7 @@
 import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_enum_variant_owner.pgy";
-import "../input/ast_text_function_signature_owner.pgy";
+import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/ast_text_declaration_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -30,27 +30,46 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
 
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(count: Int, arena: AstArena, inout cur: Array<Int>, f_indent: Int,
-                  base_env: String, uses_args: Bool, owner_name: String) -> String {
-    let signature_context: CodegenFunctionSignatureContext = CodegenFunctionSignatureContextFor(owner_name);
-    let name: String = CodegenAstArenaFunctionNameOrDie(arena, cur[0]);
+func EmitFunction(count: Int, arena: AstArena,
+                  signatures: SemanticAstFunctionSignatureFacts,
+                  inout cur: Array<Int>, f_indent: Int,
+                  base_env: String, uses_args: Bool) -> String {
+    let function_node_id: Int = cur[0];
+    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+        signatures, function_node_id
+    );
+    let owner_name: String = CodegenSemanticFunctionOwnerOrDie(
+        signatures, signature_index
+    );
+    let name: String = CodegenSemanticFunctionNameOrDie(
+        signatures, signature_index
+    );
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstArenaExpectParameters(arena, count, cur);
     let params: String = "";
     let param_n: Int = 0;
+    let expected_param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+        signatures, signature_index
+    );
     let env_box: Array<String> = [base_env];
     let prologue: String = "";
     let copyout: String = "";
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
-        let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, cur[0]);
+        let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
+            signatures, signature_index, param_n
+        );
         if p_mode == 2 || p_mode == 3 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstArenaProvenanceOrDie(arena, cur[0])));
         }
-        let p_name: String = CodegenAstArenaParamNameOrDie(arena, cur[0]);
+        let p_name: String = CodegenSemanticFunctionParamNameForNodeOrDie(
+            signatures, signature_index, param_n, cur[0]
+        );
         let c_p_name: String = CompilerSymbolCBindingName(p_name);
-        let p_type: String = CodegenAstArenaParamTypeNameOrDie(arena, cur[0], signature_context);
+        let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
+            signatures, signature_index, param_n
+        );
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
         if p_mode == 1 {
@@ -75,10 +94,16 @@ func EmitFunction(count: Int, arena: AstArena, inout cur: Array<Int>, f_indent: 
         ArraySet(cur, 0, cur[0] + 1);
     }
 
+    if param_n != expected_param_count {
+        Die("semantic signature parameter count does not match AST traversal");
+    }
+
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
-    let ret_type: String = CodegenAstArenaReturnTypeNameOrDie(arena, cur[0]);
+    let ret_type: String = CodegenSemanticFunctionReturnTypeOrDie(
+        signatures, signature_index
+    );
     ArraySet(cur, 0, cur[0] + 1);
 
     CodegenAstArenaExpectBody(arena, count, cur);
@@ -115,90 +140,54 @@ func EmitFunction(count: Int, arena: AstArena, inout cur: Array<Int>, f_indent: 
     return Concat(signature, Concat("\n{\n", Concat(body_full, tail)));
 }
 
-// Build the global environment: `|Name=f:RetType|...` for every function, by
-// pairing each `Function: Name` line with the next `Returns:` line.
-func BuildFunctionEnv(count: Int, arena: AstArena) -> String {
+// Project semantic signature facts into the C emitter's compact type env.
+func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
     let env: String = "|";
     let i: Int = 0;
-    let owner: String = "";
-    let owner_indent: Int = -1;
-    let skip_indent: Int = -1;
-    while i < count {
-        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
-        if skip_indent >= 0 {
-            if indent > skip_indent {
-                i = i + 1;
-                continue;
-            }
-            skip_indent = -1;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
+        let fname: String = CodegenSemanticFunctionNameOrDie(signatures, i);
+        let cname: String = CompilerSymbolCQualifiedName(owner, fname);
+        let modes: String = "";
+        let param_types: String = "";
+        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+            signatures, i
+        );
+        let p: Int = 0;
+        while p < param_count {
+            modes = ParamModeCsvAppend(
+                modes, CodegenSemanticFunctionParamModeOrDie(signatures, i, p)
+            );
+            param_types = ParamTypeCsvAppend(
+                param_types,
+                CodegenSemanticFunctionParamTypeOrDie(signatures, i, p)
+            );
+            p = p + 1;
         }
-        if StringLength(owner) > 0 && indent <= owner_indent {
-            owner = "";
-            owner_indent = -1;
+        env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
+        env = Concat(env, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
+        let rtype: String = CodegenSemanticFunctionReturnTypeOrDie(signatures, i);
+        env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
+        if fname != cname {
+            env = Concat(env, Concat(fname, Concat("=call:", Concat(cname, "|"))));
         }
-        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
-            skip_indent = indent;
-            i = i + 1;
-            continue;
+        let public_alias: String = CompilerSymbolCImportPublicName(cname);
+        if StringLength(public_alias) > 0 && public_alias != cname && public_alias != fname {
+            env = Concat(env, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
         }
-        if CodegenAstArenaIsNominalDecl(arena, i) {
-            owner = CodegenAstArenaNominalNameOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsRoleDecl(arena, i) {
-            owner = CodegenAstArenaRoleNameOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsFunction(arena, i) {
-            let fname: String = CodegenAstArenaFunctionNameOrDie(arena, i);
-            let signature_context: CodegenFunctionSignatureContext = CodegenFunctionSignatureContextFor(owner);
-            let cname: String = CompilerSymbolCQualifiedName("", fname);
-            if StringLength(owner) > 0 && indent > owner_indent {
-                cname = CompilerSymbolCQualifiedName(owner, fname);
-            }
-            let j: Int = i + 1;
-            let rtype: String = "Void";
-            while j < count && !CodegenAstArenaIsFunction(arena, j) {
-                if CodegenAstArenaIsParameters(arena, j) {
-                    j = j + 1;
-                    let modes: String = "";
-                    let param_types: String = "";
-                    while j < count && CodegenAstArenaIndentOrDie(arena, j) == indent + 4 {
-                        modes = ParamModeCsvAppend(modes, CodegenAstArenaParamModeOrDie(arena, j));
-                        param_types = ParamTypeCsvAppend(param_types, CodegenAstArenaParamTypeNameOrDie(arena, j, signature_context));
-                        j = j + 1;
-                    }
-                    env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
-                    env = Concat(env, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
-                    continue;
-                }
-                if CodegenAstArenaIsReturns(arena, j) {
-                    rtype = CodegenAstArenaReturnTypeNameOrDie(arena, j);
-                    j = count;
-                } else {
-                    j = j + 1;
-                }
-            }
-            env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
-            if fname != cname {
-                env = Concat(env, Concat(fname, Concat("=call:", Concat(cname, "|"))));
-            }
-            let public_alias: String = CompilerSymbolCImportPublicName(cname);
-            if StringLength(public_alias) > 0 && public_alias != cname && public_alias != fname {
-                env = Concat(env, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
-            }
-            let local_alias: String = CompilerSymbolCLocalCallName(cname);
-            if StringLength(local_alias) > 0 && local_alias != cname &&
-                local_alias != fname && local_alias != public_alias {
-                env = Concat(env, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
-            }
+        let local_alias: String = CompilerSymbolCLocalCallName(cname);
+        if StringLength(local_alias) > 0 && local_alias != cname &&
+            local_alias != fname && local_alias != public_alias {
+            env = Concat(env, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
         }
         i = i + 1;
     }
     return env;
 }
 
-func CollectRoleOperators(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectRoleOperators(count: Int, arena: AstArena,
+                          signatures: SemanticAstFunctionSignatureFacts,
+                          inout env_box: Array<String>) -> String {
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsRoleDecl(arena, i) {
@@ -207,7 +196,12 @@ func CollectRoleOperators(count: Int, arena: AstArena, inout env_box: Array<Stri
             let j: Int = i + 1;
             while j < count && CodegenAstArenaIsDescendantOf(arena, j, i) {
                 if CodegenAstArenaIsFunction(arena, j) {
-                    let mname: String = CodegenAstArenaFunctionNameOrDie(arena, j);
+                    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+                        signatures, j
+                    );
+                    let mname: String = CodegenSemanticFunctionNameOrDie(
+                        signatures, signature_index
+                    );
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
                         ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
@@ -290,82 +284,58 @@ func CollectEnums(count: Int, arena: AstArena, inout env_box: Array<String>) -> 
 // value with a shared element buffer: `ArraySet` mutations persist across calls
 // but `ArrayPush` growth does not -- so a callee cannot append to the caller's
 // `protos`. Emitting prototypes here makes forward references compile.)
-func CollectProtos(count: Int, arena: AstArena, struct_env: String) -> String {
+func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
+                   struct_env: String) -> String {
     let block: String = "";
     let i: Int = 0;
-    let owner: String = "";
-    let owner_indent: Int = -1;
-    let skip_indent: Int = -1;
-    while i < count {
-        let indent: Int = CodegenAstArenaIndentOrDie(arena, i);
-        if skip_indent >= 0 {
-            if indent > skip_indent {
-                i = i + 1;
-                continue;
-            }
-            skip_indent = -1;
-        }
-        if StringLength(owner) > 0 && indent <= owner_indent {
-            owner = "";
-            owner_indent = -1;
-        }
-        if CodegenAstArenaIsZeroArtifactDecl(arena, i) {
-            skip_indent = indent;
-            i = i + 1;
-            continue;
-        }
-        if CodegenAstArenaIsNominalDecl(arena, i) {
-            owner = CodegenAstArenaNominalNameOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsRoleDecl(arena, i) {
-            owner = CodegenAstArenaRoleNameOrDie(arena, i);
-            owner_indent = indent;
-        }
-        if CodegenAstArenaIsFunction(arena, i) {
-            let name: String = CodegenAstArenaFunctionNameOrDie(arena, i);
-            let signature_context: CodegenFunctionSignatureContext = CodegenFunctionSignatureContextFor(owner);
-            let c_name: String = CompilerSymbolCQualifiedName(owner, name);
-            if c_name != "Main" {
-                let f_indent: Int = indent;
-                let j: Int = i + 1;
-                if j < count && CodegenAstArenaIsParameters(arena, j) {
-                    j = j + 1;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let owner: String = CodegenSemanticFunctionOwnerOrDie(signatures, i);
+        let name: String = CodegenSemanticFunctionNameOrDie(signatures, i);
+        let c_name: String = CompilerSymbolCQualifiedName(owner, name);
+        if c_name != "Main" {
+            let params: String = "";
+            let pn: Int = 0;
+            let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+                signatures, i
+            );
+            while pn < param_count {
+                let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
+                    signatures, i, pn
+                );
+                if p_mode == 2 || p_mode == 3 {
+                    Die(Concat(
+                        "unsupported self-host codegen parameter mode for function: ",
+                        name
+                    ));
                 }
-                let params: String = "";
-                let pn: Int = 0;
-                while j < count && CodegenAstArenaIndentOrDie(arena, j) == f_indent + 4 {
-                    let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, j);
-                    if p_mode == 2 || p_mode == 3 {
-                        Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstArenaProvenanceOrDie(arena, j)));
-                    }
-                    let p_name: String = CodegenAstArenaParamNameOrDie(arena, j);
-                    let c_p_name: String = CompilerSymbolCBindingName(p_name);
-                    let p_type: String = CodegenAstArenaParamTypeNameOrDie(arena, j, signature_context);
-                    let cpt: String = AbiLayoutCParamType(p_type, struct_env);
-                    let cp: String = Concat(cpt, Concat(" ", c_p_name));
-                    if p_mode == 1 {
-                        cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
-                    }
-                    if pn == 0 {
-                        params = cp;
-                    } else {
-                        params = Concat(params, Concat(", ", cp));
-                    }
-                    pn = pn + 1;
-                    j = j + 1;
+                let p_name: String = CodegenSemanticFunctionParamNameOrDie(
+                    signatures, i, pn
+                );
+                let c_p_name: String = CompilerSymbolCBindingName(p_name);
+                let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
+                    signatures, i, pn
+                );
+                let cpt: String = AbiLayoutCParamType(p_type, struct_env);
+                let cp: String = Concat(cpt, Concat(" ", c_p_name));
+                if p_mode == 1 {
+                    cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
                 }
-                let rtype: String = "Void";
-                if j < count && CodegenAstArenaIsReturns(arena, j) {
-                    rtype = CodegenAstArenaReturnTypeNameOrDie(arena, j);
-                }
-                let plist: String = params;
                 if pn == 0 {
-                    plist = AbiLayoutCEmptyParameterList();
+                    params = cp;
+                } else {
+                    params = Concat(params, Concat(", ", cp));
                 }
-                let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
-                block = Concat(block, Concat(sig, ";\n"));
+                pn = pn + 1;
             }
+            let rtype: String = CodegenSemanticFunctionReturnTypeOrDie(
+                signatures, i
+            );
+            let plist: String = params;
+            if pn == 0 {
+                plist = AbiLayoutCEmptyParameterList();
+            }
+            let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
+            block = Concat(block, Concat(sig, ";\n"));
         }
         i = i + 1;
     }

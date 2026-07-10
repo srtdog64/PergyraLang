@@ -56,6 +56,9 @@ func SemanticReason(code: String) -> String {
     if code == "entrypoint_cardinality" {
         return "program entrypoint cardinality does not match the compilation boundary";
     }
+    if code == "function_signature_invalid" {
+        return "function signature rows are incomplete in the shared AST artifact";
+    }
     if code == "input_missing" {
         return "semantic checker requires a source path argument";
     }
@@ -115,6 +118,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "entrypoint_cardinality" {
         return "declare exactly one Main function for an executable program";
+    }
+    if code == "function_signature_invalid" {
+        return "repair the parser-owned function signature fact instead of inferring it in codegen";
     }
     if code == "input_missing" {
         return "pass the source path as Args()[0]";
@@ -516,7 +522,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 19 {
+    if SemanticDiagnosticCodeCount() != 20 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

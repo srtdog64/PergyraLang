@@ -91,15 +91,32 @@ func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
 }
 
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+                   signatures: SemanticAstFunctionSignatureFacts,
                    inout cur: Array<Int>, f_indent: Int) -> Bool {
+    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+        signatures, cur[0]
+    );
+    let param_index: Int = 0;
+    let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+        signatures, signature_index
+    );
     ArraySet(cur, 0, cur[0] + 1);
     CodegenAstArenaExpectParameters(arena, count, cur);
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
-        let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, cur[0]);
+        let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
+            signatures, signature_index, param_index
+        );
+        CodegenSemanticFunctionParamNameForNodeOrDie(
+            signatures, signature_index, param_index, cur[0]
+        );
         if p_mode == 2 || p_mode == 3 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
         }
+        param_index = param_index + 1;
         ArraySet(cur, 0, cur[0] + 1);
+    }
+    if param_index != param_count {
+        Die("semantic signature parameter count does not match AST traversal");
     }
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
@@ -123,10 +140,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let artifact: AstTreeArtifact = AstTreeArtifact(tree_text, arena, count);
-    let semantic_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(artifact, require_entrypoint);
-    if !semantic_verdict.ok {
-        Die(semantic_verdict.diagnostic_message);
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(artifact, require_entrypoint);
+    if !semantic_analysis.verdict.ok {
+        Die(semantic_analysis.verdict.diagnostic_message);
     }
     let main_scan: Int = 0;
     while main_scan < count {
@@ -155,7 +172,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    CheckFunction(nodes, count, arena, cur, method_indent);
+                    CheckFunction(
+                        nodes, count, arena, semantic_analysis.signatures,
+                        cur, method_indent
+                    );
                     saw_function = true;
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -167,7 +187,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    CheckFunction(nodes, count, arena, cur, role_method_indent);
+                    CheckFunction(
+                        nodes, count, arena, semantic_analysis.signatures,
+                        cur, role_method_indent
+                    );
                     saw_function = true;
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -178,7 +201,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         } else if CodegenAstArenaIsEventDecl(arena, cur[0]) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[cur[0]])));
         } else if CodegenAstArenaIsFunction(arena, cur[0]) {
-            CheckFunction(nodes, count, arena, cur, cur_indent);
+            CheckFunction(
+                nodes, count, arena, semantic_analysis.signatures,
+                cur, cur_indent
+            );
             saw_function = true;
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -192,7 +218,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
 
 func GenerateCUnitFromSemanticArtifact(
     artifact: AstTreeArtifact,
-    semantic_verdict: SemanticAstArtifactVerdict,
+    semantic_analysis: SemanticAstArtifactAnalysis,
     require_entrypoint: Bool
 ) -> String {
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
@@ -202,12 +228,16 @@ func GenerateCUnitFromSemanticArtifact(
     if !CodegenAstTreeArtifactReady(artifact) {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
-    if !semantic_verdict.ok {
-        Die(semantic_verdict.diagnostic_message);
+    if !semantic_analysis.verdict.ok {
+        Die(semantic_analysis.verdict.diagnostic_message);
     }
-    if !SemanticAstArtifactVerdictMatches(artifact, semantic_verdict, require_entrypoint) {
+    if !SemanticAstArtifactAnalysisMatches(
+        artifact, semantic_analysis, require_entrypoint
+    ) {
         Die("codegen semantic evidence does not match AST artifact");
     }
+    let signatures: SemanticAstFunctionSignatureFacts =
+        semantic_analysis.signatures;
     let main_scan: Int = 0;
     while main_scan < count {
         // `event` declarations have no handler/dispatch model in this codegen.
@@ -241,10 +271,10 @@ func GenerateCUnitFromSemanticArtifact(
     if first_fn >= 0 {
         f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
     }
-    let env_acc: Array<String> = [BuildFunctionEnv(count, arena)];
+    let env_acc: Array<String> = [BuildFunctionEnv(signatures)];
     let enum_block: String = CollectEnums(count, arena, env_acc);
     let typedef_block: String = CollectStructs(count, arena, env_acc);
-    CollectRoleOperators(count, arena, env_acc);
+    CollectRoleOperators(count, arena, signatures, env_acc);
     let base_env: String = env_acc[0];
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
@@ -261,33 +291,39 @@ func GenerateCUnitFromSemanticArtifact(
                 ArraySet(cur, 0, cur[0] + 1);
             }
         } else if CodegenAstArenaIsNominalDecl(arena, cur[0]) {
-            let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0]);
             let owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let mdef: String = EmitFunction(count, arena, cur, method_indent, base_env, uses_args, owner_name);
+                    let mdef: String = EmitFunction(
+                        count, arena, signatures, cur, method_indent,
+                        base_env, uses_args
+                    );
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if CodegenAstArenaIsRoleDecl(arena, cur[0]) {
-            let role_owner_name: String = CodegenAstArenaRoleNameOrDie(arena, cur[0]);
             let role_owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let role_mdef: String = EmitFunction(count, arena, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    let role_mdef: String = EmitFunction(
+                        count, arena, signatures, cur, role_method_indent,
+                        base_env, uses_args
+                    );
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if CodegenAstArenaIsFunction(arena, cur[0]) && cur_indent == f_indent {
-            let def: String = EmitFunction(count, arena, cur, f_indent, base_env, uses_args, "");
+            let def: String = EmitFunction(
+                count, arena, signatures, cur, f_indent, base_env, uses_args
+            );
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -295,7 +331,7 @@ func GenerateCUnitFromSemanticArtifact(
     }
 
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(count, arena, base_env);
+    let proto_block: String = CollectProtos(signatures, base_env);
     let option_struct_block_fact: OptionStructDefinitionBlockFact = OptionResultRuntimeCStructOptionDefinitionBlock(base_env);
     let option_struct_block: String = option_struct_block_fact.c_block;
 
@@ -412,18 +448,18 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
 }
 
 func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
-    let semantic_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(artifact, require_entrypoint);
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(artifact, require_entrypoint);
     return GenerateCUnitFromSemanticArtifact(
-        artifact, semantic_verdict, require_entrypoint
+        artifact, semantic_analysis, require_entrypoint
     );
 }
 
 func GenerateCFromSemanticArtifact(
     artifact: AstTreeArtifact,
-    semantic_verdict: SemanticAstArtifactVerdict
+    semantic_analysis: SemanticAstArtifactAnalysis
 ) -> String {
-    return GenerateCUnitFromSemanticArtifact(artifact, semantic_verdict, true);
+    return GenerateCUnitFromSemanticArtifact(artifact, semantic_analysis, true);
 }
 
 func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {

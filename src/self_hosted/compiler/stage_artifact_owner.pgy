@@ -43,7 +43,8 @@ func CompilerSemanticVerdictFactReady() -> Bool {
         return false;
     }
     return SemanticVerdictPayloadContractReady() &&
-        SemanticAstArtifactVerdictContractReady();
+        SemanticAstArtifactVerdictContractReady() &&
+        SemanticAstFunctionSignatureFactsContractReady();
 }
 
 func CompilerMirFactGraphReady() -> Bool {

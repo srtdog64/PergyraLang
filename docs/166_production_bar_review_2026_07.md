@@ -289,9 +289,11 @@ integrated driver reaches a real byte-identical fixed point, but broader
 semantic analysis and MIR are absent from that executable. The typed AST arena owner has therefore
 been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
 Parser now produces one HIR-owned `AstTreeArtifact`, and the integrated driver
-passes its typed arena through the first `SemanticAstArtifactVerdict` and into
-codegen without rebuilding it. That verdict now owns executable `Main`
-cardinality, and the self-built driver fixed point remains byte-identical at
-16,881 generated-C lines. This is a bounded semantic hard rung, not broad
-semantic substitution. Reusing the current semantic source scanner inside the
-driver would still be a second parser and is explicitly not counted as progress.
+passes its typed arena through one `SemanticAstArtifactAnalysis` and into
+codegen without rebuilding it. The analysis owns executable `Main` cardinality
+and artifact-bound function signature rows; codegen no longer reconstructs
+those rows from the arena. The self-built driver fixed point is byte-identical
+at 17,304 generated-C lines. This is a bounded semantic hard rung, not broad
+semantic substitution. Local/body semantics and MIR remain outside the driver;
+reusing the current semantic source scanner there would still be a second
+parser and is explicitly not counted as progress.

@@ -626,6 +626,7 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
 require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
+require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
 require_file "src/self_hosted/semantic/diagnostic_code_owner.pgy"
 require_file "src/self_hosted/semantic/source_bundle_owner.pgy"
@@ -696,7 +697,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 19"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 20"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -764,7 +765,7 @@ require_owner_surface codegen \
     "input/ast_arena_codegen_view_owner.pgy" \
     "input/ast_text_array_literal_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
-    "input/ast_text_function_signature_owner.pgy" \
+    "input/semantic_signature_codegen_view_owner.pgy" \
     "input/ast_text_declaration_owner.pgy" \
     "input/ast_text_try_let_owner.pgy" \
     "input/ast_text_indexed_assignment_owner.pgy" \
@@ -1147,7 +1148,7 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(count: Int, arena: AstArena)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
@@ -2266,8 +2267,13 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateC
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromSemanticArtifact"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromSemanticArtifact"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactVerdict"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactAnalysis"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactEntrypointVerdict"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyze"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" '"entrypoint_cardinality"'
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag())"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_count: Int"
@@ -2275,8 +2281,8 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'exactly one `Ma
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'at most one `Main` function is allowed'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactEntrypointVerdict(artifact, true)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromSemanticArtifact(artifact, semantic_verdict);"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyze(artifact, true)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromSemanticArtifact(artifact, semantic_analysis);"
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIndentOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaProvenanceOrDie"
@@ -2533,8 +2539,10 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstAren
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsFunction(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaRoleNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let signatures: SemanticAstFunctionSignatureFacts ="
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "semantic_analysis.signatures;"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaRoleNameOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let role_owner_name: String = CodegenAstArenaAtomOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'StartsWith(main_line, "Event:")'
@@ -2569,11 +2577,11 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextI
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringIndexOf(ast,"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(count: Int, arena: AstArena)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums(count: Int, arena: AstArena"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(count: Int"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(signatures: SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectParameters(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBody(arena, count, cur)"
@@ -2583,21 +2591,23 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaParamNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaParamTypeNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaReturnTypeNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaFunctionNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "struct CodegenFunctionSignatureContext"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenFunctionSignatureContextFor"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamModeOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaParamTypeNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" "func CodegenAstArenaReturnTypeNameOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_function_signature_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFunctionNameOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamModeOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticSignatureIndexOrDie"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticFunctionParamNodeOrDie"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticFunctionParamNameOrDie"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticFunctionParamTypeOrDie"
+require_text "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" "func CodegenSemanticFunctionReturnTypeOrDie"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_signature_codegen_view_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticSignatureIndexOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamModeOrDie("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamModeName(mode)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextParamModeName(mode)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamNameOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, cur[0], signature_context)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaReturnTypeNameOrDie(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionReturnTypeOrDie("
+if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy" ]]; then
+    fail "retired codegen-owned function signature owner returned"
+fi
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "ast_text_function_signature_owner.pgy"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, cur[0], owner_name)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaAtomOrDie(arena, cur[0])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaModeOrDie(arena, cur[0])"
@@ -2611,7 +2621,8 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let p_mode: In
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeOrDie(arena, j, owner)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "rtype = CodegenAstArenaTypeNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsReturns(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "SemanticAstFunctionSignatureCount(signatures)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFieldsHeader(arena, j)"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
@@ -2645,8 +2656,8 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../in
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamNameOrDie(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, signature_context)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCFieldName(fname)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=pm:"'
@@ -2686,12 +2697,12 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyc_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyi_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsZeroArtifactDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCStructTypeName(sname)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[i])"
@@ -5164,11 +5175,12 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 205;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
-completeness_min_count="$(grep -F "return 225;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 225;"
+completeness_min_count="$(grep -F "return 226;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 225-source closed slice"
+    fail "self-host completeness minima drifted below the 226-source closed slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"

@@ -3,6 +3,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_signature_fact_owner.pgy";
 
 struct SemanticAstArtifactVerdict {
     ok: Bool;
@@ -11,6 +12,11 @@ struct SemanticAstArtifactVerdict {
     node_count: Int;
     main_count: Int;
     requires_entrypoint: Bool;
+}
+
+struct SemanticAstArtifactAnalysis {
+    verdict: SemanticAstArtifactVerdict;
+    signatures: SemanticAstFunctionSignatureFacts;
 }
 
 func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
@@ -100,14 +106,48 @@ func SemanticAstArtifactVerdictMatches(
         verdict.requires_entrypoint == requires_entrypoint;
 }
 
+func SemanticAstArtifactAnalyze(
+    artifact: AstTreeArtifact,
+    requires_entrypoint: Bool
+) -> SemanticAstArtifactAnalysis {
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    if !signatures.ok {
+        let rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
+            signatures.diagnostic_code,
+            signatures.diagnostic_message,
+            artifact.count,
+            0,
+            requires_entrypoint
+        );
+        return SemanticAstArtifactAnalysis(rejected, signatures);
+    }
+    let verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
+    return SemanticAstArtifactAnalysis(verdict, signatures);
+}
+
+func SemanticAstArtifactAnalysisMatches(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    requires_entrypoint: Bool
+) -> Bool {
+    return SemanticAstArtifactVerdictMatches(
+        artifact, analysis.verdict, requires_entrypoint
+    ) && SemanticAstFunctionSignatureFactsMatchArtifact(
+        artifact, analysis.signatures
+    );
+}
+
 func SemanticAstArtifactVerdictContractReady() -> Bool {
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
-    let valid_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(valid, true);
-    if !SemanticAstArtifactVerdictMatches(valid, valid_verdict, true) ||
-        valid_verdict.main_count != 1 {
+    let valid_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(valid, true);
+    if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
+        valid_analysis.verdict.main_count != 1 ||
+        SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 {
         return false;
     }
     let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");

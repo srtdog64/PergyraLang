@@ -19,7 +19,7 @@ import "input/ast_arena_codegen_view_owner.pgy";
 import "../hir/ast_text_row_fact_owner.pgy";
 import "input/ast_text_array_literal_owner.pgy";
 import "input/ast_text_enum_variant_owner.pgy";
-import "input/ast_text_function_signature_owner.pgy";
+import "input/semantic_signature_codegen_view_owner.pgy";
 import "input/ast_text_declaration_owner.pgy";
 import "input/ast_text_try_let_owner.pgy";
 import "input/ast_text_indexed_assignment_owner.pgy";

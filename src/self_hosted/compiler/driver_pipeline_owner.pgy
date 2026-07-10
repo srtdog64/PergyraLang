@@ -12,7 +12,8 @@ func CompilerDriverPipelineReady() -> Bool {
     return ParserAstTreePayloadContractReady() &&
         TypedAstArenaPayloadContractReady() &&
         AstTreeArtifactPayloadContractReady() &&
-        SemanticAstArtifactVerdictContractReady();
+        SemanticAstArtifactVerdictContractReady() &&
+        SemanticAstFunctionSignatureFactsContractReady();
 }
 
 func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with caps io_read {
@@ -36,22 +37,22 @@ func CompileAstToC(ast_text: String) -> String {
         Die("driver pipeline facts are not ready");
     }
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(ast_text);
-    let semantic_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(artifact, true);
-    if !semantic_verdict.ok {
-        Log(semantic_verdict.diagnostic_message);
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(artifact, true);
+    if !semantic_analysis.verdict.ok {
+        Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
-    return GenerateCFromSemanticArtifact(artifact, semantic_verdict);
+    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
 }
 
 func CompileSourceToC(source_path: String) -> String with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    let semantic_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(artifact, true);
-    if !semantic_verdict.ok {
-        Log(semantic_verdict.diagnostic_message);
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyze(artifact, true);
+    if !semantic_analysis.verdict.ok {
+        Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
-    return GenerateCFromSemanticArtifact(artifact, semantic_verdict);
+    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
 }

@@ -32,11 +32,12 @@ index return flow.
 The next focused slice raised the source inventory to 221 after splitting the
 shared driver pipeline owner from DRV parity policy. The strengthened bootstrap
 gate then proved both the standalone codegen fixed point (`gen2 == gen3`, 9,833
-generated-C lines) and the first integrated parser/codegen driver fixed point
-(`gen2 == gen3`, 16,881 generated-C lines). This is a real self-rebuild loop for
+generated-C lines) and the first integrated parser/codegen driver fixed point.
+The latest artifact-native signature refresh fixes that integrated driver at
+`gen2 == gen3`, 17,304 generated-C lines. This is a real self-rebuild loop for
 the bounded source-to-AST-to-C compiler pipeline, not a whole-compiler claim:
-the first arena-backed semantic verdict now owns executable `Main` cardinality,
-while broader semantic analysis and MIR lowering are not yet executed by that
+semantic analysis now owns executable `Main` cardinality and function signature
+rows, while local/body semantics and MIR lowering are not yet executed by that
 driver.
 The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
@@ -51,11 +52,14 @@ compact AST-text artifact internally, but parser now returns one
 `AstTreeArtifact` carrying text provenance, the shared arena, and node count.
 The temporary `CodegenAstTextNode` inventory is consumed while constructing the
 arena and does not cross the artifact boundary. The integrated driver passes
-that same artifact through `SemanticAstArtifactVerdict` and into codegen without
-rebuilding the arena. Entrypoint cardinality is the first semantic decision on
-this path and codegen no longer owns its own count. The broader semantic
-substitute still scans source text;
-the next valid compiler-pipeline rung is moving another semantic fact onto this artifact.
+that same artifact through one `SemanticAstArtifactAnalysis` and into codegen
+without rebuilding the arena. Entrypoint cardinality and function owner/name,
+parameter name/type/mode, and return-type rows are derived once by semantic and
+consumed by function emission, prototype emission, role-operator lookup, and the
+codegen type environment. The deleted codegen-owned signature scanner cannot
+return. The broader semantic substitute still scans source text for local/body
+semantics; the next valid compiler-pipeline rung is moving those facts onto this
+artifact.
 Wiring the current source scanner into the driver would create a second parser
 and does not count.
 
@@ -121,7 +125,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-225 production self-host source files across lexer, parser, semantic, codegen,
+226 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -138,10 +142,11 @@ line-text equality, and program/function/statement emission-depth traversal now
 consumes typed arena indent/parent facts rather than raw `CodegenAstTextNode`
 indent rows. `GenerateCUnit` builds that typed arena projection once and threads
 the `AstArena` fact through function and statement emission participants instead
-of letting recursive emitters rebuild it. Function/declaration emission also
-consumes typed arena atom/type-name/mode rows for signatures, role targets, enum
-names, and fields instead of reading `CodegenAstTextNode.name`, `type_name`, or
-`mode` directly. Statement emission also consumes typed arena atom rows for
+of letting recursive emitters rebuild it. Function signature emission consumes
+`SemanticAstFunctionSignatureFacts` from the shared artifact; declaration
+emission still consumes typed arena rows for role targets, enum names, and
+fields instead of reading `CodegenAstTextNode.name`, `type_name`, or `mode`
+directly. Statement emission also consumes typed arena atom rows for
 single-payload statements (`Log`, value `Return`, `ArrayPop`, `Exit`, `While`,
 `If`, `Match`, match cases, and bare calls), and `Let`/`Assign` emission consumes
 arena atom/type-name/value rows for local names, declared types, initializers,
@@ -405,7 +410,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 110 fixtures, including Option `?` payload propagation and Result core consumption. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
 | `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 68 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen and integrated parser/codegen driver have separate byte-identical `gen2 == gen3` fixed points. Out-of-subset input is an observable `Exit(1)`; semantic and MIR are not part of this executable fixed point. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
-| `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->semantic-entrypoint->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 16,881-line `gen2 == gen3` fixed point. Broader semantic analysis and MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
+| `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->semantic-analysis->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 17,304-line `gen2 == gen3` fixed point. Function signatures are artifact-native, but local/body semantics and MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
 | `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered multi-document store owner, LSP-2g no-index feature response shape owner, LSP-2h buffered session-state owner, and LSP-2i bounded hover-content owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
 | **Total**       | **248794** |  **16341**  | **~6.57% source-tree LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering and compiler-world contracts are tracked separately above |
 
@@ -560,7 +565,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 225 production self-host
+   The M2 completeness ledger also now checks all 226 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

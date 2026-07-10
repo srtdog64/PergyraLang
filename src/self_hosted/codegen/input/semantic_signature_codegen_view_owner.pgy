@@ -1,0 +1,142 @@
+// Codegen fail-closed view over semantic function signature facts.
+
+import "../../semantic/ast_signature_fact_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
+
+func CodegenSemanticSignatureIndexOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int
+) -> Int {
+    let index: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        facts, function_node_id
+    );
+    if !IsSome(index) {
+        Die(Concat(
+            "semantic signature facts missing function node: ",
+            ToString(function_node_id)
+        ));
+    }
+    return UnwrapOption(index);
+}
+
+func CodegenSemanticFunctionOwnerOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> String {
+    let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+        facts, signature_index
+    );
+    if !IsSome(owner) {
+        Die("semantic signature facts missing function owner");
+    }
+    return UnwrapOption(owner);
+}
+
+func CodegenSemanticFunctionNameOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> String {
+    let name: Option<String> = SemanticAstFunctionNameAt(facts, signature_index);
+    if !IsSome(name) {
+        Die("semantic signature facts missing function name");
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticFunctionReturnTypeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> String {
+    let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
+        facts, signature_index
+    );
+    if !IsSome(return_type) {
+        Die("semantic signature facts missing return type");
+    }
+    return UnwrapOption(return_type);
+}
+
+func CodegenSemanticFunctionParamCountOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Int {
+    let count: Option<Int> = SemanticAstFunctionParamCountAt(
+        facts, signature_index
+    );
+    if !IsSome(count) {
+        Die("semantic signature facts missing parameter count");
+    }
+    return UnwrapOption(count);
+}
+
+func CodegenSemanticFunctionParamNodeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int
+) -> Int {
+    let node: Option<Int> = SemanticAstFunctionParamNodeAt(
+        facts, signature_index, parameter_index
+    );
+    if !IsSome(node) {
+        Die("semantic signature facts missing parameter node");
+    }
+    return UnwrapOption(node);
+}
+
+func CodegenSemanticFunctionParamNameOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int
+) -> String {
+    let name: Option<String> = SemanticAstFunctionParamNameAt(
+        facts, signature_index, parameter_index
+    );
+    if !IsSome(name) {
+        Die("semantic signature facts missing parameter name");
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticFunctionParamNameForNodeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int,
+    expected_node_id: Int
+) -> String {
+    if CodegenSemanticFunctionParamNodeOrDie(
+        facts, signature_index, parameter_index
+    ) != expected_node_id {
+        Die("semantic signature parameter row does not match AST traversal");
+    }
+    return CodegenSemanticFunctionParamNameOrDie(
+        facts, signature_index, parameter_index
+    );
+}
+
+func CodegenSemanticFunctionParamTypeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int
+) -> String {
+    let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
+        facts, signature_index, parameter_index
+    );
+    if !IsSome(type_name) {
+        Die("semantic signature facts missing parameter type");
+    }
+    return UnwrapOption(type_name);
+}
+
+func CodegenSemanticFunctionParamModeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    parameter_index: Int
+) -> Int {
+    let mode: Option<Int> = SemanticAstFunctionParamModeAt(
+        facts, signature_index, parameter_index
+    );
+    if !IsSome(mode) {
+        Die("semantic signature facts missing parameter mode");
+    }
+    return UnwrapOption(mode);
+}
