@@ -70,12 +70,16 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-expect_runs c    admit_pair.pgy "110"
-expect_runs llvm admit_pair.pgy "110"
+# C-only platforms (macOS CI, Windows C-only) narrow the voice set via env;
+# default exercises both backends.
+BACKENDS="${PGY_PARALLEL_DISJOINT_BACKENDS:-c llvm}"
+for backend in $BACKENDS; do
+    expect_runs "$backend" admit_pair.pgy "110"
+done
 
 expect_reject reject_same_slice.pgy
 expect_reject reject_base_in_arm.pgy
 expect_reject reject_mut_boundary.pgy
 expect_reject reject_overlap_views.pgy
 
-echo "[parallel-disjoint] disjoint split pair admitted (110 both backends); same-slice/base-in-arm/mut-boundary/overlap all fail closed"
+echo "[parallel-disjoint] disjoint split pair admitted (110 on: $BACKENDS); same-slice/base-in-arm/mut-boundary/overlap all fail closed"

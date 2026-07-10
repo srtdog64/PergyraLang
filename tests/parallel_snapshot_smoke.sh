@@ -66,10 +66,14 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-expect_runs c    snapshot_read.pgy $'42\n1'
-expect_runs llvm snapshot_read.pgy $'42\n1'
+# C-only platforms (macOS CI, Windows C-only) narrow the voice set via env;
+# default exercises both backends.
+BACKENDS="${PGY_PARALLEL_SNAPSHOT_BACKENDS:-c llvm}"
+for backend in $BACKENDS; do
+    expect_runs "$backend" snapshot_read.pgy $'42\n1'
+done
 
 expect_reject reject_write_write.pgy       "write-write race"
 expect_reject reject_string_read_write.pgy "read-write race"
 
-echo "[parallel-snapshot] reader snapshot admitted (42/1 both backends); write-write and non-primitive read-write fail closed"
+echo "[parallel-snapshot] reader snapshot admitted (42/1 on: $BACKENDS); write-write and non-primitive read-write fail closed"

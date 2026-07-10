@@ -70,6 +70,9 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make formal-semantics-test-smoke'
 run 'make abstraction-loss-contract-test-smoke'
 run 'make air-drift-test-smoke'
+# Evidence-lifetime meta-gate (WO-A3): registry <-> AIREvidenceKind two-way
+# correspondence, grep-based (no binary needed).
+run 'make evidence-lifetime-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" air-json-schema-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" air-backend-nonimpact-full-test-smoke'
 run 'make semantic-inc-size-test-smoke'
@@ -99,6 +102,13 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" runtime-frontier-policy-test-smoke'
 run 'make runtime-intent-observability-contract-test-smoke'
 run 'make parallel-core-contract-test-smoke'
+# Parallel boundary evidence gates (docs/178): disjoint-split admission,
+# reader-snapshot admission, and ability coherence. Linux runs both backend
+# voices natively (the LLVM voice is load-bearing for ability-coherence:
+# the hole this gate closed was an LLVM silent-accept).
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-disjoint-test-smoke'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-snapshot-test-smoke'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" ability-coherence-test-smoke'
 run 'make perf-contract-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" perf-c-baseline-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" evidence-guard-amortization-test-smoke'

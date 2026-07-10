@@ -18400,10 +18400,15 @@ row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shad
 - **WO-PAR-1 — capture-disposition fact 이주**: semantic이 parallel 노드당
   처분 row 생산 → 양 백엔드 소비 → boundary_migration_manifest에 정식 row
   (protocol 8단계). 판별 목격자 이미 존재(parallel_snapshot_read).
-- **WO-CI-1 — 신규 게이트 4종 CI 승격**: parallel-disjoint / parallel-snapshot
-  / ability-coherence / evidence-lifetime smoke를 ci_*_steps.sh + test-all에
-  배선. 2026-07-10 현재 **차단**: Makefile·ci 스크립트가 동시 세션 dirty.
-  docs/180 §7이 evidence-lifetime의 CI 승격을 missing closure로 이미 명시.
+- **WO-CI-1 — 신규 게이트 4종 CI 승격 — ✅ CLOSED (2026-07-11)**:
+  parallel-disjoint / parallel-snapshot / ability-coherence /
+  evidence-lifetime smoke를 세 플랫폼 ci_*_steps.sh에 배선(차단이던
+  Makefile·ci 스크립트가 clean 복귀). 스모크는 `PGY_*_BACKENDS` env로
+  백엔드 파라미터화 — Linux는 c+llvm 양 목소리(ability-coherence의 LLVM
+  목소리가 load-bearing: 닫은 구멍이 LLVM silent-accept), macOS·Windows
+  C-only 블록은 `=c`. 로컬 검증: 기본·축소 양 모드 green. test-all은 C
+  유닛테스트 집합이라 스모크 배선처가 아님(house 패턴 = run-line) — WO
+  문구의 test-all 항은 착오로 정정.
 
 ## 진행 노트 — CI 3플랫폼 RED 전수 진단 (2026-07-10, BDFL "싹 다 체크")
 

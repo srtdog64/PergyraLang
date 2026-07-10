@@ -68,10 +68,13 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$fixture printed '$got', expected '$want'"
 }
 
-expect_reject c    reject_duplicate_impl.pgy
-expect_reject llvm reject_duplicate_impl.pgy
+# C-only platforms (macOS CI, Windows C-only) narrow the voice set via env;
+# default exercises both backends (the LLVM voice is load-bearing: the
+# silent-accept hole this gate closed was LLVM-side).
+BACKENDS="${PGY_ABILITY_COHERENCE_BACKENDS:-c llvm}"
+for backend in $BACKENDS; do
+    expect_reject "$backend" reject_duplicate_impl.pgy
+    expect_runs   "$backend" allow_two_roles_same_ability.pgy "2"
+done
 
-expect_runs c    allow_two_roles_same_ability.pgy "2"
-expect_runs llvm allow_two_roles_same_ability.pgy "2"
-
-echo "[ability-coherence] duplicate impl fails closed on both backends; two-role same-ability with explicit rebind stays legal"
+echo "[ability-coherence] duplicate impl fails closed on: $BACKENDS; two-role same-ability with explicit rebind stays legal"

@@ -41,6 +41,7 @@ run 'make beta-readiness-checklist-test-smoke'
 run 'make layered-diagnostics-contract-test-smoke'
 run 'make intent-compression-contract-test-smoke'
 run 'make transpile-strict-source-test-smoke'
+run 'make evidence-lifetime-test-smoke'
 run 'make mir-declaration-inventory-test-smoke'
 run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" source-test-harness-compile-test-smoke'
 
@@ -54,6 +55,11 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" dogfood-webgl-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" runtime-none-contract-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" slot-contract-test-smoke'
+    # Parallel boundary evidence gates (docs/178) + ability coherence, C
+    # voice only in this block; the LLVM voice runs on ci-linux.
+    run 'PGY_PARALLEL_DISJOINT_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" parallel-disjoint-test-smoke'
+    run 'PGY_PARALLEL_SNAPSHOT_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" parallel-snapshot-test-smoke'
+    run 'PGY_ABILITY_COHERENCE_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" ability-coherence-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" raw-escape-contract-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" air-drift-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" air-json-schema-test-smoke'
