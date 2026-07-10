@@ -36,6 +36,10 @@ Required shape for each proof document:
 - [pass_contract_manifest.md](pass_contract_manifest.md): pass-level fact
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
+- [boundary_migration_manifest.md](boundary_migration_manifest.md): executable
+  ownership-movement ledger. Each row names the stable handle, old and new
+  owners, complete consumer inventory, parity and negative evidence, and the
+  retirement gate that prevents aliases or fallback authority from returning.
 - [10_behavior_contract_closure_gaps.md](10_behavior_contract_closure_gaps.md): anti-overclaim closure register for the remaining gap between compiler-enforced behavior evidence and a closed behavior-contract calculus.
 - [13_slot_abi_single_owner.md](13_slot_abi_single_owner.md): Slot ABI single-owner rule. `PgySlot_*` names always carry the checked `{ value, occupied }` layout; value-only storage must use a distinct explicit ABI owner instead of remapping the canonical Slot ABI.
 - [16_language_contract_golden_spine.md](16_language_contract_golden_spine.md): golden-spine map for the language-design cleanup contracts: proof/refinement, semantic fallback, authority/effect, `inout`, logical Bool, value-collection mutation, proof-gated erasure, raw/FFI/layout, IR verifiers, machine-neutral compute, and self-hosted verifier/tool parity.

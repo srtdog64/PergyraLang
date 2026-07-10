@@ -82,6 +82,7 @@ mandatory_targets=(
     "evidence-guard-amortization-test-smoke"
     "backend-fail-closed-test-smoke"
     "language-contract-golden-test-smoke"
+    "boundary-migration-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

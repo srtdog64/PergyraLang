@@ -146,6 +146,7 @@ required_files=(
     "docs/semantics/00_proof_contract.md"
     "docs/semantics/08_slot_capability_calculus.md"
     "docs/semantics/09_abstraction_loss_contracts.md"
+    "docs/semantics/boundary_migration_manifest.md"
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"

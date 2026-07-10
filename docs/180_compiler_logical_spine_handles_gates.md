@@ -253,7 +253,7 @@ back to the old owner.
 
 ### Boundary Migration Gate
 
-The repository needs one manifest-backed gate with these fields:
+The repository has one manifest-backed gate with these fields:
 
 ```text
 migration_id
@@ -273,11 +273,19 @@ status: shadow | repointing | mandatory | retired
 `retired` is valid only when the old producer is absent and the negative gate
 proves it cannot return.
 
+The live ledger is
+[`semantics/boundary_migration_manifest.md`](semantics/boundary_migration_manifest.md),
+and `make boundary-migration-test-smoke` is blocking on Linux, macOS, and
+Windows CI. The first retired row records the self-hosted local-binding owner
+migration; later rows must reuse this contract instead of inventing a second
+migration vocabulary.
+
 ## 7. Gate Map
 
 | Gate | Protected boundary | Current | Missing closure |
 |---|---|---|---|
 | Source/Parser Artifact Gate | bytes/tokens -> AST | `ABSENT` dedicated enforcement | stable source/syntax handles, recovery artifact totality, raw-source reread rejection |
+| Boundary Migration Gate | compiler owner movement | `LANDED`; manifest-backed and blocking CI | add each live owner move before shadow facts are consumed; keep all retired paths absent |
 | Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `ABSENT` unified gate | unique/non-overflow syntax IDs; exact routine/boundary/type/binding/value joins; stale/foreign ID rejection; name/prefix/AST join prohibition |
 | HIR Totality Gate | AST -> typed semantic entities | `PARTIAL` | every stable declaration/local/body/type fact owned without semantic AST fallback |
 | DIR Referential Gate | HIR entity -> domain graph | `PARTIAL`; current initial lowering is AST-owned | make HIR/entity facts the input; typed references replace name/AST joins; edge totality corpus |
@@ -385,8 +393,8 @@ boundary is not ready to become architecture.
 
 Do not implement all handles at once.
 
-1. Land the boundary-migration manifest/gate and record the completed local
-   binding move.
+1. **LANDED:** boundary-migration manifest/gate and the completed local-binding
+   move are blocking CI.
 2. Introduce source/revision/entity handles in shadow mode with parity checks.
 3. Move HIR declaration/local/body/type facts behind those handles.
 4. Carry resource/boundary handles through DIR -> RIR -> MIR -> AIR.

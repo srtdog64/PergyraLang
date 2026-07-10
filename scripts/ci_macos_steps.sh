@@ -22,6 +22,7 @@ run 'make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_D
 run 'PGY_UNICODE_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" unicode-policy-test-smoke'
 run 'make beta-test-suite-freeze-test-smoke'
 run 'make language-contract-golden-test-smoke'
+run 'make boundary-migration-test-smoke'
 run 'PGY_OBSERVABILITY_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" observability-schema-test-smoke'
 run 'PGY_MEMORY_CONCURRENCY_BACKENDS=c make CC="$CI_MACOS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" memory-concurrency-model-test-smoke'
 run 'make documentation-quality-test-smoke'

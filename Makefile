@@ -2150,6 +2150,9 @@ endif
 language-contract-golden-test-smoke:
 	"$(BASH)" tests/language_contract_golden_smoke.sh
 
+boundary-migration-test-smoke:
+	"$(BASH)" tests/boundary_migration_contract_smoke.sh
+
 verification-methodology-test-smoke:
 	"$(BASH)" tests/verification_methodology_smoke.sh
 
@@ -2955,6 +2958,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
         example-hello example-slots llvm emit-llvm-% lsp
 .PHONY: self-host-driver-bootstrap-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-lsp-diagnostics-parity-test-smoke
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
+.PHONY: boundary-migration-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
 

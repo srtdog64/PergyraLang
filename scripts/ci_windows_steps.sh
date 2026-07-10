@@ -27,6 +27,7 @@ fi
 
 run 'make beta-test-suite-freeze-test-smoke'
 run 'make language-contract-golden-test-smoke'
+run 'make boundary-migration-test-smoke'
 run 'make documentation-quality-test-smoke'
 run 'make abstraction-loss-contract-test-smoke'
 run 'make debug-hygiene-test-smoke'
