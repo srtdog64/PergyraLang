@@ -1,0 +1,64 @@
+// TestHarness runtime-boundary path owner.
+//
+// Owns the self-host runtime-boundary checker path suite separately from
+// generic audit tools. The runtime boundary is a self-host architecture
+// contract: native-kernel facts must not drift into a silent replacement claim.
+
+func CompilerHarnessRuntimeBoundarySuiteName() -> String {
+    return "runtime-boundary-paths";
+}
+
+func CompilerHarnessRuntimeBoundaryToolSourcePath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/main.pgy";
+}
+
+func CompilerHarnessRuntimeBoundaryExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/expected/clean.json";
+}
+
+func CompilerHarnessRuntimeBoundaryMissingTermFixturePath() -> String {
+    return "src/self_hosted/runtime/README.md";
+}
+
+func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm() -> String {
+    return "The native runtime kernel remains C";
+}
+
+func CompilerHarnessRuntimeBoundaryMissingJsonPath() -> String {
+    return "src/self_hosted/tools/runtime_boundary_checker/expected/missing_term.json";
+}
+
+func CompilerHarnessRuntimeBoundaryPathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessRuntimeBoundaryPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessRuntimeBoundaryToolSourcePath(); }
+    if index == 1 { return CompilerHarnessRuntimeBoundaryExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessRuntimeBoundaryMissingTermFixturePath(); }
+    if index == 3 { return CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm(); }
+    if index == 4 { return CompilerHarnessRuntimeBoundaryMissingJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessRuntimeBoundaryPathKnown(path: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerHarnessRuntimeBoundaryPathCount() {
+        if CompilerHarnessRuntimeBoundaryPathAt(i) == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerHarnessRuntimeBoundaryReady() -> Bool {
+    return CompilerHarnessRuntimeBoundaryPathCount() > 0 &&
+        CompilerHarnessRuntimeBoundarySuiteName() != "" &&
+        CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryToolSourcePath()) &&
+        CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryExpectedJsonPath()) &&
+        CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryMissingTermFixturePath()) &&
+        CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm()) &&
+        CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryMissingJsonPath()) &&
+        CompilerHarnessRuntimeBoundaryPathAt(CompilerHarnessRuntimeBoundaryPathCount()) == "";
+}

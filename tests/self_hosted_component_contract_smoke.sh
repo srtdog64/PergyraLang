@@ -3995,6 +3995,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lexer_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_runtime_boundary_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_parser_paths_owner.pgy";'
@@ -4011,12 +4012,14 @@ require_max_lines "src/self_hosted/compiler/test_harness_air_graph_paths_owner.p
 require_max_lines "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_size_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathKnown"
@@ -4094,17 +4097,25 @@ reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func C
 reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionMissingFindingValue"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionPathAt"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundarySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixturePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/runtime_boundary_checker/expected/missing_term.json"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingField"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingValue"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundarySuiteName"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixturePath"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingTermFixtureTerm"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingJsonPath"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "src/self_hosted/tools/runtime_boundary_checker/expected/missing_term.json"
+reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingField"
+reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryMissingFindingValue"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathAt"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryPathKnown"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryMissingJsonPath())"
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(CompilerHarnessRuntimeBoundaryPathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessRuntimeBoundarySuiteName"
+reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathCount() == 5"
+reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(0) == CompilerHarnessRuntimeBoundaryToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(4) == CompilerHarnessRuntimeBoundaryMissingJsonPath()"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerExpectedJsonPath"
@@ -4345,6 +4356,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_lexer_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_runtime_boundary_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_parser_paths_owner.pgy";'

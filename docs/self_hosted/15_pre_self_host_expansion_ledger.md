@@ -120,6 +120,14 @@ consumes named path membership plus an out-of-range boundary check instead of
 `PathCount() == 3` and representative `PathAt(0..2)` readiness. Ordered path
 rows remain the stable manifest artifact shape only.
 
+TestHarness delta, 2026-07-10: runtime-boundary paths moved from the generic
+`test_harness_tool_paths_owner.pgy` bucket into
+`test_harness_runtime_boundary_paths_owner.pgy`.
+`CompilerHarnessRuntimeBoundaryReady()` now consumes named path membership plus
+an out-of-range boundary check instead of `PathCount() == 5` and representative
+`PathAt(0..4)` readiness. Ordered path rows remain the stable manifest artifact
+shape only.
+
 TestHarness delta, 2026-07-10: backend-emitter, backend-AIR-access, and
 backend-ABI-layout contract path suites now consume named path membership
 (`CompilerHarnessBackendEmitterContractPathKnown`,

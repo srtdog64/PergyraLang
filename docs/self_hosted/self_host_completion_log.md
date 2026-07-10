@@ -38,6 +38,19 @@ rewrite history.
   shape for shell parity runners, while making the lexer owner the path truth
   for the compiler-frontier lexer parity rung.
 
+## 2026-07-10 - Runtime-boundary TestHarness paths move to runtime-boundary owner
+
+- Split `test_harness_runtime_boundary_paths_owner.pgy` out of the shared
+  TestHarness tool path owner for the runtime-boundary checker source, expected
+  clean artifact, required-term fixture, missing term, and negative artifact.
+- Added `CompilerHarnessRuntimeBoundaryPathKnown(...)` and repointed
+  `CompilerHarnessRuntimeBoundaryReady()` from fixed `PathCount() == 5` and
+  positional `PathAt(0..4)` checks to named path membership plus an
+  out-of-range boundary check.
+- Kept the ordered rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while making the runtime-boundary owner the
+  path truth for the native-runtime-vs-self-host boundary claim.
+
 ## 2026-07-10 - AST read-surface paths move to source-surface owner
 
 - Split `test_harness_ast_surface_paths_owner.pgy` out of the shared TestHarness
