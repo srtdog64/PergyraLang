@@ -13,6 +13,7 @@
 #include "compiler/fmt.h"
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
+#include "compiler/self_host_driver.h"
 
 typedef enum
 {
@@ -180,6 +181,8 @@ int
 main(int argc, char *argv[])
 {
     if (argc >= 2) {
+        if (strcmp(argv[1], "--self-driver") == 0)
+            return driver_run_self_host_command(argv[0], argc - 2, argv + 2);
         if (strcmp(argv[1], "fmt") == 0 && argc > 2 && argv[2][0] != '-')
             return driver_run_fmt_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "fmt") == 0)

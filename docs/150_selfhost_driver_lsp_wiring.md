@@ -68,7 +68,10 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   증명되지 않으면 codegen 전에 fail-closed 한다. source-scanning
   `CheckProgram`/`CheckBody` 호출은 금지된다. C/LLVM-built driver가 동일한
   16개 positive/negative fixture에서 emitted C 또는 diagnostic을 비교하고,
-  positive artifact는 C compile까지 통과한다.
+  positive artifact는 C compile까지 통과한다. `make self-host-compiler`가
+  bounded driver binary를 만들고 `pgy --self-driver <source.pgy>`가 그
+  binary를 실제 실행한다. `self-host-live-replacement-test-smoke`는 launcher
+  artifact/diagnostic 동등성과 missing-binary fail-closed를 잠근다.
 - **DRV-3 — 네이티브 컴파일과 플래그 뒤 교체 (차단: G-EXEC)**:
   `pgy --self-driver`류가 지원 subset에서 C driver와 run-equal이어야 한다.
   cc/gcc subprocess는 명시 capability, env allowlist, timeout envelope를

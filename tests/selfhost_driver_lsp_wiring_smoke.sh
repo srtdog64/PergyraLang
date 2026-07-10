@@ -81,6 +81,10 @@ grep -Fq 'artifact-body semantic source-to-C (landed)' "$DOC" ||
     fail "DRV-2 responsibility text drifted from artifact-body semantic ownership"
 grep -Fq 'self-host-driver-rung2-body-parity-test-smoke' "$ROOT_DIR/Makefile" ||
     fail "DRV-2 landed gate is not wired into Makefile"
+grep -Fq 'self-host-live-replacement-test-smoke' "$ROOT_DIR/Makefile" ||
+    fail "DRV-2 live replacement gate is not wired into Makefile"
+grep -Fq 'pgy --self-driver <source.pgy>' "$DOC" ||
+    fail "DRV-2 live replacement CLI is not documented"
 if printf '%s\n' "$rows" | grep -Fq "| LSP-2 | planned |"; then
     case "$(cat "$DOC")" in
         *G-LSP-STREAM*) ;;

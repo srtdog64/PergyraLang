@@ -16,6 +16,7 @@ driver_print_usage(void)
         "  pgy <source.pgy> -o <out>     name the emitted native binary\n"
         "  pgy <source.pgy> --emit-c     stop after generating C\n"
         "  pgy <source.pgy> --emit-c -o <out.c>\n"
+        "  pgy --self-driver <source.pgy>  use the bounded Pergyra DRV-2 path\n"
         "  pgy <source.pgy> --emit-llvm -o <out.ll>\n"
 #ifdef PGY_LLVM_ENABLED
         "  (LLVM + --run): if -o ends with .o/.obj, executable target becomes .exe on Windows\n"

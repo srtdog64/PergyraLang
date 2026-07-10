@@ -82,8 +82,11 @@ implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 Run `make self-host-progress-metric-test-smoke` to measure the current Pergyra
 frontend/backend and compiler-core LOC beside the C reference inventory.
 Implementation volume only proves that code exists.
-**Released/native replacement remains 0%** until a Pergyra implementation is selected by the
-default or explicitly shipped compiler path and passes the C/LLVM oracle gates.
+**Released/native replacement remains 0%** because native compile and the
+default path still use the C compiler. **Explicit bounded replacement: DRV-2 is
+live** through `make self-host-compiler` and
+`pgy --self-driver <source.pgy>`; unsupported inputs fail closed instead of
+falling back to the C pipeline.
 The verified component frontiers are the
 lexer, parser, a bounded semantic verdict rung, and -- as of 2026-06-17 -- the
 **first codegen rungs** (`src/self_hosted/codegen/`, 4,821 LOC; rung-0 string Log,

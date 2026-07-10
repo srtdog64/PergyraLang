@@ -47,6 +47,8 @@ grep -Fq "Implementation inventory is live-measured" "$PROGRESS" ||
     fail "PROGRESS lost the live implementation-inventory rule"
 grep -Fq "Released/native replacement remains 0%" "$PROGRESS" ||
     fail "PROGRESS must state the current default-path replacement truth"
+grep -Fq "Explicit bounded replacement: DRV-2 is" "$PROGRESS" ||
+    fail "PROGRESS lost the live bounded replacement claim"
 grep -Fq "self-host-progress-metric-test-smoke" "$PROGRESS" ||
     fail "PROGRESS does not name this executable metric"
 grep -Fq "implementation volume is not substitution" "$README" ||
@@ -61,5 +63,5 @@ fi
 
 ratio="$(awk -v p="$pgy_frontend_backend_loc" -v c="$c_reference_loc" \
     'BEGIN { printf "%.2f", (100.0 * p) / c }')"
-printf '[self-host-progress] implementation_frontend_backend_loc=%s compiler_core_loc=%s c_reference_loc=%s implementation_volume_ratio=%s%% live_replacement=0%%\n' \
+printf '[self-host-progress] implementation_frontend_backend_loc=%s compiler_core_loc=%s c_reference_loc=%s implementation_volume_ratio=%s%% default_native_replacement=0%% explicit_drv2=live\n' \
     "$pgy_frontend_backend_loc" "$pgy_compiler_core_loc" "$c_reference_loc" "$ratio"

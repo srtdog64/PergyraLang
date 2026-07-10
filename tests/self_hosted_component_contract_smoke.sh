@@ -2385,6 +2385,23 @@ require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2Fro
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "LoadSemanticSource"
+require_file "src/compiler/self_host_driver.c"
+require_file "src/compiler/self_host_driver.h"
+require_max_lines "src/compiler/self_host_driver.c" 200
+require_text "src/pgy_driver.c" 'strcmp(argv[1], "--self-driver") == 0'
+require_text "src/pgy_driver.c" "driver_run_self_host_command"
+require_text "src/compiler/self_host_driver.c" 'getenv("PGY_SELF_DRIVER_BIN")'
+require_text "src/compiler/self_host_driver.c" 'path_join_dup(directory, "pgy-self-driver")'
+require_text "src/compiler/self_host_driver.c" 'child_argv[child_argc++] = "--emit-c-verified"'
+require_text "src/compiler/self_host_driver.c" "pgy_exec_argv(child_argv, false)"
+require_text "src/compiler/self_host_driver.c" "self-host driver is unavailable"
+reject_text "src/compiler/self_host_driver.c" "driver_run_pipeline("
+reject_text "src/compiler/self_host_driver.c" "system("
+require_file "tests/self_host_live_replacement_smoke.sh"
+require_text "Makefile" "self-host-compiler:"
+require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compiler"
+require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
+require_text "tests/self_host_live_replacement_smoke.sh" "missing self driver silently fell back"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIndentOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaProvenanceOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstTreeArtifactReady"
