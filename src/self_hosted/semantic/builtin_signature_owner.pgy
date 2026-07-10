@@ -54,6 +54,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Log^Unknown^Unknown",
         "Print^Unknown^Unknown",
         "Exit^Unknown^Unknown",
+        "Die^Void^String",
         "SelfHostDiagnostic_RenderOk^String^Unknown",
         "SelfHostDiagnostic_RenderError^String^Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown",
         "SelfHostDiagnostic_Fact1^String^Unknown|Unknown",
@@ -111,8 +112,10 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let returns: Array<String> = [];
     let params: Array<String> = [];
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 76 && ArrayLength(returns) == 76 &&
-        ArrayLength(params) == 76 && names[0] == "StringLength" &&
+        ArrayLength(names) == 77 && ArrayLength(returns) == 77 &&
+        ArrayLength(params) == 77 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
-        names[48] == "Args" && params[48] == "";
+        names[48] == "Args" && params[48] == "" &&
+        names[52] == "Die" && returns[52] == "Void" &&
+        params[52] == "String";
 }

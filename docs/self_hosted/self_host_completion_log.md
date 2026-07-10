@@ -40,7 +40,7 @@ rewrite history.
   hard-semantic rung rather than whole-compiler substitution.
 - Unified parser/semantic character-class and trivia scanning in
   `lib/source_scan_owner.pgy`; semantic keyword/identifier reads retain their
-  distinct skip policy under explicit semantic names. Moved the 76 builtin
+  distinct skip policy under explicit semantic names. Moved the 77 builtin
   signature rows from `program_check_owner.pgy` into one owner consumed by both
   source and artifact semantic paths.
 - Replaced quadratic AST parent/child scans with an indentation stack and

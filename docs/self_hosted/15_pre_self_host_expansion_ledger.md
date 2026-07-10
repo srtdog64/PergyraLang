@@ -761,7 +761,9 @@ The production inventory is 235, with no alias restored: the real semantic
 type owner, its DRV-2 owner/entrypoint, and the shared source-scan owner replace
 the deleted payload alias and parser/semantic duplicate scanner definitions.
 The builtin signature table is also a single owner consumed by both the legacy
-source checker and DRV-2; the old 76-entry push block no longer exists.
+source checker and DRV-2; the old per-consumer push block no longer exists.
+The canonical table has 77 rows, including the fail-closed `Die` builtin used
+by independent codegen-view source checks.
 The initializer owner deliberately treats an unknown type as unresolved rather
 than importing the source-oriented expression-validation surface merely to
 refine the error. DRV-2 exposes the verdict as `--emit-c-verified` and computes
