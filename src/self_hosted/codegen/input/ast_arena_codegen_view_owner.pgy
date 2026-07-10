@@ -210,8 +210,8 @@ func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEventDeclTag());
 }
 
-func CodegenAstArenaIsZeroArtifactDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindZeroArtifactDeclTag());
+func CodegenAstArenaIsAbilityDecl(arena: AstArena, node_id: Int) -> Bool {
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindAbilityDeclTag());
 }
 
 func CodegenAstArenaIsMatchStmt(arena: AstArena, node_id: Int) -> Bool {

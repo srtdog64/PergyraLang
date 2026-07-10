@@ -62,7 +62,7 @@ func CodegenAstTextKindOf(text: String) -> Int {
         return TypedAstKindEventDeclTag();
     }
     if StartsWith(text, "Ability:") {
-        return TypedAstKindZeroArtifactDeclTag();
+        return TypedAstKindAbilityDeclTag();
     }
     if StartsWith(text, "Log(") {
         return TypedAstKindLogStmtTag();

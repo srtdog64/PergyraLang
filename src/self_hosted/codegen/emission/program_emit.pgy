@@ -160,7 +160,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
         if CodegenAstArenaIsProgramRoot(arena, cur[0]) {
             ArraySet(cur, 0, cur[0] + 1);
-        } else if CodegenAstArenaIsZeroArtifactDecl(arena, cur[0]) {
+        } else if CodegenAstArenaIsAbilityDecl(arena, cur[0]) {
             let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
@@ -289,7 +289,7 @@ func GenerateCUnitFromSemanticArtifact(
     while cur[0] < count {
         let cur_node: Int = cur[0];
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
-        if CodegenAstArenaIsZeroArtifactDecl(arena, cur[0]) {
+        if CodegenAstArenaIsAbilityDecl(arena, cur[0]) {
             let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {

@@ -10,7 +10,7 @@ func TypedAstKindRoleDeclTag() -> Int { return 7; }
 func TypedAstKindNominalDeclTag() -> Int { return 8; }
 func TypedAstKindEnumDeclTag() -> Int { return 9; }
 func TypedAstKindEventDeclTag() -> Int { return 10; }
-func TypedAstKindZeroArtifactDeclTag() -> Int { return 11; }
+func TypedAstKindAbilityDeclTag() -> Int { return 11; }
 func TypedAstKindParamTag() -> Int { return 12; }
 func TypedAstKindLogStmtTag() -> Int { return 13; }
 func TypedAstKindBareReturnStmtTag() -> Int { return 14; }
@@ -62,7 +62,7 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindFieldTag(), TypedAstKindFuncDeclTag(),
         TypedAstKindRoleDeclTag(), TypedAstKindNominalDeclTag(),
         TypedAstKindEnumDeclTag(), TypedAstKindEventDeclTag(),
-        TypedAstKindZeroArtifactDeclTag(), TypedAstKindParamTag(),
+        TypedAstKindAbilityDeclTag(), TypedAstKindParamTag(),
         TypedAstKindLogStmtTag(), TypedAstKindBareReturnStmtTag(),
         TypedAstKindValueReturnStmtTag(), TypedAstKindArrayPopStmtTag(),
         TypedAstKindExitStmtTag(), TypedAstKindArraySetStmtTag(),
