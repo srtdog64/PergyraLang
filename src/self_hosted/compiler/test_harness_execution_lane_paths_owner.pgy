@@ -1,0 +1,61 @@
+// TestHarness execution-lane path owner.
+//
+// Owns SEA execution-lane parity source and golden path suites. Shell may
+// execute these rows, but must not own them.
+
+func CompilerHarnessExecutionLaneParitySuiteName() -> String {
+    return "execution-lane-parity-paths";
+}
+
+func CompilerHarnessExecutionLaneSourcePath() -> String {
+    return "src/self_hosted/sea/execution_lane.pgy";
+}
+
+func CompilerHarnessExecutionLaneExpectedPath() -> String {
+    return "src/self_hosted/sea/expected_lanes.txt";
+}
+
+func CompilerHarnessLaneExecutorContractSourcePath() -> String {
+    return "src/self_hosted/sea/lane_executor_contract.pgy";
+}
+
+func CompilerHarnessLaneExecutorContractExpectedPath() -> String {
+    return "src/self_hosted/sea/expected_executor_contract.txt";
+}
+
+func CompilerHarnessLaneExecutorContractMissingExpectedPath() -> String {
+    return "src/self_hosted/sea/expected_executor_contract_missing.txt";
+}
+
+func CompilerHarnessExecutionLanePathCount() -> Int {
+    return 5;
+}
+
+func CompilerHarnessExecutionLanePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessExecutionLaneSourcePath(); }
+    if index == 1 { return CompilerHarnessExecutionLaneExpectedPath(); }
+    if index == 2 { return CompilerHarnessLaneExecutorContractSourcePath(); }
+    if index == 3 { return CompilerHarnessLaneExecutorContractExpectedPath(); }
+    if index == 4 { return CompilerHarnessLaneExecutorContractMissingExpectedPath(); }
+    return "";
+}
+
+func CompilerHarnessExecutionLanePathKnown(path: String) -> Bool {
+    if path == CompilerHarnessExecutionLaneSourcePath() { return true; }
+    if path == CompilerHarnessExecutionLaneExpectedPath() { return true; }
+    if path == CompilerHarnessLaneExecutorContractSourcePath() { return true; }
+    if path == CompilerHarnessLaneExecutorContractExpectedPath() { return true; }
+    if path == CompilerHarnessLaneExecutorContractMissingExpectedPath() { return true; }
+    return false;
+}
+
+func CompilerHarnessExecutionLaneParityReady() -> Bool {
+    return CompilerHarnessExecutionLaneParitySuiteName() != "" &&
+        CompilerHarnessExecutionLanePathCount() > 0 &&
+        CompilerHarnessExecutionLanePathAt(CompilerHarnessExecutionLanePathCount()) == "" &&
+        CompilerHarnessExecutionLanePathKnown(CompilerHarnessExecutionLaneSourcePath()) &&
+        CompilerHarnessExecutionLanePathKnown(CompilerHarnessExecutionLaneExpectedPath()) &&
+        CompilerHarnessExecutionLanePathKnown(CompilerHarnessLaneExecutorContractSourcePath()) &&
+        CompilerHarnessExecutionLanePathKnown(CompilerHarnessLaneExecutorContractExpectedPath()) &&
+        CompilerHarnessExecutionLanePathKnown(CompilerHarnessLaneExecutorContractMissingExpectedPath());
+}

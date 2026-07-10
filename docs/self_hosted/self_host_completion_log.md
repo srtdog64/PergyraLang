@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - ExecutionLane TestHarness paths consume named paths
+
+- Split `test_harness_execution_lane_paths_owner.pgy` out of the shared
+  TestHarness tool path owner for SEA execution-lane parity source and golden
+  path suites.
+- Added `CompilerHarnessExecutionLanePathKnown(...)` and repointed
+  `CompilerHarnessExecutionLaneParityReady()` from fixed `PathCount() == 5`
+  and positional `PathAt(0..4)` checks to named path membership plus an
+  out-of-range boundary check.
+- Kept the ordered path rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while removing row position as the
+  execution-lane path-suite truth.
+
 ## 2026-07-10 - ABI TestHarness paths consume named paths
 
 - Split `test_harness_abi_paths_owner.pgy` out of the shared TestHarness tool

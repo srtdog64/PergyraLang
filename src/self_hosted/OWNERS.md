@@ -241,6 +241,8 @@ compiler-stage `.pgy` source to be listed here.
   backend compare smoke and extended fixture case suites.
 - `src/self_hosted/compiler/test_harness_abi_paths_owner.pgy` -- ABI layout row
   and runtime-call ABI row path suites.
+- `src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy` -- SEA
+  execution-lane parity source and golden path suites.
 - `src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy` --
   compatibility evolution manifest and corpus checker path suites.
 - `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared

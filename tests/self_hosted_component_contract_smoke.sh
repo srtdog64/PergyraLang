@@ -2023,15 +2023,28 @@ reject_text "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
 require_text "Makefile" "self-host-compatibility-corpus-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/compatibility_evolution_checker_parity.sh"
 require_text "Makefile" "tests/self_hosted/parity/abi_layout_row_manifest_parity.sh"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessExecutionLaneParitySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "execution-lane-parity-paths"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractMissingExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
+require_file "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy"
+require_max_lines "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "func CompilerHarnessExecutionLaneParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "execution-lane-parity-paths"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractSourcePath"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "func CompilerHarnessLaneExecutorContractMissingExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "func CompilerHarnessExecutionLanePathKnown"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathKnown(CompilerHarnessExecutionLaneSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathKnown(CompilerHarnessLaneExecutorContractMissingExpectedPath())"
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathAt(CompilerHarnessExecutionLanePathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessExecutionLaneParityReady()"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_execution_lane_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExecutionLaneParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExecutionLaneParitySuiteName()"
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_execution_lane_paths_owner.pgy";'
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessExecutionLaneParitySuiteName"
+reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathCount() == 5"
+reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathAt(0) == CompilerHarnessExecutionLaneSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathAt(4) == CompilerHarnessLaneExecutorContractMissingExpectedPath()"
 require_file "src/self_hosted/sea/lane_executor_contract_owner.pgy"
 require_max_lines "src/self_hosted/sea/lane_executor_contract_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/sea/lane_executor_contract_owner.pgy"
@@ -4277,6 +4290,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessB
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_abi_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_execution_lane_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_compatibility_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
