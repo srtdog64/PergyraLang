@@ -25,6 +25,38 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Integrated parser/codegen driver reaches a fixed point
+
+- Split source-to-AST-to-C composition into
+  `driver_pipeline_owner.pgy`. DRV-0/DRV-1 and the bootstrap entrypoint now
+  consume that owner instead of allowing parser/codegen wiring to fork.
+- Added `driver_bootstrap_main.pgy` as a minimal source/output-file boundary;
+  it contains no compiler semantics of its own.
+- Added `self-host-driver-bootstrap-test-smoke` after the codegen seed gate:
+  the Pergyra-built codegen builds the integrated driver, the self-built driver matches the
+  C-oracle-built driver on a real source, and driver `gen2.c == gen3.c` is
+  judged by the Pergyra-owned artifact comparator.
+- Verified the standalone codegen fixed point at 9,833 generated-C lines and
+  the integrated parser/codegen driver fixed point at 14,566 generated-C
+  lines. Existing lexer/parser/semantic/mir_lower/tool/fuzz breadth remained
+  green.
+- Raised the M2 production source inventory/minima from 219 to 221. A focused
+  seven-source ledger passed lexer/parser/semantic/codegen 7/7 with
+  `total_sources=221`.
+- Added a changed-path impact row so `driver*.pgy` selects
+  `self-host-driver-bootstrap-test-smoke`; impact manifest/planner parity passed
+  with six proof gates, and the default runner proved its five-source
+  completeness group 5/5.
+- The split driver gate is 155 lines and the codegen seed gate remains 577
+  lines, both below their enforced caps. One Windows landing run observed about
+  1.35 GB peak working set in the first driver seed generation, so bounded
+  emission-buffer work remains a performance blocker rather than being hidden
+  by the successful fixed point.
+- Honest boundary: this is the first integrated compiler self-rebuild loop, not
+  whole-compiler self-hosting. Semantic verdict, MIR lowering, ABI-complete
+  backend replacement, and the released native driver remain outside the
+  fixed-point executable.
+
 ## 2026-07-10 - Completeness impact owner split raises M2 to 219/219
 
 - Split impact-plan/run-group responsibility from

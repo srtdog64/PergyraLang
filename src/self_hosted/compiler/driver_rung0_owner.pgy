@@ -8,9 +8,8 @@
 import "path_manifest_owner.pgy";
 import "stage_artifact_owner.pgy";
 import "target_capability_owner.pgy";
+import "driver_pipeline_owner.pgy";
 import "../parser/source_path_owner.pgy";
-import "../parser/program_parse_owner.pgy";
-import "../codegen/emission/program_emit.pgy";
 import "../codegen/fixture_manifest_owner.pgy";
 
 func CompilerDriverRung0Ready() -> Bool with caps io_read {
@@ -26,23 +25,7 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
     if !CompilerTargetCapabilityEnvelopeReady() {
         return false;
     }
-    return true;
-}
-
-func CompileSourceToAst(source_path: String) -> String with caps io_read {
-    if !CompilerDriverRung0Ready() {
-        Die("driver rung-0 compiler-world facts are not ready");
-    }
-    return ParseRootProgram(source_path);
-}
-
-func CompileAstToC(ast_text: String) -> String {
-    return GenerateC(ast_text);
-}
-
-func CompileSourceToC(source_path: String) -> String with caps io_read {
-    let ast_text: String = CompileSourceToAst(source_path);
-    return CompileAstToC(ast_text);
+    return CompilerDriverPipelineReady();
 }
 
 func DriverParityExpectedFixtureCount() -> Int {
@@ -109,6 +92,9 @@ func DriverRung0ArtifactMode(args: Array<String>) -> String {
 }
 
 func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
+    if !CompilerDriverRung0Ready() {
+        Die("driver rung-0 compiler-world facts are not ready");
+    }
     if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
         EmitDriverParityFixtureManifest();
         return;

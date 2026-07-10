@@ -329,11 +329,15 @@ facts, parser AST-tree text facts, semantic verdict facts, MIR fact graph rows,
 or the codegen typed-AST arena migration contract. That is the load-bearing
 replacement for the old stage `return true` scaffolding.
 
-`src/self_hosted/compiler/driver_rung0_owner.pgy` is the current DRV-0 assembly
-owner. It consumes the path manifest, stage artifact readiness, and target
-capability envelope before composing `ParseRootProgram(source)` with
-`GenerateC(ast_text)`. The owner exposes that boundary as three artifact
-functions: `CompileSourceToAst`, `CompileAstToC`, and `CompileSourceToC`.
+`src/self_hosted/compiler/driver_pipeline_owner.pgy` is the single executable
+pipeline owner for `CompileSourceToAst`, `CompileAstToC`, and
+`CompileSourceToC`. It composes self-parser and self-codegen payload facts;
+driver policy and bootstrap policy are consumers, not alternate
+implementations.
+
+`src/self_hosted/compiler/driver_rung0_owner.pgy` is the DRV-0 compiler-world
+policy owner. It consumes the path manifest, stage artifact readiness, target
+capability envelope, and shared pipeline readiness before routing artifacts.
 `src/self_hosted/compiler/driver_rung0_main.pgy` is only the runnable artifact
 boundary for those facts. `tests/self_hosted/parity/driver_rung0_parity.sh`
 compares assembled AST text against a separately built self-parser AST producer
@@ -342,6 +346,16 @@ committed codegen parity fixtures named by
 `codegen/fixture_manifest_owner.pgy`, so DRV-0 is a landed artifact rung. It
 deliberately does not own parser facts or codegen emission facts; those remain
 in their stage owners.
+
+`src/self_hosted/compiler/driver_bootstrap_main.pgy` is a smaller runnable
+source/output-file boundary over the same pipeline owner. The strengthened
+`driver_bootstrap.sh` consumes the fresh codegen-bootstrap seed, builds it with
+the Pergyra-built codegen, and compares its
+emitted C against the C-oracle-built driver on a real source, then requires the
+integrated driver's own `gen2.c` and `gen3.c` to be byte-identical through the
+Pergyra-owned artifact comparator. The landing run fixed at 14,566 C lines.
+This proves the parser/codegen compiler spine self-eats; semantic and MIR remain
+outside that executable and therefore outside the claim.
 
 ## Codegen Architecture
 

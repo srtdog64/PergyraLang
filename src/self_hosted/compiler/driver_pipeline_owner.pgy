@@ -1,0 +1,32 @@
+// Self-host compiler driver pipeline owner.
+//
+// Owns the executable source -> AST fact -> emitted C spine shared by the
+// user-facing driver and the bootstrap fixed-point runner. Compiler-world and
+// CLI policy stay in their own owners; neither may reimplement this pipeline.
+
+import "../parser/program_parse_owner.pgy";
+import "../codegen/emission/program_emit.pgy";
+
+func CompilerDriverPipelineReady() -> Bool {
+    return ParserAstTreePayloadContractReady() &&
+        TypedAstArenaPayloadContractReady();
+}
+
+func CompileSourceToAst(source_path: String) -> String with caps io_read {
+    if !CompilerDriverPipelineReady() {
+        Die("driver pipeline facts are not ready");
+    }
+    return ParseRootProgram(source_path);
+}
+
+func CompileAstToC(ast_text: String) -> String {
+    if !CompilerDriverPipelineReady() {
+        Die("driver pipeline facts are not ready");
+    }
+    return GenerateC(ast_text);
+}
+
+func CompileSourceToC(source_path: String) -> String with caps io_read {
+    let ast_text: String = CompileSourceToAst(source_path);
+    return CompileAstToC(ast_text);
+}

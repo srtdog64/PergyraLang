@@ -118,6 +118,15 @@ directories still own their facts; `PgyCompilerWorld` owns the visible compiler
 flow. New hard-substitution stages should attach to that intent vocabulary
 instead of creating another folder-local orchestration alias.
 
+The executable driver spine is also single-owned.
+`compiler/driver_pipeline_owner.pgy` owns source-to-AST-to-C composition;
+DRV-0/DRV-1 add compiler-world and CLI policy, while
+`compiler/driver_bootstrap_main.pgy` is only the fixed-point file boundary.
+`self-host-driver-bootstrap-test-smoke` now proves that a Pergyra-built copy of
+this integrated parser/codegen driver rebuilds itself (`gen2 == gen3`). That is
+a bounded compiler bootstrap, not a whole-compiler claim: semantic and MIR are
+not yet executed by the bootstrap driver.
+
 Import de-duplication is now a compiler fact and a self-hosted parser fact.
 Sibling owner modules should declare the fact-owner imports they actually
 consume. The entrypoint must not act as a dependency aggregator or preserve a

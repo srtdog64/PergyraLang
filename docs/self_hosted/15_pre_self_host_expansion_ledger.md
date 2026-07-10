@@ -74,6 +74,7 @@ forbidden-hit artifacts only.
 | Runtime call ABI row projection | `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy`, `src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy`, native `mir_abi_resource_runtime_row_*` accessors | `self-host-runtime-call-abi-row-parity-test-smoke`, `test-mir`, component contract, preparation parity | collection, Option/Result, math, string, host-I/O runtime helper or target-library function symbols, and the native Slot/SecureSlot/DeviceSlot MIR resource runtime-call table are projected into a stable `runtime_call_abi` artifact, with C/LLVM tool-output parity when LLVM is available. The native MIR ABI table also exposes row-count/domain/type/operation/symbol/target-kind/materialization/call-shape accessors plus `MIRResourceRuntimeRow` lookup APIs, and `test-mir` verifies representative rows across slot, secure slot, pin/unpin, device slot, submit-read, and constructed-resource lanes. `test-mir` also compares the committed self-host `runtime_call_abi` artifact's full `native-resource` range against the native row API, including call-shape facts, so the self-host projection and native MIR row table cannot drift silently. The component contract rejects direct quoted helper spellings under self-host codegen participant directories, so new self-host call names must pass through the domain runtime ABI owners first; native resource helper spellings now appear as `native-resource` rows with `mir_abi_resource_row` materialization and MIR-owned call shapes. C MIR resource-op emission, C MIR pin enter/exit emission, source-level C pin block cleanup attributes, source statement auto-release, source slot builtins, C expression slot runtime rows, C let-slot claim/sugar emission, LLVM slot auto-read, LLVM MIR pin-region emission, and LLVM slot/device builtin emission now consume row records and validate call shapes. This closes the runnable manifest gate for current self-host runtime call spelling and one more executable native resource runtime-call ABI projection seam, but remaining C/LLVM compiler backend callsites still need to consume the same concrete row table for the full production ABI blocker. |
 | Basic nominal-record arrays | LLVM array registry `elem_name` facts plus raw record-array runtime exports | `backend_compare/record_array_basic` through C and LLVM | `Array<NominalRecord>` can be created, passed as a parameter, pushed, set, popped, indexed, and used for member access without reopening AST type guessing |
 | DRV-0 artifact gate | `src/self_hosted/compiler/driver_rung0_owner.pgy`, `src/self_hosted/compiler/driver_rung0_main.pgy` | `self-host-driver-rung0-parity-test-smoke` | source path -> self-parser AST text -> self-codegen emitted C is assembled in one Pergyra owner boundary and compared against the self-parser plus the current codegen oracle across the 68 committed codegen parity fixtures owned by `codegen/fixture_manifest_owner.pgy` |
+| Integrated driver bootstrap | `src/self_hosted/compiler/driver_pipeline_owner.pgy`, `src/self_hosted/compiler/driver_bootstrap_main.pgy` | `self-host-driver-bootstrap-test-smoke` | the same source->AST->C pipeline consumed by DRV-0/1 is built by the Pergyra-built codegen, matches the oracle on a real source, and reaches byte-identical `gen2 == gen3`; semantic/MIR inclusion remains open |
 | Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates | Comparable diagnostics, LSP, AST text, AIR/MIR JSON, ABI/layout, runtime-call ABI, materialization, emitted C/LLVM/self-hosted, run-output, and run-group plan artifacts now route equality verdicts through `backend_output_comparator` with explicit artifact kinds. Consumer parity scripts must not recompute artifact equality in shell; the comparator's own parity rung is limited to expected-JSON bootstrap comparison plus mismatch and missing-input fixtures. |
 
 StableJson delta, 2026-07-09: `json_fact_table.pgy` now owns recursive
@@ -681,7 +682,7 @@ forbidden by the component contract from calling `CodegenAstArenaKindPresent`
 or `CodegenAstArenaKindIs` directly. This keeps aggregate runtime/header
 decisions from reopening raw kind-row scans.
 
-Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
+Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` locked the
 M2 minima at 219 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
 parity preparation run proved the prior 203/203 ledger through C and LLVM
@@ -695,9 +696,21 @@ field vocabulary, and proof-gate mapping that used to sit inside the broad
 completeness ledger owner. `completeness_ledger_owner.pgy` keeps the source
 inventory, stage vocabulary, semantic target mapping, cache fingerprints, and
 monotone minima. The full unfiltered `self-host-completeness-smoke` proved
-219/219 sources through lexer/parser/semantic/codegen before the minima moved,
-and the component contract now requires both owners to stay under the 600-line
-cap while forbidding positional readiness checks from returning.
+219/219 sources through lexer/parser/semantic/codegen before that owner split.
+The component contract now requires both completeness owners to stay under the
+600-line cap while forbidding positional readiness checks from returning.
+
+Integrated driver bootstrap delta, 2026-07-10:
+`driver_pipeline_owner.pgy` and `driver_bootstrap_main.pgy` raised the current
+inventory and all M2 minima to 221. A focused seven-source ledger passed all
+four stage checks, and the driver bootstrap gate proved the integrated
+parser/codegen driver at a 14,566-line `gen2 == gen3` fixed point. This does not
+close semantic/MIR inclusion or released-driver substitution.
+The landing Windows run also observed the first driver seed process reaching
+about 1.35 GB peak working set while assembling the large generated-C string.
+That is not a correctness failure, but it is an active compiler-performance
+debt: self-host emission needs a bounded buffer/rope owner instead of repeated
+whole-string `Concat` growth before production bootstrap can be called cheap.
 
 Completeness cache delta, 2026-07-09: `completeness_ledger_owner.pgy` now owns
 the rung0 incremental cache schema and fingerprint vocabulary for the

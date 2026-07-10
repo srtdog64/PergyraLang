@@ -4249,6 +4249,9 @@ require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owne
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapSampleAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapMirFixtureAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "func CompilerHarnessCodegenBootstrapRowsReady"
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_codegen_bootstrap_paths_owner.pgy" "CompilerHarnessDriverBootstrapSourcePath()"
+require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverBootstrapSourcePath"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDiagnosticsSuiteName"
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "func CompilerHarnessLspDiagnosticsPathAt"
@@ -5078,11 +5081,11 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 205;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
-completeness_min_count="$(grep -F "return 219;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+completeness_min_count="$(grep -F "return 221;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 219-source closed slice"
+    fail "self-host completeness minima drifted below the 221-source closed slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
@@ -5161,12 +5164,15 @@ require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "self-host
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactPlannerExpectedRunGroupsPath"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactPlannerPathAt"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactPlannerPathKnown"
+require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactPlannerDriverProbePath"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactRowAt"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactProofGateFor"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "func CompilerCompletenessImpactFieldKnown"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "Option<String>"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" "PGY_SELFHOST_COMPLETENESS_STAGES"
+require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" '"driver-bootstrap-source"'
+require_text "src/self_hosted/compiler/completeness_impact_owner.pgy" '"self-host-driver-bootstrap-test-smoke"'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerCompletenessImpactSuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitCompilerCompletenessImpactPlan()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerCompletenessImpactPlannerSuiteName()"
@@ -5208,11 +5214,12 @@ require_make_target_text \
     "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "self-host-completeness-impact-plan"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "pgy.selfhost.completeness-impact.v1"
+require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "expected 6 impact rows"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_SOURCES"
 require_text "tests/self_hosted/parity/completeness_impact_manifest.sh" "PGY_SELFHOST_COMPLETENESS_STAGES"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "self-host-completeness-impact-planner-paths"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_read_test_harness_manifest"
-require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "expected 10 path rows"
+require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "expected 11 path rows"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" '"run_output"'
 require_text "tests/self_hosted/parity/completeness_impact_planner_parity.sh" '"run_group_plan"'
@@ -5226,6 +5233,7 @@ require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" 
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "changed-path input required"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "PGY_SELFHOST_IMPACT_CHANGED_PATHS_FILE"
+require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "expected 11 path rows"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "RUNNER_ARGS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "env MAKEFLAGS= PGY_BIN="
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "self-host-completeness-impact-planner-paths"
@@ -5505,6 +5513,7 @@ require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_pari
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-bootstrap" "$PGY"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"'
+require_max_lines "tests/self_hosted/parity/codegen_bootstrap.sh" 600
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" '"codegen-bootstrap-paths"'
@@ -5519,6 +5528,7 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'CODEGEN_FIXTURE_DI
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'MIR_LOWER_SOURCE="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'MIR_FIXTURE_DIR="$ROOT_DIR/${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'FUZZ_SOURCE="$ROOT_DIR/${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manifest expected 9 bootstrap paths"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_parser_ast_producer"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "emit_self_parser_ast"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"'
@@ -5539,6 +5549,30 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'MIR_LOWER_SOURCE="$
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'FUZZ_SOURCE="$ROOT_DIR/src/self_hosted/fuzz/backend_parity_generator/main.pgy"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'csrc="$ROOT_DIR/src/self_hosted/$comp/main.pgy"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"'
+require_file "tests/self_hosted/parity/driver_bootstrap.sh"
+require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 300
+require_text "Makefile" "self-host-driver-bootstrap-test-smoke"
+require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-test-smoke"
+require_make_target_text \
+    "self-host-driver-bootstrap-test-smoke" \
+    "tests/self_hosted/parity/driver_bootstrap.sh"
+require_make_target_text \
+    "self-host-preparation-parity-test-smoke" \
+    "tests/self_hosted/parity/driver_bootstrap.sh"
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_to_file"
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen3.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:fixpoint"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"emitted_c"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/examples/hello.pgy"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'cmp -s'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'diff -u'
 require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/fixture_manifest_owner.pgy";'

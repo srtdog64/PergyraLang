@@ -52,6 +52,10 @@ func CompilerCompletenessImpactPlannerAirGraphProbePath() -> String {
     return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy";
 }
 
+func CompilerCompletenessImpactPlannerDriverProbePath() -> String {
+    return "src/self_hosted/compiler/driver_pipeline_owner.pgy";
+}
+
 func CompilerCompletenessImpactPlannerComponentContractPath() -> String {
     return "tests/self_hosted_component_contract_smoke.sh";
 }
@@ -61,7 +65,7 @@ func CompilerCompletenessImpactPlannerUnmatchedProbePath() -> String {
 }
 
 func CompilerCompletenessImpactPlannerPathCount() -> Int {
-    return 10;
+    return 11;
 }
 
 func CompilerCompletenessImpactPlannerPathAt(index: Int) -> String {
@@ -73,8 +77,9 @@ func CompilerCompletenessImpactPlannerPathAt(index: Int) -> String {
     if index == 5 { return CompilerCompletenessImpactPlannerParserProbePath(); }
     if index == 6 { return CompilerCompletenessImpactPlannerCodegenProbePath(); }
     if index == 7 { return CompilerCompletenessImpactPlannerAirGraphProbePath(); }
-    if index == 8 { return CompilerCompletenessImpactPlannerComponentContractPath(); }
-    if index == 9 { return CompilerCompletenessImpactPlannerUnmatchedProbePath(); }
+    if index == 8 { return CompilerCompletenessImpactPlannerDriverProbePath(); }
+    if index == 9 { return CompilerCompletenessImpactPlannerComponentContractPath(); }
+    if index == 10 { return CompilerCompletenessImpactPlannerUnmatchedProbePath(); }
     return "";
 }
 
@@ -87,6 +92,7 @@ func CompilerCompletenessImpactPlannerPathKnown(path: String) -> Bool {
     if path == CompilerCompletenessImpactPlannerParserProbePath() { return true; }
     if path == CompilerCompletenessImpactPlannerCodegenProbePath() { return true; }
     if path == CompilerCompletenessImpactPlannerAirGraphProbePath() { return true; }
+    if path == CompilerCompletenessImpactPlannerDriverProbePath() { return true; }
     if path == CompilerCompletenessImpactPlannerComponentContractPath() { return true; }
     if path == CompilerCompletenessImpactPlannerUnmatchedProbePath() { return true; }
     return false;
@@ -188,7 +194,7 @@ func CompilerCompletenessImpactRow(
 }
 
 func CompilerCompletenessImpactRowCount() -> Int {
-    return 5;
+    return 6;
 }
 
 func CompilerCompletenessImpactProofGateFor(impact_id: String) -> Option<String> {
@@ -203,6 +209,9 @@ func CompilerCompletenessImpactProofGateFor(impact_id: String) -> Option<String>
     }
     if impact_id == "air-graph-consumer-source" {
         return Some("self-host-air-graph-consumer-parity-test-smoke");
+    }
+    if impact_id == "driver-bootstrap-source" {
+        return Some("self-host-driver-bootstrap-test-smoke");
     }
     if impact_id == "component-contract" {
         return Some("self-host-component-contract-test-smoke");
@@ -252,6 +261,16 @@ func CompilerCompletenessImpactRowAt(index: Int) -> String {
         );
     }
     if index == 4 {
+        return CompilerCompletenessImpactRow(
+            "driver-bootstrap-source",
+            "src/self_hosted/compiler/driver*/**/*.pgy",
+            "-",
+            "-",
+            "-",
+            "self-host-driver-bootstrap-test-smoke"
+        );
+    }
+    if index == 5 {
         return CompilerCompletenessImpactRow(
             "component-contract",
             "tests/self_hosted_component_contract_smoke.sh",

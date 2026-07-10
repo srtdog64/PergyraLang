@@ -88,6 +88,14 @@ func CompilerStageArtifactOwnerPath() -> String {
     return "src/self_hosted/compiler/stage_artifact_owner.pgy";
 }
 
+func CompilerDriverPipelineOwnerPath() -> String {
+    return "src/self_hosted/compiler/driver_pipeline_owner.pgy";
+}
+
+func CompilerDriverBootstrapMainPath() -> String {
+    return "src/self_hosted/compiler/driver_bootstrap_main.pgy";
+}
+
 func CompilerDriverRung0OwnerPath() -> String {
     return "src/self_hosted/compiler/driver_rung0_owner.pgy";
 }
@@ -199,7 +207,7 @@ func CompilerParityPathAt(index: Int) -> String {
 }
 
 func CompilerWorldManifestPathCount() -> Int {
-    return 37;
+    return 39;
 }
 
 func CompilerWorldManifestPathAt(index: Int) -> String {
@@ -229,10 +237,12 @@ func CompilerWorldManifestPathAt(index: Int) -> String {
         return CompilerParityPathAt(index - 24);
     }
     if index == 32 { return CompilerAuthorityOwnerPath(); }
-    if index == 33 { return CompilerDriverRung0OwnerPath(); }
-    if index == 34 { return CompilerDriverRung0MainPath(); }
-    if index == 35 { return CompilerDriverCliOwnerPath(); }
-    if index == 36 { return CompilerDriverRung1MainPath(); }
+    if index == 33 { return CompilerDriverPipelineOwnerPath(); }
+    if index == 34 { return CompilerDriverBootstrapMainPath(); }
+    if index == 35 { return CompilerDriverRung0OwnerPath(); }
+    if index == 36 { return CompilerDriverRung0MainPath(); }
+    if index == 37 { return CompilerDriverCliOwnerPath(); }
+    if index == 38 { return CompilerDriverRung1MainPath(); }
     return "";
 }
 

@@ -100,7 +100,14 @@ The fixed point (classic 3-stage bootstrap):
 - stage3: B compiles the self-host source into compiler binary C.
 - B and C must be byte-identical. That equality is the proof of self-hosting.
 
-Entry is gated; this stage is not attemptable until all of the following hold:
+First bounded fixed point landed on 2026-07-10. The Pergyra-built codegen builds
+an integrated `source -> self-parser -> self-codegen -> C` driver, and that
+driver rebuilds itself with byte-identical `gen2 == gen3` C artifacts (14,566
+lines in the landing run). This is Stage 5a evidence, not the terminus: the
+integrated executable does not yet run semantic verdict or MIR lowering, and it
+does not replace the released native driver.
+
+Whole-compiler entry remains gated until all of the following hold:
 
 - Stage 0 (Beta closure) has exited.
 - Parser/codegen completeness: the self-host front-to-back can parse and lower

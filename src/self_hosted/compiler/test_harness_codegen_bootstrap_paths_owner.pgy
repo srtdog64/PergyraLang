@@ -4,6 +4,7 @@
 // execute these rows, but it must not synthesize self-host source paths.
 
 import "test_harness_codegen_paths_owner.pgy";
+import "test_harness_driver_paths_owner.pgy";
 import "test_harness_mir_json_paths_owner.pgy";
 
 func CompilerHarnessCodegenBootstrapPathSuiteName() -> String {
@@ -43,7 +44,7 @@ func CompilerHarnessCodegenBootstrapSampleSourcePath() -> String {
 }
 
 func CompilerHarnessCodegenBootstrapPathCount() -> Int {
-    return 8;
+    return 9;
 }
 
 func CompilerHarnessCodegenBootstrapPathAt(index: Int) -> String {
@@ -55,6 +56,7 @@ func CompilerHarnessCodegenBootstrapPathAt(index: Int) -> String {
     if index == 5 { return CompilerHarnessCodegenBootstrapMirFixtureDirPath(); }
     if index == 6 { return CompilerHarnessCodegenBootstrapFuzzGeneratorSourcePath(); }
     if index == 7 { return CompilerHarnessCodegenBootstrapSampleSourcePath(); }
+    if index == 8 { return CompilerHarnessDriverBootstrapSourcePath(); }
     return "";
 }
 

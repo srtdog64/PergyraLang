@@ -51,8 +51,8 @@ while IFS= read -r line; do
     impact_rows+=("$line")
 done < "$MANIFEST_FILE"
 
-if [[ "${#impact_rows[@]}" -ne 5 ]]; then
-    echo "[self-host-completeness-impact] expected 5 impact rows, got ${#impact_rows[@]}" >&2
+if [[ "${#impact_rows[@]}" -ne 6 ]]; then
+    echo "[self-host-completeness-impact] expected 6 impact rows, got ${#impact_rows[@]}" >&2
     cat "$MANIFEST_FILE" >&2
     exit 1
 fi
@@ -61,6 +61,7 @@ seen_selfhost=0
 seen_parser=0
 seen_codegen=0
 seen_air_graph=0
+seen_driver=0
 seen_contract=0
 for row in "${impact_rows[@]}"; do
     IFS=$'\t' read -r impact_id source_pattern source_env stage_env stage_value proof_gate extra <<< "$row"
@@ -81,9 +82,9 @@ for row in "${impact_rows[@]}"; do
             [[ "$stage_value" == "lexer,parser,semantic,codegen" ]] ||
                 { echo "[self-host-completeness-impact] bad stage filter value for $impact_id" >&2; exit 1; }
             ;;
-        component-contract)
+        driver-bootstrap-source|component-contract)
             [[ "$source_env" == "-" && "$stage_env" == "-" && "$stage_value" == "-" ]] ||
-                { echo "[self-host-completeness-impact] component-contract must not claim completeness filters" >&2; exit 1; }
+                { echo "[self-host-completeness-impact] $impact_id must not claim completeness filters" >&2; exit 1; }
             ;;
         *)
             echo "[self-host-completeness-impact] unknown impact id: $impact_id" >&2
@@ -94,10 +95,11 @@ for row in "${impact_rows[@]}"; do
     [[ "$impact_id" == "parser-source" ]] && seen_parser=1
     [[ "$impact_id" == "codegen-source" ]] && seen_codegen=1
     [[ "$impact_id" == "air-graph-consumer-source" ]] && seen_air_graph=1
+    [[ "$impact_id" == "driver-bootstrap-source" ]] && seen_driver=1
     [[ "$impact_id" == "component-contract" ]] && seen_contract=1
 done
 
-if [[ "$seen_selfhost$seen_parser$seen_codegen$seen_air_graph$seen_contract" != "11111" ]]; then
+if [[ "$seen_selfhost$seen_parser$seen_codegen$seen_air_graph$seen_driver$seen_contract" != "111111" ]]; then
     echo "[self-host-completeness-impact] required impact rows missing" >&2
     cat "$MANIFEST_FILE" >&2
     exit 1

@@ -1,6 +1,7 @@
 schema=pgy.selfhost.completeness-impact-run-groups.v1
-self-host-completeness-smoke	PGY_SELFHOST_COMPLETENESS_SOURCES	src/self_hosted/compiler/completeness_ledger_owner.pgy,src/self_hosted/parser/main.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/tools/air_graph_id_uniqueness/main.pgy	PGY_SELFHOST_COMPLETENESS_STAGES	lexer,parser,semantic,codegen	selfhost-production-source
+self-host-completeness-smoke	PGY_SELFHOST_COMPLETENESS_SOURCES	src/self_hosted/compiler/completeness_ledger_owner.pgy,src/self_hosted/parser/main.pgy,src/self_hosted/codegen/emission/program_emit.pgy,src/self_hosted/tools/air_graph_id_uniqueness/main.pgy,src/self_hosted/compiler/driver_pipeline_owner.pgy	PGY_SELFHOST_COMPLETENESS_STAGES	lexer,parser,semantic,codegen	selfhost-production-source
 self-host-parser-parity-test-smoke	PGY_SELFHOST_COMPLETENESS_SOURCES	src/self_hosted/parser/main.pgy	PGY_SELFHOST_COMPLETENESS_STAGES	lexer,parser,semantic,codegen	parser-source
 self-host-codegen-parity-test-smoke	PGY_SELFHOST_COMPLETENESS_SOURCES	src/self_hosted/codegen/emission/program_emit.pgy	PGY_SELFHOST_COMPLETENESS_STAGES	lexer,parser,semantic,codegen	codegen-source
 self-host-air-graph-consumer-parity-test-smoke	PGY_SELFHOST_COMPLETENESS_SOURCES	src/self_hosted/tools/air_graph_id_uniqueness/main.pgy	PGY_SELFHOST_COMPLETENESS_STAGES	lexer,parser,semantic,codegen	air-graph-consumer-source
+self-host-driver-bootstrap-test-smoke	-	src/self_hosted/compiler/driver_pipeline_owner.pgy	-	-	driver-bootstrap-source
 self-host-component-contract-test-smoke	-	tests/self_hosted_component_contract_smoke.sh	-	-	component-contract

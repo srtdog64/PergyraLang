@@ -44,14 +44,14 @@ while IFS= read -r line; do
     harness_paths+=("$line")
 done < "$HARNESS_PATHS_FILE"
 
-if [[ "${#harness_paths[@]}" -ne 10 ]]; then
-    echo "[self-host-completeness-impact-runner] expected 10 path rows, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 11 ]]; then
+    echo "[self-host-completeness-impact-runner] expected 11 path rows, got ${#harness_paths[@]}" >&2
     cat "$HARNESS_PATHS_FILE" >&2
     exit 1
 fi
 
 TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"
-CLEAN_ARGS=("${harness_paths[@]:4:5}")
+CLEAN_ARGS=("${harness_paths[@]:4:6}")
 for path in "$TOOL_SOURCE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-completeness-impact-runner] missing input: $path" >&2

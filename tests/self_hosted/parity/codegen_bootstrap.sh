@@ -104,8 +104,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 8 ]]; then
-    echo "[self-host-bootstrap] TestHarness manifest expected 8 bootstrap paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-bootstrap] TestHarness manifest expected 9 bootstrap paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 

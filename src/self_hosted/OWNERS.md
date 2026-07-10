@@ -321,6 +321,12 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact
   envelope facts that bind token, AST, semantic, and MIR stage actors to the
   compiler-world path manifest rows.
+- `src/self_hosted/compiler/driver_pipeline_owner.pgy` -- executable
+  source-to-AST-to-C pipeline shared by the user-facing driver and bootstrap;
+  this is the single owner of parser/codegen composition.
+- `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- minimal runnable
+  source/output-file boundary used to prove the integrated driver fixed point;
+  pipeline ownership remains in `driver_pipeline_owner.pgy`.
 - `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
   assembly owner that composes self-parser AST text and self-codegen C emission
   after consuming compiler-world readiness facts.

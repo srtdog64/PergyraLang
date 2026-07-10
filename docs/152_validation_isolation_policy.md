@@ -148,6 +148,7 @@ This table is the practical "do not run unrelated work" rule.
 | Shell/Makefile/source inventory | source inventory gate and the edited shell contract | semantic/runtime/backend cases unless their source list changed |
 | Self-host compiler-world envelope owner | `self-host-compiler-world-contract-test-smoke` or static term inspection | frontend fixtures, slot contract, broad backend compare, platform wrappers |
 | Self-host stage owner | that stage's component contract or one named parity fixture | full `self-host-preparation-test-smoke` before the component gate is stable |
+| Self-host driver pipeline/bootstrap owner | `self-host-driver-bootstrap-test-smoke` (which requires a fresh codegen bootstrap seed) | unrelated LSP, AIR, runtime, backend-compare, and platform wrappers |
 | Lexer/parser syntax owner | the focused lexer/parser fixture for the changed syntax | backend compare, runtime ABI, self-host parity unrelated to that fixture |
 | Semantic/type owner | focused semantic/type resolver gate | backend projection gates until emitted IR facts change |
 | AIR evidence owner | AIR schema/drift gate for the changed evidence | backend nonimpact/full compare unless that AIR fact is consumed by output |

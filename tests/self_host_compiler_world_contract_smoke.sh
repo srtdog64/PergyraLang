@@ -80,6 +80,8 @@ require_file "src/self_hosted/compiler/abi_layout_row_manifest.pgy"
 require_file "src/self_hosted/compiler/symbol_table_owner.pgy"
 require_file "src/self_hosted/compiler/stage_artifact_owner.pgy"
 require_file "src/self_hosted/compiler/authority_owner.pgy"
+require_file "src/self_hosted/compiler/driver_pipeline_owner.pgy"
+require_file "src/self_hosted/compiler/driver_bootstrap_main.pgy"
 require_file "src/self_hosted/compiler/driver_rung0_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung0_main.pgy"
 require_file "src/self_hosted/compiler/driver_cli_owner.pgy"
@@ -103,6 +105,8 @@ require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPIL
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_ROW_MANIFEST_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_BACKEND_ABI_LAYOUT_CONTRACT_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_ABI_LAYOUT_TARGET_POLICY_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_PIPELINE_PATH"
+require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_BOOTSTRAP_MAIN_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_RUNG0_MAIN_PATH"
 require_text "tests/self_hosted/compiler_world_manifest.sh" "PGY_SELFHOST_COMPILER_DRIVER_CLI_PATH"
@@ -137,24 +141,33 @@ require_max_lines "src/self_hosted/compiler/abi_layout_row_manifest.pgy" 600
 require_max_lines "src/self_hosted/compiler/symbol_table_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/stage_artifact_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/authority_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_pipeline_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/driver_bootstrap_main.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung0_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung0_main.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_cli_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung1_main.pgy" 600
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompilerDriverPipelineReady"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParserAstTreePayloadContractReady()"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "TypedAstArenaPayloadContractReady()"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return ParseRootProgram(source_path)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateC(ast_text)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAst(source_path)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileAstToC(ast_text)"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_pipeline_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToC(args[0]))"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerStagePathManifestReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerAstTreeFactReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerEmissionFactReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerTargetCapabilityEnvelopeReady()"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileSourceToAst"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return ParseRootProgram(source_path)"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileAstToC"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return GenerateC(ast_text)"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompileSourceToC"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompileSourceToAst(source_path)"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompileAstToC(ast_text)"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerDriverPipelineReady()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverRung0ArtifactMode"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-ast"'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"--emit-c"'
@@ -420,6 +433,8 @@ for term in \
     "func CompilerAbiLayoutRowManifestPath" \
     "func CompilerSymbolTableOwnerPath" \
     "func CompilerStageArtifactOwnerPath" \
+    "func CompilerDriverPipelineOwnerPath" \
+    "func CompilerDriverBootstrapMainPath" \
     "func CompilerDriverRung0OwnerPath" \
     "func CompilerDriverRung0MainPath" \
     "func CompilerDriverCliOwnerPath" \
@@ -456,6 +471,8 @@ for term in \
     "return CompilerAbiLayoutRowManifestPath();" \
     "return CompilerSymbolTableOwnerPath();" \
     "return CompilerStageArtifactOwnerPath();" \
+    "return CompilerDriverPipelineOwnerPath();" \
+    "return CompilerDriverBootstrapMainPath();" \
     "return CompilerDriverRung0OwnerPath();" \
     "return CompilerDriverRung0MainPath();" \
     "return CompilerDriverCliOwnerPath();" \
@@ -479,6 +496,7 @@ for term in \
     "CompilerStagePathAt(index - 19)" \
     "if index < 32" \
     "CompilerParityPathAt(index - 24)" \
+    "return 39;" \
     "lexer|TokenStreamZone|LexerStage|LexSource|LexerTokenPayloadContractReady" \
     "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady" \
     "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady" \
@@ -487,7 +505,7 @@ for term in \
     require_text "src/self_hosted/compiler/path_manifest_owner.pgy" "$term"
 done
 forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerParityPathCount() != 8"
-forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 37"
+forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldManifestPathCount() != 39"
 forbid_text "src/self_hosted/compiler/path_manifest_owner.pgy" "CompilerWorldProjectionPathCount() != 40"
 
 for term in \

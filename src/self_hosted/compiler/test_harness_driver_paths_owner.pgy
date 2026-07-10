@@ -19,6 +19,10 @@ func CompilerHarnessDriverRung1SourcePath() -> String {
     return "src/self_hosted/compiler/driver_rung1_main.pgy";
 }
 
+func CompilerHarnessDriverBootstrapSourcePath() -> String {
+    return "src/self_hosted/compiler/driver_bootstrap_main.pgy";
+}
+
 func CompilerHarnessDriverParserSourcePath() -> String {
     return "src/self_hosted/parser/main.pgy";
 }
@@ -76,6 +80,7 @@ func CompilerHarnessDriverRung1Ready() -> Bool {
 func CompilerHarnessDriverPathsReady() -> Bool {
     return CompilerHarnessDriverRung0Ready() &&
         CompilerHarnessDriverRung1Ready() &&
+        CompilerHarnessDriverBootstrapSourcePath() != "" &&
         CompilerHarnessDriverParserSourcePath() ==
             CompilerHarnessDriverRung0PathAt(1) &&
         CompilerHarnessDriverParserSourcePath() ==

@@ -1,0 +1,14 @@
+// Minimal runnable boundary for the integrated compiler fixed point.
+//
+// The pipeline itself is owned by driver_pipeline_owner.pgy. This entrypoint
+// only gives the bootstrap runner a deterministic source/output-file surface.
+
+import "driver_pipeline_owner.pgy";
+
+func Main() -> Void with caps env, io_read, io_write {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 {
+        Die("bootstrap driver requires source and output paths");
+    }
+    WriteFile(args[1], CompileSourceToC(args[0]));
+}
