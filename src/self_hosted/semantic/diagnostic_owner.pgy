@@ -71,6 +71,9 @@ func SemanticReason(code: String) -> String {
     if code == "assignment_type_unresolved" {
         return "assignment type cannot be resolved from semantic artifact facts";
     }
+    if code == "statement_type_unresolved" {
+        return "statement expression type cannot be resolved from semantic artifact facts";
+    }
     if code == "unregistered_diagnostic_code" {
         return "semantic diagnostic code is not registered in the code owner";
     }
@@ -142,6 +145,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "assignment_type_unresolved" {
         return "add the missing scope or expression type fact instead of guessing in the backend";
+    }
+    if code == "statement_type_unresolved" {
+        return "add the missing statement environment or expression fact instead of guessing in the backend";
     }
     if code == "unregistered_diagnostic_code" {
         return "add the code to diagnostic_code_owner before emitting it";
@@ -324,6 +330,17 @@ func SemanticDiagnosticVocabularyRows() -> Array<String> {
         i = i + 1;
     }
     return rows;
+}
+func SemanticDiagnosticCodeFromMessage(message: String) -> String {
+    let codes: Array<String> = SemanticDiagnosticCodes();
+    let i: Int = 0;
+    while i < ArrayLength(codes) {
+        if StringContains(message, Concat("Code: ", codes[i])) {
+            return codes[i];
+        }
+        i = i + 1;
+    }
+    return "unregistered_diagnostic_code";
 }
 
 func EmitSemanticDiagnosticVocabularyManifest() -> Void {
@@ -540,7 +557,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 23 {
+    if SemanticDiagnosticCodeCount() != 24 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

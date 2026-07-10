@@ -1,0 +1,107 @@
+// Expression verdicts over artifact-owned payload text and environment facts.
+
+import "expression_normalization_owner.pgy";
+import "expr_type_owner.pgy";
+import "expr_validation_owner.pgy";
+import "call_check_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstExpressionVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    normalized_text: String;
+    inferred_type_name: String;
+}
+
+func SemanticAstExpressionVerdictOk(
+    text: String,
+    inferred: String
+) -> SemanticAstExpressionVerdict {
+    return SemanticAstExpressionVerdict(true, "", "", text, inferred);
+}
+
+func SemanticAstExpressionVerdictError(
+    text: String,
+    message: String
+) -> SemanticAstExpressionVerdict {
+    return SemanticAstExpressionVerdict(
+        false,
+        SemanticDiagnosticCodeFromMessage(message),
+        message,
+        text,
+        "Unknown"
+    );
+}
+
+func SemanticAstExpressionVerdictFromPayload(
+    expression: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> SemanticAstExpressionVerdict {
+    let text: String = SemanticStripOuterParens(expression);
+    let call_error: String = CheckCall(
+        text, names, types, modes,
+        function_names, function_returns, function_params
+    );
+    if StringLength(call_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, call_error);
+    }
+    let undefined_error: String = CheckUndefinedIdentifiers(text, names);
+    if StringLength(undefined_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, undefined_error);
+    }
+    let try_error: String = CheckTryOperand(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(try_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, try_error);
+    }
+    let logical_error: String = CheckLogicalOperands(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(logical_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, logical_error);
+    }
+    let binary_error: String = CheckBinaryOperands(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(binary_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, binary_error);
+    }
+    return SemanticAstExpressionVerdictOk(
+        text,
+        ExprType(text, names, types, function_names, function_returns)
+    );
+}
+
+func SemanticAstExpressionVerdictContractReady() -> Bool {
+    let names: Array<String> = ["x"];
+    let types: Array<String> = ["Int"];
+    let modes: Array<String> = ["local"];
+    let function_names: Array<String> = ["F"];
+    let function_returns: Array<String> = ["Int"];
+    let function_params: Array<String> = ["Int"];
+    let valid: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromPayload(
+            "(x + 1)", names, types, modes,
+            function_names, function_returns, function_params
+        );
+    let undefined: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromPayload(
+            "missing", names, types, modes,
+            function_names, function_returns, function_params
+        );
+    let bad_call: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromPayload(
+            "F(\"bad\")", names, types, modes,
+            function_names, function_returns, function_params
+        );
+    return valid.ok && valid.inferred_type_name == "Int" &&
+        !undefined.ok && undefined.diagnostic_code == "undefined_symbol" &&
+        !bad_call.ok && bad_call.diagnostic_code == "call_arg_type_mismatch";
+}

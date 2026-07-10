@@ -8,6 +8,7 @@ import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "expr_type_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
 
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
@@ -72,8 +73,9 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
 
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns
+        signatures, function_names, function_returns, function_params
     ) {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
@@ -89,13 +91,19 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     while i < SemanticAstAssignmentCount(assignments) {
         let names: Array<String> = [];
         let types: Array<String> = [];
+        let modes: Array<String> = [];
         if !SemanticAstExpressionSeedParameters(
             signatures, assignments.function_node_ids[i], names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, assignments.function_node_ids[i], modes
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types
-        ) {
+        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, assignments.function_node_ids[i],
+            assignments.node_ids[i], modes
+        ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstAssignmentTypeStructuralError(artifact);
         }
 
@@ -115,11 +123,16 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             if assignments.target_is_indexed[i] == 1 {
                 let element_type: String =
                     SemanticAstAssignmentArrayElementType(expected);
-                let index_type: String = ExprType(
-                    assignments.target_index_texts[i], names, types,
-                    function_names, function_returns
-                );
-                if element_type == "" || index_type != "Int" {
+                let index_verdict: SemanticAstExpressionVerdict =
+                    SemanticAstExpressionVerdictFromPayload(
+                        assignments.target_index_texts[i], names, types, modes,
+                        function_names, function_returns, function_params
+                    );
+                if !index_verdict.ok {
+                    row_code = index_verdict.diagnostic_code;
+                    row_message = index_verdict.diagnostic_message;
+                } else if element_type == "" ||
+                    index_verdict.inferred_type_name != "Int" {
                     expected = element_type;
                     row_code = "assignment_type_unresolved";
                     row_message = SemanticError2(
@@ -132,11 +145,16 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 }
             }
             if row_code == "" {
-                inferred = ExprType(
-                    assignments.value_texts[i], names, types,
-                    function_names, function_returns
-                );
-                if inferred == "Unknown" || inferred == "" {
+                let value_verdict: SemanticAstExpressionVerdict =
+                    SemanticAstExpressionVerdictFromPayload(
+                        assignments.value_texts[i], names, types, modes,
+                        function_names, function_returns, function_params
+                    );
+                inferred = value_verdict.inferred_type_name;
+                if !value_verdict.ok {
+                    row_code = value_verdict.diagnostic_code;
+                    row_message = value_verdict.diagnostic_message;
+                } else if inferred == "Unknown" || inferred == "" {
                     row_code = "assignment_type_unresolved";
                     row_message = SemanticError2(
                         "assignment_type_unresolved",

@@ -183,7 +183,7 @@ func CompilerDriverRung1ParityPath() -> String {
 }
 
 func CompilerDriverRung2ParityPath() -> String {
-    return "tests/self_hosted/parity/driver_rung2_initializer_parity.sh";
+    return "tests/self_hosted/parity/driver_rung2_body_parity.sh";
 }
 
 func CompilerParityPathCount() -> Int {

@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
 
 struct SemanticAstLocalBindingFacts {
     ok: Bool;
@@ -37,6 +38,25 @@ func SemanticAstEnclosingFunctionNode(
         let parent_id: Int = UnwrapOption(cursor);
         if TypedAstArenaNodeKindIs(
             arena, parent_id, TypedAstKindFuncDeclTag()
+        ) {
+            return Some(parent_id);
+        }
+        cursor = TypedAstArenaParentId(arena, parent_id);
+        traversed = traversed + 1;
+    }
+    return None;
+}
+
+func SemanticAstEnclosingBlockNode(
+    arena: AstArena,
+    node_id: Int
+) -> Option<Int> {
+    let cursor: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    let traversed: Int = 0;
+    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
+        let parent_id: Int = UnwrapOption(cursor);
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindBlockTag()
         ) {
             return Some(parent_id);
         }
@@ -134,7 +154,9 @@ func SemanticAstLocalBindingFactsFromArtifact(
         let declared_type_name: String = "";
         let has_declared_type: Int = 0;
         if IsSome(declared_type) {
-            declared_type_name = UnwrapOption(declared_type);
+            declared_type_name = SemanticCanonicalTypeName(
+                UnwrapOption(declared_type)
+            );
             has_declared_type = 1;
         }
         ArrayPush(node_ids, node_id);
@@ -207,7 +229,8 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         }
         if facts.has_declared_types[i] == 1 {
             if !IsSome(declared_type) ||
-                UnwrapOption(declared_type) != facts.declared_type_names[i] {
+                SemanticCanonicalTypeName(UnwrapOption(declared_type)) !=
+                    facts.declared_type_names[i] {
                 return false;
             }
         } else if facts.has_declared_types[i] != 0 ||

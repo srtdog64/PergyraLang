@@ -34,6 +34,7 @@ func EmitFunction(count: Int, arena: AstArena,
                   signatures: SemanticAstFunctionSignatureFacts,
                   local_bindings: SemanticAstLocalBindingFacts,
                   assignments: SemanticAstAssignmentFacts,
+                  statements: SemanticAstStatementFacts,
                   inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool) -> String {
     let function_node_id: Int = cur[0];
@@ -119,8 +120,8 @@ func EmitFunction(count: Int, arena: AstArena,
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
     let body: String = EmitStmtList(
-        count, arena, local_bindings, assignments, stmt_indent, cur, "    ",
-        env_box, body_ret, copyout
+        count, arena, local_bindings, assignments, statements, stmt_indent,
+        cur, "    ", env_box, body_ret, copyout
     );
 
     let signature: String = "";

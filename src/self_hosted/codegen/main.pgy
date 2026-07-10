@@ -25,7 +25,7 @@ import "input/ast_text_try_let_owner.pgy";
 import "input/semantic_local_binding_codegen_view_owner.pgy";
 import "input/semantic_assignment_codegen_view_owner.pgy";
 import "input/ast_text_for_stmt_owner.pgy";
-import "input/ast_text_statement_payload_owner.pgy";
+import "input/semantic_statement_codegen_view_owner.pgy";
 import "input/ast_text_collection_stmt_owner.pgy";
 import "input/ast_expression_usage_owner.pgy";
 import "input/ast_kind_usage_owner.pgy";

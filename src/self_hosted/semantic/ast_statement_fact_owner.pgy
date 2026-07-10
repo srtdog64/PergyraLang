@@ -1,0 +1,204 @@
+// Semantic statement payload facts derived from the parser-owned artifact.
+//
+// These rows own payload-bearing control/use statements plus bare return.
+// Codegen and body verdicts consume the same node/kind/function/scope row.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "ast_local_binding_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstStatementFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    kind_tags: Array<Int>;
+    function_node_ids: Array<Int>;
+    scope_node_ids: Array<Int>;
+    payload_texts: Array<String>;
+}
+
+func SemanticAstStatementKindTracked(kind: Int) -> Bool {
+    return kind == TypedAstKindLogStmtTag() ||
+        kind == TypedAstKindBareReturnStmtTag() ||
+        kind == TypedAstKindValueReturnStmtTag() ||
+        kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindWhileStmtTag() ||
+        kind == TypedAstKindIfStmtTag() ||
+        kind == TypedAstKindMatchStmtTag() ||
+        kind == TypedAstKindMatchCaseStmtTag() ||
+        kind == TypedAstKindBareCallStmtTag();
+}
+
+func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {
+    return kind != TypedAstKindBareReturnStmtTag();
+}
+
+func SemanticAstStatementStructuralError(
+    artifact: AstTreeArtifact,
+    node_id: Int,
+    fact: String
+) -> SemanticAstStatementFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstStatementFacts(
+        false,
+        "ast_artifact_invalid",
+        SemanticError2(
+            "ast_artifact_invalid",
+            "node_id", ToString(node_id),
+            "owner", Concat("SemanticAstStatementFacts:", fact)
+        ),
+        artifact.count,
+        empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+    );
+}
+
+func SemanticAstStatementFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts
+) -> SemanticAstStatementFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) {
+        return SemanticAstStatementStructuralError(artifact, -1, "artifact");
+    }
+    let node_ids: Array<Int> = [];
+    let kind_tags: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
+    let scope_node_ids: Array<Int> = [];
+    let payload_texts: Array<String> = [];
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, node_id
+        );
+        if !IsSome(kind_opt) {
+            return SemanticAstStatementStructuralError(
+                artifact, node_id, "kind"
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        if !SemanticAstStatementKindTracked(kind) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let scope_opt: Option<Int> = SemanticAstEnclosingBlockNode(
+            artifact.arena, node_id
+        );
+        let function_opt: Option<Int> = SemanticAstEnclosingFunctionNode(
+            artifact.arena, node_id
+        );
+        if !IsSome(scope_opt) || !TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(scope_opt), TypedAstKindBlockTag()
+        ) {
+            return SemanticAstStatementStructuralError(
+                artifact, node_id, "scope_block"
+            );
+        }
+        if !IsSome(function_opt) || !IsSome(
+            SemanticAstFunctionSignatureIndexForNode(
+                signatures, UnwrapOption(function_opt)
+            )
+        ) {
+            return SemanticAstStatementStructuralError(
+                artifact, node_id, "function_owner"
+            );
+        }
+        let payload: String = "";
+        if SemanticAstStatementKindCarriesPayload(kind) {
+            let payload_opt: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            if !IsSome(payload_opt) {
+                return SemanticAstStatementStructuralError(
+                    artifact, node_id, "payload"
+                );
+            }
+            payload = UnwrapOption(payload_opt);
+        }
+        ArrayPush(node_ids, node_id);
+        ArrayPush(kind_tags, kind);
+        ArrayPush(function_node_ids, UnwrapOption(function_opt));
+        ArrayPush(scope_node_ids, UnwrapOption(scope_opt));
+        ArrayPush(payload_texts, payload);
+        node_id = node_id + 1;
+    }
+    return SemanticAstStatementFacts(
+        true, "", "", artifact.count, node_ids, kind_tags,
+        function_node_ids, scope_node_ids, payload_texts
+    );
+}
+
+func SemanticAstStatementCount(facts: SemanticAstStatementFacts) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstStatementIndexForNode(
+    facts: SemanticAstStatementFacts,
+    node_id: Int
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < SemanticAstStatementCount(facts) {
+        if facts.node_ids[i] == node_id {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstStatementFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    facts: SemanticAstStatementFacts
+) -> Bool {
+    let rebuilt: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let n: Int = SemanticAstStatementCount(facts);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        SemanticAstStatementCount(rebuilt) != n ||
+        ArrayLength(facts.kind_tags) != n ||
+        ArrayLength(facts.function_node_ids) != n ||
+        ArrayLength(facts.scope_node_ids) != n ||
+        ArrayLength(facts.payload_texts) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.kind_tags[i] != facts.kind_tags[i] ||
+            rebuilt.function_node_ids[i] != facts.function_node_ids[i] ||
+            rebuilt.scope_node_ids[i] != facts.scope_node_ids[i] ||
+            rebuilt.payload_texts[i] != facts.payload_texts[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstStatementFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let facts: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    return SemanticAstStatementFactsMatchArtifact(
+        artifact, signatures, facts
+    ) && SemanticAstStatementCount(facts) == 3 &&
+        facts.kind_tags[0] == TypedAstKindIfStmtTag() &&
+        facts.payload_texts[0] == "x > 0" &&
+        facts.kind_tags[1] == TypedAstKindLogStmtTag() &&
+        facts.payload_texts[1] == "x" &&
+        facts.kind_tags[2] == TypedAstKindValueReturnStmtTag() &&
+        facts.payload_texts[2] == "x";
+}

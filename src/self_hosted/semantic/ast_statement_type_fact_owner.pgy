@@ -1,0 +1,329 @@
+// Statement expression/type verdicts joined from artifact-owned facts.
+
+import "ast_statement_fact_owner.pgy";
+import "ast_expression_environment_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+
+struct SemanticAstStatementTypeFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    kind_tags: Array<Int>;
+    expected_type_names: Array<String>;
+    inferred_type_names: Array<String>;
+    verified: Array<Int>;
+    diagnostic_codes: Array<String>;
+    diagnostic_messages: Array<String>;
+}
+
+func SemanticAstStatementTypeStructuralError(
+    artifact: AstTreeArtifact
+) -> SemanticAstStatementTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstStatementTypeFacts(
+        false, "ast_artifact_invalid",
+        SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstStatementTypeFacts"
+        ),
+        artifact.count, empty_ints, empty_ints, empty_strings, empty_strings,
+        empty_ints, empty_strings, empty_strings
+    );
+}
+
+func SemanticAstStatementExpectedReturnType(
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int
+) -> String {
+    let index_opt: Option<Int> = SemanticAstFunctionSignatureIndexForNode(
+        signatures, function_node_id
+    );
+    if !IsSome(index_opt) {
+        return "";
+    }
+    let return_opt: Option<String> = SemanticAstFunctionReturnTypeAt(
+        signatures, UnwrapOption(index_opt)
+    );
+    if !IsSome(return_opt) {
+        return "";
+    }
+    return UnwrapOption(return_opt);
+}
+
+func SemanticAstStatementTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts
+) -> SemanticAstStatementTypeFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
+            artifact, signatures, locals, initializer_types
+        ) || !SemanticAstStatementFactsMatchArtifact(
+            artifact, signatures, statements
+        ) {
+        return SemanticAstStatementTypeStructuralError(artifact);
+    }
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        signatures, function_names, function_returns, function_params
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact);
+    }
+
+    let node_ids: Array<Int> = [];
+    let kind_tags: Array<Int> = [];
+    let expected_types: Array<String> = [];
+    let inferred_types: Array<String> = [];
+    let verified: Array<Int> = [];
+    let diagnostic_codes: Array<String> = [];
+    let diagnostic_messages: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstStatementCount(statements) {
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        let modes: Array<String> = [];
+        if !SemanticAstExpressionSeedParameters(
+            signatures, statements.function_node_ids[i], names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, statements.function_node_ids[i], modes
+        ) || !SemanticAstExpressionSeedVisibleLocals(
+            artifact, locals, initializer_types.inferred_type_names,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types
+        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, statements.function_node_ids[i],
+            statements.node_ids[i], modes
+        ) || ArrayLength(names) != ArrayLength(modes) {
+            return SemanticAstStatementTypeStructuralError(artifact);
+        }
+
+        let kind: Int = statements.kind_tags[i];
+        let expected: String = "";
+        let inferred: String = "Void";
+        let row_verified: Int = 1;
+        let row_code: String = "";
+        let row_message: String = "";
+        let checks_expression: Bool = kind != TypedAstKindBareReturnStmtTag() &&
+            kind != TypedAstKindMatchCaseStmtTag();
+        if checks_expression {
+            let expression_verdict: SemanticAstExpressionVerdict =
+                SemanticAstExpressionVerdictFromPayload(
+                    statements.payload_texts[i], names, types, modes,
+                    function_names, function_returns, function_params
+                );
+            inferred = expression_verdict.inferred_type_name;
+            if !expression_verdict.ok {
+                row_verified = 0;
+                row_code = expression_verdict.diagnostic_code;
+                row_message = expression_verdict.diagnostic_message;
+            }
+        }
+        if row_verified == 1 &&
+            (kind == TypedAstKindBareReturnStmtTag() ||
+             kind == TypedAstKindValueReturnStmtTag()) {
+            expected = SemanticAstStatementExpectedReturnType(
+                signatures, statements.function_node_ids[i]
+            );
+            if expected == "" || inferred == "Unknown" {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "node_id", ToString(statements.node_ids[i]),
+                    "payload", statements.payload_texts[i]
+                );
+            } else if !ExpressionAssignableTo(
+                expected, inferred, statements.payload_texts[i]
+            ) {
+                row_verified = 0;
+                row_code = "return_type_mismatch";
+                row_message = SemanticError2(
+                    "return_type_mismatch",
+                    "expected", expected,
+                    "actual", inferred
+                );
+            }
+        }
+        if row_verified == 1 &&
+            (kind == TypedAstKindIfStmtTag() ||
+             kind == TypedAstKindWhileStmtTag()) {
+            expected = "Bool";
+            if inferred == "Unknown" {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "node_id", ToString(statements.node_ids[i]),
+                    "payload", statements.payload_texts[i]
+                );
+            } else if inferred != "Bool" {
+                row_verified = 0;
+                row_code = "condition_not_bool";
+                row_message = SemanticError2(
+                    "condition_not_bool", "expected", "Bool",
+                    "actual", inferred
+                );
+            }
+        }
+        ArrayPush(node_ids, statements.node_ids[i]);
+        ArrayPush(kind_tags, kind);
+        ArrayPush(expected_types, expected);
+        ArrayPush(inferred_types, inferred);
+        ArrayPush(verified, row_verified);
+        ArrayPush(diagnostic_codes, row_code);
+        ArrayPush(diagnostic_messages, row_message);
+        i = i + 1;
+    }
+    return SemanticAstStatementTypeFacts(
+        true, "", "", artifact.count, node_ids, kind_tags,
+        expected_types, inferred_types, verified,
+        diagnostic_codes, diagnostic_messages
+    );
+}
+
+func SemanticAstStatementTypesAllVerified(
+    facts: SemanticAstStatementTypeFacts
+) -> Bool {
+    if !facts.ok {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstStatementFirstDiagnosticCode(
+    facts: SemanticAstStatementTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_code;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_codes[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstStatementFirstDiagnosticMessage(
+    facts: SemanticAstStatementTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_message;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_messages[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstStatementTypeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    facts: SemanticAstStatementTypeFacts
+) -> Bool {
+    let rebuilt: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, signatures, locals, initializer_types, statements
+        );
+    let n: Int = ArrayLength(facts.node_ids);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(rebuilt.node_ids) != n ||
+        ArrayLength(facts.kind_tags) != n ||
+        ArrayLength(facts.expected_type_names) != n ||
+        ArrayLength(facts.inferred_type_names) != n ||
+        ArrayLength(facts.verified) != n ||
+        ArrayLength(facts.diagnostic_codes) != n ||
+        ArrayLength(facts.diagnostic_messages) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.kind_tags[i] != facts.kind_tags[i] ||
+            rebuilt.expected_type_names[i] != facts.expected_type_names[i] ||
+            rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
+            rebuilt.verified[i] != facts.verified[i] ||
+            rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstStatementTypeFactsContractReady() -> Bool {
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
+    let initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(valid, signatures, locals);
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(valid, signatures);
+    let facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            valid, signatures, locals, initializers, statements
+        );
+    if !SemanticAstStatementTypeFactsMatchArtifact(
+        valid, signatures, locals, initializers, statements, facts
+    ) || !SemanticAstStatementTypesAllVerified(facts) ||
+        ArrayLength(facts.node_ids) != 3 ||
+        facts.expected_type_names[0] != "Bool" ||
+        facts.expected_type_names[2] != "Int" {
+        return false;
+    }
+    let bad: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        If: 1\n          Then:\n            Block:\n"
+    );
+    let bad_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(bad);
+    let bad_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(bad, bad_signatures);
+    let bad_initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            bad, bad_signatures, bad_locals
+        );
+    let bad_statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(bad, bad_signatures);
+    let bad_facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            bad, bad_signatures, bad_locals, bad_initializers, bad_statements
+        );
+    return !SemanticAstStatementTypesAllVerified(bad_facts) &&
+        SemanticAstStatementFirstDiagnosticCode(bad_facts) ==
+            "condition_not_bool";
+}

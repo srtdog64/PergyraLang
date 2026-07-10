@@ -7,6 +7,8 @@
 import "driver_pipeline_owner.pgy";
 import "../semantic/ast_initializer_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
+import "../semantic/ast_statement_type_fact_owner.pgy";
+import "../semantic/ast_body_verdict_owner.pgy";
 
 func CompilerDriverRung2Ready() -> Bool {
     return CompilerDriverPipelineReady() &&
@@ -15,7 +17,11 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstExpressionEnvironmentContractReady() &&
         SemanticAstInitializerTypeFactsContractReady() &&
         SemanticAstAssignmentFactsContractReady() &&
-        SemanticAstAssignmentTypeFactsContractReady();
+        SemanticAstAssignmentTypeFactsContractReady() &&
+        SemanticAstStatementFactsContractReady() &&
+        SemanticAstExpressionVerdictContractReady() &&
+        SemanticAstStatementTypeFactsContractReady() &&
+        SemanticAstBodyVerdictContractReady();
 }
 
 func DriverRung2FixtureRows() -> Array<String> {
@@ -29,12 +35,18 @@ func DriverRung2FixtureRows() -> Array<String> {
         "bad_inner_let_type|error",
         "bad_call_assign|error",
         "bad_assign_type|error",
-        "bad_undefined_assign_lhs|error"
+        "bad_undefined_assign_lhs|error",
+        "bad_return_type|error",
+        "bad_condition_not_bool|error",
+        "bad_undefined_return|error",
+        "bad_undefined_assign|error",
+        "bad_undefined_let|error",
+        "bad_arity_too_few|error"
     ];
 }
 
 func DriverRung2ExpectedFixtureCount() -> Int {
-    return 10;
+    return 16;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -70,10 +82,6 @@ func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
         Log(initializer_types.diagnostic_message);
         Exit(1);
     }
-    if !SemanticAstInitializerTypesAllVerified(initializer_types) {
-        Log(SemanticAstInitializerFirstDiagnosticMessage(initializer_types));
-        Exit(1);
-    }
     let assignment_types: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             artifact,
@@ -86,8 +94,24 @@ func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
         Log(assignment_types.diagnostic_message);
         Exit(1);
     }
-    if !SemanticAstAssignmentTypesAllVerified(assignment_types) {
-        Log(SemanticAstAssignmentFirstDiagnosticMessage(assignment_types));
+    let statement_types: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact,
+            semantic_analysis.signatures,
+            semantic_analysis.local_bindings,
+            initializer_types,
+            semantic_analysis.statements
+        );
+    if !statement_types.ok {
+        Log(statement_types.diagnostic_message);
+        Exit(1);
+    }
+    let body_verdict: SemanticAstBodyVerdict =
+        SemanticAstBodyVerdictFromFacts(
+            initializer_types, assignment_types, statement_types
+        );
+    if !body_verdict.ok {
+        Log(body_verdict.diagnostic_message);
         Exit(1);
     }
     return GenerateCFromSemanticArtifact(artifact, semantic_analysis);

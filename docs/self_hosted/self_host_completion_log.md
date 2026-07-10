@@ -6,6 +6,22 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-10 - Artifact body verdict replaces statement payload rescans
+
+- Added semantic-owned statement rows for return, condition, log, exit, match,
+  array-pop, and bare-call payloads. Codegen consumes the same rows through a
+  fail-closed view; the earlier codegen statement payload owner is deleted.
+- Added one ordered artifact expression verdict for call, undefined-use, try,
+  logical, binary, and inferred-type checks. Initializer and assignment facts
+  now consume it instead of reducing unknown uses to generic type gaps.
+- Added return/condition/call statement type facts and a document-order body
+  verdict across initializer, assignment, and statement rows. DRV-2 expands
+  from 10 to 16 C/LLVM fixtures and no longer calls the source body scanner.
+- Added semantic type-name canonicalization at signature/local capture so
+  artifact spellings such as `Option<Int: Int>` do not become semantic aliases.
+- Raised the production source inventory and every M2 minimum from 235 to 240.
+  For-loop binding/iterator facts and CFG/MIR lowering remain open.
+
 ## 2026-07-10 - Assignment payload and type verdict become semantic facts
 
 - Added `SemanticAstAssignmentFacts` as the sole artifact owner of assignment

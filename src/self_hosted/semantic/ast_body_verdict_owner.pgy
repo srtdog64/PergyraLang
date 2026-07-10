@@ -1,0 +1,120 @@
+// Ordered body verdict over initializer, assignment, and statement facts.
+
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_assignment_type_fact_owner.pgy";
+import "ast_statement_type_fact_owner.pgy";
+
+struct SemanticAstBodyVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    first_node_id: Int;
+}
+
+func SemanticAstBodyVerdictOk() -> SemanticAstBodyVerdict {
+    return SemanticAstBodyVerdict(true, "", "", -1);
+}
+
+func SemanticAstBodyVerdictError(
+    code: String,
+    message: String,
+    node_id: Int
+) -> SemanticAstBodyVerdict {
+    return SemanticAstBodyVerdict(false, code, message, node_id);
+}
+
+func SemanticAstBodyVerdictFromFacts(
+    initializers: SemanticAstInitializerTypeFacts,
+    assignments: SemanticAstAssignmentTypeFacts,
+    statements: SemanticAstStatementTypeFacts
+) -> SemanticAstBodyVerdict {
+    if !initializers.ok {
+        return SemanticAstBodyVerdictError(
+            initializers.diagnostic_code,
+            initializers.diagnostic_message,
+            -1
+        );
+    }
+    if !assignments.ok {
+        return SemanticAstBodyVerdictError(
+            assignments.diagnostic_code,
+            assignments.diagnostic_message,
+            -1
+        );
+    }
+    if !statements.ok {
+        return SemanticAstBodyVerdictError(
+            statements.diagnostic_code,
+            statements.diagnostic_message,
+            -1
+        );
+    }
+    let first_node_id: Int = -1;
+    let first_code: String = "";
+    let first_message: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(initializers.node_ids) {
+        if initializers.verified[i] != 1 &&
+            (first_node_id < 0 || initializers.node_ids[i] < first_node_id) {
+            first_node_id = initializers.node_ids[i];
+            first_code = initializers.diagnostic_codes[i];
+            first_message = initializers.diagnostic_messages[i];
+        }
+        i = i + 1;
+    }
+    let a: Int = 0;
+    while a < ArrayLength(assignments.node_ids) {
+        if assignments.verified[a] != 1 &&
+            (first_node_id < 0 || assignments.node_ids[a] < first_node_id) {
+            first_node_id = assignments.node_ids[a];
+            first_code = assignments.diagnostic_codes[a];
+            first_message = assignments.diagnostic_messages[a];
+        }
+        a = a + 1;
+    }
+    let s: Int = 0;
+    while s < ArrayLength(statements.node_ids) {
+        if statements.verified[s] != 1 &&
+            (first_node_id < 0 || statements.node_ids[s] < first_node_id) {
+            first_node_id = statements.node_ids[s];
+            first_code = statements.diagnostic_codes[s];
+            first_message = statements.diagnostic_messages[s];
+        }
+        s = s + 1;
+    }
+    if first_node_id < 0 {
+        return SemanticAstBodyVerdictOk();
+    }
+    return SemanticAstBodyVerdictError(
+        first_code, first_message, first_node_id
+    );
+}
+
+func SemanticAstBodyVerdictContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, locals
+        );
+    let assignment_rows: SemanticAstAssignmentFacts =
+        SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
+    let assignment_types: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            artifact, signatures, locals, initializer_types, assignment_rows
+        );
+    let statement_rows: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let statement_types: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, signatures, locals, initializer_types, statement_rows
+        );
+    return SemanticAstBodyVerdictFromFacts(
+        initializer_types, assignment_types, statement_types
+    ).ok;
+}

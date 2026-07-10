@@ -666,7 +666,7 @@ require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SeedSemanticBuiltinSignatures"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SemanticBuiltinSignatureContractReady"
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SeedSemanticBuiltinSignatures(func_names, func_rets, func_params)"
-require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticBuiltinSignatures(names, returns, builtin_params)"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticBuiltinSignatures(names, returns, params)"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" 'if SemanticMatchKeyword(content, i, "let")'
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'if !SemanticMatchKeyword(content, i, "let")'
@@ -726,7 +726,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 23"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 24"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -800,7 +800,7 @@ require_owner_surface codegen \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/ast_text_for_stmt_owner.pgy" \
-    "input/ast_text_statement_payload_owner.pgy" \
+    "input/semantic_statement_codegen_view_owner.pgy" \
     "input/ast_text_collection_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_kind_usage_owner.pgy" \
@@ -2317,6 +2317,12 @@ require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func S
 require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingFactsContractReady"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "local_bindings: SemanticAstLocalBindingFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "assignments: SemanticAstAssignmentFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "statements: SemanticAstStatementFacts;"
+require_file "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" "func SemanticAstTypeNameCanonicalContractReady"
+require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "SemanticCanonicalTypeName("
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "SemanticCanonicalTypeName("
 require_file "src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedVisibleLocals"
@@ -2340,6 +2346,18 @@ require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "func
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "LoadSemanticSource"
+require_file "src/self_hosted/semantic/ast_statement_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_statement_fact_owner.pgy" 600
+require_file "src/self_hosted/semantic/ast_expression_verdict_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" "func SemanticAstExpressionVerdictFromPayload"
+require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "func SemanticAstStatementTypeFactsMatchArtifact"
+require_file "src/self_hosted/semantic/ast_body_verdict_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_body_verdict_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "func SemanticAstBodyVerdictFromFacts"
+reject_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "CheckBody("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" '"entrypoint_cardinality"'
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag())"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_count: Int"
@@ -2359,9 +2377,9 @@ require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypesAllVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypesAllVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
@@ -2798,7 +2816,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstText
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsParameters(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFieldsHeader(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextExpectNode(nodes, count, cur"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "count, arena, local_bindings, assignments, stmt_indent, cur, \"    \","
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "count, arena, local_bindings, assignments, statements, stmt_indent,"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsZeroArtifactDeclLine"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsNominalDeclLine"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsRoleDeclLine"
@@ -2837,7 +2855,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunct
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "indents["
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" ".text"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts, stmt_indent: Int"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "statements: SemanticAstStatementFacts, stmt_indent: Int"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaExpectBlock(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaExpectThen(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int"
@@ -2952,16 +2970,22 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaMatchSubjectOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaMatchCasePatternOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaBareCallExprOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaLogArgumentOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaReturnValueOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaArrayPopTargetOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaExitArgumentOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaWhileConditionOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaIfConditionOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaMatchSubjectOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaMatchCasePatternOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" "func CodegenAstArenaBareCallExprOrDie"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_statement_payload_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "struct SemanticAstStatementFacts"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsContractReady"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticLogArgumentOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticReturnValueOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArrayPopTargetOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticExitArgumentOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticWhileConditionOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticIfConditionOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchSubjectOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticBareCallExprOrDie"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_statement_codegen_view_owner.pgy";'
+if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" ]]; then
+    fail "retired codegen-owned statement payload owner returned"
+fi
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArraySetTargetOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArraySetIndexOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArraySetValueOrDie"
@@ -2976,13 +3000,13 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaLogArgumentOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBareReturnStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsValueReturnStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenAstArenaReturnValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsDeferStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPopStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenAstArenaArrayPopTargetOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArraySetStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenAstArenaArraySetTargetOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenAstArenaArraySetIndexOrDie(arena, idx)"
@@ -2991,7 +3015,7 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIs
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenAstArenaArrayPushTargetOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenAstArenaArrayPushValueOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsExitStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenAstArenaExitArgumentOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenSemanticExitArgumentOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsContinueStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsForStmt(arena, idx)"
@@ -3002,18 +3026,18 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let end_v: String
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenAstArenaForEachCollectionOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstArenaAuxValueText(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsWhileStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCond(CodegenAstArenaWhileConditionOrDie(arena, idx), env_box[0])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCond(CodegenSemanticWhileConditionOrDie(statements, idx), env_box[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsIfStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond2: String = WrapCond(CodegenAstArenaIfConditionOrDie(arena, idx), env_box[0])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond2: String = WrapCond(CodegenSemanticIfConditionOrDie(statements, idx), env_box[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsElseIfAt(arena, count, cur[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchCaseStmt(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchDefaultStmt(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBareCallStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenAstArenaMatchSubjectOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenAstArenaMatchCasePatternOrDie(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_expr: String = CodegenAstArenaBareCallExprOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0])"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_expr: String = CodegenSemanticBareCallExprOrDie(statements, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"
@@ -5279,11 +5303,11 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 225;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 226;"
-completeness_min_count="$(grep -F "return 235;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+completeness_min_count="$(grep -F "return 240;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 235-source owner-merged slice"
+    fail "self-host completeness minima drifted below the 240-source owner-merged slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
@@ -5791,13 +5815,14 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'args[0] == "--fi
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" 'args[0] == "--fixture-manifest"'
 require_text "src/self_hosted/compiler/driver_cli_owner.pgy" "EmitDriverParityFixtureManifest()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"--emit-c-verified"'
-require_file "tests/self_hosted/parity/driver_rung2_initializer_parity.sh"
-require_max_lines "tests/self_hosted/parity/driver_rung2_initializer_parity.sh" 300
-require_text "tests/self_hosted/parity/driver_rung2_initializer_parity.sh" '"driver-rung2-paths"'
-require_text "tests/self_hosted/parity/driver_rung2_initializer_parity.sh" '"semantic-parity-paths"'
-require_text "tests/self_hosted/parity/driver_rung2_initializer_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
-require_text "tests/self_hosted/parity/driver_rung2_initializer_parity.sh" '"$CC" -x c -std=c11'
-require_text "Makefile" "self-host-driver-rung2-initializer-parity-test-smoke"
+require_file "tests/self_hosted/parity/driver_rung2_body_parity.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_body_parity.sh" 300
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"driver-rung2-paths"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"semantic-parity-paths"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" '"$CC" -x c -std=c11'
+require_text "Makefile" "self-host-driver-rung2-body-parity-test-smoke"
+reject_text "Makefile" "self-host-driver-rung2-initializer-parity-test-smoke"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"driver-rung0-paths"'

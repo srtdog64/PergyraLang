@@ -129,7 +129,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-235 production self-host source files across lexer, parser, semantic, codegen,
+240 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -150,11 +150,11 @@ of letting recursive emitters rebuild it. Function signature emission consumes
 `SemanticAstFunctionSignatureFacts` from the shared artifact; declaration
 emission still consumes typed arena rows for role targets, enum names, and
 fields instead of reading `CodegenAstTextNode.name`, `type_name`, or `mode`
-directly. Statement emission also consumes typed arena atom rows for
-single-payload statements (`Log`, value `Return`, `ArrayPop`, `Exit`, `While`,
-`If`, `Match`, match cases, and bare calls), and `Let`/`Assign` emission consumes
-arena atom/type-name/value rows for local names, declared types, initializers,
-targets, and RHS expressions. `ArrayPush` emission consumes arena atom/value rows
+directly. Statement emission consumes semantic-owned node/function/scope/
+payload rows for `Log`, value `Return`, `ArrayPop`, `Exit`, `While`, `If`,
+`Match`, match cases, and bare calls. `Let` and `Assign` consume semantic local,
+initializer, target/base/index/RHS, expression-use, and type-verdict rows;
+missing facts fail before codegen. `ArrayPush` emission consumes arena atom/value rows
 for the receiver and pushed expression; `ArraySet` consumes arena atom/value/
 aux-value rows for receiver, index, and assigned value; `For` consumes arena
 atom/value/aux-value rows for loop variable plus range start/end or foreach
@@ -585,7 +585,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 235 production self-host
+   The M2 completeness ledger also now checks all 240 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

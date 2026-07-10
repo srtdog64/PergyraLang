@@ -55,7 +55,7 @@ PGY_SELFHOST_PARITY_PATHS=(
     "tests/self_hosted/parity/codegen_bootstrap.sh"
     "tests/self_hosted/parity/driver_rung0_parity.sh"
     "tests/self_hosted/parity/driver_rung1_parity.sh"
-    "tests/self_hosted/parity/driver_rung2_initializer_parity.sh"
+    "tests/self_hosted/parity/driver_rung2_body_parity.sh"
 )
 
 PGY_SELFHOST_COMPILER_WORLD_MANIFEST_PATHS=(

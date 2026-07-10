@@ -1,0 +1,57 @@
+// Codegen projection over semantic-owned statement payload rows.
+
+import "../../semantic/ast_statement_fact_owner.pgy";
+
+func CodegenSemanticStatementPayloadOrDie(
+    facts: SemanticAstStatementFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> String {
+    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index_opt) {
+        Die(Concat("missing semantic statement fact: ", ToString(node_id)));
+    }
+    let index: Int = UnwrapOption(index_opt);
+    if facts.kind_tags[index] != expected_kind {
+        Die(Concat("semantic statement kind mismatch: ", ToString(node_id)));
+    }
+    return facts.payload_texts[index];
+}
+
+func CodegenSemanticLogArgumentOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindLogStmtTag());
+}
+
+func CodegenSemanticReturnValueOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindValueReturnStmtTag());
+}
+
+func CodegenSemanticArrayPopTargetOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindArrayPopStmtTag());
+}
+
+func CodegenSemanticExitArgumentOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindExitStmtTag());
+}
+
+func CodegenSemanticWhileConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindWhileStmtTag());
+}
+
+func CodegenSemanticIfConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindIfStmtTag());
+}
+
+func CodegenSemanticMatchSubjectOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchStmtTag());
+}
+
+func CodegenSemanticMatchCasePatternOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchCaseStmtTag());
+}
+
+func CodegenSemanticBareCallExprOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
+    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindBareCallStmtTag());
+}

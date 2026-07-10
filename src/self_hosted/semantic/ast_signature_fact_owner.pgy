@@ -3,6 +3,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
 
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
@@ -143,7 +144,9 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         TypedAstArenaTypeName(artifact.arena, param_id);
                     let resolved_param_type: String = "";
                     if IsSome(param_type) {
-                        resolved_param_type = UnwrapOption(param_type);
+                        resolved_param_type = SemanticCanonicalTypeName(
+                            UnwrapOption(param_type)
+                        );
                     } else if UnwrapOption(param_name) == "self" &&
                         StringLength(UnwrapOption(owner)) > 0 {
                         resolved_param_type = UnwrapOption(owner);
@@ -197,7 +200,9 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                     continue;
                 }
                 saw_returns = true;
-                return_type = UnwrapOption(return_type_fact);
+                return_type = SemanticCanonicalTypeName(
+                    UnwrapOption(return_type_fact)
+                );
             }
             child_index = child_index + 1;
             child = TypedAstArenaChildAt(
@@ -308,7 +313,9 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
                 );
                 let resolved_type: String = "";
                 if IsSome(parameter_type) {
-                    resolved_type = UnwrapOption(parameter_type);
+                    resolved_type = SemanticCanonicalTypeName(
+                        UnwrapOption(parameter_type)
+                    );
                 } else if IsSome(parameter_name) &&
                     UnwrapOption(parameter_name) == "self" &&
                     StringLength(UnwrapOption(owner)) > 0 {
@@ -340,8 +347,9 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
             let return_type: Option<String> = TypedAstArenaTypeName(
                 artifact.arena, child_id
             );
-            if !IsSome(return_type) ||
-                UnwrapOption(return_type) != facts.return_types[signature_index] {
+            if !IsSome(return_type) || SemanticCanonicalTypeName(
+                UnwrapOption(return_type)
+            ) != facts.return_types[signature_index] {
                 return false;
             }
             saw_returns = true;

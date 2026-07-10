@@ -29,10 +29,10 @@ func SemanticAstExpressionScopeVisible(
 func SemanticAstExpressionFunctionTables(
     signatures: SemanticAstFunctionSignatureFacts,
     inout names: Array<String>,
-    inout returns: Array<String>
+    inout returns: Array<String>,
+    inout params: Array<String>
 ) -> Bool {
-    let builtin_params: Array<String> = [];
-    if !SeedSemanticBuiltinSignatures(names, returns, builtin_params) {
+    if !SeedSemanticBuiltinSignatures(names, returns, params) {
         return false;
     }
     let i: Int = 0;
@@ -46,6 +46,68 @@ func SemanticAstExpressionFunctionTables(
         }
         ArrayPush(names, UnwrapOption(name));
         ArrayPush(returns, UnwrapOption(return_type));
+        let param_row: String = "";
+        let param_count_opt: Option<Int> =
+            SemanticAstFunctionParamCountAt(signatures, i);
+        if !IsSome(param_count_opt) {
+            return false;
+        }
+        let p: Int = 0;
+        while p < UnwrapOption(param_count_opt) {
+            let param_type: Option<String> =
+                SemanticAstFunctionParamTypeAt(signatures, i, p);
+            if !IsSome(param_type) {
+                return false;
+            }
+            if StringLength(param_row) > 0 {
+                param_row = Concat(param_row, "|");
+            }
+            param_row = Concat(param_row, UnwrapOption(param_type));
+            p = p + 1;
+        }
+        ArrayPush(params, param_row);
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstExpressionSeedParameterModes(
+    signatures: SemanticAstFunctionSignatureFacts,
+    function_node_id: Int,
+    inout modes: Array<String>
+) -> Bool {
+    let signature_index_opt: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        );
+    if !IsSome(signature_index_opt) {
+        return false;
+    }
+    let signature_index: Int = UnwrapOption(signature_index_opt);
+    let count_opt: Option<Int> = SemanticAstFunctionParamCountAt(
+        signatures, signature_index
+    );
+    if !IsSome(count_opt) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < UnwrapOption(count_opt) {
+        let mode_opt: Option<Int> = SemanticAstFunctionParamModeAt(
+            signatures, signature_index, i
+        );
+        if !IsSome(mode_opt) {
+            return false;
+        }
+        let mode_name: String = "default_param";
+        let mode: Int = UnwrapOption(mode_opt);
+        if mode == 1 {
+            mode_name = "inout_param";
+        } else if mode == 2 {
+            mode_name = "own_param";
+        } else if mode == 3 {
+            mode_name = "ref_param";
+        }
+        ArrayPush(modes, mode_name);
         i = i + 1;
     }
     return true;
@@ -124,6 +186,27 @@ func SemanticAstExpressionSeedVisibleLocals(
     return true;
 }
 
+func SemanticAstExpressionSeedVisibleLocalModes(
+    artifact: AstTreeArtifact,
+    locals: SemanticAstLocalBindingFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout modes: Array<String>
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstLocalBindingCount(locals) {
+        if locals.node_ids[i] < use_node_id &&
+            locals.function_node_ids[i] == function_node_id &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, locals.scope_node_ids[i], use_node_id
+            ) {
+            ArrayPush(modes, "local");
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: F\n    Parameters:\n      p: Int\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = p\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n              Assign: x = y\n"
@@ -134,17 +217,33 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let names: Array<String> = [];
     let types: Array<String> = [];
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    let modes: Array<String> = [];
     let inferred: Array<String> = ["Int", "Int"];
-    if !SemanticAstExpressionSeedParameters(
+    if !SemanticAstExpressionFunctionTables(
+        signatures, function_names, function_returns, function_params
+    ) || !SemanticAstExpressionSeedParameters(
         signatures, locals.function_node_ids[0], names, types
+    ) || !SemanticAstExpressionSeedParameterModes(
+        signatures, locals.function_node_ids[0], modes
     ) || !SemanticAstExpressionSeedVisibleLocals(
         artifact, locals, inferred, locals.function_node_ids[0],
         artifact.count - 1,
         names, types
+    ) || !SemanticAstExpressionSeedVisibleLocalModes(
+        artifact, locals, locals.function_node_ids[0], artifact.count - 1,
+        modes
     ) {
         return false;
     }
     return ArrayLength(names) == 3 && names[0] == "p" &&
         names[1] == "x" && names[2] == "y" &&
-        types[0] == "Int" && types[1] == "Int" && types[2] == "Int";
+        types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
+        ArrayLength(modes) == 3 && modes[0] == "default_param" &&
+        modes[1] == "local" && modes[2] == "local" &&
+        ArrayLength(function_names) == 78 &&
+        function_names[77] == "F" && function_returns[77] == "Void" &&
+        function_params[77] == "Int";
 }

@@ -93,6 +93,16 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` -- fail-closed
   assignment type verdicts joined from assignment, initializer, signature,
   and lexical environment facts.
+- `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
+  return, condition, log, exit, match, array-pop, and bare-call payload rows.
+- `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
+  undefined-use, try, logical, binary, and inferred-type expression verdicts.
+- `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
+  return, condition, call, and statement expression type verdict rows.
+- `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
+  verdict across initializer, assignment, and statement fact owners.
+- `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
+  semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/builtin_signature_owner.pgy` -- canonical builtin
   name, return-type, and parameter-type rows shared by source and artifact
@@ -164,7 +174,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
-- `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
+- `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement payload rows.
 - `src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy` -- AST text `ArrayPush` and `ArraySet` statement payload facts.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- expression usage facts and builtin-callee group rows derived from typed arena payload rows.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.

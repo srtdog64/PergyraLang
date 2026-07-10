@@ -9,6 +9,7 @@ import "ast_signature_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
 
 struct SemanticAstInitializerTypeFacts {
     ok: Bool;
@@ -58,8 +59,9 @@ func SemanticAstInitializerTypeFactsFromArtifact(
 
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
     if !SemanticAstExpressionFunctionTables(
-        signatures, function_names, function_returns
+        signatures, function_names, function_returns, function_params
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
@@ -74,22 +76,35 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     while i < SemanticAstLocalBindingCount(locals) {
         let names: Array<String> = [];
         let types: Array<String> = [];
+        let modes: Array<String> = [];
         if !SemanticAstExpressionSeedParameters(
             signatures, locals.function_node_ids[i], names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, locals.function_node_ids[i], modes
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, inferred_type_names,
             locals.function_node_ids[i], locals.node_ids[i], names, types
-        ) {
+        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, locals.function_node_ids[i],
+            locals.node_ids[i], modes
+        ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         let expression: String = locals.initializer_texts[i];
-        let inferred: String = ExprType(
-            expression, names, types, function_names, function_returns
-        );
+        let expression_verdict: SemanticAstExpressionVerdict =
+            SemanticAstExpressionVerdictFromPayload(
+                expression, names, types, modes,
+                function_names, function_returns, function_params
+            );
+        let inferred: String = expression_verdict.inferred_type_name;
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
-        if inferred == "Unknown" || inferred == "" {
+        if !expression_verdict.ok {
+            row_verified = 0;
+            row_code = expression_verdict.diagnostic_code;
+            row_message = expression_verdict.diagnostic_message;
+        } else if inferred == "Unknown" || inferred == "" {
             row_verified = 0;
             row_code = "initializer_type_unresolved";
             row_message = SemanticError2(
@@ -271,5 +286,5 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         );
     return !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
         SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
-            "initializer_type_unresolved";
+            "undefined_function";
 }
