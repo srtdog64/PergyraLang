@@ -181,6 +181,13 @@ plus an out-of-range boundary check instead of `PathCount() == 9` and
 representative `PathAt(0..8)` readiness. Ordered path rows remain the stable
 manifest artifact shape only.
 
+TestHarness delta, 2026-07-10: the rest of the AIR graph consumer path suites
+inside `test_harness_air_graph_paths_owner.pgy` now follow the same rule.
+ID-uniqueness, node-count, reachability, ref-integrity, and ref-live readiness
+consume suite-specific `PathKnown(...)` membership plus out-of-range boundary
+checks instead of fixed `PathCount() == N` and representative first/last-row
+checks. Ordered path rows remain the stable manifest artifact shape only.
+
 TestHarness delta, 2026-07-10: diagnostic-catalog checker paths moved to
 `test_harness_diagnostic_paths_owner.pgy` and now consume named path membership
 (`CompilerHarnessDiagnosticCatalogPathKnown`) plus an out-of-range boundary

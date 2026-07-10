@@ -96,29 +96,76 @@ func CompilerHarnessAirGraphIdUniquenessSuiteName() -> String {
     return "air-graph-id-uniqueness-paths";
 }
 
+func CompilerHarnessAirGraphIdUniquenessToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy";
+}
+
+func CompilerHarnessAirGraphIdUniquenessExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphIdUniquenessFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json";
+}
+
+func CompilerHarnessAirGraphIdUniquenessDuplicateFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids_dup.json";
+}
+
+func CompilerHarnessAirGraphIdUniquenessDuplicateExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/expected/duplicate.json";
+}
+
 func CompilerHarnessAirGraphIdUniquenessPathCount() -> Int {
     return 6;
 }
 
 func CompilerHarnessAirGraphIdUniquenessPathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
+    if index == 0 { return CompilerHarnessAirGraphIdUniquenessToolSourcePath(); }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
-    if index == 2 { return "src/self_hosted/tools/air_graph_id_uniqueness/expected/clean.json"; }
-    if index == 3 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids.json"; }
-    if index == 4 { return "src/self_hosted/tools/air_graph_id_uniqueness/fixture/graph_ids_dup.json"; }
-    if index == 5 { return "src/self_hosted/tools/air_graph_id_uniqueness/expected/duplicate.json"; }
+    if index == 2 { return CompilerHarnessAirGraphIdUniquenessExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphIdUniquenessFixturePath(); }
+    if index == 4 { return CompilerHarnessAirGraphIdUniquenessDuplicateFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphIdUniquenessDuplicateExpectedJsonPath(); }
     return "";
+}
+
+func CompilerHarnessAirGraphIdUniquenessPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphIdUniquenessToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphScanOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphIdUniquenessExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphIdUniquenessFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphIdUniquenessDuplicateFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphIdUniquenessDuplicateExpectedJsonPath() { return true; }
+    return false;
 }
 
 func CompilerHarnessAirGraphIdUniquenessReady() -> Bool {
     return CompilerHarnessAirGraphIdUniquenessSuiteName() != "" &&
-        CompilerHarnessAirGraphIdUniquenessPathCount() == 6 &&
-        CompilerHarnessAirGraphIdUniquenessPathAt(0) != "" &&
-        CompilerHarnessAirGraphIdUniquenessPathAt(5) != "";
+        CompilerHarnessAirGraphIdUniquenessPathCount() > 0 &&
+        CompilerHarnessAirGraphIdUniquenessPathAt(CompilerHarnessAirGraphIdUniquenessPathCount()) == "" &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphIdUniquenessToolSourcePath()) &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphScanOwnerPath()) &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphIdUniquenessExpectedJsonPath()) &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphIdUniquenessFixturePath()) &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphIdUniquenessDuplicateFixturePath()) &&
+        CompilerHarnessAirGraphIdUniquenessPathKnown(CompilerHarnessAirGraphIdUniquenessDuplicateExpectedJsonPath());
 }
 
 func CompilerHarnessAirGraphNodeCountSuiteName() -> String {
     return "air-graph-node-count-paths";
+}
+
+func CompilerHarnessAirGraphNodeCountToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy";
+}
+
+func CompilerHarnessAirGraphNodeCountExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_node_count_integrity/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphNodeCountFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
 }
 
 func CompilerHarnessAirGraphNodeCountPathCount() -> Int {
@@ -137,28 +184,70 @@ func CompilerHarnessAirGraphNodeCountCorruptValue() -> String {
     return "99";
 }
 
+func CompilerHarnessAirGraphNodeCountCorruptExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_node_count_integrity/expected/corrupt_summary.json";
+}
+
 func CompilerHarnessAirGraphNodeCountPathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/air_graph_node_count_integrity/main.pgy"; }
+    if index == 0 { return CompilerHarnessAirGraphNodeCountToolSourcePath(); }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
-    if index == 2 { return "src/self_hosted/tools/air_graph_node_count_integrity/expected/clean.json"; }
-    if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    if index == 2 { return CompilerHarnessAirGraphNodeCountExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphNodeCountFixturePath(); }
     if index == 4 { return CompilerHarnessAirGraphNodeCountNegativeFixturePath(); }
     if index == 5 { return CompilerHarnessAirGraphNodeCountCorruptFieldName(); }
     if index == 6 { return CompilerHarnessAirGraphNodeCountCorruptValue(); }
-    if index == 7 { return "src/self_hosted/tools/air_graph_node_count_integrity/expected/corrupt_summary.json"; }
+    if index == 7 { return CompilerHarnessAirGraphNodeCountCorruptExpectedJsonPath(); }
     return "";
+}
+
+func CompilerHarnessAirGraphNodeCountPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphNodeCountToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphScanOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountNegativeFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountCorruptFieldName() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountCorruptValue() { return true; }
+    if path == CompilerHarnessAirGraphNodeCountCorruptExpectedJsonPath() { return true; }
+    return false;
 }
 
 func CompilerHarnessAirGraphNodeCountReady() -> Bool {
     return CompilerHarnessAirGraphNodeCountSuiteName() != "" &&
-        CompilerHarnessAirGraphNodeCountPathCount() == 8 &&
-        CompilerHarnessAirGraphNodeCountPathAt(0) != "" &&
-        CompilerHarnessAirGraphNodeCountPathAt(3) != "" &&
-        CompilerHarnessAirGraphNodeCountPathAt(7) != "";
+        CompilerHarnessAirGraphNodeCountPathCount() > 0 &&
+        CompilerHarnessAirGraphNodeCountPathAt(CompilerHarnessAirGraphNodeCountPathCount()) == "" &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountToolSourcePath()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphScanOwnerPath()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountExpectedJsonPath()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountFixturePath()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountNegativeFixturePath()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountCorruptFieldName()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountCorruptValue()) &&
+        CompilerHarnessAirGraphNodeCountPathKnown(CompilerHarnessAirGraphNodeCountCorruptExpectedJsonPath());
 }
 
 func CompilerHarnessAirGraphReachabilitySuiteName() -> String {
     return "air-graph-reachability-paths";
+}
+
+func CompilerHarnessAirGraphReachabilityToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_reachability/main.pgy";
+}
+
+func CompilerHarnessAirGraphReachabilityExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_reachability/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphReachabilityRootedFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json";
+}
+
+func CompilerHarnessAirGraphReachabilityOrphanFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_reachability/fixture/graph_orphan.json";
+}
+
+func CompilerHarnessAirGraphReachabilityOrphanExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_reachability/expected/orphan.json";
 }
 
 func CompilerHarnessAirGraphReachabilityPathCount() -> Int {
@@ -166,24 +255,59 @@ func CompilerHarnessAirGraphReachabilityPathCount() -> Int {
 }
 
 func CompilerHarnessAirGraphReachabilityPathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/air_graph_reachability/main.pgy"; }
+    if index == 0 { return CompilerHarnessAirGraphReachabilityToolSourcePath(); }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
-    if index == 2 { return "src/self_hosted/tools/air_graph_reachability/expected/clean.json"; }
-    if index == 3 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_rooted.json"; }
-    if index == 4 { return "src/self_hosted/tools/air_graph_reachability/fixture/graph_orphan.json"; }
-    if index == 5 { return "src/self_hosted/tools/air_graph_reachability/expected/orphan.json"; }
+    if index == 2 { return CompilerHarnessAirGraphReachabilityExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphReachabilityRootedFixturePath(); }
+    if index == 4 { return CompilerHarnessAirGraphReachabilityOrphanFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphReachabilityOrphanExpectedJsonPath(); }
     return "";
+}
+
+func CompilerHarnessAirGraphReachabilityPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphReachabilityToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphScanOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphReachabilityExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphReachabilityRootedFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphReachabilityOrphanFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphReachabilityOrphanExpectedJsonPath() { return true; }
+    return false;
 }
 
 func CompilerHarnessAirGraphReachabilityReady() -> Bool {
     return CompilerHarnessAirGraphReachabilitySuiteName() != "" &&
-        CompilerHarnessAirGraphReachabilityPathCount() == 6 &&
-        CompilerHarnessAirGraphReachabilityPathAt(0) != "" &&
-        CompilerHarnessAirGraphReachabilityPathAt(5) != "";
+        CompilerHarnessAirGraphReachabilityPathCount() > 0 &&
+        CompilerHarnessAirGraphReachabilityPathAt(CompilerHarnessAirGraphReachabilityPathCount()) == "" &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphReachabilityToolSourcePath()) &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphScanOwnerPath()) &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphReachabilityExpectedJsonPath()) &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphReachabilityRootedFixturePath()) &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphReachabilityOrphanFixturePath()) &&
+        CompilerHarnessAirGraphReachabilityPathKnown(CompilerHarnessAirGraphReachabilityOrphanExpectedJsonPath());
 }
 
 func CompilerHarnessAirGraphRefIntegritySuiteName() -> String {
     return "air-graph-ref-integrity-paths";
+}
+
+func CompilerHarnessAirGraphRefIntegrityToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_integrity/main.pgy";
+}
+
+func CompilerHarnessAirGraphRefIntegrityExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_integrity/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphRefIntegrityFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json";
+}
+
+func CompilerHarnessAirGraphRefIntegrityDanglingFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges_dangling.json";
+}
+
+func CompilerHarnessAirGraphRefIntegrityDanglingExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_integrity/expected/dangling.json";
 }
 
 func CompilerHarnessAirGraphRefIntegrityPathCount() -> Int {
@@ -191,24 +315,51 @@ func CompilerHarnessAirGraphRefIntegrityPathCount() -> Int {
 }
 
 func CompilerHarnessAirGraphRefIntegrityPathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/air_graph_ref_integrity/main.pgy"; }
+    if index == 0 { return CompilerHarnessAirGraphRefIntegrityToolSourcePath(); }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
-    if index == 2 { return "src/self_hosted/tools/air_graph_ref_integrity/expected/clean.json"; }
-    if index == 3 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json"; }
-    if index == 4 { return "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges_dangling.json"; }
-    if index == 5 { return "src/self_hosted/tools/air_graph_ref_integrity/expected/dangling.json"; }
+    if index == 2 { return CompilerHarnessAirGraphRefIntegrityExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphRefIntegrityFixturePath(); }
+    if index == 4 { return CompilerHarnessAirGraphRefIntegrityDanglingFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphRefIntegrityDanglingExpectedJsonPath(); }
     return "";
+}
+
+func CompilerHarnessAirGraphRefIntegrityPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphRefIntegrityToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphScanOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphRefIntegrityExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphRefIntegrityFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphRefIntegrityDanglingFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphRefIntegrityDanglingExpectedJsonPath() { return true; }
+    return false;
 }
 
 func CompilerHarnessAirGraphRefIntegrityReady() -> Bool {
     return CompilerHarnessAirGraphRefIntegritySuiteName() != "" &&
-        CompilerHarnessAirGraphRefIntegrityPathCount() == 6 &&
-        CompilerHarnessAirGraphRefIntegrityPathAt(0) != "" &&
-        CompilerHarnessAirGraphRefIntegrityPathAt(5) != "";
+        CompilerHarnessAirGraphRefIntegrityPathCount() > 0 &&
+        CompilerHarnessAirGraphRefIntegrityPathAt(CompilerHarnessAirGraphRefIntegrityPathCount()) == "" &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphRefIntegrityToolSourcePath()) &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphScanOwnerPath()) &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphRefIntegrityExpectedJsonPath()) &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphRefIntegrityFixturePath()) &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphRefIntegrityDanglingFixturePath()) &&
+        CompilerHarnessAirGraphRefIntegrityPathKnown(CompilerHarnessAirGraphRefIntegrityDanglingExpectedJsonPath());
 }
 
 func CompilerHarnessAirGraphRefLiveSuiteName() -> String {
     return "air-graph-ref-live-paths";
+}
+
+func CompilerHarnessAirGraphRefLiveToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_live/main.pgy";
+}
+
+func CompilerHarnessAirGraphRefLiveExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_live/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphRefLiveFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
 }
 
 func CompilerHarnessAirGraphRefLivePathCount() -> Int {
@@ -231,25 +382,49 @@ func CompilerHarnessAirGraphRefLiveCorruptToValue() -> String {
     return "99";
 }
 
+func CompilerHarnessAirGraphRefLiveCorruptExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_ref_live/expected/corrupt_reference.json";
+}
+
 func CompilerHarnessAirGraphRefLivePathAt(index: Int) -> String {
-    if index == 0 { return "src/self_hosted/tools/air_graph_ref_live/main.pgy"; }
+    if index == 0 { return CompilerHarnessAirGraphRefLiveToolSourcePath(); }
     if index == 1 { return CompilerHarnessAirGraphScanOwnerPath(); }
-    if index == 2 { return "src/self_hosted/tools/air_graph_ref_live/expected/clean.json"; }
-    if index == 3 { return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"; }
+    if index == 2 { return CompilerHarnessAirGraphRefLiveExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphRefLiveFixturePath(); }
     if index == 4 { return CompilerHarnessAirGraphRefLiveNegativeFixturePath(); }
     if index == 5 { return CompilerHarnessAirGraphRefLiveCorruptFieldName(); }
     if index == 6 { return CompilerHarnessAirGraphRefLiveCorruptFromValue(); }
     if index == 7 { return CompilerHarnessAirGraphRefLiveCorruptToValue(); }
-    if index == 8 { return "src/self_hosted/tools/air_graph_ref_live/expected/corrupt_reference.json"; }
+    if index == 8 { return CompilerHarnessAirGraphRefLiveCorruptExpectedJsonPath(); }
     return "";
+}
+
+func CompilerHarnessAirGraphRefLivePathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphRefLiveToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphScanOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveNegativeFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveCorruptFieldName() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveCorruptFromValue() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveCorruptToValue() { return true; }
+    if path == CompilerHarnessAirGraphRefLiveCorruptExpectedJsonPath() { return true; }
+    return false;
 }
 
 func CompilerHarnessAirGraphRefLiveReady() -> Bool {
     return CompilerHarnessAirGraphRefLiveSuiteName() != "" &&
-        CompilerHarnessAirGraphRefLivePathCount() == 9 &&
-        CompilerHarnessAirGraphRefLivePathAt(0) != "" &&
-        CompilerHarnessAirGraphRefLivePathAt(3) != "" &&
-        CompilerHarnessAirGraphRefLivePathAt(8) != "";
+        CompilerHarnessAirGraphRefLivePathCount() > 0 &&
+        CompilerHarnessAirGraphRefLivePathAt(CompilerHarnessAirGraphRefLivePathCount()) == "" &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveToolSourcePath()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphScanOwnerPath()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveExpectedJsonPath()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveFixturePath()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveNegativeFixturePath()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveCorruptFieldName()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveCorruptFromValue()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveCorruptToValue()) &&
+        CompilerHarnessAirGraphRefLivePathKnown(CompilerHarnessAirGraphRefLiveCorruptExpectedJsonPath());
 }
 
 func CompilerHarnessAirGraphConsumersReady() -> Bool {

@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - AIR graph TestHarness path suites consume named membership
+
+- Repointed the remaining AIR graph consumer path-suite readiness predicates in
+  `test_harness_air_graph_paths_owner.pgy` from fixed `PathCount() == N` plus
+  first/last `PathAt(...)` checks to suite-specific `PathKnown(...)`
+  membership plus an out-of-range boundary check.
+- Covered ID uniqueness, node-count integrity, reachability, ref-integrity, and
+  ref-live suites. The JSON validator suite had already been converted.
+- Tightened `self_hosted_component_contract_smoke.sh` so those suites cannot
+  return to count/representative-row readiness while keeping ordered rows as the
+  stable `test_harness_manifest.pgy` artifact shape for shell parity runners.
+
 ## 2026-07-10 - Tool TestHarness bucket removed
 
 - Split the last remaining `test_harness_tool_paths_owner.pgy` responsibilities
