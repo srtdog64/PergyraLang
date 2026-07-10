@@ -3,7 +3,7 @@
 // This owner keeps `Assign: arr[i] = value` target recognition and receiver /
 // index extraction out of typed arena projection and statement emission.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenAstArenaAssignTargetIsIndex(arena: AstArena, node_id: Int) -> Bool {

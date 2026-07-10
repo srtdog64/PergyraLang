@@ -3,7 +3,7 @@ import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
-import "../hir/typed_ast_arena_owner.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //
@@ -33,7 +33,8 @@ func CompilerAstTreeFactReady() -> Bool {
     if !CompilerStageArtifactRowReady(1, "parser|AstTreeZone|ParserStage|ParseTokens|ParserAstTreePayloadContractReady") {
         return false;
     }
-    return ParserAstTreePayloadContractReady();
+    return ParserAstTreePayloadContractReady() &&
+        AstTreeArtifactPayloadContractReady();
 }
 
 func CompilerSemanticVerdictFactReady() -> Bool {
@@ -54,5 +55,6 @@ func CompilerEmissionFactReady() -> Bool {
     if !CompilerStageArtifactRowReady(4, "codegen|EmissionZone|ProgramEmitter|EmitProgramArtifact|TypedAstArenaPayloadContractReady") {
         return false;
     }
-    return TypedAstArenaPayloadContractReady();
+    return TypedAstArenaPayloadContractReady() &&
+        AstTreeArtifactPayloadContractReady();
 }

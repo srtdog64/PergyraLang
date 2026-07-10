@@ -2,54 +2,7 @@
 //
 // Text and delimiter scanning primitives owned by the self-host codegen front boundary.
 
-func CodegenCharAt(s: String, i: Int) -> String {
-    let n: Int = StringLength(s);
-    if i < 0 {
-        return "";
-    }
-    if i >= n {
-        return "";
-    }
-    return Substring(s, i, 1);
-}
-
-// Index of the next '\n' at or after `start`, or StringLength(s) if none.
-func NextNewline(s: String, start: Int) -> Int {
-    let n: Int = StringLength(s);
-    let i: Int = start;
-    while i < n {
-        if CodegenCharAt(s, i) == "\n" {
-            return i;
-        }
-        i = i + 1;
-    }
-    return n;
-}
-
-// True when `s` starts with `prefix`.
-func StartsWith(s: String, prefix: String) -> Bool {
-    let pn: Int = StringLength(prefix);
-    if StringLength(s) < pn {
-        return false;
-    }
-    return Substring(s, 0, pn) == prefix;
-}
-
-func FindTextFrom(hay: String, needle: String, start: Int) -> Option<Int> {
-    let n: Int = StringLength(hay);
-    if start < 0 {
-        return None;
-    }
-    if start > n {
-        return None;
-    }
-    let rest: String = Substring(hay, start, n - start);
-    let k: Int = StringIndexOf(rest, needle);
-    if k < 0 {
-        return None;
-    }
-    return Some(start + k);
-}
+import "../../hir/ast_text_scan_owner.pgy";
 
 func Die(msg: String) -> Void {
     Log(Concat("CODEGEN ERROR: ", msg));
@@ -319,50 +272,6 @@ func FindTopLevelPlus(s: String) -> Option<Int> {
             continue;
         }
         if depth == 0 && c == "+" {
-            return Some(i);
-        }
-        i = i + 1;
-    }
-    return None;
-}
-
-// Within `s`, find the index of the top-level comma (depth 0, not inside a
-// string literal). `s` is the argument list interior of
-// a Concat(...) call, e.g. `"a", "b"` or `"a", Concat("b", "c")`.
-func FindTopLevelComma(s: String) -> Option<Int> {
-    let n: Int = StringLength(s);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(s, i);
-        if in_str {
-            if c == "\\" {
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            i = i + 1;
-            continue;
-        }
-        if c == "(" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" {
-            depth = depth - 1;
-            i = i + 1;
-            continue;
-        }
-        if c == "," && depth == 0 {
             return Some(i);
         }
         i = i + 1;

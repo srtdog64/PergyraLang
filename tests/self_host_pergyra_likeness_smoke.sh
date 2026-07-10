@@ -148,7 +148,9 @@ SENTINEL_MAX=0
 # 777 -> 803 (2026-07-10): current tracked self-host source after TestHarness
 # owner splits, ABI-row fact-owner classification, the integrated driver owner,
 # and the typed AST arena move into HIR; keep the measured surface load-bearing.
-RESULT_USE_MIN=803
+# 803 -> 808 (2026-07-10): parser-owned `AstTreeArtifact` construction and the
+# codegen arena view carry absence/failure through Option-backed facts.
+RESULT_USE_MIN=808
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
@@ -156,7 +158,7 @@ COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=28
 COMPILER_STAGE_BINDINGS_EXACT=5
 COMPILER_WORLD_FACT_CONSUMERS_MIN=19
-STAGE_PAYLOAD_CONSUMERS_EXACT=5
+STAGE_PAYLOAD_CONSUMERS_EXACT=7
 COMPILER_WORLD_STUB_ACTIONS_MAX=0
 COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1

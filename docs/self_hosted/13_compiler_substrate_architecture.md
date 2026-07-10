@@ -353,7 +353,7 @@ source/output-file boundary over the same pipeline owner. The strengthened
 the Pergyra-built codegen, and compares its
 emitted C against the C-oracle-built driver on a real source, then requires the
 integrated driver's own `gen2.c` and `gen3.c` to be byte-identical through the
-Pergyra-owned artifact comparator. The landing run fixed at 14,566 C lines.
+Pergyra-owned artifact comparator. The landing run fixed at 14,659 C lines.
 This proves the parser/codegen compiler spine self-eats; semantic and MIR remain
 outside that executable and therefore outside the claim.
 
@@ -365,10 +365,12 @@ Self-hosted codegen is a backend resource cluster:
 - `AbiLayoutZone` owns ABI/layout facts.
 - `EmissionZone` owns emitted C.
 - `ProgramEmitter` is the participant that writes through `EmissionZone`.
-- `input/` owns AST path/read boundaries and the AST-text line inventory while
-  the rung still consumes transitional parser AST text.
+- `hir/` owns the compact AST-text inventory and one shared `AstTreeArtifact`.
+- `input/` owns AST path/read boundaries and codegen-only views over that
+  artifact while the rung still carries transitional parser AST text.
 - `run/` owns CLI-to-output orchestration.
-- `text/` owns text and expression scanning facts for the compatibility bridge.
+- `text/` owns codegen-specific expression facts; shared compact AST-text scans
+  live in `hir/ast_text_scan_owner.pgy`.
 - `type_facts/` owns the type environment consumed by emitters.
 - `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows.
 - `abi_layout/` owns self-host C ABI type spelling facts for the supported
@@ -383,19 +385,23 @@ Self-hosted codegen is a backend resource cluster:
 output and type resources. A new zone appears only when there is a new distinct
 resource, such as a mutable cross-backend symbol/name-mangling table.
 
-The current `input/` bridge has explicit fact owners:
+The current transitional bridge has explicit fact owners:
 
-- `ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
+- `hir/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
   `CodegenAstTextNode` inventory, indentation/kind rows, blank-line
   filtering, `[export]` normalization, marker-node predicates, declaration and
   signature payload accessors, and cursor expectation diagnostics.
-- `ast_text_typed_arena_owner.pgy` owns projection from the text inventory into
-  typed `AstArena` rows, including parent, indent, value, and aux-value facts.
-- `ast_text_row_fact_owner.pgy` owns the typed `CodegenAstTextRowFactInput`
+- `hir/ast_text_arena_projection_owner.pgy` owns `AstTreeArtifact`
+  construction and projection into typed `AstArena` rows, including parent,
+  indent, value, aux-value, and provenance facts. Temporary
+  `CodegenAstTextNode` rows do not cross the artifact boundary.
+- `hir/ast_text_row_fact_owner.pgy` owns the typed `CodegenAstTextRowFactInput`
   contract and the name/type/value/aux-value/mode rows derived from payloads:
   function, return, role, nominal, enum, field, parameter, and `Let`
   name/type row facts are populated once during inventory construction and
   then consumed from `CodegenAstTextNode` fields.
+- `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed and
+  routing predicates over the shared arena; it may not construct the arena.
 - `ast_text_array_literal_owner.pgy` owns transitional array literal shape and
   top-level element facts for `Let` initializers while expression payloads are
   still string-backed.
@@ -416,7 +422,8 @@ The current `input/` bridge has explicit fact owners:
   the row-fact owner plus typed arena projection; the old statement-owner alias
   file is retired.
 
-This does not close the mixed AST-like tree owner; it only prevents emission
+This closes parser/codegen sharing of the mixed AST-like tree owner, but it does
+not yet make semantic analysis consume that owner. It prevents emission
 participants from each recovering inventory or statement facts locally. The
 current `program_emit.pgy`, declaration collectors, function signature
 emission, and statement body emission consume typed nodes for program-level
@@ -424,9 +431,10 @@ declaration routing, `Main` counting, event rejection, owner skipping,
 method/function dispatch, function header, parameter, return, body-marker, and
 statement reads, global function environment construction, role-operator
 discovery, struct/enum collection, and prototype emission. The legacy parallel
-`indents`/`texts` projection has been removed; the remaining bridge debt is that
-`CodegenAstTextNode.text` is still a line-text payload inside the input owner
-rather than a tagged AST semantic record. Single-payload statements, `Let`,
+`indents`/`texts` projection has been removed; line-text provenance now lives in
+the shared arena rather than crossing the parser/codegen boundary as a node
+array. The remaining bridge debt is that expression facts are still derived
+from compact text rather than a tagged expression record. Single-payload statements, `Let`,
 `Assign`, `ArrayPush`, `ArraySet`, and `For` now read arena rows in emission.
 Parameter mode is part of this bridge contract:
 native and
@@ -482,7 +490,7 @@ The long-term codegen shape is resource-first:
 | type bindings | `TypeEnvZone` / `type_facts/` | expression, statement, return, log routing | emitters consume type facts and parameter-mode rows instead of re-inferring from source text |
 | symbol and mangle facts | `compiler/symbol_table_owner.pgy`; cross-backend owner still active beyond the self-host C consumer | C, LLVM, and self-hosted emission | emitters consume canonical spelling facts; no owner/member string concatenation in local emission |
 | self-host C ABI type spelling | `compiler/abi_layout_row_owner.pgy` for supported concrete rows, consumed by `abi_layout/abi_layout_owner.pgy` for self-host C subset; cross-backend native row projection still active | self-hosted C emission | signature, local, and field declarations consume canonical C ABI rows before user-struct lookup |
-| self-host typed AST-text bridge | `input/ast_text_inventory_owner.pgy` for parser AST-text lines, `CodegenAstTextNode`, indentation, coarse kind, marker predicates, blank filtering, `[export]` normalization, declaration payload accessors, and cursor expectations; `input/ast_text_typed_arena_owner.pgy` for parent/indent/child projection into `AstArena` plus `CodegenTypedAstBridgeReady`; `input/ast_text_row_fact_owner.pgy` for `CodegenAstTextRowFactInput` plus function/return/role/nominal/enum-name/field/parameter/statement name, type, value, aux-value, and mode rows; `input/ast_text_array_literal_owner.pgy` for transitional `Let` array literal shape, initializer fact, and top-level element facts; `input/ast_text_enum_variant_owner.pgy` for payload-free enum variant payload facts; `input/ast_text_try_let_owner.pgy` for `Let` try-initializer shape and inner-expression facts; `input/ast_text_function_signature_owner.pgy` for function name/parameter/return signature facts; `input/ast_text_declaration_owner.pgy` for nominal/role/enum/field declaration facts; `input/ast_text_local_binding_owner.pgy` for local binding name/type/initializer facts; `input/ast_text_assignment_owner.pgy` for assignment target/RHS facts; `input/ast_text_for_stmt_owner.pgy` for `For` loop-var/range/foreach facts; `input/ast_text_statement_payload_owner.pgy` for single-payload statement argument/condition facts; `input/ast_text_collection_stmt_owner.pgy` for `ArrayPush`/`ArraySet` statement payload facts; `input/ast_expression_usage_owner.pgy` for expression-part projection facts, expression usage facts, and builtin-callee group rows; `input/ast_kind_usage_owner.pgy` for statement-shape usage facts; `input/ast_type_usage_owner.pgy` for type-surface usage facts; `text/enum_literal_owner.pgy` for payload-free enum literal projection facts; `text/expr_sequence_owner.pgy` for top-level comma-separated expression sequence facts; `text/struct_literal_call_owner.pgy` for struct literal call-envelope facts; `text/struct_literal_field_owner.pgy` for typed struct literal field-entry fact rows; `hir/typed_ast_arena_owner.pgy` for the shared typed AST arena payload contract that will replace the bridge | self-hosted C emission today; parser/codegen cutover later | `program_emit` consumes typed arena kind/atom predicates for declaration routing, Main counting, event rejection, and top-level function selection, plus typed arena indent/descendant facts for owner-body traversal; declaration collectors also consume typed arena kind/atom predicates for env/prototype/struct/enum/role-operator prepasses; function signature emission consumes typed arena Parameters/Returns/Fields marker predicates, runtime/header usage facts consume `CodegenExpressionUsageFacts`, `CodegenKindUsageFacts`, and `CodegenTypeUsageFacts` rows, and statement body emission consumes typed arena statement-kind predicates plus Body/Block/Then marker expectations while remaining expression payload reads stay on the transitional bridge; `GenerateC` consumes `CodegenTypedAstBridgeReady(nodes, count)` before emission and validates row-aligned `AstArena` kind/atom/value/aux-value/parent/indent/child facts; function/declaration names, payload-free enum variant payload lists/literals, `Let` name/type/initializer, try-initializer, array-literal initializer, and array-literal element facts, call argument facts, struct literal field-list/envelope and field-entry facts, `Assign` target/RHS, `ArrayPush` target/value, `ArraySet` target/index/value, `For` loop-var/start/end/collection, and single-payload statement payloads consume input/text owner rows/facts; `inout` signatures/calls consume recorded `pm` facts; no emission participant may re-split AST text, consume parallel `indents`/`texts` arrays, route usage facts through raw node payload scans, or import the retired statement-owner alias |
+| self-host shared AST artifact | `hir/ast_text_scan_owner.pgy`, `hir/ast_text_inventory_owner.pgy`, `hir/ast_text_row_fact_owner.pgy`, `hir/ast_text_arena_projection_owner.pgy`, and `hir/typed_ast_arena_owner.pgy` own compact input facts, provenance, and the shared `AstArena`; `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed views | parser and self-hosted C emission today; semantic next | parser constructs one `AstTreeArtifact`; codegen consumes the same arena/provenance without rebuilding it; temporary `CodegenAstTextNode` rows never cross the artifact boundary; expression payload facts remain compact-text backed, and whole hard self-host cannot advance until semantic consumes this artifact instead of rescanning source |
 | self-host C collection runtime symbols | `runtime_abi/collection_runtime_owner.pgy` for `Array<Int>` / `Array<String>` helper calls plus the `Array<CodegenAstTextNode>` bootstrap bridge | self-hosted C emission | expression/statement emitters consume canonical helper-name facts from collection kind-code facts; generated helper definitions stay in one definition host |
 | self-host C math/random symbols | `runtime_abi/math_runtime_owner.pgy` for `Abs` / `Min` / `Max` / `Sqrt` / `Pow` / `Floor` / `Ceil` / `SeedRandom` / `Random` helper or target-library calls | self-hosted C emission | expression emitters consume canonical symbol facts; generated helper definitions stay in one definition host |
 | self-host C host I/O/process symbols | `runtime_abi/host_io_runtime_owner.pgy` for file, directory-walk, `Args()`, and `Exit(Int)` helper or target-library calls | self-hosted C emission | expression/statement emitters consume canonical symbol facts; generated helper definitions stay in one definition host |

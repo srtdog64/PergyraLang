@@ -4,7 +4,7 @@
 // optional range end rows. This owner keeps range-vs-foreach classification out
 // of statement emission participants.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 
 struct CodegenForRangeEndFact {
     let has_range_end: Bool;

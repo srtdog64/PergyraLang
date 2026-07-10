@@ -3,7 +3,7 @@
 // Runtime/header usage decisions need type-surface facts, but the aggregate
 // runtime usage owner should not scan typed arena type-name rows itself.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 
 struct CodegenTypeUsageFacts {
     let has_string: Bool;

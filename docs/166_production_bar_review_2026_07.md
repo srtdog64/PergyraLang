@@ -288,6 +288,8 @@ already enforce that boundary. The self-host boundary is different. The
 parser/codegen driver reaches a real byte-identical fixed point, but semantic
 and MIR are absent from that executable. The typed AST arena owner has therefore
 been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
-The next valid rung is parser-owned arena production plus semantic consumption
-of that same fact. Reusing the current semantic source scanner inside the driver
-would be a second parser and is explicitly not counted as progress.
+Parser now produces one HIR-owned `AstTreeArtifact`, and the integrated driver
+passes its typed arena to codegen without rebuilding it. The next valid rung is
+semantic consumption of that same fact. Reusing the current semantic source
+scanner inside the driver would be a second parser and is explicitly not counted
+as progress.

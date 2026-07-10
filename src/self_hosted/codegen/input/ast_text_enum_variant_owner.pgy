@@ -4,7 +4,7 @@
 // projection and emission participants while enum declarations still arrive as
 // transitional AST-text payload rows.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 import "../text/expr_sequence_owner.pgy";
 import "../text/text_owner.pgy";
 

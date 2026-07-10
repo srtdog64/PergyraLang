@@ -4,6 +4,7 @@
 // assembly for the self-hosted parser entrypoint.
 
 import "../lib/path.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
 
@@ -27,4 +28,8 @@ func ParseRootProgram(source_path: String) -> String {
     }
     let program_text: String = Concat("Program:\n", decls);
     return Concat(program_text, "\n");
+}
+
+func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
+    return AstTreeArtifactFromText(ParseRootProgram(source_path));
 }

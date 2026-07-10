@@ -3,8 +3,7 @@
 // Function/declaration scan and signature emission owner for self-host C emission.
 
 import "../text/text_owner.pgy";
-import "../input/ast_text_inventory_owner.pgy";
-import "../input/ast_text_typed_arena_owner.pgy";
+import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_enum_variant_owner.pgy";
 import "../input/ast_text_function_signature_owner.pgy";
 import "../input/ast_text_declaration_owner.pgy";
@@ -31,8 +30,7 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
 
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
-                  inout cur: Array<Int>, f_indent: Int,
+func EmitFunction(count: Int, arena: AstArena, inout cur: Array<Int>, f_indent: Int,
                   base_env: String, uses_args: Bool, owner_name: String) -> String {
     let signature_context: CodegenFunctionSignatureContext = CodegenFunctionSignatureContextFor(owner_name);
     let name: String = CodegenAstArenaFunctionNameOrDie(arena, cur[0]);
@@ -48,7 +46,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, cur[0]);
         if p_mode == 2 || p_mode == 3 {
-            Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
+            Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstArenaProvenanceOrDie(arena, cur[0])));
         }
         let p_name: String = CodegenAstArenaParamNameOrDie(arena, cur[0]);
         let c_p_name: String = CompilerSymbolCBindingName(p_name);
@@ -93,7 +91,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
     if is_main {
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
-    let body: String = EmitStmtList(nodes, count, arena, stmt_indent, cur, "    ", env_box, body_ret, copyout);
+    let body: String = EmitStmtList(count, arena, stmt_indent, cur, "    ", env_box, body_ret, copyout);
 
     let signature: String = "";
     let body_full: String = Concat(prologue, Concat(body, copyout));
@@ -119,7 +117,7 @@ func EmitFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
 
 // Build the global environment: `|Name=f:RetType|...` for every function, by
 // pairing each `Function: Name` line with the next `Returns:` line.
-func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena) -> String {
+func BuildFunctionEnv(count: Int, arena: AstArena) -> String {
     let env: String = "|";
     let i: Int = 0;
     let owner: String = "";
@@ -200,7 +198,7 @@ func BuildFunctionEnv(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAr
     return env;
 }
 
-func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectRoleOperators(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsRoleDecl(arena, i) {
@@ -225,7 +223,7 @@ func CollectRoleOperators(nodes: Array<CodegenAstTextNode>, count: Int, arena: A
 
 // Scan top-level nominal declarations into C typedefs, and append
 // `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
-func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectStructs(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let typedefs: String = "";
     let i: Int = 0;
     while i < count {
@@ -262,7 +260,7 @@ func CollectStructs(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstAren
     return typedefs;
 }
 
-func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectEnums(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
     let block: String = "";
     let i: Int = 0;
     while i < count {
@@ -292,7 +290,7 @@ func CollectEnums(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
 // value with a shared element buffer: `ArraySet` mutations persist across calls
 // but `ArrayPush` growth does not -- so a callee cannot append to the caller's
 // `protos`. Emitting prototypes here makes forward references compile.)
-func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena, struct_env: String) -> String {
+func CollectProtos(count: Int, arena: AstArena, struct_env: String) -> String {
     let block: String = "";
     let i: Int = 0;
     let owner: String = "";
@@ -339,7 +337,7 @@ func CollectProtos(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
                 while j < count && CodegenAstArenaIndentOrDie(arena, j) == f_indent + 4 {
                     let p_mode: Int = CodegenAstArenaParamModeOrDie(arena, j);
                     if p_mode == 2 || p_mode == 3 {
-                        Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[j])));
+                        Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstArenaProvenanceOrDie(arena, j)));
                     }
                     let p_name: String = CodegenAstArenaParamNameOrDie(arena, j);
                     let c_p_name: String = CompilerSymbolCBindingName(p_name);

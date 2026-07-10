@@ -3,7 +3,7 @@
 // This owner keeps `let x: T = (?expr)` payload recognition and inner-expression
 // extraction out of typed arena projection and statement emission participants.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
 
 struct CodegenLetTryInitializerFact {

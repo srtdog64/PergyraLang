@@ -1,0 +1,83 @@
+// Shared scanning facts for the transitional compact AST-text artifact.
+
+func CodegenCharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 || i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+func NextNewline(s: String, start: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = start;
+    while i < n {
+        if CodegenCharAt(s, i) == "\n" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return n;
+}
+
+func StartsWith(s: String, prefix: String) -> Bool {
+    let pn: Int = StringLength(prefix);
+    if StringLength(s) < pn {
+        return false;
+    }
+    return Substring(s, 0, pn) == prefix;
+}
+
+func FindTextFrom(hay: String, needle: String, start: Int) -> Option<Int> {
+    let n: Int = StringLength(hay);
+    if start < 0 || start > n {
+        return None;
+    }
+    let rest: String = Substring(hay, start, n - start);
+    let k: Int = StringIndexOf(rest, needle);
+    if k < 0 {
+        return None;
+    }
+    return Some(start + k);
+}
+
+func FindTopLevelComma(s: String) -> Option<Int> {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if c == "," && depth == 0 {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}

@@ -3,7 +3,7 @@
 // Function emission owns C signature/prototype rendering. This owner owns the
 // input facts for function names, parameter rows, and return rows.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 
 struct CodegenFunctionSignatureContext {
     let owner_name: String;

@@ -20,11 +20,12 @@ for supported self-host C runtime helper symbol spelling. The files under
 `main.pgy` is the thin CLI entrypoint. It imports owner modules through
 resource-shaped subdirectories:
 
-- `input/` owns AST path selection, file reads, AST-text line inventory,
+- `input/` owns AST path selection, file reads, codegen-only arena views,
   expression/kind/type usage fact rows, and aggregate runtime/header usage
-  facts derived from those rows.
+  facts derived from HIR rows.
 - `run/` owns CLI-to-output orchestration.
-- `text/` owns AST/expression text scanning primitives.
+- `text/` owns codegen-specific expression text facts. Shared compact AST-text
+  scanning belongs to `../hir/ast_text_scan_owner.pgy`.
 - `type_facts/` owns type binding facts consumed as read-mostly evidence.
 - `../compiler/symbol_table_owner.pgy` owns emitted-symbol spelling rows,
   including struct field spellings in declarations, literals, and member
@@ -163,15 +164,19 @@ explanatory.
 
 `input/ast_input_owner.pgy` owns the AST path policy (`Args()[0]` or the
 no-argument `hello_ast.txt` fixture), the missing-file diagnostic, and the
-`ReadFile` boundary. `input/ast_text_inventory_owner.pgy` owns the transitional
-AST-text line inventory consumed by `GenerateC`: raw line splitting, typed
+`ReadFile` boundary. `hir/ast_text_inventory_owner.pgy` owns the transitional
+AST-text line inventory used to construct the shared artifact: raw line splitting, typed
 `CodegenAstTextNode` inventory, leading indent counting, coarse
 node kinds, empty-line removal, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, and cursor
 expectation diagnostics live
-there, not in emission participants. `input/ast_text_typed_arena_owner.pgy`
-owns the parent/indent/child projection into `AstArena` and the bridge readiness
-guard. This is a compatibility bridge, not the final typed/tagged AST owner.
+there, not in emission participants.
+`../hir/ast_text_arena_projection_owner.pgy` owns the single
+`AstTreeArtifact` construction plus provenance and parent/indent/child
+projection into `AstArena`. Its temporary node inventory does not cross the
+artifact boundary. `input/ast_arena_codegen_view_owner.pgy` owns codegen-only
+fail-closed predicates over that arena. This is a compatibility bridge, not
+the final typed/tagged AST owner.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts so statement emission does not split array
 initializer text locally.

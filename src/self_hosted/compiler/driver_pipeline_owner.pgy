@@ -9,24 +9,34 @@ import "../codegen/emission/program_emit.pgy";
 
 func CompilerDriverPipelineReady() -> Bool {
     return ParserAstTreePayloadContractReady() &&
-        TypedAstArenaPayloadContractReady();
+        TypedAstArenaPayloadContractReady() &&
+        AstTreeArtifactPayloadContractReady();
 }
 
-func CompileSourceToAst(source_path: String) -> String with caps io_read {
+func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with caps io_read {
     if !CompilerDriverPipelineReady() {
         Die("driver pipeline facts are not ready");
     }
-    return ParseRootProgram(source_path);
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    if !AstTreeArtifactReady(artifact) {
+        Die("parser produced an invalid typed AST artifact");
+    }
+    return artifact;
+}
+
+func CompileSourceToAst(source_path: String) -> String with caps io_read {
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    return artifact.tree_text;
 }
 
 func CompileAstToC(ast_text: String) -> String {
     if !CompilerDriverPipelineReady() {
         Die("driver pipeline facts are not ready");
     }
-    return GenerateC(ast_text);
+    return GenerateCFromAstArtifact(AstTreeArtifactFromText(ast_text));
 }
 
 func CompileSourceToC(source_path: String) -> String with caps io_read {
-    let ast_text: String = CompileSourceToAst(source_path);
-    return CompileAstToC(ast_text);
+    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
+    return GenerateCFromAstArtifact(artifact);
 }

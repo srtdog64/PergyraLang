@@ -1,8 +1,8 @@
-// src/self_hosted/codegen/input/ast_text_inventory_owner.pgy
+// src/self_hosted/hir/ast_text_inventory_owner.pgy
 //
 // Owns the transitional AST-text line inventory consumed by self-host C emit.
 
-import "../text/text_owner.pgy";
+import "ast_text_scan_owner.pgy";
 import "ast_text_row_fact_owner.pgy";
 
 struct CodegenAstTextNode {

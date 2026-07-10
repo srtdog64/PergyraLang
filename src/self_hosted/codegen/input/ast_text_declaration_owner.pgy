@@ -3,7 +3,7 @@
 // Declaration collectors own C typedef/env emission. This owner owns the typed
 // AST declaration header and field-row facts they consume.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 
 func CodegenAstArenaNominalNameOrDie(arena: AstArena, node_id: Int) -> String {
     if !CodegenAstArenaIsNominalDecl(arena, node_id) {

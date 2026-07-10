@@ -3,7 +3,7 @@
 // Runtime/header usage decisions need statement-shape facts, but the
 // aggregate runtime usage owner should not scan typed arena kind rows itself.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 
 struct CodegenKindUsageFacts {
     let has_log_stmt: Bool;

@@ -33,7 +33,7 @@ The next focused slice raised the source inventory to 221 after splitting the
 shared driver pipeline owner from DRV parity policy. The strengthened bootstrap
 gate then proved both the standalone codegen fixed point (`gen2 == gen3`, 9,833
 generated-C lines) and the first integrated parser/codegen driver fixed point
-(`gen2 == gen3`, 14,566 generated-C lines). This is a real self-rebuild loop for
+(`gen2 == gen3`, 14,659 generated-C lines). This is a real self-rebuild loop for
 the bounded source-to-AST-to-C compiler pipeline, not a whole-compiler claim:
 semantic verdict and MIR lowering are not yet executed by that driver.
 The landing Windows run observed about 1.35 GB peak working set in the first
@@ -45,11 +45,15 @@ The typed `AstArena` shape now lives at
 `src/self_hosted/hir/typed_ast_arena_owner.pgy`, not under codegen. The old
 codegen-owned file is rejected by the component contract. This is an owner
 closure, not a substitution-percentage increase: parser output is still a
-compact AST-text artifact, codegen still projects that artifact into the
-shared arena, and the current semantic substitute still scans source text.
-The next valid compiler-pipeline rung is parser-owned arena production followed
-by semantic consumption of that same arena. Wiring the current source scanner
-into the integrated driver would create a second parser and does not count.
+compact AST-text artifact internally, but parser now returns one
+`AstTreeArtifact` carrying text provenance, the shared arena, and node count.
+The temporary `CodegenAstTextNode` inventory is consumed while constructing the
+arena and does not cross the artifact boundary. The integrated driver passes
+that same artifact to codegen without rebuilding the arena. The current semantic
+substitute still scans source text;
+the next valid compiler-pipeline rung is semantic consumption of this artifact.
+Wiring the current source scanner into the driver would create a second parser
+and does not count.
 
 ## Headline Number
 
@@ -79,15 +83,16 @@ env-aware index-expression rewriting, rung-11 `StringTrim` builtin, rung-12
 rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow,
 rung-19 typed `Int` / `Bool` / `Float` / `String` struct field facts, and rung-20 nested struct-valued field facts).
 The codegen entrypoint is now split into thin `main.pgy` orchestration plus
-resource-owner folders: `input/` for AST path/read ownership and AST-text line
-inventory ownership, including typed `CodegenAstTextRowFactInput` row facts,
-marker-node predicates and function/return/enum/nominal/role/parameter/field
-payload accessors plus statement row facts projected into typed arena rows for
+resource-owner folders: `input/` for AST path/read ownership and codegen-only
+views over the shared HIR artifact. `hir/` owns compact AST-text inventory,
+typed `CodegenAstTextRowFactInput` row facts, marker-node predicates and
+function/return/enum/nominal/role/parameter/field payload accessors plus
+statement row facts projected into typed arena rows for
 `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`, `ArraySet`, `ArrayPush`,
 `Exit`, `Break`, `Continue`, `For`, `While`, `If`, `Else`/`else if` routing,
-and bare call statements for the
-transitional `pgy --ast` bridge, `run/` for the
-CLI boundary, `text/` for text/expression scanning, `type_facts/` for type
+and bare call statements for the transitional `pgy --ast` bridge. `run/` owns
+the CLI boundary, `text/` owns codegen-specific expression facts, and
+`type_facts/` owns type
 evidence, compiler-world symbol rows for emitted-symbol spelling including
 namespace-qualified call lowering,
 `abi_layout/` for self-host C ABI type spelling, `runtime_abi/` for `Array<Int>` /
@@ -394,9 +399,9 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/lexer/`    |     921 |         677 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is entrypoint-only; run-boundary, fixture manifest, source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`), and the lexer run/fixture-manifest owners are part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
 | `src/parser/`   |   20579 |        8127 | ~52%     | `src/self_hosted/parser/` parses 188 source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
 | `src/semantic/` |   46203 |        2716 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 110 fixtures, including Option `?` payload propagation and Result core consumption. `main.pgy` is orchestration only; CLI diagnostic/run boundary, diagnostic-code vocabulary, C oracle code mapping, source-bundle/import expansion, source scanning, diagnostic rendering, local environment lookup, expression typing, expression diagnostics, call checking, body/function checking, and program checking live in named owner modules. |
-| `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for the supported scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset. `ast_input_owner.pgy` owns AST path selection, `ast_text_inventory_owner.pgy` owns the typed `CodegenAstTextNode` bridge inventory, program-level declaration routing, declaration collector prepasses, function signature/header facts, `inout`/`own`/`ref` parameter-mode preservation, and cursor expectations, `ast_text_row_fact_owner.pgy` owns statement/name/type/value/aux-value/mode row facts, `ast_text_array_literal_owner.pgy` owns `Let` array literal shape and top-level element facts, `codegen_run_owner.pgy` owns CLI-to-output orchestration, `type_facts/` owns type routing, `compiler/symbol_table_owner.pgy` owns function/method/operator/enum emitted-symbol rows, namespace-qualified call spelling, and source-to-C binding spelling, `type_facts/type_env.pgy` records `cbind` rows for local/parameter/loop bindings, `compiler/abi_layout_row_owner.pgy` owns supported concrete ABI rows including `Long` and `abi_layout/abi_layout_owner.pgy` consumes those rows for parameter/return/local/field C ABI spelling before user-struct lookup, `runtime_abi/collection_runtime_owner.pgy` owns supported array runtime helper call spelling from collection kind-code facts including the bootstrap `Array<CodegenAstTextNode>` lane, `runtime_abi/math_runtime_owner.pgy` owns supported math/random helper and target-library call spelling, `runtime_abi/host_io_runtime_owner.pgy` owns supported host file/stdin/argv/process helper and target-library call spelling, `runtime_abi/option_result_runtime_owner.pgy` owns supported `Option<Int>` / `Option<String>` / `Result<Int>` runtime helper call spelling and Option `?` propagation, `runtime_abi/string_runtime_owner.pgy` owns supported string/text helper and conversion target-library call spelling, and `emission/` contains action participants. `lib/json_scan.pgy` owns JSON cursor/string scan primitives, `lib/json.pgy` owns JSON read/string/number fact access including `Option<String>` string/number field facts, `lib/json_fact_table.pgy` owns bounded object and array-object boundary facts now consumed by `module_manifest_resolver` for root `modules` discovery plus module-row count/field/equality facts, by `mir_lower/json_fact_read.pgy` for MIR root `decls`/`routines` discovery, and by `air_graph_json_validator` for AIR root required-key checks plus nested `summary` count rows through `JsonObjectFactObjectTable` / `JsonObjectFactNumberFieldOpt`; AIR feature requirements remain graph-wide scalar facts consumed through `AirGraphScalarFieldValues`. `lib/json_emit.pgy` owns JSON string escaping plus field/object/array emission consumed through direct imports; schema object shape remains tool-owned. **68 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends; the standalone codegen and integrated parser/codegen driver both have separate `gen2 == gen3` fixed points. Gates: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`), `parity/codegen_bootstrap.sh` (`make self-host-codegen-bootstrap-test-smoke`), and `parity/driver_bootstrap.sh` (`make self-host-driver-bootstrap-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
+| `src/codegen/`  |  107123 |        4821 | rung-0..20 | **C-emit rung-0..20 (2026-06-24).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 68 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen and integrated parser/codegen driver have separate byte-identical `gen2 == gen3` fixed points. Out-of-subset input is an observable `Exit(1)`; semantic and MIR are not part of this executable fixed point. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
-| `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 14,566-line `gen2 == gen3` fixed point. Semantic/MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
+| `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 14,659-line `gen2 == gen3` fixed point. Semantic/MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
 | `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered multi-document store owner, LSP-2g no-index feature response shape owner, LSP-2h buffered session-state owner, and LSP-2i bounded hover-content owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
 | **Total**       | **248794** |  **16341**  | **~6.57% source-tree LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering and compiler-world contracts are tracked separately above |
 

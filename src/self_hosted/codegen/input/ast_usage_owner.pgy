@@ -4,7 +4,7 @@
 // runtime/header decisions should not rescan the raw AST document. This owner
 // derives those decisions from the typed line inventory.
 
-import "ast_text_typed_arena_owner.pgy";
+import "ast_arena_codegen_view_owner.pgy";
 import "ast_expression_usage_owner.pgy";
 import "ast_kind_usage_owner.pgy";
 import "ast_type_usage_owner.pgy";

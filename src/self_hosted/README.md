@@ -80,8 +80,7 @@ source-of-truth owner modules. `semantic/` also owns its program-input fact in
 consumes the bundle, so the entrypoint does not define "program" by accident.
 `lexer/` owns its argv/default source path and file-read boundary in
 `source_input_owner.pgy`; `codegen/` owns its AST path/read boundary in
-`input/ast_input_owner.pgy`, its AST-text line inventory in
-`input/ast_text_inventory_owner.pgy`, its CLI orchestration in
+`input/ast_input_owner.pgy` and its CLI orchestration in
 `run/codegen_run_owner.pgy`, expression/text scanning in `text/`, type evidence
 in `type_facts/`, emitted-symbol rows in `compiler/symbol_table_owner.pgy`,
 ABI type spelling in `abi_layout/`, runtime helper symbol facts in
@@ -89,6 +88,9 @@ ABI type spelling in `abi_layout/`, runtime helper symbol facts in
 owns its MIR JSON path/read/schema boundary in `mir_json_input_owner.pgy` and
 document-order Program assembly in
 `program_lower.pgy`; `semantic/` follows the same entrypoint-plus-owner shape.
+Shared compact AST inventory, row facts, and `AstTreeArtifact` projection live
+under `hir/`; parser and codegen consume that owner instead of each owning a
+tree shape.
 `parser/` has started the same transition with
 error, cursor/token, source path/import input, root Program assembly, type-name, expression, statement/block,
 function-declaration, top-level declaration dispatch, branch declaration

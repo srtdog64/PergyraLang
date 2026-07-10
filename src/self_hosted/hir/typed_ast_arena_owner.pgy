@@ -82,6 +82,7 @@ struct AstArena {
     child_counts: Array<Int>;
     parents: Array<Int>;
     indents: Array<Int>;
+    provenance_texts: Array<String>;
     children: Array<Int>;
     atom_table: Array<String>;
 }
@@ -117,11 +118,13 @@ func TypedAstArenaFixture() -> AstArena {
     let child_counts: Array<Int> = [1, 1, 0];
     let parents: Array<Int> = [TypedAstNoParentRow(), 0, 1];
     let indents: Array<Int> = [0, 2, 4];
+    let provenance_texts: Array<String> = ["Program:", "Function: Main", "Block:"];
     let children: Array<Int> = [1, 2];
     let atom_table: Array<String> = ["", "Main"];
     return AstArena(kinds, atoms, has_atoms, type_names, has_type_names,
         values, has_values, aux_values, has_aux_values, modes,
-        first_children, child_counts, parents, indents, children, atom_table);
+        first_children, child_counts, parents, indents, provenance_texts,
+        children, atom_table);
 }
 
 func TypedAstArenaNodeCount(arena: AstArena) -> Int {
@@ -142,7 +145,8 @@ func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
         ArrayLength(arena.first_children) == n &&
         ArrayLength(arena.child_counts) == n &&
         ArrayLength(arena.parents) == n &&
-        ArrayLength(arena.indents) == n;
+        ArrayLength(arena.indents) == n &&
+        ArrayLength(arena.provenance_texts) == n;
 }
 
 func TypedAstArenaHasNode(arena: AstArena, node_id: Int) -> Bool {
@@ -191,6 +195,13 @@ func TypedAstArenaIndent(arena: AstArena, node_id: Int) -> Option<Int> {
         return None;
     }
     return Some(arena.indents[node_id]);
+}
+
+func TypedAstArenaProvenanceText(arena: AstArena, node_id: Int) -> Option<String> {
+    if !TypedAstArenaHasNode(arena, node_id) {
+        return None;
+    }
+    return Some(arena.provenance_texts[node_id]);
 }
 
 func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {

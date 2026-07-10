@@ -3,8 +3,8 @@
 // Program-level C assembly owner for self-host C emission.
 
 import "../text/text_owner.pgy";
-import "../input/ast_text_inventory_owner.pgy";
-import "../input/ast_text_typed_arena_owner.pgy";
+import "../../hir/ast_text_inventory_owner.pgy";
+import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_declaration_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -196,18 +196,14 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     return true;
 }
 
-func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
-    RejectUnsupportedCodegenBuiltins(tree_text);
+func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
+    RejectUnsupportedCodegenBuiltins(artifact.tree_text);
 
-    let nodes: Array<CodegenAstTextNode> = [];
-    let node_count_box: Array<Int> = [0];
-    CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
-
-    let count: Int = node_count_box[0];
-    if !CodegenTypedAstBridgeReady(nodes, count) {
+    let count: Int = artifact.count;
+    let arena: AstArena = artifact.arena;
+    if !CodegenAstTreeArtifactReady(artifact) {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
-    let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let main_count: Int = 0;
     let main_scan: Int = 0;
     while main_scan < count {
@@ -217,7 +213,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         // (which would be unobservable broken C -- a no-op fake would be worse,
         // masking real event dispatch in programs that register handlers).
         if CodegenAstArenaIsEventDecl(arena, main_scan) {
-            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstArenaProvenanceOrDie(arena, main_scan)));
         }
         if CodegenAstArenaIsMainFunction(arena, main_scan) {
             main_count = main_count + 1;
@@ -254,10 +250,10 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     if first_fn >= 0 {
         f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
     }
-    let env_acc: Array<String> = [BuildFunctionEnv(nodes, count, arena)];
-    let enum_block: String = CollectEnums(nodes, count, arena, env_acc);
-    let typedef_block: String = CollectStructs(nodes, count, arena, env_acc);
-    CollectRoleOperators(nodes, count, arena, env_acc);
+    let env_acc: Array<String> = [BuildFunctionEnv(count, arena)];
+    let enum_block: String = CollectEnums(count, arena, env_acc);
+    let typedef_block: String = CollectStructs(count, arena, env_acc);
+    CollectRoleOperators(count, arena, env_acc);
     let base_env: String = env_acc[0];
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
@@ -280,7 +276,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let mdef: String = EmitFunction(nodes, count, arena, cur, method_indent, base_env, uses_args, owner_name);
+                    let mdef: String = EmitFunction(count, arena, cur, method_indent, base_env, uses_args, owner_name);
                     defs = Concat(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
@@ -293,14 +289,14 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let role_mdef: String = EmitFunction(nodes, count, arena, cur, role_method_indent, base_env, uses_args, role_owner_name);
+                    let role_mdef: String = EmitFunction(count, arena, cur, role_method_indent, base_env, uses_args, role_owner_name);
                     defs = Concat(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
         } else if CodegenAstArenaIsFunction(arena, cur[0]) && cur_indent == f_indent {
-            let def: String = EmitFunction(nodes, count, arena, cur, f_indent, base_env, uses_args, "");
+            let def: String = EmitFunction(count, arena, cur, f_indent, base_env, uses_args, "");
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -308,7 +304,7 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     }
 
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(nodes, count, arena, base_env);
+    let proto_block: String = CollectProtos(count, arena, base_env);
     let option_struct_block_fact: OptionStructDefinitionBlockFact = OptionResultRuntimeCStructOptionDefinitionBlock(base_env);
     let option_struct_block: String = option_struct_block_fact.c_block;
 
@@ -418,6 +414,14 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
         header = Concat(header, HostIORuntimeCDirWalkBlock());
     }
     return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, defs))))));
+}
+
+func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
+    return GenerateCUnitFromAstArtifact(AstTreeArtifactFromText(tree_text), require_entrypoint);
+}
+
+func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
+    return GenerateCUnitFromAstArtifact(artifact, true);
 }
 
 func GenerateC(tree_text: String) -> String {

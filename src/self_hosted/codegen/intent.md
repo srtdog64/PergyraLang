@@ -150,14 +150,15 @@ a zone:
 The tool reads one AST text path from `Args()[0]`, with the no-argument
 `hello_ast.txt` fixture as the default probe. `input/ast_input_owner.pgy` owns
 path selection, the missing-file diagnostic, and the file-read boundary.
-`input/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
+`hir/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
 `CodegenAstTextNode` inventory, indent counting, coarse node
 kinds, blank-line filtering, `[export]` line normalization, program/function
 declaration routing predicates, declaration collector prepass facts, function
 signature/header facts, and cursor expectation checks.
-`input/ast_text_typed_arena_owner.pgy` owns parent/indent/child projection into
-the typed `AstArena` and the `CodegenTypedAstBridgeReady` guard that consumes
-the typed AST arena payload contract before emission.
+`../hir/ast_text_arena_projection_owner.pgy` owns `AstTreeArtifact`
+construction and parent/indent/child projection into the typed `AstArena`.
+`input/ast_arena_codegen_view_owner.pgy` owns the
+`CodegenTypedAstBridgeReady` fail-closed view consumed before emission.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
 `input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum

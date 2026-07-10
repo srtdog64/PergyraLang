@@ -25,6 +25,27 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Parser and codegen share one HIR artifact
+
+- Added `AstTreeArtifact` as the parser-produced boundary carrying compact text
+  provenance, the shared `AstArena`, and node count. The integrated driver now
+  passes that same artifact into codegen instead of asking codegen to rebuild
+  the arena.
+- Split shared compact-text scanning, row inventory, and arena projection into
+  HIR owners. Codegen retains only its fail-closed arena view and emission
+  participants.
+- The first bootstrap attempt exposed a generated-C ordering bug because the
+  artifact carried `Array<CodegenAstTextNode>`. The fix was not a backend
+  typedef-order exception: provenance became an `AstArena` fact and temporary
+  bridge nodes stopped crossing the artifact boundary.
+- Verified the integrated driver fixed point at byte-identical `gen2 == gen3`
+  with 14,659 generated-C lines. The emitted `hello` C remained byte-identical
+  to the pre-cutover artifact.
+- Honest boundary: semantic still scans source text. The next valid hard
+  self-host rung is semantic consumption of this exact artifact; wiring the
+  existing source scanner into the driver would create a second parser and is
+  forbidden.
+
 ## 2026-07-10 - Typed AST arena ownership moves from codegen to HIR
 
 - Moved the single `AstArena` shape/accessor owner from

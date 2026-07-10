@@ -110,9 +110,11 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
-- `src/self_hosted/codegen/input/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
-- `src/self_hosted/codegen/input/ast_text_typed_arena_owner.pgy` -- AST text inventory to typed arena projection, including parent and indent rows.
-- `src/self_hosted/codegen/input/ast_text_row_fact_owner.pgy` -- AST text name/type/value/aux-value/mode row facts derived from inventory payloads.
+- `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning primitives shared by parser/HIR and codegen.
+- `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- AST text name/type/value/aux-value/mode row facts derived from inventory payloads.
+- `src/self_hosted/hir/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
+- `src/self_hosted/hir/ast_text_arena_projection_owner.pgy` -- single `AstTreeArtifact` construction and AST text inventory to typed arena projection.
+- `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy` -- AST text array-literal initializer shape and top-level element facts.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
 - `src/self_hosted/codegen/input/ast_text_function_signature_owner.pgy` -- AST text function name, parameter, and return signature facts.
@@ -132,7 +134,7 @@ compiler-stage `.pgy` source to be listed here.
   payload contract, `NodeId` lookup facts, and migration target for retiring
   the AST text bridge.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
-- `src/self_hosted/codegen/text/text_owner.pgy` -- text/token scanning primitives.
+- `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.
 - `src/self_hosted/codegen/text/expr_scan.pgy` -- expression text scanning.
 - `src/self_hosted/codegen/text/expr_sequence_owner.pgy` -- top-level comma-separated expression sequence facts.
