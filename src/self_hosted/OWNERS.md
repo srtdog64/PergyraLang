@@ -245,8 +245,10 @@ compiler-stage `.pgy` source to be listed here.
   execution-lane parity source and golden path suites.
 - `src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy` --
   compatibility evolution manifest and corpus checker path suites.
-- `src/self_hosted/compiler/test_harness_tool_paths_owner.pgy` -- shared
-  parity tool/input path suites consumed by test harness manifests.
+- `src/self_hosted/compiler/test_harness_linter_paths_owner.pgy` -- linter
+  parity source, expected diagnostics, and fixture path suite.
+- `src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy` -- doc-link
+  checker clean and dead-link fixture path suite.
 - `src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy` --
   inventory checker path and negative-finding rows consumed by TestHarness.
 - `src/self_hosted/compiler/test_harness_size_paths_owner.pgy` -- production

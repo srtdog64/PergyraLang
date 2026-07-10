@@ -106,6 +106,14 @@ membership (`CompilerHarnessRowKnown`, `CompilerHarnessProjectionKnown`, and
 `At(0)` / `At(Count() - 1)` positions. Ordered rows remain the stable
 `test_harness_manifest.pgy` artifact shape, not readiness truth.
 
+TestHarness delta, 2026-07-10: the generic
+`test_harness_tool_paths_owner.pgy` bucket is removed. Linter paths now live in
+`test_harness_linter_paths_owner.pgy`, and doc-link checker paths now live in
+`test_harness_doc_link_paths_owner.pgy`. Both readiness predicates consume
+named path membership plus an out-of-range boundary check instead of
+`PathCount() == N` and representative `PathAt(0..N)` readiness. Ordered path
+rows remain the stable manifest artifact shape only.
+
 TestHarness delta, 2026-07-10: target-capability and sandbox-capability path
 suites now consume named path membership
 (`CompilerHarnessTargetCapabilityEnvelopePathKnown` and

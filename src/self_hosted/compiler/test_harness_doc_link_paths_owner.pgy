@@ -1,0 +1,70 @@
+// TestHarness doc-link path owner.
+//
+// Owns the self-host doc-link checker path suite separately from generic audit
+// tools. Documentation link integrity is a docs surface contract, so its clean
+// and negative fixture paths stay behind one owner.
+
+func CompilerHarnessDocLinkCheckerSuiteName() -> String {
+    return "doc-link-checker-paths";
+}
+
+func CompilerHarnessDocLinkCheckerToolSourcePath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/main.pgy";
+}
+
+func CompilerHarnessDocLinkCheckerExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/expected/clean.json";
+}
+
+func CompilerHarnessDocLinkCheckerIndexPath() -> String {
+    return "docs/INDEX.md";
+}
+
+func CompilerHarnessDocLinkCheckerDeadLinkSourcePath() -> String {
+    return "100_beta_readiness_checklist.md";
+}
+
+func CompilerHarnessDocLinkCheckerDeadLinkTargetPath() -> String {
+    return "XX_NONEXISTENT_FAKE_DRIFT.md";
+}
+
+func CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/doc_link_checker/expected/dead_link.json";
+}
+
+func CompilerHarnessDocLinkCheckerPathCount() -> Int {
+    return 6;
+}
+
+func CompilerHarnessDocLinkCheckerPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessDocLinkCheckerToolSourcePath(); }
+    if index == 1 { return CompilerHarnessDocLinkCheckerExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessDocLinkCheckerIndexPath(); }
+    if index == 3 { return CompilerHarnessDocLinkCheckerDeadLinkSourcePath(); }
+    if index == 4 { return CompilerHarnessDocLinkCheckerDeadLinkTargetPath(); }
+    if index == 5 { return CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessDocLinkCheckerPathKnown(path: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerHarnessDocLinkCheckerPathCount() {
+        if CompilerHarnessDocLinkCheckerPathAt(i) == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerHarnessDocLinkCheckerReady() -> Bool {
+    return CompilerHarnessDocLinkCheckerPathCount() > 0 &&
+        CompilerHarnessDocLinkCheckerSuiteName() != "" &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerToolSourcePath()) &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerExpectedJsonPath()) &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerIndexPath()) &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerDeadLinkSourcePath()) &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerDeadLinkTargetPath()) &&
+        CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath()) &&
+        CompilerHarnessDocLinkCheckerPathAt(CompilerHarnessDocLinkCheckerPathCount()) == "";
+}

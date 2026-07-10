@@ -25,6 +25,22 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Tool TestHarness bucket removed
+
+- Split the last remaining `test_harness_tool_paths_owner.pgy` responsibilities
+  into `test_harness_linter_paths_owner.pgy` and
+  `test_harness_doc_link_paths_owner.pgy`.
+- Repointed `test_harness_owner.pgy` and `test_harness_manifest.pgy` to import
+  those responsibility owners directly, then deleted the generic tool-path
+  bucket.
+- Tightened the component contract so the retired generic owner must not exist,
+  both new owners stay under the 600-line cap, and linter/doc-link readiness
+  consumes named path membership plus an out-of-range boundary check instead of
+  `PathCount() == N` / representative `PathAt(...)` comparisons.
+- Classified `abi_layout_row_owner.pgy` as an explicit ABI fact-resource owner
+  for the Pergyra-likeness gate, keeping `core_string_munge_sig` at 108 while
+  tightening the errors-as-data ratchet to `RESULT_USE_MIN=802`.
+
 ## 2026-07-10 - Lexer TestHarness paths move to lexer owner
 
 - Split `test_harness_lexer_paths_owner.pgy` out of the shared TestHarness tool

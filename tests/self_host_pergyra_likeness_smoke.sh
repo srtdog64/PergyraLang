@@ -68,9 +68,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 
 # ---- ratchet baselines (tighten on improvement, never loosen) ----
 # 109 -> 108 (2026-07-09): compatibility evolution, runtime-call ABI row,
-# and SEA lane executor contract-row owners are explicit text-resource owners,
-# not compiler-core AST/IR string bridges. Exclude them by name and tighten to
-# the measured core.
+# ABI-layout row, and SEA lane executor contract-row owners are explicit
+# fact-resource owners, not compiler-core AST/IR string bridges. Exclude them
+# by name and tighten to the measured core.
 CORE_STRING_MUNGE_SIG_MAX=108
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
@@ -145,7 +145,10 @@ SENTINEL_MAX=0
 # verifier instead of materializing the full emitted C artifact.
 # 771 -> 777 (2026-07-09): completeness impact-plan rows now expose proof-gate
 # lookup through Option<String> facts instead of a total string fallback.
-RESULT_USE_MIN=777
+# 777 -> 802 (2026-07-10): current tracked self-host source after TestHarness
+# owner splits and ABI-row fact-owner classification; keep the measured
+# errors-as-data surface load-bearing.
+RESULT_USE_MIN=802
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
@@ -159,7 +162,7 @@ COMPILER_STAGE_ENVELOPE_ONLY_MAX=0
 TYPED_AST_CONTRACT_MIN=1
 
 TEXT_DOMAIN_EXCLUDE_RE='^src/self_hosted/lib/(json(_emit)?|diagnostic)\.pgy$'
-CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|runtime_call_abi_row_owner)\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
+CORE_STRING_MUNGE_EXCLUDE_RE='^src/self_hosted/(tools|lsp|fuzz)/|^src/self_hosted/lib/(json(_emit)?|diagnostic|path)\.pgy$|^src/self_hosted/codegen/abi_layout/|^src/self_hosted/codegen/emission/literal_rewrite\.pgy$|/(fixture_manifest|source_path)_owner\.pgy$|^src/self_hosted/compiler/(test_harness.*|path_manifest_owner|driver_cli_owner|symbol_table_owner|compatibility_evolution_owner|abi_layout_row_owner|runtime_call_abi_row_owner)\.pgy$|^src/self_hosted/sea/lane_executor_contract_owner\.pgy$|^src/self_hosted/(lexer|parser|semantic|codegen)/.*run_owner\.pgy$|^src/self_hosted/lexer/source_input_owner\.pgy$|^src/self_hosted/codegen/input/ast_input_owner\.pgy$'
 SENTINEL_EXCLUDE_RE='^src/self_hosted/codegen/emission/program_emit\.pgy$|^src/self_hosted/codegen/runtime_abi/'
 
 fail() {

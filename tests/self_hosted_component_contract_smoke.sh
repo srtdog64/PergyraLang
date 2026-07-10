@@ -24,6 +24,11 @@ require_file() {
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing $rel"
 }
 
+reject_file() {
+    local rel="$1"
+    [[ ! -f "$ROOT_DIR/$rel" ]] || fail "$rel must not exist"
+}
+
 require_dir() {
     local rel="$1"
     [[ -d "$ROOT_DIR/$rel" ]] || fail "missing directory $rel"
@@ -1396,7 +1401,6 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessA
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessAbiLayoutRowsPathAt"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathCount() == 2"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathAt(0) == CompilerHarnessAbiLayoutRowsToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessAbiLayoutRowsPathAt(1) == CompilerHarnessAbiLayoutRowsExpectedPath()"
@@ -1548,7 +1552,6 @@ require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "Compil
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsReady()"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathAt"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathCount() == 2"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathAt(0) == CompilerHarnessRuntimeCallAbiRowsToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "CompilerHarnessRuntimeCallAbiRowsPathAt(1) == CompilerHarnessRuntimeCallAbiRowsExpectedPath()"
@@ -1800,7 +1803,6 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessC
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_compatibility_paths_owner.pgy";'
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCompatibilityEvolutionSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessCompatibilityEvolutionPathAt"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityEvolutionSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityEvolutionPathCount() == 2"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityEvolutionPathAt(0) == CompilerHarnessCompatibilityEvolutionToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityEvolutionPathAt(1) == CompilerHarnessCompatibilityEvolutionExpectedPath()"
@@ -1967,7 +1969,6 @@ require_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pg
 require_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathKnown(CompilerHarnessCompatibilityCorpusInvalidObsoleteMigrationExpectedJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathKnown(CompilerHarnessCompatibilityCorpusMissingSurfaceExpectedJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathAt(CompilerHarnessCompatibilityCorpusPathCount()) == \"\""
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathCount() == 9"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathAt(0) == CompilerHarnessCompatibilityCorpusToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_compatibility_paths_owner.pgy" "CompilerHarnessCompatibilityCorpusPathAt(1) == CompilerHarnessCompatibilityCorpusExpectedJsonPath()"
@@ -2041,7 +2042,6 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "EmitExecutionLaneParityPaths"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" "CompilerHarnessExecutionLaneParitySuiteName()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_execution_lane_paths_owner.pgy";'
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessExecutionLaneParitySuiteName"
 reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathCount() == 5"
 reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathAt(0) == CompilerHarnessExecutionLaneSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_execution_lane_paths_owner.pgy" "CompilerHarnessExecutionLanePathAt(4) == CompilerHarnessLaneExecutorContractMissingExpectedPath()"
@@ -3602,8 +3602,6 @@ reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"miss
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" '"ok":false'
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "MISSING_KEY_FINDING_FIELD"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "MISSING_KEY_FINDING_VALUE"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorMissingKeyFindingField"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorMissingKeyFindingValue"
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_INTENTS="
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_BOUNDARIES="
 reject_text "tests/self_hosted/parity/air_graph_json_validator_parity.sh" "SHELL_EVIDENCE="
@@ -3985,7 +3983,9 @@ reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarn
 reject_text "src/self_hosted/compiler/test_harness_owner.pgy" "func CompilerHarnessBackendOutputComparatorReady"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/mismatch.json"
 require_file "src/self_hosted/tools/backend_output_comparator/expected/missing_input.json"
-require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+reject_file "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_linter_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_doc_link_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_comparator_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_backend_compare_paths_owner.pgy";'
@@ -4004,7 +4004,8 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_mir_json_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_bootstrap_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lsp_paths_owner.pgy";'
-require_max_lines "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_comparator_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_backend_compare_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" 600
@@ -4023,13 +4024,15 @@ require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy"
+reject_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathKnown"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorToolSourcePath())"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathAt(CompilerHarnessAirGraphJsonValidatorPathCount()) == \"\""
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathCount() == 9"
 reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathAt(0) == CompilerHarnessAirGraphJsonValidatorToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "CompilerHarnessAirGraphJsonValidatorPathAt(8) == CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath()"
@@ -4066,12 +4069,20 @@ require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "fun
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung0PathAt"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverRung1PathAt"
 require_text "src/self_hosted/compiler/test_harness_driver_paths_owner.pgy" "func CompilerHarnessDriverPathsReady"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterFixturePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLinterParityReady"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterExpectedDiagnosticsPath"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterFixturePath"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterPathAt"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterPathKnown"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathKnown(CompilerHarnessLinterToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathKnown(CompilerHarnessLinterExpectedDiagnosticsPath())"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathKnown(CompilerHarnessLinterFixturePath())"
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathAt(CompilerHarnessLinterPathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "func CompilerHarnessLinterParityReady"
+reject_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathCount() == 3"
+reject_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathAt(0) == CompilerHarnessLinterToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_linter_paths_owner.pgy" "CompilerHarnessLinterPathAt(2) == CompilerHarnessLinterFixturePath()"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverSuiteName"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessModuleManifestResolverExpectedJsonPath"
@@ -4104,7 +4115,6 @@ require_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pg
 require_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "CompilerHarnessStableSubsetSectionPathKnown(CompilerHarnessStableSubsetSectionMissingJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "CompilerHarnessStableSubsetSectionPathAt(CompilerHarnessStableSubsetSectionPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "func CompilerHarnessStableSubsetSectionReady"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessStableSubsetSectionSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "CompilerHarnessStableSubsetSectionPathCount() == 5"
 reject_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "CompilerHarnessStableSubsetSectionPathAt(0) == CompilerHarnessStableSubsetSectionToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_stable_subset_paths_owner.pgy" "CompilerHarnessStableSubsetSectionPathAt(4) == CompilerHarnessStableSubsetSectionMissingJsonPath()"
@@ -4123,21 +4133,27 @@ require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner
 require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathKnown(CompilerHarnessRuntimeBoundaryMissingJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(CompilerHarnessRuntimeBoundaryPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "func CompilerHarnessRuntimeBoundaryReady"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessRuntimeBoundarySuiteName"
 reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathCount() == 5"
 reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(0) == CompilerHarnessRuntimeBoundaryToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_runtime_boundary_paths_owner.pgy" "CompilerHarnessRuntimeBoundaryPathAt(4) == CompilerHarnessRuntimeBoundaryMissingJsonPath()"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerIndexPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkTargetPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/doc_link_checker/expected/dead_link.json"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerMissingLinkFindingKind"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerSuiteName"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerIndexPath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkSourcePath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkTargetPath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "src/self_hosted/tools/doc_link_checker/expected/dead_link.json"
+reject_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerMissingLinkFindingKind"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathAt"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerPathKnown"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathKnown(CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath())"
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathAt(CompilerHarnessDocLinkCheckerPathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "func CompilerHarnessDocLinkCheckerReady"
+reject_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathCount() == 6"
+reject_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathAt(0) == CompilerHarnessDocLinkCheckerToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_doc_link_paths_owner.pgy" "CompilerHarnessDocLinkCheckerPathAt(5) == CompilerHarnessDocLinkCheckerDeadLinkExpectedJsonPath()"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventorySuiteName"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryExpectedJsonPath"
@@ -4156,7 +4172,6 @@ require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "Comp
 require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathKnown(CompilerHarnessLexerFixtureDirPath())"
 require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(CompilerHarnessLexerPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerParityReady"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessLexerParitySuiteName"
 reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathCount() == 3"
 reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(0) == CompilerHarnessLexerToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(2) == CompilerHarnessLexerFixtureDirPath()"
@@ -4251,7 +4266,6 @@ require_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" 
 require_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathKnown(CompilerHarnessDiagnosticCatalogCOraclePath())"
 require_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathAt(CompilerHarnessDiagnosticCatalogPathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "func CompilerHarnessDiagnosticCatalogReady"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathCount() == 7"
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathAt(0) == CompilerHarnessDiagnosticCatalogToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathAt(6) == CompilerHarnessDiagnosticCatalogCOraclePath()"
@@ -4271,7 +4285,6 @@ require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath())"
 require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(CompilerHarnessAstReadSurfacePathCount()) == \"\""
 require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAstReadSurfaceSuiteName"
 reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathCount() == 7"
 reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(0) == CompilerHarnessAstReadSurfaceToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(6) == CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath()"
@@ -4355,7 +4368,8 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessA
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessLspPathsReady()"
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" "CompilerHarnessBackendTriSuiteReady()"
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_owner.pgy";'
-require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_tool_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_linter_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_doc_link_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_abi_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_execution_lane_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_compatibility_paths_owner.pgy";'

@@ -1,0 +1,52 @@
+// TestHarness linter path owner.
+//
+// Owns the self-host linter parity path suite separately from generic audit
+// tools. The linter is a self-host source hygiene gate, so its paths are a
+// named TestHarness responsibility.
+
+func CompilerHarnessLinterParitySuiteName() -> String {
+    return "linter-parity-paths";
+}
+
+func CompilerHarnessLinterToolSourcePath() -> String {
+    return "src/self_hosted/tools/linter/main.pgy";
+}
+
+func CompilerHarnessLinterExpectedDiagnosticsPath() -> String {
+    return "src/self_hosted/tools/linter/expected/diagnostics.json";
+}
+
+func CompilerHarnessLinterFixturePath() -> String {
+    return "src/self_hosted/tools/linter/fixture.pgy";
+}
+
+func CompilerHarnessLinterPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLinterPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLinterToolSourcePath(); }
+    if index == 1 { return CompilerHarnessLinterExpectedDiagnosticsPath(); }
+    if index == 2 { return CompilerHarnessLinterFixturePath(); }
+    return "";
+}
+
+func CompilerHarnessLinterPathKnown(path: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerHarnessLinterPathCount() {
+        if CompilerHarnessLinterPathAt(i) == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerHarnessLinterParityReady() -> Bool {
+    return CompilerHarnessLinterPathCount() > 0 &&
+        CompilerHarnessLinterParitySuiteName() != "" &&
+        CompilerHarnessLinterPathKnown(CompilerHarnessLinterToolSourcePath()) &&
+        CompilerHarnessLinterPathKnown(CompilerHarnessLinterExpectedDiagnosticsPath()) &&
+        CompilerHarnessLinterPathKnown(CompilerHarnessLinterFixturePath()) &&
+        CompilerHarnessLinterPathAt(CompilerHarnessLinterPathCount()) == "";
+}
