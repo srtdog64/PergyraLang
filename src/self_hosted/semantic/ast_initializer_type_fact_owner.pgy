@@ -8,7 +8,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "expr_type_owner.pgy";
-import "builtin_signature_owner.pgy";
+import "ast_expression_environment_owner.pgy";
 
 struct SemanticAstInitializerTypeFacts {
     ok: Bool;
@@ -42,122 +42,6 @@ func SemanticAstInitializerTypeStructuralError(
     );
 }
 
-func SemanticAstInitializerScopeVisible(
-    arena: AstArena,
-    scope_node_id: Int,
-    use_node_id: Int
-) -> Bool {
-    let cursor: Option<Int> = Some(use_node_id);
-    let traversed: Int = 0;
-    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
-        let node_id: Int = UnwrapOption(cursor);
-        if node_id == scope_node_id {
-            return true;
-        }
-        cursor = TypedAstArenaParentId(arena, node_id);
-        traversed = traversed + 1;
-    }
-    return false;
-}
-
-func SemanticAstInitializerFunctionTables(
-    signatures: SemanticAstFunctionSignatureFacts,
-    inout names: Array<String>,
-    inout returns: Array<String>
-) -> Bool {
-    let builtin_params: Array<String> = [];
-    if !SeedSemanticBuiltinSignatures(names, returns, builtin_params) {
-        return false;
-    }
-    let i: Int = 0;
-    while i < SemanticAstFunctionSignatureCount(signatures) {
-        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
-        let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
-            signatures, i
-        );
-        if !IsSome(name) || !IsSome(return_type) {
-            return false;
-        }
-        ArrayPush(names, UnwrapOption(name));
-        ArrayPush(returns, UnwrapOption(return_type));
-        i = i + 1;
-    }
-    return true;
-}
-
-func SemanticAstInitializerSeedParameters(
-    signatures: SemanticAstFunctionSignatureFacts,
-    function_node_id: Int,
-    inout names: Array<String>,
-    inout types: Array<String>
-) -> Bool {
-    let signature_index_opt: Option<Int> =
-        SemanticAstFunctionSignatureIndexForNode(
-            signatures, function_node_id
-        );
-    if !IsSome(signature_index_opt) {
-        return false;
-    }
-    let signature_index: Int = UnwrapOption(signature_index_opt);
-    let count_opt: Option<Int> = SemanticAstFunctionParamCountAt(
-        signatures, signature_index
-    );
-    if !IsSome(count_opt) {
-        return false;
-    }
-    let i: Int = 0;
-    while i < UnwrapOption(count_opt) {
-        let name: Option<String> = SemanticAstFunctionParamNameAt(
-            signatures, signature_index, i
-        );
-        let type_name: Option<String> = SemanticAstFunctionParamTypeAt(
-            signatures, signature_index, i
-        );
-        if !IsSome(name) || !IsSome(type_name) {
-            return false;
-        }
-        ArrayPush(names, UnwrapOption(name));
-        ArrayPush(types, UnwrapOption(type_name));
-        i = i + 1;
-    }
-    return true;
-}
-
-func SemanticAstInitializerSeedPriorLocals(
-    artifact: AstTreeArtifact,
-    locals: SemanticAstLocalBindingFacts,
-    inferred_types: Array<String>,
-    current_index: Int,
-    inout names: Array<String>,
-    inout types: Array<String>
-) -> Bool {
-    let current_node_id: Int = locals.node_ids[current_index];
-    let current_function_id: Int = locals.function_node_ids[current_index];
-    let i: Int = 0;
-    while i < current_index {
-        if locals.function_node_ids[i] == current_function_id &&
-            SemanticAstInitializerScopeVisible(
-                artifact.arena, locals.scope_node_ids[i], current_node_id
-            ) {
-            let type_name: String = "";
-            let declared: Option<String> =
-                SemanticAstLocalBindingDeclaredTypeAt(locals, i);
-            if IsSome(declared) {
-                type_name = UnwrapOption(declared);
-            } else if i < ArrayLength(inferred_types) {
-                type_name = inferred_types[i];
-            }
-            if type_name == "" {
-                return false;
-            }
-            ArrayPush(names, locals.names[i]);
-            ArrayPush(types, type_name);
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
 func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
@@ -174,7 +58,7 @@ func SemanticAstInitializerTypeFactsFromArtifact(
 
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
-    if !SemanticAstInitializerFunctionTables(
+    if !SemanticAstExpressionFunctionTables(
         signatures, function_names, function_returns
     ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
@@ -190,10 +74,11 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     while i < SemanticAstLocalBindingCount(locals) {
         let names: Array<String> = [];
         let types: Array<String> = [];
-        if !SemanticAstInitializerSeedParameters(
+        if !SemanticAstExpressionSeedParameters(
             signatures, locals.function_node_ids[i], names, types
-        ) || !SemanticAstInitializerSeedPriorLocals(
-            artifact, locals, inferred_type_names, i, names, types
+        ) || !SemanticAstExpressionSeedVisibleLocals(
+            artifact, locals, inferred_type_names,
+            locals.function_node_ids[i], locals.node_ids[i], names, types
         ) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }

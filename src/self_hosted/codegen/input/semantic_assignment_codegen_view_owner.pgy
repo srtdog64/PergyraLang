@@ -1,0 +1,74 @@
+// Codegen projection over semantic-owned assignment rows.
+
+import "../../semantic/ast_assignment_fact_owner.pgy";
+
+func CodegenSemanticAssignmentIndexOrDie(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> Int {
+    let index_opt: Option<Int> = SemanticAstAssignmentIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index_opt) {
+        Die(Concat(
+            "missing semantic assignment fact for AST node: ",
+            ToString(node_id)
+        ));
+    }
+    return UnwrapOption(index_opt);
+}
+
+func CodegenSemanticAssignmentTargetOrDie(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> String {
+    return facts.target_texts[
+        CodegenSemanticAssignmentIndexOrDie(facts, node_id)
+    ];
+}
+
+func CodegenSemanticAssignmentValueOrDie(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> String {
+    return facts.value_texts[
+        CodegenSemanticAssignmentIndexOrDie(facts, node_id)
+    ];
+}
+
+func CodegenSemanticAssignmentTargetIsIndex(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> Bool {
+    return facts.target_is_indexed[
+        CodegenSemanticAssignmentIndexOrDie(facts, node_id)
+    ] == 1;
+}
+
+func CodegenSemanticAssignmentIndexReceiverOrDie(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticAssignmentIndexOrDie(facts, node_id);
+    if facts.target_is_indexed[index] != 1 {
+        Die(Concat(
+            "expected indexed semantic assignment fact for AST node: ",
+            ToString(node_id)
+        ));
+    }
+    return facts.target_base_names[index];
+}
+
+func CodegenSemanticAssignmentIndexExprOrDie(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticAssignmentIndexOrDie(facts, node_id);
+    if facts.target_is_indexed[index] != 1 {
+        Die(Concat(
+            "expected indexed semantic assignment fact for AST node: ",
+            ToString(node_id)
+        ));
+    }
+    return facts.target_index_texts[index];
+}

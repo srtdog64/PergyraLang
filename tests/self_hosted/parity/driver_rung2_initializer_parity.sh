@@ -92,8 +92,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && fixture_rows+=("$line")
 done <"$FIXTURE_ROWS"
-if [[ "${#fixture_rows[@]}" -ne 6 ]]; then
-    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 6" >&2
+if [[ "${#fixture_rows[@]}" -ne 10 ]]; then
+    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 10" >&2
     exit 1
 fi
 
@@ -169,4 +169,4 @@ if [[ "$ran" -eq 0 ]]; then
     echo "[self-host-parity:driver-rung2] no backend ran" >&2
     exit 1
 fi
-echo "[self-host-parity:driver-rung2] initializer verdict parity ok: backends=$ran fixtures=${#fixture_rows[@]}"
+echo "[self-host-parity:driver-rung2] initializer/assignment verdict parity ok: backends=$ran fixtures=${#fixture_rows[@]}"

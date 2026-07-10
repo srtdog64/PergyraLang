@@ -6,6 +6,25 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-10 - Assignment payload and type verdict become semantic facts
+
+- Added `SemanticAstAssignmentFacts` as the sole artifact owner of assignment
+  function/scope, target/base/index, and RHS rows. Codegen now consumes those
+  rows through `semantic_assignment_codegen_view_owner.pgy`; the two earlier
+  codegen AST assignment readers were deleted and ratcheted against return.
+- Extracted artifact expression environment construction so initializer and
+  assignment type verdicts consume the same parameter, lexical scope, visible
+  local, builtin, and user-function facts.
+- Added `SemanticAstAssignmentTypeFacts` and made DRV-2 fail closed on missing,
+  unresolved, undefined-target, or mismatched assignment evidence. The C/LLVM
+  parity frontier now includes normal and nested reassignment plus type and
+  target rejection fixtures.
+- Remaining hard semantic work is expression-use validation, return/condition
+  body verdicts, and CFG/MIR lowering. Those must consume owned artifact facts;
+  the source-scanning checker remains an oracle only.
+- The owner split raises the production completeness inventory and every M2
+  minimum from 232 to 235; all production owners remain under 600 lines.
+
 ## 2026-07-10 - Initializer typing becomes a hard driver fact
 
 - Added `SemanticAstInitializerTypeFacts` as the sole artifact-native owner of

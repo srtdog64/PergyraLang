@@ -167,9 +167,10 @@ variant splitting is not a projection responsibility.
 `input/ast_text_try_let_owner.pgy` owns transitional `(?expr)` let-initializer
 facts and inner-expression extraction. The typed arena stores the initializer
 value row; it does not interpret try propagation syntax.
-`input/ast_text_indexed_assignment_owner.pgy` owns transitional indexed
-assignment target facts. The typed arena stores the assignment target atom; it
-does not split receiver/index expressions.
+`../semantic/ast_assignment_fact_owner.pgy` owns assignment target, receiver,
+index, and RHS rows. `input/semantic_assignment_codegen_view_owner.pgy`
+projects those rows fail-closed; codegen does not reinterpret assignment arena
+payloads.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

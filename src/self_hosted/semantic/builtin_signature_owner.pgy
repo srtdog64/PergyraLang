@@ -1,7 +1,7 @@
 // Canonical self-host semantic builtin signature table.
 
 func SemanticBuiltinSignatureRows() -> Array<String> {
-    return [
+    let rows: Array<String> = [
         "StringLength^Int^String",
         "StringIndexOf^Int^String|String",
         "ArrayLength^Int^Unknown",
@@ -79,6 +79,7 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Unwrap^Unknown^Unknown",
         "UnwrapOr^Unknown^Unknown|Unknown"
     ];
+    return rows;
 }
 
 func SeedSemanticBuiltinSignatures(

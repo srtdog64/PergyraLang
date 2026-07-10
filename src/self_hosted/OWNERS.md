@@ -85,6 +85,14 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and initializer payload facts without source re-scanning.
+- `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
+  artifact-native function, parameter, visible-local, and lexical scope
+  environment construction for expression verdict owners.
+- `src/self_hosted/semantic/ast_assignment_fact_owner.pgy` -- artifact-bound
+  assignment node, function, scope, target/base/index, and RHS payload facts.
+- `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` -- fail-closed
+  assignment type verdicts joined from assignment, initializer, signature,
+  and lexical environment facts.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/builtin_signature_owner.pgy` -- canonical builtin
   name, return-type, and parameter-type rows shared by source and artifact
@@ -94,6 +102,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks
   and verdict payload contract facts.
 - `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
+- `src/self_hosted/semantic/expression_normalization_owner.pgy` -- semantic
+  expression wrapper normalization shared before type and validation facts.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function signature checks.
@@ -151,9 +161,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
 - `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.
 - `src/self_hosted/codegen/input/ast_text_try_let_owner.pgy` -- AST text try-let initializer shape and inner-expression facts.
-- `src/self_hosted/codegen/input/ast_text_indexed_assignment_owner.pgy` -- AST text indexed assignment target shape, receiver, and index-expression facts.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
-- `src/self_hosted/codegen/input/ast_text_assignment_owner.pgy` -- AST text assignment target and RHS facts.
+- `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.
 - `src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy` -- AST text `For` loop variable, range, and foreach collection facts.
 - `src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy` -- AST text single-payload statement argument/condition facts.
 - `src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy` -- AST text `ArrayPush` and `ArraySet` statement payload facts.

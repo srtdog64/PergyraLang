@@ -1,0 +1,314 @@
+// Semantic assignment type verdicts derived from artifact-owned facts.
+//
+// This owner joins assignment rows with signature, scope, local, and
+// initializer type facts. Unknown types fail closed; no backend guesses them.
+
+import "ast_assignment_fact_owner.pgy";
+import "../lib/source_scan_owner.pgy";
+import "ast_expression_environment_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "expr_type_owner.pgy";
+
+struct SemanticAstAssignmentTypeFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    target_texts: Array<String>;
+    expected_type_names: Array<String>;
+    inferred_type_names: Array<String>;
+    verified: Array<Int>;
+    diagnostic_codes: Array<String>;
+    diagnostic_messages: Array<String>;
+}
+
+func SemanticAstAssignmentTypeStructuralError(
+    artifact: AstTreeArtifact
+) -> SemanticAstAssignmentTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstAssignmentTypeFacts(
+        false,
+        "ast_artifact_invalid",
+        SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstAssignmentTypeFacts"
+        ),
+        artifact.count,
+        empty_ints, empty_strings, empty_strings, empty_strings, empty_ints,
+        empty_strings, empty_strings
+    );
+}
+
+func SemanticAstAssignmentArrayElementType(type_name: String) -> String {
+    if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
+        SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
+        return Substring(type_name, 6, StringLength(type_name) - 7);
+    }
+    return "";
+}
+
+func SemanticAstAssignmentTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    assignments: SemanticAstAssignmentFacts
+) -> SemanticAstAssignmentTypeFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
+            artifact, signatures, locals, initializer_types
+        ) || !SemanticAstAssignmentFactsMatchArtifact(
+            artifact, signatures, assignments
+        ) {
+        return SemanticAstAssignmentTypeStructuralError(artifact);
+    }
+
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        signatures, function_names, function_returns
+    ) {
+        return SemanticAstAssignmentTypeStructuralError(artifact);
+    }
+
+    let node_ids: Array<Int> = [];
+    let target_texts: Array<String> = [];
+    let expected_type_names: Array<String> = [];
+    let inferred_type_names: Array<String> = [];
+    let verified: Array<Int> = [];
+    let diagnostic_codes: Array<String> = [];
+    let diagnostic_messages: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstAssignmentCount(assignments) {
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        if !SemanticAstExpressionSeedParameters(
+            signatures, assignments.function_node_ids[i], names, types
+        ) || !SemanticAstExpressionSeedVisibleLocals(
+            artifact, locals, initializer_types.inferred_type_names,
+            assignments.function_node_ids[i], assignments.node_ids[i],
+            names, types
+        ) {
+            return SemanticAstAssignmentTypeStructuralError(artifact);
+        }
+
+        let target_base: String = assignments.target_base_names[i];
+        let expected: String = "";
+        let inferred: String = "Unknown";
+        let row_verified: Int = 0;
+        let row_code: String = "";
+        let row_message: String = "";
+        if !EnvContainsName(names, target_base) {
+            row_code = "undefined_symbol";
+            row_message = SemanticError1(
+                "undefined_symbol", "name", target_base
+            );
+        } else {
+            expected = EnvLookup(names, types, target_base);
+            if assignments.target_is_indexed[i] == 1 {
+                let element_type: String =
+                    SemanticAstAssignmentArrayElementType(expected);
+                let index_type: String = ExprType(
+                    assignments.target_index_texts[i], names, types,
+                    function_names, function_returns
+                );
+                if element_type == "" || index_type != "Int" {
+                    expected = element_type;
+                    row_code = "assignment_type_unresolved";
+                    row_message = SemanticError2(
+                        "assignment_type_unresolved",
+                        "target", assignments.target_texts[i],
+                        "value", assignments.value_texts[i]
+                    );
+                } else {
+                    expected = element_type;
+                }
+            }
+            if row_code == "" {
+                inferred = ExprType(
+                    assignments.value_texts[i], names, types,
+                    function_names, function_returns
+                );
+                if inferred == "Unknown" || inferred == "" {
+                    row_code = "assignment_type_unresolved";
+                    row_message = SemanticError2(
+                        "assignment_type_unresolved",
+                        "target", assignments.target_texts[i],
+                        "value", assignments.value_texts[i]
+                    );
+                } else if !ExpressionAssignableTo(
+                    expected, inferred, assignments.value_texts[i]
+                ) {
+                    row_code = "assign_type_mismatch";
+                    row_message = SemanticError2(
+                        "assign_type_mismatch",
+                        "expected", expected,
+                        "actual", inferred
+                    );
+                } else {
+                    row_verified = 1;
+                }
+            }
+        }
+        ArrayPush(node_ids, assignments.node_ids[i]);
+        ArrayPush(target_texts, assignments.target_texts[i]);
+        ArrayPush(expected_type_names, expected);
+        ArrayPush(inferred_type_names, inferred);
+        ArrayPush(verified, row_verified);
+        ArrayPush(diagnostic_codes, row_code);
+        ArrayPush(diagnostic_messages, row_message);
+        i = i + 1;
+    }
+    return SemanticAstAssignmentTypeFacts(
+        true, "", "", artifact.count, node_ids, target_texts,
+        expected_type_names, inferred_type_names, verified,
+        diagnostic_codes, diagnostic_messages
+    );
+}
+
+func SemanticAstAssignmentTypesAllVerified(
+    facts: SemanticAstAssignmentTypeFacts
+) -> Bool {
+    if !facts.ok {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstAssignmentFirstDiagnosticCode(
+    facts: SemanticAstAssignmentTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_code;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_codes[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstAssignmentFirstDiagnosticMessage(
+    facts: SemanticAstAssignmentTypeFacts
+) -> String {
+    if !facts.ok {
+        return facts.diagnostic_message;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] != 1 {
+            return facts.diagnostic_messages[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SemanticAstAssignmentTypeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    assignments: SemanticAstAssignmentFacts,
+    facts: SemanticAstAssignmentTypeFacts
+) -> Bool {
+    let rebuilt: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            artifact, signatures, locals, initializer_types, assignments
+        );
+    let n: Int = ArrayLength(facts.node_ids);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(rebuilt.node_ids) != n ||
+        ArrayLength(facts.target_texts) != n ||
+        ArrayLength(facts.expected_type_names) != n ||
+        ArrayLength(facts.inferred_type_names) != n ||
+        ArrayLength(facts.verified) != n ||
+        ArrayLength(facts.diagnostic_codes) != n ||
+        ArrayLength(facts.diagnostic_messages) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.target_texts[i] != facts.target_texts[i] ||
+            rebuilt.expected_type_names[i] != facts.expected_type_names[i] ||
+            rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
+            rebuilt.verified[i] != facts.verified[i] ||
+            rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Let: xs : Array<Int> = [1]\n        Assign: xs[0] = x\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(valid);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
+    let initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(valid, signatures, locals);
+    let assignments: SemanticAstAssignmentFacts =
+        SemanticAstAssignmentFactsFromArtifact(valid, signatures);
+    let valid_facts: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            valid, signatures, locals, initializers, assignments
+        );
+    if !SemanticAstAssignmentTypeFactsMatchArtifact(
+        valid, signatures, locals, initializers, assignments, valid_facts
+    ) || !SemanticAstAssignmentTypesAllVerified(valid_facts) ||
+        ArrayLength(valid_facts.node_ids) != 2 ||
+        valid_facts.expected_type_names[0] != "Int" ||
+        valid_facts.expected_type_names[1] != "Int" {
+        return false;
+    }
+
+    let mismatch: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = \"bad\"\n"
+    );
+    let mismatch_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(mismatch);
+    let mismatch_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            mismatch, mismatch_signatures
+        );
+    let mismatch_initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            mismatch, mismatch_signatures, mismatch_locals
+        );
+    let mismatch_assignments: SemanticAstAssignmentFacts =
+        SemanticAstAssignmentFactsFromArtifact(
+            mismatch, mismatch_signatures
+        );
+    let mismatch_facts: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            mismatch, mismatch_signatures, mismatch_locals,
+            mismatch_initializers, mismatch_assignments
+        );
+    return !SemanticAstAssignmentTypesAllVerified(mismatch_facts) &&
+        SemanticAstAssignmentFirstDiagnosticCode(mismatch_facts) ==
+            "assign_type_mismatch";
+}

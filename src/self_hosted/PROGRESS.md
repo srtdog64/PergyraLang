@@ -129,7 +129,7 @@ struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
 The M2 completeness ledger now checks
-232 production self-host source files across lexer, parser, semantic, codegen,
+235 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -585,7 +585,7 @@ The realistic incremental path toward genuine self-host:
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
    on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 232 production self-host
+   The M2 completeness ledger also now checks all 235 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

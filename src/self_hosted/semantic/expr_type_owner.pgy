@@ -2,6 +2,7 @@
 
 import "text_scan_owner.pgy";
 import "env_owner.pgy";
+import "expression_normalization_owner.pgy";
 
 func IsIdentText(text: String) -> Bool {
     if StringLength(text) == 0 {
@@ -525,7 +526,7 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     return false;
 }
 func ExprType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
-    let text: String = Trim(expr);
+    let text: String = SemanticStripOuterParens(expr);
     if StringLength(text) == 0 {
         return "Void";
     }

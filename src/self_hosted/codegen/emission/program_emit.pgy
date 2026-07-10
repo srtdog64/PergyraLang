@@ -240,6 +240,8 @@ func GenerateCUnitFromSemanticArtifact(
         semantic_analysis.signatures;
     let local_bindings: SemanticAstLocalBindingFacts =
         semantic_analysis.local_bindings;
+    let assignments: SemanticAstAssignmentFacts =
+        semantic_analysis.assignments;
     let main_scan: Int = 0;
     while main_scan < count {
         // `event` declarations have no handler/dispatch model in this codegen.
@@ -299,7 +301,8 @@ func GenerateCUnitFromSemanticArtifact(
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(
-                        count, arena, signatures, local_bindings, cur, method_indent,
+                        count, arena, signatures, local_bindings, assignments,
+                        cur, method_indent,
                         base_env, uses_args
                     );
                     defs = Concat(defs, Concat(mdef, "\n"));
@@ -314,7 +317,8 @@ func GenerateCUnitFromSemanticArtifact(
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(
-                        count, arena, signatures, local_bindings, cur, role_method_indent,
+                        count, arena, signatures, local_bindings, assignments,
+                        cur, role_method_indent,
                         base_env, uses_args
                     );
                     defs = Concat(defs, Concat(role_mdef, "\n"));
@@ -324,7 +328,8 @@ func GenerateCUnitFromSemanticArtifact(
             }
         } else if CodegenAstArenaIsFunction(arena, cur[0]) && cur_indent == f_indent {
             let def: String = EmitFunction(
-                count, arena, signatures, local_bindings, cur, f_indent, base_env, uses_args
+                count, arena, signatures, local_bindings, assignments,
+                cur, f_indent, base_env, uses_args
             );
             defs = Concat(defs, Concat(def, "\n"));
         } else {

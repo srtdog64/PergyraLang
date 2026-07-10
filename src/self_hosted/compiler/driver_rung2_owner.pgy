@@ -6,11 +6,16 @@
 
 import "driver_pipeline_owner.pgy";
 import "../semantic/ast_initializer_type_fact_owner.pgy";
+import "../semantic/ast_assignment_type_fact_owner.pgy";
 
 func CompilerDriverRung2Ready() -> Bool {
     return CompilerDriverPipelineReady() &&
         SemanticBuiltinSignatureContractReady() &&
-        SemanticAstInitializerTypeFactsContractReady();
+        SemanticExpressionNormalizationContractReady() &&
+        SemanticAstExpressionEnvironmentContractReady() &&
+        SemanticAstInitializerTypeFactsContractReady() &&
+        SemanticAstAssignmentFactsContractReady() &&
+        SemanticAstAssignmentTypeFactsContractReady();
 }
 
 func DriverRung2FixtureRows() -> Array<String> {
@@ -18,14 +23,18 @@ func DriverRung2FixtureRows() -> Array<String> {
         "valid_compound_local|ok",
         "valid_call_int|ok",
         "valid_option_none_literal|ok",
+        "valid_let_mut_reassign|ok",
+        "valid_outer_block_assign|ok",
         "bad_let_type|error",
         "bad_inner_let_type|error",
-        "bad_call_assign|error"
+        "bad_call_assign|error",
+        "bad_assign_type|error",
+        "bad_undefined_assign_lhs|error"
     ];
 }
 
 func DriverRung2ExpectedFixtureCount() -> Int {
-    return 6;
+    return 10;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -63,6 +72,22 @@ func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
     }
     if !SemanticAstInitializerTypesAllVerified(initializer_types) {
         Log(SemanticAstInitializerFirstDiagnosticMessage(initializer_types));
+        Exit(1);
+    }
+    let assignment_types: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            artifact,
+            semantic_analysis.signatures,
+            semantic_analysis.local_bindings,
+            initializer_types,
+            semantic_analysis.assignments
+        );
+    if !assignment_types.ok {
+        Log(assignment_types.diagnostic_message);
+        Exit(1);
+    }
+    if !SemanticAstAssignmentTypesAllVerified(assignment_types) {
+        Log(SemanticAstAssignmentFirstDiagnosticMessage(assignment_types));
         Exit(1);
     }
     return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
