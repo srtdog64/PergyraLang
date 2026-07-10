@@ -86,6 +86,7 @@ require_text "docs/semantics/pass_contract_manifest.md" "dag_type_resolution | s
 require_text "docs/semantics/pass_contract_manifest.md" "mir_decl_bootstrap_parity | src/codegen/llvm_decl.c | tests/mir_declaration_inventory_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "abi_slot_pin_layout | src/compiler/mir_abi_layout.c | tests/abi_ownership_shape_smoke.sh | gate-backed"
 require_text "docs/semantics/pass_contract_manifest.md" "boundary_owner_migration | docs/semantics/boundary_migration_manifest.md | tests/boundary_migration_contract_smoke.sh | gate-backed"
+require_text "docs/semantics/pass_contract_manifest.md" "merged_program_syntax_identity | src/parser/ast_identity.c | tests/stable_identity_contract_smoke.sh | gate-backed-partial"
 require_text "docs/semantics/pass_contract_manifest.md" "required_facts"
 require_text "docs/semantics/pass_contract_manifest.md" "preserved_facts"
 require_text "docs/semantics/pass_contract_manifest.md" "invalidated_facts"

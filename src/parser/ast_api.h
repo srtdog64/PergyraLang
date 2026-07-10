@@ -11,7 +11,7 @@
 
 /* AST creation functions */
 ASTNode* ast_create_program(void);
-void ast_assign_stable_ids(ASTNode* root);
+bool ast_assign_stable_ids(ASTNode* root);
 uint32_t ast_node_stable_id(const ASTNode* node);
 size_t ast_program_statement_count(const ASTNode* node);
 ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);

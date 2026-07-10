@@ -83,6 +83,7 @@ mandatory_targets=(
     "backend-fail-closed-test-smoke"
     "language-contract-golden-test-smoke"
     "boundary-migration-test-smoke"
+    "stable-identity-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

@@ -7,32 +7,34 @@
 
 #include <stdint.h>
 
-static void ast_assign_node(ASTNode *node, uint32_t *next_id);
+typedef struct {
+    uint64_t next_id;
+    bool exhausted;
+} AstIdentityState;
+
+static void ast_assign_node(ASTNode *node, AstIdentityState *next_id);
 
 static uint32_t
-ast_take_stable_id(uint32_t *next_id)
+ast_take_stable_id(AstIdentityState *next_id)
 {
-    uint32_t id;
-
-    if (next_id == NULL)
+    if (next_id == NULL || next_id->exhausted)
         return 0;
-    if (*next_id == 0)
-        *next_id = 1;
-    id = *next_id;
-    if (*next_id < UINT32_MAX)
-        (*next_id)++;
-    return id;
+    if (next_id->next_id == 0 || next_id->next_id > UINT32_MAX) {
+        next_id->exhausted = true;
+        return 0;
+    }
+    return (uint32_t)next_id->next_id++;
 }
 
 static void
-ast_assign_array(ASTNode **nodes, size_t count, uint32_t *next_id)
+ast_assign_array(ASTNode **nodes, size_t count, AstIdentityState *next_id)
 {
     for (size_t i = 0; i < count; i++)
         ast_assign_node(nodes != NULL ? nodes[i] : NULL, next_id);
 }
 
 static void
-ast_assign_generic_params(GenericParams *params, uint32_t *next_id)
+ast_assign_generic_params(GenericParams *params, AstIdentityState *next_id)
 {
     if (params == NULL)
         return;
@@ -46,7 +48,7 @@ ast_assign_generic_params(GenericParams *params, uint32_t *next_id)
 }
 
 static void
-ast_assign_where_clause(WhereClause *where, uint32_t *next_id)
+ast_assign_where_clause(WhereClause *where, AstIdentityState *next_id)
 {
     if (where == NULL)
         return;
@@ -60,7 +62,7 @@ ast_assign_where_clause(WhereClause *where, uint32_t *next_id)
 }
 
 static void
-ast_assign_params(FuncParam **params, size_t count, uint32_t *next_id)
+ast_assign_params(FuncParam **params, size_t count, AstIdentityState *next_id)
 {
     for (size_t i = 0; i < count; i++) {
         FuncParam *param = params != NULL ? params[i] : NULL;
@@ -72,7 +74,7 @@ ast_assign_params(FuncParam **params, size_t count, uint32_t *next_id)
 }
 
 static void
-ast_assign_fields(ClassField **fields, size_t count, uint32_t *next_id)
+ast_assign_fields(ClassField **fields, size_t count, AstIdentityState *next_id)
 {
     for (size_t i = 0; i < count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
@@ -82,7 +84,7 @@ ast_assign_fields(ClassField **fields, size_t count, uint32_t *next_id)
 }
 
 static void
-ast_assign_enum_variant_params(ASTNode *node, uint32_t *next_id)
+ast_assign_enum_variant_params(ASTNode *node, AstIdentityState *next_id)
 {
     if (node == NULL || node->type != AST_ENUM_DECL)
         return;
@@ -98,7 +100,7 @@ ast_assign_enum_variant_params(ASTNode *node, uint32_t *next_id)
 }
 
 static void
-ast_assign_decl_methods(ASTNode *node, uint32_t *next_id)
+ast_assign_decl_methods(ASTNode *node, AstIdentityState *next_id)
 {
     ASTNode **methods = NULL;
     size_t method_count = 0;
@@ -155,12 +157,14 @@ ast_assign_decl_methods(ASTNode *node, uint32_t *next_id)
 }
 
 static void
-ast_assign_node(ASTNode *node, uint32_t *next_id)
+ast_assign_node(ASTNode *node, AstIdentityState *next_id)
 {
     if (node == NULL)
         return;
 
     node->stable_id = ast_take_stable_id(next_id);
+    if (next_id == NULL || next_id->exhausted)
+        return;
 
     switch (node->type) {
     case AST_PROGRAM:
@@ -554,12 +558,16 @@ ast_assign_node(ASTNode *node, uint32_t *next_id)
     }
 }
 
-void
+bool
 ast_assign_stable_ids(ASTNode *root)
 {
-    uint32_t next_id = 1;
+    AstIdentityState next_id = {
+        .next_id = 1,
+        .exhausted = false,
+    };
 
     ast_assign_node(root, &next_id);
+    return !next_id.exhausted;
 }
 
 uint32_t

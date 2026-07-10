@@ -48,6 +48,10 @@ Required shape for each proof document:
 - [19_theoretical_foundations.md](19_theoretical_foundations.md): theory-lineage bibliography + synthesis boundary. Maps each Pergyra axis to established theory while explicitly stating that a citation is a lineage anchor, not a whole-language proof. The open work is the Pergyra abstract machine/core calculus.
 - [21_basis_convergence_triangulation.md](21_basis_convergence_triangulation.md): M3 basis-selection argument. Records the five independent traditions (game, DDD, BDI/MAS, upper ontology, logic/PL) that converge on Pergyra's world/zone/intent/role vocabulary, while keeping the claim at thesis level.
 - [22_axis_macro_expressibility.md](22_axis_macro_expressibility.md): M1 axis macro-expressibility argument. Records which axes have a strong static rejection or erasure observation, and which axes remain weak.
+- [23_compiler_stable_identity.md](23_compiler_stable_identity.md): partial,
+  gate-backed `SyntaxNodeId` contract for parser results and final imported
+  programs, including post-merge reassignment, duplicate rejection, and
+  overflow fail-close behavior.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 
 Mechanized artifacts:

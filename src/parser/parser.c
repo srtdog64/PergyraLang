@@ -453,7 +453,11 @@ ASTNode* parser_parse_program(Parser* parser) {
 
     parser_synthesize_implicit_main(parser, program);
 
-    ast_assign_stable_ids(program);
+    if (!ast_assign_stable_ids(program)) {
+        parser_error(parser, "Syntax node identity space exhausted.");
+        ast_destroy(program);
+        return NULL;
+    }
     return program;
 }
 

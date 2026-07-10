@@ -1,0 +1,5 @@
+func ApplyA(n: Int) -> Int {
+    let offset: Int = 1;
+    let add: func(Int) -> Int = (x: Int) => x + offset;
+    return add(n);
+}

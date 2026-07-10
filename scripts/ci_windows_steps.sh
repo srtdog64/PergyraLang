@@ -28,6 +28,7 @@ fi
 run 'make beta-test-suite-freeze-test-smoke'
 run 'make language-contract-golden-test-smoke'
 run 'make boundary-migration-test-smoke'
+run 'PGY_STABLE_IDENTITY_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" stable-identity-test-smoke'
 run 'make documentation-quality-test-smoke'
 run 'make abstraction-loss-contract-test-smoke'
 run 'make debug-hygiene-test-smoke'

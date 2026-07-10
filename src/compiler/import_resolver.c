@@ -323,6 +323,12 @@ import_resolver_load_program(const char *source_path, char **error_message)
                                             NULL,
                                             "",
                                             error_message);
+    if (program != NULL && !ast_assign_stable_ids(program)) {
+        set_error(error_message,
+                  "syntax node identity space exhausted after import merge");
+        ast_destroy(program);
+        program = NULL;
+    }
     import_stack_destroy(&stack);
     import_stack_destroy(&loaded);
     import_stack_destroy(&loaded_stdlib_modules);

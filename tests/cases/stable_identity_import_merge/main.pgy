@@ -1,0 +1,7 @@
+import "a.pgy";
+import "b.pgy";
+
+func Main() -> Void {
+    Log(ApplyA(10));
+    Log(ApplyB(10));
+}
