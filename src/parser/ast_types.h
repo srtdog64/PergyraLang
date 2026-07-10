@@ -74,6 +74,17 @@ typedef struct {
     LambdaCaptureMode mode;
 } LambdaCapture;
 
+/* Capture-disposition fact row on a parallel block (docs/178, docs/180 §6).
+ * Computed by the semantic checker (single producer) and stored on the
+ * parallel AST node; both backend emitters consume rows instead of
+ * re-deriving writer/eligibility analysis. One row means: captured binding
+ * `name` is snapshot-admitted — arm `writer_task` keeps the live location,
+ * every other arm reads the pre-parallel copy. */
+typedef struct {
+    char*  name;        /* captured binding (owned by the node) */
+    size_t writer_task; /* index of the single writer arm */
+} ASTParallelSnapshotRow;
+
 /* Structured comment tags */
 typedef enum {
     DOC_TAG_WHAT,

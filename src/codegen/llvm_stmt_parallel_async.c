@@ -153,6 +153,18 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     if (count == 0)
         return;
 
+    /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
+     * unsealed node never ran the checker, and re-deriving the analysis
+     * here is exactly the C/LLVM drift surface the migration removed. */
+    if (!ast_parallel_dispositions_sealed(node)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM parallel block reached the emitter without checker-sealed capture dispositions");
+        return;
+    }
+
     LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
         "pgy_lane_spawn_dispatch_export");
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
@@ -176,9 +188,11 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         bool slot_is_secure;
         /* docs/178 Copy evidence: single-writer primitive scalar read by
          * other arms -- reader arms load the pre-parallel snapshot field
-         * instead of the shared pointer. */
+         * instead of the shared pointer. Filled from the checker-sealed
+         * fact row, never derived here. */
         bool has_snapshot;
         unsigned snap_field;
+        size_t snap_writer_task;
     } CapturedVar;
     CapturedVar *captured = NULL;
     size_t capture_count = 0;
@@ -247,42 +261,36 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
                 llvm_lookup_slot_is_secure(ctx, frame->entries[j].name),
                 false,
+                0,
                 0
             };
         }
     }
 
-    /* docs/178 Copy evidence: a single-writer primitive scalar that other
-     * arms read gets a snapshot field appended after the pointer fields.
-     * Reader arms consume the pre-parallel value; the writer arm keeps the
-     * shared pointer. The checker admits exactly this shape via the same
-     * writer analysis (ast_statement_assigns_identifier); anything the
-     * checker admitted but this emitter cannot snapshot is a hard error,
-     * never a silent fallback to the shared pointer. */
+    /* docs/178 Copy evidence, consumed as checker facts: every snapshot
+     * row sealed on this node gets a snapshot field appended after the
+     * pointer fields. Reader arms consume the pre-parallel value; the
+     * writer arm keeps the shared pointer. This emitter performs no writer
+     * or eligibility analysis of its own; a row it cannot lower as a
+     * primitive scalar is a hard error, never a silent fallback to the
+     * shared pointer. */
     size_t n_snapshots = 0;
     for (size_t i = 0; i < n_captured; i++) {
         LLVMTypeRef vt = captured[i].type;
-        bool eligible = vt == ctx->type_i32 || vt == ctx->type_i64
-            || vt == ctx->type_f32 || vt == ctx->type_f64
-            || vt == ctx->type_i1;
-        size_t writer_tasks = 0;
-        size_t ref_tasks = 0;
+        const ASTParallelSnapshotRow *row;
 
-        /* Runtime-synchronized transports share safely by design. */
+        /* Runtime-synchronized transports share safely by design and
+         * never carry snapshot rows. */
         if (captured[i].channel_inner != NULL
             || captured[i].future_inner != NULL
             || captured[i].slot_inner != NULL)
             continue;
-        for (size_t t = 0; t < count; t++) {
-            ASTNode *task = ast_parallel_task(node, t);
-            if (ast_statement_assigns_identifier(task, captured[i].name))
-                writer_tasks++;
-            if (ast_contains_free_identifier_ref(task, captured[i].name))
-                ref_tasks++;
-        }
-        if (writer_tasks != 1 || ref_tasks < 2)
+        row = ast_parallel_snapshot_row_find(node, captured[i].name);
+        if (row == NULL)
             continue;
-        if (!eligible) {
+        if (!(vt == ctx->type_i32 || vt == ctx->type_i64
+              || vt == ctx->type_f32 || vt == ctx->type_f64
+              || vt == ctx->type_i1)) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -293,6 +301,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         }
         captured[i].has_snapshot = true;
         captured[i].snap_field = (unsigned)(n_captured + n_snapshots);
+        captured[i].snap_writer_task = row->writer_task;
         n_snapshots++;
     }
 
@@ -415,8 +424,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
              * shared pointer. The writer arm (and every non-snapshot
              * capture) keeps the pointer binding below. */
             if (captured[c].has_snapshot
-                && !ast_statement_assigns_identifier(
-                       ast_parallel_task(node, i), captured[c].name)) {
+                && i != captured[c].snap_writer_task) {
                 LLVMValueRef snap_gep = LLVMBuildStructGEP2(
                     ctx->builder, ctx_struct_type, ctx_ptr,
                     captured[c].snap_field, llvm_tmp_name(ctx));

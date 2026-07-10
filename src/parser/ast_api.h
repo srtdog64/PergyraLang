@@ -250,6 +250,16 @@ ASTNode* ast_async_block_statement(const ASTNode* node, size_t index);
 ASTNode** ast_parallel_tasks(const ASTNode* node, size_t* count_out);
 size_t ast_parallel_task_count(const ASTNode* node);
 ASTNode* ast_parallel_task(const ASTNode* node, size_t index);
+/* Capture-disposition facts on a parallel block (docs/178): the semantic
+ * checker is the single producer; backend emitters are consumers and fail
+ * closed on an unsealed node. */
+void ast_parallel_reset_dispositions(ASTNode* node);
+bool ast_parallel_add_snapshot_row(ASTNode* node, const char* name,
+                                   size_t writer_task);
+void ast_parallel_seal_dispositions(ASTNode* node);
+bool ast_parallel_dispositions_sealed(const ASTNode* node);
+const ASTParallelSnapshotRow* ast_parallel_snapshot_row_find(
+    const ASTNode* node, const char* name);
 ASTNode* ast_with_slot_type(const ASTNode* node);
 const char* ast_with_alias(const ASTNode* node);
 ASTNode* ast_with_body(const ASTNode* node);

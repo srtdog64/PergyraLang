@@ -118,20 +118,6 @@ transpiler_write_capture_value(TranspilerCtx *ctx, const char *name)
     free(c_name);
 }
 
-/* docs/178 Copy evidence: only primitive scalars are snapshot-eligible --
- * copying them cannot duplicate identity, ownership, or synchronization
- * state. Must match parallel_scalar_snapshot_eligible in the checker. */
-static bool
-transpiler_parallel_snapshot_eligible_type(const char *type_name)
-{
-    return type_name != NULL
-        && (strcmp(type_name, "Int") == 0
-            || strcmp(type_name, "Long") == 0
-            || strcmp(type_name, "Float") == 0
-            || strcmp(type_name, "Double") == 0
-            || strcmp(type_name, "Bool") == 0);
-}
-
 typedef struct TranspilerParallelWrapperState {
     CodeBuf *out;
     int indent;
@@ -214,6 +200,18 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     if (count == 0)
         return;
 
+    /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
+     * unsealed node never ran the checker, and re-deriving the analysis
+     * here is exactly the C/LLVM drift surface the migration removed. */
+    if (!ast_parallel_dispositions_sealed(node)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "parallel block reached the C emitter without checker-sealed capture dispositions");
+        return;
+    }
+
     unsigned int pid = ctx->parallel_id++;
 
     /* ---------------------------------------------------------------
@@ -235,32 +233,20 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
-    /* docs/178 Copy evidence: a `<name>__snap` value member is materialized
-     * for a single-writer primitive scalar that other arms read. Reader
-     * arms consume the pre-parallel value; the writer arm keeps the shared
-     * pointer (exclusive live location). The checker admits exactly this
-     * shape, so the analysis here must agree with it -- both consume
-     * ast_statement_assigns_identifier. */
+    /* docs/178 Copy evidence, consumed as checker facts: a `<name>__snap`
+     * value member is materialized for every snapshot row the checker
+     * sealed on this node. Reader arms consume the pre-parallel value; the
+     * writer arm keeps the shared pointer (exclusive live location). This
+     * emitter performs no writer or eligibility analysis of its own. */
     bool capture_typed_snap_needed[MAX_SLOT_VARS] = {0};
+    size_t capture_typed_snap_writer[MAX_SLOT_VARS] = {0};
     for (int ci = 0; ci < capture_typed_count; ci++) {
-        TypedVarEntry *snap_entry =
-            lookup_typed_entry(ctx, capture_typed_names[ci]);
-        const char *snap_type_name =
-            snap_entry != NULL ? snap_entry->type_name : NULL;
-        size_t writer_tasks = 0;
-        size_t ref_tasks = 0;
-        if (!transpiler_parallel_snapshot_eligible_type(snap_type_name))
+        const ASTParallelSnapshotRow *row =
+            ast_parallel_snapshot_row_find(node, capture_typed_names[ci]);
+        if (row == NULL)
             continue;
-        for (size_t t = 0; t < count; t++) {
-            ASTNode *task = ast_parallel_task(node, t);
-            if (ast_statement_assigns_identifier(task,
-                    capture_typed_names[ci]))
-                writer_tasks++;
-            if (ast_contains_free_identifier_ref(task,
-                    capture_typed_names[ci]))
-                ref_tasks++;
-        }
-        capture_typed_snap_needed[ci] = writer_tasks == 1 && ref_tasks >= 2;
+        capture_typed_snap_needed[ci] = true;
+        capture_typed_snap_writer[ci] = row->writer_task;
     }
 
     if (has_captures) {
@@ -372,9 +358,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         bool arm_snapshot[MAX_SLOT_VARS] = {0};
         for (int ci = 0; ci < capture_typed_count; ci++) {
             arm_snapshot[ci] = capture_typed_snap_needed[ci]
-                && !ast_statement_assigns_identifier(
-                       ast_parallel_task(node, i),
-                       capture_typed_names[ci]);
+                && i != capture_typed_snap_writer[ci];
         }
         transpiler_parallel_wrapper_state_enter(
             ctx, &wrapper_state, capture_slot_names, capture_slot_count,

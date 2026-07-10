@@ -133,6 +133,12 @@ struct ASTNode
             ASTNode** tasks;
             size_t    task_count;
             size_t    task_capacity;
+            /* Capture-disposition facts (docs/178): checker-sealed;
+             * emitters consume rows only and fail closed without the seal. */
+            ASTParallelSnapshotRow* snapshot_rows;
+            size_t    snapshot_row_count;
+            size_t    snapshot_row_capacity;
+            bool      dispositions_sealed;
         } parallel;
         
         /* For loop */

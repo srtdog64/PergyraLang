@@ -18397,9 +18397,12 @@ row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shad
 
 **신규 WO 2건 (아래 보드 아님 — 여기 등록, 착수 전 git status로 동시 세션
 충돌 확인 필수)**:
-- **WO-PAR-1 — capture-disposition fact 이주**: semantic이 parallel 노드당
-  처분 row 생산 → 양 백엔드 소비 → boundary_migration_manifest에 정식 row
-  (protocol 8단계). 판별 목격자 이미 존재(parallel_snapshot_read).
+- **WO-PAR-1 — capture-disposition fact 이주 — ✅ CODE CLOSED (2026-07-11)**:
+  `ASTParallelSnapshotRow{name,writer_task}`를 검사기가 생산+봉인, 양 백엔드
+  이미터는 row 소비만(자체 writer/자격 분석 삭제, 봉인 부재=hard error).
+  검증: transpile 918/0 · semantic 2794/0 · 동시성 compare 38/38 · 스모크
+  양 모드 green. 상세 = docs/178 §6. **잔여 1**: boundary_migration_manifest
+  정식 row — manifest가 동시 세션 dirty라 보류, clean 복귀 시 등록.
 - **WO-CI-1 — 신규 게이트 4종 CI 승격 — ✅ CLOSED (2026-07-11)**:
   parallel-disjoint / parallel-snapshot / ability-coherence /
   evidence-lifetime smoke를 세 플랫폼 ci_*_steps.sh에 배선(차단이던

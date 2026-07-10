@@ -173,6 +173,12 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || ctx == NULL)
         return false;
     task_count = ast_parallel_task_count(node);
+    /* This checker is the single producer of capture-disposition facts
+     * (docs/178, docs/180 §6): every admission below is recorded as a row
+     * on the node, and both backend emitters consume rows instead of
+     * re-deriving writer/eligibility analysis. Reset keeps re-checks
+     * idempotent. */
+    ast_parallel_reset_dispositions(node);
 
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
@@ -180,6 +186,7 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
             const char *tn;
             size_t writers = 0;
             size_t refs = 0;
+            size_t writer_task = 0;
 
             if (sym == NULL || sym->name == NULL)
                 continue;
@@ -199,8 +206,10 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
 
             for (size_t t = 0; t < task_count; t++) {
                 ASTNode *task = ast_parallel_task(node, t);
-                if (parallel_task_assigns_name(task, sym->name))
+                if (parallel_task_assigns_name(task, sym->name)) {
                     writers++;
+                    writer_task = t;
+                }
                 if (ast_contains_free_identifier_ref(task, sym->name))
                     refs++;
             }
@@ -243,8 +252,15 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
             /* writers == 1 && refs >= 2 && snapshot-eligible: admitted.
              * Reader arms receive the pre-parallel value by copy (Copy
              * evidence); the writer keeps the exclusive live location
-             * (Exclusivity). Both backends materialize the snapshot in
-             * the capture context. docs/178. */
+             * (Exclusivity). Both backends materialize the snapshot from
+             * the fact row recorded here. docs/178. */
+            if (writers == 1 && refs >= 2
+                && !ast_parallel_add_snapshot_row(node, sym->name,
+                                                  writer_task)) {
+                semantic_error(ctx, node,
+                    "Capture-disposition fact allocation failed while admitting parallel snapshot");
+                return true;
+            }
         }
     }
     return false;
@@ -327,6 +343,10 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
 
     if (parallel_reject_scalar_write_race(node, ctx))
         return false;
+    /* Every capture disposition is now recorded; the seal is what the
+     * backend emitters check before consuming (missing seal = the node
+     * bypassed this checker = hard error, never a silent re-derivation). */
+    ast_parallel_seal_dispositions(node);
 
     prev_parallel = ctx->in_parallel;
     ctx->in_parallel = true;

@@ -125,6 +125,28 @@ row**(binding × arm → PTR/SNAPSHOT/VALUE + 증거 종류)를 생산하고, �
 그 시점까지의 정합성은 단일 도출 함수 + 판별 목격자(`parallel_snapshot_read`
 — 처분이 갈라지면 42/42 or 발산으로 즉시 RED)가 지킨다.
 
+**✅ 이주 완료 (2026-07-11, WO-PAR-1).** 착지 형태:
+
+- **fact row**: `ASTParallelSnapshotRow{name, writer_task}` — 검사기가
+  admitted snapshot마다 parallel 노드에 기록(`ast_parallel_add_snapshot_row`),
+  검사 종료 시 **봉인**(`ast_parallel_seal_dispositions`). LambdaCapture
+  (docs/141, semantic이 AST 노드에 capture fact 저장)와 같은 house 패턴.
+- **소비**: C·LLVM 캡처 이미터는 row 조회만 한다 — 자체 writer/자격 분석
+  삭제(`ast_statement_assigns_identifier`의 백엔드 호출 0, 자격 술어는
+  검사기 단일 소유로 복귀; C 쪽 `transpiler_parallel_snapshot_eligible_type`
+  제거). reader/writer arm 판별은 `writer_task` 인덱스 비교.
+- **fail-closed 2중**: 봉인 없는 노드가 이미터에 도달 → 양 백엔드 hard
+  error("without checker-sealed capture dispositions"); row는 있는데 LLVM이
+  스칼라로 lower 못 함 → 기존 hard error 유지. 손조립 AST 유닛테스트는
+  봉인 의무를 명시적으로 인수.
+- **검증**: transpile 918/0 · semantic 2794/0 · parallel-snapshot/disjoint
+  스모크 양 모드 green · 동시성 계열 backend-compare 38/38(판별 목격자
+  `parallel_snapshot_read` 42/1 포함).
+- **잔여**: boundary_migration_manifest 정식 row 등록만 남음(2026-07-11
+  현재 manifest 파일이 동시 세션 dirty — clean 복귀 시 protocol대로 등록).
+  Disjointness(Slice 허용)는 "semantic 거절 통과 = 허용" 구조라 백엔드
+  재도출이 원래 없어 이주 대상 아님.
+
 ## Related
 
 docs/177(F1/F2 실측 + §8 copy-only 판정 — 본 문서가 F2의 상위 프레임) ·
