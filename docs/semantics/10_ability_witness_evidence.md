@@ -57,18 +57,20 @@ intent    checked by     contract    (실행요건 명제)
 denote하는 것 = "모든 동시성 경계 crossing은 *single-writer evidence*의 witness를
 carry한다." 즉 witness-IR이 곧 형식증명의 분모.
 
-## 3. 현재 상태 (구현 = reify + 연결, greenfield 아님)
+## 3. 현재 상태 (2026-07-10 정정 — §3 원본은 2026-06-20 스냅샷이었다)
 
 | 조각 | 현존 | 갭 |
 |---|---|---|
-| ability/role 표면 | 31 parser + 60 semantic 파일 | — |
-| ability satisfaction | `type_checker_ability_where.c` (`ability_generic_arg_satisfies`) — *암묵적 witness가 이미 거기* | **1급 IR witness로 reify** |
-| evidence | AIR (3파일, evidence-as-audit) | witness가 evidence를 produce/consume하게 연결 |
-| contract | intent 요건 (effect/authority/coordination, 432건) | witness가 contract 충족을 증명하게 연결 |
-| **witness IR/DAG** | **없음 (grep 0)** | **신규 — 핵심 작업** |
+| ability/role 표면 | 31 parser + 60 semantic 파일 + coherence 게이트(§4.1) | — |
+| ability satisfaction | `type_checker_ability_where.c` (`ability_generic_arg_satisfies`) | 1급 witness 노드로의 완전 reify는 진행형 |
+| evidence | AIR evidence graph — **`AIR_EVIDENCE_DAG_ABILITY` kind가 존재**(air_evidence_dag.c 생산, lifetime row는 evidence_kind_manifest.md) | 인용 확대(§6 시퀀스 4) |
+| contract | intent 요건 (effect/authority/coordination) | witness가 contract 충족을 증명하게 연결 |
+| witness (경계) | **`boundary_witness.{h,c}` 실물**(§8: OpAcqR/OpAcqW/OpRel 기록, WitnessDataRace.v와 동형) | slot 외 경계로 확대 |
 
-→ "전체 구현"의 실체: **기존 암묵 satisfaction-check를 named 1급 witness IR 노드로
-reify하고, ability/evidence/contract 체크가 witness를 생산·소비하게 잇는 것.** 바운디드.
+→ 원 §3의 "witness IR/DAG 없음 (grep 0)"은 **stale**: DAG ability evidence
+kind와 boundary witness가 착지했다(§8이 그 서술). 남은 갭은 "없음"이 아니라
+"부분 reify — 인용 연결의 완결"이다. docs/180 §3 AIR row(`EvidenceId` 발급)와
+정합.
 
 ## 4. 두 위험 — 결정적 규칙으로 닫아야 (락인 전 필수)
 
@@ -133,7 +135,7 @@ over-restriction 아님). 이 audit는 Pergyra 실제 경계 타이핑이 이 �
 |---|---|---|---|
 | spawn / async | body+capture **move/consume** | `step_move` | `type_checker_async_channel.c` (move/consume 다수); *익명 spawn 캡처는 fail-closed 제한* ("move the body into a named async function") |
 | channel send | ownership **transfer** | `step_move` | `slot_analyzer.c` (transfer own / channel send) |
-| parallel / slot-view / world | **cannot-cross** fail-closed | (forbid) | `type_checker_flow_parallel.c:156`, `type_checker_slot_view_boundary.c:49`, `world_roster.h` Borrowed-handle |
+| parallel / slot-view / world | **evidence-or-forbid** (2026-07-09 정정: 무증거 공유만 forbid; 증거 3종은 admission — 서로소 분할 view=Disjointness, 단일-writer 프리미티브의 reader=pre-parallel **snapshot copy**(`step_move`의 복사판 — reader는 원본과 절연), 단일-writer 배타=xor-mut의 write leg) | forbid + `step_move`(snapshot) + per-location 배타 | `type_checker_flow_parallel.c`(admission들), `type_checker_slot_view_boundary.c:49`, `world_roster.h`; 게이트: parallel-disjoint/snapshot-test-smoke. **WitnessDataRace.v 범위 주의**: 정리는 slot op 모델 — disjoint slice 쓰기는 *서로 다른 location*이라 xor-mut가 location별로 성립하고, scalar snapshot reader는 공유 자체가 없어(복사) 모델 밖에서 자명 |
 | borrowed handle (pin/view) | **배타적: 원본은 view/pin live 동안 write 불가** | single-writer 강제 | `type_checker_builtins_slotops.c:111` `"Cannot write slot while ... is live"` (`PGY_CAUSE_PIN_PARALLEL_CONFLICT`); `SlotCalculus.v` Pin Non-Eviction |
 | `shared` 필드 | **atomic**(동기화) | 메모리모델상 race-free | `docs/113:51` "atomic shared" |
 

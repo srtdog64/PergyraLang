@@ -84,6 +84,16 @@ lowering consume that shared policy instead of rebuilding local lists.
 `make worker-boundary-ub-test-smoke` pins the owner and requires semantic
 regressions for Array, Slice, HashMap, and Channel worker-boundary rejection.
 
+Refinement (2026-07-09, docs/178): evidence-carrying crossings are admitted
+through that same reject — a construction-guaranteed disjoint Slice split
+pair (Disjointness evidence, `parallel-disjoint-test-smoke`) and pre-parallel
+snapshot copies of single-writer primitive scalars (Copy evidence,
+`parallel-snapshot-test-smoke`). Slice views are fixed `{data,len}` spans, so
+the growable/rehash reason above does not apply to them; the parallel capture
+emitters therefore trust the semantic admission for slices while every
+evidence-free crossing keeps failing closed exactly as this section requires.
+Async blocks have no admission path and keep the full reject.
+
 Implementation checkpoint: `src/semantic/boundary_witness.{h,c}` records the
 C semantic checker's `OpAcqR`/`OpAcqW`/`OpRel` decisions in
 `PgyBoundaryWitnessSummary`, using the same shape as

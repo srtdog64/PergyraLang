@@ -18369,3 +18369,38 @@ BDFL 발의("어빌리티 다형성이 잘된 건지, 최초 논문 보고 고�
   추가(모든 축이 이론 앵커 보유 완성).
 - 게이트: ability-coherence green, test-semantic 2794/0, test-transpile
   918/0, formal-semantics/golden-spine green.
+
+## 진행 노트 — 청사진(docs/180) 대조 아키텍처 감사 (2026-07-10)
+
+BDFL 발의("변경 파악 + 전체 설계도 모순 개선"). 동시 세션의 docs/180
+(logical spine, 2026-07-10)을 기준 프레임으로 최근 양 스트림을 감사.
+
+**모순 발견→수정 (커밋 참조)**:
+- docs/semantics/10 §3이 자기 문서 §8과 모순(§3 "witness grep 0" vs §8
+  boundary_witness.c 서술 + AIR_EVIDENCE_DAG_ABILITY 실존) → §3을 2026-07-10
+  스냅샷으로 정정.
+- docs/10 §7 parallel 경계 row가 "cannot-cross (forbid)"만 서술 — 착지된
+  admission 3종(Disjointness/snapshot Copy/단일-writer 배타)과 모순 →
+  evidence-or-forbid로 정정 + WitnessDataRace.v 범위 주석(slot 모델;
+  disjoint=location별 xor-mut, snapshot=공유 부재로 모델 밖 자명).
+- docs/113 worker-boundary 절이 "Slice 거절" 무조건 서술 — disjoint admission
+  착지와 어긋남 → 정제 단락 추가(무증거 거절은 그대로, 증거 통로 명시).
+  worker-boundary-ub smoke는 여전히 green(거절 fixture 불변) 실측.
+- evidence_kind_manifest에 docs/180 §2 certificate 방향(미래 last consumer)
+  주석 — 현재/목표 지형 구분 유지.
+
+**자기-신고(docs/178 §6 신설)**: capture-disposition(binding×arm→PTR/SNAPSHOT)
+을 semantic+C+LLVM 세 소비자가 각자 도출 — 도출 함수는 단일 소유라 drift
+불가지만 docs/180 §6 이주 신호 1번에 정면 해당. 목표 형태(semantic이 fact
+row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shadow row는
+새 owner 실존 전 불가라 이 선언 + 아래 WO가 Declare 단계.
+
+**신규 WO 2건 (아래 보드 아님 — 여기 등록, 착수 전 git status로 동시 세션
+충돌 확인 필수)**:
+- **WO-PAR-1 — capture-disposition fact 이주**: semantic이 parallel 노드당
+  처분 row 생산 → 양 백엔드 소비 → boundary_migration_manifest에 정식 row
+  (protocol 8단계). 판별 목격자 이미 존재(parallel_snapshot_read).
+- **WO-CI-1 — 신규 게이트 4종 CI 승격**: parallel-disjoint / parallel-snapshot
+  / ability-coherence / evidence-lifetime smoke를 ci_*_steps.sh + test-all에
+  배선. 2026-07-10 현재 **차단**: Makefile·ci 스크립트가 동시 세션 dirty.
+  docs/180 §7이 evidence-lifetime의 CI 승격을 missing closure로 이미 명시.

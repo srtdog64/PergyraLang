@@ -56,7 +56,14 @@ Gate coverage for the shared surfaces:
 - this registry's enum correspondence + RED self-test:
   `tests/evidence_lifetime_smoke.sh`
 
+Target-topology note (docs/180 §2): when the Verified Projection Plan owner
+lands, the AIR verifier's compact **evidence certificate** becomes an
+additional last consumer surface for every kind here — the Projection
+Planner cites the certificate; backends still never read this graph. Rows
+should gain the certificate column when that owner exists, not before.
+
 Related: docs/semantics/09 (contract shape and budgets),
 docs/semantics/14 §0a (single decision point), loss_contract_manifest.md /
-pass_contract_manifest.md (the sibling registries this one extends), TODO
-board WO-A3.
+pass_contract_manifest.md (the sibling registries this one extends),
+docs/180 §7 "AIR Evidence Lifetime Gate" row (CI promotion is the declared
+missing closure), TODO board WO-A3.

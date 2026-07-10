@@ -107,6 +107,24 @@ DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인�
   런타임 **retain**(동기화 상태 자체가 증거) · 무증거 공유 = **reject**.
   "Evidence-carrying compiler, not evidence-hoarding runtime."
 
+## 6. 자기-신고: capture-disposition은 docs/180 §6의 이주 신호를 울린다
+
+§5의 착지 형태는 per-(binding, arm) capture 처분(PTR/SNAPSHOT + admission
+증거)을 **세 소비자가 각자 도출**한다: semantic 검사기, C 캡처 이미터, LLVM
+캡처 이미터. 도출 함수 자체는 단일 소유(`ast_statement_assigns_identifier`,
+AST 층)라 *drift*는 불가능하지만, docs/180 §6의 첫 이주 신호("two or more
+consumers repeat the same derivation")와 backend-dumb-emitter 방향("backends
+are progressively losing permission to reconstruct semantic facts")에
+정면으로 걸린다 — 이것은 은닉하지 않고 선언해 둔다.
+
+목표 형태(이주 시): semantic이 parallel 노드당 **capture-disposition fact
+row**(binding × arm → PTR/SNAPSHOT/VALUE + 증거 종류)를 생산하고, 양 백엔드
+이미터는 row를 소비만 하며, row 부재 시 fail-closed(재도출 금지). 새 owner가
+실물이 되기 전에는 boundary_migration_manifest에 row를 만들 수 없으므로
+(shadow는 owner 실존 요구), 이 절 + TODO 보드 WO가 Declare 단계를 대신한다.
+그 시점까지의 정합성은 단일 도출 함수 + 판별 목격자(`parallel_snapshot_read`
+— 처분이 갈라지면 42/42 or 발산으로 즉시 RED)가 지킨다.
+
 ## Related
 
 docs/177(F1/F2 실측 + §8 copy-only 판정 — 본 문서가 F2의 상위 프레임) ·
