@@ -1,4 +1,4 @@
-// src/self_hosted/codegen/typed_ast_node_skeleton.pgy
+// src/self_hosted/hir/typed_ast_arena_owner.pgy
 //
 // Typed AST arena payload contract owner. This is the migration target for
 // replacing the AST text bridge with owned node records.

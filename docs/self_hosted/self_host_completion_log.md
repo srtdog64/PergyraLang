@@ -25,6 +25,22 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Typed AST arena ownership moves from codegen to HIR
+
+- Moved the single `AstArena` shape/accessor owner from
+  `codegen/typed_ast_node_skeleton.pgy` to
+  `hir/typed_ast_arena_owner.pgy`; no compatibility file or alias remains.
+- Repointed the transitional AST-text projection and compiler-stage artifact
+  owner to the HIR path. Component, compiler-world, and likeness gates now
+  require the new owner and reject resurrection of the codegen-owned file.
+- Verified the self-host codegen and integrated parser/codegen driver both
+  compile through the C backend after the move, and the driver still emits the
+  expected standalone C for the `hello` fixture.
+- This does not close whole-compiler self-hosting. It creates the correct shared
+  owner boundary for the next rung: parser-owned arena production and semantic
+  consumption. The existing semantic checker still reparses source text and
+  must not be wired into the driver as a second source of syntax truth.
+
 ## 2026-07-10 - Integrated parser/codegen driver reaches a fixed point
 
 - Split source-to-AST-to-C composition into

@@ -210,7 +210,7 @@ decl/routine arrays, source-local array, and instruction source facts. No
 compiler stage is allowed to remain envelope-only. Backend emission consumes
 `CompilerEmissionFactReady()`, which binds `ProgramEmitter` to the codegen
 stage row and the typed AST arena migration contract in
-`codegen/typed_ast_node_skeleton.pgy`.
+`hir/typed_ast_arena_owner.pgy`.
 
 ## Pergyra-Likeness Reading
 

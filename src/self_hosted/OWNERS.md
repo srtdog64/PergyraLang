@@ -128,7 +128,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- type-surface usage facts derived from typed arena type-name rows.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
-- `src/self_hosted/codegen/typed_ast_node_skeleton.pgy` -- typed AST arena
+- `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
   payload contract, `NodeId` lookup facts, and migration target for retiring
   the AST text bridge.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.

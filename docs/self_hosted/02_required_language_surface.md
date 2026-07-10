@@ -67,7 +67,7 @@ practical. It is not a request to add new syntax before beta.
 - Arbitrary tree representation is partially proven by parser/backend fixtures
   over user classes and nested generics. The first self-hosted compiler AST
   model contract now lives in
-  `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`: it owns the flat typed
+  `src/self_hosted/hir/typed_ast_arena_owner.pgy`: it owns the flat typed
   arena vocabulary, explicit child lookup, atom lookup, and a small traversal
   payload contract. Hard self-host still cannot claim AST replacement until
   parser/codegen consume that typed arena with oracle parity; current

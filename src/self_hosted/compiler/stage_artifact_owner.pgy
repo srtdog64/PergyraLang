@@ -3,7 +3,7 @@ import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
-import "../codegen/typed_ast_node_skeleton.pgy";
+import "../hir/typed_ast_arena_owner.pgy";
 
 // Stage artifact envelope facts for PgyCompilerWorld.
 //

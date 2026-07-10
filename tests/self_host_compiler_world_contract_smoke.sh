@@ -519,7 +519,7 @@ for term in \
     'import "../parser/tree_text_owner.pgy";' \
     'import "../semantic/diagnostic_owner.pgy";' \
     'import "../mir_lower/mir_fact_graph_contract_owner.pgy";' \
-    'import "../codegen/typed_ast_node_skeleton.pgy";' \
+    'import "../hir/typed_ast_arena_owner.pgy";' \
     "LexerTokenPayloadContractReady()" \
     "ParserAstTreePayloadContractReady()" \
     "SemanticVerdictPayloadContractReady()" \
@@ -605,9 +605,9 @@ for term in \
     "return TypedAstArenaPayloadFixtureFrontierCount();" \
     "TypedAstArenaPayloadFixtureCount() != TypedAstArenaPayloadFixtureFrontierCount()" \
     "let arena: AstArena = TypedAstArenaFixture()"; do
-    require_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "$term"
+    require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "$term"
 done
-forbid_text "src/self_hosted/codegen/typed_ast_node_skeleton.pgy" "TypedAstArenaPayloadFixtureCount() != 1"
+forbid_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "TypedAstArenaPayloadFixtureCount() != 1"
 
 for term in \
     "JsonFieldArrayBounds(json," \

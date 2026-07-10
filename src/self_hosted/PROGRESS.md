@@ -41,6 +41,16 @@ integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-
 cheap.
 
+The typed `AstArena` shape now lives at
+`src/self_hosted/hir/typed_ast_arena_owner.pgy`, not under codegen. The old
+codegen-owned file is rejected by the component contract. This is an owner
+closure, not a substitution-percentage increase: parser output is still a
+compact AST-text artifact, codegen still projects that artifact into the
+shared arena, and the current semantic substitute still scans source text.
+The next valid compiler-pipeline rung is parser-owned arena production followed
+by semantic consumption of that same arena. Wiring the current source scanner
+into the integrated driver would create a second parser and does not count.
+
 ## Headline Number
 
 **Hard self-host contract (2026-06-22):** hard self-host is now gated as
@@ -576,7 +586,7 @@ beyond the lexer:
   mixed tree shapes are parser/backend evidence, not compiler-model
   substitution, and they are not yet a self-hosted compiler AST model. The first
   self-hosted compiler AST model contract now exists in
-  `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`: it owns a flat typed
+  `src/self_hosted/hir/typed_ast_arena_owner.pgy`: it owns a flat typed
   arena vocabulary, explicit child lookup, atom lookup, and a small traversal
   payload fixture. `PgyCompilerWorld` now requires that contract through
   `CompilerEmissionFactReady()` before `ProgramEmitter` can claim emission

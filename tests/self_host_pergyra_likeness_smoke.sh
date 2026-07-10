@@ -145,10 +145,10 @@ SENTINEL_MAX=0
 # verifier instead of materializing the full emitted C artifact.
 # 771 -> 777 (2026-07-09): completeness impact-plan rows now expose proof-gate
 # lookup through Option<String> facts instead of a total string fallback.
-# 777 -> 802 (2026-07-10): current tracked self-host source after TestHarness
-# owner splits and ABI-row fact-owner classification; keep the measured
-# errors-as-data surface load-bearing.
-RESULT_USE_MIN=802
+# 777 -> 803 (2026-07-10): current tracked self-host source after TestHarness
+# owner splits, ABI-row fact-owner classification, the integrated driver owner,
+# and the typed AST arena move into HIR; keep the measured surface load-bearing.
+RESULT_USE_MIN=803
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
@@ -327,7 +327,7 @@ compiler_world_stub_actions=$(count_lines_in_files '^[[:space:]]*return true;' \
 compiler_stage_envelope_only=$(count_lines_in_files 'return[[:space:]]+CompilerStageArtifactRowReady' \
     src/self_hosted/compiler/stage_artifact_owner.pgy)
 typed_ast_contract=$(count_lines_in_files 'func[[:space:]]+TypedAstArenaPayloadContractReady' \
-    src/self_hosted/codegen/typed_ast_node_skeleton.pgy)
+    src/self_hosted/hir/typed_ast_arena_owner.pgy)
 
 echo "[self-host-likeness] metrics (current vs baseline):"
 echo "  core_string_munge  : $core_string_munge_sig  (max $CORE_STRING_MUNGE_SIG_MAX)   <- core text->text functions; linchpin"

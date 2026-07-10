@@ -2,7 +2,7 @@
 //
 // Projects the transitional AST-text inventory into the typed AST arena.
 
-import "../typed_ast_node_skeleton.pgy";
+import "../../hir/typed_ast_arena_owner.pgy";
 import "../text/text_owner.pgy";
 import "ast_text_inventory_owner.pgy";
 

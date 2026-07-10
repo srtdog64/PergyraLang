@@ -266,3 +266,28 @@ compatibility-evolution corpus is still a seed corpus until old source, old
 ABI layout, old diagnostic JSON, old AIR/MIR JSON, old runtime trace,
 capability manifest, stdlib surface, and native C/LLVM/self-host production
 consumers read it as their shared upgrade policy.
+
+## 2026-07-10 Attached Review Reconciliation
+
+The external evidence-lifetime review is directionally correct, but its P0 list
+must be read against the live gates rather than as a list of wholly missing
+features:
+
+| Claim | Current repository verdict |
+|---|---|
+| `MIR owns ABI` | `PARTIAL / BLOCKER`: `MIRTypeLayout`, native resource runtime-call rows, self-host ABI/runtime-call row artifacts, and negative backend contracts exist. Closure still requires every native C/LLVM aggregate/generic/runtime-call consumer to read concrete rows only. |
+| `AIR owns evidence` | `PASS` for the measured boundary: AIR schema/drift/lifetime registries exist and AIR stays outside backend input. Evidence lifetime policy remains `PARTIAL` because the registry gate proves enum/row correspondence more strongly than all discharge/retention combinations. |
+| `Backend emits only rows` | `PARTIAL`: selected backend-local synthesis is prohibited and self-host checkers mirror the contract, but the complete native backend consumer inventory has not reached row-only emission. |
+| `Runtime retains only safety-relevant tokens` | `PARTIAL`: retained-runtime attribution exists for measured fixtures; full runtime evidence-retention inventory is not closed. |
+| `Sandbox fails closed` | `PARTIAL / NOT PRODUCT READY`: capability and budget vocabulary/negative artifacts exist; lane-specific production executors and enforced host quotas do not. |
+| `Compatibility is corpus-backed` | `PARTIAL`: owner vocabulary and seed artifacts exist; old-version source/ABI/diagnostic/AIR/MIR/trace/capability/stdlib migration corpus is not yet complete. |
+
+AIR/backend access is not an unimplemented P0: native source lint, strict-vs-
+relaxed full-fixture non-impact, and a Pergyra-built backend AIR access checker
+already enforce that boundary. The self-host boundary is different. The
+parser/codegen driver reaches a real byte-identical fixed point, but semantic
+and MIR are absent from that executable. The typed AST arena owner has therefore
+been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
+The next valid rung is parser-owned arena production plus semantic consumption
+of that same fact. Reusing the current semantic source scanner inside the driver
+would be a second parser and is explicitly not counted as progress.

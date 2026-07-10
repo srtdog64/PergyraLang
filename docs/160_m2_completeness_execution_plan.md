@@ -163,7 +163,7 @@ CFG/MIR로 옮겼으므로(docs/self_hosted/01 Stage 0). SEM-8은 capability만 
 
 ## 3. Typed-AST 교체 (linchpin — SEM 포팅과 병행, 실측)
 
-**착지된 스켈레톤(2026-06-26):** `src/self_hosted/codegen/typed_ast_node_skeleton.pgy`.
+**착지된 typed owner:** `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
 `TypedAstArenaPayloadContractReady()`(래칫이 세는 유일 계약), schema
 `pgy.selfhost.typed-ast-arena.v1`. **21 노드 kind**: Program·FuncDecl·Param·Block·
 LetStmt·AssignStmt·ReturnStmt·IfStmt·WhileStmt·ForStmt·CallExpr·BinaryExpr·
