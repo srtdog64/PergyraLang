@@ -1,0 +1,76 @@
+// TestHarness AST read-surface path owner.
+//
+// Owns source_ast/source_decl ratchet checker source, expected artifact, and
+// synthetic growth fixture paths. Shell may execute these rows, but must not
+// own them.
+
+func CompilerHarnessAstReadSurfaceSuiteName() -> String {
+    return "ast-read-surface-paths";
+}
+
+func CompilerHarnessAstReadSurfaceToolSourcePath() -> String {
+    return "src/self_hosted/tools/ast_read_surface_checker/main.pgy";
+}
+
+func CompilerHarnessAstReadSurfaceExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/ast_read_surface_checker/expected/clean.json";
+}
+
+func CompilerHarnessAstReadSurfaceRatchetPath() -> String {
+    return "tests/ast_read_surface_ratchet.txt";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthFixturePath() -> String {
+    return "src/codegen/synthetic_source_ast.c";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthSourceLine() -> String {
+    return "source_ast /* synthetic growth */";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthRatchetRow() -> String {
+    return "source_ast_codegen|source_ast|0|src/codegen";
+}
+
+func CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/ast_read_surface_checker/expected/growth_source_ast_codegen.json";
+}
+
+func CompilerHarnessAstReadSurfacePathCount() -> Int {
+    return 7;
+}
+
+func CompilerHarnessAstReadSurfacePathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessAstReadSurfaceToolSourcePath(); }
+    if index == 1 { return CompilerHarnessAstReadSurfaceExpectedJsonPath(); }
+    if index == 2 { return CompilerHarnessAstReadSurfaceRatchetPath(); }
+    if index == 3 { return CompilerHarnessAstReadSurfaceGrowthFixturePath(); }
+    if index == 4 { return CompilerHarnessAstReadSurfaceGrowthSourceLine(); }
+    if index == 5 { return CompilerHarnessAstReadSurfaceGrowthRatchetRow(); }
+    if index == 6 { return CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessAstReadSurfacePathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAstReadSurfaceToolSourcePath() { return true; }
+    if path == CompilerHarnessAstReadSurfaceExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAstReadSurfaceRatchetPath() { return true; }
+    if path == CompilerHarnessAstReadSurfaceGrowthFixturePath() { return true; }
+    if path == CompilerHarnessAstReadSurfaceGrowthSourceLine() { return true; }
+    if path == CompilerHarnessAstReadSurfaceGrowthRatchetRow() { return true; }
+    if path == CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath() { return true; }
+    return false;
+}
+
+func CompilerHarnessAstReadSurfaceReady() -> Bool {
+    return CompilerHarnessAstReadSurfaceSuiteName() != "" &&
+        CompilerHarnessAstReadSurfacePathCount() > 0 &&
+        CompilerHarnessAstReadSurfacePathAt(CompilerHarnessAstReadSurfacePathCount()) == "" &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceToolSourcePath()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceExpectedJsonPath()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceRatchetPath()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthFixturePath()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthSourceLine()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthRatchetRow()) &&
+        CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath());
+}

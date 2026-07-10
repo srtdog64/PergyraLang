@@ -255,6 +255,8 @@ compiler-stage `.pgy` source to be listed here.
   graph consumer path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy` --
   diagnostic catalog checker source, expected artifact, and oracle path suites.
+- `src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy` --
+  AST/source-read surface checker source, ratchet, and growth fixture paths.
 - `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1
   driver, parser, and codegen source path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy` -- codegen

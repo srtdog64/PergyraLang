@@ -15,6 +15,7 @@ import "test_harness_inventory_paths_owner.pgy";
 import "test_harness_size_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
 import "test_harness_diagnostic_paths_owner.pgy";
+import "test_harness_ast_surface_paths_owner.pgy";
 import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";

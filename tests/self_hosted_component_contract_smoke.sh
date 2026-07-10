@@ -3993,6 +3993,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_parser_paths_owner.pgy";'
@@ -4007,10 +4008,12 @@ require_max_lines "src/self_hosted/compiler/test_harness_inventory_paths_owner.p
 require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_size_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathKnown"
@@ -4218,18 +4221,26 @@ reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "Compil
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathCount() == 7"
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathAt(0) == CompilerHarnessDiagnosticCatalogToolSourcePath()"
 reject_text "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" "CompilerHarnessDiagnosticCatalogPathAt(6) == CompilerHarnessDiagnosticCatalogCOraclePath()"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceSuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceRatchetPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFixturePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthSourceLine"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthRatchetRow"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "src/self_hosted/tools/ast_read_surface_checker/expected/growth_source_ast_codegen.json"
-reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFindingKind"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceSuiteName"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceRatchetPath"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFixturePath"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthSourceLine"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthRatchetRow"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "src/self_hosted/tools/ast_read_surface_checker/expected/growth_source_ast_codegen.json"
+reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceGrowthFindingKind"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathAt"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfacePathKnown"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathKnown(CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath())"
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(CompilerHarnessAstReadSurfacePathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "func CompilerHarnessAstReadSurfaceReady"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessAstReadSurfaceSuiteName"
+reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathCount() == 7"
+reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(0) == CompilerHarnessAstReadSurfaceToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" "CompilerHarnessAstReadSurfacePathAt(6) == CompilerHarnessAstReadSurfaceGrowthExpectedJsonPath()"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventorySuiteName"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessStdlibDispatchInventoryExpectedJsonPath"
@@ -4320,6 +4331,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_size_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_parser_paths_owner.pgy";'
