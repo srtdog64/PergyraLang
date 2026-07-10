@@ -18,18 +18,18 @@ docs/self_hosted/01(North Star + Stage 5), docs/150(driver/LSP rung), PROGRESS.m
   자신을 컴파일해 `gen2 == gen3` byte-identical(5,484줄 C). self-built 코드젠이
   **22/22 self-host 컴포넌트 전부**를 유효한 C로 컴파일. 이건 진짜 3-stage
   fixed-point이다 — 단, **코드젠 컴포넌트의 소스에 대해서만.**
-- **M2 — 전체 컴파일러 self-eating bootstrap: ~6.57%.** 전 컴파일러(lexer+
+- **M2 — 전체 컴파일러 self-eating bootstrap: active, not yet live replacement.** 전 컴파일러(lexer+
   parser+semantic+IR+codegen)를 Pergyra로 써서 자기 전체 소스를 컴파일하고
   B==C. semantic이 46k C LOC 중 6%만 포팅됨 = 진짜 벽.
 
 **"진척도가 안 올랐다"는 정확한 관찰이다 — 단 이유가 특정된다:** 최근 120커밋
 중 66개(55%)가 self-host인데 **거의 전부 LSP(2a~2h 9렁) + 오라클/parity fact**다.
-LSP는 compiler-core 치환 **0%** 트랙(별도 집계). 그래서 M2 %는 안 움직였다.
+LSP는 compiler-core 치환 **0%** 트랙(별도 집계). 그래서 당시 수동 M2 수치는 안 움직였다.
 에너지가 임계 경로(semantic/parser 완전성) 밖으로 샜다.
 
 **정정(내 지난 진단): "self-host는 G-EXEC에 막혔다"는 부정확했다.** fixed-point
 증명(B==C)은 **셸 하니스가 외부 gcc로 돌려서 이미 작동**한다(§2). G-EXEC는
-self-DRIVER 소유(DRV-2, §5)만 막는다 — 증명이 아니라 순도(purity) 문제다. 진짜
+self-DRIVER 소유(DRV-3, §5)만 막는다 — 증명이 아니라 순도(purity) 문제다. 진짜
 벽은 **완전성**(§3)이다.
 
 **그래서 핵심 결정(§4)은 BDFL 것이다:** M2(전체 부트스트랩, semantic 포팅 =
@@ -38,9 +38,11 @@ self-hosting 선언으로 받고 레버리지를 thesis(던전크롤러)로 돌�
 
 ---
 
-## 1. 실측 현재 위치 (2026-07-05, PROGRESS.md)
+## 1. 2026-07-05 역사적 기준선과 현재 측정 규칙
 
-**compiler-core 치환: ~6.57% (16,341 Pergyra LOC / 248,794 C LOC).**
+아래 표는 2026-07-05 당시의 기준선이며 현재 진행률이 아니다. 현재 구현량은
+`make self-host-progress-metric-test-smoke`가 live 측정한다. LOC는 구현량일 뿐
+치환률이 아니며, released/native replacement는 실제 선택 경로가 생길 때만 오른다.
 
 | 컴포넌트 | C LOC | Pergyra LOC | 실질 커버리지 | 임계 경로? |
 |---|---:|---:|---|---|
@@ -164,7 +166,7 @@ parser는 이미 120/121 예제·187 fixture byte-equal. 남은 48% LOC = 자기
 | 옵션 | 내용 | 비용 | 상태 |
 |---|---|---|---|
 | **M1 선언** | "코드젠이 self-host한다(gen2==gen3)"를 방어 가능한 self-hosting 마일스톤으로 받고, 레버리지를 thesis(던전크롤러)로 | 이미 달성. 문서화·홍보만 | ✅ 지금 가능 |
-| **M2 완주** | 전체 컴파일러(semantic 46k LOC 포팅 + parser 완전성 + typed-AST 교체)를 Pergyra로, 전체 소스 B==C | 수개월(semantic dominant) | ~6.57% |
+| **M2 완주** | 전체 컴파일러(semantic + parser 완전성 + typed-AST 교체)를 Pergyra로, 전체 소스 B==C | semantic dominant | live inventory gate; released replacement 0% |
 
 **로드맵 자신의 입장(docs/self_hosted/01 Stage 5):** "이 종착지 도달은 substrate
 성취(모든 진지한 언어는 결국 self-host)이며 **그 자체로 language thesis를 진전

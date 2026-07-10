@@ -78,9 +78,13 @@ MIR JSON fact-only lowering aligned. The substitution percentage below is
 unchanged by that contract gate; future percentage increases require a Pergyra
 implementation to replace a real compiler stage/pass beside the C/LLVM oracle.
 
-**Compiler-internal substitution: ~6.57% source-tree LOC-scale** (16,341 tracked Pergyra LOC vs 248,794
-C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
-`src/runtime/`, `src/compiler/`, `src/lsp/`). The verified substitutes are the
+**Implementation inventory is live-measured, not a substitution percentage.**
+Run `make self-host-progress-metric-test-smoke` to measure the current Pergyra
+frontend/backend and compiler-core LOC beside the C reference inventory.
+Implementation volume only proves that code exists.
+**Released/native replacement remains 0%** until a Pergyra implementation is selected by the
+default or explicitly shipped compiler path and passes the C/LLVM oracle gates.
+The verified component frontiers are the
 lexer, parser, a bounded semantic verdict rung, and -- as of 2026-06-17 -- the
 **first codegen rungs** (`src/self_hosted/codegen/`, 4,821 LOC; rung-0 string Log,
 rung-1 integer let/arithmetic, rung-2 assign + `while`/`if`/`else`, rung-3
@@ -434,7 +438,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |           0 | 0%       | released/native compiler driver replacement remains 0%; `driver_pipeline_owner.pgy` now owns the shared source->AST->semantic-analysis->C spine, DRV-0/DRV-1 consume it, and `driver_bootstrap_main.pgy` reaches a 17,536-line `gen2 == gen3` fixed point. Function signatures and local declaration/scope facts are artifact-native, but initializer/body semantics and MIR are not yet in that executable pipeline, so this is a bounded compiler bootstrap rather than shipped driver substitution. |
 | `src/lsp/`      |    1037 |           0 | 0%       | released/native LSP replacement remains 0%; LSP-0 diagnostic `publishDiagnostics` payload projection, LSP-1 squiggle policy, LSP-2a single-frame Content-Length transport owner, LSP-2b buffered frame-stream owner, LSP-2c buffered request dispatch owner, LSP-2d buffered response emission owner, LSP-2e buffered session replay owner, LSP-2f buffered multi-document store owner, LSP-2g no-index feature response shape owner, LSP-2h buffered session-state owner, and LSP-2i bounded hover-content owner exist under `src/self_hosted/lsp/` and are tracked by docs/150. Full transport/session replacement has not landed |
-| **Total**       | **248794** |  **16341**  | **~6.57% source-tree LOC-scale** | lexer/parser/semantic + codegen rung-0..20; MIR JSON lowering and compiler-world contracts are tracked separately above |
+| **Live inventory** | `make self-host-progress-metric-test-smoke` | `make self-host-progress-metric-test-smoke` | not a substitution percentage | lexer/parser/semantic/codegen implementation volume and the wider compiler-core inventory are measured at gate time |
 
 Notes:
 

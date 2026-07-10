@@ -8,10 +8,12 @@ Status: `execution-plan`. 작성 2026-07-05. **BDFL 결정(2026-07-05): M2 완�
 
 ---
 
-## 0. 실측 현재 위치 (이 계획의 출발점)
+## 0. 역사적 출발점과 현재 측정 규칙
 
-- 전체 컴파일러 self-host: **~6.57%**. semantic 계층은 **6.4%**(3,276 Pergyra LOC /
-  51,283 C LOC). 나머지 ~48k LOC가 M2의 대부분.
+- 2026-07-05 기준선은 LOC 비율로 기록됐지만 그 값은 구현량이지 치환률이
+  아니었다. 현재 구현량은 `make self-host-progress-metric-test-smoke`가 live
+  측정하고, 실제 self-host 진척은 released/native path replacement와
+  stage parity로만 판정한다. semantic 계층이 M2의 주된 잔여인 점은 같다.
 - **코드젠은 이미 self-host fixed-point**(gen2==gen3, docs/158 M1). 현
   fixpoint의 AST 입력은 self-parser AST producer가 만든다. `pgy --ast`는
   parser parity의 C oracle로만 남고, 진짜 M2는 self-semantic이 그 산출물을
@@ -20,7 +22,7 @@ Status: `execution-plan`. 작성 2026-07-05. **BDFL 결정(2026-07-05): M2 완�
   추론·call arity·body skeleton·진단). **미포팅: flow/decl/ability/domain/
   ownership/lifecycle/capability/builtin/DAG/orchestration.**
 
-M2 = 이 ~48k LOC를 **의존 순서대로 rung으로 포팅**하고, 각 rung을 C oracle과
+M2 = semantic 잔여를 **의존 순서대로 rung으로 포팅**하고, 각 rung을 C oracle과
 parity로 검증하며, fixpoint를 그 pass까지 확장하는 것.
 
 ---
@@ -29,7 +31,7 @@ parity로 검증하며, fixpoint를 그 pass까지 확장하는 것.
 
 **문제:** 현 `codegen_bootstrap.sh`의 breadth 검사는 out-of-subset 컴포넌트를
 **조용히 skip**한다(248행 `out of codegen subset (skip)`). 완전성 갭이 숨는다 —
-"몇 %가 self-host를 통과하나"를 아무도 안 센다. LOC%(6.57%)는 무엇을 닫으면
+"몇 %가 self-host를 통과하나"를 아무도 안 센다. LOC 비율은 무엇을 닫으면
 되는지 안 준다.
 
 **설계:** self-host 자기 소스 전수(`src/self_hosted/**/*.pgy`, ~18k LOC)를
