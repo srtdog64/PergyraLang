@@ -4,6 +4,13 @@ Pergyra-written semantic checks live here, mirroring C-side `src/semantic/`.
 The first rung is intentionally tiny: function signatures, local typed `let`,
 basic literal/identifier types, and return typing.
 
+`ast_artifact_verdict_owner.pgy` is the first semantic owner on the integrated
+bootstrap path. It consumes the parser-owned `AstTreeArtifact` directly and
+owns executable `Main` cardinality. Codegen consumes that verdict and is
+ratcheted against recounting `Main`. The broader rung-2 checker below still
+uses the source bundle scanner; it is not wired into the driver and does not
+count as artifact-based semantic substitution.
+
 `semantic_run_owner.pgy` owns the CLI/run boundary and directly imports the
 source bundle, diagnostic, and program-check owners it consumes. `main.pgy`
 must import only the run owner.

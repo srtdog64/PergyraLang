@@ -1,0 +1,126 @@
+// Semantic verdicts derived from the shared parser-owned AST artifact.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstArtifactVerdict {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    node_count: Int;
+    main_count: Int;
+    requires_entrypoint: Bool;
+}
+
+func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
+                                  requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
+    return SemanticAstArtifactVerdict(
+        true, "", "", node_count, main_count, requires_entrypoint
+    );
+}
+
+func SemanticAstArtifactVerdictError(code: String, message: String,
+                                     node_count: Int, main_count: Int,
+                                     requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
+    return SemanticAstArtifactVerdict(
+        false, code, message, node_count, main_count, requires_entrypoint
+    );
+}
+
+func SemanticAstArtifactIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
+    if !TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag()) {
+        return false;
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    return IsSome(atom) && UnwrapOption(atom) == "Main";
+}
+
+func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
+                                          requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
+    if !TypedAstKindOwnerReady() || !AstTreeArtifactReady(artifact) {
+        return SemanticAstArtifactVerdictError(
+            "ast_artifact_invalid",
+            SemanticError2(
+                "ast_artifact_invalid",
+                "node_count", ToString(artifact.count),
+                "owner", "AstTreeArtifact"
+            ),
+            artifact.count,
+            0,
+            requires_entrypoint
+        );
+    }
+    let main_count: Int = 0;
+    let i: Int = 0;
+    while i < artifact.count {
+        if SemanticAstArtifactIsMainFunction(artifact.arena, i) {
+            main_count = main_count + 1;
+        }
+        i = i + 1;
+    }
+    if requires_entrypoint && main_count != 1 {
+        return SemanticAstArtifactVerdictError(
+            "entrypoint_cardinality",
+            SemanticError2(
+                "entrypoint_cardinality",
+                "expected", "exactly_one",
+                "actual", ToString(main_count)
+            ),
+            artifact.count,
+            main_count,
+            requires_entrypoint
+        );
+    }
+    if !requires_entrypoint && main_count > 1 {
+        return SemanticAstArtifactVerdictError(
+            "entrypoint_cardinality",
+            SemanticError2(
+                "entrypoint_cardinality",
+                "expected", "at_most_one",
+                "actual", ToString(main_count)
+            ),
+            artifact.count,
+            main_count,
+            requires_entrypoint
+        );
+    }
+    return SemanticAstArtifactVerdictOk(
+        artifact.count, main_count, requires_entrypoint
+    );
+}
+
+func SemanticAstArtifactVerdictMatches(
+    artifact: AstTreeArtifact,
+    verdict: SemanticAstArtifactVerdict,
+    requires_entrypoint: Bool
+) -> Bool {
+    return verdict.ok &&
+        verdict.node_count == artifact.count &&
+        verdict.requires_entrypoint == requires_entrypoint;
+}
+
+func SemanticAstArtifactVerdictContractReady() -> Bool {
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let valid_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(valid, true);
+    if !SemanticAstArtifactVerdictMatches(valid, valid_verdict, true) ||
+        valid_verdict.main_count != 1 {
+        return false;
+    }
+    let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let missing_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(missing, true);
+    if missing_verdict.ok || missing_verdict.diagnostic_code != "entrypoint_cardinality" {
+        return false;
+    }
+    let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let duplicate_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(duplicate, true);
+    return !duplicate_verdict.ok && duplicate_verdict.main_count == 2 &&
+        duplicate_verdict.diagnostic_code == "entrypoint_cardinality";
+}

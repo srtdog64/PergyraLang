@@ -1,0 +1,84 @@
+// Canonical compact AST/HIR node-kind tags shared by all compiler stages.
+
+func TypedAstKindUnknownTag() -> Int { return 1; }
+func TypedAstKindParametersTag() -> Int { return 2; }
+func TypedAstKindReturnsTag() -> Int { return 3; }
+func TypedAstKindFieldsHeaderTag() -> Int { return 4; }
+func TypedAstKindFieldTag() -> Int { return 5; }
+func TypedAstKindFuncDeclTag() -> Int { return 6; }
+func TypedAstKindRoleDeclTag() -> Int { return 7; }
+func TypedAstKindNominalDeclTag() -> Int { return 8; }
+func TypedAstKindEnumDeclTag() -> Int { return 9; }
+func TypedAstKindEventDeclTag() -> Int { return 10; }
+func TypedAstKindZeroArtifactDeclTag() -> Int { return 11; }
+func TypedAstKindParamTag() -> Int { return 12; }
+func TypedAstKindLogStmtTag() -> Int { return 13; }
+func TypedAstKindBareReturnStmtTag() -> Int { return 14; }
+func TypedAstKindValueReturnStmtTag() -> Int { return 15; }
+func TypedAstKindArrayPopStmtTag() -> Int { return 16; }
+func TypedAstKindExitStmtTag() -> Int { return 17; }
+func TypedAstKindArraySetStmtTag() -> Int { return 18; }
+func TypedAstKindArrayPushStmtTag() -> Int { return 19; }
+func TypedAstKindLetStmtTag() -> Int { return 20; }
+func TypedAstKindAssignStmtTag() -> Int { return 21; }
+func TypedAstKindForStmtTag() -> Int { return 22; }
+func TypedAstKindWhileStmtTag() -> Int { return 23; }
+func TypedAstKindIfStmtTag() -> Int { return 24; }
+func TypedAstKindElseStmtTag() -> Int { return 25; }
+func TypedAstKindDeferStmtTag() -> Int { return 26; }
+func TypedAstKindBreakStmtTag() -> Int { return 27; }
+func TypedAstKindContinueStmtTag() -> Int { return 28; }
+func TypedAstKindBareCallStmtTag() -> Int { return 29; }
+func TypedAstKindProgramTag() -> Int { return 30; }
+func TypedAstKindBodyTag() -> Int { return 31; }
+func TypedAstKindBlockTag() -> Int { return 32; }
+func TypedAstKindThenTag() -> Int { return 33; }
+func TypedAstKindMatchStmtTag() -> Int { return 34; }
+func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
+func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
+
+func TypedAstKindTags() -> Array<Int> {
+    let tags: Array<Int> = [
+        TypedAstKindUnknownTag(), TypedAstKindParametersTag(),
+        TypedAstKindReturnsTag(), TypedAstKindFieldsHeaderTag(),
+        TypedAstKindFieldTag(), TypedAstKindFuncDeclTag(),
+        TypedAstKindRoleDeclTag(), TypedAstKindNominalDeclTag(),
+        TypedAstKindEnumDeclTag(), TypedAstKindEventDeclTag(),
+        TypedAstKindZeroArtifactDeclTag(), TypedAstKindParamTag(),
+        TypedAstKindLogStmtTag(), TypedAstKindBareReturnStmtTag(),
+        TypedAstKindValueReturnStmtTag(), TypedAstKindArrayPopStmtTag(),
+        TypedAstKindExitStmtTag(), TypedAstKindArraySetStmtTag(),
+        TypedAstKindArrayPushStmtTag(), TypedAstKindLetStmtTag(),
+        TypedAstKindAssignStmtTag(), TypedAstKindForStmtTag(),
+        TypedAstKindWhileStmtTag(), TypedAstKindIfStmtTag(),
+        TypedAstKindElseStmtTag(), TypedAstKindDeferStmtTag(),
+        TypedAstKindBreakStmtTag(), TypedAstKindContinueStmtTag(),
+        TypedAstKindBareCallStmtTag(), TypedAstKindProgramTag(),
+        TypedAstKindBodyTag(), TypedAstKindBlockTag(), TypedAstKindThenTag(),
+        TypedAstKindMatchStmtTag(), TypedAstKindMatchCaseStmtTag(),
+        TypedAstKindMatchDefaultStmtTag()
+    ];
+    return tags;
+}
+
+func TypedAstKindOwnerReady() -> Bool {
+    let tags: Array<Int> = TypedAstKindTags();
+    if ArrayLength(tags) != 36 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(tags) {
+        if tags[i] <= 0 {
+            return false;
+        }
+        let j: Int = i + 1;
+        while j < ArrayLength(tags) {
+            if tags[i] == tags[j] {
+                return false;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}

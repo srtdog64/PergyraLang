@@ -25,6 +25,27 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - First semantic verdict enters the self-eating driver
+
+- Added one canonical HIR node-kind owner and removed numeric kind meanings
+  from inventory and codegen views. The unused alternate `NodeKind` enum was
+  retired; `AstNode.kind` now consumes the same integer fact contract as the
+  arena.
+- Added `SemanticAstArtifactVerdict` over the parser-owned artifact. It owns
+  executable `Main` cardinality, emits the shared structured semantic diagnostic
+  shape, and passes evidence to codegen; codegen no longer recounts `Main`.
+- The first fixed-point attempt exposed self-host C wrong-code for direct array
+  literal returns. The owner was rewritten to the already-supported typed local
+  plus return form instead of adding a backend exception.
+- Focused completeness proved the four added HIR/semantic owners through
+  lexer/parser/semantic/codegen 4/4 and raised all M2 minima to 225.
+- Verified C/LLVM semantic parity at 110/110, byte-identical `hello` output,
+  structured rejection of a real no-`Main` source, and integrated driver
+  `gen2 == gen3` at 16,881 generated-C lines.
+- Honest boundary: this is one semantic decision, not the source-scanner
+  semantic checker or MIR. The next rung must move another semantic fact onto
+  the shared artifact without reparsing source.
+
 ## 2026-07-10 - Parser and codegen share one HIR artifact
 
 - Added `AstTreeArtifact` as the parser-produced boundary carrying compact text

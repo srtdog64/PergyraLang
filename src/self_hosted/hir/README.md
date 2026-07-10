@@ -2,8 +2,9 @@
 
 This layer owns the typed AST/HIR facts shared by parser, semantic analysis,
 and code generation. `typed_ast_arena_owner.pgy` is the single owner of the
-flat `AstArena` row contract. Codegen may project transitional AST text into
-that arena, but it may not own or redeclare the arena shape.
+flat `AstArena` row contract, and `ast_node_kind_owner.pgy` is the single owner
+of its compact node-kind tags. Parser, semantic, and codegen may not redeclare
+either shape or tag values.
 
 `ast_text_scan_owner.pgy`, `ast_text_row_fact_owner.pgy`, and
 `ast_text_inventory_owner.pgy` own the transitional compact-text input facts.

@@ -21,37 +21,14 @@
 // a string table. Type-name and parameter-mode rows are parallel facts owned by
 // the arena, not ad hoc reads from the transitional text node. Value rows carry
 // statement RHS/initializer payloads that are no longer owned by emission.
-// NodeKind is payload-free. Not-found is Option, never a sentinel.
-
-enum NodeKind {
-    Program,
-    FuncDecl,
-    Param,
-    Block,
-    LetStmt,
-    AssignStmt,
-    ReturnStmt,
-    IfStmt,
-    WhileStmt,
-    ForStmt,
-    CallExpr,
-    BinaryExpr,
-    UnaryExpr,
-    IndexExpr,
-    MemberExpr,
-    IntLit,
-    FloatLit,
-    StringLit,
-    BoolLit,
-    Ident,
-    TypeRef
-}
-
+// Node kinds are canonical integer facts from ast_node_kind_owner.pgy.
 // A NodeId is an index into the arena's parallel arrays. Missing edges are
 // represented as absent Option values at lookup boundaries.
 
+import "ast_node_kind_owner.pgy";
+
 struct AstNode {
-    kind: NodeKind;
+    kind: Int;
     atom: Int;
     has_atom: Bool;
     type_name: Int;
@@ -85,18 +62,6 @@ struct AstArena {
     provenance_texts: Array<String>;
     children: Array<Int>;
     atom_table: Array<String>;
-}
-
-func TypedAstKindProgramTag() -> Int {
-    return 1;
-}
-
-func TypedAstKindFuncDeclTag() -> Int {
-    return 2;
-}
-
-func TypedAstKindBlockTag() -> Int {
-    return 3;
 }
 
 func TypedAstNoParentRow() -> Int {
@@ -160,6 +125,11 @@ func TypedAstArenaNodeKind(arena: AstArena, node_id: Int) -> Option<Int> {
         return None;
     }
     return Some(arena.kinds[node_id]);
+}
+
+func TypedAstArenaNodeKindIs(arena: AstArena, node_id: Int, expected_kind: Int) -> Bool {
+    let kind: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
+    return IsSome(kind) && UnwrapOption(kind) == expected_kind;
 }
 
 func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> {
@@ -401,7 +371,7 @@ func TypedAstArenaPayloadContractReady() -> Bool {
     if TypedAstArenaPayloadFixtureCount() != TypedAstArenaPayloadFixtureFrontierCount() {
         return false;
     }
-    if !TypedAstArenaRootTraversalReady() {
+    if !TypedAstKindOwnerReady() || !TypedAstArenaRootTraversalReady() {
         return false;
     }
     return true;

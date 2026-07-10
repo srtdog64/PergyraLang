@@ -4,6 +4,7 @@
 
 import "../text/text_owner.pgy";
 import "../../hir/ast_text_inventory_owner.pgy";
+import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_declaration_owner.pgy";
 import "../input/ast_usage_owner.pgy";
@@ -121,25 +122,18 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    let main_count: Int = 0;
+    let artifact: AstTreeArtifact = AstTreeArtifact(tree_text, arena, count);
+    let semantic_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(artifact, require_entrypoint);
+    if !semantic_verdict.ok {
+        Die(semantic_verdict.diagnostic_message);
+    }
     let main_scan: Int = 0;
     while main_scan < count {
         if CodegenAstArenaIsEventDecl(arena, main_scan) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
         }
-        if CodegenAstArenaIsMainFunction(arena, main_scan) {
-            main_count = main_count + 1;
-        }
         main_scan = main_scan + 1;
-    }
-    if require_entrypoint {
-        if main_count != 1 {
-            Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
-        }
-    } else {
-        if main_count > 1 {
-            Die(Concat("at most one `Main` function is allowed in a codegen unit; saw count=", ToString(main_count)));
-        }
     }
 
     let cur: Array<Int> = [0];
@@ -196,7 +190,11 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     return true;
 }
 
-func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
+func GenerateCUnitFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_verdict: SemanticAstArtifactVerdict,
+    require_entrypoint: Bool
+) -> String {
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
 
     let count: Int = artifact.count;
@@ -204,7 +202,12 @@ func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint:
     if !CodegenAstTreeArtifactReady(artifact) {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
-    let main_count: Int = 0;
+    if !semantic_verdict.ok {
+        Die(semantic_verdict.diagnostic_message);
+    }
+    if !SemanticAstArtifactVerdictMatches(artifact, semantic_verdict, require_entrypoint) {
+        Die("codegen semantic evidence does not match AST artifact");
+    }
     let main_scan: Int = 0;
     while main_scan < count {
         // `event` declarations have no handler/dispatch model in this codegen.
@@ -215,19 +218,7 @@ func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint:
         if CodegenAstArenaIsEventDecl(arena, main_scan) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstArenaProvenanceOrDie(arena, main_scan)));
         }
-        if CodegenAstArenaIsMainFunction(arena, main_scan) {
-            main_count = main_count + 1;
-        }
         main_scan = main_scan + 1;
-    }
-    if require_entrypoint {
-        if main_count != 1 {
-            Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
-        }
-    } else {
-        if main_count > 1 {
-            Die(Concat("at most one `Main` function is allowed in a codegen unit; saw count=", ToString(main_count)));
-        }
     }
 
     let first_fn: Int = -1;
@@ -418,6 +409,21 @@ func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint:
 
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
     return GenerateCUnitFromAstArtifact(AstTreeArtifactFromText(tree_text), require_entrypoint);
+}
+
+func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
+    let semantic_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(artifact, require_entrypoint);
+    return GenerateCUnitFromSemanticArtifact(
+        artifact, semantic_verdict, require_entrypoint
+    );
+}
+
+func GenerateCFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_verdict: SemanticAstArtifactVerdict
+) -> String {
+    return GenerateCUnitFromSemanticArtifact(artifact, semantic_verdict, true);
 }
 
 func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {

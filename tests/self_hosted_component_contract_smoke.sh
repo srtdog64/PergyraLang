@@ -625,6 +625,7 @@ reject_text "tests/self_hosted/parity/parser_parity.sh" "diff <("
 reject_text "tests/self_hosted/parity/parser_parity.sh" "BYTE-DRIFT"
 require_owner_surface semantic \
     "semantic_run_owner.pgy"
+require_file "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 require_file "src/self_hosted/semantic/text_scan_owner.pgy"
 require_file "src/self_hosted/semantic/diagnostic_code_owner.pgy"
 require_file "src/self_hosted/semantic/source_bundle_owner.pgy"
@@ -695,7 +696,7 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 17"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 19"
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
@@ -753,6 +754,7 @@ reject_text "tests/self_hosted/parity/regen_expected.sh" 'cp "$TOOL_SOURCE" "$TO
 reject_text "tests/self_hosted/parity/regen_expected.sh" 'LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"'
 reject_text "tests/self_hosted/parity/regen_expected.sh" 'cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"'
 require_file "src/self_hosted/hir/typed_ast_arena_owner.pgy"
+require_file "src/self_hosted/hir/ast_node_kind_owner.pgy"
 require_file "src/self_hosted/hir/ast_text_scan_owner.pgy"
 require_file "src/self_hosted/hir/ast_text_row_fact_owner.pgy"
 require_file "src/self_hosted/hir/ast_text_inventory_owner.pgy"
@@ -2114,13 +2116,13 @@ require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'import "ast_tex
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'node.name == "Main"'
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "return node.name"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "return node.type_name"
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == 5'
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == 7'
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == 8'
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == 9'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == TypedAstKindFieldTag()'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == TypedAstKindRoleDeclTag()'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == TypedAstKindNominalDeclTag()'
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'if kind == TypedAstKindEnumDeclTag()'
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let field_indent: Int = -1"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "field_indent = indent + 2"
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "kind = 5"
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "kind = TypedAstKindFieldTag()"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextNominalName"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'node.text == "Function: Main"'
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'StringIndexOf(node.text, " for ")'
@@ -2165,7 +2167,7 @@ reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstT
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "return node.aux_payload"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleName"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextRoleForType"
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "if kind == 12"
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "if kind == TypedAstKindParamTag()"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextIsParameterRow"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextParamMode("
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextParamModeName"
@@ -2180,9 +2182,9 @@ require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstT
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput)"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput)"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput)"
-require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == 20"
-require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == 18"
-require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == 22"
+require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == TypedAstKindLetStmtTag()"
+require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == TypedAstKindArraySetStmtTag()"
+require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" "if kind == TypedAstKindForStmtTag()"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " : ", 0)'
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " = ", type_start)'
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'FindTextFrom(payload, " in ", 0)'
@@ -2208,7 +2210,24 @@ require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAst
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "CodegenAstTextNodeInventory(tree_text: String"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let param_indent: Int = -1"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "param_indent = indent + 2"
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "kind = 12"
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "kind = TypedAstKindParamTag()"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindOwnerReady"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "let tags: Array<Int> = ["
+reject_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "return ["
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindProgramTag"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindFuncDeclTag"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindParamTag"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" 'import "ast_node_kind_owner.pgy";'
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "TypedAstKindOwnerReady()"
+reject_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "enum NodeKind"
+if grep -Eq 'kind (==|!=) [0-9]+' "$ROOT_DIR/src/self_hosted/hir/ast_text_inventory_owner.pgy" \
+    "$ROOT_DIR/src/self_hosted/hir/ast_text_row_fact_owner.pgy"; then
+    fail "HIR inventory/row owners must consume canonical node-kind facts, not numeric tags"
+fi
+if grep -Eq 'CodegenAstArenaKindIs\(arena, node_id, [0-9]+\)|CodegenAstArenaExpectKind\(arena, count, cur, [0-9]+' \
+    "$ROOT_DIR/src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy"; then
+    fail "codegen arena view must consume canonical HIR node-kind facts"
+fi
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" 'import "../../hir/ast_text_arena_projection_owner.pgy";'
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenTypedAstBridgeReady"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "TypedAstArenaPayloadContractReady()"
@@ -2244,9 +2263,20 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/as
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramArtifact"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromAstArtifact"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromAstArtifact"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromSemanticArtifact"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromSemanticArtifact"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactVerdict"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactEntrypointVerdict"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" '"entrypoint_cardinality"'
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag())"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let main_count: Int"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'exactly one `Main` function is required'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'at most one `Main` function is allowed'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromAstArtifact(artifact);"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactEntrypointVerdict(artifact, true)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromSemanticArtifact(artifact, semantic_verdict);"
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIndentOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaProvenanceOrDie"
@@ -2262,7 +2292,9 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaModeOrDie"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaParamModeName"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaParamTypeOrDie"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaKindIs"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaNodeKindIs"
+reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaKindIs"
+reject_regex_under "src/self_hosted/codegen/input" "CodegenAstArenaKindIs"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsProgramRoot"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsParameters"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsReturns"
@@ -2411,7 +2443,7 @@ require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "func Code
 require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindLogStmt()"
 require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindExitStmt()"
 require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindArrayPushStmt()"
-require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstArenaKindIs(arena, i, kind)"
+require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "TypedAstArenaNodeKindIs(arena, i, kind)"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionUsageFacts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "struct CodegenExpressionParts"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_atom: Bool"
@@ -2456,7 +2488,7 @@ reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArena
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "ContainsCallOutsideStrings"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaKindPresent"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindPresent(arena, count"
-reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaKindIs(arena, i, kind)"
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaNodeKindIs(arena, i, kind)"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "func CodegenAstArenaTypeFactPresent"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "CodegenAstArenaTypeFactPresent(arena, count"
 reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" "TypedAstArenaTypeName(arena, i)"
@@ -3255,7 +3287,11 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCLocalTy
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutIsVoidReturnType"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AbiLayoutCDefaultReturnValue"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int>"
-require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingParen(s: String, open_idx: Int) -> Option<Int>"
+require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func FindMatchingParen(s: String, open_idx: Int) -> Option<Int>"
+require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func IsSingleCall(e: String) -> Bool"
+require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func IsIdentifier(e: String) -> Bool"
+reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindMatchingParen"
+reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func IsSingleCall"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelPlus(s: String) -> Option<Int>"
 require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func FindTopLevelComma(s: String) -> Option<Int>"
 require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func CodegenCharAt"
@@ -5128,11 +5164,11 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 204
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 205;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
-completeness_min_count="$(grep -F "return 221;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+completeness_min_count="$(grep -F "return 225;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 221-source closed slice"
+    fail "self-host completeness minima drifted below the 225-source closed slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"

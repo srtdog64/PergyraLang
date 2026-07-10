@@ -5,12 +5,14 @@
 // CLI policy stay in their own owners; neither may reimplement this pipeline.
 
 import "../parser/program_parse_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../codegen/emission/program_emit.pgy";
 
 func CompilerDriverPipelineReady() -> Bool {
     return ParserAstTreePayloadContractReady() &&
         TypedAstArenaPayloadContractReady() &&
-        AstTreeArtifactPayloadContractReady();
+        AstTreeArtifactPayloadContractReady() &&
+        SemanticAstArtifactVerdictContractReady();
 }
 
 func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with caps io_read {
@@ -33,10 +35,23 @@ func CompileAstToC(ast_text: String) -> String {
     if !CompilerDriverPipelineReady() {
         Die("driver pipeline facts are not ready");
     }
-    return GenerateCFromAstArtifact(AstTreeArtifactFromText(ast_text));
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ast_text);
+    let semantic_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(artifact, true);
+    if !semantic_verdict.ok {
+        Log(semantic_verdict.diagnostic_message);
+        Exit(1);
+    }
+    return GenerateCFromSemanticArtifact(artifact, semantic_verdict);
 }
 
 func CompileSourceToC(source_path: String) -> String with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    return GenerateCFromAstArtifact(artifact);
+    let semantic_verdict: SemanticAstArtifactVerdict =
+        SemanticAstArtifactEntrypointVerdict(artifact, true);
+    if !semantic_verdict.ok {
+        Log(semantic_verdict.diagnostic_message);
+        Exit(1);
+    }
+    return GenerateCFromSemanticArtifact(artifact, semantic_verdict);
 }

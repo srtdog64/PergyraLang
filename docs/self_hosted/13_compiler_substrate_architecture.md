@@ -353,9 +353,10 @@ source/output-file boundary over the same pipeline owner. The strengthened
 the Pergyra-built codegen, and compares its
 emitted C against the C-oracle-built driver on a real source, then requires the
 integrated driver's own `gen2.c` and `gen3.c` to be byte-identical through the
-Pergyra-owned artifact comparator. The landing run fixed at 14,659 C lines.
-This proves the parser/codegen compiler spine self-eats; semantic and MIR remain
-outside that executable and therefore outside the claim.
+Pergyra-owned artifact comparator. The current run fixes at 16,881 C lines.
+This proves the parser/shared-artifact-entrypoint-verdict/codegen spine
+self-eats; broader semantic analysis and MIR remain outside that executable and
+therefore outside the claim.
 
 ## Codegen Architecture
 
@@ -387,6 +388,9 @@ resource, such as a mutable cross-backend symbol/name-mangling table.
 
 The current transitional bridge has explicit fact owners:
 
+- `hir/ast_node_kind_owner.pgy` owns the canonical compact node-kind tag facts.
+  Inventory, semantic, and codegen views consume those functions; no stage may
+  assign its own integer meaning to an arena kind row.
 - `hir/ast_text_inventory_owner.pgy` owns raw AST-text line splitting, typed
   `CodegenAstTextNode` inventory, indentation/kind rows, blank-line
   filtering, `[export]` normalization, marker-node predicates, declaration and

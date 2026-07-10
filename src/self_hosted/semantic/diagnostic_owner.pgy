@@ -50,6 +50,12 @@ func SemanticReason(code: String) -> String {
     if code == "assign_type_mismatch" {
         return "assigned expression type does not match the local type";
     }
+    if code == "ast_artifact_invalid" {
+        return "parser-owned AST artifact does not satisfy the shared HIR contract";
+    }
+    if code == "entrypoint_cardinality" {
+        return "program entrypoint cardinality does not match the compilation boundary";
+    }
     if code == "input_missing" {
         return "semantic checker requires a source path argument";
     }
@@ -103,6 +109,12 @@ func SemanticFix(code: String) -> String {
     }
     if code == "assign_type_mismatch" {
         return "assign a value that matches the local type";
+    }
+    if code == "ast_artifact_invalid" {
+        return "repair the parser artifact producer instead of reconstructing syntax downstream";
+    }
+    if code == "entrypoint_cardinality" {
+        return "declare exactly one Main function for an executable program";
     }
     if code == "input_missing" {
         return "pass the source path as Args()[0]";
@@ -504,7 +516,7 @@ func SemanticVerdictPayloadContractReady() -> Bool {
     if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
         return false;
     }
-    if SemanticDiagnosticCodeCount() != 17 {
+    if SemanticDiagnosticCodeCount() != 19 {
         return false;
     }
     if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {

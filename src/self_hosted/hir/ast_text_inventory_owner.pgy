@@ -4,6 +4,7 @@
 
 import "ast_text_scan_owner.pgy";
 import "ast_text_row_fact_owner.pgy";
+import "ast_node_kind_owner.pgy";
 
 struct CodegenAstTextNode {
     let indent: Int;
@@ -20,132 +21,132 @@ struct CodegenAstTextNode {
 
 func CodegenAstTextKindOf(text: String) -> Int {
     if text == "Program:" {
-        return 30;
+        return TypedAstKindProgramTag();
     }
     if text == "Parameters:" {
-        return 2;
+        return TypedAstKindParametersTag();
     }
     if text == "Body:" {
-        return 31;
+        return TypedAstKindBodyTag();
     }
     if text == "Block:" {
-        return 32;
+        return TypedAstKindBlockTag();
     }
     if text == "Then:" {
-        return 33;
+        return TypedAstKindThenTag();
     }
     if StartsWith(text, "Returns:") {
-        return 3;
+        return TypedAstKindReturnsTag();
     }
     if text == "Fields:" {
-        return 4;
+        return TypedAstKindFieldsHeaderTag();
     }
     if StartsWith(text, "Field:") {
-        return 5;
+        return TypedAstKindFieldTag();
     }
     if StartsWith(text, "Function:") {
-        return 6;
+        return TypedAstKindFuncDeclTag();
     }
     if StartsWith(text, "Role:") {
-        return 7;
+        return TypedAstKindRoleDeclTag();
     }
     if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
         StartsWith(text, "Vessel:") {
-        return 8;
+        return TypedAstKindNominalDeclTag();
     }
     if StartsWith(text, "Enum:") {
-        return 9;
+        return TypedAstKindEnumDeclTag();
     }
     if StartsWith(text, "Event:") {
-        return 10;
+        return TypedAstKindEventDeclTag();
     }
     if StartsWith(text, "Ability:") {
-        return 11;
+        return TypedAstKindZeroArtifactDeclTag();
     }
     if StartsWith(text, "Log(") {
-        return 13;
+        return TypedAstKindLogStmtTag();
     }
     if text == "Return" {
-        return 14;
+        return TypedAstKindBareReturnStmtTag();
     }
     if StartsWith(text, "Return:") {
-        return 15;
+        return TypedAstKindValueReturnStmtTag();
     }
     if StartsWith(text, "ArrayPop(") {
-        return 16;
+        return TypedAstKindArrayPopStmtTag();
     }
     if StartsWith(text, "Exit(") {
-        return 17;
+        return TypedAstKindExitStmtTag();
     }
     if StartsWith(text, "ArraySet(") {
-        return 18;
+        return TypedAstKindArraySetStmtTag();
     }
     if StartsWith(text, "ArrayPush(") {
-        return 19;
+        return TypedAstKindArrayPushStmtTag();
     }
     if StartsWith(text, "Let: ") {
-        return 20;
+        return TypedAstKindLetStmtTag();
     }
     if StartsWith(text, "Assign: ") {
-        return 21;
+        return TypedAstKindAssignStmtTag();
     }
     if StartsWith(text, "For: ") {
-        return 22;
+        return TypedAstKindForStmtTag();
     }
     if StartsWith(text, "While: ") {
-        return 23;
+        return TypedAstKindWhileStmtTag();
     }
     if StartsWith(text, "If: ") {
-        return 24;
+        return TypedAstKindIfStmtTag();
     }
     if text == "Else:" {
-        return 25;
+        return TypedAstKindElseStmtTag();
     }
     if StartsWith(text, "Match: ") {
-        return 34;
+        return TypedAstKindMatchStmtTag();
     }
     if StartsWith(text, "Case: ") {
-        return 35;
+        return TypedAstKindMatchCaseStmtTag();
     }
     if text == "Default:" {
-        return 36;
+        return TypedAstKindMatchDefaultStmtTag();
     }
     if text == "Defer:" {
-        return 26;
+        return TypedAstKindDeferStmtTag();
     }
     if text == "Break" {
-        return 27;
+        return TypedAstKindBreakStmtTag();
     }
     if text == "Continue" {
-        return 28;
+        return TypedAstKindContinueStmtTag();
     }
     if IsSingleCall(text) {
-        return 29;
+        return TypedAstKindBareCallStmtTag();
     }
-    return 1;
+    return TypedAstKindUnknownTag();
 }
 
 func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
-    if kind == 6 {
+    if kind == TypedAstKindFuncDeclTag() {
         return Substring(text, 10, StringLength(text) - 10);
     }
-    if kind == 3 {
+    if kind == TypedAstKindReturnsTag() {
         return StringTrim(Substring(text, 8, StringLength(text) - 8));
     }
-    if kind == 5 {
+    if kind == TypedAstKindFieldTag() {
         if StartsWith(text, "Field: ") {
             return Substring(text, 7, StringLength(text) - 7);
         }
         return text;
     }
-    if kind == 12 {
+    if kind == TypedAstKindParamTag() {
         return text;
     }
-    if kind == 7 {
+    if kind == TypedAstKindRoleDeclTag() {
         return Substring(text, 6, StringLength(text) - 6);
     }
-    if kind == 8 {
+    if kind == TypedAstKindNominalDeclTag() {
         if StartsWith(text, "Struct: ") {
             return Substring(text, 8, StringLength(text) - 8);
         }
@@ -165,69 +166,69 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
             return Substring(text, 9, StringLength(text) - 9);
         }
     }
-    if kind == 9 {
+    if kind == TypedAstKindEnumDeclTag() {
         let brace: Int = StringIndexOf(text, " { ");
         if brace >= 0 {
             return Substring(text, 6, brace - 6);
         }
     }
-    if kind == 13 {
+    if kind == TypedAstKindLogStmtTag() {
         if CodegenCharAt(text, StringLength(text) - 1) == ")" {
             return StringTrim(Substring(text, 4, StringLength(text) - 5));
         }
     }
-    if kind == 15 {
+    if kind == TypedAstKindValueReturnStmtTag() {
         return StringTrim(Substring(text, 7, StringLength(text) - 7));
     }
-    if kind == 16 {
+    if kind == TypedAstKindArrayPopStmtTag() {
         if CodegenCharAt(text, StringLength(text) - 1) == ")" {
             return StringTrim(Substring(text, 9, StringLength(text) - 10));
         }
     }
-    if kind == 17 {
+    if kind == TypedAstKindExitStmtTag() {
         if CodegenCharAt(text, StringLength(text) - 1) == ")" {
             return StringTrim(Substring(text, 5, StringLength(text) - 6));
         }
     }
-    if kind == 18 {
+    if kind == TypedAstKindArraySetStmtTag() {
         if CodegenCharAt(text, StringLength(text) - 1) == ")" {
             return Substring(text, 9, StringLength(text) - 10);
         }
     }
-    if kind == 19 {
+    if kind == TypedAstKindArrayPushStmtTag() {
         if CodegenCharAt(text, StringLength(text) - 1) == ")" {
             return Substring(text, 10, StringLength(text) - 11);
         }
     }
-    if kind == 20 {
+    if kind == TypedAstKindLetStmtTag() {
         return Substring(text, 5, StringLength(text) - 5);
     }
-    if kind == 21 {
+    if kind == TypedAstKindAssignStmtTag() {
         return Substring(text, 8, StringLength(text) - 8);
     }
-    if kind == 22 {
+    if kind == TypedAstKindForStmtTag() {
         return Substring(text, 5, StringLength(text) - 5);
     }
-    if kind == 23 {
+    if kind == TypedAstKindWhileStmtTag() {
         return Substring(text, 7, StringLength(text) - 7);
     }
-    if kind == 24 {
+    if kind == TypedAstKindIfStmtTag() {
         return Substring(text, 4, StringLength(text) - 4);
     }
-    if kind == 34 {
+    if kind == TypedAstKindMatchStmtTag() {
         return Substring(text, 7, StringLength(text) - 7);
     }
-    if kind == 35 {
+    if kind == TypedAstKindMatchCaseStmtTag() {
         return Substring(text, 6, StringLength(text) - 6);
     }
-    if kind == 29 {
+    if kind == TypedAstKindBareCallStmtTag() {
         return text;
     }
     return "";
 }
 
 func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
-    if kind == 9 {
+    if kind == TypedAstKindEnumDeclTag() {
         let brace: Int = StringIndexOf(text, " { ");
         if brace >= 0 && CodegenCharAt(text, StringLength(text) - 1) == "}" {
             return StringTrim(Substring(text, brace + 3, StringLength(text) - (brace + 4)));
@@ -273,17 +274,17 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
             if field_indent >= 0 && indent < field_indent {
                 field_indent = -1;
             }
-            if kind == 2 {
+            if kind == TypedAstKindParametersTag() {
                 param_indent = indent + 2;
                 field_indent = -1;
-            } else if kind == 4 {
+            } else if kind == TypedAstKindFieldsHeaderTag() {
                 field_indent = indent + 2;
                 param_indent = -1;
             } else if param_indent >= 0 && indent == param_indent &&
                 (StringIndexOf(trimmed, ": ") >= 0 || trimmed == "self") {
-                kind = 12;
+                kind = TypedAstKindParamTag();
             } else if field_indent >= 0 && indent == field_indent && StringIndexOf(trimmed, ": ") >= 0 {
-                kind = 5;
+                kind = TypedAstKindFieldTag();
             }
             let payload: String = CodegenAstTextPayloadFor(trimmed, kind);
             let aux_payload: String = CodegenAstTextAuxPayloadFor(trimmed, kind);

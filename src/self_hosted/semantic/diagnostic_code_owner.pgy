@@ -20,6 +20,8 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "return_type_mismatch",
         "condition_not_bool",
         "assign_type_mismatch",
+        "ast_artifact_invalid",
+        "entrypoint_cardinality",
         "input_missing",
         "unregistered_diagnostic_code"
     ];

@@ -177,6 +177,9 @@ projection into `AstArena`. Its temporary node inventory does not cross the
 artifact boundary. `input/ast_arena_codegen_view_owner.pgy` owns codegen-only
 fail-closed predicates over that arena. This is a compatibility bridge, not
 the final typed/tagged AST owner.
+`../semantic/ast_artifact_verdict_owner.pgy` owns executable `Main`
+cardinality. Program emission accepts that verdict as evidence and is forbidden
+from recounting the entrypoint locally.
 `input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
 shape and top-level element facts so statement emission does not split array
 initializer text locally.

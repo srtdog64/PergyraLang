@@ -8,6 +8,33 @@ func CodegenCharAt(s: String, i: Int) -> String {
     return Substring(s, i, 1);
 }
 
+func IsIdentChar(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+func IsIdentifier(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 {
+        return false;
+    }
+    let digits: String = "0123456789";
+    if StringIndexOf(digits, CodegenCharAt(e, 0)) >= 0 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if !IsIdentChar(CodegenCharAt(e, i)) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func NextNewline(s: String, start: Int) -> Int {
     let n: Int = StringLength(s);
     let i: Int = start;
@@ -80,4 +107,54 @@ func FindTopLevelComma(s: String) -> Option<Int> {
         i = i + 1;
     }
     return None;
+}
+
+func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
+    let n: Int = StringLength(s);
+    let i: Int = open_idx;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+        } else if c == "(" {
+            depth = depth + 1;
+        } else if c == ")" {
+            depth = depth - 1;
+            if depth == 0 {
+                return Some(i);
+            }
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func IsSingleCall(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 || CodegenCharAt(e, n - 1) != ")" {
+        return false;
+    }
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 {
+        return false;
+    }
+    let prefix: String = Substring(e, 0, op);
+    if !IsIdentifier(prefix) {
+        return false;
+    }
+    let close: Option<Int> = FindMatchingParen(e, op);
+    return IsSome(close) && UnwrapOption(close) == n - 1;
 }

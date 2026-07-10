@@ -41,6 +41,13 @@ Literal-token position checks are owned by `text_scan_owner.pgy` as
 `Option<Int>` facts. Consumers must use `IsSome` / `UnwrapOption` instead of
 `-1` sentinel control flow when a literal is absent.
 
+The integrated bootstrap driver has a narrower artifact-native semantic path:
+`ast_artifact_verdict_owner.pgy` consumes the parser-owned `AstTreeArtifact`
+and owns executable `Main` cardinality. It does not call the source bundle or
+text scanner. Codegen consumes the resulting verdict and may not re-own that
+decision. This first artifact-native rule does not imply that the broader
+source-scanner semantic subset has migrated.
+
 ## Output Contract
 
 The tool prints one deterministic diagnostic verdict:

@@ -3,6 +3,7 @@
 // Owns name/type/mode row facts derived from AST-text inventory payloads.
 
 import "ast_text_scan_owner.pgy";
+import "ast_node_kind_owner.pgy";
 
 struct CodegenAstTextRowFactInput {
     let kind: Int;
@@ -12,7 +13,7 @@ struct CodegenAstTextRowFactInput {
 }
 
 func CodegenAstTextParamModeForPayload(kind: Int, payload: String) -> Int {
-    if kind != 12 {
+    if kind != TypedAstKindParamTag() {
         return 0;
     }
     if StartsWith(payload, "inout ") {
@@ -41,17 +42,19 @@ func CodegenAstTextParamPayloadForMode(payload: String, mode: Int) -> String {
 func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
     let payload: String = input.payload;
-    if kind == 6 || kind == 8 || kind == 9 {
+    if kind == TypedAstKindFuncDeclTag() ||
+        kind == TypedAstKindNominalDeclTag() ||
+        kind == TypedAstKindEnumDeclTag() {
         return payload;
     }
-    if kind == 7 {
+    if kind == TypedAstKindRoleDeclTag() {
         let pos: Int = StringIndexOf(payload, " for ");
         if pos >= 0 {
             return Substring(payload, 0, pos);
         }
         return "";
     }
-    if kind == 12 {
+    if kind == TypedAstKindParamTag() {
         let row: String = CodegenAstTextParamPayloadForMode(payload, input.mode);
         if row == "self" {
             return "self";
@@ -62,42 +65,42 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
-    if kind == 20 {
+    if kind == TypedAstKindLetStmtTag() {
         let sep: Option<Int> = FindTextFrom(payload, " : ", 0);
         if IsSome(sep) {
             return Substring(payload, 0, UnwrapOption(sep));
         }
         return "";
     }
-    if kind == 21 {
+    if kind == TypedAstKindAssignStmtTag() {
         let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);
         if IsSome(assign_sep) {
             return Substring(payload, 0, UnwrapOption(assign_sep));
         }
         return "";
     }
-    if kind == 19 {
+    if kind == TypedAstKindArrayPushStmtTag() {
         let push_comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(push_comma) {
             return StringTrim(Substring(payload, 0, UnwrapOption(push_comma)));
         }
         return "";
     }
-    if kind == 18 {
+    if kind == TypedAstKindArraySetStmtTag() {
         let set_comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(set_comma) {
             return StringTrim(Substring(payload, 0, UnwrapOption(set_comma)));
         }
         return "";
     }
-    if kind == 22 {
+    if kind == TypedAstKindForStmtTag() {
         let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
         if IsSome(in_pos) {
             return StringTrim(Substring(payload, 0, UnwrapOption(in_pos)));
         }
         return "";
     }
-    if kind == 5 {
+    if kind == TypedAstKindFieldTag() {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
             return Substring(payload, 0, colon2);
@@ -110,7 +113,7 @@ func CodegenAstTextNameFactFor(input: CodegenAstTextRowFactInput) -> String {
 func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
     let payload: String = input.payload;
-    if kind == 20 {
+    if kind == TypedAstKindLetStmtTag() {
         let pos: Option<Int> = FindTextFrom(payload, " = ", 0);
         if IsSome(pos) {
             let start: Int = UnwrapOption(pos) + 3;
@@ -118,7 +121,7 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
-    if kind == 21 {
+    if kind == TypedAstKindAssignStmtTag() {
         let pos2: Option<Int> = FindTextFrom(payload, " = ", 0);
         if IsSome(pos2) {
             let start2: Int = UnwrapOption(pos2) + 3;
@@ -126,7 +129,7 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
-    if kind == 19 {
+    if kind == TypedAstKindArrayPushStmtTag() {
         let comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(comma) {
             let start3: Int = UnwrapOption(comma) + 1;
@@ -134,7 +137,7 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
-    if kind == 18 {
+    if kind == TypedAstKindArraySetStmtTag() {
         let comma2: Option<Int> = FindTopLevelComma(payload);
         if IsSome(comma2) {
             let rest_start: Int = UnwrapOption(comma2) + 1;
@@ -146,7 +149,7 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
         }
         return "";
     }
-    if kind == 22 {
+    if kind == TypedAstKindForStmtTag() {
         let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
         if IsSome(in_pos) {
             let iterable_start: Int = UnwrapOption(in_pos) + 4;
@@ -165,10 +168,10 @@ func CodegenAstTextValueFactFor(input: CodegenAstTextRowFactInput) -> String {
 func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
     let payload: String = input.payload;
-    if kind == 9 {
+    if kind == TypedAstKindEnumDeclTag() {
         return input.aux_payload;
     }
-    if kind == 18 {
+    if kind == TypedAstKindArraySetStmtTag() {
         let comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(comma) {
             let rest_start: Int = UnwrapOption(comma) + 1;
@@ -181,7 +184,7 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
         }
         return "";
     }
-    if kind == 22 {
+    if kind == TypedAstKindForStmtTag() {
         let in_pos: Option<Int> = FindTextFrom(payload, " in ", 0);
         if IsSome(in_pos) {
             let iterable_start: Int = UnwrapOption(in_pos) + 4;
@@ -200,17 +203,17 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
 func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String {
     let kind: Int = input.kind;
     let payload: String = input.payload;
-    if kind == 3 {
+    if kind == TypedAstKindReturnsTag() {
         return payload;
     }
-    if kind == 7 {
+    if kind == TypedAstKindRoleDeclTag() {
         let pos: Int = StringIndexOf(payload, " for ");
         if pos >= 0 {
             return Substring(payload, pos + 5, StringLength(payload) - (pos + 5));
         }
         return "";
     }
-    if kind == 12 {
+    if kind == TypedAstKindParamTag() {
         let row: String = CodegenAstTextParamPayloadForMode(payload, input.mode);
         if row == "self" {
             return "";
@@ -221,7 +224,7 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         }
         return "";
     }
-    if kind == 20 {
+    if kind == TypedAstKindLetStmtTag() {
         let type_sep: Option<Int> = FindTextFrom(payload, " : ", 0);
         if IsSome(type_sep) {
             let type_start: Int = UnwrapOption(type_sep) + 3;
@@ -232,7 +235,7 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
         }
         return "";
     }
-    if kind == 5 {
+    if kind == TypedAstKindFieldTag() {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
             return Substring(payload, colon2 + 2, StringLength(payload) - (colon2 + 2));

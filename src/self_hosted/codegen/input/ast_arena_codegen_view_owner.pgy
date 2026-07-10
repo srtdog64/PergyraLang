@@ -1,6 +1,7 @@
 // Codegen-only fail-closed and routing view over shared AstArena facts.
 
 import "../../hir/ast_text_arena_projection_owner.pgy";
+import "../../hir/ast_node_kind_owner.pgy";
 import "../text/text_owner.pgy";
 
 func CodegenAstArenaIndentOrDie(arena: AstArena, node_id: Int) -> Int {
@@ -56,138 +57,130 @@ func CodegenAstArenaAuxValueOrDie(arena: AstArena, node_id: Int) -> String {
     return UnwrapOption(value);
 }
 
-func CodegenAstArenaKindIs(arena: AstArena, node_id: Int, expected_kind: Int) -> Bool {
-    let kind: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
-    if !IsSome(kind) {
-        return false;
-    }
-    return UnwrapOption(kind) == expected_kind;
-}
-
 func CodegenAstArenaIsProgramRoot(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 30);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindProgramTag());
 }
 
 func CodegenAstArenaIsParameters(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 2);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindParametersTag());
 }
 
 func CodegenAstArenaIsReturns(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 3);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindReturnsTag());
 }
 
 func CodegenAstArenaIsFieldsHeader(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 4);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFieldsHeaderTag());
 }
 
 func CodegenAstArenaIsBody(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 31);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBodyTag());
 }
 
 func CodegenAstArenaIsBlock(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 32);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBlockTag());
 }
 
 func CodegenAstArenaIsThen(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 33);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindThenTag());
 }
 
 func CodegenAstArenaExpectKind(arena: AstArena, count: Int, inout cur: Array<Int>, expected_kind: Int, label: String) -> Void {
     if cur[0] >= count {
         Die(Concat("expected `", Concat(label, "` but reached end of typed AST arena")));
     }
-    if !CodegenAstArenaKindIs(arena, cur[0], expected_kind) {
+    if !TypedAstArenaNodeKindIs(arena, cur[0], expected_kind) {
         Die(Concat("expected `", Concat(label, Concat("` at typed AST node: ", ToString(cur[0])))));
     }
     ArraySet(cur, 0, cur[0] + 1);
 }
 
 func CodegenAstArenaExpectParameters(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
-    CodegenAstArenaExpectKind(arena, count, cur, 2, "Parameters:");
+    CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindParametersTag(), "Parameters:");
 }
 
 func CodegenAstArenaExpectBody(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
-    CodegenAstArenaExpectKind(arena, count, cur, 31, "Body:");
+    CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindBodyTag(), "Body:");
 }
 
 func CodegenAstArenaExpectBlock(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
-    CodegenAstArenaExpectKind(arena, count, cur, 32, "Block:");
+    CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindBlockTag(), "Block:");
 }
 
 func CodegenAstArenaExpectThen(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
-    CodegenAstArenaExpectKind(arena, count, cur, 33, "Then:");
+    CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindThenTag(), "Then:");
 }
 
 func CodegenAstArenaIsLogStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 13);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindLogStmtTag());
 }
 
 func CodegenAstArenaIsBareReturnStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 14);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBareReturnStmtTag());
 }
 
 func CodegenAstArenaIsValueReturnStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 15);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindValueReturnStmtTag());
 }
 
 func CodegenAstArenaIsArrayPopStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 16);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArrayPopStmtTag());
 }
 
 func CodegenAstArenaIsExitStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 17);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindExitStmtTag());
 }
 
 func CodegenAstArenaIsArraySetStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 18);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArraySetStmtTag());
 }
 
 func CodegenAstArenaIsArrayPushStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 19);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArrayPushStmtTag());
 }
 
 func CodegenAstArenaIsLetStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 20);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindLetStmtTag());
 }
 
 func CodegenAstArenaIsAssignStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 21);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindAssignStmtTag());
 }
 
 func CodegenAstArenaIsForStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 22);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindForStmtTag());
 }
 
 func CodegenAstArenaIsWhileStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 23);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindWhileStmtTag());
 }
 
 func CodegenAstArenaIsIfStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 24);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindIfStmtTag());
 }
 
 func CodegenAstArenaIsElseStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 25);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindElseStmtTag());
 }
 
 func CodegenAstArenaIsDeferStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 26);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindDeferStmtTag());
 }
 
 func CodegenAstArenaIsBreakStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 27);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBreakStmtTag());
 }
 
 func CodegenAstArenaIsContinueStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 28);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindContinueStmtTag());
 }
 
 func CodegenAstArenaIsBareCallStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 29);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBareCallStmtTag());
 }
 
 func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 6);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag());
 }
 
 func CodegenAstArenaIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
@@ -202,35 +195,35 @@ func CodegenAstArenaIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
 }
 
 func CodegenAstArenaIsRoleDecl(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 7);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindRoleDeclTag());
 }
 
 func CodegenAstArenaIsNominalDecl(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 8);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindNominalDeclTag());
 }
 
 func CodegenAstArenaIsEnumDecl(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 9);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEnumDeclTag());
 }
 
 func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 10);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEventDeclTag());
 }
 
 func CodegenAstArenaIsZeroArtifactDecl(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 11);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindZeroArtifactDeclTag());
 }
 
 func CodegenAstArenaIsMatchStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 34);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchStmtTag());
 }
 
 func CodegenAstArenaIsMatchCaseStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 35);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchCaseStmtTag());
 }
 
 func CodegenAstArenaIsMatchDefaultStmt(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 36);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchDefaultStmtTag());
 }
 
 func CodegenAstArenaHasElseAt(arena: AstArena, count: Int, index: Int, if_indent: Int) -> Bool {

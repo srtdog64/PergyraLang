@@ -34,7 +34,7 @@ func CodegenAstArenaEnumNameOrDie(arena: AstArena, node_id: Int) -> String {
 }
 
 func CodegenAstArenaIsFieldRow(arena: AstArena, node_id: Int) -> Bool {
-    return CodegenAstArenaKindIs(arena, node_id, 5);
+    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFieldTag());
 }
 
 func CodegenAstArenaFieldNameOrDie(arena: AstArena, node_id: Int) -> String {

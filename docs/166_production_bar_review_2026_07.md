@@ -285,11 +285,13 @@ features:
 AIR/backend access is not an unimplemented P0: native source lint, strict-vs-
 relaxed full-fixture non-impact, and a Pergyra-built backend AIR access checker
 already enforce that boundary. The self-host boundary is different. The
-parser/codegen driver reaches a real byte-identical fixed point, but semantic
-and MIR are absent from that executable. The typed AST arena owner has therefore
+integrated driver reaches a real byte-identical fixed point, but broader
+semantic analysis and MIR are absent from that executable. The typed AST arena owner has therefore
 been moved from codegen into `src/self_hosted/hir/typed_ast_arena_owner.pgy`.
 Parser now produces one HIR-owned `AstTreeArtifact`, and the integrated driver
-passes its typed arena to codegen without rebuilding it. The next valid rung is
-semantic consumption of that same fact. Reusing the current semantic source
-scanner inside the driver would be a second parser and is explicitly not counted
-as progress.
+passes its typed arena through the first `SemanticAstArtifactVerdict` and into
+codegen without rebuilding it. That verdict now owns executable `Main`
+cardinality, and the self-built driver fixed point remains byte-identical at
+16,881 generated-C lines. This is a bounded semantic hard rung, not broad
+semantic substitution. Reusing the current semantic source scanner inside the
+driver would still be a second parser and is explicitly not counted as progress.

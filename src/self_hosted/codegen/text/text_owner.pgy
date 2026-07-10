@@ -95,34 +95,6 @@ func RejectUnsupportedCodegenBuiltins(tree_text: String) -> Void {
     }
 }
 
-func IsIdentChar(c: String) -> Bool {
-    if StringLength(c) != 1 {
-        return false;
-    }
-    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-    return StringIndexOf(chars, c) >= 0;
-}
-
-// True when `e` is a single bare identifier (alnum/underscore, first non-digit).
-func IsIdentifier(e: String) -> Bool {
-    let n: Int = StringLength(e);
-    if n == 0 {
-        return false;
-    }
-    let digits: String = "0123456789";
-    if StringIndexOf(digits, CodegenCharAt(e, 0)) >= 0 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < n {
-        if !IsIdentChar(CodegenCharAt(e, i)) {
-            return false;
-        }
-        i = i + 1;
-    }
-    return true;
-}
-
 func IsIdentStart(c: String) -> Bool {
     if StringLength(c) != 1 {
         return false;
@@ -164,60 +136,6 @@ func FindMatchingBracket(s: String, open_idx: Int) -> Option<Int> {
         i = i + 1;
     }
     return None;
-}
-
-// Given the index of a '(' in `s`, return the index of its matching ')',
-// respecting nested parens and string literals.
-func FindMatchingParen(s: String, open_idx: Int) -> Option<Int> {
-    let n: Int = StringLength(s);
-    let i: Int = open_idx;
-    let depth: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(s, i);
-        if in_str {
-            if c == "\\" {
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-        } else if c == "(" {
-            depth = depth + 1;
-        } else if c == ")" {
-            depth = depth - 1;
-            if depth == 0 {
-                return Some(i);
-            }
-        }
-        i = i + 1;
-    }
-    return None;
-}
-
-// True when `e` is a single call `Name(args...)` whose closing paren is the
-// last character (so it is one call, not `f() + g()`).
-func IsSingleCall(e: String) -> Bool {
-    let n: Int = StringLength(e);
-    if n == 0 || CodegenCharAt(e, n - 1) != ")" {
-        return false;
-    }
-    let op: Int = StringIndexOf(e, "(");
-    if op <= 0 {
-        return false;
-    }
-    let prefix: String = Substring(e, 0, op);
-    if !IsIdentifier(prefix) {
-        return false;
-    }
-    let close: Option<Int> = FindMatchingParen(e, op);
-    return IsSome(close) && UnwrapOption(close) == n - 1;
 }
 
 // Strip redundant parentheses that wrap an entire expression. The AST printer

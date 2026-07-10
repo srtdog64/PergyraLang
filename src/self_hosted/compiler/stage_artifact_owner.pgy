@@ -2,6 +2,7 @@ import "path_manifest_owner.pgy";
 import "../lexer/token_owner.pgy";
 import "../parser/tree_text_owner.pgy";
 import "../semantic/diagnostic_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
 
@@ -41,7 +42,8 @@ func CompilerSemanticVerdictFactReady() -> Bool {
     if !CompilerStageArtifactRowReady(2, "semantic|SemanticVerdictZone|SemanticStage|CheckProgramSemantics|SemanticVerdictPayloadContractReady") {
         return false;
     }
-    return SemanticVerdictPayloadContractReady();
+    return SemanticVerdictPayloadContractReady() &&
+        SemanticAstArtifactVerdictContractReady();
 }
 
 func CompilerMirFactGraphReady() -> Bool {

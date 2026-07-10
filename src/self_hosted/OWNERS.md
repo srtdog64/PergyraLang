@@ -75,6 +75,8 @@ compiler-stage `.pgy` source to be listed here.
 ## Semantic
 
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
+- `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
+  evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
@@ -87,6 +89,21 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
 - `src/self_hosted/semantic/source_bundle_owner.pgy` -- root/import source bundle.
 - `src/self_hosted/semantic/text_scan_owner.pgy` -- semantic text scanning.
+
+## HIR
+
+- `src/self_hosted/hir/ast_node_kind_owner.pgy` -- canonical compact AST/HIR
+  node-kind tags consumed by inventory, semantic, and codegen views.
+- `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
+  primitives shared by parser/HIR and codegen.
+- `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- compact AST text
+  name/type/value/aux-value/mode row facts.
+- `src/self_hosted/hir/ast_text_inventory_owner.pgy` -- compact AST text line
+  inventory and cursor expectation boundary.
+- `src/self_hosted/hir/ast_text_arena_projection_owner.pgy` -- single
+  `AstTreeArtifact` construction and compact inventory to arena projection.
+- `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
+  payload contract and `NodeId` lookup facts.
 
 ## MIR Lower
 
@@ -110,10 +127,6 @@ compiler-stage `.pgy` source to be listed here.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
-- `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning primitives shared by parser/HIR and codegen.
-- `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- AST text name/type/value/aux-value/mode row facts derived from inventory payloads.
-- `src/self_hosted/hir/ast_text_inventory_owner.pgy` -- AST text line inventory, kind row facts, and cursor expectation boundary.
-- `src/self_hosted/hir/ast_text_arena_projection_owner.pgy` -- single `AstTreeArtifact` construction and AST text inventory to typed arena projection.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy` -- AST text array-literal initializer shape and top-level element facts.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
@@ -130,9 +143,6 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- type-surface usage facts derived from typed arena type-name rows.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
-- `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
-  payload contract, `NodeId` lookup facts, and migration target for retiring
-  the AST text bridge.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
 - `src/self_hosted/codegen/text/enum_literal_owner.pgy` -- payload-free enum literal projection facts.

@@ -22,7 +22,7 @@ func CodegenAstKindArrayPushStmt() -> Int { return 19; }
 func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
     let i: Int = 0;
     while i < count {
-        if CodegenAstArenaKindIs(arena, i, kind) {
+        if TypedAstArenaNodeKindIs(arena, i, kind) {
             return true;
         }
         i = i + 1;
