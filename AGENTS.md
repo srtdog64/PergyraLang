@@ -3,6 +3,19 @@
 This repository is in beta-closure mode. Prefer source-of-truth closure over
 cosmetic reshuffling.
 
+## Objective Function Before Structure
+
+- Before a structural change, state the objective, priority order, fact owner,
+  last legitimate consumer, forbidden fallback, and verification gate.
+- Do not treat a familiar compiler architecture as a neutral default. Import
+  its invariant only after mapping that invariant to Pergyra ownership and
+  evidence lifetime; otherwise it is a reference, not an implementation plan.
+- If the prompt leaves priorities implicit, use this repository order:
+  semantic identity and one SoT, owner-directed facts, fallback removal,
+  negative ratchet, then patch size and conventional architecture.
+- See `docs/131_ai_coding_atomic_units.md` section 3.1 for the objective-card
+  template. An AI-probable next step is not proof of the right next step.
+
 ## Do Not Add These Anti-Patterns
 
 - Do not add unnecessary helper functions. A helper must name a real owner
