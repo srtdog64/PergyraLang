@@ -177,15 +177,17 @@ artifact assembly coverage. The fixed point proves a real Pergyra-built
 source-to-C compiler loop, but neither it nor DRV parity counts as
 released/native driver replacement until semantic and MIR stages enter that
 same executable path.
-The separate DRV-2 `--emit-c-verified` entrypoint makes initializer typing a
-hard semantic precondition without calling the source-scanning checker. Its
-semantic cost is isolated from DRV-0/DRV-1 and ordinary codegen checks. It is a
-bounded hard-semantic rung, not a whole-body semantic replacement claim.
-The DRV-2 initializer gate runs six manifest-owned positive/negative fixtures
+The separate DRV-2 `--emit-c-verified` entrypoint makes artifact-body semantic
+evidence a hard precondition without calling the source-scanning checker. It
+joins initializer, assignment, expression-use, call, return, and condition
+verdicts before C emission. Its semantic cost is isolated from DRV-0/DRV-1 and
+ordinary codegen checks. It is a bounded hard-semantic rung, not yet the full
+CFG/MIR body replacement claim.
+The DRV-2 body gate runs sixteen manifest-owned positive/negative fixtures
 through both C-built and LLVM-built drivers, compares emitted C or diagnostics,
-and C-compiles every positive artifact. The builtin signature table and shared
-source character/trivia scanner are now single owners because the integrated
-driver exposed their former duplicate definitions.
+and C-compiles every positive artifact. The builtin signature table, canonical
+type-name owner, and shared source character/trivia scanner are single owners;
+the integrated driver may not recover these facts from source text.
 
 The same slice removed two compiler-scale quadratic scans. Typed AST parent and
 child rows now use an indentation stack plus CSR-style child offsets, and AST

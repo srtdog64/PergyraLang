@@ -65,11 +65,22 @@ while IFS='|' read -r _ track rung status artifact gate _; do
 done < <(printf '%s\n' "$rows")
 
 # The gap register must stay visible until its rungs land: G-EXEC blocks
-# DRV-2 and G-LSP-STREAM blocks the full LSP-2 session loop. G-STDIN is a
+# DRV-3 and G-LSP-STREAM blocks the full LSP-2 session loop. G-STDIN is a
 # landed prerequisite now consumed by LSP-2a.
-if printf '%s\n' "$rows" | grep -Fq "| DRV-2 | planned |"; then
-    grep -Fq "G-EXEC" "$DOC" || fail "DRV-2 is planned but the G-EXEC gap entry vanished"
+printf '%s\n' "$rows" | grep -Fq \
+    "| driver | DRV-2 | landed | src/self_hosted/compiler/driver_rung2_main.pgy | tests/self_hosted/parity/driver_rung2_body_parity.sh |" ||
+    fail "DRV-2 must name the landed artifact-body semantic owner and parity gate"
+grep -Fq '| **G-EXEC** ' "$DOC" ||
+    fail "DRV-3 is planned but the G-EXEC gap entry vanished"
+grep -Fq '| DRV-3 |' "$DOC" ||
+    fail "G-EXEC must block DRV-3, not the landed DRV-2"
+if grep -E '^\| \*\*G-EXEC\*\* .*\| DRV-2 \|$' "$DOC" >/dev/null; then
+    fail "G-EXEC must not be registered against landed DRV-2"
 fi
+grep -Fq 'artifact-body semantic source-to-C (landed)' "$DOC" ||
+    fail "DRV-2 responsibility text drifted from artifact-body semantic ownership"
+grep -Fq 'self-host-driver-rung2-body-parity-test-smoke' "$ROOT_DIR/Makefile" ||
+    fail "DRV-2 landed gate is not wired into Makefile"
 if printf '%s\n' "$rows" | grep -Fq "| LSP-2 | planned |"; then
     case "$(cat "$DOC")" in
         *G-LSP-STREAM*) ;;

@@ -385,8 +385,9 @@ compiler-stage `.pgy` source to be listed here.
   for source path, artifact mode, and optional output path.
 - `src/self_hosted/compiler/driver_rung1_main.pgy` -- DRV-1 runnable artifact
   boundary; ownership remains in `driver_cli_owner.pgy`.
-- `src/self_hosted/compiler/driver_rung2_owner.pgy` -- hard initializer-verdict
-  source-to-C owner; computes semantic type evidence only for DRV-2.
+- `src/self_hosted/compiler/driver_rung2_owner.pgy` -- hard artifact-body
+  semantic source-to-C owner; joins initializer, assignment, expression-use,
+  call, return, and condition evidence for DRV-2.
 - `src/self_hosted/compiler/driver_rung2_main.pgy` -- DRV-2 runnable hard
   semantic boundary; ownership remains in `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/authority_owner.pgy` -- authority contracts

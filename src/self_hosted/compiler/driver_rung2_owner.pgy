@@ -1,8 +1,9 @@
-// DRV-2 initializer-verdict driver owner.
+// DRV-2 artifact-body semantic driver owner.
 //
-// This hard rung computes initializer type evidence only when the verified
-// source-to-C path asks for it. DRV-0/DRV-1 breadth codegen does not pay this
-// semantic cost and cannot silently substitute the source-scanning checker.
+// This hard rung computes initializer, assignment, expression-use, call,
+// return, and condition evidence when the verified source-to-C path asks for
+// it. DRV-0/DRV-1 breadth codegen does not pay this semantic cost and cannot
+// silently substitute the source-scanning checker.
 
 import "driver_pipeline_owner.pgy";
 import "../semantic/ast_initializer_type_fact_owner.pgy";

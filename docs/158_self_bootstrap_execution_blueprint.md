@@ -193,7 +193,7 @@ parser는 이미 120/121 예제·187 fixture byte-equal. 남은 48% LOC = 자기
 
 ---
 
-## 5. DRV-2 / G-EXEC 이차 트랙 (driver 순도 — fixed-point와 독립)
+## 5. DRV-3 / G-EXEC 이차 트랙 (driver 순도 — fixed-point와 독립)
 
 M1이든 M2든, "Pergyra 프로세스 하나가 source→binary 전체를 소유"하는 순도
 업그레이드는 G-EXEC를 요구한다. **이건 fixed-point 증명과 독립**(§2). 원하면
@@ -202,9 +202,11 @@ M1이든 M2든, "Pergyra 프로세스 하나가 source→binary 전체를 소유
 ### 5.1 무엇을 사는가
 
 현재 DRV-0/1(landed): Pergyra가 조립(self-parser→AST text→self-codegen→C text)을
-in-process 소유하되 **C 텍스트에서 멈춘다**; 셸이 gcc를 마무리. DRV-2 = Pergyra
-드라이버가 gcc를 직접 호출 → 셸 하니스 로직(codegen_bootstrap.sh 208~383행)을
-Pergyra로 이관 → `PgyCompilerWorld`가 계약-토폴로지에서 **실행형**으로 승격.
+in-process 소유한다. DRV-2(landed)는 그 경로 앞에 artifact-body semantic
+verdict를 fail-closed로 결합하지만 여전히 **C 텍스트에서 멈춘다**; 셸이 gcc를
+마무리한다. DRV-3 = Pergyra 드라이버가 gcc를 직접 호출 → 셸 하니스 로직
+(codegen_bootstrap.sh 208~383행)을 Pergyra로 이관 → `PgyCompilerWorld`가
+계약-토폴로지에서 **실행형**으로 승격.
 
 ### 5.2 예약된 어휘 (이미 자리 파짐)
 
@@ -240,14 +242,16 @@ WASI(subprocess 부재 = 안전 기본), Go `os/exec`(무제한 = 반례). Deno 
 
 **결정점(당신 것):** cap 이름 확정 / allowlist 기본값(빈 = 전부 거절 권고) /
 budget wall-time과의 상호작용(spawn된 자식도 wall budget에 계상?). 이 셋만
-정하면 DRV-2가 mechanical.
+정하면 DRV-3가 mechanical.
 
 ### 5.4 DRV-2/DRV-3 rung
 
-- **DRV-2**(G-EXEC 후): 셸 하니스 로직을 Pergyra로. `SubprocessRunnerZone`을
-  실제 gcc 호출에 배선. 오라클: 기존 codegen_bootstrap.sh와 byte-equal 산출.
-- **DRV-3**: `pgy --self-driver` 플래그 뒤에서 지원 subset을 C driver와
-  run-equal parity. out-of-subset은 관측 가능한 거절.
+- **DRV-2**(landed): parser artifact에서 body semantic facts를 조립하고
+  `CheckProgram`/`CheckBody` 없이 fail-closed한 C text를 방출한다.
+- **DRV-3**(G-EXEC 후): 셸 하니스 로직을 Pergyra로 옮겨
+  `SubprocessRunnerZone`을 실제 gcc 호출에 배선하고, `pgy --self-driver`
+  플래그 뒤에서 지원 subset을 C driver와 run-equal로 증명한다.
+  out-of-subset은 관측 가능한 거절이다.
 
 ---
 
@@ -277,6 +281,6 @@ M2를 미루고 M1을 self-hosting 마일스톤으로 받기로 하면:
 ## Related
 
 docs/self_hosted/01(North Star + Stage 5 정의) · docs/150(driver/LSP rung —
-DRV-2 G-EXEC 블로커) · docs/148(stdlib — 병행 베팅) · PROGRESS.md(치환 원장) ·
+DRV-2 semantic landed / DRV-3 G-EXEC 블로커) · docs/148(stdlib — 병행 베팅) · PROGRESS.md(치환 원장) ·
 `tests/self_hosted/parity/codegen_bootstrap.sh`(fixed-point 하니스) ·
 `tests/self_host_pergyra_likeness_smoke.sh`(진짜 metric) · docs/159(stdlib 설계도)

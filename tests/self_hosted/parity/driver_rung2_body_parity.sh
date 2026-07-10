@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DRV-2 parity: initializer type evidence is mandatory before C emission.
+# DRV-2 parity: artifact-body semantic evidence is mandatory before C emission.
 
 set -euo pipefail
 

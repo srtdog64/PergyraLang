@@ -62,16 +62,17 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   `-o` output path를 소유하고 `driver_rung1_main.pgy`가 runnable boundary를
   제공한다. `driver_rung1_parity.sh`는 stdout과 파일 산출 양쪽을
   artifact owner comparator로 비교하므로 DRV-1은 §4 rung 표에서 landed다.
-- **DRV-2 — 네이티브 컴파일 호출 (차단: G-EXEC)**: cc/gcc 호출은
-  프로세스 spawn builtin이 **없다**(2026-07-04 확인). 필요물 =
-  `Exec(argv) -> Result<Int>`류 gated builtin + 신규 process capability
-  (world.pgy의 `SubprocessRunnerZone`/`SubprocessCapabilityEnvelope`
-  계약이 이미 그 자리를 파놓았다 — env_allowlist/timeout_ms/exit_code
-  fact 어휘까지). **G-EXEC는 표면 결정**(BDFL): cap 이름, allowlist
-  강제, budget 상호작용. 그 전까지 DRV는 C-텍스트 산출에서 멈추고 셸이
-  마무리하는 것이 정직한 경계다.
-- **DRV-3 — 플래그 뒤 교체**: `pgy --self-driver`류로 지원 subset에서
-  C driver와 run-equal parity. out-of-subset은 관측 가능한 거절.
+- **DRV-2 — artifact-body semantic source-to-C (landed)**:
+  `driver_rung2_owner.pgy`가 parser artifact에서 initializer, assignment,
+  expression-use, call, return, condition verdict를 조립하고 하나라도
+  증명되지 않으면 codegen 전에 fail-closed 한다. source-scanning
+  `CheckProgram`/`CheckBody` 호출은 금지된다. C/LLVM-built driver가 동일한
+  16개 positive/negative fixture에서 emitted C 또는 diagnostic을 비교하고,
+  positive artifact는 C compile까지 통과한다.
+- **DRV-3 — 네이티브 컴파일과 플래그 뒤 교체 (차단: G-EXEC)**:
+  `pgy --self-driver`류가 지원 subset에서 C driver와 run-equal이어야 한다.
+  cc/gcc subprocess는 명시 capability, env allowlist, timeout envelope를
+  소비해야 하며 out-of-subset은 관측 가능한 거절이어야 한다.
 
 주의(소유권): self-codegen/emission owner들은 typed-AST 동시 스트림의
 활성 영역 — DRV-0은 그 파일들을 **import만** 하지 수정하지 않는다.
@@ -173,7 +174,7 @@ C LSP 분해: protocol(framing 229L)/diagnostics/hover/features. 페이로드
 
 | 갭 | 내용 | 소유 | 선행 |
 |---|---|---|---|
-| **G-EXEC** | 프로세스 spawn builtin + process capability. world.pgy의 Subprocess 계약 어휘(env_allowlist/timeout/exit_code)를 런타임 fact로 | 표면 결정(BDFL) + 양 백엔드 lowering + caps 게이트 | DRV-2 |
+| **G-EXEC** | subprocess builtin + process capability. `SubprocessRunnerZone`의 env allowlist, timeout, cwd, exit facts를 runtime에 강제 | 표면 결정 + 양 백엔드 lowering + capability gate | DRV-3 |
 | **G-STDIN** | `ReadStdin(n) -> String` byte-count stdin substrate, caps: `io_read`; C/LLVM/runtime/self-host codegen symbol owner landed and consumed by LSP-2a single-frame transport | `tests/read_stdin_builtin_smoke.sh` | LSP-2a |
 | **G-LSP-STREAM** | live JSON-RPC session loop: repeated read-exact body consumption from stdin, document-store mutation consumed by session state, semantic feature content, session-script parity | planned surface/runtime owner | LSP-2 |
 | **O-LSP** | C LSP 진단 페이로드 덤프 플래그 `pgy-lsp --dump-diagnostics <src>` + canonical event compare | C-측 landed 배관 | LSP-0 live oracle 보강; full vocabulary/session parity는 LSP-3 전 후속 |
@@ -191,7 +192,7 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 | --- | --- | --- | --- | --- |
 | driver | DRV-0 | landed | src/self_hosted/compiler/driver_rung0_main.pgy | tests/self_hosted/parity/driver_rung0_parity.sh |
 | driver | DRV-1 | landed | src/self_hosted/compiler/driver_rung1_main.pgy | tests/self_hosted/parity/driver_rung1_parity.sh |
-| driver | DRV-2 | planned | - | - |
+| driver | DRV-2 | landed | src/self_hosted/compiler/driver_rung2_main.pgy | tests/self_hosted/parity/driver_rung2_body_parity.sh |
 | driver | DRV-3 | planned | - | - |
 | lsp | LSP-0 | landed | src/self_hosted/lsp/main.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
 | lsp | LSP-1 | landed | src/self_hosted/lsp/squiggle_owner.pgy | tests/self_hosted/parity/lsp_diagnostics_parity.sh |
@@ -211,7 +212,7 @@ planned로 둔다. 착지 시 같은 커밋에서 행을 갱신한다.
 ## 5. 순서 권고
 
 DRV-0(조립 — Stage 5 직결) ≻ LSP-0/1(고가성비, thesis 전시) ≻ LSP-2a/2b/2c/2d/2e/2f/2g/2h/2i
-transport/request/response/session/multi-document-state/feature-shape/session-state/hover-content buffer owners ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-2/LSP-2.
+transport/request/response/session/multi-document-state/feature-shape/session-state/hover-content buffer owners ≻ DRV-2 semantic closure ≻ G-EXEC/G-LSP-STREAM 표면 결정 ≻ DRV-3/LSP-2.
 DRV-0과 LSP-0은 상호 독립이라 병행
 가능. 어느 쪽도 runtime 커널 치환을 전제하지 않는다(런타임 C 잔류는
 기존 설계 결정).

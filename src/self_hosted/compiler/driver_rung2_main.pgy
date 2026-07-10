@@ -1,4 +1,4 @@
-// DRV-2 initializer-verdict driver entrypoint.
+// DRV-2 artifact-body semantic driver entrypoint.
 
 import "driver_rung2_owner.pgy";
 
