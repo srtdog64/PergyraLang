@@ -86,6 +86,7 @@ mandatory_targets=(
     "stable-identity-test-smoke"
     "semantic-declaration-identity-test-smoke"
     "hir-routine-identity-test-smoke"
+    "verified-projection-plan-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

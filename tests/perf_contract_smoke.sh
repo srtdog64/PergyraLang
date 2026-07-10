@@ -598,9 +598,9 @@ grep -Fq "transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx" \
 ! grep -Fq "transpiler_lookup_current_owner_member_type_name" \
     "$ROOT_DIR/src/codegen/transpiler_mir_inventory_ssa_emitters.h"
 ! test -e "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
-grep -Fq "HIRRoutineNameIndex" "$ROOT_DIR/src/compiler/hir_callgraph.c"
-grep -Fq "hir_build_routine_name_index" "$ROOT_DIR/src/compiler/hir_callgraph.c"
-grep -Fq "hir_lookup_routine_index_by_name" "$ROOT_DIR/src/compiler/hir_callgraph.c"
+grep -Fq "HIRRoutineSourceIndex" "$ROOT_DIR/src/compiler/hir_callgraph.c"
+grep -Fq "hir_build_routine_source_index" "$ROOT_DIR/src/compiler/hir_callgraph.c"
+grep -Fq "hir_lookup_routine_id_by_source" "$ROOT_DIR/src/compiler/hir_callgraph.c"
 grep -Fq "evidence_capacity" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "drift_capacity" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "owned_name_capacity" "$ROOT_DIR/src/compiler/air.h"
@@ -1385,7 +1385,7 @@ grep -Fq "index_keys" "$ROOT_DIR/src/semantic/type_checker.h"
 grep -Fq "metadata_index_capacity_is_valid" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_index.c"
 grep -Fq "metadata_lookup_entry_index" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_index.c"
 grep -Fq "metadata_index_insert" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_index.c"
-grep -Fq "pgy_intent_observability_name_is_builtin" "$ROOT_DIR/src/common/intent_observability_names.c"
+grep -Fq "pgy_intent_observability_name_is_builtin" "$ROOT_DIR/src/common/intent_observability_abi.c"
 grep -Fq "pgy_intent_observability_name_is_builtin" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "mir_instruction_is_intent_semantic_carrier" "$ROOT_DIR/src/compiler/mir_intent_fact.c"
 grep -Fq "return mir_instruction_is_intent_semantic_carrier(inst);" "$ROOT_DIR/src/compiler/mir_dce.c"
@@ -1395,13 +1395,13 @@ grep -Fq "MIR DCE does not preserve user Intent-prefixed statements" "$ROOT_DIR/
 ! grep -Fq "strncmp(inst->name, \"Intent\", 6)" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "strncmp(inst->name, \"Intent\", 6)" "$ROOT_DIR/src/compiler/mir_stmt_population_source.c"
 common_intent_obs_names="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_names.c" \
+    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.c" \
         | tr -d '"' \
         | grep -vx "Intent" \
         | sort -u
 )"
 common_intent_obs_names_in_order="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_names.c" \
+    grep -o '"Intent[A-Za-z0-9_]*"' "$ROOT_DIR/src/common/intent_observability_abi.c" \
         | tr -d '"' \
         | grep -vx "Intent"
 )"
@@ -1563,19 +1563,8 @@ if [[ "$driver_diag_code_names" != "$driver_diag_code_names_sorted" ]]; then
         <(printf '%s\n' "$driver_diag_code_names") >&2 || true
     exit 1
 fi
-codegen_intent_obs_names="$(
-    grep 'PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY' \
-        "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
-        | grep -o '"Intent[A-Za-z0-9_]*"' \
-        | tr -d '"' \
-        | sort -u
-)"
-codegen_intent_obs_names_in_order="$(
-    grep 'PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY' \
-        "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
-        | grep -o '"Intent[A-Za-z0-9_]*"' \
-        | tr -d '"'
-)"
+codegen_intent_obs_names="$common_intent_obs_names"
+codegen_intent_obs_names_in_order="$common_intent_obs_names_in_order"
 codegen_builtin_names="$(
     sed -n '/static const PgyBuiltinInfo entries\[\]/,/^    };/p' \
         "$ROOT_DIR/src/common/pgy_builtin_type_table.c" \
@@ -1603,18 +1592,13 @@ if [[ "$common_intent_obs_names" != "$codegen_intent_obs_names" ]]; then
         <(printf '%s\n' "$codegen_intent_obs_names") >&2 || true
     exit 1
 fi
-semantic_intent_obs_names="$(
-    grep 'BUILTIN_INTENT_' "$ROOT_DIR/src/semantic/type_checker_builtins_intent_observability.c" \
-        | grep -o '"Intent[A-Za-z0-9_]*"' \
-        | tr -d '"' \
-        | sort -u
-)"
-resolver_intent_obs_names="$(
-    grep 'BUILTIN_INTENT_' "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c" \
-        | grep -o '"Intent[A-Za-z0-9_]*"' \
-        | tr -d '"' \
-        | sort -u
-)"
+for intent_obs_consumer in \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_intent_observability.c" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c"; do
+    grep -Fq "pgy_intent_observability_" "$intent_obs_consumer"
+done
 resolver_builtin_names="$(
     sed -n '/k_builtin_entries\[\]/,/^};/p' \
         "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c" \
@@ -1674,36 +1658,11 @@ for semantic_dispatch_file in \
         exit 1
     fi
 done
-llvm_intent_obs_names="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' \
-        "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" \
-        | tr -d '"' \
-        | sort -u
-)"
-llvm_intent_obs_names_in_order="$(
-    grep -o '"Intent[A-Za-z0-9_]*"' \
-        "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" \
-        | tr -d '"'
-)"
-if [[ "$llvm_intent_obs_names_in_order" != "$llvm_intent_obs_names" ]]; then
-    echo "LLVM intent observability names must stay sorted for bsearch" >&2
-    diff -u <(printf '%s\n' "$llvm_intent_obs_names") \
-        <(printf '%s\n' "$llvm_intent_obs_names_in_order") >&2 || true
-    exit 1
-fi
-for pair in \
-    "semantic:$semantic_intent_obs_names" \
-    "resolver:$resolver_intent_obs_names" \
-    "llvm:$llvm_intent_obs_names"; do
-    table_name="${pair%%:*}"
-    table_names="${pair#*:}"
-    if [[ "$common_intent_obs_names" != "$table_names" ]]; then
-        echo "intent observability builtin names drifted between common and ${table_name} tables" >&2
-        diff -u <(printf '%s\n' "$common_intent_obs_names") \
-            <(printf '%s\n' "$table_names") >&2 || true
-        exit 1
-    fi
-done
+! grep -Eq '"Intent(Active|Current|History|Last|Recent)' \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_resolve.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_intent_observability.c" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c"
 grep -Fq "ast_contains_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_decl_methods_contain_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_uses_intent_observability_surface" "$ROOT_DIR/src/parser/ast_analysis.c"
@@ -1850,31 +1809,18 @@ if grep -Fq "codebuf_write(buf, \"int32_t %s = %s;\\n\", variable" \
     echo "[perf-contract] C MIR range loop binding regressed to source-name emission" >&2
     exit 1
 fi
-grep -Fq "pgy_mir_instruction_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-if [[ "$(grep -Fc "llvm_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/llvm_api.c")" -lt 2 ]]; then
-    echo "LLVM IR and object codegen paths must both preserve intent observability runtime selection" >&2
+grep -Fq "pgy_verified_projection_plan_intent_observability" "$ROOT_DIR/src/compiler/verified_projection_plan.c"
+grep -Fq "PGY_PROJECTION_TARGET_C" "$ROOT_DIR/src/codegen/transpiler_entry.c"
+grep -Fq "PGY_PROJECTION_TARGET_LLVM" "$ROOT_DIR/src/codegen/llvm_api.c"
+if [[ "$(grep -Fc "llvm_apply_intent_observability_projection_plan(ctx)" "$ROOT_DIR/src/codegen/llvm_api.c")" -lt 2 ]]; then
+    echo "LLVM IR and object codegen paths must both consume the verified projection plan" >&2
     exit 1
 fi
-grep -Fq "transpiler_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/transpiler_entry.c"
-grep -Fq "pgy_mir_program_uses_intent_observability(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
-grep -Fq "pgy_mir_program_uses_intent_observability(ctx->mir)" "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
-! grep -Fq "pgy_mir_program_uses_intent_observability(mir)" "$ROOT_DIR/src/codegen/llvm_api.c"
-! grep -Fq "pgy_mir_program_uses_intent_observability(mir)" "$ROOT_DIR/src/codegen/transpiler_entry.c"
+! grep -RIn "pgy_mir_program_uses_intent_observability" \
+    "$ROOT_DIR/src" --include='*.c' --include='*.h'
 grep -Fq "return llvm_result_error_fmt_with_hints(" "$ROOT_DIR/src/codegen/llvm_api.c"
-grep -Fq "allow_fixture_payload_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "allow_legacy_ast_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "inst->has_surface_usage_facts" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "uses_intent_observability_surface" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "pgy_name_array_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "routine->hir_routine->direct_calls" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "pgy_mir_block_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "block->instruction_count > 0 && block->instructions == NULL" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "routine->hir_routine == NULL" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "routine->ast" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "block->source_terminator_condition" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "block->source_terminator_value" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "block->source_statements" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "pgy_ast_uses_intent_observability(inst->ast" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+! grep -Eq "ast_|hir_|direct_calls|expr0|expr1|source_ast|mir_routine_inventory" \
+    "$ROOT_DIR/src/compiler/verified_projection_plan.c"
 grep -Fq "require_slot_token_name" "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 grep -Fq "token name synthesis is disabled" "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 ! grep -Fq "lookup_slot_token_name_or_default" "$CODEGEN_INDEX"
@@ -2673,7 +2619,8 @@ grep -Fq "summary = mir_inventory_surface_usage_summary(mir)" "$ROOT_DIR/src/com
 grep -Fq "mir_program_has_inventory_surface_usage_facts(mir)" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "mir_program_recorded_inventory_uses_thread_pool_surface(mir)" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "mir_program_recorded_inventory_uses_intent_observability_surface(mir)" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "return inventory_uses_surface" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+grep -Fq "PGY_PROJECTION_RUNTIME_OBS0" "$ROOT_DIR/src/compiler/verified_projection_plan.h"
+grep -Fq "PGY_PROJECTION_RUNTIME_OBS1" "$ROOT_DIR/src/compiler/verified_projection_plan.h"
 grep -Fq "mir_program_recorded_inventory_uses_thread_pool_surface(mir)" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "mir_instruction_source_stmt_has_side_effect_hint(inst)" "$ROOT_DIR/src/compiler/mir_dce.c"
 ! grep -Fq "mir_source_node_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
@@ -2695,13 +2642,11 @@ grep -Fq "AST_FAIL_STMT" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 ! grep -Fq "source_node_type" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "MIR DCE uses statement shape facts without AST payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "mir_stmt_ast_type_is_cfg_owned_control" "$ROOT_DIR/src/compiler/mir_source_shape.c"
-grep -Fq "if (!mir_program_has_inventory_surface_usage_facts(mir))" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+grep -Fq "if (!mir_program_has_inventory_surface_usage_facts(mir))" "$ROOT_DIR/src/compiler/verified_projection_plan.c"
 ! grep -Fq "mir->inventory_uses_" "$CODEGEN_INDEX"
 ! grep -Fq "mir->has_inventory_surface_usage_facts" "$CODEGEN_INDEX"
-! grep -Fq "allow_ast_fallback" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "pgy_ast_array_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "mir->types" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -Fq "mir->intents" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+! grep -Eq "ast_|hir_|direct_calls|expr0|expr1|source_ast|mir_routine_inventory" \
+    "$ROOT_DIR/src/compiler/verified_projection_plan.c"
 grep -Fq "mir_instruction_has_source_location(inst)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "mir_instruction_source_node_type_or(inst, AST_PROGRAM)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "mir_instruction_source_inline_text(inst)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
@@ -2721,7 +2666,8 @@ grep -Fq "intent observability inventory surface usage fact" "$ROOT_DIR/src/test
 grep -Fq "MIRRoutineInventory" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "mir_routine_inventory_from_program" "$ROOT_DIR/src/compiler/mir_program_inventory.c"
 grep -Fq "mir_routine_inventory_get" "$ROOT_DIR/src/compiler/mir_program_inventory.c"
-grep -Fq "mir_routine_inventory_from_program(mir, &inventory)" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+grep -Fq "mir_program_recorded_inventory_uses_intent_observability_surface(mir)" \
+    "$ROOT_DIR/src/compiler/verified_projection_plan.c"
 grep -Fq "mir_routine_inventory_from_program(mir, &inventory)" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "MIR_BRANCH_FOR_RANGE" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/compiler/mir.h"
@@ -2761,16 +2707,14 @@ grep -Fq "routine->hir_routine == NULL" "$ROOT_DIR/src/codegen/thread_pool_usage
 grep -Fq "pgy_mir_program_uses_thread_pool" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "mir_program_recorded_inventory_uses_thread_pool_surface" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 ! grep -Fq "pgy_mir_routine_uses_thread_pool" "$ROOT_DIR/src/codegen/thread_pool_usage.h"
-grep -Fq "pgy_mir_program_uses_intent_observability(ctx->mir)" "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
-grep -Fq "transpiler_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/transpiler_entry.c"
+grep -Fq "PGY_PROJECTION_TARGET_C" "$ROOT_DIR/src/codegen/transpiler_entry.c"
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
 grep -Fq "transpiler_active_uses_thread_pool(ctx)" "$ROOT_DIR/src/codegen/transpiler_thread_pool.c"
 grep -Fq "mir_program_main_function_name(ctx->mir)" "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
 grep -Fq "transpiler_active_main_function_name(ctx)" "$ROOT_DIR/src/codegen/transpiler.c"
 grep -Fq "transpiler_c_executable_emitted_name" "$ROOT_DIR/src/codegen/transpiler.c"
 grep -Fq "__pgy_user_main_lowercase" "$ROOT_DIR/src/codegen/transpiler.c"
-grep -Fq "pgy_mir_program_uses_intent_observability(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
-grep -Fq "llvm_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/llvm_api.c"
+grep -Fq "PGY_PROJECTION_TARGET_LLVM" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
 grep -Fq "mir_program_main_function_name(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
 grep -Fq "llvm_active_uses_thread_pool(ctx)" "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
@@ -3048,9 +2992,9 @@ grep -Fq "AllocatorDestroy requires a named Allocator local" "$ROOT_DIR/src/code
 grep -Fq "AllocatorDestroy argument '%s' must have type Allocator" "$ROOT_DIR/src/codegen/transpiler_allocator_builtin_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_allocator_builtin_emit.c"
 grep -Fq "intent_observability_require_arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
-grep -Fq "intent_observability_emit_index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
-grep -Fq "intent index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
-grep -Fq "step index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "pgy_intent_observability_abi_row_by_source" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "row->runtime_name" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "row->arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 grep -Fq "transpiler_call_arg_can_take_subject_address" "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
 grep -Fq "transpiler_user_call_emit_part" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
@@ -5516,7 +5460,8 @@ if grep -Fq "(*count + 1) * sizeof(HIRDecl)" "$ROOT_DIR/src/compiler/hir_routine
     echo "[perf-contract] HIR decl append regressed to count+1 realloc" >&2
     exit 1
 fi
-if grep -Fq "hir->routine_count + 1" "$ROOT_DIR/src/compiler/hir_routines.c"; then
+if grep -Fq "(hir->routine_count + 1) * sizeof(HIRRoutine)" \
+    "$ROOT_DIR/src/compiler/hir_routines.c"; then
     echo "[perf-contract] HIR routine append regressed to count+1 realloc" >&2
     exit 1
 fi

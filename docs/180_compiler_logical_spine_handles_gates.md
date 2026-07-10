@@ -146,7 +146,7 @@ AST, or source to rebuild it.
 | MIR | routines, blocks, instructions, SSA values, cleanup, cancellation, abstract materialization requirements | routine-scoped block/value/instruction handles plus ABI references | Projection Planner, AIR verifier, diagnostics | `PARTIAL`: strong CFG/dataflow facts exist; statement inventories, expressions, match payloads, and some type recovery still carry AST |
 | AIR | evidence completeness, abstraction drift, compression disposition/explanation, diagnostics | `EvidenceId`, verified evidence certificate | current: driver/LSP/CI/compatibility; target: Projection Planner, Artifact Zone, verifier paths | `PASS` for backend isolation; `PARTIAL` for hosted-method boundary producer coverage and complete evidence lifetime/certificate projection |
 | ABI/Target Facts | type layout, call shape, target capability, ownership/materialization policy | `LayoutId`, `RuntimeCallAbiId`, `TargetProfileId` | Projection Planner and compatibility | `PARTIAL`: real rows and parity gates exist, but not every native consumer is row-only |
-| Verified Projection Plan | target-specific projection of already-owned facts | `ProjectionPlanId` and typed plan rows | backend emitters and Artifact Zone | `ABSENT` as one native owner; self-host target/ABI/runtime-call manifests are seed pieces |
+| Verified Projection Plan | target-specific projection of already-owned facts | `ProjectionPlanId` and typed plan rows | backend emitters and Artifact Zone | `PARTIAL`: native plan row 1 maps MIR intent-observability usage to C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`; AIR certificate and remaining axes are absent |
 | Backend | mechanical emission only | object/text/debug artifacts | linker and Artifact Zone | `PARTIAL`: AIR is excluded, but native AST/type reconstruction and backend-local compatibility paths remain |
 | Runtime | only explicitly materialized state, guards, capabilities, quotas, and observability | runtime handles tied to plan rows | execution and runtime trace | `PARTIAL`: retained facilities exist; attribution and sandbox coverage are not total |
 | Artifact/Compatibility | schema-versioned outputs, hashes, parity, migration policy | `ArtifactId` | cache, CI, release, migration tooling | `PARTIAL`: many schemas and a seed corpus exist; historical compatibility corpus is incomplete |
@@ -292,7 +292,7 @@ migration vocabulary.
 | RIR Transition Gate | HIR/DIR resource facts -> state graph | `PARTIAL`; current initial lowering is AST-owned | remove AST-call recovery in validation; stable resource/boundary handles across join/loop/transfer/authority cases |
 | MIR Verifier Gate | HIR/RIR -> executable graph | `PARTIAL`, comparatively strong | eliminate residual AST statement/expression/type recovery; complete cleanup/cancellation/body facts |
 | AIR Evidence Lifetime Gate | owner facts -> proof/disposition | `PARTIAL`; enum/manifest gate is not blocking CI | hosted-method/expression boundary producer totality; all evidence kinds prove producer, last consumer, erase/summarize/retain/reject behavior and the gate is CI-required |
-| Projection Plan Gate | certified evidence + MIR/ABI/target facts -> target plan | `ABSENT` native unified owner | one immutable row plan; planner cites the AIR certificate; plan gate validates it; backend consumes only plan + MIR execution rows |
+| Projection Plan Gate | certified evidence + MIR/ABI/target facts -> target plan | `PARTIAL`; `make verified-projection-plan-test-smoke` blocks the first native intent-observability row | bind AIR certificate/digest, layout/cleanup/capability rows, Artifact Zone identity, and self-hosted consumption |
 | ABI/Runtime Call Gate | type/op -> target ABI | `PARTIAL` | every aggregate/generic/runtime callsite consumes `LayoutId`/`RuntimeCallAbiId`; no constructed symbol fallback |
 | Backend Dumb-Emitter Gate | MIR/plan -> C/LLVM | `PARTIAL` | forbid all AST/HIR/AIR semantic recovery and backend-local layout/materialization decisions |
 | Materialization Residue Gate | plan -> runtime symbols/state | `PARTIAL` | every retained symbol cites a plan row; erase fixtures contain zero forbidden residue |
@@ -339,10 +339,13 @@ contract rather than the native data path.
 
 ### P0-D. Verified Projection Plan
 
-Create the native plan owner that turns MIR materialization requirements, ABI
-rows, runtime-call rows, target capabilities, and AIR's verified evidence
-certificate into one immutable plan. A separate Projection Plan Gate validates
-the candidate. Backends receive the verified plan, not AIR.
+Extend the native plan owner beyond its first gate-backed intent-observability
+row. That row already turns the canonical MIR inventory fact plus the shared
+runtime-call ABI rows into C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`, and missing
+facts fail closed. The remaining work is to join AIR's verified evidence
+certificate, ABI layout, cleanup, target capability, Artifact Zone, and
+self-hosted rows into one immutable plan. Backends receive the verified plan,
+not AIR.
 
 This closes the current wording tension between "AIR is verification-only" and
 "a backend needs a proof-gated compression/materialization decision."

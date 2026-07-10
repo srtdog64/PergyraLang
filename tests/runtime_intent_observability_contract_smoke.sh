@@ -83,9 +83,10 @@ for rel in \
     done
 done
 
-require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" "BUILTIN_INTENT_ACTIVE_HANDLE"
-require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" "pgy_intent_active_handle_export"
-require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" "IntentActiveHandle"
+require_term "$ROOT_DIR/src/common/intent_observability_abi.c" "IntentActiveHandle"
+require_term "$ROOT_DIR/src/common/intent_observability_abi.c" "pgy_intent_active_handle_export"
+require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" "pgy_intent_observability_abi_row_by_source"
+require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" "pgy_intent_observability_abi_row_by_source"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_find_active_registry_slot_export"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"

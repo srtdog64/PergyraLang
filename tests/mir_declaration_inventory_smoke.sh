@@ -4486,15 +4486,13 @@ for term in \
     require_term "src/codegen/llvm_main_wrapper.c" "$term"
 done
 require_term "src/codegen/llvm_api.c" \
-    "llvm_active_uses_intent_observability(ctx)"
+    "PGY_PROJECTION_TARGET_LLVM"
 require_term "src/codegen/llvm_inventory_internal.h" \
     "llvm_active_has_mir"
 require_term "src/codegen/llvm_inventory_internal.c" \
     "llvm_active_has_mir(const LLVMGenCtx *ctx)"
-require_term "src/codegen/llvm_inventory_internal.h" \
-    "llvm_active_uses_intent_observability"
-require_term "src/codegen/llvm_inventory_internal.c" \
-    "pgy_mir_program_uses_intent_observability(ctx->mir)"
+require_term "src/compiler/verified_projection_plan.c" \
+    "mir_program_recorded_inventory_uses_intent_observability_surface(mir)"
 require_term "src/codegen/llvm_inventory_internal.h" \
     "llvm_active_uses_thread_pool"
 require_term "src/codegen/llvm_inventory_internal.c" \
@@ -4924,7 +4922,6 @@ for term in \
     "transpiler_active_mir_identity" \
     "transpiler_active_has_main_function" \
     "transpiler_active_has_top_level_exec" \
-    "transpiler_active_uses_intent_observability" \
     "transpiler_active_uses_thread_pool" \
     "transpiler_active_can_emit_intent_cleanup_from_mir"; do
     require_term "src/codegen/transpiler_inventory_view.h" "$term"
@@ -4947,10 +4944,8 @@ if grep -RIn "transpiler_active_synthetic_executable_func" \
     "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
     fail "C top-level executable wrapper must consume MIR program facts, not source declaration payloads"
 fi
-require_term "src/codegen/transpiler_inventory_view.c" \
-    "pgy_mir_program_uses_intent_observability(ctx->mir)"
 require_term "src/codegen/transpiler_entry.c" \
-    "transpiler_active_uses_intent_observability(ctx)"
+    "PGY_PROJECTION_TARGET_C"
 require_term "src/codegen/transpiler.c" \
     "transpiler_active_has_mir(ctx)"
 if grep -Fq "ctx->mir" "$ROOT_DIR/src/codegen/transpiler.c"; then

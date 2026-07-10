@@ -12,12 +12,15 @@
 #include "transpiler_context.h"
 #include "transpiler_program.h"
 #include "../common/string_compat.h"
+#include "../compiler/verified_projection_plan.h"
 
 static TranspileResult *
 transpile_mir_only(const MIRProgram *mir, const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     TranspilerCtx *ctx;
+    PgyVerifiedProjectionPlanRow observability_plan;
+    const char *projection_error = NULL;
 
     if (result == NULL)
         return NULL;
@@ -30,9 +33,17 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
     }
 
     ctx->mir = mir;
-    ctx->uses_intent_observability =
-        transpiler_active_uses_intent_observability(ctx);
-    emit_program(ctx);
+    if (!pgy_verified_projection_plan_intent_observability(
+            mir, PGY_PROJECTION_TARGET_C, &observability_plan,
+            &projection_error)) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            projection_error != NULL ? projection_error
+                                     : "verified projection plan failed");
+    } else {
+        ctx->uses_intent_observability =
+            observability_plan.disposition == PGY_PROJECTION_MATERIALIZE;
+        emit_program(ctx);
+    }
 
     if (ctx->backend_error != NULL) {
         result->success = false;

@@ -10,7 +10,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
 {
     bool intent_obs_handled = false;
     Type *intent_obs_type = type_check_intent_observability_builtin(
-        call, kind, ctx, &intent_obs_handled);
+        call, ctx, &intent_obs_handled);
     if (intent_obs_handled)
         return intent_obs_type;
 

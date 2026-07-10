@@ -7,6 +7,57 @@
 
 #include "llvm_internal.h"
 #include "llvm_runtime_internal.h"
+#include "../common/intent_observability_abi.h"
+
+static LLVMTypeRef
+llvm_intent_observability_return_type(
+    LLVMGenCtx *ctx, PgyIntentObservabilityReturnKind kind)
+{
+    switch (kind) {
+    case PGY_INTENT_OBSERVABILITY_RETURN_INT:
+        return ctx->type_i32;
+    case PGY_INTENT_OBSERVABILITY_RETURN_BOOL:
+        return ctx->type_i1;
+    case PGY_INTENT_OBSERVABILITY_RETURN_STRING:
+        return ctx->type_i8ptr;
+    }
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_intent_observability_argument_type(
+    LLVMGenCtx *ctx, PgyIntentObservabilityArgumentKind kind)
+{
+    switch (kind) {
+    case PGY_INTENT_OBSERVABILITY_ARGUMENT_INT:
+        return ctx->type_i32;
+    case PGY_INTENT_OBSERVABILITY_ARGUMENT_INVALID:
+        break;
+    }
+    return NULL;
+}
+
+static void
+llvm_declare_intent_observability_builtins(LLVMGenCtx *ctx)
+{
+    size_t row_count = pgy_intent_observability_abi_row_count();
+
+    for (size_t i = 0; i < row_count; i++) {
+        const PgyIntentObservabilityAbiRow *row =
+            pgy_intent_observability_abi_row_at(i);
+        LLVMTypeRef params[2] = { NULL, NULL };
+        LLVMTypeRef ret = llvm_intent_observability_return_type(
+            ctx, row->return_kind);
+        for (size_t j = 0; j < row->arg_count; j++) {
+            params[j] = llvm_intent_observability_argument_type(
+                ctx, pgy_intent_observability_argument_kind_at(row, j));
+        }
+        LLVMTypeRef ft = LLVMFunctionType(
+            ret, params, (unsigned)row->arg_count, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_name, ft);
+        llvm_register_function(ctx, row->runtime_name, fn, ft, ret);
+    }
+}
 
 void
 llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
@@ -182,108 +233,6 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i32, ctx->type_i8ptr }, 2 },
             { "pgy_intent_trace_fail_export", ctx->type_void,
               { ctx->type_i32, ctx->type_i8ptr }, 2 },
-            { "pgy_intent_last_trace_export", ctx->type_i8ptr,
-              { }, 0 },
-            { "pgy_intent_last_failure_export", ctx->type_i8ptr,
-              { }, 0 },
-            { "pgy_intent_last_name_export", ctx->type_i8ptr,
-              { }, 0 },
-            { "pgy_intent_last_handle_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_last_trace_id_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_last_step_count_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_last_failed_export", ctx->type_i1,
-              { }, 0 },
-            { "pgy_intent_history_count_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_history_step_name_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_phase_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_participant_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_from_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_from_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_to_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_to_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_ok_export", ctx->type_i1,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_failure_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_count_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_active_name_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_handle_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_trace_id_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_priority_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_concurrent_export", ctx->type_i1,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_trace_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_parent_handle_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_subject_count_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_step_count_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_failed_export", ctx->type_i1,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_failure_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_active_step_name_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_phase_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_participant_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_from_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_from_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_to_zone_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_to_slot_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_ok_export", ctx->type_i1,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_active_step_failure_export", ctx->type_i8ptr,
-              { ctx->type_i32, ctx->type_i32 }, 2 },
-            { "pgy_intent_current_handle_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_recent_count_export", ctx->type_i32,
-              { }, 0 },
-            { "pgy_intent_recent_handle_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_trace_id_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_name_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_trace_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_failure_export", ctx->type_i8ptr,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_step_count_export", ctx->type_i32,
-              { ctx->type_i32 }, 1 },
-            { "pgy_intent_recent_failed_export", ctx->type_i1,
-              { ctx->type_i32 }, 1 },
             { "pgy_intent_trace_materialize_export", ctx->type_void,
               { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
             { "pgy_intent_trace_transfer_export", ctx->type_void,
@@ -371,6 +320,7 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
             llvm_register_function(ctx, builtins[i].name, fn, ft, ret);
         }
     }
+    llvm_declare_intent_observability_builtins(ctx);
 }
 
 #endif

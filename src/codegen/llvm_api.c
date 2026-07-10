@@ -11,6 +11,7 @@
 #include "llvm_runtime_attrs.h"
 #include "llvm_runtime_bitcode_freshness.h"
 #include "../common/string_compat.h"
+#include "../compiler/verified_projection_plan.h"
 #include <llvm-c/IRReader.h>
 #include <llvm-c/Linker.h>
 
@@ -19,6 +20,24 @@ llvm_debug_stage(const char *stage)
 {
     if (stage != NULL && llvm_debug_stage_enabled())
         fprintf(stderr, "[llvm stage] %s\n", stage);
+}
+
+static bool
+llvm_apply_intent_observability_projection_plan(LLVMGenCtx *ctx)
+{
+    PgyVerifiedProjectionPlanRow row;
+    const char *error = NULL;
+
+    if (!pgy_verified_projection_plan_intent_observability(
+            ctx != NULL ? ctx->mir : NULL,
+            PGY_PROJECTION_TARGET_LLVM, &row, &error)) {
+        llvm_set_mir_inventory_missing(ctx, "%s",
+            error != NULL ? error : "verified projection plan failed");
+        return false;
+    }
+    ctx->uses_intent_observability =
+        row.disposition == PGY_PROJECTION_MATERIALIZE;
+    return true;
 }
 
 static LLVMGenResult *
@@ -373,14 +392,17 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
-    ctx->uses_intent_observability =
-        llvm_active_uses_intent_observability(ctx);
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
         return verify_result;
+    }
+    if (!llvm_apply_intent_observability_projection_plan(ctx)) {
+        LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
+        llvm_ctx_destroy(ctx);
+        return res;
     }
     llvm_debug_stage("codegen_with_mir:emit_program_from_mir");
     if (!llvm_emit_program_from_mir(mir, ctx)) {
@@ -443,14 +465,17 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
-    ctx->uses_intent_observability =
-        llvm_active_uses_intent_observability(ctx);
 
     llvm_debug_stage("codegen_to_object:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
         return verify_result;
+    }
+    if (!llvm_apply_intent_observability_projection_plan(ctx)) {
+        LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
+        llvm_ctx_destroy(ctx);
+        return res;
     }
     llvm_debug_stage("codegen_to_object:emit_program_from_mir");
     if (!llvm_emit_program_from_mir(mir, ctx)) {

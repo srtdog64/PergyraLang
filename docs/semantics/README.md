@@ -60,6 +60,11 @@ Required shape for each proof document:
   gate-backed HIR callgraph identity. Semantic declaration targets lower to
   `RoutineId` edges; routine names remain observability only and ambiguous
   name queries fail closed.
+- [26_verified_projection_plan_intent_observability.md](26_verified_projection_plan_intent_observability.md):
+  gate-backed first native projection-plan row. MIR inventory usage facts map
+  intent observability to `OBS0/ERASE` or `OBS1/MATERIALIZE`; C and LLVM consume
+  the same row and the same 51-row runtime-call ABI owner without AST/HIR or
+  backend-local fallback tables.
 - [../173_intent_axis_strengthening.md](../173_intent_axis_strengthening.md): intent-axis strengthening work order. Keeps source-level `intent` as the authoring binder, but splits AIR/MIR/Coq into purpose, participant, coordination, boundary, authority, effect, compensation, and trace fact families.
 
 Mechanized artifacts:

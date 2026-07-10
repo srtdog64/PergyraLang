@@ -1205,17 +1205,16 @@ Operational mode:
   unchanged. Intent role-field require checks also consume that centralized
   effective-argument type evidence, keeping `type_checker_intent_role_fields.c`
   below the 600 LOC split-review line.
-- 2026-05-02 AST analysis ownership tightening:
-  intent observability no-trace detection no longer carries a large
-  codegen-local AST visitor. `src/parser/ast_analysis.c` owns the reusable
-  `ast_contains_identifier_call(...)` traversal, and
-  `src/codegen/intent_observability_usage.c` now supplies only the
-  intent-observability predicate plus MIR-level scan. Block-level source arrays
-  and routine AST payloads are no longer scanned for this fact; declaration
-  inventory AST scans remain compatibility debt until observability becomes a semantic/MIR analysis
-  flag. This removes a codegen layering violation and gives future
-  `uses_parallel` / `uses_async` / `uses_unsafe` facts a shared AST-owner
-  migration path.
+- 2026-07-10 intent-observability projection ownership closure:
+  MIR inventory surface usage is now the only input to native C/LLVM
+  observability materialization. `src/compiler/verified_projection_plan.c`
+  emits plan row 1 as `OBS0/ERASE` or `OBS1/MATERIALIZE` and fails closed when
+  the fact is missing. The old codegen AST/HIR/name fallback scanner is deleted.
+  The 51 source/runtime/arity/return ABI rows also have one common owner;
+  semantic checking and C/LLVM consume it without per-call `BuiltinKind` or
+  backend-local symbol tables. `make verified-projection-plan-test-smoke`
+  prevents those aliases from returning. Full AIR-certificate projection-plan
+  closure remains open.
 - 2026-05-02 generic class specialization evidence tightening:
   class specialization where-clause validation consumes the same centralized
   effective generic argument type evidence instead of building a local type

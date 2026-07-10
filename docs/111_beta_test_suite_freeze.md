@@ -67,6 +67,7 @@ The beta release candidate must keep these gates green:
 - `make stable-identity-test-smoke`
 - `make semantic-declaration-identity-test-smoke`
 - `make hir-routine-identity-test-smoke`
+- `make verified-projection-plan-test-smoke`
 - `make beta-readiness-checklist-test-smoke`
 - `make beta-test-suite-freeze-test-smoke`
 

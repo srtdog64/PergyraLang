@@ -7,225 +7,79 @@
 
 #include <stdlib.h>
 
+#include "../common/intent_observability_abi.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 
-static const char *
-intent_observability_zero_export(BuiltinKind bk)
-{
-    switch (bk) {
-    case BUILTIN_INTENT_LAST_TRACE:
-        return "pgy_intent_last_trace_export";
-    case BUILTIN_INTENT_LAST_FAILURE:
-        return "pgy_intent_last_failure_export";
-    case BUILTIN_INTENT_LAST_NAME:
-        return "pgy_intent_last_name_export";
-    case BUILTIN_INTENT_LAST_HANDLE:
-        return "pgy_intent_last_handle_export";
-    case BUILTIN_INTENT_LAST_TRACE_ID:
-        return "pgy_intent_last_trace_id_export";
-    case BUILTIN_INTENT_LAST_STEP_COUNT:
-        return "pgy_intent_last_step_count_export";
-    case BUILTIN_INTENT_LAST_FAILED:
-        return "pgy_intent_last_failed_export";
-    case BUILTIN_INTENT_HISTORY_COUNT:
-        return "pgy_intent_history_count_export";
-    case BUILTIN_INTENT_ACTIVE_COUNT:
-        return "pgy_intent_active_count_export";
-    case BUILTIN_INTENT_CURRENT_HANDLE:
-        return "pgy_intent_current_handle_export";
-    case BUILTIN_INTENT_RECENT_COUNT:
-        return "pgy_intent_recent_count_export";
-    default:
-        return NULL;
-    }
-}
-
-static const char *
-intent_observability_one_arg_export(BuiltinKind bk)
-{
-    switch (bk) {
-    case BUILTIN_INTENT_HISTORY_STEP_NAME:
-        return "pgy_intent_history_step_name_export";
-    case BUILTIN_INTENT_HISTORY_STEP_ZONE:
-        return "pgy_intent_history_step_zone_export";
-    case BUILTIN_INTENT_HISTORY_STEP_PHASE:
-        return "pgy_intent_history_step_phase_export";
-    case BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT:
-        return "pgy_intent_history_step_participant_export";
-    case BUILTIN_INTENT_HISTORY_STEP_SLOT:
-        return "pgy_intent_history_step_slot_export";
-    case BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE:
-        return "pgy_intent_history_step_from_zone_export";
-    case BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT:
-        return "pgy_intent_history_step_from_slot_export";
-    case BUILTIN_INTENT_HISTORY_STEP_TO_ZONE:
-        return "pgy_intent_history_step_to_zone_export";
-    case BUILTIN_INTENT_HISTORY_STEP_TO_SLOT:
-        return "pgy_intent_history_step_to_slot_export";
-    case BUILTIN_INTENT_HISTORY_STEP_OK:
-        return "pgy_intent_history_step_ok_export";
-    case BUILTIN_INTENT_HISTORY_STEP_FAILURE:
-        return "pgy_intent_history_step_failure_export";
-    case BUILTIN_INTENT_ACTIVE_NAME:
-        return "pgy_intent_active_name_export";
-    case BUILTIN_INTENT_ACTIVE_HANDLE:
-        return "pgy_intent_active_handle_export";
-    case BUILTIN_INTENT_ACTIVE_PARENT_HANDLE:
-        return "pgy_intent_active_parent_handle_export";
-    case BUILTIN_INTENT_ACTIVE_TRACE_ID:
-        return "pgy_intent_active_trace_id_export";
-    case BUILTIN_INTENT_ACTIVE_PRIORITY:
-        return "pgy_intent_active_priority_export";
-    case BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT:
-        return "pgy_intent_active_subject_count_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_COUNT:
-        return "pgy_intent_active_step_count_export";
-    case BUILTIN_INTENT_ACTIVE_CONCURRENT:
-        return "pgy_intent_active_concurrent_export";
-    case BUILTIN_INTENT_ACTIVE_FAILED:
-        return "pgy_intent_active_failed_export";
-    case BUILTIN_INTENT_ACTIVE_FAILURE:
-        return "pgy_intent_active_failure_export";
-    case BUILTIN_INTENT_ACTIVE_TRACE:
-        return "pgy_intent_active_trace_export";
-    case BUILTIN_INTENT_RECENT_HANDLE:
-        return "pgy_intent_recent_handle_export";
-    case BUILTIN_INTENT_RECENT_TRACE_ID:
-        return "pgy_intent_recent_trace_id_export";
-    case BUILTIN_INTENT_RECENT_NAME:
-        return "pgy_intent_recent_name_export";
-    case BUILTIN_INTENT_RECENT_TRACE:
-        return "pgy_intent_recent_trace_export";
-    case BUILTIN_INTENT_RECENT_FAILURE:
-        return "pgy_intent_recent_failure_export";
-    case BUILTIN_INTENT_RECENT_STEP_COUNT:
-        return "pgy_intent_recent_step_count_export";
-    case BUILTIN_INTENT_RECENT_FAILED:
-        return "pgy_intent_recent_failed_export";
-    default:
-        return NULL;
-    }
-}
-
-static const char *
-intent_observability_two_arg_export(BuiltinKind bk)
-{
-    switch (bk) {
-    case BUILTIN_INTENT_ACTIVE_STEP_NAME:
-        return "pgy_intent_active_step_name_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_ZONE:
-        return "pgy_intent_active_step_zone_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_PHASE:
-        return "pgy_intent_active_step_phase_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_PARTICIPANT:
-        return "pgy_intent_active_step_participant_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_SLOT:
-        return "pgy_intent_active_step_slot_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_FROM_ZONE:
-        return "pgy_intent_active_step_from_zone_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_FROM_SLOT:
-        return "pgy_intent_active_step_from_slot_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_TO_ZONE:
-        return "pgy_intent_active_step_to_zone_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_TO_SLOT:
-        return "pgy_intent_active_step_to_slot_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_OK:
-        return "pgy_intent_active_step_ok_export";
-    case BUILTIN_INTENT_ACTIVE_STEP_FAILURE:
-        return "pgy_intent_active_step_failure_export";
-    default:
-        return NULL;
-    }
-}
-
 static bool
 intent_observability_require_arg_count(ASTNode *call, TranspilerCtx *ctx,
-                                       const char *export_name,
-                                       size_t required)
+                                       const PgyIntentObservabilityAbiRow *row)
 {
     size_t actual = ast_call_arg_count(call);
 
-    if (actual == required)
+    if (row != NULL && actual == row->arg_count)
         return true;
     transpiler_set_backend_error_with_hints(ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         "C backend: %s requires exactly %zu argument%s",
-        export_name != NULL ? export_name : "intent observability builtin",
-        required, required == 1 ? "" : "s");
+        row != NULL ? row->source_name : "intent observability builtin",
+        row != NULL ? row->arg_count : 0,
+        row != NULL && row->arg_count == 1 ? "" : "s");
     return false;
 }
 
-static char *
-intent_observability_emit_index(ASTNode *expr, TranspilerCtx *ctx,
-                                const char *export_name,
-                                const char *role)
-{
-    char *index = emit_expression(expr, ctx);
-    if (index != NULL)
-        return index;
-
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-        "C backend: %s could not lower %s expression",
-        export_name != NULL ? export_name : "intent observability builtin",
-        role != NULL ? role : "index");
-    return NULL;
-}
-
 char *
-emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
-                                  TranspilerCtx *ctx)
+emit_builtin_intent_observability(ASTNode *call, TranspilerCtx *ctx)
 {
-    const char *zero_export = intent_observability_zero_export(bk);
-    const char *one_export = NULL;
-    const char *two_export = NULL;
+    ASTNode *callee = ast_call_callee(call);
+    const char *source_name = ast_identifier_name(callee);
+    const PgyIntentObservabilityAbiRow *row =
+        pgy_intent_observability_abi_row_by_source(source_name);
+    char *args[2] = { NULL, NULL };
+    char *result = NULL;
+
+    if (row == NULL || row->arg_count > 2) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: missing intent observability ABI row for '%s'",
+            source_name != NULL ? source_name : "<missing>");
+        return NULL;
+    }
+    if (!intent_observability_require_arg_count(call, ctx, row))
+        return NULL;
 
     if (ctx != NULL)
         ctx->uses_intent_observability = true;
-
-    if (zero_export != NULL)
-        return strdup_fmt("%s()", zero_export);
-
-    one_export = intent_observability_one_arg_export(bk);
-    if (one_export != NULL) {
-        if (!intent_observability_require_arg_count(call, ctx, one_export, 1))
-            return NULL;
-        char *index = intent_observability_emit_index(
-            ast_call_argument(call, 0), ctx, one_export, "index");
-        if (index == NULL)
-            return NULL;
-        char *result = strdup_fmt("%s(%s)", one_export, index);
-        free(index);
-        return result;
-    }
-
-    two_export = intent_observability_two_arg_export(bk);
-    if (two_export != NULL) {
-        if (!intent_observability_require_arg_count(call, ctx, two_export, 2))
-            return NULL;
-        char *intent_index = intent_observability_emit_index(
-            ast_call_argument(call, 0), ctx, two_export, "intent index");
-        char *step_index = intent_observability_emit_index(
-            ast_call_argument(call, 1), ctx, two_export, "step index");
-        if (intent_index == NULL || step_index == NULL) {
-            free(intent_index);
-            free(step_index);
+    for (size_t i = 0; i < row->arg_count; i++) {
+        args[i] = emit_expression(ast_call_argument(call, i), ctx);
+        if (args[i] == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: %s could not lower argument[%zu] expression",
+                row->source_name, i);
+            for (size_t j = 0; j < row->arg_count; j++)
+                free(args[j]);
             return NULL;
         }
-        char *result = strdup_fmt("%s(%s, %s)", two_export, intent_index,
-                                  step_index);
-        free(intent_index);
-        free(step_index);
-        return result;
     }
 
-    return NULL;
+    if (row->arg_count == 0)
+        result = strdup_fmt("%s()", row->runtime_name);
+    else if (row->arg_count == 1)
+        result = strdup_fmt("%s(%s)", row->runtime_name, args[0]);
+    else
+        result = strdup_fmt("%s(%s, %s)", row->runtime_name, args[0], args[1]);
+
+    for (size_t i = 0; i < row->arg_count; i++)
+        free(args[i]);
+    return result;
 }

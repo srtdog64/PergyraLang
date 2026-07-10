@@ -17,7 +17,6 @@
 #include <string.h>
 
 #include "llvm_internal.h"
-#include "intent_observability_usage.h"
 #include "thread_pool_usage.h"
 
 void
@@ -317,14 +316,6 @@ bool
 llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
 {
     return ctx != NULL && mir_program_has_top_level_exec(ctx->mir);
-}
-
-bool
-llvm_active_uses_intent_observability(const LLVMGenCtx *ctx)
-{
-    if (ctx == NULL || ctx->mir == NULL)
-        return false;
-    return pgy_mir_program_uses_intent_observability(ctx->mir);
 }
 
 bool

@@ -5,7 +5,7 @@
 
 #include "ast_analysis.h"
 
-#include "../common/intent_observability_names.h"
+#include "../common/intent_observability_abi.h"
 
 #include <string.h>
 

@@ -273,7 +273,7 @@ COMMON_DIR   = $(SRC_DIR)/common
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/diagnostic_layer.c \
                    $(COMMON_DIR)/env_flags.c \
-                   $(COMMON_DIR)/intent_observability_names.c \
+                   $(COMMON_DIR)/intent_observability_abi.c \
                    $(COMMON_DIR)/match_variant_policy.c \
                    $(COMMON_DIR)/numeric_parse.c \
                    $(COMMON_DIR)/pgy_builtin_type_table.c \
@@ -609,7 +609,6 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/domain_frontier_graph.c \
                    $(CODEGEN_DIR)/host_decl_compat.c \
                    $(CODEGEN_DIR)/intent_binding_metadata_view.c \
-                   $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_intent_observability_builtin_emit.c \
                    $(CODEGEN_DIR)/thread_pool_usage.c \
                    $(CODEGEN_DIR)/transpiler_channel_type_query.c \
@@ -897,6 +896,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_abi_layout.c \
                    $(COMPILER_DIR)/mir_abi_resource_runtime.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
+                   $(COMPILER_DIR)/verified_projection_plan.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
@@ -2162,6 +2162,20 @@ semantic-declaration-identity-test-smoke: $(PGY)
 hir-routine-identity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/hir_routine_identity_smoke.sh
 
+$(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT): \
+		tests/verified_projection_plan_probe.c \
+		src/common/intent_observability_abi.c \
+		src/compiler/verified_projection_plan.c
+	"$(BASH)" -c "mkdir -p '$(BUILD_DIR)'"
+	$(CC) -std=c11 -Isrc tests/verified_projection_plan_probe.c \
+		src/common/intent_observability_abi.c \
+		src/compiler/verified_projection_plan.c \
+		-o "$(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)"
+
+verified-projection-plan-test-smoke: $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT)
+	PGY_VERIFIED_PROJECTION_PLAN_PROBE="$(abspath $(BUILD_DIR)/verified_projection_plan_probe$(EXEEXT))" \
+		"$(BASH)" tests/verified_projection_plan_smoke.sh
+
 verification-methodology-test-smoke:
 	"$(BASH)" tests/verification_methodology_smoke.sh
 
@@ -2970,7 +2984,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke
 .PHONY: semantic-declaration-identity-test-smoke
-.PHONY: hir-routine-identity-test-smoke
+.PHONY: hir-routine-identity-test-smoke verified-projection-plan-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
 

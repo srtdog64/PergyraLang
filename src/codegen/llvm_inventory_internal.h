@@ -87,7 +87,6 @@ const char *llvm_active_source_path(const LLVMGenCtx *ctx);
 bool llvm_active_has_main_function(const LLVMGenCtx *ctx);
 const char *llvm_active_main_function_name(const LLVMGenCtx *ctx);
 bool llvm_active_has_top_level_exec(const LLVMGenCtx *ctx);
-bool llvm_active_uses_intent_observability(const LLVMGenCtx *ctx);
 bool llvm_active_uses_thread_pool(const LLVMGenCtx *ctx);
 
 #endif /* PGY_LLVM_INVENTORY_INTERNAL_H */

@@ -228,6 +228,17 @@ the intent axis can still carry a CPU-sequential assumption (steps are a
 position-ordered array; there is no surface syntax for a partial order between
 steps), so the dataflow row (1) remains separate work.
 
+### First native projection-plan row (2026-07-10)
+
+Intent observability now has the first native, blocking
+`PgyVerifiedProjectionPlanRow`. Canonical MIR inventory usage maps to
+`OBS0/ERASE` or `OBS1/MATERIALIZE` for both C and LLVM. Missing MIR usage facts
+fail closed; the planner cannot rescan AST/HIR/source payloads. Its 51
+source/runtime/arity/return ABI rows also have one common owner consumed by
+semantic checking and both backends. This is evidence that the planned boundary
+can be implemented, not a full-plan claim: AIR certificate binding, other axes,
+Artifact Zone identity, and self-hosted plan consumption remain open.
+
 ### The inheritance: a falsification gate, not a narrative
 
 `tests/machine_neutral/capability_projection_gate.py` (run via

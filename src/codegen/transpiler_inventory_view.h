@@ -107,8 +107,6 @@ const char *transpiler_active_main_function_name(const TranspilerCtx *ctx);
 
 bool transpiler_active_has_top_level_exec(const TranspilerCtx *ctx);
 
-bool transpiler_active_uses_intent_observability(const TranspilerCtx *ctx);
-
 bool transpiler_active_uses_thread_pool(const TranspilerCtx *ctx);
 
 bool transpiler_active_can_emit_intent_cleanup_from_mir(

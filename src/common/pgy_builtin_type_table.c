@@ -5,7 +5,7 @@
 
 #include "pgy_builtin_type_table.h"
 
-#include "intent_observability_names.h"
+#include "intent_observability_abi.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -78,57 +78,6 @@ pgy_builtin_entries(size_t *count)
         { "HasZoneProjection", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "HasZoneState", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "Input", "String", PGY_BUILTIN_FLAG_NONE },
-        { "IntentActiveConcurrent", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveFailed", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveFailure", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveHandle", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveName", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveParentHandle", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActivePriority", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepFailure", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepFromSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepFromZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepName", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepOk", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepParticipant", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepPhase", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepToSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepToZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveStepZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveSubjectCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveTrace", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentActiveTraceId", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentCurrentHandle", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepFailure", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepFromSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepFromZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepName", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepOk", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepParticipant", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepPhase", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepToSlot", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepToZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentHistoryStepZone", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastFailed", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastFailure", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastHandle", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastName", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastStepCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastTrace", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentLastTraceId", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentFailed", "Bool", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentFailure", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentHandle", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentName", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentStepCount", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentTrace", "String", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
-        { "IntentRecentTraceId", "Int", PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY },
         { "IntoClassical", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "IsCancelled", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "IsCollapsed", "Bool", PGY_BUILTIN_FLAG_NONE },
@@ -220,19 +169,19 @@ pgy_builtin_lookup(const char *name)
 const char *
 pgy_builtin_simple_return_type(const char *name)
 {
+    const PgyIntentObservabilityAbiRow *observability =
+        pgy_intent_observability_abi_row_by_source(name);
     const PgyBuiltinInfo *entry = pgy_builtin_lookup(name);
+
+    if (observability != NULL) {
+        return pgy_intent_observability_return_type_name(
+            observability->return_kind);
+    }
     return entry != NULL ? entry->type_name : NULL;
 }
 
 bool
 pgy_builtin_is_intent_observability(const char *name)
 {
-    const PgyBuiltinInfo *entry;
-
-    if (!pgy_intent_observability_name_is_builtin(name))
-        return false;
-
-    entry = pgy_builtin_lookup(name);
-    return entry != NULL
-        && (entry->flags & PGY_BUILTIN_FLAG_INTENT_OBSERVABILITY) != 0;
+    return pgy_intent_observability_name_is_builtin(name);
 }

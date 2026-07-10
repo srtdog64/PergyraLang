@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "builtin_kind.h"
+#include "../common/intent_observability_abi.h"
 
 typedef struct BuiltinEntry {
     const char *name;
@@ -48,57 +49,6 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"HasZoneProjection", BUILTIN_HAS_ZONE_PROJECTION},
     {"HasZoneState", BUILTIN_HAS_ZONE_STATE},
     {"Input", BUILTIN_INPUT},
-    {"IntentActiveConcurrent", BUILTIN_INTENT_ACTIVE_CONCURRENT},
-    {"IntentActiveCount", BUILTIN_INTENT_ACTIVE_COUNT},
-    {"IntentActiveFailed", BUILTIN_INTENT_ACTIVE_FAILED},
-    {"IntentActiveFailure", BUILTIN_INTENT_ACTIVE_FAILURE},
-    {"IntentActiveHandle", BUILTIN_INTENT_ACTIVE_HANDLE},
-    {"IntentActiveName", BUILTIN_INTENT_ACTIVE_NAME},
-    {"IntentActiveParentHandle", BUILTIN_INTENT_ACTIVE_PARENT_HANDLE},
-    {"IntentActivePriority", BUILTIN_INTENT_ACTIVE_PRIORITY},
-    {"IntentActiveStepCount", BUILTIN_INTENT_ACTIVE_STEP_COUNT},
-    {"IntentActiveStepFailure", BUILTIN_INTENT_ACTIVE_STEP_FAILURE},
-    {"IntentActiveStepFromSlot", BUILTIN_INTENT_ACTIVE_STEP_FROM_SLOT},
-    {"IntentActiveStepFromZone", BUILTIN_INTENT_ACTIVE_STEP_FROM_ZONE},
-    {"IntentActiveStepName", BUILTIN_INTENT_ACTIVE_STEP_NAME},
-    {"IntentActiveStepOk", BUILTIN_INTENT_ACTIVE_STEP_OK},
-    {"IntentActiveStepParticipant", BUILTIN_INTENT_ACTIVE_STEP_PARTICIPANT},
-    {"IntentActiveStepPhase", BUILTIN_INTENT_ACTIVE_STEP_PHASE},
-    {"IntentActiveStepSlot", BUILTIN_INTENT_ACTIVE_STEP_SLOT},
-    {"IntentActiveStepToSlot", BUILTIN_INTENT_ACTIVE_STEP_TO_SLOT},
-    {"IntentActiveStepToZone", BUILTIN_INTENT_ACTIVE_STEP_TO_ZONE},
-    {"IntentActiveStepZone", BUILTIN_INTENT_ACTIVE_STEP_ZONE},
-    {"IntentActiveSubjectCount", BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT},
-    {"IntentActiveTrace", BUILTIN_INTENT_ACTIVE_TRACE},
-    {"IntentActiveTraceId", BUILTIN_INTENT_ACTIVE_TRACE_ID},
-    {"IntentCurrentHandle", BUILTIN_INTENT_CURRENT_HANDLE},
-    {"IntentHistoryCount", BUILTIN_INTENT_HISTORY_COUNT},
-    {"IntentHistoryStepFailure", BUILTIN_INTENT_HISTORY_STEP_FAILURE},
-    {"IntentHistoryStepFromSlot", BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT},
-    {"IntentHistoryStepFromZone", BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE},
-    {"IntentHistoryStepName", BUILTIN_INTENT_HISTORY_STEP_NAME},
-    {"IntentHistoryStepOk", BUILTIN_INTENT_HISTORY_STEP_OK},
-    {"IntentHistoryStepParticipant", BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT},
-    {"IntentHistoryStepPhase", BUILTIN_INTENT_HISTORY_STEP_PHASE},
-    {"IntentHistoryStepSlot", BUILTIN_INTENT_HISTORY_STEP_SLOT},
-    {"IntentHistoryStepToSlot", BUILTIN_INTENT_HISTORY_STEP_TO_SLOT},
-    {"IntentHistoryStepToZone", BUILTIN_INTENT_HISTORY_STEP_TO_ZONE},
-    {"IntentHistoryStepZone", BUILTIN_INTENT_HISTORY_STEP_ZONE},
-    {"IntentLastFailed", BUILTIN_INTENT_LAST_FAILED},
-    {"IntentLastFailure", BUILTIN_INTENT_LAST_FAILURE},
-    {"IntentLastHandle", BUILTIN_INTENT_LAST_HANDLE},
-    {"IntentLastName", BUILTIN_INTENT_LAST_NAME},
-    {"IntentLastStepCount", BUILTIN_INTENT_LAST_STEP_COUNT},
-    {"IntentLastTrace", BUILTIN_INTENT_LAST_TRACE},
-    {"IntentLastTraceId", BUILTIN_INTENT_LAST_TRACE_ID},
-    {"IntentRecentCount", BUILTIN_INTENT_RECENT_COUNT},
-    {"IntentRecentFailed", BUILTIN_INTENT_RECENT_FAILED},
-    {"IntentRecentFailure", BUILTIN_INTENT_RECENT_FAILURE},
-    {"IntentRecentHandle", BUILTIN_INTENT_RECENT_HANDLE},
-    {"IntentRecentName", BUILTIN_INTENT_RECENT_NAME},
-    {"IntentRecentStepCount", BUILTIN_INTENT_RECENT_STEP_COUNT},
-    {"IntentRecentTrace", BUILTIN_INTENT_RECENT_TRACE},
-    {"IntentRecentTraceId", BUILTIN_INTENT_RECENT_TRACE_ID},
     {"IsCollapsed", BUILTIN_NOT_BUILTIN},
     {"Log", BUILTIN_LOG},
     {"LogBanner", BUILTIN_LOG_BANNER},
@@ -157,6 +107,8 @@ builtin_resolve(const char *name)
 {
     if (name == NULL)
         return BUILTIN_NOT_BUILTIN;
+    if (pgy_intent_observability_name_is_builtin(name))
+        return BUILTIN_INTENT_OBSERVABILITY;
 
     const BuiltinEntry *entry = bsearch(
         name,

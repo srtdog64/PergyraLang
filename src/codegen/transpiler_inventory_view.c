@@ -5,7 +5,6 @@
 
 #include "transpiler.h"
 #include "host_decl_compat.h"
-#include "intent_observability_usage.h"
 #include "thread_pool_usage.h"
 
 void
@@ -301,14 +300,6 @@ bool
 transpiler_active_has_top_level_exec(const TranspilerCtx *ctx)
 {
     return ctx != NULL && mir_program_has_top_level_exec(ctx->mir);
-}
-
-bool
-transpiler_active_uses_intent_observability(const TranspilerCtx *ctx)
-{
-    if (ctx == NULL || ctx->mir == NULL)
-        return false;
-    return pgy_mir_program_uses_intent_observability(ctx->mir);
 }
 
 bool
