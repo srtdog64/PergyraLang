@@ -289,7 +289,10 @@ compiler-stage `.pgy` source to be listed here.
   for oracle subprocess execution without raw shell escape.
 - `src/self_hosted/compiler/completeness_ledger_owner.pgy` -- M2 source
   inventory, semantic target mapping, monotone stage-pass minima, incremental
-  cache facts, and rung0 impact-plan rows.
+  cache facts, and completeness readiness.
+- `src/self_hosted/compiler/completeness_impact_owner.pgy` -- rung0
+  changed-path impact plan rows, proof-gate grouping, and impact planner path
+  manifest facts.
 - `src/self_hosted/compiler/incremental_fact_graph_owner.pgy` -- compiler-scale
   incremental fact graph schema, dependency axes, reusable artifact kinds, and
   clean/incremental verifier vocabulary. The current completeness cache remains

@@ -25,6 +25,26 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Completeness impact owner split raises M2 to 219/219
+
+- Split impact-plan/run-group responsibility from
+  `completeness_ledger_owner.pgy` into
+  `completeness_impact_owner.pgy`, leaving the ledger owner with source
+  inventory, stage vocabulary, semantic target mapping, cache fingerprints, and
+  monotone minima.
+- Repointed the TestHarness manifest and completeness impact planner to import
+  the new owner directly, and tightened the component contract so both owners
+  stay under the 600-line cap.
+- Replaced positional readiness checks with named membership/out-of-range
+  checks for stages, cache fingerprints, impact planner paths, impact rows, and
+  impact fields.
+- Ran the unfiltered `self-host-completeness-smoke`; it proved
+  `sources=219`, `lexer=219`, `parser=219`, `semantic=219`, `codegen=219`, and
+  `full_pipeline=219`, then the M2 minima moved from 207 to 219.
+- This is still not a bootstrap-loop proof: the completeness ledger proves the
+  current Pergyra self-host source breadth through the C/LLVM oracle path, while
+  whole-compiler self-rebuild remains a later hard self-host rung.
+
 ## 2026-07-10 - AIR graph TestHarness path suites consume named membership
 
 - Repointed the remaining AIR graph consumer path-suite readiness predicates in

@@ -682,12 +682,22 @@ or `CodegenAstArenaKindIs` directly. This keeps aggregate runtime/header
 decisions from reopening raw kind-row scans.
 
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` now locks the
-M2 minima at 207 for source inventory, lexer, parser, semantic, codegen,
+M2 minima at 219 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad
 parity preparation run proved the prior 203/203 ledger through C and LLVM
 selfcheck legs; the focused completeness gate now prevents the new production
 self-host source from entering the inventory without passing the full staged
 completeness path.
+
+Completeness owner split delta, 2026-07-10: `completeness_impact_owner.pgy`
+now owns the impact plan schema, run-group schema, planner paths, impact rows,
+field vocabulary, and proof-gate mapping that used to sit inside the broad
+completeness ledger owner. `completeness_ledger_owner.pgy` keeps the source
+inventory, stage vocabulary, semantic target mapping, cache fingerprints, and
+monotone minima. The full unfiltered `self-host-completeness-smoke` proved
+219/219 sources through lexer/parser/semantic/codegen before the minima moved,
+and the component contract now requires both owners to stay under the 600-line
+cap while forbidding positional readiness checks from returning.
 
 Completeness cache delta, 2026-07-09: `completeness_ledger_owner.pgy` now owns
 the rung0 incremental cache schema and fingerprint vocabulary for the

@@ -2,6 +2,7 @@
 //
 // Owns the M2 source inventory scope, stage names, and monotone baseline
 // minima. Shell runners may execute the rows, but must not redefine them.
+import "completeness_impact_owner.pgy";
 
 struct CompilerCompletenessCheckTarget {
     let path: String;
@@ -47,225 +48,64 @@ func CompilerCompletenessIncrementalCacheSchema() -> String {
     return "pgy.selfhost.completeness-cache.v1";
 }
 
-func CompilerCompletenessImpactPlanSchema() -> String {
-    return "pgy.selfhost.completeness-impact.v1";
-}
-
-func CompilerCompletenessImpactRunGroupsSchema() -> String {
-    return "pgy.selfhost.completeness-impact-run-groups.v1";
-}
-
-func CompilerCompletenessImpactSuiteName() -> String {
-    return "self-host-completeness-impact-plan";
-}
-
-func CompilerCompletenessImpactPlannerSuiteName() -> String {
-    return "self-host-completeness-impact-planner-paths";
-}
-
-func CompilerCompletenessImpactPlannerToolSourcePath() -> String {
-    return "src/self_hosted/tools/completeness_impact_planner/main.pgy";
-}
-
-func CompilerCompletenessImpactPlannerExpectedCleanPath() -> String {
-    return "src/self_hosted/tools/completeness_impact_planner/expected/clean.json";
-}
-
-func CompilerCompletenessImpactPlannerExpectedUnmatchedPath() -> String {
-    return "src/self_hosted/tools/completeness_impact_planner/expected/unmatched.json";
-}
-
-func CompilerCompletenessImpactPlannerExpectedRunGroupsPath() -> String {
-    return "src/self_hosted/tools/completeness_impact_planner/expected/clean.run_groups.tsv";
-}
-
-func CompilerCompletenessImpactPlannerPathCount() -> Int {
-    return 10;
-}
-
-func CompilerCompletenessImpactPlannerPathAt(index: Int) -> String {
-    if index == 0 { return CompilerCompletenessImpactPlannerToolSourcePath(); }
-    if index == 1 { return CompilerCompletenessImpactPlannerExpectedCleanPath(); }
-    if index == 2 { return CompilerCompletenessImpactPlannerExpectedUnmatchedPath(); }
-    if index == 3 { return CompilerCompletenessImpactPlannerExpectedRunGroupsPath(); }
-    if index == 4 { return "src/self_hosted/compiler/completeness_ledger_owner.pgy"; }
-    if index == 5 { return "src/self_hosted/parser/main.pgy"; }
-    if index == 6 { return "src/self_hosted/codegen/emission/program_emit.pgy"; }
-    if index == 7 { return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy"; }
-    if index == 8 { return "tests/self_hosted_component_contract_smoke.sh"; }
-    if index == 9 { return "README.md"; }
-    return "";
-}
-
 func CompilerCompletenessCacheFingerprintCount() -> Int {
     return 8;
 }
 
+func CompilerCompletenessSourceSetFingerprint() -> String {
+    return "source-set";
+}
+
+func CompilerCompletenessStageFingerprint() -> String {
+    return "stage";
+}
+
+func CompilerCompletenessSourcePathFingerprint() -> String {
+    return "source-path";
+}
+
+func CompilerCompletenessCheckTargetFingerprint() -> String {
+    return "check-target";
+}
+
+func CompilerCompletenessToolSourceFingerprint() -> String {
+    return "tool-source";
+}
+
+func CompilerCompletenessCompilerExecutableFingerprint() -> String {
+    return "compiler-executable";
+}
+
+func CompilerCompletenessToolExecutableFingerprint() -> String {
+    return "tool-executable";
+}
+
+func CompilerCompletenessProducerExecutableFingerprint() -> String {
+    return "producer-executable";
+}
+
 func CompilerCompletenessCacheFingerprintAt(index: Int) -> String {
-    if index == 0 { return "source-set"; }
-    if index == 1 { return "stage"; }
-    if index == 2 { return "source-path"; }
-    if index == 3 { return "check-target"; }
-    if index == 4 { return "tool-source"; }
-    if index == 5 { return "compiler-executable"; }
-    if index == 6 { return "tool-executable"; }
-    if index == 7 { return "producer-executable"; }
+    if index == 0 { return CompilerCompletenessSourceSetFingerprint(); }
+    if index == 1 { return CompilerCompletenessStageFingerprint(); }
+    if index == 2 { return CompilerCompletenessSourcePathFingerprint(); }
+    if index == 3 { return CompilerCompletenessCheckTargetFingerprint(); }
+    if index == 4 { return CompilerCompletenessToolSourceFingerprint(); }
+    if index == 5 { return CompilerCompletenessCompilerExecutableFingerprint(); }
+    if index == 6 { return CompilerCompletenessToolExecutableFingerprint(); }
+    if index == 7 { return CompilerCompletenessProducerExecutableFingerprint(); }
     return "";
 }
 
-func CompilerCompletenessImpactFieldCount() -> Int {
-    return 6;
-}
-
-func CompilerCompletenessImpactFieldAt(index: Int) -> String {
-    if index == 0 { return "impact_id"; }
-    if index == 1 { return "source_pattern"; }
-    if index == 2 { return "source_filter_env"; }
-    if index == 3 { return "stage_filter_env"; }
-    if index == 4 { return "stage_filter_value"; }
-    if index == 5 { return "proof_gate"; }
-    return "";
-}
-
-func CompilerCompletenessImpactSourceFilterEnv() -> String {
-    return "PGY_SELFHOST_COMPLETENESS_SOURCES";
-}
-
-func CompilerCompletenessImpactStageFilterEnv() -> String {
-    return "PGY_SELFHOST_COMPLETENESS_STAGES";
-}
-
-func CompilerCompletenessImpactAllStages() -> String {
-    return "lexer,parser,semantic,codegen";
-}
-
-func CompilerCompletenessImpactRow(
-    impact_id: String,
-    source_pattern: String,
-    source_filter_env: String,
-    stage_filter_env: String,
-    stage_filter_value: String,
-    proof_gate: String
-) -> String {
-    return Concat(
-        impact_id,
-        Concat(
-            "\t",
-            Concat(
-                source_pattern,
-                Concat(
-                    "\t",
-                    Concat(
-                        source_filter_env,
-                        Concat(
-                            "\t",
-                            Concat(
-                                stage_filter_env,
-                                Concat(
-                                    "\t",
-                                    Concat(stage_filter_value, Concat("\t", proof_gate))
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    );
-}
-
-func CompilerCompletenessImpactRowCount() -> Int {
-    return 5;
-}
-
-func CompilerCompletenessImpactProofGateFor(impact_id: String) -> Option<String> {
-    if impact_id == "selfhost-production-source" {
-        return Some("self-host-completeness-smoke");
-    }
-    if impact_id == "parser-source" {
-        return Some("self-host-parser-parity-test-smoke");
-    }
-    if impact_id == "codegen-source" {
-        return Some("self-host-codegen-parity-test-smoke");
-    }
-    if impact_id == "air-graph-consumer-source" {
-        return Some("self-host-air-graph-consumer-parity-test-smoke");
-    }
-    if impact_id == "component-contract" {
-        return Some("self-host-component-contract-test-smoke");
-    }
-    return None;
-}
-
-func CompilerCompletenessImpactRowAt(index: Int) -> String {
-    if index == 0 {
-        return CompilerCompletenessImpactRow(
-            "selfhost-production-source",
-            "src/self_hosted/**/*.pgy",
-            CompilerCompletenessImpactSourceFilterEnv(),
-            CompilerCompletenessImpactStageFilterEnv(),
-            CompilerCompletenessImpactAllStages(),
-            "self-host-completeness-smoke"
-        );
-    }
-    if index == 1 {
-        return CompilerCompletenessImpactRow(
-            "parser-source",
-            "src/self_hosted/parser/**/*.pgy",
-            CompilerCompletenessImpactSourceFilterEnv(),
-            CompilerCompletenessImpactStageFilterEnv(),
-            CompilerCompletenessImpactAllStages(),
-            "self-host-parser-parity-test-smoke"
-        );
-    }
-    if index == 2 {
-        return CompilerCompletenessImpactRow(
-            "codegen-source",
-            "src/self_hosted/codegen/**/*.pgy",
-            CompilerCompletenessImpactSourceFilterEnv(),
-            CompilerCompletenessImpactStageFilterEnv(),
-            CompilerCompletenessImpactAllStages(),
-            "self-host-codegen-parity-test-smoke"
-        );
-    }
-    if index == 3 {
-        return CompilerCompletenessImpactRow(
-            "air-graph-consumer-source",
-            "src/self_hosted/tools/air_graph*/**/*.pgy",
-            CompilerCompletenessImpactSourceFilterEnv(),
-            CompilerCompletenessImpactStageFilterEnv(),
-            CompilerCompletenessImpactAllStages(),
-            "self-host-air-graph-consumer-parity-test-smoke"
-        );
-    }
-    if index == 4 {
-        return CompilerCompletenessImpactRow(
-            "component-contract",
-            "tests/self_hosted_component_contract_smoke.sh",
-            "-",
-            "-",
-            "-",
-            "self-host-component-contract-test-smoke"
-        );
-    }
-    return "";
-}
-
-func EmitCompilerCompletenessImpactPlan() -> Void {
-    Log(Concat("schema=", CompilerCompletenessImpactPlanSchema()));
-    let i: Int = 0;
-    while i < CompilerCompletenessImpactRowCount() {
-        Log(CompilerCompletenessImpactRowAt(i));
-        i = i + 1;
-    }
-}
-
-func EmitCompilerCompletenessImpactPlannerPaths() -> Void {
-    let i: Int = 0;
-    while i < CompilerCompletenessImpactPlannerPathCount() {
-        Log(CompilerCompletenessImpactPlannerPathAt(i));
-        i = i + 1;
-    }
+func CompilerCompletenessCacheFingerprintKnown(fact: String) -> Bool {
+    if fact == CompilerCompletenessSourceSetFingerprint() { return true; }
+    if fact == CompilerCompletenessStageFingerprint() { return true; }
+    if fact == CompilerCompletenessSourcePathFingerprint() { return true; }
+    if fact == CompilerCompletenessCheckTargetFingerprint() { return true; }
+    if fact == CompilerCompletenessToolSourceFingerprint() { return true; }
+    if fact == CompilerCompletenessCompilerExecutableFingerprint() { return true; }
+    if fact == CompilerCompletenessToolExecutableFingerprint() { return true; }
+    if fact == CompilerCompletenessProducerExecutableFingerprint() { return true; }
+    return false;
 }
 
 func CompilerCompletenessPathEndsWith(path: String, suffix: String) -> Bool {
@@ -335,6 +175,14 @@ func CompilerCompletenessStageAt(index: Int) -> String {
     return "";
 }
 
+func CompilerCompletenessStageKnown(stage: String) -> Bool {
+    if stage == "lexer" { return true; }
+    if stage == "parser" { return true; }
+    if stage == "semantic" { return true; }
+    if stage == "codegen" { return true; }
+    return false;
+}
+
 func EmitCompilerCompletenessStages() -> Void {
     let i: Int = 0;
     while i < CompilerCompletenessStageCount() {
@@ -386,35 +234,35 @@ func EmitCompilerCompletenessSemanticTargets() -> Void {
 }
 
 func CompilerCompletenessSourceMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessLexerPassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessParserPassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessSemanticPassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessCodegenPassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessLexParsePassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessLexParseSemanticPassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func CompilerCompletenessFullPipelinePassMin() -> Int {
-    return 207;
+    return 219;
 }
 
 func EmitCompilerCompletenessLexParseBaseline() -> Void {
@@ -442,11 +290,12 @@ func EmitCompilerCompletenessBaseline() -> Void {
 }
 
 func CompilerCompletenessLedgerReady() -> Bool {
-    return CompilerCompletenessStageCount() == 4 &&
-        CompilerCompletenessStageAt(0) == "lexer" &&
-        CompilerCompletenessStageAt(1) == "parser" &&
-        CompilerCompletenessStageAt(2) == "semantic" &&
-        CompilerCompletenessStageAt(3) == "codegen" &&
+    return CompilerCompletenessStageCount() > 0 &&
+        CompilerCompletenessStageAt(CompilerCompletenessStageCount()) == "" &&
+        CompilerCompletenessStageKnown("lexer") &&
+        CompilerCompletenessStageKnown("parser") &&
+        CompilerCompletenessStageKnown("semantic") &&
+        CompilerCompletenessStageKnown("codegen") &&
         StringLength(CompilerCompletenessLedgerSchema()) > 0 &&
         StringLength(CompilerCompletenessSourceRoot()) > 0 &&
         StringLength(CompilerCompletenessSemanticTargetsSuiteName()) > 0 &&
@@ -458,17 +307,24 @@ func CompilerCompletenessLedgerReady() -> Bool {
         StringLength(CompilerCompletenessImpactRunGroupsSchema()) > 0 &&
         StringLength(CompilerCompletenessImpactSuiteName()) > 0 &&
         StringLength(CompilerCompletenessImpactPlannerSuiteName()) > 0 &&
-        CompilerCompletenessImpactPlannerPathCount() == 10 &&
-        CompilerCompletenessImpactPlannerPathAt(0) == CompilerCompletenessImpactPlannerToolSourcePath() &&
-        CompilerCompletenessImpactPlannerPathAt(3) == CompilerCompletenessImpactPlannerExpectedRunGroupsPath() &&
-        CompilerCompletenessCacheFingerprintCount() == 8 &&
-        CompilerCompletenessCacheFingerprintAt(0) == "source-set" &&
-        CompilerCompletenessCacheFingerprintAt(5) == "compiler-executable" &&
-        CompilerCompletenessCacheFingerprintAt(6) == "tool-executable" &&
-        CompilerCompletenessImpactFieldCount() == 6 &&
-        CompilerCompletenessImpactFieldAt(0) == "impact_id" &&
-        CompilerCompletenessImpactFieldAt(5) == "proof_gate" &&
-        CompilerCompletenessImpactRowCount() == 5 &&
+        CompilerCompletenessImpactPlannerPathCount() > 0 &&
+        CompilerCompletenessImpactPlannerPathAt(CompilerCompletenessImpactPlannerPathCount()) == "" &&
+        CompilerCompletenessImpactPlannerPathKnown(CompilerCompletenessImpactPlannerToolSourcePath()) &&
+        CompilerCompletenessImpactPlannerPathKnown(CompilerCompletenessImpactPlannerExpectedRunGroupsPath()) &&
+        CompilerCompletenessImpactPlannerPathKnown(CompilerCompletenessImpactPlannerLedgerOwnerPath()) &&
+        CompilerCompletenessImpactPlannerPathKnown(CompilerCompletenessImpactPlannerComponentContractPath()) &&
+        CompilerCompletenessCacheFingerprintCount() > 0 &&
+        CompilerCompletenessCacheFingerprintAt(CompilerCompletenessCacheFingerprintCount()) == "" &&
+        CompilerCompletenessCacheFingerprintKnown(CompilerCompletenessSourceSetFingerprint()) &&
+        CompilerCompletenessCacheFingerprintKnown(CompilerCompletenessCompilerExecutableFingerprint()) &&
+        CompilerCompletenessCacheFingerprintKnown(CompilerCompletenessToolExecutableFingerprint()) &&
+        CompilerCompletenessCacheFingerprintKnown(CompilerCompletenessProducerExecutableFingerprint()) &&
+        CompilerCompletenessImpactFieldCount() > 0 &&
+        CompilerCompletenessImpactFieldAt(CompilerCompletenessImpactFieldCount()) == "" &&
+        CompilerCompletenessImpactFieldKnown(CompilerCompletenessImpactIdField()) &&
+        CompilerCompletenessImpactFieldKnown(CompilerCompletenessImpactProofGateField()) &&
+        CompilerCompletenessImpactRowCount() > 0 &&
+        CompilerCompletenessImpactRowAt(CompilerCompletenessImpactRowCount()) == "" &&
         CompilerCompletenessImpactSourceFilterEnv() == "PGY_SELFHOST_COMPLETENESS_SOURCES" &&
         CompilerCompletenessImpactStageFilterEnv() == "PGY_SELFHOST_COMPLETENESS_STAGES" &&
         CompilerCompletenessImpactAllStages() == "lexer,parser,semantic,codegen" &&

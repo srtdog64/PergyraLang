@@ -5,6 +5,7 @@
 // changed paths explicitly so the impact decision remains deterministic.
 
 import "../../compiler/completeness_ledger_owner.pgy";
+import "../../compiler/completeness_impact_owner.pgy";
 import "../../lib/json_emit.pgy";
 
 func ImpactPlannerStartsWith(path: String, prefix: String) -> Bool {

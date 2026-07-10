@@ -28,6 +28,7 @@ import "test_harness_mir_json_paths_owner.pgy";
 import "test_harness_codegen_bootstrap_paths_owner.pgy";
 import "test_harness_lsp_paths_owner.pgy";
 import "completeness_ledger_owner.pgy";
+import "completeness_impact_owner.pgy";
 import "incremental_fact_graph_owner.pgy";
 import "path_manifest_owner.pgy";
 
@@ -68,7 +69,6 @@ func EmitStableSubsetSectionPaths() -> Void {
         i = i + 1;
     }
 }
-
 func EmitRuntimeBoundaryPaths() -> Void {
     let i: Int = 0;
     while i < CompilerHarnessRuntimeBoundaryPathCount() {

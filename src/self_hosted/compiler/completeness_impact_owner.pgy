@@ -1,0 +1,282 @@
+// Self-host completeness impact owner.
+//
+// Owns the rung0 changed-path impact plan, proof-gate grouping, and planner
+// path manifest. Shell may execute the rows, but impact classification lives
+// here.
+
+func CompilerCompletenessImpactPlanSchema() -> String {
+    return "pgy.selfhost.completeness-impact.v1";
+}
+
+func CompilerCompletenessImpactRunGroupsSchema() -> String {
+    return "pgy.selfhost.completeness-impact-run-groups.v1";
+}
+
+func CompilerCompletenessImpactSuiteName() -> String {
+    return "self-host-completeness-impact-plan";
+}
+
+func CompilerCompletenessImpactPlannerSuiteName() -> String {
+    return "self-host-completeness-impact-planner-paths";
+}
+
+func CompilerCompletenessImpactPlannerToolSourcePath() -> String {
+    return "src/self_hosted/tools/completeness_impact_planner/main.pgy";
+}
+
+func CompilerCompletenessImpactPlannerExpectedCleanPath() -> String {
+    return "src/self_hosted/tools/completeness_impact_planner/expected/clean.json";
+}
+
+func CompilerCompletenessImpactPlannerExpectedUnmatchedPath() -> String {
+    return "src/self_hosted/tools/completeness_impact_planner/expected/unmatched.json";
+}
+
+func CompilerCompletenessImpactPlannerExpectedRunGroupsPath() -> String {
+    return "src/self_hosted/tools/completeness_impact_planner/expected/clean.run_groups.tsv";
+}
+
+func CompilerCompletenessImpactPlannerLedgerOwnerPath() -> String {
+    return "src/self_hosted/compiler/completeness_ledger_owner.pgy";
+}
+
+func CompilerCompletenessImpactPlannerParserProbePath() -> String {
+    return "src/self_hosted/parser/main.pgy";
+}
+
+func CompilerCompletenessImpactPlannerCodegenProbePath() -> String {
+    return "src/self_hosted/codegen/emission/program_emit.pgy";
+}
+
+func CompilerCompletenessImpactPlannerAirGraphProbePath() -> String {
+    return "src/self_hosted/tools/air_graph_id_uniqueness/main.pgy";
+}
+
+func CompilerCompletenessImpactPlannerComponentContractPath() -> String {
+    return "tests/self_hosted_component_contract_smoke.sh";
+}
+
+func CompilerCompletenessImpactPlannerUnmatchedProbePath() -> String {
+    return "README.md";
+}
+
+func CompilerCompletenessImpactPlannerPathCount() -> Int {
+    return 10;
+}
+
+func CompilerCompletenessImpactPlannerPathAt(index: Int) -> String {
+    if index == 0 { return CompilerCompletenessImpactPlannerToolSourcePath(); }
+    if index == 1 { return CompilerCompletenessImpactPlannerExpectedCleanPath(); }
+    if index == 2 { return CompilerCompletenessImpactPlannerExpectedUnmatchedPath(); }
+    if index == 3 { return CompilerCompletenessImpactPlannerExpectedRunGroupsPath(); }
+    if index == 4 { return CompilerCompletenessImpactPlannerLedgerOwnerPath(); }
+    if index == 5 { return CompilerCompletenessImpactPlannerParserProbePath(); }
+    if index == 6 { return CompilerCompletenessImpactPlannerCodegenProbePath(); }
+    if index == 7 { return CompilerCompletenessImpactPlannerAirGraphProbePath(); }
+    if index == 8 { return CompilerCompletenessImpactPlannerComponentContractPath(); }
+    if index == 9 { return CompilerCompletenessImpactPlannerUnmatchedProbePath(); }
+    return "";
+}
+
+func CompilerCompletenessImpactPlannerPathKnown(path: String) -> Bool {
+    if path == CompilerCompletenessImpactPlannerToolSourcePath() { return true; }
+    if path == CompilerCompletenessImpactPlannerExpectedCleanPath() { return true; }
+    if path == CompilerCompletenessImpactPlannerExpectedUnmatchedPath() { return true; }
+    if path == CompilerCompletenessImpactPlannerExpectedRunGroupsPath() { return true; }
+    if path == CompilerCompletenessImpactPlannerLedgerOwnerPath() { return true; }
+    if path == CompilerCompletenessImpactPlannerParserProbePath() { return true; }
+    if path == CompilerCompletenessImpactPlannerCodegenProbePath() { return true; }
+    if path == CompilerCompletenessImpactPlannerAirGraphProbePath() { return true; }
+    if path == CompilerCompletenessImpactPlannerComponentContractPath() { return true; }
+    if path == CompilerCompletenessImpactPlannerUnmatchedProbePath() { return true; }
+    return false;
+}
+
+func CompilerCompletenessImpactFieldCount() -> Int {
+    return 6;
+}
+
+func CompilerCompletenessImpactIdField() -> String {
+    return "impact_id";
+}
+
+func CompilerCompletenessImpactSourcePatternField() -> String {
+    return "source_pattern";
+}
+
+func CompilerCompletenessImpactSourceFilterEnvField() -> String {
+    return "source_filter_env";
+}
+
+func CompilerCompletenessImpactStageFilterEnvField() -> String {
+    return "stage_filter_env";
+}
+
+func CompilerCompletenessImpactStageFilterValueField() -> String {
+    return "stage_filter_value";
+}
+
+func CompilerCompletenessImpactProofGateField() -> String {
+    return "proof_gate";
+}
+
+func CompilerCompletenessImpactFieldAt(index: Int) -> String {
+    if index == 0 { return CompilerCompletenessImpactIdField(); }
+    if index == 1 { return CompilerCompletenessImpactSourcePatternField(); }
+    if index == 2 { return CompilerCompletenessImpactSourceFilterEnvField(); }
+    if index == 3 { return CompilerCompletenessImpactStageFilterEnvField(); }
+    if index == 4 { return CompilerCompletenessImpactStageFilterValueField(); }
+    if index == 5 { return CompilerCompletenessImpactProofGateField(); }
+    return "";
+}
+
+func CompilerCompletenessImpactFieldKnown(field: String) -> Bool {
+    if field == CompilerCompletenessImpactIdField() { return true; }
+    if field == CompilerCompletenessImpactSourcePatternField() { return true; }
+    if field == CompilerCompletenessImpactSourceFilterEnvField() { return true; }
+    if field == CompilerCompletenessImpactStageFilterEnvField() { return true; }
+    if field == CompilerCompletenessImpactStageFilterValueField() { return true; }
+    if field == CompilerCompletenessImpactProofGateField() { return true; }
+    return false;
+}
+
+func CompilerCompletenessImpactSourceFilterEnv() -> String {
+    return "PGY_SELFHOST_COMPLETENESS_SOURCES";
+}
+
+func CompilerCompletenessImpactStageFilterEnv() -> String {
+    return "PGY_SELFHOST_COMPLETENESS_STAGES";
+}
+
+func CompilerCompletenessImpactAllStages() -> String {
+    return "lexer,parser,semantic,codegen";
+}
+
+func CompilerCompletenessImpactRow(
+    impact_id: String,
+    source_pattern: String,
+    source_filter_env: String,
+    stage_filter_env: String,
+    stage_filter_value: String,
+    proof_gate: String
+) -> String {
+    return Concat(
+        impact_id,
+        Concat(
+            "\t",
+            Concat(
+                source_pattern,
+                Concat(
+                    "\t",
+                    Concat(
+                        source_filter_env,
+                        Concat(
+                            "\t",
+                            Concat(
+                                stage_filter_env,
+                                Concat(
+                                    "\t",
+                                    Concat(stage_filter_value, Concat("\t", proof_gate))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+}
+
+func CompilerCompletenessImpactRowCount() -> Int {
+    return 5;
+}
+
+func CompilerCompletenessImpactProofGateFor(impact_id: String) -> Option<String> {
+    if impact_id == "selfhost-production-source" {
+        return Some("self-host-completeness-smoke");
+    }
+    if impact_id == "parser-source" {
+        return Some("self-host-parser-parity-test-smoke");
+    }
+    if impact_id == "codegen-source" {
+        return Some("self-host-codegen-parity-test-smoke");
+    }
+    if impact_id == "air-graph-consumer-source" {
+        return Some("self-host-air-graph-consumer-parity-test-smoke");
+    }
+    if impact_id == "component-contract" {
+        return Some("self-host-component-contract-test-smoke");
+    }
+    return None;
+}
+
+func CompilerCompletenessImpactRowAt(index: Int) -> String {
+    if index == 0 {
+        return CompilerCompletenessImpactRow(
+            "selfhost-production-source",
+            "src/self_hosted/**/*.pgy",
+            CompilerCompletenessImpactSourceFilterEnv(),
+            CompilerCompletenessImpactStageFilterEnv(),
+            CompilerCompletenessImpactAllStages(),
+            "self-host-completeness-smoke"
+        );
+    }
+    if index == 1 {
+        return CompilerCompletenessImpactRow(
+            "parser-source",
+            "src/self_hosted/parser/**/*.pgy",
+            CompilerCompletenessImpactSourceFilterEnv(),
+            CompilerCompletenessImpactStageFilterEnv(),
+            CompilerCompletenessImpactAllStages(),
+            "self-host-parser-parity-test-smoke"
+        );
+    }
+    if index == 2 {
+        return CompilerCompletenessImpactRow(
+            "codegen-source",
+            "src/self_hosted/codegen/**/*.pgy",
+            CompilerCompletenessImpactSourceFilterEnv(),
+            CompilerCompletenessImpactStageFilterEnv(),
+            CompilerCompletenessImpactAllStages(),
+            "self-host-codegen-parity-test-smoke"
+        );
+    }
+    if index == 3 {
+        return CompilerCompletenessImpactRow(
+            "air-graph-consumer-source",
+            "src/self_hosted/tools/air_graph*/**/*.pgy",
+            CompilerCompletenessImpactSourceFilterEnv(),
+            CompilerCompletenessImpactStageFilterEnv(),
+            CompilerCompletenessImpactAllStages(),
+            "self-host-air-graph-consumer-parity-test-smoke"
+        );
+    }
+    if index == 4 {
+        return CompilerCompletenessImpactRow(
+            "component-contract",
+            "tests/self_hosted_component_contract_smoke.sh",
+            "-",
+            "-",
+            "-",
+            "self-host-component-contract-test-smoke"
+        );
+    }
+    return "";
+}
+
+func EmitCompilerCompletenessImpactPlan() -> Void {
+    Log(Concat("schema=", CompilerCompletenessImpactPlanSchema()));
+    let i: Int = 0;
+    while i < CompilerCompletenessImpactRowCount() {
+        Log(CompilerCompletenessImpactRowAt(i));
+        i = i + 1;
+    }
+}
+
+func EmitCompilerCompletenessImpactPlannerPaths() -> Void {
+    let i: Int = 0;
+    while i < CompilerCompletenessImpactPlannerPathCount() {
+        Log(CompilerCompletenessImpactPlannerPathAt(i));
+        i = i + 1;
+    }
+}
