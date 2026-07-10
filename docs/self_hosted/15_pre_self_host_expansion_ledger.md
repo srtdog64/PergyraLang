@@ -143,6 +143,13 @@ boundary check instead of `PathCount() == 5` and representative
 `PathAt(0..4)` readiness. Ordered path rows remain the stable manifest artifact
 shape only.
 
+TestHarness delta, 2026-07-10: AIR graph JSON validator paths moved from the
+generic tool-path owner to `test_harness_air_graph_paths_owner.pgy` and now
+consume named path membership (`CompilerHarnessAirGraphJsonValidatorPathKnown`)
+plus an out-of-range boundary check instead of `PathCount() == 9` and
+representative `PathAt(0..8)` readiness. Ordered path rows remain the stable
+manifest artifact shape only.
+
 TypedAst delta, 2026-07-07: `typed_ast_node_skeleton.pgy` no longer uses a
 single placeholder `nodes: Array<Int>` row. The owner now carries parallel
 typed node facts (`kind`, `atom`, `has_atom`, child span, child edges, and atom

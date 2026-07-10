@@ -7,6 +7,91 @@ func CompilerHarnessAirGraphScanOwnerPath() -> String {
     return "src/self_hosted/tools/air_graph_json_validator/scan_owner.pgy";
 }
 
+func CompilerHarnessAirGraphJsonValidatorSuiteName() -> String {
+    return "air-graph-json-validator-paths";
+}
+
+func CompilerHarnessAirGraphJsonValidatorToolSourcePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/main.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath() -> String {
+    return "src/self_hosted/compiler/air_evidence_owner.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/expected/clean.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/fixture/cap_env.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorLiveSourcePath() -> String {
+    return "tests/cases/backend_compare/intent_zone_binding/main.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath() -> String {
+    return "tests/capability/cap_env_demo.pgy";
+}
+
+func CompilerHarnessAirGraphJsonValidatorMissingKeyName() -> String {
+    return "summary";
+}
+
+func CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath() -> String {
+    return "src/self_hosted/tools/air_graph_json_validator/expected/missing_summary.json";
+}
+
+func CompilerHarnessAirGraphJsonValidatorPathCount() -> Int {
+    return 9;
+}
+
+func CompilerHarnessAirGraphJsonValidatorPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessAirGraphJsonValidatorToolSourcePath(); }
+    if index == 1 { return CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath(); }
+    if index == 2 { return CompilerHarnessAirGraphJsonValidatorExpectedJsonPath(); }
+    if index == 3 { return CompilerHarnessAirGraphJsonValidatorFixturePath(); }
+    if index == 4 { return CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath(); }
+    if index == 5 { return CompilerHarnessAirGraphJsonValidatorLiveSourcePath(); }
+    if index == 6 { return CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath(); }
+    if index == 7 { return CompilerHarnessAirGraphJsonValidatorMissingKeyName(); }
+    if index == 8 { return CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath(); }
+    return "";
+}
+
+func CompilerHarnessAirGraphJsonValidatorPathKnown(path: String) -> Bool {
+    if path == CompilerHarnessAirGraphJsonValidatorToolSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorExpectedJsonPath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorLiveSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorMissingKeyName() { return true; }
+    if path == CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath() { return true; }
+    return false;
+}
+
+func CompilerHarnessAirGraphJsonValidatorReady() -> Bool {
+    return CompilerHarnessAirGraphJsonValidatorSuiteName() != "" &&
+        CompilerHarnessAirGraphJsonValidatorPathCount() > 0 &&
+        CompilerHarnessAirGraphJsonValidatorPathAt(CompilerHarnessAirGraphJsonValidatorPathCount()) == "" &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorToolSourcePath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorAirEvidenceOwnerPath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorExpectedJsonPath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorFixturePath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorCapabilityFixturePath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorLiveSourcePath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorCapabilityLiveSourcePath()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorMissingKeyName()) &&
+        CompilerHarnessAirGraphJsonValidatorPathKnown(CompilerHarnessAirGraphJsonValidatorMissingKeyExpectedJsonPath());
+}
+
 func CompilerHarnessAirGraphIdUniquenessSuiteName() -> String {
     return "air-graph-id-uniqueness-paths";
 }
@@ -169,6 +254,7 @@ func CompilerHarnessAirGraphRefLiveReady() -> Bool {
 
 func CompilerHarnessAirGraphConsumersReady() -> Bool {
     return CompilerHarnessAirGraphScanOwnerPath() != "" &&
+        CompilerHarnessAirGraphJsonValidatorReady() &&
         CompilerHarnessAirGraphIdUniquenessReady() &&
         CompilerHarnessAirGraphNodeCountReady() &&
         CompilerHarnessAirGraphReachabilityReady() &&

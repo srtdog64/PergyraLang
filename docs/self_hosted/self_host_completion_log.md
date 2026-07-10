@@ -25,6 +25,18 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - AIR graph validator paths move to AIR graph owner
+
+- Moved the `air-graph-json-validator-paths` suite from the shared TestHarness
+  tool path owner into `test_harness_air_graph_paths_owner.pgy`.
+- Added `CompilerHarnessAirGraphJsonValidatorPathKnown(...)` and repointed
+  `CompilerHarnessAirGraphJsonValidatorReady()` from fixed
+  `PathCount() == 9` / positional `PathAt(0..8)` checks to named membership
+  plus an out-of-range boundary check.
+- Kept the ordered rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while making the AIR graph owner the path
+  truth for the validator and the downstream AIR graph consumer suite.
+
 ## 2026-07-10 - ExecutionLane TestHarness paths consume named paths
 
 - Split `test_harness_execution_lane_paths_owner.pgy` out of the shared
