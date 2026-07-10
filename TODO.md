@@ -18404,3 +18404,33 @@ row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shad
   / ability-coherence / evidence-lifetime smoke를 ci_*_steps.sh + test-all에
   배선. 2026-07-10 현재 **차단**: Makefile·ci 스크립트가 동시 세션 dirty.
   docs/180 §7이 evidence-lifetime의 CI 승격을 missing closure로 이미 명시.
+
+## 진행 노트 — CI 3플랫폼 RED 전수 진단 (2026-07-10, BDFL "싹 다 체크")
+
+CI annotation 기준 실패 3종의 근인을 전부 확정. 수정 1건은 소유 경계 문제로
+인계(아래), 나머지는 소유 스트림 몫.
+
+- **★런타임 실 회귀 — with-slot 조기 release (CI Linux dnd 패닉 + Windows
+  example-smoke Error 127의 공통 근원)**: bisect(전용 worktree, good
+  b4253f07 → bad 확정)로 **`ba4cc576` "Route with-slot release through RIR
+  and ABI rows"(7/07)** 지목. 12줄 최소 재현(with slot + 루프 내 Read → 첫
+  Read 패닉) 확보. 메커니즘: RIR이 body 워크 후 추가한 RELEASE op을
+  mir_lower_population이 entry 블록에 넣고 hook이 그 위치에서 concrete 방출
+  → body에 루프가 있으면 루프 블록 **앞**에서 release. 직선 body는 우연히
+  순서가 맞아 기존 source_order 테스트가 못 잡음. LLVM은 구조적 with 이미터
+  경로라 무사(백엔드 발산). 수정 시도 2건(억제+블록끝 위임 / body-말미 앵커)
+  은 각각 release 소실(leak)·write 소실을 만들어 **폐기·복원** — 올바른
+  방향은 MIR cleanup 인프라 라우팅(c55f716c 배관과 정합 필요)으로 판단,
+  상세 재현·분석·실패 접근까지 칩(task)으로 인계. 관련 파일은 slot-ABI
+  스트림 소유.
+- **likeness ratchet RED (macOS/Windows/Linux)**: 커밋 HEAD 기준
+  core_string_munge 109(>108), 로컬 dirty 트리는 110으로 악화 중 — 신규
+  String→String 시그니처는 전부 self_hosted emission/semantic 리팩터
+  스트림 산물(EmitTryLet, CodegenAstArenaParamTypeOrDie,
+  SemanticAstLocalBindingError/SignatureError, CompileSourceToAst 등).
+  **소유 세션이 활성 작업 중인 파일들이라 개입 금지** — 그쪽에서 typed
+  AST+Result 전환 또는 exclude-정당화로 닫아야 함. ratchet 상향은 WO-0
+  위반.
+- 그 외 로컬 위생: 이번 진단 중 HEAD는 test-transpile 918/0, test-mir
+  128/0, test-semantic 2794/0, 스크립트 게이트(evidence-lifetime/
+  abstraction-loss/compiler-world) green — CI RED 2종 외의 추가 깨짐 없음.
