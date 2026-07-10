@@ -7,6 +7,7 @@ import "ast_assignment_fact_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 
@@ -56,6 +57,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
     assignments: SemanticAstAssignmentFacts
 ) -> SemanticAstAssignmentTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
@@ -65,6 +68,9 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, locals
         ) || !SemanticAstInitializerTypeFactsMatchArtifact(
             artifact, signatures, locals, initializer_types
+        ) || !SemanticAstIterationTypeFactsMatchArtifact(
+            artifact, signatures, locals, initializer_types,
+            statements, iteration_types
         ) || !SemanticAstAssignmentFactsMatchArtifact(
             artifact, signatures, assignments
         ) {
@@ -103,10 +109,13 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         ) || !SemanticAstExpressionSeedVisibleLocalModes(
             artifact, locals, assignments.function_node_ids[i],
             assignments.node_ids[i], modes
+        ) || !SemanticAstIterationSeedVisibleBindings(
+            artifact, statements, iteration_types,
+            assignments.function_node_ids[i], assignments.node_ids[i],
+            names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstAssignmentTypeStructuralError(artifact);
         }
-
         let target_base: String = assignments.target_base_names[i];
         let expected: String = "";
         let inferred: String = "Unknown";
@@ -244,12 +253,15 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
     assignments: SemanticAstAssignmentFacts,
     facts: SemanticAstAssignmentTypeFacts
 ) -> Bool {
     let rebuilt: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types, assignments
+            artifact, signatures, locals, initializer_types, statements,
+            iteration_types, assignments
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
@@ -291,12 +303,20 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstInitializerTypeFactsFromArtifact(valid, signatures, locals);
     let assignments: SemanticAstAssignmentFacts =
         SemanticAstAssignmentFactsFromArtifact(valid, signatures);
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(valid, signatures);
+    let iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            valid, signatures, locals, initializers, statements
+        );
     let valid_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
-            valid, signatures, locals, initializers, assignments
+            valid, signatures, locals, initializers, statements, iterations,
+            assignments
         );
     if !SemanticAstAssignmentTypeFactsMatchArtifact(
-        valid, signatures, locals, initializers, assignments, valid_facts
+        valid, signatures, locals, initializers, statements, iterations,
+        assignments, valid_facts
     ) || !SemanticAstAssignmentTypesAllVerified(valid_facts) ||
         ArrayLength(valid_facts.node_ids) != 2 ||
         valid_facts.expected_type_names[0] != "Int" ||
@@ -321,10 +341,20 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstAssignmentFactsFromArtifact(
             mismatch, mismatch_signatures
         );
+    let mismatch_statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            mismatch, mismatch_signatures
+        );
+    let mismatch_iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            mismatch, mismatch_signatures, mismatch_locals,
+            mismatch_initializers, mismatch_statements
+        );
     let mismatch_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_locals,
-            mismatch_initializers, mismatch_assignments
+            mismatch_initializers, mismatch_statements, mismatch_iterations,
+            mismatch_assignments
         );
     return !SemanticAstAssignmentTypesAllVerified(mismatch_facts) &&
         SemanticAstAssignmentFirstDiagnosticCode(mismatch_facts) ==

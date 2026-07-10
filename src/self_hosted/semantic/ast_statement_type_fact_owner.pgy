@@ -4,6 +4,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
 
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
@@ -20,7 +21,8 @@ struct SemanticAstStatementTypeFacts {
 }
 
 func SemanticAstStatementTypeStructuralError(
-    artifact: AstTreeArtifact
+    artifact: AstTreeArtifact,
+    fact: String
 ) -> SemanticAstStatementTypeFacts {
     let empty_ints: Array<Int> = [];
     let empty_strings: Array<String> = [];
@@ -29,7 +31,7 @@ func SemanticAstStatementTypeStructuralError(
         SemanticError2(
             "ast_artifact_invalid",
             "node_count", ToString(artifact.count),
-            "owner", "SemanticAstStatementTypeFacts"
+            "owner", Concat("SemanticAstStatementTypeFacts:", fact)
         ),
         artifact.count, empty_ints, empty_ints, empty_strings, empty_strings,
         empty_ints, empty_strings, empty_strings
@@ -60,19 +62,37 @@ func SemanticAstStatementTypeFactsFromArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
     statements: SemanticAstStatementFacts
 ) -> SemanticAstStatementTypeFacts {
-    if !AstTreeArtifactReady(artifact) ||
-        !SemanticAstFunctionSignatureFactsMatchArtifact(
-            artifact, signatures
-        ) || !SemanticAstLocalBindingFactsMatchArtifact(
-            artifact, signatures, locals
-        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, locals, initializer_types
-        ) || !SemanticAstStatementFactsMatchArtifact(
-            artifact, signatures, statements
-        ) {
-        return SemanticAstStatementTypeStructuralError(artifact);
+    if !AstTreeArtifactReady(artifact) {
+        return SemanticAstStatementTypeStructuralError(artifact, "artifact");
+    }
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(
+        artifact, signatures
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact, "signature");
+    }
+    if !SemanticAstLocalBindingFactsMatchArtifact(
+        artifact, signatures, locals
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact, "local");
+    }
+    if !SemanticAstInitializerTypeFactsMatchArtifact(
+        artifact, signatures, locals, initializer_types
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact, "initializer");
+    }
+    if !SemanticAstIterationTypeFactsMatchArtifact(
+        artifact, signatures, locals, initializer_types,
+        statements, iteration_types
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact, "iteration");
+    }
+    if !SemanticAstStatementFactsMatchArtifact(
+        artifact, signatures, statements
+    ) {
+        return SemanticAstStatementTypeStructuralError(artifact, "statement");
     }
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
@@ -80,7 +100,9 @@ func SemanticAstStatementTypeFactsFromArtifact(
     if !SemanticAstExpressionFunctionTables(
         signatures, function_names, function_returns, function_params
     ) {
-        return SemanticAstStatementTypeStructuralError(artifact);
+        return SemanticAstStatementTypeStructuralError(
+            artifact, "function_table"
+        );
     }
 
     let node_ids: Array<Int> = [];
@@ -106,8 +128,14 @@ func SemanticAstStatementTypeFactsFromArtifact(
         ) || !SemanticAstExpressionSeedVisibleLocalModes(
             artifact, locals, statements.function_node_ids[i],
             statements.node_ids[i], modes
+        ) || !SemanticAstIterationSeedVisibleBindings(
+            artifact, statements, iteration_types,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {
-            return SemanticAstStatementTypeStructuralError(artifact);
+            return SemanticAstStatementTypeStructuralError(
+                artifact, "expression_environment"
+            );
         }
 
         let kind: Int = statements.kind_tags[i];
@@ -117,7 +145,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
         let row_code: String = "";
         let row_message: String = "";
         let checks_expression: Bool = kind != TypedAstKindBareReturnStmtTag() &&
-            kind != TypedAstKindMatchCaseStmtTag();
+            kind != TypedAstKindMatchCaseStmtTag() &&
+            kind != TypedAstKindForStmtTag();
         if checks_expression {
             let expression_verdict: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictFromPayload(
@@ -247,12 +276,14 @@ func SemanticAstStatementTypeFactsMatchArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts,
     statements: SemanticAstStatementFacts,
     facts: SemanticAstStatementTypeFacts
 ) -> Bool {
     let rebuilt: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            artifact, signatures, locals, initializer_types, statements
+            artifact, signatures, locals, initializer_types,
+            iteration_types, statements
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
@@ -294,12 +325,17 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         SemanticAstInitializerTypeFactsFromArtifact(valid, signatures, locals);
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(valid, signatures);
-    let facts: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromArtifact(
+    let iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
             valid, signatures, locals, initializers, statements
         );
+    let facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            valid, signatures, locals, initializers, iterations, statements
+        );
     if !SemanticAstStatementTypeFactsMatchArtifact(
-        valid, signatures, locals, initializers, statements, facts
+        valid, signatures, locals, initializers, iterations, statements,
+        facts
     ) || !SemanticAstStatementTypesAllVerified(facts) ||
         ArrayLength(facts.node_ids) != 3 ||
         facts.expected_type_names[0] != "Bool" ||
@@ -319,9 +355,15 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         );
     let bad_statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(bad, bad_signatures);
+    let bad_iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            bad, bad_signatures, bad_locals, bad_initializers,
+            bad_statements
+        );
     let bad_facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
-            bad, bad_signatures, bad_locals, bad_initializers, bad_statements
+            bad, bad_signatures, bad_locals, bad_initializers,
+            bad_iterations, bad_statements
         );
     return !SemanticAstStatementTypesAllVerified(bad_facts) &&
         SemanticAstStatementFirstDiagnosticCode(bad_facts) ==

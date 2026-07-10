@@ -18,7 +18,10 @@ struct SemanticAstStatementFacts {
     kind_tags: Array<Int>;
     function_node_ids: Array<Int>;
     scope_node_ids: Array<Int>;
+    body_scope_node_ids: Array<Int>;
     payload_texts: Array<String>;
+    value_texts: Array<String>;
+    auxiliary_texts: Array<String>;
 }
 
 func SemanticAstStatementKindTracked(kind: Int) -> Bool {
@@ -27,6 +30,7 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindValueReturnStmtTag() ||
         kind == TypedAstKindArrayPopStmtTag() ||
         kind == TypedAstKindExitStmtTag() ||
+        kind == TypedAstKindForStmtTag() ||
         kind == TypedAstKindWhileStmtTag() ||
         kind == TypedAstKindIfStmtTag() ||
         kind == TypedAstKindMatchStmtTag() ||
@@ -54,7 +58,8 @@ func SemanticAstStatementStructuralError(
             "owner", Concat("SemanticAstStatementFacts:", fact)
         ),
         artifact.count,
-        empty_ints, empty_ints, empty_ints, empty_ints, empty_strings
+        empty_ints, empty_ints, empty_ints, empty_ints, empty_ints,
+        empty_strings, empty_strings, empty_strings
     );
 }
 
@@ -72,7 +77,10 @@ func SemanticAstStatementFactsFromArtifact(
     let kind_tags: Array<Int> = [];
     let function_node_ids: Array<Int> = [];
     let scope_node_ids: Array<Int> = [];
+    let body_scope_node_ids: Array<Int> = [];
     let payload_texts: Array<String> = [];
+    let value_texts: Array<String> = [];
+    let auxiliary_texts: Array<String> = [];
     let node_id: Int = 0;
     while node_id < artifact.count {
         let kind_opt: Option<Int> = TypedAstArenaNodeKind(
@@ -122,16 +130,49 @@ func SemanticAstStatementFactsFromArtifact(
             }
             payload = UnwrapOption(payload_opt);
         }
+        let value: String = "";
+        let value_opt: Option<String> = TypedAstArenaValueText(
+            artifact.arena, node_id
+        );
+        if IsSome(value_opt) {
+            value = UnwrapOption(value_opt);
+        }
+        let auxiliary: String = "";
+        let auxiliary_opt: Option<String> = TypedAstArenaAuxValueText(
+            artifact.arena, node_id
+        );
+        if IsSome(auxiliary_opt) {
+            auxiliary = UnwrapOption(auxiliary_opt);
+        }
+        let body_scope_node_id: Int = -1;
+        if kind == TypedAstKindForStmtTag() {
+            let candidate: Int = node_id + 1;
+            let parent_opt: Option<Int> = TypedAstArenaParentId(
+                artifact.arena, candidate
+            );
+            if candidate >= artifact.count || !TypedAstArenaNodeKindIs(
+                artifact.arena, candidate, TypedAstKindBlockTag()
+            ) || !IsSome(parent_opt) || UnwrapOption(parent_opt) != node_id {
+                return SemanticAstStatementStructuralError(
+                    artifact, node_id, "for_body_scope"
+                );
+            }
+            body_scope_node_id = candidate;
+        }
         ArrayPush(node_ids, node_id);
         ArrayPush(kind_tags, kind);
         ArrayPush(function_node_ids, UnwrapOption(function_opt));
         ArrayPush(scope_node_ids, UnwrapOption(scope_opt));
+        ArrayPush(body_scope_node_ids, body_scope_node_id);
         ArrayPush(payload_texts, payload);
+        ArrayPush(value_texts, value);
+        ArrayPush(auxiliary_texts, auxiliary);
         node_id = node_id + 1;
     }
     return SemanticAstStatementFacts(
         true, "", "", artifact.count, node_ids, kind_tags,
-        function_node_ids, scope_node_ids, payload_texts
+        function_node_ids, scope_node_ids, body_scope_node_ids,
+        payload_texts, value_texts, auxiliary_texts
     );
 }
 
@@ -167,7 +208,10 @@ func SemanticAstStatementFactsMatchArtifact(
         ArrayLength(facts.kind_tags) != n ||
         ArrayLength(facts.function_node_ids) != n ||
         ArrayLength(facts.scope_node_ids) != n ||
-        ArrayLength(facts.payload_texts) != n {
+        ArrayLength(facts.body_scope_node_ids) != n ||
+        ArrayLength(facts.payload_texts) != n ||
+        ArrayLength(facts.value_texts) != n ||
+        ArrayLength(facts.auxiliary_texts) != n {
         return false;
     }
     let i: Int = 0;
@@ -176,7 +220,10 @@ func SemanticAstStatementFactsMatchArtifact(
             rebuilt.kind_tags[i] != facts.kind_tags[i] ||
             rebuilt.function_node_ids[i] != facts.function_node_ids[i] ||
             rebuilt.scope_node_ids[i] != facts.scope_node_ids[i] ||
-            rebuilt.payload_texts[i] != facts.payload_texts[i] {
+            rebuilt.body_scope_node_ids[i] != facts.body_scope_node_ids[i] ||
+            rebuilt.payload_texts[i] != facts.payload_texts[i] ||
+            rebuilt.value_texts[i] != facts.value_texts[i] ||
+            rebuilt.auxiliary_texts[i] != facts.auxiliary_texts[i] {
             return false;
         }
         i = i + 1;
@@ -186,7 +233,7 @@ func SemanticAstStatementFactsMatchArtifact(
 
 func SemanticAstStatementFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        For: i in 0..3\n          Block:\n            Log(i)\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -194,11 +241,16 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts
-    ) && SemanticAstStatementCount(facts) == 3 &&
-        facts.kind_tags[0] == TypedAstKindIfStmtTag() &&
-        facts.payload_texts[0] == "x > 0" &&
+    ) && SemanticAstStatementCount(facts) == 5 &&
+        facts.kind_tags[0] == TypedAstKindForStmtTag() &&
+        facts.payload_texts[0] == "i" && facts.value_texts[0] == "0" &&
+        facts.auxiliary_texts[0] == "3" && facts.body_scope_node_ids[0] >= 0 &&
         facts.kind_tags[1] == TypedAstKindLogStmtTag() &&
-        facts.payload_texts[1] == "x" &&
-        facts.kind_tags[2] == TypedAstKindValueReturnStmtTag() &&
-        facts.payload_texts[2] == "x";
+        facts.payload_texts[1] == "i" &&
+        facts.kind_tags[2] == TypedAstKindIfStmtTag() &&
+        facts.payload_texts[2] == "x > 0" &&
+        facts.kind_tags[3] == TypedAstKindLogStmtTag() &&
+        facts.payload_texts[3] == "x" &&
+        facts.kind_tags[4] == TypedAstKindValueReturnStmtTag() &&
+        facts.payload_texts[4] == "x";
 }

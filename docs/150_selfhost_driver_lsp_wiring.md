@@ -63,11 +63,11 @@ HIR/DIR/RIR/MIR→AIR verify→backend emit→cc 호출→link. 치환은 관측
   제공한다. `driver_rung1_parity.sh`는 stdout과 파일 산출 양쪽을
   artifact owner comparator로 비교하므로 DRV-1은 §4 rung 표에서 landed다.
 - **DRV-2 — artifact-body semantic source-to-C (landed)**:
-  `driver_rung2_owner.pgy`가 parser artifact에서 initializer, assignment,
+  `driver_rung2_owner.pgy`가 parser artifact에서 initializer, iteration, assignment,
   expression-use, call, return, condition verdict를 조립하고 하나라도
   증명되지 않으면 codegen 전에 fail-closed 한다. source-scanning
   `CheckProgram`/`CheckBody` 호출은 금지된다. C/LLVM-built driver가 동일한
-  16개 positive/negative fixture에서 emitted C 또는 diagnostic을 비교하고,
+  19개 positive/negative fixture에서 emitted C 또는 diagnostic을 비교하고,
   positive artifact는 C compile까지 통과한다. `make self-host-compiler`가
   bounded driver binary를 만들고 `pgy --self-driver <source.pgy>`가 그
   binary를 실제 실행한다. `self-host-live-replacement-test-smoke`는 launcher

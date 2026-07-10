@@ -8,6 +8,9 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_type_require.h"
+
+#include <stdio.h>
 
 void
 transpiler_defer_scope_push(TranspilerCtx *ctx)
@@ -136,4 +139,42 @@ transpiler_emit_mut_ref_writebacks(TranspilerCtx *ctx)
         codebuf_write(ctx->out, "*%s__mutref = %s;\n",
             ctx->mut_ref_param_names[i], ctx->mut_ref_param_names[i]);
     }
+}
+
+const char *
+transpiler_emit_mut_ref_return_capture(TranspilerCtx *ctx,
+                                       const char *return_expr,
+                                       char *temp_name,
+                                       size_t temp_name_size)
+{
+    char ctype[256];
+    int written;
+
+    if (ctx == NULL || return_expr == NULL)
+        return NULL;
+    if (ctx->mut_ref_param_count == 0)
+        return return_expr;
+    if (temp_name == NULL || temp_name_size == 0)
+        return NULL;
+    if (!transpiler_require_type_name_c_type_copy(ctx,
+            ctx->current_return_type, "inout return capture",
+            ctype, sizeof(ctype))) {
+        return NULL;
+    }
+
+    written = snprintf(temp_name, temp_name_size,
+        "_pgy_return_value_%d", ++ctx->tmp_counter);
+    if (written < 0 || (size_t)written >= temp_name_size) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend could not mint a bounded inout return temporary");
+        return NULL;
+    }
+
+    write_indent(ctx);
+    codebuf_write(ctx->out, "%s %s = %s;\n",
+        ctype, temp_name, return_expr);
+    return temp_name;
 }

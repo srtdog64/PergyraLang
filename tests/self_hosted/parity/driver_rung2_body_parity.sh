@@ -92,8 +92,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && fixture_rows+=("$line")
 done <"$FIXTURE_ROWS"
-if [[ "${#fixture_rows[@]}" -ne 16 ]]; then
-    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 16" >&2
+if [[ "${#fixture_rows[@]}" -ne 19 ]]; then
+    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 19" >&2
     exit 1
 fi
 

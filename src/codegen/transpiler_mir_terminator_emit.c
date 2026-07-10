@@ -112,8 +112,9 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
                                       size_t block_reason_cap)
 {
     char *ret_expr = NULL;
+    char return_temp[64];
+    const char *return_expr = NULL;
 
-    transpiler_emit_defers_from(ctx, 0);
     if (inst->expr0 != NULL) {
         const char *saved_expected_type = ctx->expected_type;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
@@ -140,6 +141,12 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
             }
             return false;
         }
+        return_expr = transpiler_emit_mut_ref_return_capture(
+            ctx, ret_expr, return_temp, sizeof(return_temp));
+        if (return_expr == NULL) {
+            free(ret_expr);
+            return false;
+        }
     } else if (strcmp(ctx->current_return_type, "Void") != 0) {
         if (ctx != NULL && ctx->backend_error == NULL) {
             transpiler_set_backend_error_with_hints(ctx,
@@ -151,6 +158,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
         }
         return false;
     }
+    transpiler_emit_defers_from(ctx, 0);
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                             block_reason,
                                             block_reason_cap)) {
@@ -162,7 +170,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     transpiler_emit_mut_ref_writebacks(ctx);
     write_indent(ctx);
     if (inst->expr0 != NULL) {
-        codebuf_write(ctx->out, "return %s;\n", ret_expr);
+        codebuf_write(ctx->out, "return %s;\n", return_expr);
     } else {
         codebuf_write(ctx->out, "return;\n");
     }

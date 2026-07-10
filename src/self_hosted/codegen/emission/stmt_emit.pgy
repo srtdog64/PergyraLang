@@ -11,7 +11,6 @@ import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../input/semantic_assignment_codegen_view_owner.pgy";
-import "../input/ast_text_for_stmt_owner.pgy";
 import "../input/semantic_statement_codegen_view_owner.pgy";
 import "../input/ast_text_collection_stmt_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
@@ -452,12 +451,12 @@ func EmitStmtList(count: Int, arena: AstArena,
         } else if CodegenAstArenaIsForStmt(arena, idx) {
             // `For: i in 0..5` -> a C integer range loop using ABI-owned type spelling.
             // The `..` range is exclusive of the upper bound (matches the oracle).
-            let loop_var: String = CodegenAstArenaForLoopVarOrDie(arena, idx);
+            let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx);
             let c_loop_var: String = CompilerSymbolCBindingName(loop_var);
-            if CodegenAstArenaForIsRange(arena, idx) {
+            if CodegenSemanticForIsRange(statements, idx) {
                 // Range loop `for i in a..b` (exclusive upper bound).
-                let start_v: String = CodegenAstArenaForRangeStartOrDie(arena, idx);
-                let end_v: String = CodegenAstArenaForRangeEndOrDie(arena, idx);
+                let start_v: String = CodegenSemanticForRangeStartOrDie(statements, idx);
+                let end_v: String = CodegenSemanticForRangeEndOrDie(statements, idx);
                 ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], loop_var, "Int", c_loop_var));
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env_box[0]));
                 for_hdr = Concat(for_hdr, Concat(" ", c_loop_var));
@@ -470,7 +469,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             } else {
                 // For-each `for x in coll`: evaluate the collection once into a
                 // temp, then index it. Element type follows the array kind.
-                let coll: String = CodegenAstArenaForEachCollectionOrDie(arena, idx);
+                let coll: String = CodegenSemanticForEachCollectionOrDie(statements, idx);
                 let ck: String = ExprKind(coll, env_box[0]);
                 let arr_c: String = "";
                 let elem_c: String = "";

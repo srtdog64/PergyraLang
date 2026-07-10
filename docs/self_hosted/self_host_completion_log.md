@@ -6578,3 +6578,17 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Registered the new owner in `PgyCompilerWorld` path manifests, OWNERS, and
   component/compiler-world contracts so the split cannot become a hidden shell
   side list.
+
+### 2026-07-10 -- Loop body facts replace the codegen-owned For bridge
+
+- Added `SemanticAstIterationTypeFacts` for range-bound and foreach-collection
+  verdicts plus lexical loop-binding type rows.
+- Extended DRV-2 from sixteen to nineteen fixtures with a positive loop body,
+  undefined iterable, and invalid loop-body initializer; C-built and
+  LLVM-built drivers must emit identical C or structured diagnostics.
+- Repointed self-host codegen `For` lowering to
+  `SemanticAstStatementFacts` through the fail-closed semantic codegen view and
+  deleted `ast_text_for_stmt_owner.pgy`.
+- Fixed C value-result lowering so a nested `inout` return expression is
+  evaluated before outer copy-out; a C/LLVM differential fixture prevents the
+  lost-update regression.

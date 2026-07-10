@@ -1,0 +1,17 @@
+// Regression: a nested inout call in a return expression must finish its
+// copy-out before the forwarding function copies its own value back.
+func AppendAndConfirm(inout xs: Array<Int>) -> Bool {
+    ArrayPush(xs, 7);
+    return true;
+}
+
+func ForwardAppend(inout xs: Array<Int>) -> Bool {
+    return AppendAndConfirm(xs);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [];
+    let ok: Bool = ForwardAppend(values);
+    Log(ToString(ArrayLength(values)));
+    Log(ToString(ok));
+}

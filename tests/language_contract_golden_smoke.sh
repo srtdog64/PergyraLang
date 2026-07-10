@@ -64,6 +64,7 @@ for rel in \
     src/self_hosted/semantic/fixture/bad_value_param_arraypush.pgy \
     src/self_hosted/semantic/expected/bad_value_param_arraypush.diag \
     tests/cases/backend_compare/inout_caller_mutation/main.pgy \
+    tests/cases/backend_compare/inout_nested_return_copyout/main.pgy \
     src/parser/parser_decl.c \
     src/parser/parser_async.c \
     src/parser/parser_type.c \
@@ -164,6 +165,7 @@ require_text "src/parser/parser_type.c" 'caller-visible mutation is value-result
 require_text "src/semantic/type_checker_helpers_late.c" "lost update"
 require_text "tests/cases/backend_compare/inout_caller_mutation/main.pgy" "func Grow(inout xs: Array<Int>) -> Void"
 require_text "tests/cases/backend_compare/inout_caller_mutation/main.pgy" "ArrayPush(xs, 9)"
+require_text "tests/cases/backend_compare/inout_nested_return_copyout/main.pgy" "return AppendAndConfirm(xs);"
 require_text "src/semantic/symbol_table.h" "is_parameter"
 require_text "src/semantic/symbol_table.h" "param_mode"
 require_text "src/semantic/type_checker_func_decl.c" "p->is_parameter = true"

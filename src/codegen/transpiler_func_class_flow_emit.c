@@ -8,6 +8,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_defer_emit.h"
+#include "transpiler_format.h"
 #include "transpiler_func_flow_policy.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_mir_emission_contract.h"
@@ -327,10 +328,10 @@ void
 emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     ASTNode *value = ast_return_value(node);
+    char *val = NULL;
+    char return_temp[64];
+    const char *return_expr;
 
-    transpiler_emit_defers_from(ctx, 0);
-    transpiler_emit_mut_ref_writebacks(ctx);
-    write_indent(ctx);
     if (value != NULL) {
         if (ctx->current_return_type[0] != '\0'
             && transpiler_type_name_is_option(ctx->current_return_type)) {
@@ -355,27 +356,28 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                 if (op == TRANS_RETURN_OPTION_CTOR_SOME
                     && ast_call_arg_count(value) == 1) {
                     char *arg = emit_expression(ast_call_argument(value, 0), ctx);
-                    codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
+                    val = arg != NULL
+                        ? strdup_fmt("Some_%s(%s)", inner, arg)
+                        : NULL;
                     free(arg);
-                    return;
+                    goto return_value_ready;
                 }
                 if (op == TRANS_RETURN_OPTION_CTOR_NONE_VALUE
                     && ast_call_arg_count(value) == 0) {
-                    codebuf_write(ctx->out, "return None_%s();\n", inner);
-                    return;
+                    val = strdup_fmt("None_%s()", inner);
+                    goto return_value_ready;
                 }
             }
             if (value->type == AST_IDENTIFIER
                 && transpiler_return_option_ctor_lookup(
                     ast_identifier_name(value))
                     == TRANS_RETURN_OPTION_CTOR_NONE_VALUE) {
-                codebuf_write(ctx->out, "return None_%s();\n", inner);
-                return;
+                val = strdup_fmt("None_%s()", inner);
+                goto return_value_ready;
             }
         }
         const char *saved_expected_type = ctx->expected_type;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
-        char *val;
         if (ctx->current_return_type[0] != '\0'
             && strcmp(ctx->current_return_type, "Void") != 0
             && strcmp(ctx->current_return_type, "void") != 0) {
@@ -386,9 +388,33 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
         val = emit_expression(value, ctx);
         ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
-        codebuf_write(ctx->out, "return %s;\n", val);
+
+return_value_ready:
+        if (val == NULL) {
+            if (ctx->backend_error == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "C return statement could not lower value expression");
+            }
+            return;
+        }
+        return_expr = transpiler_emit_mut_ref_return_capture(
+            ctx, val, return_temp, sizeof(return_temp));
+        if (return_expr == NULL) {
+            free(val);
+            return;
+        }
+        transpiler_emit_defers_from(ctx, 0);
+        transpiler_emit_mut_ref_writebacks(ctx);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "return %s;\n", return_expr);
         free(val);
     } else {
+        transpiler_emit_defers_from(ctx, 0);
+        transpiler_emit_mut_ref_writebacks(ctx);
+        write_indent(ctx);
         codebuf_write(ctx->out, "return;\n");
     }
 }

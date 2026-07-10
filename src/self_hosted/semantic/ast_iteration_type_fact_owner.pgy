@@ -1,0 +1,303 @@
+// Semantic for-loop header and binding type facts.
+//
+// The parser artifact owns loop variable/start/end payloads. This owner proves
+// range bounds or foreach collection type and exposes the binding type to body
+// expression environments. Consumers may not recover it from source text.
+
+import "ast_statement_fact_owner.pgy";
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_expression_environment_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
+
+struct SemanticAstIterationTypeFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    binding_type_names: Array<String>;
+    verified: Array<Int>;
+    diagnostic_codes: Array<String>;
+    diagnostic_messages: Array<String>;
+}
+
+func SemanticAstIterationTypeStructuralError(
+    artifact: AstTreeArtifact
+) -> SemanticAstIterationTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstIterationTypeFacts(
+        false, "ast_artifact_invalid",
+        SemanticError2(
+            "ast_artifact_invalid",
+            "node_count", ToString(artifact.count),
+            "owner", "SemanticAstIterationTypeFacts"
+        ),
+        artifact.count, empty_ints, empty_strings, empty_ints,
+        empty_strings, empty_strings
+    );
+}
+
+func SemanticAstIterationSeedVisibleRows(
+    artifact: AstTreeArtifact,
+    statements: SemanticAstStatementFacts,
+    iteration_node_ids: Array<Int>,
+    binding_type_names: Array<String>,
+    iteration_verified: Array<Int>,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if ArrayLength(iteration_node_ids) != ArrayLength(binding_type_names) ||
+        ArrayLength(iteration_node_ids) != ArrayLength(iteration_verified) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(iteration_node_ids) {
+        if iteration_verified[i] != 1 {
+            i = i + 1;
+            continue;
+        }
+        let statement_index_opt: Option<Int> =
+            SemanticAstStatementIndexForNode(
+                statements, iteration_node_ids[i]
+            );
+        if !IsSome(statement_index_opt) {
+            return false;
+        }
+        let statement_index: Int = UnwrapOption(statement_index_opt);
+        let visible: Bool = SemanticAstExpressionScopeVisible(
+            artifact.arena, iteration_node_ids[i], use_node_id
+        );
+        if statements.function_node_ids[statement_index] == function_node_id &&
+            iteration_node_ids[i] < use_node_id && visible {
+            let binding_type: String = binding_type_names[i];
+            if binding_type == "" || binding_type == "Unknown" {
+                return false;
+            }
+            ArrayPush(names, statements.payload_texts[statement_index]);
+            ArrayPush(types, binding_type);
+            ArrayPush(modes, "loop_binding");
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstIterationTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts
+) -> SemanticAstIterationTypeFacts {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstFunctionSignatureFactsMatchArtifact(
+            artifact, signatures
+        ) || !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, signatures, locals
+        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
+            artifact, signatures, locals, initializer_types
+        ) || !SemanticAstStatementFactsMatchArtifact(
+            artifact, signatures, statements
+        ) {
+        return SemanticAstIterationTypeStructuralError(artifact);
+    }
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        signatures, function_names, function_returns, function_params
+    ) {
+        return SemanticAstIterationTypeStructuralError(artifact);
+    }
+
+    let node_ids: Array<Int> = [];
+    let binding_types: Array<String> = [];
+    let verified: Array<Int> = [];
+    let diagnostic_codes: Array<String> = [];
+    let diagnostic_messages: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstStatementCount(statements) {
+        if statements.kind_tags[i] != TypedAstKindForStmtTag() {
+            i = i + 1;
+            continue;
+        }
+        let names: Array<String> = [];
+        let types: Array<String> = [];
+        let modes: Array<String> = [];
+        if !SemanticAstExpressionSeedParameters(
+            signatures, statements.function_node_ids[i], names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, statements.function_node_ids[i], modes
+        ) || !SemanticAstExpressionSeedVisibleLocals(
+            artifact, locals, initializer_types.inferred_type_names,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types
+        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, statements.function_node_ids[i],
+            statements.node_ids[i], modes
+        ) || !SemanticAstIterationSeedVisibleRows(
+            artifact, statements, node_ids, binding_types, verified,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types, modes
+        ) || ArrayLength(names) != ArrayLength(modes) {
+            return SemanticAstIterationTypeStructuralError(artifact);
+        }
+
+        let binding_type: String = "";
+        let row_verified: Int = 1;
+        let row_code: String = "";
+        let row_message: String = "";
+        let first: SemanticAstExpressionVerdict =
+            SemanticAstExpressionVerdictFromPayload(
+                statements.value_texts[i], names, types, modes,
+                function_names, function_returns, function_params
+            );
+        if !first.ok {
+            row_verified = 0;
+            row_code = first.diagnostic_code;
+            row_message = first.diagnostic_message;
+        } else if statements.auxiliary_texts[i] != "" {
+            let last: SemanticAstExpressionVerdict =
+                SemanticAstExpressionVerdictFromPayload(
+                    statements.auxiliary_texts[i], names, types, modes,
+                    function_names, function_returns, function_params
+                );
+            binding_type = "Int";
+            if !last.ok {
+                row_verified = 0;
+                row_code = last.diagnostic_code;
+                row_message = last.diagnostic_message;
+            } else if first.inferred_type_name != "Int" ||
+                last.inferred_type_name != "Int" {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "statement", "for_range",
+                    "actual", Concat(
+                        first.inferred_type_name,
+                        Concat("..", last.inferred_type_name)
+                    )
+                );
+            }
+        } else {
+            let iterable_type: String = first.inferred_type_name;
+            if StartsWith(iterable_type, "Array<") &&
+                StringLength(iterable_type) > 7 &&
+                CharAt(iterable_type, StringLength(iterable_type) - 1) == ">" {
+                binding_type = Substring(
+                    iterable_type, 6, StringLength(iterable_type) - 7
+                );
+            } else {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "statement", "for_each",
+                    "actual", iterable_type
+                );
+            }
+        }
+        ArrayPush(node_ids, statements.node_ids[i]);
+        ArrayPush(binding_types, binding_type);
+        ArrayPush(verified, row_verified);
+        ArrayPush(diagnostic_codes, row_code);
+        ArrayPush(diagnostic_messages, row_message);
+        i = i + 1;
+    }
+    return SemanticAstIterationTypeFacts(
+        true, "", "", artifact.count, node_ids, binding_types, verified,
+        diagnostic_codes, diagnostic_messages
+    );
+}
+
+func SemanticAstIterationTypeCount(
+    facts: SemanticAstIterationTypeFacts
+) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstIterationSeedVisibleBindings(
+    artifact: AstTreeArtifact,
+    statements: SemanticAstStatementFacts,
+    facts: SemanticAstIterationTypeFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if !facts.ok || facts.artifact_node_count != artifact.count {
+        return false;
+    }
+    let seeded: Bool = SemanticAstIterationSeedVisibleRows(
+        artifact, statements, facts.node_ids, facts.binding_type_names,
+        facts.verified,
+        function_node_id, use_node_id, names, types, modes
+    );
+    return seeded;
+}
+
+func SemanticAstIterationTypeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    locals: SemanticAstLocalBindingFacts,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    statements: SemanticAstStatementFacts,
+    facts: SemanticAstIterationTypeFacts
+) -> Bool {
+    let rebuilt: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, signatures, locals, initializer_types, statements
+        );
+    let n: Int = SemanticAstIterationTypeCount(facts);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        SemanticAstIterationTypeCount(rebuilt) != n ||
+        ArrayLength(facts.binding_type_names) != n ||
+        ArrayLength(facts.verified) != n ||
+        ArrayLength(facts.diagnostic_codes) != n ||
+        ArrayLength(facts.diagnostic_messages) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rebuilt.node_ids[i] != facts.node_ids[i] ||
+            rebuilt.binding_type_names[i] != facts.binding_type_names[i] ||
+            rebuilt.verified[i] != facts.verified[i] ||
+            rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstIterationTypeFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: i in 0..3\n          Block:\n            Log(i)\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, locals
+        );
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let facts: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, signatures, locals, initializers, statements
+        );
+    return SemanticAstIterationTypeFactsMatchArtifact(
+        artifact, signatures, locals, initializers, statements, facts
+    ) && SemanticAstIterationTypeCount(facts) == 1 &&
+        facts.verified[0] == 1 && facts.binding_type_names[0] == "Int";
+}

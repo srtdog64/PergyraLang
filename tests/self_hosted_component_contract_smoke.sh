@@ -799,7 +799,6 @@ require_owner_surface codegen \
     "input/ast_text_try_let_owner.pgy" \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
-    "input/ast_text_for_stmt_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
     "input/ast_text_collection_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
@@ -2377,6 +2376,7 @@ require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
@@ -2385,6 +2385,13 @@ require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2Fro
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "LoadSemanticSource"
+require_file "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "struct SemanticAstIterationTypeFacts"
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "func SemanticAstIterationSeedVisibleBindings"
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "SemanticAstExpressionVerdictFromPayload"
+reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "CheckBody("
+reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" "LoadSemanticSource"
 require_file "src/compiler/self_host_driver.c"
 require_file "src/compiler/self_host_driver.h"
 require_max_lines "src/compiler/self_host_driver.c" 200
@@ -2964,20 +2971,17 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForRangeEndOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForEachCollectionOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForLoopVarOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForIsRange"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeEndOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForEachCollectionOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "struct CodegenForRangeEndFact"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenAstArenaForRangeEndFactAt"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "func CodegenForRangeEndText"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "let fact: CodegenForRangeEndFact = CodegenAstArenaForRangeEndFactAt(arena, node_id)"
-require_text "src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" "return IsSome(CodegenForRangeEndText(fact))"
-for_range_end_reads="$(grep -c 'TypedAstArenaAuxValueText(arena, node_id)' "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" || true)"
-[[ "$for_range_end_reads" -eq 1 ]] ||
-    fail "ast_text_for_stmt_owner must read range-end payload only in the fact constructor"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_for_stmt_owner.pgy";'
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticForLoopVarOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticForIsRange"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticForRangeStartOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticForRangeEndOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticForEachCollectionOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaValueText"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
+if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_for_stmt_owner.pgy" ]]; then
+    fail "retired codegen-owned for statement payload owner returned"
+fi
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_for_stmt_owner.pgy";'
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLogArgumentOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaReturnValueOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArrayPopTargetOrDie"
@@ -3036,11 +3040,11 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsContinueStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsForStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let loop_var: String = CodegenAstArenaForLoopVarOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "if CodegenAstArenaForIsRange(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let start_v: String = CodegenAstArenaForRangeStartOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let end_v: String = CodegenAstArenaForRangeEndOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenAstArenaForEachCollectionOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "if CodegenSemanticForIsRange(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let start_v: String = CodegenSemanticForRangeStartOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let end_v: String = CodegenSemanticForRangeEndOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenSemanticForEachCollectionOrDie(statements, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstArenaAuxValueText(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsWhileStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCond(CodegenSemanticWhileConditionOrDie(statements, idx), env_box[0])"

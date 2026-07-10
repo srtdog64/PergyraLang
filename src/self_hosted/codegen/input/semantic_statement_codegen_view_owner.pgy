@@ -55,3 +55,64 @@ func CodegenSemanticMatchCasePatternOrDie(facts: SemanticAstStatementFacts, node
 func CodegenSemanticBareCallExprOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindBareCallStmtTag());
 }
+
+func CodegenSemanticForLoopVarOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    return CodegenSemanticStatementPayloadOrDie(
+        facts, node_id, TypedAstKindForStmtTag()
+    );
+}
+
+func CodegenSemanticForIndexOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> Int {
+    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index_opt) {
+        Die(Concat("missing semantic for statement fact: ", ToString(node_id)));
+    }
+    let index: Int = UnwrapOption(index_opt);
+    if facts.kind_tags[index] != TypedAstKindForStmtTag() {
+        Die(Concat("semantic for statement kind mismatch: ", ToString(node_id)));
+    }
+    return index;
+}
+
+func CodegenSemanticForIsRange(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> Bool {
+    let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
+    return facts.auxiliary_texts[index] != "";
+}
+
+func CodegenSemanticForRangeStartOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
+    if facts.auxiliary_texts[index] == "" {
+        Die(Concat("expected semantic range for statement: ", ToString(node_id)));
+    }
+    return facts.value_texts[index];
+}
+
+func CodegenSemanticForRangeEndOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
+    if facts.auxiliary_texts[index] == "" {
+        Die(Concat("missing semantic range end: ", ToString(node_id)));
+    }
+    return facts.auxiliary_texts[index];
+}
+
+func CodegenSemanticForEachCollectionOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticForIndexOrDie(facts, node_id);
+    if facts.auxiliary_texts[index] != "" {
+        Die(Concat("expected semantic foreach statement: ", ToString(node_id)));
+    }
+    return facts.value_texts[index];
+}

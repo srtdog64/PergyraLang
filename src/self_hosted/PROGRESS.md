@@ -33,12 +33,12 @@ The next focused slice raised the source inventory to 221 after splitting the
 shared driver pipeline owner from DRV parity policy. The strengthened bootstrap
 gate then proved both the standalone codegen fixed point (`gen2 == gen3`, 9,833
 generated-C lines) and the first integrated parser/codegen driver fixed point.
-The latest artifact-native local-binding refresh fixes that integrated driver at
-`gen2 == gen3`, 17,536 generated-C lines. This is a real self-rebuild loop for
-the bounded source-to-AST-to-C compiler pipeline, not a whole-compiler claim:
-semantic analysis now owns executable `Main` cardinality, function signatures,
-and local declaration/function/scope rows. Initializer expression typing, the
-remaining body verdict, and MIR lowering are not yet executed by that driver.
+The artifact-native driver is a real self-rebuild loop for the bounded
+source-to-AST-to-C pipeline, not a whole-compiler claim. Semantic analysis owns
+executable `Main` cardinality, signatures, local declaration/function/scope,
+initializer, iteration, assignment, expression-use, return, condition, and
+ordered body-verdict rows. The latest codegen bootstrap fixes `gen2 == gen3` at
+13,561 generated-C lines. MIR lowering is not yet integrated into this driver.
 The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-
@@ -59,11 +59,9 @@ consumed by function emission, prototype emission, role-operator lookup, and the
 codegen type environment. The deleted codegen-owned signature scanner cannot
 return. Local declaration name/type/scope/initializer-payload facts now follow
 the same path and codegen no longer recovers them from the arena.
-`SemanticAstInitializerTypeFacts` joins those rows with function signatures and
-lexical scope. The isolated DRV-2 `--emit-c-verified` path computes that fact
-and fails closed before codegen when an initializer type is unresolved or
-mismatched. DRV-0/DRV-1 remain the lightweight breadth path while the remaining
-assignment/use/body verdicts move off the separate source scanner.
+The isolated DRV-2 `--emit-c-verified` path joins semantic initializer,
+iteration, assignment, expression-use, return, condition, and body facts and
+fails closed before codegen. DRV-0/DRV-1 remain the lightweight breadth path.
 Wiring the current source scanner into the driver would create a second parser
 and does not count.
 
@@ -163,9 +161,10 @@ payload rows for `Log`, value `Return`, `ArrayPop`, `Exit`, `While`, `If`,
 initializer, target/base/index/RHS, expression-use, and type-verdict rows;
 missing facts fail before codegen. `ArrayPush` emission consumes arena atom/value rows
 for the receiver and pushed expression; `ArraySet` consumes arena atom/value/
-aux-value rows for receiver, index, and assigned value; `For` consumes arena
-atom/value/aux-value rows for loop variable plus range start/end or foreach
-collection. Program/function/statement routing and marker checks consume arena
+aux-value rows for receiver, index, and assigned value; `For` consumes the
+semantic statement/iteration owner projection for loop variable, range
+start/end, foreach collection, and binding type. Program/function/statement
+routing and marker checks consume arena
 kind facts. Runtime/header usage facts now consume lane-specific arena facts:
 type/header requirements read typed arena `type_name` rows, builtin-call
 requirements scan only expression-bearing arena rows with string-literal-aware
@@ -186,11 +185,11 @@ released/native driver replacement until semantic and MIR stages enter that
 same executable path.
 The separate DRV-2 `--emit-c-verified` entrypoint makes artifact-body semantic
 evidence a hard precondition without calling the source-scanning checker. It
-joins initializer, assignment, expression-use, call, return, and condition
+joins initializer, iteration, assignment, expression-use, call, return, and condition
 verdicts before C emission. Its semantic cost is isolated from DRV-0/DRV-1 and
 ordinary codegen checks. It is a bounded hard-semantic rung, not yet the full
 CFG/MIR body replacement claim.
-The DRV-2 body gate runs sixteen manifest-owned positive/negative fixtures
+The DRV-2 body gate runs nineteen manifest-owned positive/negative fixtures
 through both C-built and LLVM-built drivers, compares emitted C or diagnostics,
 and C-compiles every positive artifact. The builtin signature table, canonical
 type-name owner, and shared source character/trivia scanner are single owners;
