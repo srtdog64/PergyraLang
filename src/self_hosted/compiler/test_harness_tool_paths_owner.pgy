@@ -244,67 +244,6 @@ func CompilerHarnessLexerParityReady() -> Bool {
     return CompilerHarnessLexerParitySuiteName() != "";
 }
 
-func CompilerHarnessDiagnosticCatalogSuiteName() -> String {
-    return "diagnostic-catalog-paths";
-}
-
-func CompilerHarnessDiagnosticCatalogToolSourcePath() -> String {
-    return "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy";
-}
-
-func CompilerHarnessDiagnosticCatalogExpectedJsonPath() -> String {
-    return "src/self_hosted/tools/diagnostic_catalog_checker/expected/clean.json";
-}
-
-func CompilerHarnessDiagnosticCatalogMissingCodeJsonPath() -> String {
-    return "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_code.json";
-}
-
-func CompilerHarnessDiagnosticCatalogMissingInputJsonPath() -> String {
-    return "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_input.json";
-}
-
-func CompilerHarnessDiagnosticCatalogCodeOwnerPath() -> String {
-    return "src/semantic/diag_codes.h";
-}
-
-func CompilerHarnessDiagnosticCatalogDocsOwnerPath() -> String {
-    return "docs/72_diagnostic_codes.md";
-}
-
-func CompilerHarnessDiagnosticCatalogCOraclePath() -> String {
-    return "tests/diagnostic_registry_smoke.sh";
-}
-
-func CompilerHarnessDiagnosticCatalogPathCount() -> Int {
-    return 7;
-}
-
-func CompilerHarnessDiagnosticCatalogPathAt(index: Int) -> String {
-    if index == 0 { return CompilerHarnessDiagnosticCatalogToolSourcePath(); }
-    if index == 1 { return CompilerHarnessDiagnosticCatalogExpectedJsonPath(); }
-    if index == 2 { return CompilerHarnessDiagnosticCatalogMissingCodeJsonPath(); }
-    if index == 3 { return CompilerHarnessDiagnosticCatalogMissingInputJsonPath(); }
-    if index == 4 { return CompilerHarnessDiagnosticCatalogCodeOwnerPath(); }
-    if index == 5 { return CompilerHarnessDiagnosticCatalogDocsOwnerPath(); }
-    if index == 6 { return CompilerHarnessDiagnosticCatalogCOraclePath(); }
-    return "";
-}
-
-func CompilerHarnessDiagnosticCatalogReady() -> Bool {
-    if CompilerHarnessDiagnosticCatalogPathCount() != 7 {
-        return false;
-    }
-    let i: Int = 0;
-    while i < CompilerHarnessDiagnosticCatalogPathCount() {
-        if CompilerHarnessDiagnosticCatalogPathAt(i) == "" {
-            return false;
-        }
-        i = i + 1;
-    }
-    return CompilerHarnessDiagnosticCatalogSuiteName() != "";
-}
-
 func CompilerHarnessAstReadSurfaceSuiteName() -> String {
     return "ast-read-surface-paths";
 }

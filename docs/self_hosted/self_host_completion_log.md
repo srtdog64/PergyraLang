@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Diagnostic catalog paths move to diagnostic owner
+
+- Split `test_harness_diagnostic_paths_owner.pgy` out of the shared TestHarness
+  tool path owner for diagnostic-catalog checker source, expected artifact, and
+  oracle path suites.
+- Added `CompilerHarnessDiagnosticCatalogPathKnown(...)` and repointed
+  `CompilerHarnessDiagnosticCatalogReady()` from fixed `PathCount() == 7` and
+  positional `PathAt(0..6)` checks to named path membership plus an
+  out-of-range boundary check.
+- Kept the ordered rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while removing row position as the
+  diagnostic-catalog path-suite truth.
+
 ## 2026-07-10 - AIR graph validator paths move to AIR graph owner
 
 - Moved the `air-graph-json-validator-paths` suite from the shared TestHarness

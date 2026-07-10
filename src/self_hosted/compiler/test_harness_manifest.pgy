@@ -14,6 +14,7 @@ import "test_harness_backend_compare_paths_owner.pgy";
 import "test_harness_inventory_paths_owner.pgy";
 import "test_harness_size_paths_owner.pgy";
 import "test_harness_air_graph_paths_owner.pgy";
+import "test_harness_diagnostic_paths_owner.pgy";
 import "test_harness_driver_paths_owner.pgy";
 import "test_harness_codegen_paths_owner.pgy";
 import "test_harness_parser_paths_owner.pgy";
@@ -242,13 +243,7 @@ func EmitAirGraphRefLivePaths() -> Void {
     }
 }
 
-func EmitDiagnosticCatalogPaths() -> Void {
-    let i: Int = 0;
-    while i < CompilerHarnessDiagnosticCatalogPathCount() {
-        Log(CompilerHarnessDiagnosticCatalogPathAt(i));
-        i = i + 1;
-    }
-}
+func EmitDiagnosticCatalogPaths() -> Void { let i: Int = 0; while i < CompilerHarnessDiagnosticCatalogPathCount() { Log(CompilerHarnessDiagnosticCatalogPathAt(i)); i = i + 1; } }
 
 func EmitAstReadSurfacePaths() -> Void {
     let i: Int = 0;

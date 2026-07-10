@@ -150,6 +150,12 @@ plus an out-of-range boundary check instead of `PathCount() == 9` and
 representative `PathAt(0..8)` readiness. Ordered path rows remain the stable
 manifest artifact shape only.
 
+TestHarness delta, 2026-07-10: diagnostic-catalog checker paths moved to
+`test_harness_diagnostic_paths_owner.pgy` and now consume named path membership
+(`CompilerHarnessDiagnosticCatalogPathKnown`) plus an out-of-range boundary
+check instead of `PathCount() == 7` and representative `PathAt(0..6)`
+readiness. Ordered path rows remain the stable manifest artifact shape only.
+
 TypedAst delta, 2026-07-07: `typed_ast_node_skeleton.pgy` no longer uses a
 single placeholder `nodes: Array<Int>` row. The owner now carries parallel
 typed node facts (`kind`, `atom`, `has_atom`, child span, child edges, and atom

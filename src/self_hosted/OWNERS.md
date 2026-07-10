@@ -253,6 +253,8 @@ compiler-stage `.pgy` source to be listed here.
   size checker path and over-cap finding rows consumed by TestHarness.
 - `src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy` -- AIR
   graph consumer path suites consumed by parity runners.
+- `src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy` --
+  diagnostic catalog checker source, expected artifact, and oracle path suites.
 - `src/self_hosted/compiler/test_harness_driver_paths_owner.pgy` -- DRV-0/DRV-1
   driver, parser, and codegen source path suites consumed by parity runners.
 - `src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy` -- codegen
