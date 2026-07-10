@@ -1,0 +1,51 @@
+// TestHarness lexer-parity path owner.
+//
+// Owns the self-host lexer parity path suite separately from generic audit
+// tools. The lexer is a compiler-frontier substitute, not a peripheral tool.
+
+func CompilerHarnessLexerParitySuiteName() -> String {
+    return "lexer-parity-paths";
+}
+
+func CompilerHarnessLexerToolSourcePath() -> String {
+    return "src/self_hosted/lexer/main.pgy";
+}
+
+func CompilerHarnessLexerComparatorSourcePath() -> String {
+    return "src/self_hosted/tools/backend_output_comparator/main.pgy";
+}
+
+func CompilerHarnessLexerFixtureDirPath() -> String {
+    return "src/self_hosted/lexer/fixture";
+}
+
+func CompilerHarnessLexerPathCount() -> Int {
+    return 3;
+}
+
+func CompilerHarnessLexerPathAt(index: Int) -> String {
+    if index == 0 { return CompilerHarnessLexerToolSourcePath(); }
+    if index == 1 { return CompilerHarnessLexerComparatorSourcePath(); }
+    if index == 2 { return CompilerHarnessLexerFixtureDirPath(); }
+    return "";
+}
+
+func CompilerHarnessLexerPathKnown(path: String) -> Bool {
+    let i: Int = 0;
+    while i < CompilerHarnessLexerPathCount() {
+        if CompilerHarnessLexerPathAt(i) == path {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CompilerHarnessLexerParityReady() -> Bool {
+    return CompilerHarnessLexerPathCount() > 0 &&
+        CompilerHarnessLexerParitySuiteName() != "" &&
+        CompilerHarnessLexerPathKnown(CompilerHarnessLexerToolSourcePath()) &&
+        CompilerHarnessLexerPathKnown(CompilerHarnessLexerComparatorSourcePath()) &&
+        CompilerHarnessLexerPathKnown(CompilerHarnessLexerFixtureDirPath()) &&
+        CompilerHarnessLexerPathAt(CompilerHarnessLexerPathCount()) == "";
+}

@@ -25,6 +25,19 @@ rewrite history.
   areas (front-end, measurement, verifiers for untouched layers), committing
   only their own files.
 
+## 2026-07-10 - Lexer TestHarness paths move to lexer owner
+
+- Split `test_harness_lexer_paths_owner.pgy` out of the shared TestHarness tool
+  path owner for the self-host lexer parity source, backend comparator source,
+  and lexer fixture directory.
+- Added `CompilerHarnessLexerPathKnown(...)` and repointed
+  `CompilerHarnessLexerParityReady()` from fixed `PathCount() == 3` and
+  positional `PathAt(0..2)` checks to named path membership plus an
+  out-of-range boundary check.
+- Kept the ordered rows as the stable `test_harness_manifest.pgy` artifact
+  shape for shell parity runners, while making the lexer owner the path truth
+  for the compiler-frontier lexer parity rung.
+
 ## 2026-07-10 - AST read-surface paths move to source-surface owner
 
 - Split `test_harness_ast_surface_paths_owner.pgy` out of the shared TestHarness

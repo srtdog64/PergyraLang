@@ -3994,6 +3994,7 @@ require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_har
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_lexer_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_owner.pgy" 'import "test_harness_parser_paths_owner.pgy";'
@@ -4009,11 +4010,13 @@ require_max_lines "src/self_hosted/compiler/test_harness_size_paths_owner.pgy" 6
 require_max_lines "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy" 600
+require_max_lines "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" 600
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_size_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_diagnostic_paths_owner.pgy"
 require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_ast_surface_paths_owner.pgy"
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphScanOwnerPath"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorSuiteName"
 require_text "src/self_hosted/compiler/test_harness_air_graph_paths_owner.pgy" "func CompilerHarnessAirGraphJsonValidatorPathKnown"
@@ -4120,12 +4123,21 @@ require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryPathAt"
 require_text "src/self_hosted/compiler/test_harness_inventory_paths_owner.pgy" "func CompilerHarnessExamplesInventoryReady"
 require_file "src/self_hosted/tools/examples_inventory_checker/expected/count_drift.json"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParitySuiteName"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerToolSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerComparatorSourcePath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerFixtureDirPath"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerPathAt"
-require_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "func CompilerHarnessLexerParityReady"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerParitySuiteName"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerToolSourcePath"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerComparatorSourcePath"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerFixtureDirPath"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerPathAt"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerPathKnown"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathKnown(CompilerHarnessLexerToolSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathKnown(CompilerHarnessLexerComparatorSourcePath())"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathKnown(CompilerHarnessLexerFixtureDirPath())"
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(CompilerHarnessLexerPathCount()) == \"\""
+require_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "func CompilerHarnessLexerParityReady"
+reject_text "src/self_hosted/compiler/test_harness_tool_paths_owner.pgy" "CompilerHarnessLexerParitySuiteName"
+reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathCount() == 3"
+reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(0) == CompilerHarnessLexerToolSourcePath()"
+reject_text "src/self_hosted/compiler/test_harness_lexer_paths_owner.pgy" "CompilerHarnessLexerPathAt(2) == CompilerHarnessLexerFixtureDirPath()"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParserSourcePath"
@@ -4332,6 +4344,7 @@ require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_air_graph_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_diagnostic_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_ast_surface_paths_owner.pgy";'
+require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_lexer_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_driver_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_codegen_paths_owner.pgy";'
 require_text "src/self_hosted/compiler/test_harness_manifest.pgy" 'import "test_harness_parser_paths_owner.pgy";'
