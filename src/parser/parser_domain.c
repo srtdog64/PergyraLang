@@ -398,6 +398,14 @@ parse_reactive_parallel_block(Parser* parser)
 {
     ASTNode* blk = ast_create_parallel_block();
 
+    /* Role reactive parallel (`on (lane)` / `every (d)` / `continuous`) is
+     * a declared vision surface (docs/181 §2): pinned as the SEA lane
+     * surface, gated on duration literals + virtual clock + cooperative
+     * cancellation. No rung executes yet, so the form fails closed instead
+     * of parsing into a block no checker or emitter consumes. Tokens are
+     * still consumed for clean recovery. */
+    parser_error(parser,
+        "role reactive parallel (on/every/continuous) is a declared vision surface (docs/181): not yet executable");
     parser_consume(parser, TOKEN_PARALLEL, "Expected 'parallel'");
     if (parser->current_token.text != NULL
         && strcmp(parser->current_token.text, "on") == 0) {

@@ -2496,6 +2496,9 @@ evidence-lifetime-test-smoke:
 ability-coherence-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/ability_coherence_smoke.sh
 
+parallel-vision-surface-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_vision_surface_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 

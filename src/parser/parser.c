@@ -583,9 +583,14 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
 ASTNode* parser_parse_parallel_block(Parser* parser) {
     ASTNode* parallel = ast_create_parallel_block();
 
-    /* `parallel (collection) [join with <mode>]`: a parallel-join directive
-     * over a collection with no following block body. */
+    /* `parallel (collection) [join with <mode>]`: a declared vision surface
+     * (docs/181 §1) -- the full design is fixed (element binding, N-way
+     * disjointness evidence, rung ladder) but no rung executes yet, so the
+     * form fails closed instead of silently degenerating to a no-op. The
+     * tokens are still consumed for clean recovery. */
     if (parser_check(parser, TOKEN_LPAREN)) {
+        parser_error(parser,
+            "parallel (collection) join is a declared vision surface (docs/181): not yet executable; use parallel { ... } arms");
         parser_advance(parser);  /* '(' */
         ast_destroy(parser_parse_expression(parser));
         parser_consume(parser, TOKEN_RPAREN,

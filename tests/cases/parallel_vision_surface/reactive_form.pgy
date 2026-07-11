@@ -1,0 +1,19 @@
+// Declared vision surface (docs/181 §2): the role reactive block (SEA
+// lane surface) must fail closed until duration literals + virtual clock
+// land -- previously it parsed into a block no checker or emitter
+// consumed.
+subject Citizen {
+    let id: Int;
+}
+
+role Ticker for Citizen {
+    parallel on (aiThread) {
+        every (1000ms) {
+            Log(1);
+        }
+    }
+}
+
+func Main() -> Void {
+    Log(0);
+}
