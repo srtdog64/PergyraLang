@@ -6,7 +6,13 @@
 
 import "../parser/program_parse_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../semantic/ast_signature_contract_owner.pgy";
 import "../codegen/emission/program_emit.pgy";
+
+struct CompilerEmissionArtifact {
+    kind: String;
+    payload: String;
+}
 
 func CompilerDriverPipelineReady() -> Bool {
     return ParserAstTreePayloadContractReady() &&
@@ -28,32 +34,27 @@ func CompileSourceToAstArtifact(source_path: String) -> AstTreeArtifact with cap
     return artifact;
 }
 
-func CompileSourceToAst(source_path: String) -> String with caps io_read {
-    let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    return artifact.tree_text;
-}
-
-func CompileAstToC(ast_text: String) -> String {
+func CompileAstArtifactToC(
+    artifact: AstTreeArtifact
+) -> CompilerEmissionArtifact {
     if !CompilerDriverPipelineReady() {
         Die("driver pipeline facts are not ready");
     }
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(ast_text);
     let semantic_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyze(artifact, true);
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
-    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
+    return CompilerEmissionArtifact(
+        "emitted-c",
+        GenerateCFromSemanticArtifact(artifact, semantic_analysis)
+    );
 }
 
-func CompileSourceToC(source_path: String) -> String with caps io_read {
+func CompileSourceToCArtifact(
+    source_path: String
+) -> CompilerEmissionArtifact with caps io_read {
     let artifact: AstTreeArtifact = CompileSourceToAstArtifact(source_path);
-    let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(artifact, true);
-    if !semantic_analysis.verdict.ok {
-        Log(semantic_analysis.verdict.diagnostic_message);
-        Exit(1);
-    }
-    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
+    return CompileAstArtifactToC(artifact);
 }

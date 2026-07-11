@@ -287,6 +287,34 @@ mir_add_resource_instruction(MIRRoutine *routine,
     return mir_commit_instruction(routine, block, &inst);
 }
 
+static MIRBasicBlock *
+mir_with_release_target_block(MIRRoutine *routine, const RIROp *op)
+{
+    const HIRRoutine *hir_routine;
+
+    if (routine == NULL || op == NULL || op->kind != RIR_OP_RELEASE
+        || op->ast == NULL || op->ast->type != AST_WITH_STMT) {
+        return NULL;
+    }
+    hir_routine = routine->hir_routine;
+    if (hir_routine == NULL || !hir_routine->has_cfg)
+        return NULL;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        MIRBasicBlock *mir_block = &routine->blocks[i];
+        const HIRBasicBlock *hir_block;
+        if (mir_block->is_cleanup
+            || mir_block->source_hir_block_id >= hir_routine->cfg.block_count) {
+            continue;
+        }
+        hir_block = &hir_routine->cfg.blocks[mir_block->source_hir_block_id];
+        for (size_t e = 0; e < hir_block->resource_scope_exit_count; e++) {
+            if (hir_block->resource_scope_exits[e] == op->ast)
+                return mir_block;
+        }
+    }
+    return NULL;
+}
+
 bool
 mir_populate_instructions(MIRRoutine *routine)
 {
@@ -374,8 +402,17 @@ mir_populate_instructions(MIRRoutine *routine)
                 break;
             }
             /* fallthrough */
-        default:
-            if (!mir_add_resource_instruction(routine, entry, op,
+        default: {
+            MIRBasicBlock *target_block = entry;
+            if (op->kind == RIR_OP_RELEASE && op->ast != NULL
+                && op->ast->type == AST_WITH_STMT) {
+                target_block = mir_with_release_target_block(routine, op);
+                if (target_block == NULL) {
+                    free(borrow_facts);
+                    return false;
+                }
+            }
+            if (!mir_add_resource_instruction(routine, target_block, op,
                     resource_owner_slot_anchor, resource_owner_abi_type_name,
                     resource_owner_layout)) {
                 free(borrow_facts);
@@ -393,6 +430,7 @@ mir_populate_instructions(MIRRoutine *routine)
                     resource_owner_layout);
             }
             break;
+        }
         }
     }
     free(borrow_facts);

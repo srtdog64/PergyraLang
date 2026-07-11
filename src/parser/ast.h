@@ -10,6 +10,7 @@
 
 #include "ast_types.h"
 #include "ast_domain_data.h"
+#include "ast_module_data.h"
 #include "../lexer/lexer.h"
 
 struct ASTNode
@@ -551,23 +552,9 @@ struct ASTNode
             size_t capture_capacity;
         } lambda_expr;
 
-        /* Import declaration */
-        struct {
-            char* path;                /* Module path (string or identifier) */
-        } import_decl;
-
-        /* use pool; */
-        struct {
-            char* module_name;         /* Standard library module name */
-        } use_decl;
-
-        /* namespace Foo { ... } */
-        struct {
-            char*    name;
-            ASTNode** statements;
-            size_t   count;
-            size_t   capacity;
-        } namespace_decl;
+        ASTImportDeclData import_decl;
+        ASTUseDeclData use_decl;
+        ASTNamespaceDeclData namespace_decl;
 
         /* unsafe { ... } / unsafe(cap) { ... } / unsafe label { ... } */
         struct {

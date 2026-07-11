@@ -327,7 +327,9 @@ func SelfMirLowerBlockFromArtifact(
                 kind == TypedAstKindValueReturnStmtTag() {
                 build = SelfMirRoutineAddInstruction(
                     build, "return", "return", "", "", "", payload, "",
-                    SelfMirExpressionSourceType(payload),
+                    SelfMirExpressionSourceTypeName(
+                        SelfMirExpressionKindFromText(payload)
+                    ),
                     SelfMirExpressionUses(build, payload)
                 );
                 build = SelfMirRoutineTerminate(build);
@@ -336,7 +338,9 @@ func SelfMirLowerBlockFromArtifact(
                 let branch_block: Int = build.current_block;
                 build = SelfMirRoutineAddInstruction(
                     build, "branch", "branch", "", "", "", condition, "",
-                    SelfMirExpressionSourceType(condition),
+                    SelfMirExpressionSourceTypeName(
+                        SelfMirExpressionKindFromText(condition)
+                    ),
                     SelfMirExpressionUses(build, condition)
                 );
                 let body_opt: Option<Int> = SelfMirControlBodyBlock(
@@ -421,7 +425,9 @@ func SelfMirLowerBlockFromArtifact(
                 let condition2: String = payload;
                 build = SelfMirRoutineAddInstruction(
                     build, "branch", "branch", "", "", "", condition2, "",
-                    SelfMirExpressionSourceType(condition2),
+                    SelfMirExpressionSourceTypeName(
+                        SelfMirExpressionKindFromText(condition2)
+                    ),
                     SelfMirExpressionUses(build, condition2)
                 );
                 build = SelfMirRoutineAddBlock(build);

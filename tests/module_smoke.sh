@@ -26,7 +26,13 @@ run_ok() {
     local main_arg
 
     main_arg="$(pgy_path_for_compiler "$PGY" "$main_file")"
-    output="$("$PGY" "$main_arg" --run --backend=c 2>&1)"
+    if ! output="$("$PGY" "$main_arg" --run --backend=c 2>&1)"; then
+        echo "[module-smoke] $name compiler/run failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
     for expected in "$@"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[module-smoke] $name failed" >&2
@@ -238,14 +244,15 @@ intent Charge(payment: PaymentZone, driver: Driver) {
     failure: false;
 }
 
-intent Fulfill(order: OrderZone, payment: PaymentZone, driver: Driver) {
+intent Fulfill(order: OrderZone, payment: PaymentZone,
+               order_driver: Driver, payment_driver: Driver) {
     step reserve {
-        intent: Reserve(order, driver);
+        intent: Reserve(order, order_driver);
         expect: order.driver.reserved > 0;
     }
 
     step charge {
-        intent: Charge(payment, driver);
+        intent: Charge(payment, payment_driver);
         expect: payment.driver.charged > 0;
     }
 
@@ -254,12 +261,11 @@ intent Fulfill(order: OrderZone, payment: PaymentZone, driver: Driver) {
 }
 
 func Main() -> Void {
-    let driver = Driver(0, 0);
-    let order = OrderZone(driver);
-    let payment = PaymentZone(driver);
-    Log(Fulfill(order, payment, driver));
-    Log(driver.reserved);
-    Log(driver.charged);
+    let order = OrderZone(Driver(0, 0));
+    let payment = PaymentZone(Driver(0, 0));
+    Log(Fulfill(order, payment, order.driver, payment.driver));
+    Log(order.driver.reserved);
+    Log(payment.driver.charged);
 }
 EOF
 run_ok "nested_intent_orchestration" "$WORK_DIR/nested_intent_orchestration/main.pgy" "true" "1" "1"

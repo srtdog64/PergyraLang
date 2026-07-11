@@ -1,0 +1,24 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func ReadScalar(ref value: Int) -> Int {
+    return value + 1;
+}
+
+func ReadPair(ref pair: Pair) -> Int {
+    return pair.left + pair.right;
+}
+
+func ForwardScalar(ref value: Int) -> Int {
+    return ReadScalar(value);
+}
+
+func Main() -> Void {
+    let value: Int = 41;
+    let pair: Pair = Pair(20, 22);
+    Log(ReadScalar(value));
+    Log(ReadPair(pair));
+    Log(ForwardScalar(value));
+}

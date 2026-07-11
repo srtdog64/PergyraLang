@@ -148,11 +148,13 @@ require_max_lines "src/self_hosted/compiler/driver_rung0_main.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_cli_owner.pgy" 600
 require_max_lines "src/self_hosted/compiler/driver_rung1_main.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 600
+require_max_lines "src/self_hosted/semantic/ast_signature_contract_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy" 600
 require_max_lines "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" 600
 require_max_lines "src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_artifact_verdict_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_signature_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompilerDriverPipelineReady"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParserAstTreePayloadContractReady()"
@@ -163,16 +165,19 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstFu
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstLocalBindingFactsContractReady()"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstArtifactToC"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyze(artifact, true)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromSemanticArtifact(artifact, semantic_analysis)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAstArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromSemanticArtifact(artifact, semantic_analysis);"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" '"emitted-c",'
+forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst("
+forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC("
+forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_pipeline_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToC(args[0]))"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToCArtifact(args[0]).payload)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerStagePathManifestReady()"
@@ -535,7 +540,7 @@ for term in \
     "func CompilerEmissionFactReady" \
     'import "../lexer/token_owner.pgy";' \
     'import "../parser/tree_text_owner.pgy";' \
-    'import "../semantic/diagnostic_owner.pgy";' \
+    'import "../semantic/diagnostic_contract_owner.pgy";' \
     'import "../mir_lower/mir_fact_graph_contract_owner.pgy";' \
     'import "../hir/ast_text_arena_projection_owner.pgy";' \
     "LexerTokenPayloadContractReady()" \
@@ -588,14 +593,18 @@ for term in \
     "func SemanticVerdictPayloadSchema" \
     "pgy.selfhost.semantic.v1" \
     "func SemanticVerdictPayloadFixtureCount" \
-    "func SemanticVerdictPayloadFixtureFrontierCount" \
+    "func SemanticVerdictPayloadFixtureFrontierCount"; do
+    require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"
+done
+
+for term in \
     "func SemanticVerdictPayloadStatusReady" \
     "func SemanticVerdictPayloadContractReady" \
     "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()" \
     "SemanticDiagnosticCodeCount() != 24" \
     "StringIndexOf(ok, \"Status: ok\")" \
     "StringIndexOf(err, \"Code: undefined_symbol\")"; do
-    require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "$term"
+    require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "$term"
 done
 
 for term in \
@@ -614,6 +623,7 @@ for term in \
     require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "$term"
 done
 forbid_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 95"
+forbid_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 96"
 
 for term in \
     "func TypedAstArenaPayloadSchema" \

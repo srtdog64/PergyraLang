@@ -32,6 +32,7 @@ hir_destroy(HIRProgram *hir)
             if (hir->routines[i].cfg.blocks != NULL) {
                 for (size_t j = 0; j < hir->routines[i].cfg.block_count; j++) {
                     free(hir->routines[i].cfg.blocks[j].statements);
+                    free(hir->routines[i].cfg.blocks[j].resource_scope_exits);
                     free(hir->routines[i].cfg.blocks[j].predecessors);
                     free(hir->routines[i].cfg.blocks[j].dom_tree_children);
                     free((void *)hir->routines[i].cfg.blocks[j].local_defs);

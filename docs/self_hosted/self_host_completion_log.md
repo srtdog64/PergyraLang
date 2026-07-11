@@ -6,6 +6,31 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-11 - Readonly ref carriage and 250-source M2 closure
+
+- Added readonly `ref` parameter consumption to the self-host C emitter. The
+  ABI row emits `const T *`; the type environment separately records a
+  dereferenced value binding and its raw readonly address. Ordinary scalar and
+  member expressions consume the value binding, while ref-to-ref calls forward
+  the raw address. A committed parity fixture covers all three forms.
+- Fixed the typed AST projection so `Action:` under a `Subject` is the same
+  canonical function kind as native AST `AST_FUNC_DECL`. The signature contract
+  now proves the subject owner and the inferred `self: SubjectType` row.
+- Raised the committed codegen frontier to 69 fixtures and the derived MIR JSON
+  frontier to 96. The local codegen runner accepts an explicit fixture filter,
+  so the readonly-ref row is proved without rerunning unrelated cases.
+- Closed the six codegen failures from the previous 244/250 ledger with a
+  focused 6/6 run. The two split executable contract owners passed all four
+  stages at 2/2, and every M2 source/stage/intersection minimum is now 250.
+- Made the likeness gate include non-ignored untracked implementation owners,
+  so local evidence no longer changes merely because a new file was staged.
+  Current ratchets are string-munge 107, sentinel 0, and errors-as-data 1024.
+- Made `self-host-completeness-smoke` consume an explicit prebuilt `PGY_BIN`
+  without rebuilding the default compiler. The impact runner now executes its
+  five-source plan at 5/5 per stage without switching LLVM configuration or
+  deleting the shared object graph. Clean/cache ledger parity and impact-plan
+  parity both remain green.
+
 ## 2026-07-10 - Artifact body verdict replaces statement payload rescans
 
 - Added semantic-owned statement rows for return, condition, log, exit, match,

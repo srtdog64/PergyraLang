@@ -33,6 +33,33 @@ world LogisticsWorld
         Record("");
     }
 
+    func Route(self) -> Bool
+    {
+        return RouteCargo(
+            loading,
+            delivery,
+            loading.courier,
+            loading.dispatcher
+        );
+    }
+
+    func Audit(self, completionState: Int) -> String
+    {
+        let bias = 0;
+        if completionState > 0
+        {
+            bias = bias + 2;
+        }
+        else
+        {
+            bias = bias + 1;
+        }
+        return "audit loading=" + ToString(loading.staged)
+            + " lane=" + delivery.route.lane
+            + " seal=" + ToString(delivery.seal.qty)
+            + " bias=" + ToString(bias);
+    }
+
     func FinalSnapshot(self) -> Void
     {
         Broadcast("loading=" + loading.Snapshot());

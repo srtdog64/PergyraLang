@@ -44,12 +44,14 @@ func SemanticAstAssignmentTypeStructuralError(
     );
 }
 
-func SemanticAstAssignmentArrayElementType(type_name: String) -> String {
+func SemanticAstAssignmentArrayElementType(
+    type_name: String
+) -> Option<String> {
     if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
         SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
-        return Substring(type_name, 6, StringLength(type_name) - 7);
+        return Some(Substring(type_name, 6, StringLength(type_name) - 7));
     }
-    return "";
+    return None;
 }
 
 func SemanticAstAssignmentTypeFactsFromArtifact(
@@ -134,7 +136,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         } else {
             expected = EnvLookup(names, types, target_base);
             if assignments.target_is_indexed[i] == 1 {
-                let element_type: String =
+                let element_type_opt: Option<String> =
                     SemanticAstAssignmentArrayElementType(expected);
                 let index_verdict: SemanticAstExpressionVerdict =
                     SemanticAstExpressionVerdictFromPayload(
@@ -144,9 +146,11 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 if !index_verdict.ok {
                     row_code = index_verdict.diagnostic_code;
                     row_message = index_verdict.diagnostic_message;
-                } else if element_type == "" ||
+                } else if !IsSome(element_type_opt) ||
                     index_verdict.inferred_type_name != "Int" {
-                    expected = element_type;
+                    if IsSome(element_type_opt) {
+                        expected = UnwrapOption(element_type_opt);
+                    }
                     row_code = "assignment_type_unresolved";
                     row_message = SemanticError2(
                         "assignment_type_unresolved",
@@ -154,7 +158,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         "value", assignments.value_texts[i]
                     );
                 } else {
-                    expected = element_type;
+                    expected = UnwrapOption(element_type_opt);
                 }
             }
             if row_code == "" {

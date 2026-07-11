@@ -6,26 +6,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "hir.h"
+#include "mir_abi.h"
 #include "rir.h"
 typedef struct MIRProgram MIRProgram;
-/* ABI type layouts are MIR-owned; C/LLVM backends consume these facts instead
- * of inventing layout locally. Source: src/runtime/pgy_abi_spec.h. */
-#define MIR_MAX_TYPE_FIELDS 8
-
-typedef struct
-{
-    const char *field_name;
-    uint32_t    offset;      /* byte offset from struct start */
-    uint32_t    field_size;
-    uint32_t    field_align;
-} MIRFieldLayout;
-
-typedef enum
-{
-    MIR_ABI_REPR_UNTAGGED,
-    MIR_ABI_REPR_EXPLICIT_TAG,
-    MIR_ABI_REPR_NICHE_RESERVED
-} MIRAbiRepresentation;
 
 typedef struct
 {
@@ -34,44 +17,12 @@ typedef struct
     size_t      incoming_predecessor_count;
 } MIRSourcePhiNode;
 
-typedef struct
-{
-    const char      *abi_type_name;    /* Canonical surface type, e.g. "Slot<Int>" */
-    uint32_t         size_bytes;
-    uint32_t         align_bytes;
-    uint16_t         field_count;
-    MIRFieldLayout   fields[MIR_MAX_TYPE_FIELDS];
-    const char      *runtime_fn;       /* e.g. "pgy_claim_Int" */
-    const char      *inner_c_type;     /* e.g. "int32_t" for Slot<Int> */
-    MIRAbiRepresentation representation;
-    const char      *discriminant_field_name;
-    int32_t          primary_tag_value;
-    int32_t          secondary_tag_value;
-    const char      *niche_none_pattern;
-} MIRTypeLayout;
-
 typedef enum
 {
     MIR_SCOPE_FUNCTION,
     MIR_SCOPE_METHOD,
     MIR_SCOPE_INTENT
 } MIRScopeKind;
-
-/* Canonical parameter carriage. Source ParamMode is captured once while MIR
- * signatures are lowered; ABI consumers must not reinterpret parser modes. */
-typedef enum
-{
-    MIR_PARAM_CARRIAGE_VALUE,
-    MIR_PARAM_CARRIAGE_READONLY_REF,
-    MIR_PARAM_CARRIAGE_VALUE_RESULT,
-    MIR_PARAM_CARRIAGE_OWNER_HANDLE
-} MIRParamCarriage;
-
-typedef struct
-{
-    MIRParamCarriage carriage;
-    bool             pass_indirect;
-} MIRParamAbiFact;
 
 typedef enum
 {

@@ -29,7 +29,7 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
 }
 
 func DriverParityExpectedFixtureCount() -> Int {
-    return 68;
+    return 69;
 }
 
 func DriverParityFixtureRows() -> Array<String> {
@@ -102,12 +102,12 @@ func RunDriverRung0FromArgs(args: Array<String>) -> Void with caps io_read {
     let source_path: String = ParserDefaultSourcePath(args);
     let mode: String = DriverRung0ArtifactMode(args);
     if mode == "--emit-ast" {
-        Log(CompileSourceToAst(source_path));
+        Log(CompileSourceToAstArtifact(source_path).tree_text);
         Log("");
         return;
     }
     if mode != "--emit-c" {
         Die(Concat("unknown driver rung-0 artifact mode: ", mode));
     }
-    Log(CompileSourceToC(source_path));
+    Log(CompileSourceToCArtifact(source_path).payload);
 }

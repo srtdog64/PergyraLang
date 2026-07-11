@@ -182,7 +182,13 @@ run_expect_lines() {
         exit 1
     fi
 
-    output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$file")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
+    if ! output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$file")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"; then
+        echo "[example-smoke] $name backend=$backend compiler/run failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
     if run_exact_output_if_present "$name" "$backend" "$output"; then
         return 0
     fi
@@ -272,7 +278,7 @@ run_stable_examples() {
     run_expect_lines "dnd_tavern_campaign" "$backend" \
         "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
     run_expect_lines "shopping_mall_checkout_refund" "$backend" \
-        "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[JS] mount /cart" "[API] POST /api/intents/CheckoutPurchase" "[API] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
+        "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[Page] mounted: Cart (/cart)" "[HTTP] POST /api/intents/CheckoutPurchase" "[HTTP] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
     run_expect_lines "logistics_intent_probe" "$backend" \
         "$ROOT_DIR/examples/logistics_intent_probe" "=== PERGYRA LOGISTICS INTENT PROBE ===" "merge.true=12" "[Intent] RouteCargo ok=true" "[transfer] courier: LoadingZone.courier -> DeliveryZone.courier" "saving examples/logistics_intent_probe/results.txt"
     run_expect_lines "composite_intent_orchestration" "$backend" \
@@ -393,7 +399,11 @@ run_qubit_example() {
     local line5
     local out_bin="$WORK_DIR/beta_qubit_experimental_${backend}"
 
-    output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
+    if ! output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"; then
+        echo "[example-smoke] beta_qubit_experimental backend=$backend compiler/run failed" >&2
+        echo "$output" >&2
+        exit 1
+    fi
     while IFS= read -r value; do
         values+=("$value")
     done < <(

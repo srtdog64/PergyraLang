@@ -25,9 +25,14 @@ func SemanticAstExpressionVerdictError(
     text: String,
     message: String
 ) -> SemanticAstExpressionVerdict {
+    let code: String = "unregistered_diagnostic_code";
+    let code_fact: Option<String> = SemanticDiagnosticCodeFromMessage(message);
+    if IsSome(code_fact) {
+        code = UnwrapOption(code_fact);
+    }
     return SemanticAstExpressionVerdict(
         false,
-        SemanticDiagnosticCodeFromMessage(message),
+        code,
         message,
         text,
         "Unknown"
@@ -101,7 +106,11 @@ func SemanticAstExpressionVerdictContractReady() -> Bool {
             "F(\"bad\")", names, types, modes,
             function_names, function_returns, function_params
         );
+    let unknown: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictError("x", "unstructured failure");
     return valid.ok && valid.inferred_type_name == "Int" &&
         !undefined.ok && undefined.diagnostic_code == "undefined_symbol" &&
-        !bad_call.ok && bad_call.diagnostic_code == "call_arg_type_mismatch";
+        !bad_call.ok && bad_call.diagnostic_code == "call_arg_type_mismatch" &&
+        !unknown.ok &&
+        unknown.diagnostic_code == "unregistered_diagnostic_code";
 }

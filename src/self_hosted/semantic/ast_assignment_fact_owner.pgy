@@ -47,13 +47,13 @@ func SemanticAstAssignmentStructuralError(
     );
 }
 
-func SemanticAstAssignmentIndexOpen(target: String) -> Int {
+func SemanticAstAssignmentIndexOpen(target: String) -> Option<Int> {
     let open: Int = StringIndexOf(target, "[");
     if open <= 0 || StringLength(target) <= open + 1 ||
         SourceCharAt(target, StringLength(target) - 1) != "]" {
-        return -1;
+        return None;
     }
-    return open;
+    return Some(open);
 }
 
 func SemanticAstAssignmentFactsFromArtifact(
@@ -127,11 +127,13 @@ func SemanticAstAssignmentFactsFromArtifact(
             );
         }
         let target: String = Trim(target_raw);
-        let index_open: Int = SemanticAstAssignmentIndexOpen(target);
+        let index_open_opt: Option<Int> =
+            SemanticAstAssignmentIndexOpen(target);
         let base_name: String = target;
         let is_indexed: Int = 0;
         let index_text: String = "";
-        if index_open > 0 {
+        if IsSome(index_open_opt) {
+            let index_open: Int = UnwrapOption(index_open_opt);
             base_name = Trim(Substring(target, 0, index_open));
             index_text = Trim(Substring(
                 target, index_open + 1,

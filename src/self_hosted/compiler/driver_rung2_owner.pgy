@@ -225,19 +225,28 @@ func CanonicalizeMirJsonVerified(
     );
 }
 
-func CompileSourceToCVerified(source_path: String) -> String with caps io_read {
+func CompileSourceToCVerified(
+    source_path: String
+) -> CompilerEmissionArtifact with caps io_read {
     let json: String = CompileSourceToMirJsonVerified(source_path);
-    return CompileArtifactToCVerified(
-        AstTreeArtifactFromText(EmitMirProgramTree(json))
+    return CompilerEmissionArtifact(
+        "emitted-c",
+        CompileArtifactToCVerified(
+            AstTreeArtifactFromText(EmitMirProgramTree(json))
+        )
     );
 }
 
-func CompileMirJsonToCVerified(mir_json_path: String) -> String with caps io_read {
+func CompileMirJsonToCVerified(
+    mir_json_path: String
+) -> CompilerEmissionArtifact with caps io_read {
     let json: String = MirJsonReadInput(mir_json_path);
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTree(json)
     );
-    return CompileArtifactToCVerified(artifact);
+    return CompilerEmissionArtifact(
+        "emitted-c", CompileArtifactToCVerified(artifact)
+    );
 }
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
@@ -263,12 +272,12 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
         if ArrayLength(args) != 2 {
             Die("driver rung-2 --mir-json requires one MIR JSON path");
         }
-        Log(CompileMirJsonToCVerified(args[1]));
+        Log(CompileMirJsonToCVerified(args[1]).payload);
         return;
     }
     let source_path: String = ParserDefaultSourcePath(args);
     if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
         Die(Concat("unknown driver rung-2 mode: ", args[1]));
     }
-    Log(CompileSourceToCVerified(source_path));
+    Log(CompileSourceToCVerified(source_path).payload);
 }

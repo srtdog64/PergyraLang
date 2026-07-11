@@ -270,6 +270,21 @@ Disallowed by default in that mode:
 The escape hatch is explicit: name the owner, name the artifact, name the
 crossed fact, and get approval for the narrow executable gate.
 
+## Build Configuration Isolation
+
+An owner-scoped gate must not mutate the shared build configuration as a side
+effect of selecting a narrow proof. In particular, a runner that receives an
+explicit `PGY_BIN` must consume that compiler artifact directly. It must not
+re-enter a Make target whose default `$(PGY)` prerequisite flips
+`LLVM_ENABLED`, removes `build/**/*.o`, and rebuilds the compiler.
+
+The self-host completeness target therefore suppresses its compiler
+prerequisite when `PGY_BIN` is supplied. The impact runner still executes the
+Pergyra-owned proof-gate row, but the row checks only the selected source/stage
+set against the supplied compiler. Tool-build caching and source-result caching
+remain separate claims: the current rung proves verified result reuse, not
+precise import-graph invalidation of every self-host tool.
+
 ## Stop Conditions
 
 Stop expanding validation when any of these is true:

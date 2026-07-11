@@ -44,7 +44,7 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Field:") {
         return TypedAstKindFieldTag();
     }
-    if StartsWith(text, "Function:") {
+    if StartsWith(text, "Function:") || StartsWith(text, "Action:") {
         return TypedAstKindFuncDeclTag();
     }
     if StartsWith(text, "Role:") {
@@ -129,6 +129,9 @@ func CodegenAstTextKindOf(text: String) -> Int {
 
 func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindFuncDeclTag() {
+        if StartsWith(text, "Action: ") {
+            return Substring(text, 8, StringLength(text) - 8);
+        }
         return Substring(text, 10, StringLength(text) - 10);
     }
     if kind == TypedAstKindReturnsTag() {

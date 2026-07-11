@@ -458,7 +458,7 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenPari
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 68;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 69;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
@@ -468,8 +468,8 @@ require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureMani
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "95 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "95 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "96 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "96 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -736,11 +736,13 @@ require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func Semantic
 require_text "src/self_hosted/semantic/diagnostic_code_owner.pgy" "func SemanticDiagnosticOracleCode"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeKnown(code)"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticDiagnosticVocabularyManifest"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadContractReady"
+require_file "src/self_hosted/semantic/diagnostic_contract_owner.pgy"
+require_max_lines "src/self_hosted/semantic/diagnostic_contract_owner.pgy" 600
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func SemanticVerdictPayloadContractReady"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func EmitSemanticVerdictPayloadFixtureManifest"
@@ -757,8 +759,8 @@ require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--fixture-manif
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-vocabulary"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--diagnostic-surface-audit"'
 require_text "src/self_hosted/semantic/semantic_run_owner.pgy" '"--oracle-json-code-match"'
-require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticDiagnosticCodeCount() != 24"
-require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_owner.pgy";'
+require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticDiagnosticCodeCount() != 24"
+require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" 'import "../semantic/diagnostic_contract_owner.pgy";'
 require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "SemanticVerdictPayloadContractReady()"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "check_semantic_diagnostic_code_surface"
 require_text "tests/self_hosted/parity/semantic_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
@@ -2344,7 +2346,8 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func Sem
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
-require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
+require_file "src/self_hosted/semantic/ast_signature_contract_owner.pgy"
+require_text "src/self_hosted/semantic/ast_signature_contract_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "struct SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFactsFromArtifact"
@@ -2409,7 +2412,12 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'at most one `Ma
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyze(artifact, true)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return GenerateCFromSemanticArtifact(artifact, semantic_analysis);"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "struct CompilerEmissionArtifact"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" '"emitted-c",'
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAst("
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC("
+reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CheckBody("
@@ -2790,6 +2798,14 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectS
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums(count: Int, arena: AstArena"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(signatures: SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"const ", Concat(c_param_type'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvAppendReadonlyRefBinding"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvBindingIsReadonlyRef"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvReadonlyRefCName"
+require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCReadonlyRefParamName"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'mode == "ref"'
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "let ref_c_name: Option<String> = TypeEnvReadonlyRefCName("
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'Concat("(*", Concat(ref_c_name, ")"))'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectParameters(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBody(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBlock(arena, count, cur)"
@@ -2882,7 +2898,8 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCBindingName(p_name)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], p_name, p_kind, c_p_name)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvAppendValueBinding("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "env_box[0], p_name, p_kind, c_p_name"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], name,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(loop_var)"
@@ -3706,6 +3723,7 @@ require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "func
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "pgy.mir.v1"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "return MirParityFixtureCount();"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 95"
+reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirFactGraphPayloadFixtureCount() != 96"
 reject_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "return 95;"
 require_text "src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy" "MirParityFixtureCount() != MirFactGraphPayloadFixtureCount()"
 require_text "src/self_hosted/mir_lower/main.pgy" "RunMirLowerFromArgs(Args())"
@@ -5408,11 +5426,11 @@ reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 206
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 207;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 225;"
 reject_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "return 226;"
-completeness_min_count="$(grep -F "return 248;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
+completeness_min_count="$(grep -F "return 250;" "$ROOT_DIR/src/self_hosted/compiler/completeness_ledger_owner.pgy" |
     wc -l |
     tr -d ' ')"
 [[ "$completeness_min_count" -ge 8 ]] ||
-    fail "self-host completeness minima drifted below the 248-source owner-merged slice"
+    fail "self-host completeness minima drifted below the 250-source owner-merged slice"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessIncrementalCacheSchema"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "pgy.selfhost.completeness-cache.v1"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" "func CompilerCompletenessCacheFingerprintAt"
@@ -5563,6 +5581,8 @@ require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" 
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "expected 11 path rows"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "RUNNER_ARGS"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "env MAKEFLAGS= PGY_BIN="
+require_text "Makefile" 'self-host-completeness-smoke: $(if $(PGY_BIN),,$(PGY))'
+require_text "Makefile" 'PGY_BIN="$${PGY_BIN:-$(abspath $(PGY))}"'
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "self-host-completeness-impact-planner-paths"
 require_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "--run-groups"
 reject_text "tests/self_hosted/parity/completeness_impact_run_group_runner.sh" "src/self_hosted/**/*.pgy"
@@ -5794,20 +5814,23 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 68 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 68"
-[[ "$codegen_expected_count" -eq 68 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 68"
+[[ "$codegen_fixture_count" -eq 69 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 69"
+[[ "$codegen_expected_count" -eq 69 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 69"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
 require_file "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"
 require_file "src/self_hosted/codegen/fixture/long_scalar.pgy"
 require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
+require_file "src/self_hosted/codegen/fixture/ref_param.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "PGY_SELFHOST_CODEGEN_FIXTURES"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "PGY_SELFHOST_MIR_FIXTURES"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "CodegenParityExpectedPath(base)"
@@ -5912,7 +5935,7 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpe
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 68;"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 69;"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -5939,7 +5962,7 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 68'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 69'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -5964,7 +5987,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 68'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 69'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'

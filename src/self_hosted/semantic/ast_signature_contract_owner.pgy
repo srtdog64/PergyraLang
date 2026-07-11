@@ -1,0 +1,64 @@
+// Executable contract for parser-owned function signature facts.
+
+import "ast_signature_fact_owner.pgy";
+
+func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Get\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+        + "  Subject: SourceUnit\n    Fields:\n      path: String\n    Methods:\n      Action: Read\n        Parameters:\n          self\n        Returns: Bool\n        Body:\n          Block:\n            Return: true\n"
+    );
+    let facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) ||
+        SemanticAstFunctionSignatureCount(facts) != 3 {
+        return false;
+    }
+    let first_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 0);
+    let second_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 1);
+    let action_self: Option<Int> = SemanticAstFunctionParamFlatIndex(
+        facts, 2, 0
+    );
+    let valid_rows: Bool = facts.owner_names[0] == "Box" &&
+        facts.runtime_callables[0] &&
+        facts.names[0] == "Get" &&
+        facts.return_types[0] == "String" && facts.param_counts[0] == 2 &&
+        IsSome(first_param) && facts.param_names[UnwrapOption(first_param)] == "self" &&
+        facts.param_types[UnwrapOption(first_param)] == "Box" &&
+        IsSome(second_param) && facts.param_names[UnwrapOption(second_param)] == "index" &&
+        facts.param_types[UnwrapOption(second_param)] == "Int" &&
+        facts.owner_names[1] == "" && facts.runtime_callables[1] &&
+        facts.names[1] == "Main" &&
+        facts.return_types[1] == "Void" &&
+        facts.owner_names[2] == "SourceUnit" &&
+        facts.runtime_callables[2] && facts.names[2] == "Read" &&
+        facts.return_types[2] == "Bool" && facts.param_counts[2] == 1 &&
+        IsSome(action_self) &&
+        facts.param_types[UnwrapOption(action_self)] == "SourceUnit";
+    if !valid_rows {
+        return false;
+    }
+    let stale: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Set\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    if SemanticAstFunctionSignatureFactsMatchArtifact(stale, facts) {
+        return false;
+    }
+    let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let duplicate_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(duplicate);
+    if duplicate_facts.ok ||
+        duplicate_facts.diagnostic_code != "function_signature_invalid" {
+        return false;
+    }
+    let ability_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Ability: Arithmetic\n    Function: Add\n      Parameters:\n        self\n      Returns: Int\n"
+    );
+    let ability_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(ability_artifact);
+    return ability_facts.ok &&
+        ArrayLength(ability_facts.owner_names) == 1 &&
+        ability_facts.owner_names[0] == "Arithmetic" &&
+        !ability_facts.runtime_callables[0];
+}

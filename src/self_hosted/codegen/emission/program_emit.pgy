@@ -109,7 +109,7 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         CodegenSemanticFunctionParamNameForNodeOrDie(
             signatures, signature_index, param_index, cur[0]
         );
-        if p_mode == 2 || p_mode == 3 {
+        if p_mode == 2 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
         }
         param_index = param_index + 1;

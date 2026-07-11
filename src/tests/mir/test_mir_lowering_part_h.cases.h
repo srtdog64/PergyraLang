@@ -225,60 +225,85 @@ test_mir_lowering_part_h(void)
         const char *src =
             "func WithReleaseFact() -> Void {\n"
             "    with slot<Int> as s {\n"
-            "        Write(s, 1);\n"
-            "        Log(Read(s));\n"
+            "        let i: Int = 0;\n"
+            "        while i < 2 {\n"
+            "            Write(s, i);\n"
+            "            Log(Read(s));\n"
+            "            i = i + 1;\n"
+            "        }\n"
             "    }\n"
             "}\n";
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
+        const HIRRoutine *hir_routine = NULL;
         const MIRRoutine *routine = NULL;
-        const MIRBasicBlock *block = NULL;
-        size_t claim_i = (size_t)-1;
-        size_t write_i = (size_t)-1;
-        size_t read_i = (size_t)-1;
-        size_t release_i = (size_t)-1;
+        size_t claim_block_id = (size_t)-1;
+        size_t release_block_id = (size_t)-1;
+        bool found_write = false;
+        bool found_read = false;
         bool release_has_layout = false;
+        bool release_has_scope_exit_fact = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok)
+        if (ok) {
             routine = find_mir_routine(mir, "WithReleaseFact",
                                        MIR_SCOPE_FUNCTION);
-        if (routine != NULL && routine->block_count > routine->entry_block) {
-            block = &routine->blocks[routine->entry_block];
-            for (size_t ii = 0; ii < block->instruction_count; ii++) {
-                const MIRInstruction *inst = &block->instructions[ii];
-                if (inst->kind != MIR_INST_RESOURCE_OP
-                    || inst->name == NULL
-                    || inst->slot_anchor == NULL
-                    || strcmp(inst->slot_anchor, "s") != 0) {
-                    continue;
-                }
-                if (strcmp(inst->name, "Claim") == 0) {
-                    claim_i = ii;
-                } else if (strcmp(inst->name, "Write") == 0) {
-                    write_i = ii;
-                } else if (strcmp(inst->name, "Read") == 0) {
-                    read_i = ii;
-                } else if (strcmp(inst->name, "Release") == 0) {
-                    release_i = ii;
-                    release_has_layout =
-                        inst->type_layout != NULL
-                        && inst->abi_type_name != NULL
-                        && strcmp(inst->abi_type_name, "Slot<Int>") == 0;
+            for (size_t hi = 0; hi < hir->routine_count; hi++) {
+                if (hir->routines[hi].name != NULL
+                    && strcmp(hir->routines[hi].name,
+                              "WithReleaseFact") == 0) {
+                    hir_routine = &hir->routines[hi];
+                    break;
                 }
             }
         }
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                const MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    const MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind != MIR_INST_RESOURCE_OP
+                        || inst->name == NULL
+                        || inst->slot_anchor == NULL
+                        || strcmp(inst->slot_anchor, "s") != 0) {
+                        continue;
+                    }
+                    if (strcmp(inst->name, "Claim") == 0) {
+                        claim_block_id = bi;
+                    } else if (strcmp(inst->name, "Write") == 0) {
+                        found_write = true;
+                    } else if (strcmp(inst->name, "Read") == 0) {
+                        found_read = true;
+                    } else if (strcmp(inst->name, "Release") == 0) {
+                        release_block_id = bi;
+                        release_has_layout =
+                            inst->type_layout != NULL
+                            && inst->abi_type_name != NULL
+                            && strcmp(inst->abi_type_name, "Slot<Int>") == 0;
+                    }
+                }
+            }
+        }
+        if (routine != NULL
+            && hir_routine != NULL
+            && release_block_id < routine->block_count) {
+            size_t hir_block_id =
+                routine->blocks[release_block_id].source_hir_block_id;
+            release_has_scope_exit_fact =
+                hir_block_id < hir_routine->cfg.block_count
+                && hir_routine->cfg.blocks[hir_block_id]
+                       .resource_scope_exit_count == 1;
+        }
         EXPECT(ok
                && routine != NULL
-               && block != NULL
-               && claim_i != (size_t)-1
-               && write_i != (size_t)-1
-               && read_i != (size_t)-1
-               && release_i != (size_t)-1
-               && claim_i < write_i
-               && write_i < release_i
-               && read_i < release_i
+               && hir_routine != NULL
+               && claim_block_id == routine->entry_block
+               && found_write
+               && found_read
+               && release_block_id != (size_t)-1
+               && release_block_id != routine->entry_block
                && release_has_layout
+               && release_has_scope_exit_fact
                && mir_validate(mir, NULL));
         mir_destroy(mir);
         rir_destroy(rir);

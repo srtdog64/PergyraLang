@@ -139,6 +139,9 @@ struct HIRBasicBlock
     ASTNode               **statements;
     size_t                  statement_count;
     size_t                  statement_capacity;
+    ASTNode               **resource_scope_exits;
+    size_t                  resource_scope_exit_count;
+    size_t                  resource_scope_exit_capacity;
     bool                    is_pin_region;
     bool                    is_select_case_body;
     bool                    pin_view_is_write;

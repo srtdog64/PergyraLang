@@ -1,4 +1,0 @@
-COMPILE-FAIL examples/shopping_mall_checkout_refund/main.pgy
-
-0 error(s), 0 warning(s)
-pgy: compile failed: C backend: subject argument 1 for 'BuildCheckoutIntentRequest' requires addressable storage

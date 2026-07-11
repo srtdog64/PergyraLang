@@ -23,7 +23,7 @@ raised the M2 ledger to 219/219 after the incremental fact graph owner and
 completeness impact owner split landed; the changed-source impact run proved
 the incremental graph, completeness ledger, impact owner, and TestHarness owner
 sources through lexer/parser/semantic/codegen;
-the MIR JSON fact-only frontier then moved to 95 fixtures. It first added Long
+the MIR JSON fact-only frontier then moved to 96 fixtures. It first added Long
 scalar flow, array index assignment, `Option` `?` propagation, and string
 equality-plus-concat surfaces, then closed the remaining committed codegen
 fixture surfaces: C-reserved binding spelling, payload-free enum match
@@ -44,6 +44,17 @@ The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-
 cheap.
+
+The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
+250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
+closed those six at 6/6, and the two newly split executable contract owners
+passed lexer/parser/semantic/codegen at 2/2. The readonly `ref` parameter row is
+now emitted as `const T *`, retained as a readonly binding fact, and consumed by
+member/call rewriting without recovering parameter mode from text. `Action:`
+rows under `Subject` now project to the canonical function kind and carry the
+subject owner/self type through the same signature inventory as ordinary
+functions. This is a 250-source completeness ratchet, not a released compiler
+replacement claim; released/default replacement remains 0%.
 
 The typed `AstArena` shape now lives at
 `src/self_hosted/hir/typed_ast_arena_owner.pgy`, not under codegen. The old
@@ -75,7 +86,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 24,211 frontend/backend LOC; 38,346 compiler-core LOC; 8.61% of the measured C reference volume | Pergyra compiler code exists; this is not substitution. |
-| Bounded executable replacement | DRV-2 has 19 producer-first source semantic fixtures, 4 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 95 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 19 producer-first source semantic fixtures, 4 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -148,8 +159,8 @@ payload-free enum literal projection routes through
 struct literal call-envelope facts route through
 `text/struct_literal_call_owner.pgy`, and typed struct literal field-entry row
 facts route through `text/struct_literal_field_owner.pgy`.
-The M2 completeness ledger now checks
-248 production self-host source files across lexer, parser, semantic, codegen,
+The M2 completeness ledger now inventories and ratchets
+250 production self-host source files across lexer, parser, semantic, codegen,
 and full-pipeline identity. The ledger itself is not a bootstrap-loop proof: it
 still runs through the current C/LLVM oracle compiler path and proves source
 breadth. A separate fixed-point gate now proves that the Pergyra-built bounded
@@ -192,7 +203,7 @@ parser/codegen bootstrap fixed point, and LSP has LSP-0
 diagnostic payload, LSP-1 squiggle-policy projection, and LSP-2a..LSP-2i
 buffered transport/request/response/session/document-state/feature-shape/session-state/hover-content rungs
 (docs/150).
-The DRV-0/DRV-1 artifact rungs consume the same 68 committed codegen parity
+The DRV-0/DRV-1 artifact rungs consume the same 69 committed codegen parity
 fixture frontier as `codegen/fixture_manifest_owner.pgy`; this broadens
 artifact assembly coverage. The fixed point proves a real Pergyra-built
 source-to-C compiler loop, but neither it nor DRV parity counts as
@@ -266,7 +277,7 @@ flow, string-array index return flow, and phi-bearing loop headers classified
 by CFG backedges rather than phi presence alone, plus MIR-owned array destructure
 binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 95 fixtures plus 0 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 96 fixtures plus 0 clean-reject
 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -284,7 +295,7 @@ expression, source-local, CFG, match-case, I/O policy, typed struct field
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, payload-free enum surfaces, and the Int role
 operator dispatch surface. The committed MIR-lower/codegen fixture inventory is
-currently **95 PASS / 0 gap plus 0 clean rejects** through this
+currently **96 PASS / 0 gap plus 0 clean rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
 instead of collapsing those labels to a generic class alias. Ability
@@ -304,9 +315,9 @@ text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
 95, the clean-reject inventory must stay at 0, the scorecard must cite the same
-95 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
+96 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
-as an example-origin fixture after all 68 committed self-host codegen fixtures,
+as an example-origin fixture after all 69 committed self-host codegen fixtures,
 not only purpose-built MIR-lower fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth
@@ -619,8 +630,10 @@ The realistic incremental path toward genuine self-host:
    resolver. The module manifest resolver now consumes bounded module-array
    object/field counts from the JSON owner instead of global substring counts.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
-   on 68 committed fixtures, with the emitter built through both backends.
-   The M2 completeness ledger also now checks all 248 production self-host
+   on 69 committed fixtures, with the emitter built through both backends. The
+   newest fixture proves scalar readonly-ref reads, aggregate member reads, and
+   readonly-ref forwarding consume one value/raw-address fact pair.
+   The M2 completeness ledger also now checks all 250 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Next rungs: string freeing / block

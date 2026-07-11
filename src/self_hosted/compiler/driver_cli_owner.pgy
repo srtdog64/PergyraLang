@@ -76,10 +76,10 @@ func DriverCliOutputPath(args: Array<String>) -> String {
 
 func DriverCliArtifact(source_path: String, mode: String) -> String with caps io_read {
     if mode == "--emit-ast" {
-        return CompileSourceToAst(source_path);
+        return CompileSourceToAstArtifact(source_path).tree_text;
     }
     if mode == "--emit-c" {
-        return CompileSourceToC(source_path);
+        return CompileSourceToCArtifact(source_path).payload;
     }
     Die(Concat("unknown driver artifact mode: ", mode));
     return "";

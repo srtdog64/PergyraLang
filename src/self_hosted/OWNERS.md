@@ -75,10 +75,17 @@ compiler-stage `.pgy` source to be listed here.
 ## Semantic
 
 - `src/self_hosted/semantic/main.pgy` -- entrypoint only.
+- `src/self_hosted/semantic/diagnostic_owner.pgy` -- structured semantic
+  diagnostic rendering, vocabulary, fixture manifest, and audit facts.
+- `src/self_hosted/semantic/diagnostic_contract_owner.pgy` -- executable
+  payload-status and diagnostic-vocabulary completeness contract.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, parameter, mode, and return signature facts.
+- `src/self_hosted/semantic/ast_signature_contract_owner.pgy` -- executable
+  freshness, duplicate-row, owner, and runtime-callability contract for those
+  signature facts.
 - `src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy` --
   artifact-bound nominal constructor name, return type, and ordered field-type
   rows consumed by expression typing; source constructor scans are forbidden.

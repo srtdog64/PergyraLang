@@ -71,7 +71,7 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # ABI-layout row, and SEA lane executor contract-row owners are explicit
 # fact-resource owners, not compiler-core AST/IR string bridges. Exclude them
 # by name and tighten to the measured core.
-CORE_STRING_MUNGE_SIG_MAX=108
+CORE_STRING_MUNGE_SIG_MAX=107
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -150,7 +150,10 @@ SENTINEL_MAX=0
 # and the typed AST arena move into HIR; keep the measured surface load-bearing.
 # 803 -> 808 (2026-07-10): parser-owned `AstTreeArtifact` construction and the
 # codegen arena view carry absence/failure through Option-backed facts.
-RESULT_USE_MIN=808
+# 808 -> 1024 (2026-07-11): typed statement/expression/MIR facts, the
+# subject-action signature contract, and readonly-ref C bindings carry absence
+# through Option-owned rows.
+RESULT_USE_MIN=1024
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
@@ -176,7 +179,11 @@ fail() {
 self_host_source_files() {
     if command -v git >/dev/null 2>&1 \
         && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        git -C "$ROOT_DIR" ls-files src/self_hosted
+        {
+            git -C "$ROOT_DIR" ls-files src/self_hosted
+            git -C "$ROOT_DIR" ls-files --others --exclude-standard \
+                src/self_hosted
+        } | sort -u
         return
     fi
 
@@ -184,9 +191,9 @@ self_host_source_files() {
 }
 
 count() {
-    # count(pattern) -> matches across tracked self-host implementation code.
-    # Fixtures, untracked sketches, and // comments are intentionally excluded
-    # so this gate measures the implementation, not examples or notes.
+    # count(pattern) -> matches across the pending self-host implementation tree.
+    # Fixtures, ignored sketches, and // comments are intentionally excluded so
+    # a new owner is measured before it is staged as well as after commit.
     local pattern="$1"
     local exclude_re="${2:-}"
     local matches

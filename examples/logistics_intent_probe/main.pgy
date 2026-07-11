@@ -11,21 +11,9 @@ import "intents/logistics_intents.pgy";
 import "world.pgy";
 import "setup.pgy";
 
-func AuditHandles(world: LogisticsWorld, loading: LoadingZone, route: RouteLink, seal: CargoSeal) -> String
+func CompletionState(world: LogisticsWorld) -> Int
 {
-    let bias = 0;
-    if world.completed > 0
-    {
-        bias = bias + 2;
-    }
-    else
-    {
-        bias = bias + 1;
-    }
-    return "audit loading=" + ToString(loading.staged)
-        + " lane=" + route.lane
-        + " seal=" + ToString(seal.qty)
-        + " bias=" + ToString(bias);
+    return world.completed;
 }
 
 func Main() -> Void
@@ -40,7 +28,7 @@ func Main() -> Void
     world.Broadcast("merge.true=" + ToString(mergeA));
     world.Broadcast("merge.false=" + ToString(mergeB));
 
-    let ok = RouteCargo(Clone(world.loading), Clone(world.delivery), world.loading.courier, world.loading.dispatcher);
+    let ok = world.Route();
     if ok
     {
         world.completed = 1;
@@ -56,7 +44,7 @@ func Main() -> Void
     world.Broadcast("  [HistoryCount] " + ToString(IntentHistoryCount()));
     world.Blank();
 
-    world.Broadcast(AuditHandles(world, Clone(world.loading), world.delivery.route, world.delivery.seal));
+    world.Broadcast(world.Audit(CompletionState(world)));
     world.FinalSnapshot();
     world.Blank();
 

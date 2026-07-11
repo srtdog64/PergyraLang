@@ -77,6 +77,52 @@ world CommerceWorld
         Broadcast("  " + RenderHttpResponse(response.transport.response));
     }
 
+    func BuildCheckoutRequest(self, shipping: Int) -> CheckoutIntentRequest
+    {
+        return BuildCheckoutIntentRequest(cart, shipping);
+    }
+
+    func Checkout(self, request: CheckoutIntentRequest) -> IntentApiResponse
+    {
+        return HandleCheckoutIntent(cart, payment, cart.buyer, cart.merchant, request);
+    }
+
+    func BuildRefundRequest(self, ticketSeed: Int) -> RefundIntentRequest
+    {
+        return BuildRefundIntentRequest(payment, ticketSeed);
+    }
+
+    func Refund(self, request: RefundIntentRequest) -> IntentApiResponse
+    {
+        return HandleRefundIntent(payment, refund, cart.buyer, cart.merchant, request);
+    }
+
+    func BuildProfileRequest(self, marketing: Int) -> ProfileSyncRequest
+    {
+        return BuildProfileSyncRequest(refund, marketing);
+    }
+
+    func SyncProfile(self, request: ProfileSyncRequest) -> IntentApiResponse
+    {
+        return HandleProfileSyncIntent(refund, account, cart.buyer, request);
+    }
+
+    func SaveReport(self, path: String) -> StorageWrite
+    {
+        return SaveCommerceReport(
+            path,
+            route,
+            flowState,
+            transcript,
+            cart.buyer,
+            cart.merchant,
+            cart,
+            payment,
+            refund,
+            account
+        );
+    }
+
     func ShowCart(self) -> Void
     {
         route = cart.route;

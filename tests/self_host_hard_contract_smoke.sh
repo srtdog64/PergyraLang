@@ -93,7 +93,9 @@ require_text "src/self_hosted/PROGRESS.md" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompileArtifactToCVerified(artifact);"
+    "return CompilerEmissionArtifact("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "producer-first source/MIR parity ok"
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

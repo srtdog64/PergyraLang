@@ -12,6 +12,7 @@ struct SemanticAstNominalConstructorFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
+    diagnostic_fact: SemanticDiagnosticMessageFact;
     artifact_node_count: Int;
     node_ids: Array<Int>;
     nominal_kinds: Array<String>;
@@ -21,14 +22,6 @@ struct SemanticAstNominalConstructorFacts {
     param_counts: Array<Int>;
     field_names: Array<String>;
     param_type_names: Array<String>;
-}
-
-func SemanticAstNominalConstructorError(node_id: Int, fact: String) -> String {
-    return SemanticError2(
-        "nominal_constructor_fact_invalid",
-        "node_id", ToString(node_id),
-        "missing_fact", fact
-    );
 }
 
 func SemanticAstNominalConstructorFactsFromArtifact(
@@ -43,11 +36,10 @@ func SemanticAstNominalConstructorFactsFromArtifact(
     let field_names: Array<String> = [];
     let param_types: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
-    let diagnostic_code: String = "";
-    let diagnostic_message: String = "";
+    let diagnostic_fact: SemanticDiagnosticMessageFact =
+        SemanticDiagnosticMessageFactEmpty();
     if !ok {
-        diagnostic_code = "ast_artifact_invalid";
-        diagnostic_message = SemanticError2(
+        diagnostic_fact = SemanticDiagnosticMessageFact2(
             "ast_artifact_invalid",
             "node_count", ToString(artifact.count),
             "owner", "SemanticAstNominalConstructorFacts"
@@ -70,17 +62,19 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         );
         if !IsSome(name_opt) || StringLength(UnwrapOption(name_opt)) == 0 {
             ok = false;
-            diagnostic_code = "nominal_constructor_fact_invalid";
-            diagnostic_message = SemanticAstNominalConstructorError(
-                node_id, "nominal_name"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "nominal_constructor_fact_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "nominal_name"
             );
             continue;
         }
         if !IsSome(subkind_opt) {
             ok = false;
-            diagnostic_code = "nominal_constructor_fact_invalid";
-            diagnostic_message = SemanticAstNominalConstructorError(
-                node_id, "nominal_kind"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "nominal_constructor_fact_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "nominal_kind"
             );
             continue;
         }
@@ -98,9 +92,10 @@ func SemanticAstNominalConstructorFactsFromArtifact(
             ) {
                 if saw_fields {
                     ok = false;
-                    diagnostic_code = "nominal_constructor_fact_invalid";
-                    diagnostic_message = SemanticAstNominalConstructorError(
-                        child_id, "duplicate_fields_row"
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "nominal_constructor_fact_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "duplicate_fields_row"
                     );
                     continue;
                 }
@@ -115,9 +110,10 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                         artifact.arena, field_id, TypedAstKindFieldTag()
                     ) {
                         ok = false;
-                        diagnostic_code = "nominal_constructor_fact_invalid";
-                        diagnostic_message = SemanticAstNominalConstructorError(
-                            field_id, "field_kind"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "nominal_constructor_fact_invalid",
+                            "node_id", ToString(field_id),
+                            "missing_fact", "field_kind"
                         );
                         continue;
                     }
@@ -130,18 +126,20 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                     if !IsSome(field_name_opt) ||
                         StringLength(UnwrapOption(field_name_opt)) == 0 {
                         ok = false;
-                        diagnostic_code = "nominal_constructor_fact_invalid";
-                        diagnostic_message = SemanticAstNominalConstructorError(
-                            field_id, "field_name"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "nominal_constructor_fact_invalid",
+                            "node_id", ToString(field_id),
+                            "missing_fact", "field_name"
                         );
                         continue;
                     }
                     if !IsSome(field_type_opt) ||
                         StringLength(UnwrapOption(field_type_opt)) == 0 {
                         ok = false;
-                        diagnostic_code = "nominal_constructor_fact_invalid";
-                        diagnostic_message = SemanticAstNominalConstructorError(
-                            field_id, "field_type"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "nominal_constructor_fact_invalid",
+                            "node_id", ToString(field_id),
+                            "missing_fact", "field_type"
                         );
                         continue;
                     }
@@ -177,7 +175,9 @@ func SemanticAstNominalConstructorFactsFromArtifact(
         node_id = node_id + 1;
     }
     return SemanticAstNominalConstructorFacts(
-        ok, diagnostic_code, diagnostic_message, artifact.count,
+        ok, diagnostic_fact.code,
+        SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
+        artifact.count,
         node_ids, nominal_kinds, names, return_types, param_starts,
         param_counts, field_names, param_types
     );

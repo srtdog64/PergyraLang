@@ -337,6 +337,26 @@ func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String,
                 Die(Concat("inout argument must be a variable: ", part));
             }
             rendered = Concat("&", rendered);
+        } else if mode == "ref" {
+            let already_ref: Bool = IsIdentifier(part) &&
+                TypeEnvBindingIsReadonlyRef(env, part);
+            let member_lvalue: Bool = StringIndexOf(part, ".") > 0 &&
+                StringIndexOf(part, "(") < 0 &&
+                StringIndexOf(part, "[") < 0;
+            if already_ref {
+                let ref_c_name: Option<String> = TypeEnvReadonlyRefCName(
+                    env, part
+                );
+                if !IsSome(ref_c_name) {
+                    Die(Concat("readonly ref binding fact missing: ", part));
+                }
+                rendered = UnwrapOption(ref_c_name);
+            } else {
+                if !IsIdentifier(part) && !member_lvalue {
+                    Die(Concat("ref argument must be addressable: ", part));
+                }
+                rendered = Concat("&", rendered);
+            }
         }
         if arg_index == 0 {
             out = rendered;

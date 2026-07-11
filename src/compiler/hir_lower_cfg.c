@@ -443,17 +443,27 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                 return -1;
             return current_block;
 
-        case AST_WITH_STMT:
+        case AST_WITH_STMT: {
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node)) {
                 return -1;
             }
-            return hir_lower_block_body_to_cfg(ast_with_body(node),
-                                               blocks,
-                                               block_count,
-                                               block_capacity,
-                                               current_block,
-                                               pin,
-                                               loop);
+            size_t region_first_block = (size_t)current_block;
+            ssize_t scope_open = hir_lower_block_body_to_cfg(
+                ast_with_body(node), blocks, block_count, block_capacity,
+                current_block, pin, loop);
+            if (scope_open >= 0
+                && !hir_cfg_append_resource_scope_exit(
+                    &(*blocks)[(size_t)scope_open], node)) {
+                return -1;
+            }
+            for (size_t i = region_first_block; i < *block_count; i++) {
+                if ((*blocks)[i].terminator_kind != HIR_BLOCK_RETURN)
+                    continue;
+                if (!hir_cfg_append_resource_scope_exit(&(*blocks)[i], node))
+                    return -1;
+            }
+            return scope_open;
+        }
 
         case AST_UNSAFE_BLOCK:
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node)) {

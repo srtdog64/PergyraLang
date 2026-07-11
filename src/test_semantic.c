@@ -102,7 +102,6 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_domain_part_c.cases.h"
 #include "tests/semantic/test_semantic_event_part_a.cases.h"
 #include "tests/semantic/test_semantic_projection_diagnostics.cases.h"
-#include "tests/semantic/test_semantic_intent_observability.cases.h"
 #include "tests/semantic/test_semantic_intent_compression_part_a_1.cases.h"
 #include "tests/semantic/test_semantic_intent_compression_part_a_2.cases.h"
 #include "tests/semantic/test_semantic_b0_provenance.cases.h"

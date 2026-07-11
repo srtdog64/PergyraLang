@@ -10,6 +10,7 @@ struct SemanticAstLocalBindingFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
+    diagnostic_fact: SemanticDiagnosticMessageFact;
     artifact_node_count: Int;
     node_ids: Array<Int>;
     function_node_ids: Array<Int>;
@@ -18,14 +19,6 @@ struct SemanticAstLocalBindingFacts {
     declared_type_names: Array<String>;
     has_declared_types: Array<Int>;
     initializer_texts: Array<String>;
-}
-
-func SemanticAstLocalBindingError(node_id: Int, fact: String) -> String {
-    return SemanticError2(
-        "local_binding_invalid",
-        "node_id", ToString(node_id),
-        "missing_fact", fact
-    );
 }
 
 func SemanticAstEnclosingFunctionNode(
@@ -79,11 +72,10 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let initializer_texts: Array<String> = [];
     let ok: Bool = AstTreeArtifactReady(artifact) &&
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
-    let diagnostic_code: String = "";
-    let diagnostic_message: String = "";
+    let diagnostic_fact: SemanticDiagnosticMessageFact =
+        SemanticDiagnosticMessageFactEmpty();
     if !ok {
-        diagnostic_code = "ast_artifact_invalid";
-        diagnostic_message = SemanticError2(
+        diagnostic_fact = SemanticDiagnosticMessageFact2(
             "ast_artifact_invalid",
             "node_count", ToString(artifact.count),
             "owner", "SemanticAstLocalBindingFacts"
@@ -112,17 +104,19 @@ func SemanticAstLocalBindingFactsFromArtifact(
         );
         if !IsSome(name) || StringLength(UnwrapOption(name)) == 0 {
             ok = false;
-            diagnostic_code = "local_binding_invalid";
-            diagnostic_message = SemanticAstLocalBindingError(
-                node_id, "binding_name"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "local_binding_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "binding_name"
             );
             continue;
         }
         if !IsSome(initializer) {
             ok = false;
-            diagnostic_code = "local_binding_invalid";
-            diagnostic_message = SemanticAstLocalBindingError(
-                node_id, "initializer"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "local_binding_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "initializer"
             );
             continue;
         }
@@ -130,9 +124,10 @@ func SemanticAstLocalBindingFactsFromArtifact(
             artifact.arena, UnwrapOption(scope), TypedAstKindBlockTag()
         ) {
             ok = false;
-            diagnostic_code = "local_binding_invalid";
-            diagnostic_message = SemanticAstLocalBindingError(
-                node_id, "scope_block"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "local_binding_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "scope_block"
             );
             continue;
         }
@@ -142,9 +137,10 @@ func SemanticAstLocalBindingFactsFromArtifact(
             )
         ) {
             ok = false;
-            diagnostic_code = "local_binding_invalid";
-            diagnostic_message = SemanticAstLocalBindingError(
-                node_id, "function_owner"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "local_binding_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "function_owner"
             );
             continue;
         }
@@ -169,7 +165,9 @@ func SemanticAstLocalBindingFactsFromArtifact(
         node_id = node_id + 1;
     }
     return SemanticAstLocalBindingFacts(
-        ok, diagnostic_code, diagnostic_message, artifact.count,
+        ok, diagnostic_fact.code,
+        SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
+        artifact.count,
         node_ids, function_node_ids, scope_node_ids, names,
         declared_type_names, has_declared_types, initializer_texts
     );

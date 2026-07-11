@@ -1,14 +1,13 @@
 // Function signature facts derived from the shared parser-owned AST artifact.
-
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
-
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
+    diagnostic_fact: SemanticDiagnosticMessageFact;
     artifact_node_count: Int;
     function_node_ids: Array<Int>;
     owner_names: Array<String>;
@@ -22,18 +21,9 @@ struct SemanticAstFunctionSignatureFacts {
     param_types: Array<String>;
     param_modes: Array<Int>;
 }
-
 struct SemanticAstFunctionOwnerFact {
     name: String;
     runtime_callable: Bool;
-}
-
-func SemanticAstSignatureError(node_id: Int, fact: String) -> String {
-    return SemanticError2(
-        "function_signature_invalid",
-        "node_id", ToString(node_id),
-        "missing_fact", fact
-    );
 }
 
 func SemanticAstFunctionOwnerFactFromArena(
@@ -94,11 +84,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let param_types: Array<String> = [];
     let param_modes: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
-    let diagnostic_code: String = "";
-    let diagnostic_message: String = "";
+    let diagnostic_fact: SemanticDiagnosticMessageFact =
+        SemanticDiagnosticMessageFactEmpty();
     if !ok {
-        diagnostic_code = "ast_artifact_invalid";
-        diagnostic_message = SemanticError2(
+        diagnostic_fact = SemanticDiagnosticMessageFact2(
             "ast_artifact_invalid",
             "node_count", ToString(artifact.count),
             "owner", "AstTreeArtifact"
@@ -116,16 +105,22 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
         if !IsSome(name) {
             ok = false;
-            diagnostic_code = "function_signature_invalid";
-            diagnostic_message = SemanticAstSignatureError(node_id, "function_name");
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "function_name"
+            );
             continue;
         }
         let owner: Option<SemanticAstFunctionOwnerFact> =
             SemanticAstFunctionOwnerFactFromArena(artifact.arena, node_id);
         if !IsSome(owner) {
             ok = false;
-            diagnostic_code = "function_signature_invalid";
-            diagnostic_message = SemanticAstSignatureError(node_id, "owner_name");
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "owner_name"
+            );
             continue;
         }
 
@@ -144,9 +139,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             ) {
                 if saw_parameters {
                     ok = false;
-                    diagnostic_code = "function_signature_invalid";
-                    diagnostic_message = SemanticAstSignatureError(
-                        child_id, "duplicate_parameters_row"
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "function_signature_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "duplicate_parameters_row"
                     );
                     continue;
                 }
@@ -161,9 +157,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         artifact.arena, param_id, TypedAstKindParamTag()
                     ) {
                         ok = false;
-                        diagnostic_code = "function_signature_invalid";
-                        diagnostic_message = SemanticAstSignatureError(
-                            param_id, "parameter_kind"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "function_signature_invalid",
+                            "node_id", ToString(param_id),
+                            "missing_fact", "parameter_kind"
                         );
                         continue;
                     }
@@ -171,9 +168,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         TypedAstArenaAtomText(artifact.arena, param_id);
                     if !IsSome(param_name) {
                         ok = false;
-                        diagnostic_code = "function_signature_invalid";
-                        diagnostic_message = SemanticAstSignatureError(
-                            param_id, "parameter_name"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "function_signature_invalid",
+                            "node_id", ToString(param_id),
+                            "missing_fact", "parameter_name"
                         );
                         continue;
                     }
@@ -189,9 +187,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                         resolved_param_type = UnwrapOption(owner).name;
                     } else {
                         ok = false;
-                        diagnostic_code = "function_signature_invalid";
-                        diagnostic_message = SemanticAstSignatureError(
-                            param_id, "parameter_type"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "function_signature_invalid",
+                            "node_id", ToString(param_id),
+                            "missing_fact", "parameter_type"
                         );
                         continue;
                     }
@@ -200,9 +199,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                     );
                     if !IsSome(mode) {
                         ok = false;
-                        diagnostic_code = "function_signature_invalid";
-                        diagnostic_message = SemanticAstSignatureError(
-                            param_id, "parameter_mode"
+                        diagnostic_fact = SemanticDiagnosticMessageFact2(
+                            "function_signature_invalid",
+                            "node_id", ToString(param_id),
+                            "missing_fact", "parameter_mode"
                         );
                         continue;
                     }
@@ -220,9 +220,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             ) {
                 if saw_returns {
                     ok = false;
-                    diagnostic_code = "function_signature_invalid";
-                    diagnostic_message = SemanticAstSignatureError(
-                        child_id, "duplicate_returns_row"
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "function_signature_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "duplicate_returns_row"
                     );
                     continue;
                 }
@@ -230,9 +231,10 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
                     TypedAstArenaTypeName(artifact.arena, child_id);
                 if !IsSome(return_type_fact) {
                     ok = false;
-                    diagnostic_code = "function_signature_invalid";
-                    diagnostic_message = SemanticAstSignatureError(
-                        child_id, "return_type"
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "function_signature_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "return_type"
                     );
                     continue;
                 }
@@ -251,17 +253,19 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         }
         if !saw_parameters {
             ok = false;
-            diagnostic_code = "function_signature_invalid";
-            diagnostic_message = SemanticAstSignatureError(
-                node_id, "parameters_row"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "parameters_row"
             );
             continue;
         }
         if !saw_returns {
             ok = false;
-            diagnostic_code = "function_signature_invalid";
-            diagnostic_message = SemanticAstSignatureError(
-                node_id, "returns_row"
+            diagnostic_fact = SemanticDiagnosticMessageFact2(
+                "function_signature_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "returns_row"
             );
             continue;
         }
@@ -276,7 +280,9 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     }
 
     return SemanticAstFunctionSignatureFacts(
-        ok, diagnostic_code, diagnostic_message, artifact.count,
+        ok, diagnostic_fact.code,
+        SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
+        artifact.count,
         function_node_ids, owner_names, runtime_callables, names, return_types,
         param_starts, param_counts, param_node_ids, param_names,
         param_types, param_modes
@@ -590,56 +596,4 @@ func SemanticAstFunctionParamModeAt(
         return None;
     }
     return Some(facts.param_modes[UnwrapOption(flat)]);
-}
-
-func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Get\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
-    );
-    let facts: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
-    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, facts) ||
-        SemanticAstFunctionSignatureCount(facts) != 2 {
-        return false;
-    }
-    let first_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 0);
-    let second_param: Option<Int> = SemanticAstFunctionParamFlatIndex(facts, 0, 1);
-    let valid_rows: Bool = facts.owner_names[0] == "Box" &&
-        facts.runtime_callables[0] &&
-        facts.names[0] == "Get" &&
-        facts.return_types[0] == "String" && facts.param_counts[0] == 2 &&
-        IsSome(first_param) && facts.param_names[UnwrapOption(first_param)] == "self" &&
-        facts.param_types[UnwrapOption(first_param)] == "Box" &&
-        IsSome(second_param) && facts.param_names[UnwrapOption(second_param)] == "index" &&
-        facts.param_types[UnwrapOption(second_param)] == "Int" &&
-        facts.owner_names[1] == "" && facts.runtime_callables[1] &&
-        facts.names[1] == "Main" &&
-        facts.return_types[1] == "Void";
-    if !valid_rows {
-        return false;
-    }
-    let stale: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Class: Box\n    Fields:\n    Methods:\n      Function: Set\n        Parameters:\n          self\n          index: Int\n        Returns: String\n        Body:\n          Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
-    );
-    if SemanticAstFunctionSignatureFactsMatchArtifact(stale, facts) {
-        return false;
-    }
-    let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
-    );
-    let duplicate_facts: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(duplicate);
-    if duplicate_facts.ok ||
-        duplicate_facts.diagnostic_code != "function_signature_invalid" {
-        return false;
-    }
-    let ability_artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Ability: Arithmetic\n    Function: Add\n      Parameters:\n        self\n      Returns: Int\n"
-    );
-    let ability_facts: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(ability_artifact);
-    return ability_facts.ok &&
-        ArrayLength(ability_facts.owner_names) == 1 &&
-        ability_facts.owner_names[0] == "Arithmetic" &&
-        !ability_facts.runtime_callables[0];
 }

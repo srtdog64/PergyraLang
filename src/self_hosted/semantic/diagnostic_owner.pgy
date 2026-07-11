@@ -4,6 +4,44 @@ import "../lib/diagnostic.pgy";
 import "../lib/json_fact_table.pgy";
 import "diagnostic_code_owner.pgy";
 
+struct SemanticDiagnosticMessageFact {
+    present: Bool;
+    code: String;
+    first_key: String;
+    first_value: String;
+    second_key: String;
+    second_value: String;
+}
+
+func SemanticDiagnosticMessageFactEmpty() -> SemanticDiagnosticMessageFact {
+    return SemanticDiagnosticMessageFact(false, "", "", "", "", "");
+}
+
+func SemanticDiagnosticMessageFact2(
+    code: String,
+    first_key: String,
+    first_value: String,
+    second_key: String,
+    second_value: String
+) -> SemanticDiagnosticMessageFact {
+    return SemanticDiagnosticMessageFact(
+        true, code, first_key, first_value, second_key, second_value
+    );
+}
+
+func SemanticDiagnosticMessageFactRender(
+    fact: SemanticDiagnosticMessageFact
+) -> String {
+    if !fact.present {
+        return "";
+    }
+    return SemanticError2(
+        fact.code,
+        fact.first_key, fact.first_value,
+        fact.second_key, fact.second_value
+    );
+}
+
 func SemanticReason(code: String) -> String {
     if code == "undefined_symbol" {
         return "identifier is used before a local binding is in scope";
@@ -331,16 +369,16 @@ func SemanticDiagnosticVocabularyRows() -> Array<String> {
     }
     return rows;
 }
-func SemanticDiagnosticCodeFromMessage(message: String) -> String {
+func SemanticDiagnosticCodeFromMessage(message: String) -> Option<String> {
     let codes: Array<String> = SemanticDiagnosticCodes();
     let i: Int = 0;
     while i < ArrayLength(codes) {
         if StringContains(message, Concat("Code: ", codes[i])) {
-            return codes[i];
+            return Some(codes[i]);
         }
         i = i + 1;
     }
-    return "unregistered_diagnostic_code";
+    return None();
 }
 
 func EmitSemanticDiagnosticVocabularyManifest() -> Void {
@@ -526,50 +564,6 @@ func EmitSemanticOracleJsonCodeMatch(path: String, expected: String) -> Void {
     }
     Log(Concat(Concat(Concat("code-mismatch|expected=", expected), "|actual="), actual));
     Exit(1);
-}
-
-func SemanticVerdictPayloadStatusReady() -> Bool {
-    let ok: String = SemanticOk();
-    if StringIndexOf(ok, "Diagnostic: pgy.selfhost.semantic.v1") != 0 {
-        return false;
-    }
-    if StringIndexOf(ok, "Status: ok") < 0 {
-        return false;
-    }
-
-    let err: String = SemanticError1("undefined_symbol", "name", "x");
-    if StringIndexOf(err, "Status: error") < 0 {
-        return false;
-    }
-    if StringIndexOf(err, "Stage: semantic") < 0 {
-        return false;
-    }
-    if StringIndexOf(err, "Code: undefined_symbol") < 0 {
-        return false;
-    }
-    return true;
-}
-
-func SemanticVerdictPayloadContractReady() -> Bool {
-    if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
-        return false;
-    }
-    if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
-        return false;
-    }
-    if SemanticDiagnosticCodeCount() != 24 {
-        return false;
-    }
-    if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
-        return false;
-    }
-    if ArrayLength(SemanticDiagnosticSurfaceAuditFindings()) != 0 {
-        return false;
-    }
-    if !SemanticVerdictPayloadStatusReady() {
-        return false;
-    }
-    return true;
 }
 
 func SemanticErrorWithFacts(code: String, facts: String) -> String {

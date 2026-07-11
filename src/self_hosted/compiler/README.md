@@ -166,7 +166,7 @@ stage-artifact, and target-capability readiness facts. The AST and C artifact
 edges are named separately (`CompileSourceToAst`, `CompileAstToC`, and
 `CompileSourceToC`). `driver_rung0_main.pgy` is the runnable boundary for those
 facts, and `tests/self_hosted/parity/driver_rung0_parity.sh` compares the
-assembled AST/C outputs against the C oracle across the same 68 committed
+assembled AST/C outputs against the C oracle across the same 69 committed
 codegen parity fixtures named by `codegen/fixture_manifest_owner.pgy`. It is
 not a second driver graph; the owner still only assembles parser and codegen
 facts.

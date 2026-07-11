@@ -153,9 +153,38 @@ read_mir_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$MIR_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 95 ]]; then
-        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 95" >&2
+    if [[ "${#FIXTURES[@]}" -ne 96 ]]; then
+        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 96" >&2
         exit 1
+    fi
+
+    if [[ -n "${PGY_SELFHOST_MIR_FIXTURES:-}" ]]; then
+        local selected=()
+        local requested
+        local requested_fixtures=()
+        local fixture_entry
+        IFS=', ' read -r -a requested_fixtures \
+            <<< "$PGY_SELFHOST_MIR_FIXTURES"
+        for requested in "${requested_fixtures[@]}"; do
+            [[ -n "$requested" ]] || continue
+            local matched=0
+            for fixture_entry in "${FIXTURES[@]}"; do
+                if [[ "$(basename "$fixture_entry" .pgy)" == "$requested" ]]; then
+                    selected+=("$fixture_entry")
+                    matched=1
+                    break
+                fi
+            done
+            if [[ "$matched" -ne 1 ]]; then
+                echo "[self-host-parity:mir-json] unknown fixture filter: $requested" >&2
+                exit 1
+            fi
+        done
+        if [[ "${#selected[@]}" -eq 0 ]]; then
+            echo "[self-host-parity:mir-json] empty fixture filter" >&2
+            exit 1
+        fi
+        FIXTURES=("${selected[@]}")
     fi
 }
 

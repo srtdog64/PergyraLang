@@ -3,11 +3,18 @@
 import "program_verify_owner.pgy";
 import "../lib/json_emit.pgy";
 
-func SelfMirJsonOptionalString(value: String) -> String {
+func SelfMirOptionalString(value: String) -> Option<String> {
     if value == "" {
+        return None;
+    }
+    return Some(value);
+}
+
+func SelfMirJsonOptionalString(value: Option<String>) -> String {
+    if !IsSome(value) {
         return "null";
     }
-    return JsonStringLiteral(value);
+    return JsonStringLiteral(UnwrapOption(value));
 }
 
 func SelfMirJsonInstruction(
@@ -31,23 +38,35 @@ func SelfMirJsonInstruction(
         JsonEmitFieldString("kind", rows.kinds[instruction_index]),
         JsonEmitFieldString("name", rows.names[instruction_index]),
         JsonEmitFieldRaw(
-            "result", SelfMirJsonOptionalString(rows.results[instruction_index])
+            "result", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.results[instruction_index])
+            )
         ),
         JsonEmitFieldRaw(
-            "arg0", SelfMirJsonOptionalString(rows.arg0s[instruction_index])
+            "arg0", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.arg0s[instruction_index])
+            )
         ),
         JsonEmitFieldRaw(
-            "arg1", SelfMirJsonOptionalString(rows.arg1s[instruction_index])
+            "arg1", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.arg1s[instruction_index])
+            )
         ),
         JsonEmitFieldRaw(
-            "expr0", SelfMirJsonOptionalString(rows.expr0s[instruction_index])
+            "expr0", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.expr0s[instruction_index])
+            )
         ),
         JsonEmitFieldRaw(
-            "expr1", SelfMirJsonOptionalString(rows.expr1s[instruction_index])
+            "expr1", SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.expr1s[instruction_index])
+            )
         ),
         JsonEmitFieldRaw(
             "source_type",
-            SelfMirJsonOptionalString(rows.source_types[instruction_index])
+            SelfMirJsonOptionalString(
+                SelfMirOptionalString(rows.source_types[instruction_index])
+            )
         ),
         JsonEmitFieldRaw("match_patterns", "[]"),
         JsonEmitFieldRaw("match_variant", "null"),
@@ -109,7 +128,12 @@ func SelfMirJsonRoutine(
         let row: Int = rows.param_starts[routine_index] + param_i;
         let fields: Array<String> = [
             JsonEmitFieldString("name", rows.param_names[row]),
-            JsonEmitFieldRaw("type", SelfMirJsonOptionalString(rows.param_types[row]))
+            JsonEmitFieldRaw(
+                "type",
+                SelfMirJsonOptionalString(
+                    SelfMirOptionalString(rows.param_types[row])
+                )
+            )
         ];
         ArrayPush(params, JsonEmitObject(fields));
         param_i = param_i + 1;

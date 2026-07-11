@@ -82,7 +82,12 @@ for backend in $BACKENDS; do
     OUT_BIN="$WORK_DIR/logistics_${backend}"
     OUT_BIN_ARG="$(pgy_path_for_compiler "$PGY" "$OUT_BIN")"
     RUN_OUT="$WORK_DIR/runtime_${backend}.txt"
-    "$PGY" "$EXAMPLE_ARG" --run --backend="$backend" -o "$OUT_BIN_ARG" > "$RUN_OUT" 2>&1
+    if ! "$PGY" "$EXAMPLE_ARG" --run --backend="$backend" \
+        -o "$OUT_BIN_ARG" > "$RUN_OUT" 2>&1; then
+        echo "ir-pipeline-probe: backend=$backend compiler/run failed" >&2
+        cat "$RUN_OUT" >&2
+        exit 1
+    fi
     grep -Fq "[Intent] RouteCargo ok=true" "$RUN_OUT"
     grep -Fq "[Runtime] steps=2" "$RUN_OUT"
     grep -Fq "[transfer] courier: LoadingZone.courier -> DeliveryZone.courier" "$RUN_OUT"

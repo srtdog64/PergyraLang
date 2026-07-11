@@ -1,4 +1,0 @@
-COMPILE-FAIL examples/logistics_intent_probe/main.pgy
-
-0 error(s), 0 warning(s)
-pgy: compile failed: C backend: subject argument 1 for 'RouteCargo' requires addressable storage

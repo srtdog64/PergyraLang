@@ -184,6 +184,9 @@ func CompilerSymbolCBindingName(source_name: String) -> String {
 func CompilerSymbolCInoutParamName(param_name: String) -> String {
     return Concat("_pgy_inout_", CompilerSymbolCIdentifier(param_name));
 }
+func CompilerSymbolCReadonlyRefParamName(param_name: String) -> String {
+    return Concat("_pgy_ref_", CompilerSymbolCIdentifier(param_name));
+}
 func CompilerSymbolCForEachCollectionTempName(loop_var_name: String) -> String {
     return Concat("_pgyc_", CompilerSymbolCIdentifier(loop_var_name));
 }

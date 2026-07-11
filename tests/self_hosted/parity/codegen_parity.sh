@@ -396,9 +396,30 @@ read_codegen_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$CODEGEN_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 68 ]]; then
-        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 68" >&2
+    if [[ "${#FIXTURES[@]}" -ne 69 ]]; then
+        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 69" >&2
         exit 1
+    fi
+
+    if [[ -n "${PGY_SELFHOST_CODEGEN_FIXTURES:-}" ]]; then
+        local selected=()
+        local requested
+        local requested_fixtures=()
+        IFS=', ' read -r -a requested_fixtures \
+            <<< "$PGY_SELFHOST_CODEGEN_FIXTURES"
+        for requested in "${requested_fixtures[@]}"; do
+            [[ -n "$requested" ]] || continue
+            if ! printf '%s\n' "${FIXTURES[@]}" | grep -Fxq "$requested"; then
+                echo "[self-host-parity:codegen] unknown fixture filter: $requested" >&2
+                exit 1
+            fi
+            selected+=("$requested")
+        done
+        if [[ "${#selected[@]}" -eq 0 ]]; then
+            echo "[self-host-parity:codegen] empty fixture filter" >&2
+            exit 1
+        fi
+        FIXTURES=("${selected[@]}")
     fi
 }
 

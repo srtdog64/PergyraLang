@@ -2298,8 +2298,8 @@ self-host-semantic-selfcheck-test-smoke: $(PGY)
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/selfcheck_sources.sh
 
-self-host-completeness-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_ledger.sh
+self-host-completeness-smoke: $(if $(PGY_BIN),,$(PGY))
+	PGY_BIN="$${PGY_BIN:-$(abspath $(PGY))}" "$(BASH)" tests/self_hosted/parity/completeness_ledger.sh
 
 self-host-completeness-incremental-cache-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_incremental_cache_parity.sh

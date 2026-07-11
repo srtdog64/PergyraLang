@@ -47,6 +47,17 @@ hir_cfg_append_stmt(ASTNode ***items, size_t *count, size_t *capacity, ASTNode *
     return true;
 }
 
+bool
+hir_cfg_append_resource_scope_exit(HIRBasicBlock *block, ASTNode *with_stmt)
+{
+    if (block == NULL || with_stmt == NULL || with_stmt->type != AST_WITH_STMT)
+        return false;
+    return hir_cfg_append_stmt(&block->resource_scope_exits,
+                               &block->resource_scope_exit_count,
+                               &block->resource_scope_exit_capacity,
+                               with_stmt);
+}
+
 void
 hir_cfg_apply_pin_region(HIRBasicBlock *block, const HIRPinRegionContext *pin)
 {

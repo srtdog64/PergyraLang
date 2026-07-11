@@ -190,7 +190,7 @@ The Makefile keeps the fast and heavy paths separate:
   space-separated set of manifest-owned `.pgy` paths for local owner-isolation
   checks. Source-filtered mode must pass every selected source through every
   selected stage, but it intentionally does not satisfy source-count minima or
-  pipeline identity baselines. It exists to avoid rerunning all 248 production
+  pipeline identity baselines. It exists to avoid rerunning all 250 production
   sources after a single owner edit; it is never a replacement for the
   unfiltered CI proof.
 - `self-host-completeness-incremental-cache-parity-test-smoke` is the rung0
@@ -209,6 +209,11 @@ The Makefile keeps the fast and heavy paths separate:
   path, check target, tool executable, and producer executable. This cache
   reduces repeated proof-run cost; it is not a narrower proof and does not
   replace the unfiltered completeness ledger.
+- A caller-supplied `PGY_BIN` is a prebuilt compiler artifact contract. The
+  `self-host-completeness-smoke` Make target must not rebuild `$(PGY)`, switch
+  `LLVM_ENABLED`, or invalidate the shared object directory when that artifact
+  is present. The impact runner consumes this boundary so a five-source owner
+  plan cannot silently become a whole-compiler rebuild.
 - `self-host-preparation-test-smoke` is the development/CI wrapper that runs
   both.
 

@@ -63,7 +63,7 @@ func EmitFunction(count: Int, arena: AstArena,
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
             signatures, signature_index, param_n
         );
-        if p_mode == 2 || p_mode == 3 {
+        if p_mode == 2 {
             Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstArenaProvenanceOrDie(arena, cur[0])));
         }
         let p_name: String = CodegenSemanticFunctionParamNameForNodeOrDie(
@@ -75,11 +75,17 @@ func EmitFunction(count: Int, arena: AstArena,
         );
         let c_param_type: String = AbiLayoutCParamType(p_type, base_env);
         let c_param: String = Concat(c_param_type, Concat(" ", c_p_name));
+        let c_ref_name: String = c_p_name;
         if p_mode == 1 {
             let inout_name: String = CompilerSymbolCInoutParamName(p_name);
             c_param = Concat(c_param_type, Concat(" *", inout_name));
             prologue = Concat(prologue, Concat("    ", Concat(c_param_type, Concat(" ", Concat(c_p_name, Concat(" = *", Concat(inout_name, ";\n")))))));
             copyout = Concat(copyout, Concat("    *", Concat(inout_name, Concat(" = ", Concat(c_p_name, ";\n")))));
+        } else if p_mode == 3 {
+            c_ref_name = CompilerSymbolCReadonlyRefParamName(p_name);
+            c_param = Concat(
+                "const ", Concat(c_param_type, Concat(" *", c_ref_name))
+            );
         }
         if param_n == 0 {
             params = c_param;
@@ -92,7 +98,15 @@ func EmitFunction(count: Int, arena: AstArena,
         if StartsWith(p_type, "Array<") {
             p_kind = CollectionRuntimeKindFromTypeName(p_type);
         }
-        ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], p_name, p_kind, c_p_name));
+        if p_mode == 3 {
+            ArraySet(env_box, 0, TypeEnvAppendReadonlyRefBinding(
+                env_box[0], p_name, p_kind, c_ref_name
+            ));
+        } else {
+            ArraySet(env_box, 0, TypeEnvAppendValueBinding(
+                env_box[0], p_name, p_kind, c_p_name
+            ));
+        }
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
@@ -316,7 +330,7 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
                     signatures, i, pn
                 );
-                if p_mode == 2 || p_mode == 3 {
+                if p_mode == 2 {
                     Die(Concat(
                         "unsupported self-host codegen parameter mode for function: ",
                         name
@@ -333,6 +347,12 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 let cp: String = Concat(cpt, Concat(" ", c_p_name));
                 if p_mode == 1 {
                     cp = Concat(cpt, Concat(" *", CompilerSymbolCInoutParamName(p_name)));
+                } else if p_mode == 3 {
+                    cp = Concat(
+                        "const ", Concat(cpt, Concat(
+                            " *", CompilerSymbolCReadonlyRefParamName(p_name)
+                        ))
+                    );
                 }
                 if pn == 0 {
                     params = cp;

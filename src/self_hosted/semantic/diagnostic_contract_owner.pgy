@@ -1,0 +1,47 @@
+// Executable payload and vocabulary contract for semantic diagnostics.
+
+import "diagnostic_owner.pgy";
+
+func SemanticVerdictPayloadStatusReady() -> Bool {
+    let ok: String = SemanticOk();
+    if StringIndexOf(ok, "Diagnostic: pgy.selfhost.semantic.v1") != 0 {
+        return false;
+    }
+    if StringIndexOf(ok, "Status: ok") < 0 {
+        return false;
+    }
+
+    let err: String = SemanticError1("undefined_symbol", "name", "x");
+    if StringIndexOf(err, "Status: error") < 0 {
+        return false;
+    }
+    if StringIndexOf(err, "Stage: semantic") < 0 {
+        return false;
+    }
+    if StringIndexOf(err, "Code: undefined_symbol") < 0 {
+        return false;
+    }
+    return true;
+}
+
+func SemanticVerdictPayloadContractReady() -> Bool {
+    if SemanticVerdictPayloadSchema() != "pgy.selfhost.semantic.v1" {
+        return false;
+    }
+    if SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount() {
+        return false;
+    }
+    if SemanticDiagnosticCodeCount() != 24 {
+        return false;
+    }
+    if ArrayLength(SemanticDiagnosticVocabularyRows()) != SemanticDiagnosticCodeCount() {
+        return false;
+    }
+    if ArrayLength(SemanticDiagnosticSurfaceAuditFindings()) != 0 {
+        return false;
+    }
+    if !SemanticVerdictPayloadStatusReady() {
+        return false;
+    }
+    return true;
+}

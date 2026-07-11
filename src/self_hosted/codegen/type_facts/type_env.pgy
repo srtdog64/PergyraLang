@@ -24,6 +24,33 @@ func TypeEnvAppendValueBinding(env: String, source_name: String, value_kind: Str
     return Concat(with_value, Concat(source_name, Concat("=cbind:", Concat(c_name, "|"))));
 }
 
+func TypeEnvAppendReadonlyRefBinding(
+    env: String, source_name: String, value_kind: String, ref_c_name: String
+) -> String {
+    let with_value: String = TypeEnvAppendValueBinding(
+        env, source_name, value_kind,
+        Concat("(*", Concat(ref_c_name, ")"))
+    );
+    return Concat(
+        with_value,
+        Concat(source_name, Concat("=cref:", Concat(ref_c_name, "|")))
+    );
+}
+
+func TypeEnvReadonlyRefCName(
+    env: String, source_name: String
+) -> Option<String> {
+    let ref_c_name: String = LookupKindType(env, source_name, "cref");
+    if StringLength(ref_c_name) == 0 {
+        return None;
+    }
+    return Some(ref_c_name);
+}
+
+func TypeEnvBindingIsReadonlyRef(env: String, source_name: String) -> Bool {
+    return IsSome(TypeEnvReadonlyRefCName(env, source_name));
+}
+
 func TypeEnvBindingCName(env: String, source_name: String) -> String {
     let c_name: String = LookupKindType(env, source_name, "cbind");
     if StringLength(c_name) > 0 {

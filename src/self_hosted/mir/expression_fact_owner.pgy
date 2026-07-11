@@ -2,6 +2,12 @@
 
 import "../lib/source_scan_owner.pgy";
 
+enum SelfMirExpressionKind {
+    Binary,
+    Call,
+    Identifier
+}
+
 func SelfMirNoUses() -> Array<String> {
     let uses: Array<String> = [];
     return uses;
@@ -26,7 +32,7 @@ func SelfMirTextContainsIdentifier(text: String, name: String) -> Bool {
     return false;
 }
 
-func SelfMirExpressionSourceType(expression: String) -> String {
+func SelfMirExpressionKindFromText(expression: String) -> SelfMirExpressionKind {
     let operators: Array<String> = [
         " + ", " - ", " * ", " / ", " < ", " <= ", " > ", " >= ",
         " == ", " != ", " && ", " || "
@@ -34,12 +40,18 @@ func SelfMirExpressionSourceType(expression: String) -> String {
     let i: Int = 0;
     while i < ArrayLength(operators) {
         if StringIndexOf(expression, operators[i]) >= 0 {
-            return "AST_BINARY";
+            return SelfMirExpressionKind.Binary;
         }
         i = i + 1;
     }
     if StringIndexOf(expression, "(") >= 0 {
-        return "AST_CALL";
+        return SelfMirExpressionKind.Call;
     }
+    return SelfMirExpressionKind.Identifier;
+}
+
+func SelfMirExpressionSourceTypeName(kind: SelfMirExpressionKind) -> String {
+    if kind == SelfMirExpressionKind.Binary { return "AST_BINARY"; }
+    if kind == SelfMirExpressionKind.Call { return "AST_CALL"; }
     return "AST_IDENTIFIER";
 }
