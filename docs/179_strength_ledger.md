@@ -86,6 +86,18 @@ docs/137(레드팀 계약서)·docs/166(프로덕션 바)과 같은 계열이며
 1. CI green 복구(칩 2 + 스트림 3) — 다른 모든 신호의 노이즈 바닥.
 2. WO-PAR-1 manifest row(동시 세션 clean 후) + R3 경계 감사 1급화.
 3. 런타임 행동 목격자 corpus 확충(설계는 축 2-3 항목).
+3a. **런타임 자기적용 갭 청산 (2026-07-12 유형 확정)** — V1 동결표
+   **#8(도메인 라이프사이클, S+R)의 R-측 반례 실측**: 채널 미초기화
+   send가 warn+false-반환 후 계속 진행 → 수정-전 바이너리가 4.7GB
+   warn-spam(사건 기록: 메모리 dev-pain 1f). 유형 = **계약-위반 연산의
+   warn-and-continue**(3겹: 판정층=실패가 로그로만 관측되고 제어흐름에선
+   소멸 / 진행층=무한 재시도 + budget 미선언 시 무한 자원 소모(R6
+   default-open 실증) / 증폭층=시도당 warn 1줄 = 로그 O(시도수) DoS).
+   메타-유형 = **자기적용 갭**: 사용자 코드에 강제하는 교리(라이프사이클
+   fail-closed·§4 무한재시도 금지·budget)를 자기 런타임 primitive에
+   미적용. 채널 fix=칩 task_a7b3717b, 전수 census 게이트=WO-RT-1(보드).
+   **V1 본 실행 전 필수** — #8-R PASS 기준("fail closed deterministically,
+   same C/LLVM observable")이 직접 걸림.
 4. R6 잔여 3종(asset boundary → wasm-equiv → 서명 로더).
 5. 검증 마일스톤 pre-work 소진 후 본 실행(V1 동결 목록 기준).
 

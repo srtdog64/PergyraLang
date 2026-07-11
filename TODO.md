@@ -18516,6 +18516,21 @@ WO:
 - **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).
 - fail-close 진단 + 목격자 스모크 = WO-PARSURF-1 마감 커밋에 포함.
 
+**WO-RT-1 — 런타임 warn-and-continue 전수 census + panic 승격 게이트
+(2026-07-12 유형 확정, docs/179 큐 3a)**: 4.7GB warn-spam 사건(채널
+미초기화 send가 warn+false 후 계속 진행 → 무한 재시도 = V1 동결표 #8-R
+반례; 사건 기록 = 메모리 dev-pain 1f)의 체계적 닫음. 유형 = **계약-위반
+연산의 warn-and-continue**, 메타-유형 = **자기적용 갭**(사용자 코드에
+강제하는 라이프사이클 fail-closed·무한재시도 금지·budget 교리를 자기
+런타임 primitive에 미적용). 작업: (1) `pgy_runtime_warn_*` 호출부 전수
+census — src/runtime 인라인 헤더 전체에서 각 warn 경로를 **계약 결과**
+(closed-channel의 false 등 = 유지) vs **계약 위반**(미초기화/NULL/이중
+해제 = PGY_RUNTIME_PANIC 승격) 으로 분류. (2) 분류를 allowlist로 동결하는
+grep 게이트 — 신규 warn-and-continue 추가 시 RED. (3) 승격분은 양 런타임
+twin + `.bc` 재생성 + 양 백엔드 동일-observable 목격자(V1 #8-R PASS 기준
+그대로). 채널 4경로 fix 자체 = 칩 task_a7b3717b (이 WO의 첫 슬라이스).
+V1 doc 주석은 타 세션 clean 후(파일 dirty).
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
@@ -18552,8 +18567,10 @@ corpus가 전부 Main-내부·단일-기능이라 못 밟던 조합. 채널-lval
 > Historical snapshot. The with-slot early-release item below was closed by
 > `c9155225`: HIR `resource_scope_exit` facts now place Release after the loop
 > body, and `test-mir` carries the loop cleanup-order witness. The intermittent
-> LLVM blocked-send item remains open until the dedicated bounded stress gate
-> is repeatedly green in Linux CI.
+> LLVM blocked-send item remains under observation: the dedicated stress gate
+> passed 64/64 executions for both C and LLVM locally on 2026-07-12 and now runs
+> 32 iterations per backend in Linux CI. It is not closed until repeated CI runs
+> remain green.
 
 CI annotation 기준 실패 3종의 근인을 전부 확정. 수정 1건은 소유 경계 문제로
 인계(아래), 나머지는 소유 스트림 몫.
