@@ -28,6 +28,55 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
     return Concat(csv, Concat(",", type_name));
 }
 
+func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
+    if StartsWith(type_name, "Array<") {
+        return CollectionRuntimeKindFromTypeName(type_name);
+    }
+    if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
+        return "ResultInt";
+    }
+    if StartsWith(type_name, "Option<") {
+        let payload_kind: Int =
+            OptionResultRuntimeOptionPayloadKindForType(type_name);
+        let option_kind: String =
+            OptionResultRuntimeOptionEnvKindForPayloadKind(payload_kind);
+        if StringLength(option_kind) > 0 {
+            return option_kind;
+        }
+        if LookupKindType(global_env, type_name, "s") == "struct" {
+            return type_name;
+        }
+    }
+    return type_name;
+}
+
+func CodegenFunctionLocalEnvRows(
+    local_bindings: SemanticAstLocalBindingFacts,
+    function_node_id: Int,
+    global_env: String
+) -> String {
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(local_bindings.node_ids) {
+        if local_bindings.function_node_ids[i] == function_node_id {
+            let type_opt: Option<String> =
+                SemanticAstLocalBindingDeclaredTypeAt(local_bindings, i);
+            if !IsSome(type_opt) {
+                Die("self-host codegen requires a semantic declared local type");
+            }
+            let source_name: String = local_bindings.names[i];
+            let type_name: String = UnwrapOption(type_opt);
+            ArrayPush(rows, TypeEnvValueBindingRows(
+                source_name,
+                CodegenBindingEnvKind(type_name, global_env),
+                CompilerSymbolCBindingName(source_name)
+            ));
+        }
+        i = i + 1;
+    }
+    return StringJoin(rows, "");
+}
+
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
 func EmitFunction(count: Int, arena: AstArena,
@@ -56,6 +105,7 @@ func EmitFunction(count: Int, arena: AstArena,
     let expected_param_count: Int = CodegenSemanticFunctionParamCountOrDie(
         signatures, signature_index
     );
+    let function_env_rows: Array<String> = [];
     let env_box: Array<String> = [base_env];
     let prologue: String = "";
     let copyout: String = "";
@@ -99,12 +149,12 @@ func EmitFunction(count: Int, arena: AstArena,
             p_kind = CollectionRuntimeKindFromTypeName(p_type);
         }
         if p_mode == 3 {
-            ArraySet(env_box, 0, TypeEnvAppendReadonlyRefBinding(
-                env_box[0], p_name, p_kind, c_ref_name
+            ArrayPush(function_env_rows, TypeEnvReadonlyRefBindingRows(
+                p_name, p_kind, c_ref_name
             ));
         } else {
-            ArraySet(env_box, 0, TypeEnvAppendValueBinding(
-                env_box[0], p_name, p_kind, c_p_name
+            ArrayPush(function_env_rows, TypeEnvValueBindingRows(
+                p_name, p_kind, c_p_name
             ));
         }
         param_n = param_n + 1;
@@ -118,6 +168,10 @@ func EmitFunction(count: Int, arena: AstArena,
     if cur[0] >= count || !CodegenAstArenaIsReturns(arena, cur[0]) {
         Die("expected Returns: line after parameters");
     }
+    ArrayPush(function_env_rows, CodegenFunctionLocalEnvRows(
+        local_bindings, function_node_id, base_env
+    ));
+    ArraySet(env_box, 0, Concat(base_env, StringJoin(function_env_rows, "")));
     let ret_type: String = CodegenSemanticFunctionReturnTypeOrDie(
         signatures, signature_index
     );
@@ -162,7 +216,7 @@ func EmitFunction(count: Int, arena: AstArena,
 
 // Project semantic signature facts into the C emitter's compact type env.
 func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
-    let env: String = "|";
+    let rows: Array<String> = ["|"];
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
@@ -188,30 +242,31 @@ func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
             );
             p = p + 1;
         }
-        env = Concat(env, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
-        env = Concat(env, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
+        ArrayPush(rows, Concat(cname, Concat("=pm:", Concat(modes, "|"))));
+        ArrayPush(rows, Concat(cname, Concat("=pt:", Concat(param_types, "|"))));
         let rtype: String = CodegenSemanticFunctionReturnTypeOrDie(signatures, i);
-        env = Concat(env, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
+        ArrayPush(rows, Concat(cname, Concat("=f:", Concat(rtype, "|"))));
         if fname != cname {
-            env = Concat(env, Concat(fname, Concat("=call:", Concat(cname, "|"))));
+            ArrayPush(rows, Concat(fname, Concat("=call:", Concat(cname, "|"))));
         }
         let public_alias: String = CompilerSymbolCImportPublicName(cname);
         if StringLength(public_alias) > 0 && public_alias != cname && public_alias != fname {
-            env = Concat(env, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
+            ArrayPush(rows, Concat(public_alias, Concat("=call:", Concat(cname, "|"))));
         }
         let local_alias: String = CompilerSymbolCLocalCallName(cname);
         if StringLength(local_alias) > 0 && local_alias != cname &&
             local_alias != fname && local_alias != public_alias {
-            env = Concat(env, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
+            ArrayPush(rows, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
         }
         i = i + 1;
     }
-    return env;
+    return StringJoin(rows, "");
 }
 
 func CollectRoleOperators(count: Int, arena: AstArena,
                           signatures: SemanticAstFunctionSignatureFacts,
                           inout env_box: Array<String>) -> String {
+    let rows: Array<String> = [];
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsRoleDecl(arena, i) {
@@ -228,7 +283,7 @@ func CollectRoleOperators(count: Int, arena: AstArena,
                     );
                     if for_type == "Int" && mname == "Add" {
                         let c_name: String = CompilerSymbolCRoleOperatorName(role_name, "Add");
-                        ArraySet(env_box, 0, Concat(env_box[0], Concat("Int+=op:", Concat(c_name, "|"))));
+                        ArrayPush(rows, Concat("Int+=op:", Concat(c_name, "|")));
                     }
                 }
                 j = j + 1;
@@ -236,16 +291,20 @@ func CollectRoleOperators(count: Int, arena: AstArena,
         }
         i = i + 1;
     }
+    if ArrayLength(rows) > 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(rows, "")));
+    }
     return "";
 }
 
 // Scan top-level nominal declarations into C typedefs, and append
 // `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
 func CollectStructs(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
-    let typedefs: String = "";
+    let typedefs: Array<String> = [];
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsNominalDecl(arena, i) {
+            let struct_env_rows: Array<String> = [];
             let sname: String = CodegenAstArenaNominalNameOrDie(arena, i);
             let c_sname: String = AbiLayoutCStructTypeName(sname);
             let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
@@ -253,54 +312,55 @@ func CollectStructs(count: Int, arena: AstArena, inout env_box: Array<String>) -
             if j < count && CodegenAstArenaIsFieldsHeader(arena, j) {
                 j = j + 1;
             }
-            let fields_c: String = "";
-            let field_names: String = "";
+            let fields_c: Array<String> = [];
+            let field_names: Array<String> = [];
             while j < count && CodegenAstArenaIndentOrDie(arena, j) == s_indent + 4 {
                 let fname: String = CodegenAstArenaFieldNameOrDie(arena, j);
                 let ftype: String = CodegenAstArenaFieldTypeNameOrDie(arena, j);
                 let cfield_type: String = AbiLayoutCFieldType(ftype, env_box[0]);
                 let c_fname: String = CompilerSymbolCFieldName(fname);
-                if StringLength(field_names) == 0 {
-                    field_names = fname;
-                } else {
-                    field_names = Concat(field_names, Concat(",", fname));
-                }
-                ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|")))))));
-                fields_c = Concat(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
+                ArrayPush(field_names, fname);
+                ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
+                ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
                 j = j + 1;
             }
-            typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(c_sname, ";\n\n")))));
-            ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, "=s:struct|")));
-            ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, Concat("=fields:", Concat(field_names, "|")))));
+            ArrayPush(typedefs, Concat("typedef struct {\n", Concat(StringJoin(fields_c, ""), Concat("} ", Concat(c_sname, ";\n\n")))));
+            ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+            ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
+            ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
         }
         i = i + 1;
     }
-    return typedefs;
+    return StringJoin(typedefs, "");
 }
 
 func CollectEnums(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
-    let block: String = "";
+    let blocks: Array<String> = [];
+    let env_rows: Array<String> = [];
     let i: Int = 0;
     while i < count {
         if CodegenAstArenaIsEnumDecl(arena, i) {
             let ename: String = CodegenAstArenaEnumNameOrDie(arena, i);
             let variant_total: Int = CodegenAstArenaEnumVariantCount(arena, i);
             let value: Int = 0;
-            let enum_c: String = "enum {\n";
-            ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, "=enum:payload_free|")));
+            let enum_rows: Array<String> = ["enum {\n"];
+            ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
             while value < variant_total {
                 let part: String = CodegenAstArenaEnumVariantNameAt(arena, i, value);
                 let cname: String = CompilerSymbolCEnumVariantName(ename, part);
-                enum_c = Concat(enum_c, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
-                ArraySet(env_box, 0, Concat(env_box[0], Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|")))))));
+                ArrayPush(enum_rows, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
+                ArrayPush(env_rows, Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|"))))));
                 value = value + 1;
             }
-            enum_c = Concat(enum_c, "};\n\n");
-            block = Concat(block, enum_c);
+            ArrayPush(enum_rows, "};\n\n");
+            ArrayPush(blocks, StringJoin(enum_rows, ""));
         }
         i = i + 1;
     }
-    return block;
+    if ArrayLength(env_rows) > 0 {
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_rows, "")));
+    }
+    return StringJoin(blocks, "");
 }
 
 // Build the C forward-declaration block for every non-Main function, in
@@ -310,7 +370,7 @@ func CollectEnums(count: Int, arena: AstArena, inout env_box: Array<String>) -> 
 // `protos`. Emitting prototypes here makes forward references compile.)
 func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    struct_env: String) -> String {
-    let block: String = "";
+    let rows: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
@@ -369,12 +429,12 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                 plist = AbiLayoutCEmptyParameterList();
             }
             let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
-            block = Concat(block, Concat(sig, ";\n"));
+            ArrayPush(rows, Concat(sig, ";\n"));
         }
         i = i + 1;
     }
-    if StringLength(block) > 0 {
-        block = Concat(block, "\n");
+    if ArrayLength(rows) > 0 {
+        ArrayPush(rows, "\n");
     }
-    return block;
+    return StringJoin(rows, "");
 }

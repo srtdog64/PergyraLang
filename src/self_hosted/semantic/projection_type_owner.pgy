@@ -1,0 +1,199 @@
+// Nominal member and array-index projection types from semantic owner facts.
+
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
+import "array_type_owner.pgy";
+import "env_owner.pgy";
+
+func SemanticProjectionSegmentEnd(path: String, start: Int) -> Int {
+    let i: Int = start;
+    let depth: Int = 0;
+    while i < StringLength(path) {
+        let c: String = CharAt(path, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < StringLength(path) && CharAt(path, i) != "\"" {
+                if CharAt(path, i) == "\\" { i = i + 1; }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "[" || c == "(" { depth = depth + 1; }
+        if c == "]" || c == ")" {
+            if depth > 0 { depth = depth - 1; }
+        }
+        if c == "." && depth == 0 { return i; }
+        i = i + 1;
+    }
+    return StringLength(path);
+}
+
+func SemanticNominalMemberExpressionType(
+    expression: String,
+    constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Option<String> {
+    let dot: Int = StringIndexOf(expression, ".");
+    if dot <= 0 {
+        return None;
+    }
+    let base_expression: String = Substring(expression, 0, dot);
+    let base_type: String = "Unknown";
+    if IsIdentText(base_expression) &&
+        EnvContainsName(names, base_expression) {
+        base_type = EnvLookup(names, types, base_expression);
+    } else {
+        let array_base_type: Option<String> =
+            SemanticArrayAccessExpressionType(
+                base_expression, names, types, modes,
+                function_names, function_returns, function_params
+            );
+        if IsSome(array_base_type) {
+            base_type = UnwrapOption(array_base_type);
+        } else {
+            base_type = ExprType(
+                base_expression, names, types,
+                function_names, function_returns
+            );
+        }
+    }
+    if base_type == "Unknown" || base_type == "" {
+        return None;
+    }
+    let cursor: Int = dot + 1;
+    let current_type: String = base_type;
+    while cursor < StringLength(expression) {
+        let segment_end: Int = SemanticProjectionSegmentEnd(expression, cursor);
+        let segment: String = Substring(
+            expression, cursor, segment_end - cursor
+        );
+        let bracket: Int = StringIndexOf(segment, "[");
+        let field_name: String = segment;
+        if bracket >= 0 { field_name = Substring(segment, 0, bracket); }
+        if !IsIdentText(field_name) { return None; }
+
+        let field_type_opt: Option<String> = SemanticAstNominalFieldType(
+            constructors, current_type, field_name
+        );
+        if !IsSome(field_type_opt) { return None; }
+        current_type = UnwrapOption(field_type_opt);
+        if bracket >= 0 {
+            let segment_len: Int = StringLength(segment);
+            if segment_len < bracket + 2 ||
+                CharAt(segment, segment_len - 1) != "]" {
+                return None;
+            }
+            let element_type_opt: Option<String> = SemanticArrayElementType(
+                current_type
+            );
+            if !IsSome(element_type_opt) { return None; }
+            let index_expression: String = Substring(
+                segment, bracket + 1, segment_len - bracket - 2
+            );
+            let index_verdict: SemanticAstExpressionVerdict =
+                SemanticAstExpressionVerdictFromPayload(
+                    index_expression, names, types, modes,
+                    function_names, function_returns, function_params
+                );
+            if !index_verdict.ok ||
+                index_verdict.inferred_type_name != "Int" {
+                return None;
+            }
+            current_type = UnwrapOption(element_type_opt);
+        }
+        cursor = segment_end + 1;
+    }
+    return Some(current_type);
+}
+
+func SemanticProjectionExpressionType(
+    expression: String,
+    constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Option<String> {
+    let member_type: Option<String> = SemanticNominalMemberExpressionType(
+        expression, constructors, names, types, modes,
+        function_names, function_returns, function_params
+    );
+    if IsSome(member_type) {
+        return member_type;
+    }
+    return SemanticArrayAccessExpressionType(
+        expression, names, types, modes,
+        function_names, function_returns, function_params
+    );
+}
+
+func SemanticProjectionArrayLiteralMatchesDeclaredType(
+    expression: String,
+    declared_type: String,
+    constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Bool {
+    let element_type_opt: Option<String> =
+        SemanticArrayElementType(declared_type);
+    let n: Int = StringLength(expression);
+    if !IsSome(element_type_opt) || n < 2 ||
+        CharAt(expression, 0) != "[" || CharAt(expression, n - 1) != "]" {
+        return false;
+    }
+    let elements: String = StringTrim(Substring(expression, 1, n - 2));
+    if StringLength(elements) == 0 {
+        return true;
+    }
+
+    let element_type: String = UnwrapOption(element_type_opt);
+    let index: Int = 0;
+    while true {
+        let part: String = CallArgAt(elements, index);
+        if StringLength(part) == 0 {
+            return index > 0;
+        }
+        let verdict: SemanticAstExpressionVerdict =
+            SemanticAstExpressionVerdictFromPayload(
+                part, names, types, modes,
+                function_names, function_returns, function_params
+            );
+        let actual_type: String = verdict.inferred_type_name;
+        if verdict.ok && (actual_type == "Unknown" || actual_type == "") {
+            let projection_type: Option<String> =
+                SemanticProjectionExpressionType(
+                    part, constructors, names, types, modes,
+                    function_names, function_returns, function_params
+                );
+            if IsSome(projection_type) {
+                actual_type = UnwrapOption(projection_type);
+            }
+        }
+        let matches: Bool = verdict.ok && ExpressionAssignableTo(
+            element_type, actual_type, part
+        );
+        if !matches && IsSome(SemanticArrayElementType(element_type)) {
+            matches = SemanticProjectionArrayLiteralMatchesDeclaredType(
+                part, element_type, constructors, names, types, modes,
+                function_names, function_returns, function_params
+            );
+        }
+        if !matches {
+            return false;
+        }
+        index = index + 1;
+    }
+    return false;
+}

@@ -191,27 +191,30 @@ func CodegenAstArenaExpressionPartHasToken(part: Option<String>, token: String) 
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CodegenCharAt(text, i);
+        let c: Int = CodegenCharCodeAt(text, n, i);
         if in_str {
-            if c == "\\" {
+            if c == 92 {
                 i = i + 2;
                 continue;
             }
-            if c == "\"" {
+            if c == 34 {
                 in_str = false;
             }
             i = i + 1;
             continue;
         }
-        if c == "\"" {
+        if c == 34 {
             in_str = true;
             i = i + 1;
             continue;
         }
-        if m > 0 && i + m <= n && Substring(text, i, m) == token {
-            let before_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(text, i - 1));
+        if m > 0 && i + m <= n &&
+            SubEqualsWithLen(text, n, i, m, token) {
+            let before_ok: Bool = i == 0 ||
+                !IsIdentCode(CodegenCharCodeAt(text, n, i - 1));
             let after_pos: Int = i + m;
-            let after_ok: Bool = after_pos >= n || !IsIdentChar(CodegenCharAt(text, after_pos));
+            let after_ok: Bool = after_pos >= n ||
+                !IsIdentCode(CodegenCharCodeAt(text, n, after_pos));
             if before_ok && after_ok {
                 return true;
             }

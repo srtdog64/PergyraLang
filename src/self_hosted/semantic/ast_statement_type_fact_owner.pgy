@@ -5,6 +5,8 @@ import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
+import "projection_type_owner.pgy";
+import "ast_enum_fact_owner.pgy";
 
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
@@ -121,6 +123,11 @@ func SemanticAstStatementTypeFactsFromArtifact(
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enum_facts.ok {
+        return SemanticAstStatementTypeStructuralError(artifact, "enum");
+    }
     let i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
         let names: Array<String> = [];
@@ -155,7 +162,10 @@ func SemanticAstStatementTypeFactsFromArtifact(
         let row_message: String = "";
         let checks_expression: Bool = kind != TypedAstKindBareReturnStmtTag() &&
             kind != TypedAstKindMatchCaseStmtTag() &&
-            kind != TypedAstKindForStmtTag();
+            kind != TypedAstKindForStmtTag() &&
+            kind != TypedAstKindArrayPopStmtTag() &&
+            kind != TypedAstKindArraySetStmtTag() &&
+            kind != TypedAstKindArrayPushStmtTag();
         if checks_expression {
             let expression_verdict: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictFromPayload(
@@ -167,6 +177,124 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 row_verified = 0;
                 row_code = expression_verdict.diagnostic_code;
                 row_message = expression_verdict.diagnostic_message;
+            } else if inferred == "Unknown" || inferred == "" {
+                let enum_type: Option<String> =
+                    SemanticAstEnumExpressionType(
+                        enum_facts, statements.payload_texts[i]
+                    );
+                if IsSome(enum_type) {
+                    inferred = UnwrapOption(enum_type);
+                }
+            }
+            if expression_verdict.ok &&
+                (inferred == "Unknown" || inferred == "") {
+                let member_type: Option<String> =
+                    SemanticProjectionExpressionType(
+                        statements.payload_texts[i], constructors,
+                        names, types, modes,
+                        function_names, function_returns, function_params
+                    );
+                if IsSome(member_type) {
+                    inferred = UnwrapOption(member_type);
+                }
+            }
+        }
+        if row_verified == 1 &&
+            (kind == TypedAstKindArrayPopStmtTag() ||
+             kind == TypedAstKindArraySetStmtTag() ||
+             kind == TypedAstKindArrayPushStmtTag()) {
+            let target: String = statements.payload_texts[i];
+            let target_type: String = EnvLookup(names, types, target);
+            let element_type_opt: Option<String> =
+                SemanticArrayElementType(target_type);
+            if target == "" || !EnvContainsName(names, target) {
+                row_verified = 0;
+                row_code = "undefined_symbol";
+                row_message = SemanticError1(
+                    "undefined_symbol", "name", target
+                );
+            } else if !IsSome(element_type_opt) {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "target", target,
+                    "actual", target_type
+                );
+            } else if kind == TypedAstKindArraySetStmtTag() {
+                let index_verdict: SemanticAstExpressionVerdict =
+                    SemanticAstExpressionVerdictFromPayload(
+                        statements.value_texts[i], names, types, modes,
+                        function_names, function_returns, function_params
+                    );
+                let index_type: String = index_verdict.inferred_type_name;
+                if index_verdict.ok &&
+                    (index_type == "Unknown" || index_type == "") {
+                    let index_projection_type: Option<String> =
+                        SemanticProjectionExpressionType(
+                            statements.value_texts[i], constructors,
+                            names, types, modes,
+                            function_names, function_returns, function_params
+                        );
+                    if IsSome(index_projection_type) {
+                        index_type = UnwrapOption(index_projection_type);
+                    }
+                }
+                if !index_verdict.ok {
+                    row_verified = 0;
+                    row_code = index_verdict.diagnostic_code;
+                    row_message = index_verdict.diagnostic_message;
+                } else if index_type != "Int" {
+                    row_verified = 0;
+                    row_code = "call_arg_type_mismatch";
+                    row_message = SemanticError3(
+                        "call_arg_type_mismatch",
+                        "expression", statements.value_texts[i],
+                        "expected", "Int",
+                        "actual", index_type
+                    );
+                }
+            }
+            if row_verified == 1 &&
+                kind != TypedAstKindArrayPopStmtTag() {
+                let value_text: String = statements.value_texts[i];
+                if kind == TypedAstKindArraySetStmtTag() {
+                    value_text = statements.auxiliary_texts[i];
+                }
+                let value_verdict: SemanticAstExpressionVerdict =
+                    SemanticAstExpressionVerdictFromPayload(
+                        value_text, names, types, modes,
+                        function_names, function_returns, function_params
+                    );
+                inferred = value_verdict.inferred_type_name;
+                expected = UnwrapOption(element_type_opt);
+                if value_verdict.ok &&
+                    (inferred == "Unknown" || inferred == "") {
+                    let value_projection_type: Option<String> =
+                        SemanticProjectionExpressionType(
+                            value_text, constructors, names, types, modes,
+                            function_names, function_returns, function_params
+                        );
+                    if IsSome(value_projection_type) {
+                        inferred = UnwrapOption(value_projection_type);
+                    }
+                }
+                if !value_verdict.ok {
+                    row_verified = 0;
+                    row_code = value_verdict.diagnostic_code;
+                    row_message = value_verdict.diagnostic_message;
+                } else if !ExpressionAssignableTo(
+                    expected, inferred, value_text
+                ) {
+                    row_verified = 0;
+                    row_code = "call_arg_type_mismatch";
+                    row_message = SemanticError3(
+                        "call_arg_type_mismatch",
+                        "expression", value_text,
+                        "expected", expected,
+                        "actual", inferred
+                    );
+                }
             }
         }
         if row_verified == 1 &&
@@ -175,6 +303,15 @@ func SemanticAstStatementTypeFactsFromArtifact(
             expected = SemanticAstStatementExpectedReturnType(
                 signatures, statements.function_node_ids[i]
             );
+            if (inferred == "Unknown" || inferred == "") &&
+                expected != "" &&
+                SemanticProjectionArrayLiteralMatchesDeclaredType(
+                    statements.payload_texts[i], expected, constructors,
+                    names, types, modes,
+                    function_names, function_returns, function_params
+                ) {
+                inferred = expected;
+            }
             if expected == "" || inferred == "Unknown" {
                 row_verified = 0;
                 row_code = "statement_type_unresolved";

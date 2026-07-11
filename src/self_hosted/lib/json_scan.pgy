@@ -4,7 +4,15 @@
 // and field semantics stay in json.pgy; emission stays in json_emit.pgy.
 
 func JsonCharAt(s: String, i: Int) -> String {
-    return Substring(s, i, 1);
+    return CharAtN(s, StringLength(s), i);
+}
+
+func JsonCharCodeAt(s: String, length: Int, i: Int) -> Int {
+    return CharCode(s, length, i);
+}
+
+func JsonAsciiCode(character: String) -> Int {
+    return CharCode(character, StringLength(character), 0);
 }
 
 func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
@@ -15,8 +23,7 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
     if start > n {
         return None;
     }
-    let rest: String = Substring(hay, start, n - start);
-    let k: Int = StringIndexOf(rest, needle);
+    let k: Int = SubIndexOfWithLen(hay, n, start, n - start, needle);
     if k < 0 {
         return None;
     }
@@ -25,9 +32,10 @@ func FindFrom(hay: String, needle: String, start: Int) -> Option<Int> {
 
 func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
     let i: Int = index;
+    let n: Int = StringLength(json);
     while i < end {
-        let c: String = JsonCharAt(json, i);
-        if c != " " && c != "\n" && c != "\r" && c != "\t" {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c != JsonAsciiCode(" ") && c != JsonAsciiCode("\n") && c != JsonAsciiCode("\r") && c != JsonAsciiCode("\t") {
             return i;
         }
         i = i + 1;
@@ -38,4 +46,8 @@ func JsonSkipWhitespace(json: String, index: Int, end: Int) -> Int {
 func JsonIsDigitChar(c: String) -> Bool {
     return c == "0" || c == "1" || c == "2" || c == "3" || c == "4"
         || c == "5" || c == "6" || c == "7" || c == "8" || c == "9";
+}
+
+func JsonIsDigitCode(c: Int) -> Bool {
+    return c >= JsonAsciiCode("0") && c <= JsonAsciiCode("9");
 }

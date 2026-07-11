@@ -20,6 +20,7 @@ import "../mir/json_projection_owner.pgy";
 func CompilerDriverRung2Ready() -> Bool {
     return CompilerDriverPipelineReady() &&
         SemanticBuiltinSignatureContractReady() &&
+        SemanticCallableResolutionContractReady() &&
         SemanticExpressionNormalizationContractReady() &&
         SemanticAstExpressionEnvironmentContractReady() &&
         SemanticAstInitializerTypeFactsContractReady() &&
@@ -66,13 +67,14 @@ func DriverRung2MirFixtureRows() -> Array<String> {
     return [
         "src/self_hosted/mir_lower/fixture/let_log.pgy",
         "src/self_hosted/mir_lower/fixture/forloop.pgy",
+        "src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy",
         "src/self_hosted/codegen/fixture/func_recursive.pgy",
         "src/self_hosted/mir_lower/fixture/class_method.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 4;
+    return 5;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -193,11 +195,7 @@ func CompileArtifactToMirJsonVerified(
         artifact, semantic_analysis
     );
     if !SelfMirProgramFactsReady(mir_facts) {
-        if mir_facts.diagnostic_message != "" {
-            Log(mir_facts.diagnostic_message);
-        } else {
-            Log("self-host MIR producer emitted invalid fact rows");
-        }
+        Log(SelfMirProgramFactsValidationError(mir_facts));
         Exit(1);
     }
     let json: String = SelfMirProgramJson(mir_facts);

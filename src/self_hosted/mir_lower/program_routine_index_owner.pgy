@@ -1,0 +1,60 @@
+// MIR program routine inventory index.
+//
+// Captured once from the pgy.mir.v1 routines array. Declaration and top-level
+// lowering consume the same identity rows instead of rescanning JSON to locate
+// owner-qualified methods.
+
+import "json_fact_read.pgy";
+
+struct MirProgramRoutineIndex {
+    let valid: Bool;
+    let starts: Array<Int>;
+    let ends: Array<Int>;
+    let kinds: Array<String>;
+    let owners: Array<String>;
+    let names: Array<String>;
+}
+
+func BuildMirProgramRoutineIndex(json: String) -> MirProgramRoutineIndex {
+    let starts: Array<Int> = [];
+    let ends: Array<Int> = [];
+    let kinds: Array<String> = [];
+    let owners: Array<String> = [];
+    let names: Array<String> = [];
+    let array_bounds: Array<Int> = [0, 0];
+    if !MirRoutineArrayBounds(json, array_bounds) {
+        return MirProgramRoutineIndex(false, starts, ends, kinds, owners, names);
+    }
+
+    let cursor: Int = array_bounds[0] + 1;
+    let bounds: Array<Int> = [0, 0];
+    while JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds) {
+        ArrayPush(starts, bounds[0]);
+        ArrayPush(ends, bounds[1]);
+        ArrayPush(kinds, MirObjectStringFact(json, bounds[0], bounds[1], "kind"));
+        ArrayPush(owners, MirObjectStringFact(json, bounds[0], bounds[1], "owner"));
+        ArrayPush(names, MirObjectStringFact(json, bounds[0], bounds[1], "name"));
+        cursor = bounds[1];
+    }
+    return MirProgramRoutineIndex(true, starts, ends, kinds, owners, names);
+}
+
+func MirProgramRoutineIndexCount(ref index: MirProgramRoutineIndex) -> Int {
+    return ArrayLength(index.starts);
+}
+
+func MirProgramRoutineIndexFind(
+    ref index: MirProgramRoutineIndex,
+    owner: String,
+    name: String
+) -> Option<Int> {
+    let row: Int = 0;
+    while row < ArrayLength(index.starts) {
+        if index.kinds[row] == "method" &&
+            index.owners[row] == owner && index.names[row] == name {
+            return Some(index.starts[row]);
+        }
+        row = row + 1;
+    }
+    return None;
+}

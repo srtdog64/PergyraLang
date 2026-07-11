@@ -1,0 +1,10 @@
+func Probe(value: Int) -> Int {
+    Log(value);
+    return value;
+}
+
+func Main() -> Void {
+    Log(Abs(Probe(-7)));
+    Log(Min(Probe(3), Probe(5)));
+    Log(Max(Probe(4), Probe(9)));
+}

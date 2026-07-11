@@ -389,6 +389,7 @@ for mir_producer_owner in \
     program_fact_owner.pgy \
     expression_fact_owner.pgy \
     routine_input_owner.pgy \
+    routine_build_owner.pgy \
     routine_lower_owner.pgy \
     artifact_lower_owner.pgy \
     program_verify_owner.pgy \
@@ -398,7 +399,11 @@ for mir_producer_owner in \
 done
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirProgramFacts"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirCfgRows"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" 'ArrayLength(ids) - cfg.blocks.instruction_starts[block_index]'
+reject_text "src/self_hosted/mir/program_fact_owner.pgy" 'counts[block_index] + 1'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirRoutineInput"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" "struct SelfMirRoutineBuild"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" "func SelfMirRoutineSetSuccessors"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "struct SelfMirRoutineState"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromInput"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromArtifact"
@@ -406,6 +411,18 @@ reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "inout build: SelfMirR
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromArtifact"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirCanonicalInstructionIds"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsReady"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirProgramFactsValidationError"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirBlockRowsValidationError"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" "func SelfMirRoutineNameForBlockRow"
+require_text "src/self_hosted/lib/json_emit.pgy" 'return StringJoin(chunks, "");'
+reject_text "src/self_hosted/lib/json_emit.pgy" 'out = Concat(out, c)'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);'
+require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
+require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> String'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR producer emitted invalid fact rows"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "func SelfMirProgramJson"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldString("schema", "pgy.mir.v1")'
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "TypedAstArenaProvenanceText"
@@ -1450,6 +1467,8 @@ require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" '3|String|c
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "9|Option<String>|pgy_option_string|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "10|Long|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "12|Array<Long>|pgy_ai|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported"
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "16|Array<Bool>|pgy_ab|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported"
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "17|Option<Bool>|pgy_option_bool|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "14|Option<Float>|pgy_option_float|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "15|Option<Double>|pgy_option_double|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported"
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" "target_policy_count=1"
@@ -2428,6 +2447,83 @@ require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileArtifactToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
+require_text "src/self_hosted/mir/routine_build_owner.pgy" \
+    "MIR shadowed local type changed"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "let initializer_uses: Array<String>"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "function signature is missing for MIR parameter seeding"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "SemanticAstFunctionParamNameAt("
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    'let return_source_type: String = "AST_RETURN_VOID";'
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "duplicate MIR source local:"
+require_file "src/self_hosted/semantic/callable_resolution_owner.pgy"
+require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" "func SemanticCallableIndex"
+require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" "suffix_count == 1"
+require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
+    "func SemanticCallableCanonicalLookupName"
+require_text "src/self_hosted/semantic/callable_resolution_owner.pgy" \
+    '"SelfHostPath.JoinRelativePath"'
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "func SemanticAstExpressionFunctionRowIndex"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "params[existing] != param_row"
+require_text "src/self_hosted/semantic/call_check_owner.pgy" "SemanticCallableIndex(func_names, callee)"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" "SemanticCallableIndex(func_names, callee)"
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    'CharAt(text, 0) == "?"'
+require_file "src/self_hosted/semantic/array_type_owner.pgy"
+require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
+    "func SemanticProjectionArrayLiteralMatchesDeclaredType"
+require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
+    "let array_base_type: Option<String> ="
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    '"Split^Array<String>^String|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    '"Args^Array<String>^none"'
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticProjectionArrayLiteralMatchesDeclaredType("
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "func SemanticAstAssignmentArrayElementType"
+require_file "src/self_hosted/semantic/projection_type_owner.pgy"
+require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
+    "func SemanticAstNominalFieldType"
+require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
+    "SemanticAstNominalFieldType("
+require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
+    "base_type = ExprType("
+require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
+    "func SemanticProjectionSegmentEnd"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticProjectionExpressionType("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "SemanticProjectionExpressionType("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticProjectionExpressionType("
+require_file "src/self_hosted/semantic/ast_enum_fact_owner.pgy"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" \
+    "func SemanticAstEnumExpressionType"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticAstEnumExpressionType("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "SemanticAstEnumExpressionType("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticAstEnumExpressionType("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "SemanticProjectionArrayLiteralMatchesDeclaredType("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticProjectionArrayLiteralMatchesDeclaredType("
+require_file "tests/portable_process_helpers.sh"
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'source "$ROOT_DIR/tests/portable_process_helpers.sh"'
+require_text "tests/self_hosted/parity/selfcheck_sources.sh" "pgy_run_with_timeout"
+reject_text "tests/self_hosted/parity/selfcheck_sources.sh" 'timeout "$CHECK_TIMEOUT_SEC"'
+require_text "tests/self_host_compiler_world_contract_smoke.sh" "pgy_selfhost_compare_expected_text_artifact_file_with_owner"
+reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'cmp -s'
+reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'diff -u'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileMirJsonToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput(mir_json_path)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
@@ -2446,7 +2542,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "let json: String
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 4;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 5;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
@@ -2898,8 +2994,9 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCBindingName(p_name)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvAppendValueBinding("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "env_box[0], p_name, p_kind, c_p_name"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvValueBindingRows("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "p_name, p_kind, c_p_name"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypeEnvAppendValueBinding(env_box[0], name,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(loop_var)"
@@ -3092,6 +3189,23 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaBareCallExprOrDie"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "struct SemanticAstStatementFacts"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindArrayPushStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindArraySetStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticArrayElementType(target_type)"
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let value_projection_type: Option<String> ="
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let index_projection_type: Option<String> ="
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "FindTopLevelComma(target)"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" '"ArrayPush(", Concat(payload'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" '"ArraySet(", Concat(payload'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression = Concat("Exit("'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'if kind == TypedAstKindExitStmtTag() { build = SelfMirRoutineTerminate(build); }'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'kind == TypedAstKindBreakStmtTag() ||'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let while_break_blocks: Array<Int> = [];'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let for_break_blocks: Array<Int> = [];'
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlockCount(build.cfg) - 1'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" "a terminal instruction erases its"
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "reachable statement follows terminal MIR instruction"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsContractReady"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticLogArgumentOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticReturnValueOrDie"
@@ -3350,10 +3464,10 @@ reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringInde
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CsvAt(field_names, field_pos)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CsvAt(field_names, field_pos)"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
-require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "array struct initializer field must consume a named array value"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, p, "e")'
@@ -3375,6 +3489,7 @@ require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayIntCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayStringCValueType()"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayBoolCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCodegenAstTextNodeArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayCodegenAstTextNodeCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind_code: Int)"
@@ -3394,6 +3509,25 @@ require_text "src/self_hosted/codegen/text/expr_scan.pgy" "let receiver: String 
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "kind = ExprMemberFieldType(receiver, env)"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeKindFromTypeName(kind)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "ArrayCodegenAstTextNode"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "ArrayBool"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "usage.uses_bool || usage.uses_array ||"
+require_file "src/self_hosted/codegen/emission/array_value_emit_owner.pgy"
+require_file "src/self_hosted/codegen/emission/value_return_emit_owner.pgy"
+require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCNewFn(kind_code)"
+require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCPushFn(kind_code)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
+reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "array struct initializer field must consume a named array value"
+require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralTopLevelFieldColon"
+reject_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" 'StringIndexOf(part, ": ")'
+require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func CodegenCharCodeAt"
+require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "c == 40 || c == 91 || c == 123"
+require_text "src/self_hosted/codegen/text/text_owner.pgy" "SubEqualsWithLen(text, n, i, m, needle)"
+reject_text "src/self_hosted/codegen/text/text_owner.pgy" "Substring(text, i, m) == needle"
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
+reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Substring(text, i, m) == token"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "SubIndexOfWithLen("
+reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "let rest: String = Substring(env, start"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "Array<String: String>"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCAbsFn"
 require_text "src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy" "func MathRuntimeCSqrtFn"
@@ -3553,7 +3687,6 @@ require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLen
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "FindTopLevelComma(rem)"
 require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "FindMatchingParen(e, op)"
-require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" 'StringIndexOf(part, ": ")'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func FindTopLevelOp2(s: String, op: String) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return None"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return Some(i)"
@@ -3596,9 +3729,9 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "option_struct_block_fact.requires_bool_header"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "OptionResultRuntimeStructOptionFact(type_name, struct_env)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCStructOptionDefinitionBlock(base_env)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "struct OptionExprEmissionFact"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitOptionExprFactForType"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeStructOptionFact(option_type, env)"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "struct OptionExprEmissionFact"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "func EmitOptionExprFactForType"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "OptionResultRuntimeStructOptionFact(option_type, env)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitOptionExprFactForType(expr, type_name, env_box[0])"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionEnvKindForType"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCStructOptionDefinitions"
@@ -3710,7 +3843,9 @@ for mir_owner in \
     "fixture_manifest_owner.pgy" \
     "json_fact_read.pgy" \
     "stmt_render.pgy" \
+    "program_routine_index_owner.pgy" \
     "routine_inventory_owner.pgy" \
+    "routine_fact_index_owner.pgy" \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
     "program_lower.pgy"; do
@@ -3736,7 +3871,9 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "MirFactGraphPa
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'import "../lib/json.pgy";'
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"")'
 reject_text "src/self_hosted/mir_lower/mir_json_input_owner.pgy" 'JsonDocumentStringFieldEquals(json, "schema", "pgy.mir.v1")'
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine(json: String, from: Int) -> Option<Int>"
+reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutine("
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "func BuildMirProgramRoutineIndex"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "func MirProgramRoutineIndexFind"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineObjectEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineNameEnd(json: String, rpos: Int) -> Option<Int>"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineName"
@@ -3746,7 +3883,7 @@ require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func Routi
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineReturnType"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksBounds"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func RoutineBlocksStart(json: String, routine_name_end: Int, span_end: Int) -> Option<Int>"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirRoutineObjectBoundsAt(json, row, bounds)"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "JsonArrayNextObjectBounds(json, cursor, array_bounds[1], bounds)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return -1"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "let object_end_opt: Option<Int> = MirObjectEnd(json, routine_name_end"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectArrayBounds(json, routine_name_end, span_end, \"blocks\", bounds)"
@@ -3757,14 +3894,15 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "func FindRoutine"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineParamCount(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "RoutineReturnType(json, rpos, header_end)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionBoundsAt"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockInstructionBoundsAt(index, bs, row, bounds)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionKind"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionOfKindBounds"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayObjectBoundsAt(json, bs, be, \"instructions\", row, bounds)"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, inst_start, inst_end, \"kind\")"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectNumberFact(json, bs, be, field)"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayObjectBoundsAt(json, routine_start, routine_end, \"blocks\", ToInt(id), o)"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectNumberFact(json, o[0], o[1], \"id\") == id"
-require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(json, bs, be, \"succ_true\")"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockSuccessor(index, bs, false_edge)"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockBounds("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockRow("
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(index, bs, false)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let key: String = Concat("\"id\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, ",\"reachable\""'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockBounds(json, bp"
@@ -3778,11 +3916,10 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, 
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, pnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, rnq"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadJsonString(json, kq"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "let rpos_opt: Option<Int> = FindRoutine(json, 0)"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "let nend_opt: Option<Int> = RoutineNameEnd(json, rpos)"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "let nend: Int = UnwrapOption(nend_opt)"
-require_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, span_end)"
-reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine(json, nend)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json)"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "let rpos: Int = routines.starts[row]"
+require_text "src/self_hosted/mir_lower/program_lower.pgy" "MirProgramRoutineIndexCount(routines)"
+reject_text "src/self_hosted/mir_lower/program_lower.pgy" "FindRoutine("
 reject_text "src/self_hosted/mir_lower/program_lower.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let routine_name_end_opt: Option<Int> = RoutineNameEnd(json, rpos)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end)"
@@ -5656,7 +5793,7 @@ reject_text "tests/self_hosted/parity/completeness_ledger.sh" 'stage_result="$(c
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'import "../lib/json_fact_table.pgy";'
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirFactObjectStart"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonCharAt"
+require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonCharCodeAt"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func CharAt"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFact"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func MirObjectStringFactOpt"
@@ -5677,8 +5814,8 @@ require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonObjectFactArray
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonObjectFactArrayObjectTable(root, \"routines\")"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonArrayObjectFactAt(MirDeclArrayObjectFactTable(json), row)"
 require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "JsonArrayObjectFactAt(MirRoutineArrayObjectFactTable(json), row)"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func SourceLocalType"
-require_text "src/self_hosted/mir_lower/json_fact_read.pgy" "MirObjectArrayObjectBoundsAt(json, start, end, \"source_locals\", row, bounds)"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexSourceLocalType"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(json, local_cursor, locals_bounds[1], local_bounds)"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "func ReadJsonString"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" "ReadJsonString(json,"
 reject_text "src/self_hosted/mir_lower/json_fact_read.pgy" 'FindFrom(json, "\"source_locals\":['
@@ -5713,9 +5850,9 @@ reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/decl_lower.pgy" "ReadJsonString(json,"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectStringFact(json, rpos"
 require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "MirObjectFieldValueBounds(json, rpos"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "func FindRoutineByOwnerName(json: String, owner: String, name: String) -> Option<Int>"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return Some(rpos)"
-require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "return None"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "func MirProgramRoutineIndexFind("
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return Some(index.starts[row])"
+require_text "src/self_hosted/mir_lower/program_routine_index_owner.pgy" "return None"
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" "UnwrapOption(routine_pos)"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" "ReadJsonString(json,"
@@ -5785,8 +5922,8 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Clamp^Unkn
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Sin^Float^Float"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Atan2^Float^Float|Float"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Log2^Float^Float"'
-require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Join^String^Unknown|String"'
-require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"StringSplit^Unknown^String|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Join^String^Array<String>|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"StringSplit^Array<String>^String|String"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"CharAt^String^String|Int"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Unknown^Unknown"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"

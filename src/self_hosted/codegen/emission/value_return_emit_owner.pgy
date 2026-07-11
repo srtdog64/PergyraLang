@@ -1,0 +1,94 @@
+// Expected-type Option and return value emission owner.
+
+import "../text/expr_scan.pgy";
+import "../type_facts/type_env.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
+import "expr_rewrite.pgy";
+import "struct_value_emit.pgy";
+import "array_value_emit_owner.pgy";
+
+struct OptionExprEmissionFact {
+    let c_expr: String;
+}
+
+func EmitOptionExprFactForType(
+    expr: String,
+    option_type: String,
+    env: String
+) -> OptionExprEmissionFact {
+    let struct_fact: Option<OptionStructRuntimeFact> =
+        OptionResultRuntimeStructOptionFact(option_type, env);
+    if IsSome(struct_fact) {
+        let option_struct: OptionStructRuntimeFact = UnwrapOption(struct_fact);
+        let trimmed: String = StringTrim(expr);
+        if trimmed == "None" || trimmed == "None()" {
+            return OptionExprEmissionFact(Concat(option_struct.none_fn, "()"));
+        }
+        if StartsWith(trimmed, "Some(") {
+            let open: Int = StringIndexOf(trimmed, "(");
+            let close: Option<Int> = FindMatchingParen(trimmed, open);
+            if IsSome(close) && UnwrapOption(close) == StringLength(trimmed) - 1 {
+                let payload: String = StringTrim(Substring(
+                    trimmed, open + 1, UnwrapOption(close) - open - 1
+                ));
+                let c_payload: String = EmitStructValue(
+                    payload, option_struct.inner_type_name, env
+                );
+                return OptionExprEmissionFact(Concat(option_struct.some_fn,
+                    Concat("(", Concat(c_payload, ")"))));
+            }
+        }
+        return OptionExprEmissionFact(RewriteExpr(expr, env));
+    }
+    let kind: Int = OptionResultRuntimeOptionPayloadKindForType(option_type);
+    let option_expr: String = RewriteExpr(expr, env);
+    let trimmed: String = StringTrim(expr);
+    if trimmed == "None" || trimmed == "None()" {
+        option_expr = Concat(
+            OptionResultRuntimeCOptionNoneFnForPayloadKind(kind), "()"
+        );
+    }
+    return OptionExprEmissionFact(option_expr);
+}
+
+func EmitReturn(rexpr: String, return_type: String, env: String) -> String {
+    if StringLength(rexpr) == 0 { return "return;"; }
+    if return_type == "String" {
+        return Concat("return ", Concat(StrEval(rexpr, env), ";"));
+    }
+    if return_type == "Float" {
+        return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));
+    }
+    if return_type == "Long" {
+        return Concat("return ", Concat(IntEval(rexpr, env), ";"));
+    }
+    if StartsWith(return_type, "Array<") {
+        let array_expr: String = StringTrim(rexpr);
+        if StringLength(array_expr) > 0 && CodegenCharAt(array_expr, 0) == "[" {
+            return Concat("return ", Concat(
+                EmitArrayLiteralValue(array_expr, return_type, env), ";"
+            ));
+        }
+        return Concat("return ", Concat(RewriteExpr(array_expr, env), ";"));
+    }
+    if StartsWith(return_type, "Result<") && StringIndexOf(return_type, "Int") >= 0 {
+        return Concat("return ", Concat(RewriteExpr(rexpr, env), ";"));
+    }
+    if StartsWith(return_type, "Option<") {
+        let kind: Int = OptionResultRuntimeOptionPayloadKindForType(return_type);
+        let struct_fact: Option<OptionStructRuntimeFact> =
+            OptionResultRuntimeStructOptionFact(return_type, env);
+        if kind == 0 && !IsSome(struct_fact) {
+            Die(Concat("unsupported option return payload type: ", return_type));
+        }
+        let option_expr: OptionExprEmissionFact =
+            EmitOptionExprFactForType(rexpr, return_type, env);
+        return Concat("return ", Concat(option_expr.c_expr, ";"));
+    }
+    if LookupKindType(env, return_type, "s") == "struct" {
+        return Concat("return ", Concat(
+            EmitStructValue(rexpr, return_type, env), ";"
+        ));
+    }
+    return Concat("return ", Concat(IntEval(rexpr, env), ";"));
+}

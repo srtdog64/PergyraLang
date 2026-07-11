@@ -9,6 +9,20 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
 
+func SemanticAstExpressionFunctionRowIndex(
+    names: Array<String>,
+    name: String
+) -> Int {
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == name {
+            return i;
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
 func SemanticAstExpressionScopeVisible(
     arena: AstArena,
     scope_node_id: Int,
@@ -74,8 +88,6 @@ func SemanticAstExpressionFunctionTables(
         if !IsSome(name) || !IsSome(return_type) {
             return false;
         }
-        ArrayPush(names, UnwrapOption(name));
-        ArrayPush(returns, UnwrapOption(return_type));
         let param_row: String = "";
         let param_count_opt: Option<Int> =
             SemanticAstFunctionParamCountAt(signatures, i);
@@ -95,7 +107,19 @@ func SemanticAstExpressionFunctionTables(
             param_row = Concat(param_row, UnwrapOption(param_type));
             p = p + 1;
         }
-        ArrayPush(params, param_row);
+        let existing: Int = SemanticAstExpressionFunctionRowIndex(
+            names, UnwrapOption(name)
+        );
+        if existing >= 0 {
+            if returns[existing] != UnwrapOption(return_type) ||
+                params[existing] != param_row {
+                return false;
+            }
+        } else {
+            ArrayPush(names, UnwrapOption(name));
+            ArrayPush(returns, UnwrapOption(return_type));
+            ArrayPush(params, param_row);
+        }
         i = i + 1;
     }
     return true;

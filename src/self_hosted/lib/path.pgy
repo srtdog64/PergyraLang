@@ -37,7 +37,7 @@ namespace SelfHostPath {
         return false;
     }
 
-    export func Join(base_dir: String, rel_path: String) -> String {
+    export func JoinRelativePath(base_dir: String, rel_path: String) -> String {
         if IsAbsolute(rel_path) {
             return rel_path;
         }
@@ -60,6 +60,6 @@ namespace SelfHostPath {
         while StringLength(path) >= 2 && Substring(path, 0, 2) == "./" {
             path = Substring(path, 2, StringLength(path) - 2);
         }
-        return Join(dir, path);
+        return JoinRelativePath(dir, path);
     }
 }

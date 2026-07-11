@@ -16,19 +16,22 @@ func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
     if type_name == "Array<String>" || type_name == "Array<String: String>" {
         return "ArrayString";
     }
+    if type_name == "Array<Bool>" || type_name == "Array<Bool: Bool>" {
+        return "ArrayBool";
+    }
     if type_name == "Array<CodegenAstTextNode>" ||
         type_name == "Array<CodegenAstTextNode: CodegenAstTextNode>" {
         return "ArrayCodegenAstTextNode";
     }
-    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<CodegenAstTextNode> bridge forms): ", type_name));
+    Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<Bool>/Array<CodegenAstTextNode> bridge forms): ", type_name));
     return "";
 }
 
 func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
-    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayCodegenAstTextNode" {
+    if kind == "ArrayInt" || kind == "ArrayString" || kind == "ArrayBool" || kind == "ArrayCodegenAstTextNode" {
         return kind;
     }
-    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, or Array<CodegenAstTextNode>, got: ", kind)));
+    Die(Concat(context, Concat(" requires Array<Int>, Array<String>, Array<Bool>, or Array<CodegenAstTextNode>, got: ", kind)));
     return "";
 }
 
@@ -40,6 +43,9 @@ func CollectionRuntimeKindCode(kind: String) -> Int {
     if checked == "ArrayCodegenAstTextNode" {
         return 3;
     }
+    if checked == "ArrayBool" {
+        return 4;
+    }
     return 1;
 }
 
@@ -50,14 +56,17 @@ func CollectionRuntimeElementTypeFromKindCode(kind_code: Int) -> String {
     if kind_code == 3 {
         return "CodegenAstTextNode";
     }
+    if kind_code == 4 {
+        return "Bool";
+    }
     return "Int";
 }
 
 func CollectionRuntimeKindCodeOrDie(kind_code: Int, context: String) -> Int {
-    if kind_code == 1 || kind_code == 2 || kind_code == 3 {
+    if kind_code == 1 || kind_code == 2 || kind_code == 3 || kind_code == 4 {
         return kind_code;
     }
-    Die(Concat(context, Concat(" requires collection kind code 1, 2, or 3, got: ", ToString(kind_code))));
+    Die(Concat(context, Concat(" requires collection kind code 1, 2, 3, or 4, got: ", ToString(kind_code))));
     return 0;
 }
 
@@ -68,6 +77,9 @@ func CollectionRuntimeCNewFn(kind_code: Int) -> String {
     }
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_new";
+    }
+    if checked == 4 {
+        return "pgy_ab_new";
     }
     return "pgy_ai_new";
 }
@@ -80,6 +92,9 @@ func CollectionRuntimeCPushFn(kind_code: Int) -> String {
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_push";
     }
+    if checked == 4 {
+        return "pgy_ab_push";
+    }
     return "pgy_ai_push";
 }
 
@@ -90,6 +105,9 @@ func CollectionRuntimeCSetFn(kind_code: Int) -> String {
     }
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_set";
+    }
+    if checked == 4 {
+        return "pgy_ab_set";
     }
     return "pgy_ai_set";
 }
@@ -102,6 +120,9 @@ func CollectionRuntimeCGetFn(kind_code: Int) -> String {
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_get";
     }
+    if checked == 4 {
+        return "pgy_ab_get";
+    }
     return "pgy_ai_get";
 }
 
@@ -113,6 +134,9 @@ func CollectionRuntimeCLenFn(kind_code: Int) -> String {
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_len";
     }
+    if checked == 4 {
+        return "pgy_ab_len";
+    }
     return "pgy_ai_len";
 }
 
@@ -123,6 +147,9 @@ func CollectionRuntimeCPopFn(kind_code: Int) -> String {
     }
     if checked == 3 {
         return "pgy_CodegenAstTextNode_array_pop";
+    }
+    if checked == 4 {
+        return "pgy_ab_pop";
     }
     return "pgy_ai_pop";
 }
@@ -147,6 +174,7 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
                                   uses_array_map: Bool, uses_array_filter: Bool) -> String {
     let int_array_type: String = CompilerAbiLayoutArrayIntCValueType();
     let string_array_type: String = CompilerAbiLayoutArrayStringCValueType();
+    let bool_array_type: String = CompilerAbiLayoutArrayBoolCValueType();
     let block: String = "";
     block = Concat(block, Concat("typedef struct { long long *data; long long len; long long cap; } ", Concat(int_array_type, ";\n")));
     block = Concat(block, Concat("typedef struct { const char **data; long long len; long long cap; } ", Concat(string_array_type, ";\n\n")));
@@ -192,6 +220,15 @@ func CollectionRuntimeCArrayBlock(uses_array_sort: Bool, uses_array_reverse: Boo
     block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(2), Concat("(", Concat(string_array_type, " *a, long long i, const char *v) { a->data[i] = v; }\n")))));
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(2), Concat("(", Concat(string_array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static const char *", Concat(CollectionRuntimeCPopFn(2), Concat("(", Concat(string_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n")))));
+    block = Concat(block, Concat("typedef struct { bool *data; long long len; long long cap; } ", Concat(bool_array_type, ";\n")));
+    block = Concat(block, Concat("static ", Concat(bool_array_type, Concat(" ", Concat(CollectionRuntimeCNewFn(4), Concat("(void) { ", Concat(bool_array_type, " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n")))))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCPushFn(4), Concat("(", Concat(bool_array_type, " *a, bool v) {\n")))));
+    block = Concat(block, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (bool *)realloc(a->data, (size_t)a->cap * sizeof(bool)); }\n");
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCGetFn(4), Concat("(", Concat(bool_array_type, " a, long long i) { return a.data[i]; }\n")))));
+    block = Concat(block, Concat("static void ", Concat(CollectionRuntimeCSetFn(4), Concat("(", Concat(bool_array_type, " *a, long long i, bool v) { a->data[i] = v; }\n")))));
+    block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(4), Concat("(", Concat(bool_array_type, " a) { return a.len; }\n")))));
+    block = Concat(block, Concat("static bool ", Concat(CollectionRuntimeCPopFn(4), Concat("(", Concat(bool_array_type, " *a) { return a->len > 0 ? a->data[--a->len] : false; }\n\n")))));
     return block;
 }
 

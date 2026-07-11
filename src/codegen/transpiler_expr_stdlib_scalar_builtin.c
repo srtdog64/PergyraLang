@@ -221,7 +221,10 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
             return NULL;
-        char *result = strdup_fmt("((%s) < 0 ? -(%s) : (%s))", arg, arg, arg);
+        char *result = strdup_fmt(
+            "(({ __auto_type _pgy_abs_value = (%s); "
+            "_pgy_abs_value < 0 ? -_pgy_abs_value : _pgy_abs_value; }))",
+            arg);
         free(arg);
         return result;
     }
@@ -235,7 +238,12 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             free(b);
             return NULL;
         }
-        char *result = strdup_fmt("((%s) < (%s) ? (%s) : (%s))", a, b, a, b);
+        char *result = strdup_fmt(
+            "(({ __auto_type _pgy_min_left = (%s); "
+            "__auto_type _pgy_min_right = (%s); "
+            "_pgy_min_left < _pgy_min_right "
+            "? _pgy_min_left : _pgy_min_right; }))",
+            a, b);
         free(a); free(b);
         return result;
     }
@@ -268,7 +276,12 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             free(b);
             return NULL;
         }
-        char *result = strdup_fmt("((%s) > (%s) ? (%s) : (%s))", a, b, a, b);
+        char *result = strdup_fmt(
+            "(({ __auto_type _pgy_max_left = (%s); "
+            "__auto_type _pgy_max_right = (%s); "
+            "_pgy_max_left > _pgy_max_right "
+            "? _pgy_max_left : _pgy_max_right; }))",
+            a, b);
         free(a); free(b);
         return result;
     }

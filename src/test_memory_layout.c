@@ -209,6 +209,7 @@ panic_handler(int sig)
  * ----------------------------------------------------------------- */
 
 #include "tests/memory/test_memory_layout.cases.h"
+#include "tests/memory/test_memory_text_builder.cases.h"
 
 int
 main(void)
@@ -231,6 +232,7 @@ main(void)
     test_allocator_features();
     test_rc_weak_features();
     test_box_array_features();
+    test_text_builder_lifetime();
     test_pointer_lifetime_guards();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);

@@ -16,6 +16,7 @@
 #include "mir_signature_metadata.h"
 #include "mir_source_inventory_build.h"
 #include "mir_source_local_types.h"
+#include "mir_speculation_facts.h"
 
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
@@ -457,6 +458,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !mir_populate_instructions(&routine)
             || !mir_apply_ssa_rename(&routine)
             || !mir_populate_stmt_instructions(&routine)
+            || !mir_capture_speculation_facts(&routine)
             || !mir_populate_use_edges(&routine)
             || !mir_materialize_cleanup_edges(&routine)
             || !mir_recompute_analysis(&routine)

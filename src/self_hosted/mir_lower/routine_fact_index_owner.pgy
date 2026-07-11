@@ -1,0 +1,298 @@
+// Stable per-routine MIR JSON span index.
+//
+// The MIR document String remains owned by the caller. This fact carries only
+// integer spans and decoded source-local rows, so recursive CFG reconstruction
+// does not rediscover array rows from the beginning of the JSON document.
+
+import "json_fact_read.pgy";
+
+struct MirRoutineFactIndex {
+    let valid: Bool;
+    let routine_start: Int;
+    let routine_end: Int;
+    let block_starts: Array<Int>;
+    let block_ends: Array<Int>;
+    let backedge_headers: Array<Int>;
+    let block_succ_true: Array<String>;
+    let block_succ_false: Array<String>;
+    let block_has_conditional_branch: Array<Int>;
+    let block_structural_merges: Array<Int>;
+    let block_instruction_starts: Array<Int>;
+    let block_instruction_counts: Array<Int>;
+    let instruction_starts: Array<Int>;
+    let instruction_ends: Array<Int>;
+    let source_local_names: Array<String>;
+    let source_local_types: Array<String>;
+}
+
+func MirRoutineGraphDistances(
+    block_succ_true: Array<String>,
+    block_succ_false: Array<String>,
+    start: Int
+) -> Array<Int> {
+    let block_count: Int = ArrayLength(block_succ_true);
+    let distances: Array<Int> = [];
+    let row: Int = 0;
+    while row < block_count {
+        ArrayPush(distances, 0 - 1);
+        row = row + 1;
+    }
+    if start < 0 || start >= block_count {
+        return distances;
+    }
+    let queue: Array<Int> = [start];
+    ArraySet(distances, start, 0);
+    let cursor: Int = 0;
+    while cursor < ArrayLength(queue) {
+        let block: Int = queue[cursor];
+        let next_distance: Int = distances[block] + 1;
+        if StringLength(block_succ_true[block]) > 0 {
+            let target: Int = ToInt(block_succ_true[block]);
+            if target >= 0 && target < block_count && distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
+                ArrayPush(queue, target);
+            }
+        }
+        if StringLength(block_succ_false[block]) > 0 {
+            let target: Int = ToInt(block_succ_false[block]);
+            if target >= 0 && target < block_count && distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
+                ArrayPush(queue, target);
+            }
+        }
+        cursor = cursor + 1;
+    }
+    return distances;
+}
+
+func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int) -> MirRoutineFactIndex {
+    let block_starts: Array<Int> = [];
+    let block_ends: Array<Int> = [];
+    let backedge_headers: Array<Int> = [];
+    let block_succ_true: Array<String> = [];
+    let block_succ_false: Array<String> = [];
+    let block_has_conditional_branch: Array<Int> = [];
+    let block_structural_merges: Array<Int> = [];
+    let block_instruction_starts: Array<Int> = [];
+    let block_instruction_counts: Array<Int> = [];
+    let instruction_starts: Array<Int> = [];
+    let instruction_ends: Array<Int> = [];
+    let source_local_names: Array<String> = [];
+    let source_local_types: Array<String> = [];
+    let valid: Bool = true;
+
+    let blocks_bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayBounds(json, routine_start, routine_end, "blocks", blocks_bounds) {
+        valid = false;
+    } else {
+        let block_cursor: Int = blocks_bounds[0] + 1;
+        let block_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(json, block_cursor, blocks_bounds[1], block_bounds) {
+            ArrayPush(block_starts, block_bounds[0]);
+            ArrayPush(block_ends, block_bounds[1]);
+            ArrayPush(backedge_headers, 0);
+            ArrayPush(block_succ_true, MirObjectNumberFact(
+                json, block_bounds[0], block_bounds[1], "succ_true"));
+            ArrayPush(block_succ_false, MirObjectNumberFact(
+                json, block_bounds[0], block_bounds[1], "succ_false"));
+            ArrayPush(block_instruction_starts, ArrayLength(instruction_starts));
+
+            let instruction_count: Int = 0;
+            let has_conditional_branch: Int = 0;
+            let instructions_bounds: Array<Int> = [0, 0];
+            if MirObjectArrayBounds(json, block_bounds[0], block_bounds[1], "instructions", instructions_bounds) {
+                let instruction_cursor: Int = instructions_bounds[0] + 1;
+                let instruction_bounds: Array<Int> = [0, 0];
+                while JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds) {
+                    ArrayPush(instruction_starts, instruction_bounds[0]);
+                    ArrayPush(instruction_ends, instruction_bounds[1]);
+                    if MirObjectStringFact(json, instruction_bounds[0],
+                            instruction_bounds[1], "kind") == "branch" {
+                        let source_type: String = MirObjectStringFact(json,
+                            instruction_bounds[0], instruction_bounds[1], "source_type");
+                        if source_type != "AST_CONTINUE" && source_type != "AST_BREAK" {
+                            has_conditional_branch = 1;
+                        }
+                    }
+                    instruction_count = instruction_count + 1;
+                    instruction_cursor = instruction_bounds[1];
+                }
+            }
+            ArrayPush(block_instruction_counts, instruction_count);
+            ArrayPush(block_has_conditional_branch, has_conditional_branch);
+            block_cursor = block_bounds[1];
+        }
+    }
+
+    let block_row: Int = 0;
+    while block_row < ArrayLength(block_starts) {
+        let true_succ: String = block_succ_true[block_row];
+        if StringLength(true_succ) > 0 {
+            let target: Int = ToInt(true_succ);
+            if target >= 0 && target <= block_row && target < ArrayLength(backedge_headers) {
+                ArraySet(backedge_headers, target, 1);
+            }
+        }
+        let false_succ: String = block_succ_false[block_row];
+        if StringLength(false_succ) > 0 {
+            let target: Int = ToInt(false_succ);
+            if target >= 0 && target <= block_row && target < ArrayLength(backedge_headers) {
+                ArraySet(backedge_headers, target, 1);
+            }
+        }
+        block_row = block_row + 1;
+    }
+
+    let block_count: Int = ArrayLength(block_starts);
+    let block: Int = 0;
+    while block < block_count {
+        let merge: Int = 0 - 1;
+        let true_id: Int = 0 - 1;
+        if StringLength(block_succ_true[block]) > 0 {
+            true_id = ToInt(block_succ_true[block]);
+        }
+        let false_id: Int = 0 - 1;
+        if StringLength(block_succ_false[block]) > 0 {
+            false_id = ToInt(block_succ_false[block]);
+        }
+        if true_id >= 0 && false_id >= 0 {
+            let true_distance: Array<Int> =
+                MirRoutineGraphDistances(block_succ_true, block_succ_false, true_id);
+            let false_distance: Array<Int> =
+                MirRoutineGraphDistances(block_succ_true, block_succ_false, false_id);
+            let best_distance: Int = 2147483647;
+            let candidate: Int = 0;
+            while candidate < block_count {
+                if candidate != block && true_distance[candidate] >= 0 &&
+                    false_distance[candidate] >= 0 {
+                    let distance: Int = true_distance[candidate] + false_distance[candidate];
+                    if distance < best_distance {
+                        best_distance = distance;
+                        merge = candidate;
+                    }
+                }
+                candidate = candidate + 1;
+            }
+            if merge < 0 && StringLength(block_succ_true[true_id]) == 0 &&
+                StringLength(block_succ_false[true_id]) == 0 {
+                merge = false_id;
+            }
+        }
+        ArrayPush(block_structural_merges, merge);
+        block = block + 1;
+    }
+
+    let locals_bounds: Array<Int> = [0, 0];
+    if MirObjectArrayBounds(json, routine_start, routine_end, "source_locals", locals_bounds) {
+        let local_cursor: Int = locals_bounds[0] + 1;
+        let local_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(json, local_cursor, locals_bounds[1], local_bounds) {
+            ArrayPush(source_local_names,
+                MirObjectStringFact(json, local_bounds[0], local_bounds[1], "name"));
+            ArrayPush(source_local_types,
+                MirObjectStringFact(json, local_bounds[0], local_bounds[1], "type"));
+            local_cursor = local_bounds[1];
+        }
+    }
+
+    return MirRoutineFactIndex(valid, routine_start, routine_end,
+        block_starts, block_ends, backedge_headers, block_succ_true,
+        block_succ_false, block_has_conditional_branch, block_structural_merges,
+        block_instruction_starts,
+        block_instruction_counts, instruction_starts, instruction_ends,
+        source_local_names, source_local_types);
+}
+
+func MirRoutineFactIndexHasIncomingBackedge(ref index: MirRoutineFactIndex, block_id: Int) -> Bool {
+    return block_id >= 0 && block_id < ArrayLength(index.backedge_headers) &&
+        index.backedge_headers[block_id] == 1;
+}
+
+func MirRoutineFactIndexBlockSuccessor(
+    ref index: MirRoutineFactIndex,
+    block_start: Int,
+    false_edge: Bool
+) -> String {
+    let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);
+    if block_row < 0 {
+        return "";
+    }
+    if false_edge {
+        return index.block_succ_false[block_row];
+    }
+    return index.block_succ_true[block_row];
+}
+
+func MirRoutineFactIndexBlockHasConditionalBranch(
+    ref index: MirRoutineFactIndex,
+    block_start: Int
+) -> Bool {
+    let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);
+    return block_row >= 0 && index.block_has_conditional_branch[block_row] == 1;
+}
+
+func MirRoutineFactIndexBlockStructuralMerge(
+    ref index: MirRoutineFactIndex,
+    block_id: Int
+) -> String {
+    if block_id < 0 || block_id >= ArrayLength(index.block_structural_merges) {
+        return "";
+    }
+    let merge: Int = index.block_structural_merges[block_id];
+    if merge < 0 {
+        return "";
+    }
+    return ToString(merge);
+}
+
+func MirRoutineFactIndexBlockBounds(
+    ref index: MirRoutineFactIndex,
+    block_id: Int,
+    inout bounds: Array<Int>
+) -> Bool {
+    if !index.valid || block_id < 0 || block_id >= ArrayLength(index.block_starts) {
+        return false;
+    }
+    ArraySet(bounds, 0, index.block_starts[block_id]);
+    ArraySet(bounds, 1, index.block_ends[block_id]);
+    return true;
+}
+
+func MirRoutineFactIndexBlockRow(ref index: MirRoutineFactIndex, block_start: Int) -> Int {
+    let row: Int = 0;
+    while row < ArrayLength(index.block_starts) {
+        if index.block_starts[row] == block_start {
+            return row;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+func MirRoutineFactIndexInstructionBounds(
+    ref index: MirRoutineFactIndex,
+    block_start: Int,
+    instruction_row: Int,
+    inout bounds: Array<Int>
+) -> Bool {
+    let block_row: Int = MirRoutineFactIndexBlockRow(index, block_start);
+    if block_row < 0 || instruction_row < 0 ||
+        instruction_row >= index.block_instruction_counts[block_row] {
+        return false;
+    }
+    let row: Int = index.block_instruction_starts[block_row] + instruction_row;
+    ArraySet(bounds, 0, index.instruction_starts[row]);
+    ArraySet(bounds, 1, index.instruction_ends[row]);
+    return true;
+}
+
+func MirRoutineFactIndexSourceLocalType(ref index: MirRoutineFactIndex, name: String) -> String {
+    let row: Int = 0;
+    while row < ArrayLength(index.source_local_names) {
+        if index.source_local_names[row] == name {
+            return index.source_local_types[row];
+        }
+        row = row + 1;
+    }
+    return "";
+}

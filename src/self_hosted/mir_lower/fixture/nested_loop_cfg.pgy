@@ -1,0 +1,18 @@
+func Dirname(path: String) -> String {
+    let last_slash: Int = -1;
+    let i: Int = 0;
+    while i < StringLength(path) {
+        if Substring(path, i, 1) == "/" {
+            last_slash = i;
+        }
+        i = i + 1;
+    }
+    if last_slash < 0 {
+        return "";
+    }
+    return Substring(path, 0, last_slash);
+}
+
+func Main() -> Void {
+    Log(Dirname("a/b"));
+}

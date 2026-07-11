@@ -37,30 +37,31 @@ time** (or fail-closes deterministically at runtime where marked), and confirm
 a faithful port in a conventional language (TypeScript/C#) **does not**
 (compiles, then fails at runtime or silently corrupts).
 
-**The list is FROZEN as of 2026-07-11** (N=10; editing it after the crawler
-work starts would invalidate the experiment). `S` = expected static reject,
-`R` = expected deterministic runtime fail-close (weaker claim, counted
-separately). Each entry names the machinery that must catch it.
+**The list is FROZEN as of 2026-07-11.** The single source of truth is
+`docs/post_selfhost_validation_bug_classes.json`; editing its ten identities
+after crawler work starts invalidates the experiment. `S` means expected static
+reject and `R` means deterministic runtime fail-close. The table and thresholds
+below are generated projections, not prose-maintained counts.
 
+<!-- BEGIN GENERATED BUG CLASS TABLE -->
 | # | Bug class | Claim | Crawler fixture sketch | Machinery |
-|---|---|---|---|---|
-| 1 | Use-after-release of a resource | S | read player inventory slot after `Release` in a cleanup path | own/ref interproc UAF + slot tag |
+|---:|---|:---:|---|---|
+| 1 | Use-after-release of a resource | S | read player inventory slot after Release in a cleanup path | own/ref interproc UAF + slot tag |
 | 2 | Release-while-viewed / pin conflict | S | release a pinned map-tile view while a render borrow is live | pin/view frontier checks |
-| 3 | Unauthorized action (missing authority) | S | `DealDamage` called from a UI-role context without combat authority | authority/role checks |
-| 4 | Undeclared effect propagation | S | helper rolls dice (RANDOM) inside an entry declared pure | effect mask, declared⊇used |
-| 5 | Capability escalation | S+R | mod content reads a save file without `file_read` cap | static manifest + runtime cap gate |
+| 3 | Unauthorized action (missing authority) | S | DealDamage called from a UI-role context without combat authority | authority/role checks |
+| 4 | Undeclared effect propagation | S | helper rolls dice inside an entry declared pure | effect mask, declared superset of used |
+| 5 | Capability escalation | S+R | mod content reads a save file without file_read capability | static manifest + runtime capability gate |
 | 6 | Cross-world state mutation | S | dungeon world writes town-world merchant stock directly | Channel-only cross-world rule |
-| 7 | Evidence-free parallel sharing | S | two arms write one loot counter; arm captures live List | docs/178 boundary rejects |
-| 8 | Domain lifecycle violation | S+R | `Drink` on an Empty potion vessel; `Capture` before `Authorize` | lifecycle tracker + state tag |
-| 9 | Arithmetic UB (div0 / overflow trap) | R | damage formula divides by zero armor | CheckedArith panic, both backends |
-| 10 | Out-of-bounds collection access | R | off-by-one on dungeon grid row | bounds-checked accessors, both backends |
+| 7 | Evidence-free parallel sharing | S | two arms write one loot counter and capture a live List | parallel boundary evidence rejection |
+| 8 | Domain lifecycle violation | S+R | Drink on an Empty potion vessel; Capture before Authorize | lifecycle tracker + state tag |
+| 9 | Arithmetic UB (division by zero / overflow trap) | R | damage formula divides by zero armor | checked arithmetic panic, both backends |
+| 10 | Out-of-bounds collection access | R | off-by-one on a dungeon-grid row | bounds-checked accessors, both backends |
 
-- **PASS**: >= 6 of the 7 S-classes are caught statically by Pergyra and
-  missed by the conventional port, AND both R-classes fail closed
-  deterministically (same observable on both backends) where the port
-  corrupts or continues silently. List and both programs public.
-- **FAIL**: most classes are caught by neither, or by both -> the
-  domain-meaning layer buys little over a conventional type system.
+Generated claim totals: N=10; S-containing=8; R-containing=4; S-only=6; R-only=2; S+R=2.
+
+- **PASS**: >= 6 of 8 S-containing classes are caught statically by Pergyra and missed by the conventional port, AND all 4 R-containing classes fail closed deterministically with the same C/LLVM observable.
+- **FAIL**: most classes are caught by neither, or by both; the domain-meaning layer then buys little over a conventional type system.
+<!-- END GENERATED BUG CLASS TABLE -->
 
 ### V2 -- Evidence as a usable artifact (tests the "AIR product value" risk)
 The AIR evidence (authority/effect/intent provenance) must produce a **queryable

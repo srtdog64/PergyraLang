@@ -1,5 +1,6 @@
 #include "mir_fact_validate.h"
 #include "mir_fact_validate_internal.h"
+#include "mir_speculation_facts.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -193,7 +194,6 @@ mir_validate_routine_emission_facts(const MIRRoutine *routine,
         }
         return false;
     }
-
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
 
@@ -207,5 +207,5 @@ mir_validate_routine_emission_facts(const MIRRoutine *routine,
             return false;
     }
 
-    return true;
+    return mir_validate_speculation_facts(routine, error_message);
 }

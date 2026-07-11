@@ -121,6 +121,14 @@ compiler-stage `.pgy` source to be listed here.
   name, return-type, and parameter-type rows shared by source and artifact
   semantic paths.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
+- `src/self_hosted/semantic/callable_resolution_owner.pgy` -- exact-first,
+  unique namespace-local callable resolution.
+- `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
+  element and direct index-access facts.
+- `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum
+  declaration and variant facts for expression typing.
+- `src/self_hosted/semantic/projection_type_owner.pgy` -- nominal member,
+  array-index, and contextual array-literal types from owner facts.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks
   and verdict payload contract facts.
@@ -164,6 +172,8 @@ compiler-stage `.pgy` source to be listed here.
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
+- `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
+  block edges, instruction IDs, termination, and local SSA version updates.
 - `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
   lowering as one value-state transformer with explicit loop/branch topology.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
@@ -186,8 +196,14 @@ compiler-stage `.pgy` source to be listed here.
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
+- `src/self_hosted/mir_lower/program_routine_index_owner.pgy` -- one
+  document-order routine identity inventory shared by declaration and routine
+  reconstruction.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
+- `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine
+  block, instruction, source-local, successor, backedge, and structural-merge
+  facts consumed by recursive CFG reconstruction.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
@@ -226,11 +242,13 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
+- `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- expected-type array literal value emission.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
+- `src/self_hosted/codegen/emission/value_return_emit_owner.pgy` -- expected-type Option and return value emission.
 
 ## Fuzz
 

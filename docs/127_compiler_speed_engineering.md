@@ -121,3 +121,88 @@ Next real step (still §2): instrument per-stage timing (cold parse+semantic,
 each lowering layer, AIR, C-emit, LLVM-emit, gcc/link, binary size) behind a
 `make timing` artifact so the number becomes repeatable and non-regressing
 rather than a one-off wall-clock sample.
+
+## 7. Conditional-Value If-Conversion Policy
+
+Small source-shape changes can make Clang choose `csel`/`cmov` for an
+unpredictable conditional store while GCC keeps a branch. Pergyra must not make
+performance depend on that spelling accident.
+
+The eligible optimization unit is a MIR conditional value, not an arbitrary
+`if` statement. A future if-conversion pass may project it as a C ternary and an
+LLVM `select` only when both alternatives are proven pure, non-trapping,
+non-volatile, non-atomic, and free of observable allocation or runtime checks.
+Without those facts, the branch remains. Predictable branches and expensive
+alternatives may be faster than branchless code, so profile/target data remains
+a profitability input rather than a semantic promise.
+
+Required gate before landing:
+
+- identical C/LLVM behavior for branch and select forms;
+- emitted C and LLVM IR shape goldens;
+- Clang and GCC assembly inspection on x86-64 and AArch64;
+- random, sorted, skewed, and duplicate-heavy data distributions;
+- regression thresholds for runtime, code size, and compile time.
+
+The first candidates are scalar min/max/clamp and DOP partition/compaction
+loops. Slot, authority, bounds, checked-arithmetic, and host-call branches are
+ineligible unless their retained checks are independently proven erasable.
+
+Rung 0 landed on 2026-07-12: `mir_speculation_facts` captures explicit
+`pure`/`non_trapping` facts for every MIR instruction carrying `expr0`, exports
+them in MIR JSON, and fails validation when an expression lacks the fact.
+Scalar literals and MIR-confirmed source locals are covered, as is logical-not
+over an already safe operand. Composite expressions remain ineligible: AST
+operator spelling cannot prove overflow, overload, allocation, or effect
+behavior. No backend consumes the fact yet.
+The next rung is the PHI/branch diamond `MIRConditionalValueFact`; only after
+that verifier lands may C ternary/LLVM select projection begin.
+
+The 2026-07-11 audit found a semantic prerequisite in the existing C scalar
+projection. `Abs`, `Min`, and `Max` emitted ternaries by repeating operand text,
+so a selected side-effecting operand ran twice while LLVM `select` evaluated
+each operand once. The C projection now captures each operand in a block-local
+temporary before selection. `scalar_select_single_evaluation` reproduces the
+old 11-line C versus 8-line LLVM trace and gates the corrected 8-line parity.
+This is the minimum contract for every future if-conversion: **branchless must
+not mean duplicated evaluation**.
+
+## 8. Self-Host Text Scan and Allocation Evidence (2026-07-11)
+
+The compiler-scale codegen probe showed that source spelling matters before
+branch selection when a spelling allocates. The AST runtime-usage scan used
+one-character `String` values and `Substring(text, i, n)` comparisons inside
+repeated builtin-family scans. Repointing those observations to `CharCode` and
+`SubEqualsWithLen` preserved the owner and removed allocation from the scan.
+
+Measured on the same 28,434-node self-host AST artifact under a 4 GiB virtual
+memory cap:
+
+| Isolated stage | Before | After |
+| --- | ---: | ---: |
+| AST text -> typed artifact | not isolated before this audit | 12,416 KiB, 0.03 s |
+| artifact -> semantic facts | not isolated before this audit | 15,232 KiB, 0.09 s |
+| pre-emission facts/runtime usage | 717,696 KiB, 2.00 s | 51,968 KiB, 0.34 s |
+| full codegen attempt on the measured artifact | 4,192,000 KiB, signal 11 | 3,719,552 KiB, deterministic diagnostic exit |
+
+The remaining 3.7 GiB is not a branchless-code opportunity. It is lifetime
+debt: compiler `String` transforms allocate outside an owned text-assembly
+boundary and are not reclaimed per emitted function. The allocator names alone
+do not close this: `AllocatorScratch()` is currently a system-backed lane label,
+not a bulk-reset arena, and `AllocatorDestroy()` only releases pool backing
+storage.
+
+Text-builder rung 0 landed on 2026-07-12. `PgyTextBuilder` owns one growable
+buffer, checks length/capacity overflow, and requires explicit `Finish` promotion
+or `Drop`. The memory-layout gate proves that finishing releases scratch-owned
+storage and charges exactly one promoted result allocation. This is runtime
+substrate only: no Pergyra builtin, MIR runtime-call ABI row, C/LLVM lowering, or
+self-host consumer is claimed yet. The next rung must add that typed surface and
+repoint one measured emission owner before repeating the 3.7 GiB probe. Do not
+hide this debt behind `Array<String>`, a higher CI memory limit, or documentation
+that calls the current scratch lane a checkpoint arena.
+
+The measured artifact was stale enough to omit `SelfMirExpressionKind`; a
+regenerated 6,338,740-byte MIR artifact contains that enum and closes that
+specific diagnostic explanation. It does not close the 3.7 GiB text-lifetime
+debt or constitute a completed current-artifact bootstrap run.

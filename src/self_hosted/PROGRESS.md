@@ -85,7 +85,7 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 24,211 frontend/backend LOC; 38,346 compiler-core LOC; 8.61% of the measured C reference volume | Pergyra compiler code exists; this is not substitution. |
+| Implementation inventory | 25,389 frontend/backend LOC / 283,326 C-reference LOC = 8.96%; broader Pergyra compiler-core inventory = 40,192 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
 | Bounded executable replacement | DRV-2 has 19 producer-first source semantic fixtures, 4 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
@@ -636,8 +636,13 @@ The realistic incremental path toward genuine self-host:
    The M2 completeness ledger also now checks all 250 production self-host
    source files through the codegen `--check` path; that path still consumes
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
-   final self-parser-to-codegen bootstrap. Next rungs: string freeing / block
-   scoping, typed AST-node facts replacing text rows, then round-trip
+   final self-parser-to-codegen bootstrap. Allocation-free runtime-usage scans
+   now reduce the 28,434-node pre-emission probe from 717,696 KiB to 51,968
+   KiB while preserving 69-fixture C parity. The full codegen attempt still
+   reaches 3,719,552 KiB because ordinary compiler `String` temporaries do not
+   consume/reset the existing allocator lanes. Next rungs: allocator-aware
+   scratch text builder plus explicit result promotion, block scoping, typed
+   AST-node facts replacing text rows, then round-trip
    self-compilation.
 7. **Bootstrap loop** -- the bounded parser/codegen compiler subset now compiles
    itself to a byte-identical fixed point and its sample output matches the

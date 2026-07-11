@@ -53,6 +53,11 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(init)) != NULL) {
         name = ast_identifier_name(ast_call_callee(init));
+        {
+            const char *resolved = llvm_expr_custom_type_name(init, ctx);
+            if (resolved != NULL)
+                return resolved;
+        }
         if (llvm_stmt_call_returns_collection_value(name)
             && ast_call_arg_count(init) >= 1
             && ast_call_argument(init, 0) != NULL

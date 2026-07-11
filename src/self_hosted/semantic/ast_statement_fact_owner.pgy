@@ -29,6 +29,8 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindBareReturnStmtTag() ||
         kind == TypedAstKindValueReturnStmtTag() ||
         kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag() ||
+        kind == TypedAstKindArrayPushStmtTag() ||
         kind == TypedAstKindExitStmtTag() ||
         kind == TypedAstKindForStmtTag() ||
         kind == TypedAstKindWhileStmtTag() ||

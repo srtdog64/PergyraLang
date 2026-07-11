@@ -11,16 +11,17 @@ func MirFactObjectStart(json: String, start: Int) -> Int {
     if start < 0 {
         return start;
     }
-    if JsonCharAt(json, start) == "{" {
+    let n: Int = StringLength(json);
+    if JsonCharCodeAt(json, n, start) == JsonAsciiCode("{") {
         return start;
     }
     let i: Int = start - 1;
     while i >= 0 {
-        let c: String = JsonCharAt(json, i);
-        if c == "{" {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("{") {
             return i;
         }
-        if c == "}" || c == "]" {
+        if c == JsonAsciiCode("}") || c == JsonAsciiCode("]") {
             return start;
         }
         i = i - 1;
@@ -83,7 +84,7 @@ func MirObjectArrayBounds(json: String, start: Int, end: Int, field: String, ino
     if bounds[0] >= bounds[1] {
         return false;
     }
-    return JsonCharAt(json, bounds[0]) == "[";
+    return JsonCharCodeAt(json, StringLength(json), bounds[0]) == JsonAsciiCode("[");
 }
 
 func MirObjectArrayObjectBoundsAt(
@@ -149,20 +150,4 @@ func MirRoutineObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) 
     bounds[0] = row_fact.start;
     bounds[1] = row_fact.end;
     return true;
-}
-
-// Find a MIR source-local type fact in the current routine span. This is the
-// self-hosted mirror of MIRRoutine::source_local_types; mir_lower uses it
-// before the transitional statement text when reconstructing Let: lines.
-func SourceLocalType(json: String, start: Int, end: Int, name: String) -> String {
-    let row: Int = 0;
-    let bounds: Array<Int> = [0, 0];
-    while MirObjectArrayObjectBoundsAt(json, start, end, "source_locals", row, bounds) {
-        let n: String = MirObjectStringFact(json, bounds[0], bounds[1], "name");
-        if n == name {
-            return MirObjectStringFact(json, bounds[0], bounds[1], "type");
-        }
-        row = row + 1;
-    }
-    return "";
 }

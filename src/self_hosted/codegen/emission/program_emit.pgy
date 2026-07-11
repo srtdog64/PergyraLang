@@ -284,7 +284,7 @@ func GenerateCUnitFromSemanticArtifact(
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
 
-    let defs: String = "";
+    let defs: Array<String> = [];
     let cur: Array<Int> = [0];
     while cur[0] < count {
         let cur_node: Int = cur[0];
@@ -306,7 +306,7 @@ func GenerateCUnitFromSemanticArtifact(
                         cur, method_indent,
                         base_env, uses_args
                     );
-                    defs = Concat(defs, Concat(mdef, "\n"));
+                    ArrayPush(defs, Concat(mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
@@ -322,7 +322,7 @@ func GenerateCUnitFromSemanticArtifact(
                         cur, role_method_indent,
                         base_env, uses_args
                     );
-                    defs = Concat(defs, Concat(role_mdef, "\n"));
+                    ArrayPush(defs, Concat(role_mdef, "\n"));
                 } else {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
@@ -332,7 +332,7 @@ func GenerateCUnitFromSemanticArtifact(
                 count, arena, signatures, local_bindings, assignments, statements,
                 cur, f_indent, base_env, uses_args
             );
-            defs = Concat(defs, Concat(def, "\n"));
+            ArrayPush(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
         }
@@ -354,7 +354,7 @@ func GenerateCUnitFromSemanticArtifact(
     let uses_array_filter: Bool = usage.uses_array_filter;
     let uses_result: Bool = usage.uses_result;
     let uses_option: Bool = usage.uses_option;
-    let uses_bool: Bool = usage.uses_bool ||
+    let uses_bool: Bool = usage.uses_bool || usage.uses_array ||
         option_struct_block_fact.requires_bool_header;
     let uses_exit: Bool = usage.uses_exit;
     let uses_array: Bool = usage.uses_array;
@@ -449,7 +449,8 @@ func GenerateCUnitFromSemanticArtifact(
     if uses_dirwalk {
         header = Concat(header, HostIORuntimeCDirWalkBlock());
     }
-    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, defs))))));
+    let definition_block: String = StringJoin(defs, "");
+    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, definition_block))))));
 }
 
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {

@@ -16,25 +16,26 @@ func ContainsCallOutsideStrings(text: String, callee: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CodegenCharAt(text, i);
+        let c: Int = CodegenCharCodeAt(text, n, i);
         if in_str {
-            if c == "\\" {
+            if c == 92 {
                 i = i + 2;
                 continue;
             }
-            if c == "\"" {
+            if c == 34 {
                 in_str = false;
             }
             i = i + 1;
             continue;
         }
-        if c == "\"" {
+        if c == 34 {
             in_str = true;
             i = i + 1;
             continue;
         }
-        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
-            if i == 0 || !IsIdentChar(CodegenCharAt(text, i - 1)) {
+        if m > 0 && i + m <= n &&
+            SubEqualsWithLen(text, n, i, m, needle) {
+            if i == 0 || !IsIdentCode(CodegenCharCodeAt(text, n, i - 1)) {
                 return true;
             }
         }
@@ -49,24 +50,25 @@ func ContainsOutsideStrings(text: String, needle: String) -> Bool {
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
-        let c: String = CodegenCharAt(text, i);
+        let c: Int = CodegenCharCodeAt(text, n, i);
         if in_str {
-            if c == "\\" {
+            if c == 92 {
                 i = i + 2;
                 continue;
             }
-            if c == "\"" {
+            if c == 34 {
                 in_str = false;
             }
             i = i + 1;
             continue;
         }
-        if c == "\"" {
+        if c == 34 {
             in_str = true;
             i = i + 1;
             continue;
         }
-        if m > 0 && i + m <= n && Substring(text, i, m) == needle {
+        if m > 0 && i + m <= n &&
+            SubEqualsWithLen(text, n, i, m, needle) {
             return true;
         }
         i = i + 1;

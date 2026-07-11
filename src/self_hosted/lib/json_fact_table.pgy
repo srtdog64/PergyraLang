@@ -36,23 +36,23 @@ func JsonValueKindAt(json: String, start: Int, end: Int) -> String {
     if i >= end {
         return "invalid";
     }
-    let c: String = JsonCharAt(json, i);
-    if c == "\"" {
+    let c: Int = JsonCharCodeAt(json, StringLength(json), i);
+    if c == JsonAsciiCode("\"") {
         return "string";
     }
-    if c == "{" {
+    if c == JsonAsciiCode("{") {
         return "object";
     }
-    if c == "[" {
+    if c == JsonAsciiCode("[") {
         return "array";
     }
-    if c == "t" || c == "f" {
+    if c == JsonAsciiCode("t") || c == JsonAsciiCode("f") {
         return "bool";
     }
-    if c == "n" {
+    if c == JsonAsciiCode("n") {
         return "null";
     }
-    if JsonIsDigitChar(c) {
+    if JsonIsDigitCode(c) {
         return "number";
     }
     return "scalar";
@@ -62,7 +62,7 @@ func JsonObjectFactTableFromBounds(json: String, start: Int, end: Int) -> JsonOb
     if start < 0 || end <= start {
         return EmptyJsonObjectFactTable();
     }
-    if JsonCharAt(json, start) != "{" {
+    if JsonCharCodeAt(json, StringLength(json), start) != JsonAsciiCode("{") {
         return EmptyJsonObjectFactTable();
     }
     let object_end_opt: Option<Int> = JsonObjectEnd(json, start, end);
@@ -99,15 +99,15 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
         if i >= table.end {
             return 0;
         }
-        let c: String = JsonCharAt(table.json, i);
-        if c == "}" {
+        let c: Int = JsonCharCodeAt(table.json, StringLength(table.json), i);
+        if c == JsonAsciiCode("}") {
             return count;
         }
-        if c == "," {
+        if c == JsonAsciiCode(",") {
             i = i + 1;
             continue;
         }
-        if c != "\"" {
+        if c != JsonAsciiCode("\"") {
             return 0;
         }
         let key_end: Array<Int> = [0];
@@ -116,7 +116,7 @@ func JsonObjectFactCount(table: JsonObjectFactTable) -> Int {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if i >= table.end || JsonCharAt(table.json, i) != ":" {
+        if i >= table.end || JsonCharCodeAt(table.json, StringLength(table.json), i) != JsonAsciiCode(":") {
             return 0;
         }
         i = JsonSkipWhitespace(table.json, i + 1, table.end);
@@ -141,15 +141,15 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
         if cursor >= table.end {
             return None;
         }
-        let c: String = JsonCharAt(table.json, cursor);
-        if c == "}" {
+        let c: Int = JsonCharCodeAt(table.json, StringLength(table.json), cursor);
+        if c == JsonAsciiCode("}") {
             return None;
         }
-        if c == "," {
+        if c == JsonAsciiCode(",") {
             cursor = cursor + 1;
             continue;
         }
-        if c != "\"" {
+        if c != JsonAsciiCode("\"") {
             return None;
         }
         let key_end: Array<Int> = [0];
@@ -158,7 +158,7 @@ func JsonObjectFactIndex(table: JsonObjectFactTable, field: String) -> Option<In
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, key_end[0], table.end);
-        if cursor >= table.end || JsonCharAt(table.json, cursor) != ":" {
+        if cursor >= table.end || JsonCharCodeAt(table.json, StringLength(table.json), cursor) != JsonAsciiCode(":") {
             return None;
         }
         cursor = JsonSkipWhitespace(table.json, cursor + 1, table.end);
@@ -253,7 +253,7 @@ func JsonScalarToken(json: String, start: Int, end: Int) -> String {
     if value_start >= end {
         return "";
     }
-    if JsonCharAt(json, value_start) == "\"" {
+    if JsonCharCodeAt(json, StringLength(json), value_start) == JsonAsciiCode("\"") {
         let string_end: Array<Int> = [0];
         return ReadJsonString(json, value_start, string_end);
     }
@@ -270,19 +270,20 @@ func JsonCollectScalarFieldValues(
     if start < 0 || end <= start {
         return;
     }
-    let open: String = JsonCharAt(json, start);
-    if open == "{" {
+    let n: Int = StringLength(json);
+    let open: Int = JsonCharCodeAt(json, n, start);
+    if open == JsonAsciiCode("{") {
         let i: Int = start + 1;
         while i < end {
             i = JsonSkipWhitespace(json, i, end);
-            if i >= end || JsonCharAt(json, i) == "}" {
+            if i >= end || JsonCharCodeAt(json, n, i) == JsonAsciiCode("}") {
                 return;
             }
-            if JsonCharAt(json, i) == "," {
+            if JsonCharCodeAt(json, n, i) == JsonAsciiCode(",") {
                 i = i + 1;
                 continue;
             }
-            if JsonCharAt(json, i) != "\"" {
+            if JsonCharCodeAt(json, n, i) != JsonAsciiCode("\"") {
                 return;
             }
             let key_end: Array<Int> = [0];
@@ -291,7 +292,7 @@ func JsonCollectScalarFieldValues(
                 return;
             }
             i = JsonSkipWhitespace(json, key_end[0], end);
-            if i >= end || JsonCharAt(json, i) != ":" {
+            if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
                 return;
             }
             i = JsonSkipWhitespace(json, i + 1, end);
@@ -303,22 +304,22 @@ func JsonCollectScalarFieldValues(
             if key == field {
                 ArrayPush(values, JsonScalarToken(json, i, value_end));
             }
-            let value_open: String = JsonCharAt(json, i);
-            if value_open == "{" || value_open == "[" {
+            let value_open: Int = JsonCharCodeAt(json, n, i);
+            if value_open == JsonAsciiCode("{") || value_open == JsonAsciiCode("[") {
                 JsonCollectScalarFieldValues(json, i, value_end, field, values);
             }
             i = value_end;
         }
         return;
     }
-    if open == "[" {
+    if open == JsonAsciiCode("[") {
         let j: Int = start + 1;
         while j < end {
             j = JsonSkipWhitespace(json, j, end);
-            if j >= end || JsonCharAt(json, j) == "]" {
+            if j >= end || JsonCharCodeAt(json, n, j) == JsonAsciiCode("]") {
                 return;
             }
-            if JsonCharAt(json, j) == "," {
+            if JsonCharCodeAt(json, n, j) == JsonAsciiCode(",") {
                 j = j + 1;
                 continue;
             }
@@ -327,8 +328,8 @@ func JsonCollectScalarFieldValues(
                 return;
             }
             let item_end: Int = UnwrapOption(item_end_opt);
-            let item_open: String = JsonCharAt(json, j);
-            if item_open == "{" || item_open == "[" {
+            let item_open: Int = JsonCharCodeAt(json, n, j);
+            if item_open == JsonAsciiCode("{") || item_open == JsonAsciiCode("[") {
                 JsonCollectScalarFieldValues(json, j, item_end, field, values);
             }
             j = item_end;
@@ -350,7 +351,7 @@ func JsonArrayObjectFactTableFromBounds(json: String, start: Int, end: Int) -> J
     if start < 0 || end <= start {
         return EmptyJsonArrayObjectFactTable();
     }
-    if JsonCharAt(json, start) != "[" {
+    if JsonCharCodeAt(json, StringLength(json), start) != JsonAsciiCode("[") {
         return EmptyJsonArrayObjectFactTable();
     }
     let array_end_opt: Option<Int> = JsonArrayEnd(json, start, end);
@@ -418,7 +419,8 @@ func JsonArrayObjectFactStringFieldEqualsCount(
     while JsonObjectFactTableReady(row_fact) {
         let value_bounds: Array<Int> = [0, 0];
         if JsonObjectFactValueBounds(row_fact, field, value_bounds) {
-            if value_bounds[0] < value_bounds[1] && JsonCharAt(table.json, value_bounds[0]) == "\"" {
+            if value_bounds[0] < value_bounds[1] &&
+                JsonCharCodeAt(table.json, StringLength(table.json), value_bounds[0]) == JsonAsciiCode("\"") {
                 let value_end: Array<Int> = [0];
                 let actual: String = ReadJsonString(table.json, value_bounds[0], value_end);
                 if value_end[0] > value_bounds[0] && actual == expected {

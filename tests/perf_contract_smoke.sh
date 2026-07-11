@@ -3437,7 +3437,7 @@ grep -Fq "LLVM QueuePush could not lower value expression" "$ROOT_DIR/src/codege
 grep -Fq "LLVM QueuePop could not allocate result temporary" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 ! grep -Fq "{ *out = NULL; return true; }" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 ! grep -A16 -F "llvm_math_error_out(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c" | \
+    "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 ! grep -A16 -F "requires registered runtime function" \
     "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" | \
@@ -3932,13 +3932,13 @@ grep -Fq "LLVM try operator cannot coerce Result error payload" "$ROOT_DIR/src/c
 grep -Fq "PGY_FIX_ALIGN_RESULT_ERROR_TYPE" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
 ! grep -Fq "err_val = LLVMConstNull(dst_ty)" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
 grep -Fq "LLVM binary expression could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "llvm_math_error_out" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
-grep -Fq "kLLVMMathSpecs" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
-grep -Fq "llvm_math_lookup" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
-grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+grep -Fq "llvm_math_error_out" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
+grep -Fq "kLLVMMathSpecs" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
+grep -Fq "llvm_math_lookup" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
 math_builtin_names="$(
     sed -n '/static const LLVMMathSpec kLLVMMathSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -3952,9 +3952,9 @@ if [[ "$math_builtin_names" != "$math_builtin_names_sorted" ]]; then
         <(printf '%s\n' "$math_builtin_names") >&2 || true
     exit 1
 fi
-grep -Fq "LLVM Abs could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
-grep -Fq "LLVM Min could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
-grep -Fq "LLVM Max could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+grep -Fq "LLVM Abs could not lower operand expression" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
+grep -Fq "LLVM Min could not lower operand expression" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
+grep -Fq "LLVM Max could not lower operand expression" "$ROOT_DIR/src/codegen/llvm/expression/math_calls.c"
 grep -Fq "LLVM string coercion requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_string_coerce.c"
 grep -Fq "llvm_log_error" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
 grep -Fq "kLLVMLogSpecs" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"

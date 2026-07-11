@@ -14,20 +14,20 @@ func JsonArrayEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let in_string: Bool = false;
     let escape: Bool = false;
     while i < n && i < limit {
-        let c: String = JsonCharAt(json, i);
+        let c: Int = JsonCharCodeAt(json, n, i);
         if in_string {
             if escape {
                 escape = false;
-            } else if c == "\\" {
+            } else if c == JsonAsciiCode("\\") {
                 escape = true;
-            } else if c == "\"" {
+            } else if c == JsonAsciiCode("\"") {
                 in_string = false;
             }
-        } else if c == "\"" {
+        } else if c == JsonAsciiCode("\"") {
             in_string = true;
-        } else if c == "[" {
+        } else if c == JsonAsciiCode("[") {
             depth = depth + 1;
-        } else if c == "]" {
+        } else if c == JsonAsciiCode("]") {
             depth = depth - 1;
             if depth == 0 {
                 return Some(i);
@@ -45,20 +45,20 @@ func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     let in_string: Bool = false;
     let escape: Bool = false;
     while i < n && i < limit {
-        let c: String = JsonCharAt(json, i);
+        let c: Int = JsonCharCodeAt(json, n, i);
         if in_string {
             if escape {
                 escape = false;
-            } else if c == "\\" {
+            } else if c == JsonAsciiCode("\\") {
                 escape = true;
-            } else if c == "\"" {
+            } else if c == JsonAsciiCode("\"") {
                 in_string = false;
             }
-        } else if c == "\"" {
+        } else if c == JsonAsciiCode("\"") {
             in_string = true;
-        } else if c == "{" {
+        } else if c == JsonAsciiCode("{") {
             depth = depth + 1;
-        } else if c == "}" {
+        } else if c == JsonAsciiCode("}") {
             depth = depth - 1;
             if depth == 0 {
                 return Some(i + 1);
@@ -69,37 +69,67 @@ func JsonObjectEnd(json: String, open: Int, limit: Int) -> Option<Int> {
     return None;
 }
 
+func JsonStringEnd(json: String, open: Int, limit: Int) -> Option<Int> {
+    let n: Int = StringLength(json);
+    if open < 0 || open >= n || open >= limit || JsonCharCodeAt(json, n, open) != JsonAsciiCode("\"") {
+        return None;
+    }
+    let i: Int = open + 1;
+    while i < n && i < limit {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("\"") {
+            return Some(i + 1);
+        }
+        if c == JsonAsciiCode("\\") {
+            if i + 1 >= n || i + 1 >= limit {
+                return None;
+            }
+            i = i + 2;
+            continue;
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
 func ReadJsonString(json: String, open: Int, inout end: Array<Int>) -> String {
     let n: Int = StringLength(json);
     let i: Int = open + 1;
-    let out: String = "";
+    let segment_start: Int = i;
+    let chunks: Array<String> = [];
     while i < n {
-        let c: String = JsonCharAt(json, i);
-        if c == "\"" {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("\"") {
+            if i > segment_start {
+                ArrayPush(chunks, Substring(json, segment_start, i - segment_start));
+            }
             ArraySet(end, 0, i + 1);
-            return out;
+            return StringJoin(chunks, "");
         }
-        if c == "\\" {
+        if c == JsonAsciiCode("\\") {
             if i + 1 >= n {
                 return "";
             }
-            let e: String = JsonCharAt(json, i + 1);
-            if e == "n" {
-                out = Concat(out, "\n");
-            } else if e == "r" {
-                out = Concat(out, "\r");
-            } else if e == "t" {
-                out = Concat(out, "\t");
-            } else if e == "\"" {
-                out = Concat(out, "\"");
-            } else if e == "\\" {
-                out = Concat(out, "\\");
+            if i > segment_start {
+                ArrayPush(chunks, Substring(json, segment_start, i - segment_start));
+            }
+            let e: Int = JsonCharCodeAt(json, n, i + 1);
+            if e == JsonAsciiCode("n") {
+                ArrayPush(chunks, "\n");
+            } else if e == JsonAsciiCode("r") {
+                ArrayPush(chunks, "\r");
+            } else if e == JsonAsciiCode("t") {
+                ArrayPush(chunks, "\t");
+            } else if e == JsonAsciiCode("\"") {
+                ArrayPush(chunks, "\"");
+            } else if e == JsonAsciiCode("\\") {
+                ArrayPush(chunks, "\\");
             } else {
-                out = Concat(out, e);
+                ArrayPush(chunks, CharAtN(json, n, i + 1));
             }
             i = i + 2;
+            segment_start = i;
         } else {
-            out = Concat(out, c);
             i = i + 1;
         }
     }
@@ -120,7 +150,7 @@ func JsonFieldString(json: String, start: Int, end: Int, key: String) -> String 
         return "";
     }
     vstart = JsonSkipWhitespace(json, vstart, end);
-    if vstart >= end || JsonCharAt(json, vstart) != "\"" {
+    if vstart >= end || JsonCharCodeAt(json, StringLength(json), vstart) != JsonAsciiCode("\"") {
         return "";
     }
     let e: Array<Int> = [0];
@@ -136,7 +166,7 @@ func JsonDocumentObjectEnd(json: String) -> Option<Int> {
     if n <= 0 {
         return None;
     }
-    if JsonCharAt(json, 0) != "{" {
+    if JsonCharCodeAt(json, n, 0) != JsonAsciiCode("{") {
         return None;
     }
     return JsonObjectEnd(json, 0, n);
@@ -192,19 +222,18 @@ func JsonFieldNumber(json: String, start: Int, end: Int, key: String) -> String 
     let i: Int = p + StringLength(key);
     i = JsonSkipWhitespace(json, i, end);
     let n: Int = StringLength(json);
-    let out: String = "";
+    let number_start: Int = i;
     while i < n && i < end {
-        let c: String = JsonCharAt(json, i);
-        if !JsonIsDigitChar(c) {
-            if StringLength(out) > 0 {
-                return out;
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if !JsonIsDigitCode(c) {
+            if i > number_start {
+                return Substring(json, number_start, i - number_start);
             }
             return "";
         }
-        out = Concat(out, c);
         i = i + 1;
     }
-    return out;
+    return Substring(json, number_start, i - number_start);
 }
 
 func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
@@ -212,25 +241,21 @@ func JsonValueEnd(json: String, value_start: Int, end: Int) -> Option<Int> {
     if i >= end {
         return None;
     }
-    let c: String = JsonCharAt(json, i);
-    if c == "\"" {
-        let string_end: Array<Int> = [0];
-        let ignored: String = ReadJsonString(json, i, string_end);
-        if string_end[0] <= i {
-            return None;
-        }
-        return Some(string_end[0]);
+    let n: Int = StringLength(json);
+    let c: Int = JsonCharCodeAt(json, n, i);
+    if c == JsonAsciiCode("\"") {
+        return JsonStringEnd(json, i, end);
     }
-    if c == "{" {
+    if c == JsonAsciiCode("{") {
         return JsonObjectEnd(json, i, end);
     }
-    if c == "[" {
+    if c == JsonAsciiCode("[") {
         let array_close: Int = JsonArrayEnd(json, i, end)?;
         return Some(array_close + 1);
     }
     while i < end {
-        let d: String = JsonCharAt(json, i);
-        if d == "," || d == "}" || d == "]" {
+        let d: Int = JsonCharCodeAt(json, n, i);
+        if d == JsonAsciiCode(",") || d == JsonAsciiCode("}") || d == JsonAsciiCode("]") {
             return Some(i);
         }
         i = i + 1;
@@ -242,7 +267,8 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
     if start < 0 || end <= start {
         return false;
     }
-    if JsonCharAt(json, start) != "{" {
+    let n: Int = StringLength(json);
+    if JsonCharCodeAt(json, n, start) != JsonAsciiCode("{") {
         return false;
     }
     let i: Int = start + 1;
@@ -251,15 +277,15 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
         if i >= end {
             return false;
         }
-        let c: String = JsonCharAt(json, i);
-        if c == "}" {
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if c == JsonAsciiCode("}") {
             return false;
         }
-        if c == "," {
+        if c == JsonAsciiCode(",") {
             i = i + 1;
             continue;
         }
-        if c != "\"" {
+        if c != JsonAsciiCode("\"") {
             return false;
         }
         let key_end: Array<Int> = [0];
@@ -268,7 +294,7 @@ func JsonObjectFieldValueBounds(json: String, start: Int, end: Int, field: Strin
             return false;
         }
         i = JsonSkipWhitespace(json, key_end[0], end);
-        if i >= end || JsonCharAt(json, i) != ":" {
+        if i >= end || JsonCharCodeAt(json, n, i) != JsonAsciiCode(":") {
             return false;
         }
         i = JsonSkipWhitespace(json, i + 1, end);
@@ -300,7 +326,7 @@ func JsonObjectStringFieldOpt(json: String, start: Int, end: Int, field: String)
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return None;
     }
-    if bounds[0] >= bounds[1] || JsonCharAt(json, bounds[0]) != "\"" {
+    if bounds[0] >= bounds[1] || JsonCharCodeAt(json, StringLength(json), bounds[0]) != JsonAsciiCode("\"") {
         return None;
     }
     let string_end: Array<Int> = [0];
@@ -325,22 +351,18 @@ func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String)
         return None;
     }
     let i: Int = bounds[0];
-    let out: String = "";
+    let n: Int = StringLength(json);
     while i < bounds[1] {
-        let c: String = JsonCharAt(json, i);
-        if !JsonIsDigitChar(c) {
-            if StringLength(out) > 0 {
-                return Some(out);
-            }
+        let c: Int = JsonCharCodeAt(json, n, i);
+        if !JsonIsDigitCode(c) {
             return None;
         }
-        out = Concat(out, c);
         i = i + 1;
     }
-    if StringLength(out) == 0 {
+    if i == bounds[0] {
         return None;
     }
-    return Some(out);
+    return Some(Substring(json, bounds[0], i - bounds[0]));
 }
 
 func JsonObjectHasField(json: String, start: Int, end: Int, field: String) -> Bool {
@@ -384,15 +406,15 @@ func JsonArrayObjectBoundsAt(json: String, array_open: Int, array_end: Int, targ
         if i >= array_end {
             return false;
         }
-        let c: String = JsonCharAt(json, i);
-        if c == "]" {
+        let c: Int = JsonCharCodeAt(json, StringLength(json), i);
+        if c == JsonAsciiCode("]") {
             return false;
         }
-        if c == "," {
+        if c == JsonAsciiCode(",") {
             i = i + 1;
             continue;
         }
-        if c != "{" {
+        if c != JsonAsciiCode("{") {
             return false;
         }
         let obj_end_opt: Option<Int> = JsonObjectEnd(json, i, array_end);
@@ -409,6 +431,27 @@ func JsonArrayObjectBoundsAt(json: String, array_open: Int, array_end: Int, targ
         i = obj_end;
     }
     return false;
+}
+
+func JsonArrayNextObjectBounds(json: String, cursor: Int, array_end: Int, inout bounds: Array<Int>) -> Bool {
+    let n: Int = StringLength(json);
+    let i: Int = JsonSkipWhitespace(json, cursor, array_end);
+    if i < array_end && JsonCharCodeAt(json, n, i) == JsonAsciiCode(",") {
+        i = JsonSkipWhitespace(json, i + 1, array_end);
+    }
+    if i >= array_end || JsonCharCodeAt(json, n, i) == JsonAsciiCode("]") {
+        return false;
+    }
+    if JsonCharCodeAt(json, n, i) != JsonAsciiCode("{") {
+        return false;
+    }
+    let object_end_opt: Option<Int> = JsonObjectEnd(json, i, array_end);
+    if !IsSome(object_end_opt) {
+        return false;
+    }
+    ArraySet(bounds, 0, i);
+    ArraySet(bounds, 1, UnwrapOption(object_end_opt));
+    return true;
 }
 
 func JsonArrayObjectCount(json: String, array_open: Int, array_end: Int) -> Int {
@@ -470,15 +513,15 @@ func JsonArrayStringAt(json: String, array_open: Int, array_end: Int, target_ind
         if i >= array_end {
             return "";
         }
-        let c: String = JsonCharAt(json, i);
-        if c == "]" {
+        let c: Int = JsonCharCodeAt(json, StringLength(json), i);
+        if c == JsonAsciiCode("]") {
             return "";
         }
-        if c == "," {
+        if c == JsonAsciiCode(",") {
             i = i + 1;
             continue;
         }
-        if c != "\"" {
+        if c != JsonAsciiCode("\"") {
             return "";
         }
         let value_end: Array<Int> = [0];
@@ -500,23 +543,23 @@ func JsonArrayStringCount(json: String, array_open: Int, array_end: Int) -> Int 
     let i: Int = array_open + 1;
     while i < array_end {
         i = JsonSkipWhitespace(json, i, array_end);
-        if i >= array_end || JsonCharAt(json, i) == "]" {
+        let c: Int = JsonCharCodeAt(json, StringLength(json), i);
+        if i >= array_end || c == JsonAsciiCode("]") {
             return count;
         }
-        if JsonCharAt(json, i) == "," {
+        if c == JsonAsciiCode(",") {
             i = i + 1;
             continue;
         }
-        if JsonCharAt(json, i) != "\"" {
+        if c != JsonAsciiCode("\"") {
             return count;
         }
-        let value_end: Array<Int> = [0];
-        let ignored: String = ReadJsonString(json, i, value_end);
-        if value_end[0] <= i {
+        let value_end_opt: Option<Int> = JsonStringEnd(json, i, array_end);
+        if !IsSome(value_end_opt) {
             return count;
         }
         count = count + 1;
-        i = value_end[0];
+        i = UnwrapOption(value_end_opt);
     }
     return count;
 }
@@ -526,7 +569,7 @@ func JsonObjectArrayStringAt(json: String, start: Int, end: Int, field: String, 
     if !JsonObjectFieldValueBounds(json, start, end, field, bounds) {
         return "";
     }
-    if bounds[0] >= bounds[1] || JsonCharAt(json, bounds[0]) != "[" {
+    if bounds[0] >= bounds[1] || JsonCharCodeAt(json, StringLength(json), bounds[0]) != JsonAsciiCode("[") {
         return "";
     }
     return JsonArrayStringAt(json, bounds[0], bounds[1], target_index);

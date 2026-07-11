@@ -1,0 +1,148 @@
+{
+  "schema": "pgy.post-selfhost-validation-bug-classes.v1",
+  "frozen_on": "2026-07-11",
+  "claim_totals": {
+    "total": 10,
+    "static": 8,
+    "runtime": 4,
+    "static_only": 6,
+    "runtime_only": 2,
+    "static_and_runtime": 2
+  },
+  "pass_policy": {
+    "static_required": 6,
+    "runtime_required": 4
+  },
+  "bug_classes": [
+    {
+      "id": 1,
+      "title": "Use-after-release of a resource",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_SLOT_RELEASED",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles and reads released state or fails later",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/01_use_after_release/main.pgy"],
+      "crawler_fixture_sketch": "read player inventory slot after Release in a cleanup path",
+      "machinery": "own/ref interproc UAF + slot tag"
+    },
+    {
+      "id": 2,
+      "title": "Release-while-viewed / pin conflict",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_PIN_ESCAPE",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles with a dangling or invalidated view",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/02_release_while_viewed/main.pgy"],
+      "crawler_fixture_sketch": "release a pinned map-tile view while a render borrow is live",
+      "machinery": "pin/view frontier checks"
+    },
+    {
+      "id": 3,
+      "title": "Unauthorized action (missing authority)",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles without domain-authority evidence",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/03_missing_authority/main.pgy"],
+      "crawler_fixture_sketch": "DealDamage called from a UI-role context without combat authority",
+      "machinery": "authority/role checks"
+    },
+    {
+      "id": 4,
+      "title": "Undeclared effect propagation",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_EFFECT_CONFLICT",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles while silently widening the declared effect",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/04_undeclared_effect/main.pgy"],
+      "crawler_fixture_sketch": "helper rolls dice inside an entry declared pure",
+      "machinery": "effect mask, declared superset of used"
+    },
+    {
+      "id": 5,
+      "title": "Capability escalation",
+      "static_claim": true,
+      "runtime_claim": true,
+      "expected_diagnostic": "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
+      "expected_runtime_observable": "capability-denied trap",
+      "conventional_port_expected": "compiles and reaches ambient file authority",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/05_capability_escalation/main.pgy"],
+      "crawler_fixture_sketch": "mod content reads a save file without file_read capability",
+      "machinery": "static manifest + runtime capability gate"
+    },
+    {
+      "id": 6,
+      "title": "Cross-world state mutation",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_WORLD_CONTRACT_INVALID",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles with direct cross-world mutation",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/06_cross_world_mutation/main.pgy"],
+      "crawler_fixture_sketch": "dungeon world writes town-world merchant stock directly",
+      "machinery": "Channel-only cross-world rule"
+    },
+    {
+      "id": 7,
+      "title": "Evidence-free parallel sharing",
+      "static_claim": true,
+      "runtime_claim": false,
+      "expected_diagnostic": "PGY_SEM_PARALLEL_SLOT_CONFLICT",
+      "expected_runtime_observable": null,
+      "conventional_port_expected": "compiles with a shared-write race",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/07_parallel_sharing/main.pgy"],
+      "crawler_fixture_sketch": "two arms write one loot counter and capture a live List",
+      "machinery": "parallel boundary evidence rejection"
+    },
+    {
+      "id": 8,
+      "title": "Domain lifecycle violation",
+      "static_claim": true,
+      "runtime_claim": true,
+      "expected_diagnostic": "PGY_SEM_ACTION_CONTRACT_INVALID",
+      "expected_runtime_observable": "lifecycle-invalid trap",
+      "conventional_port_expected": "compiles and executes an invalid domain transition",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/08_lifecycle_violation/main.pgy"],
+      "crawler_fixture_sketch": "Drink on an Empty potion vessel; Capture before Authorize",
+      "machinery": "lifecycle tracker + state tag"
+    },
+    {
+      "id": 9,
+      "title": "Arithmetic UB (division by zero / overflow trap)",
+      "static_claim": false,
+      "runtime_claim": true,
+      "expected_diagnostic": null,
+      "expected_runtime_observable": "checked-arithmetic trap",
+      "conventional_port_expected": "continues with undefined, wrapped, or host-specific behavior",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/09_arithmetic_ub/main.pgy"],
+      "crawler_fixture_sketch": "damage formula divides by zero armor",
+      "machinery": "checked arithmetic panic, both backends"
+    },
+    {
+      "id": 10,
+      "title": "Out-of-bounds collection access",
+      "static_claim": false,
+      "runtime_claim": true,
+      "expected_diagnostic": null,
+      "expected_runtime_observable": "out-of-bounds trap",
+      "conventional_port_expected": "continues, corrupts, or throws a non-domain failure",
+      "fixture_status": "planned",
+      "fixture_paths": ["tests/cases/post_selfhost_validation/10_out_of_bounds/main.pgy"],
+      "crawler_fixture_sketch": "off-by-one on a dungeon-grid row",
+      "machinery": "bounds-checked accessors, both backends"
+    }
+  ]
+}

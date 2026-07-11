@@ -1323,6 +1323,14 @@ if grep -Fq "llvm_find_local_let_type_in_block" \
     echo "[backend-fail-closed] LLVM nominal type inference reintroduced AST body rescan" >&2
     exit 1
 fi
+grep -Fq "llvm_expr_unwrap_option_payload_class_name" \
+    "$ROOT_DIR/src/codegen/llvm_expr_common.c"
+grep -Fq "mir_routine_source_local_type_name(routine," \
+    "$ROOT_DIR/src/codegen/llvm_expr_common.c"
+grep -Fq "if (routine != NULL)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_common.c"
+grep -Fq "llvm_expr_custom_type_name(init, ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_nominal.c"
 grep -Fq "llvm_lookup_callable_entry(ctx, callee_name)" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, callee_name, &callee_var)" \

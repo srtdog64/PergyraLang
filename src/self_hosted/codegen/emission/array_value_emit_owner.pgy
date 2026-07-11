@@ -1,0 +1,50 @@
+// Expected-type array literal value emission owner.
+
+import "../text/expr_scan.pgy";
+import "../text/expr_sequence_owner.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+
+func EmitArrayLiteralValue(
+    expr: String,
+    expected_type: String,
+    env: String
+) -> String {
+    let literal: String = StringTrim(expr);
+    if StringLength(literal) < 2 || CodegenCharAt(literal, 0) != "[" ||
+        CodegenCharAt(literal, StringLength(literal) - 1) != "]" {
+        Die(Concat("expected array literal for type: ", expected_type));
+    }
+    let kind: String = CollectionRuntimeKindFromTypeName(expected_type);
+    let kind_code: Int = CollectionRuntimeKindCode(kind);
+    let c_type: String = AbiLayoutCValueType(expected_type, env);
+    let temp: String = "_pgy_array_value";
+    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+        Concat(temp, Concat(" = ", Concat(
+            CollectionRuntimeCNewFn(kind_code), "(); "))))));
+    let inner: String = StringTrim(Substring(
+        literal, 1, StringLength(literal) - 2
+    ));
+    let count: Int = ExprSequenceItemCount(inner);
+    let index: Int = 0;
+    while index < count {
+        let item: Option<String> = ExprSequenceItemAt(inner, index);
+        if !IsSome(item) {
+            Die("array literal item fact is missing");
+        }
+        let item_expr: String = UnwrapOption(item);
+        let element_type: String =
+            CollectionRuntimeElementTypeFromKindCode(kind_code);
+        let value: String = IntEval(item_expr, env);
+        if element_type == "String" {
+            value = StrEval(item_expr, env);
+        } else if element_type == "CodegenAstTextNode" {
+            Die("inline Array<CodegenAstTextNode> values are outside the bootstrap subset");
+        }
+        out = Concat(out, Concat(CollectionRuntimeCPushFn(kind_code),
+            Concat("(&", Concat(temp, Concat(", ",
+                Concat(value, "); "))))));
+        index = index + 1;
+    }
+    return Concat(out, Concat(temp, "; })"));
+}

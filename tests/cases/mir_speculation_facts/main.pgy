@@ -1,0 +1,20 @@
+func Pick(flag: Bool, lhs: Int, rhs: Int) -> Int {
+    let chosen: Int = lhs;
+    if flag {
+        chosen = 7;
+    }
+    return chosen;
+}
+
+func GuardedDivide(flag: Bool, divisor: Int) -> Int {
+    let chosen: Int = 0;
+    if flag {
+        chosen = 100 / divisor;
+    }
+    return chosen;
+}
+
+func Main() -> Void {
+    Log(Pick(true, 3, 7));
+    Log(GuardedDivide(false, 0));
+}

@@ -1,0 +1,167 @@
+// Canonical state transformations for one bounded MIR routine build.
+
+import "program_fact_owner.pgy";
+
+struct SelfMirRoutineBuild {
+    ok: Bool;
+    diagnostic_message: String;
+    cfg: SelfMirCfgRows;
+    current_block: Int;
+    next_instruction_id: Int;
+    terminated: Array<Int>;
+    local_names: Array<String>;
+    local_types: Array<String>;
+    local_versions: Array<Int>;
+}
+
+func SelfMirRoutineBuildEmpty() -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(SelfMirCfgRowsEmpty());
+    let empty_strings: Array<String> = [];
+    let empty_ints: Array<Int> = [];
+    return SelfMirRoutineBuild(
+        true, "", cfg, 0, 0, [0], empty_strings, empty_strings, empty_ints
+    );
+}
+
+func SelfMirRoutineBuildError(
+    build: SelfMirRoutineBuild,
+    message: String
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineBuild(
+        false, message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAddBlock(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(build.cfg);
+    let terminated: Array<Int> = build.terminated;
+    ArrayPush(terminated, 0);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAtBlock(
+    build: SelfMirRoutineBuild,
+    block_index: Int
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, block_index,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineSetSuccessors(
+    build: SelfMirRoutineBuild,
+    block_index: Int,
+    true_target: Int,
+    false_target: Int
+) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgSetSuccessors(
+        build.cfg, block_index, true_target, false_target
+    );
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineTerminate(build: SelfMirRoutineBuild) -> SelfMirRoutineBuild {
+    let terminated: Array<Int> = build.terminated;
+    ArraySet(terminated, build.current_block, 1);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineAddInstruction(
+    build: SelfMirRoutineBuild,
+    kind: String,
+    name: String,
+    result: String,
+    arg0: String,
+    arg1: String,
+    expr0: String,
+    expr1: String,
+    source_type: String,
+    uses: Array<String>
+) -> SelfMirRoutineBuild {
+    let cfg: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        build.cfg, build.current_block, build.next_instruction_id,
+        kind, name, result, arg0, arg1, expr0, expr1, source_type, uses
+    );
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id + 1, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
+func SelfMirRoutineLocalIndex(
+    build: SelfMirRoutineBuild,
+    name: String
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(build.local_names) {
+        if build.local_names[i] == name { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SelfMirRoutineAddLocal(
+    build: SelfMirRoutineBuild,
+    name: String,
+    type_name: String,
+    initial_version: Int
+) -> SelfMirRoutineBuild {
+    let existing_opt: Option<Int> = SelfMirRoutineLocalIndex(build, name);
+    if IsSome(existing_opt) {
+        let existing: Int = UnwrapOption(existing_opt);
+        if build.local_types[existing] != type_name {
+            return SelfMirRoutineBuildError(
+                build, Concat("MIR shadowed local type changed: ", name)
+            );
+        }
+        let versions2: Array<Int> = build.local_versions;
+        let next_version: Int = versions2[existing] + 1;
+        ArraySet(versions2, existing, next_version);
+        return SelfMirRoutineBuild(
+            build.ok, build.diagnostic_message, build.cfg,
+            build.current_block, build.next_instruction_id,
+            build.terminated, build.local_names, build.local_types, versions2
+        );
+    }
+    let names: Array<String> = build.local_names;
+    let types: Array<String> = build.local_types;
+    let versions: Array<Int> = build.local_versions;
+    ArrayPush(names, name);
+    ArrayPush(types, type_name);
+    ArrayPush(versions, initial_version);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated, names, types, versions
+    );
+}
+
+func SelfMirRoutineSetLocalVersion(
+    build: SelfMirRoutineBuild,
+    local_index: Int,
+    version: Int
+) -> SelfMirRoutineBuild {
+    let versions: Array<Int> = build.local_versions;
+    ArraySet(versions, local_index, version);
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, versions
+    );
+}

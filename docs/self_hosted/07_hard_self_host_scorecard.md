@@ -129,7 +129,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
-| 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
+| 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` constructors/destruction and allocator-aware `BoxArray` are C/LLVM-backed. Compiler-scale `String` transforms and emission builders still allocate outside those lanes, so per-pass scratch reset and persistent-result promotion are not yet closed. |
 | 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity, self-host-mir-json-parity-test-smoke | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0; residual STMT source-payload emission and raw source-statement re-dispatch are retired; select and match condition/body-binding/remap emission consume MIR branch facts; resource matching uses source-index/location/anchor facts; C/LLVM destructure binding/initializer emission, C/LLVM assignment emission, LLVM source-local resource LET emission, C source-local LET/DEF/receive paths, MIR surface validation, public-surface scalar provenance seeding, and lifecycle MIR JSON source-text emission consume MIR/source-shape facts; self-hosted `mir_lower` consumes explicit MIR JSON facts for the supported CFG plus selected codegen fixture subset, rejects unsupported declaration facts cleanly, and is ratcheted against transitional `"ast"` compatibility reads |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
@@ -196,15 +196,17 @@ projection/identity semantics beyond field-only nominal declarations still
 require later facts and fixtures; payload enum variants reject from their
 variant facts; `self-host-mir-json-parity-test-smoke` rejects
 reintroducing transitional `"ast"` reads.
-Capability 4 is
-closed for the current compiler-pass
-substrate: named allocator lanes can be constructed, consumed by
-allocation-aware owners, and explicitly destroyed through the same C/LLVM value
-surface.
+Capability 4 is closed only for the allocator-aware container subset. Named
+lanes can be constructed and explicitly destroyed through the same C/LLVM
+value surface, but ordinary `String` transforms do not consume a lane. A
+compiler-scale self-host codegen probe therefore accumulates temporary strings
+across function emission. This is an active ownership gap, not evidence that
+the pass-lane substrate is complete.
 
 ## Next substrate work
 
-After capability 5, the last substrate item was pass-lane allocator cleanup.
+After capability 5, pass-lane allocator cleanup remains active for compiler
+text builders.
 Capability 2 now has stable `MapKeys` and
 `SetValues` order for the stable scalar subset, and
 `stage4_determinism_smoke` proves stable output across insertion orders for
@@ -215,9 +217,10 @@ now has a stable `Allocator` value surface on both C and LLVM, including
 `BoxArray(capacity, allocator)` lowering through a named allocator local and
 language-level `AllocatorScratch`, `AllocatorResult`, and `AllocatorPersistent`
 constructors with distinct runtime lane kinds. `AllocatorDestroy(namedAllocator)`
-is the explicit cleanup operation that pass authors pair with `defer`, so
-scratch/result/persistent compiler pass lanes no longer need an out-of-language
-cleanup convention.
+is the explicit cleanup operation that pass authors pair with `defer`. The next
+owner must make compiler text builders allocate into scratch and promote only
+the returned artifact into result/persistent storage; until then ordinary
+`Concat`/`Substring`-heavy passes still have an out-of-language lifetime gap.
 
 The previous filesystem and parser-backend substrate items are now evidence,
 not blockers: `filesystem_directory_walk_smoke` gates deterministic

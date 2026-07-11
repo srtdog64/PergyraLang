@@ -11,6 +11,9 @@ import "ast_local_binding_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
+import "array_type_owner.pgy";
+import "projection_type_owner.pgy";
+import "ast_enum_fact_owner.pgy";
 
 struct SemanticAstInitializerTypeFacts {
     ok: Bool;
@@ -77,6 +80,11 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enum_facts.ok {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
         let names: Array<String> = [];
@@ -102,6 +110,37 @@ func SemanticAstInitializerTypeFactsFromArtifact(
                 function_names, function_returns, function_params
             );
         let inferred: String = expression_verdict.inferred_type_name;
+        let declared: Option<String> =
+            SemanticAstLocalBindingDeclaredTypeAt(locals, i);
+        if expression_verdict.ok &&
+            (inferred == "Unknown" || inferred == "") {
+            let enum_type: Option<String> =
+                SemanticAstEnumExpressionType(enum_facts, expression);
+            if IsSome(enum_type) {
+                inferred = UnwrapOption(enum_type);
+            }
+        }
+        if expression_verdict.ok &&
+            (inferred == "Unknown" || inferred == "") {
+            let member_type: Option<String> =
+                SemanticProjectionExpressionType(
+                    expression, constructors, names, types, modes,
+                    function_names, function_returns, function_params
+                );
+            if IsSome(member_type) {
+                inferred = UnwrapOption(member_type);
+            }
+        }
+        if expression_verdict.ok &&
+            (inferred == "Unknown" || inferred == "") &&
+            IsSome(declared) &&
+            SemanticProjectionArrayLiteralMatchesDeclaredType(
+                expression, UnwrapOption(declared), constructors,
+                names, types, modes,
+                function_names, function_returns, function_params
+            ) {
+            inferred = UnwrapOption(declared);
+        }
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
@@ -118,8 +157,6 @@ func SemanticAstInitializerTypeFactsFromArtifact(
                 "initializer", expression
             );
         } else {
-            let declared: Option<String> =
-                SemanticAstLocalBindingDeclaredTypeAt(locals, i);
             if IsSome(declared) && !ExpressionAssignableTo(
                 UnwrapOption(declared), inferred, expression
             ) {

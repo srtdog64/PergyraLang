@@ -24,13 +24,12 @@ func ArrayElementTypeName(type_name: String) -> String {
     return "";
 }
 
-func DestructureElementType(json: String, routine_start: Int, routine_end: Int,
-                            expr0: String) -> String {
+func DestructureElementType(expr0: String, source_local_type: String) -> String {
     let init: String = StringTrim(expr0);
     if TextStartsWith(init, "Split(") {
         return "String";
     }
-    return ArrayElementTypeName(SourceLocalType(json, routine_start, routine_end, init));
+    return ArrayElementTypeName(source_local_type);
 }
 
 func DestructureNeedsTemp(expr0: String) -> Bool {
@@ -39,11 +38,11 @@ func DestructureNeedsTemp(expr0: String) -> Bool {
         || StringIndexOf(init, " ") >= 0 || StringIndexOf(init, ",") >= 0;
 }
 
-func RenderDestructureFromFacts(json: String, routine_start: Int, routine_end: Int,
-                                inst_start: Int, inst_end: Int, indent: String,
-                                expr0: String) -> String {
+func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
+                                indent: String, expr0: String,
+                                source_local_type: String) -> String {
     let init: String = StringTrim(expr0);
-    let elem_type: String = DestructureElementType(json, routine_start, routine_end, init);
+    let elem_type: String = DestructureElementType(init, source_local_type);
     if StringLength(init) == 0 {
         MirLowerFailClosed("destructure instruction is missing initializer fact");
     }

@@ -84,5 +84,12 @@ grep -Fq "mir_routine_param_carriage" \
     "$ROOT_DIR/src/codegen/transpiler_inventory_view.c"
 grep -Fq "llvm_mir_routine_param_carriage" \
     "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
+grep -Fq "Parameter carriage controls physical ABI only" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"
+if grep -Eq 'param_attr|carriage[[:space:]]*==[[:space:]]*MIR_PARAM_CARRIAGE_OWNER_HANDLE.*noalias' \
+        "$ROOT_DIR/src/codegen/llvm_decl.c"; then
+    echo "[mir-param-carriage] carriage must not imply LLVM pointer attributes" >&2
+    exit 1
+fi
 
 echo "[mir-param-carriage] source modes and nominal readonly-ref ABI are MIR-owned and verifier-gated"

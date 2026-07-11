@@ -247,6 +247,30 @@ func SemanticAstNominalConstructorFieldNameAt(
     );
 }
 
+func SemanticAstNominalFieldType(
+    facts: SemanticAstNominalConstructorFacts,
+    nominal_name: String,
+    field_name: String
+) -> Option<String> {
+    let constructor_index: Int = 0;
+    while constructor_index < SemanticAstNominalConstructorCount(facts) {
+        if facts.names[constructor_index] == nominal_name {
+            let field_index: Int = 0;
+            while field_index < facts.param_counts[constructor_index] {
+                let row: Int = facts.param_starts[constructor_index] +
+                    field_index;
+                if facts.field_names[row] == field_name {
+                    return Some(facts.param_type_names[row]);
+                }
+                field_index = field_index + 1;
+            }
+            return None;
+        }
+        constructor_index = constructor_index + 1;
+    }
+    return None;
+}
+
 func SemanticAstNominalConstructorFactsMatchArtifact(
     artifact: AstTreeArtifact,
     facts: SemanticAstNominalConstructorFacts

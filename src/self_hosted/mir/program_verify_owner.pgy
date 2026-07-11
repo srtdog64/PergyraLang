@@ -68,7 +68,11 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
             (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
              rows.source_types[i] == "")) ||
             (kind == "stmt" && rows.expr0s[i] == "") ||
-            (kind == "return" && rows.expr0s[i] == "") ||
+            (kind == "return" &&
+             ((rows.expr0s[i] == "" &&
+               rows.source_types[i] != "AST_RETURN_VOID") ||
+              (rows.expr0s[i] != "" &&
+               rows.source_types[i] == "AST_RETURN_VOID"))) ||
             (kind == "branch" && rows.expr0s[i] == "") ||
             (kind == "phi" && rows.results[i] == "") ||
             (kind == "loop-init" &&
@@ -82,10 +86,10 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
     return use_cursor == ArrayLength(rows.uses);
 }
 
-func SelfMirBlockRowsReady(
+func SelfMirBlockRowsValidationError(
     blocks: SelfMirBlockRows,
     instruction_count: Int
-) -> Bool {
+) -> String {
     let count: Int = ArrayLength(blocks.ids);
     if !SelfMirParallelCount(count, blocks.reachable) ||
         !SelfMirParallelCount(count, blocks.instruction_starts) ||
@@ -94,24 +98,91 @@ func SelfMirBlockRowsReady(
         !SelfMirParallelCount(count, blocks.succ_true) ||
         !SelfMirParallelCount(count, blocks.has_succ_false) ||
         !SelfMirParallelCount(count, blocks.succ_false) {
-        return false;
+        return "MIR block parallel row counts differ";
     }
     let instruction_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
-        if blocks.instruction_starts[i] != instruction_cursor ||
-            blocks.instruction_counts[i] < 0 ||
-            (blocks.reachable[i] != 0 && blocks.reachable[i] != 1) ||
-            (blocks.has_succ_true[i] != 0 &&
-             blocks.has_succ_true[i] != 1) ||
-            (blocks.has_succ_false[i] != 0 &&
-             blocks.has_succ_false[i] != 1) {
-            return false;
+        if blocks.instruction_starts[i] != instruction_cursor {
+            let previous_fact: String = "";
+            if i > 0 {
+                previous_fact = Concat(" previous_start=", Concat(
+                    ToString(blocks.instruction_starts[i - 1]), Concat(
+                        " previous_count=", ToString(
+                            blocks.instruction_counts[i - 1]
+                        )
+                    )
+                ));
+            }
+            return Concat(
+                "MIR block instruction start mismatch: block=", Concat(
+                    ToString(i), Concat(" expected=", Concat(
+                        ToString(instruction_cursor), Concat(
+                            " actual=", Concat(
+                                ToString(blocks.instruction_starts[i]),
+                                previous_fact
+                            )
+                        )
+                    ))
+                )
+            );
+        }
+        if blocks.instruction_counts[i] < 0 {
+            return Concat("MIR block instruction count is negative: block=", ToString(i));
+        }
+        if (blocks.reachable[i] != 0 && blocks.reachable[i] != 1) ||
+            (blocks.has_succ_true[i] != 0 && blocks.has_succ_true[i] != 1) ||
+            (blocks.has_succ_false[i] != 0 && blocks.has_succ_false[i] != 1) {
+            return Concat("MIR block flag is not binary: block=", ToString(i));
         }
         instruction_cursor = instruction_cursor + blocks.instruction_counts[i];
         i = i + 1;
     }
-    return instruction_cursor == instruction_count;
+    if instruction_cursor != instruction_count {
+        return Concat(
+            "MIR block instruction total mismatch: expected=", Concat(
+                ToString(instruction_count), Concat(
+                    " actual=", ToString(instruction_cursor)
+                )
+            )
+        );
+    }
+    return "";
+}
+
+func SelfMirBlockRowsFirstInstructionStartMismatch(
+    blocks: SelfMirBlockRows
+) -> Int {
+    let instruction_cursor: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(blocks.ids) {
+        if blocks.instruction_starts[i] != instruction_cursor { return i; }
+        instruction_cursor = instruction_cursor + blocks.instruction_counts[i];
+        i = i + 1;
+    }
+    return -1;
+}
+
+func SelfMirRoutineNameForBlockRow(
+    rows: SelfMirRoutineRows,
+    block_row: Int
+) -> String {
+    let i: Int = 0;
+    while i < ArrayLength(rows.node_ids) {
+        if block_row >= rows.block_starts[i] &&
+            block_row < rows.block_starts[i] + rows.block_counts[i] {
+            return rows.names[i];
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
+func SelfMirBlockRowsReady(
+    blocks: SelfMirBlockRows,
+    instruction_count: Int
+) -> Bool {
+    return SelfMirBlockRowsValidationError(blocks, instruction_count) == "";
 }
 
 func SelfMirRoutineRowsReady(
@@ -170,12 +241,45 @@ func SelfMirRoutineRowsReady(
         local_cursor == ArrayLength(rows.local_names);
 }
 
-func SelfMirProgramFactsReady(facts: SelfMirProgramFacts) -> Bool {
-    return facts.ok && facts.artifact_node_count > 0 &&
-        SelfMirDeclarationRowsReady(facts.declarations) &&
-        SelfMirInstructionRowsReady(facts.cfg.instructions) &&
-        SelfMirBlockRowsReady(
+func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
+    if !facts.ok {
+        if facts.diagnostic_message != "" { return facts.diagnostic_message; }
+        return "MIR producer status is not ok";
+    }
+    if facts.artifact_node_count <= 0 { return "MIR artifact node count is empty"; }
+    if !SelfMirDeclarationRowsReady(facts.declarations) {
+        return "MIR declaration rows are invalid";
+    }
+    if !SelfMirInstructionRowsReady(facts.cfg.instructions) {
+        return "MIR instruction rows are invalid";
+    }
+    if !SelfMirBlockRowsReady(
+        facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
+    ) {
+        let block_error: String = SelfMirBlockRowsValidationError(
             facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
-        ) && SelfMirRoutineRowsReady(facts.routines, facts.cfg.blocks) &&
-        ArrayLength(facts.routines.node_ids) > 0;
+        );
+        let block_row: Int = SelfMirBlockRowsFirstInstructionStartMismatch(
+            facts.cfg.blocks
+        );
+        if block_row >= 0 {
+            return Concat(block_error, Concat(
+                " routine=", SelfMirRoutineNameForBlockRow(
+                    facts.routines, block_row
+                )
+            ));
+        }
+        return block_error;
+    }
+    if !SelfMirRoutineRowsReady(facts.routines, facts.cfg.blocks) {
+        return "MIR routine rows are invalid";
+    }
+    if ArrayLength(facts.routines.node_ids) == 0 {
+        return "MIR routine inventory is empty";
+    }
+    return "";
+}
+
+func SelfMirProgramFactsReady(facts: SelfMirProgramFacts) -> Bool {
+    return SelfMirProgramFactsValidationError(facts) == "";
 }

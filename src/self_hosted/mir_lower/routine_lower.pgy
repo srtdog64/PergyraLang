@@ -7,6 +7,7 @@
 import "error_owner.pgy";
 import "json_fact_read.pgy";
 import "routine_inventory_owner.pgy";
+import "routine_fact_index_owner.pgy";
 import "stmt_render.pgy";
 
 // ---------------------------------------------------------------------------
@@ -22,12 +23,12 @@ import "stmt_render.pgy";
 
 // Successor id fact for `field` (`succ_true` / `succ_false`) within a block.
 // "" when the field is absent (no such edge).
-func ReadSucc(json: String, bs: Int, be: Int, field: String) -> String {
-    return MirObjectNumberFact(json, bs, be, field);
+func ReadSucc(ref index: MirRoutineFactIndex, bs: Int, false_edge: Bool) -> String {
+    return MirRoutineFactIndexBlockSuccessor(index, bs, false_edge);
 }
 
-func BlockInstructionBoundsAt(json: String, bs: Int, be: Int, row: Int, inout bounds: Array<Int>) -> Bool {
-    return MirObjectArrayObjectBoundsAt(json, bs, be, "instructions", row, bounds);
+func BlockInstructionBoundsAt(ref index: MirRoutineFactIndex, bs: Int, row: Int, inout bounds: Array<Int>) -> Bool {
+    return MirRoutineFactIndexInstructionBounds(index, bs, row, bounds);
 }
 
 func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> String {
@@ -35,14 +36,14 @@ func BlockInstructionKind(json: String, inst_start: Int, inst_end: Int) -> Strin
 }
 
 func BlockInstructionOfKindBounds(
+    ref index: MirRoutineFactIndex,
     json: String,
     bs: Int,
-    be: Int,
     wanted: String,
     inout bounds: Array<Int>
 ) -> Bool {
     let row: Int = 0;
-    while BlockInstructionBoundsAt(json, bs, be, row, bounds) {
+    while BlockInstructionBoundsAt(index, bs, row, bounds) {
         if BlockInstructionKind(json, bounds[0], bounds[1]) == wanted {
             return true;
         }
@@ -71,11 +72,11 @@ func OptionInnerTypeName(type_name: String) -> String {
 // Resolve block `id` to its MIR `blocks` row span [o[0], o[1]); false if not
 // found. The supported MIR subset uses sequential block ids, but we still check
 // the row's `id` fact before returning it.
-func BlockBounds(json: String, routine_start: Int, routine_end: Int, id: String, inout o: Array<Int>) -> Bool {
+func BlockBounds(ref index: MirRoutineFactIndex, json: String, id: String, inout o: Array<Int>) -> Bool {
     if StringLength(id) == 0 {
         return false;
     }
-    if !MirObjectArrayObjectBoundsAt(json, routine_start, routine_end, "blocks", ToInt(id), o) {
+    if !MirRoutineFactIndexBlockBounds(index, ToInt(id), o) {
         return false;
     }
     return MirObjectNumberFact(json, o[0], o[1], "id") == id;
@@ -83,14 +84,17 @@ func BlockBounds(json: String, routine_start: Int, routine_end: Int, id: String,
 
 // Branch condition within [bs,be); "" if the block does not end in a branch or
 // the branch does not carry the required MIR fact.
-func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: Int) -> String {
+func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -> String {
     let inst_bounds: Array<Int> = [0, 0];
-    if !BlockInstructionOfKindBounds(json, bs, be, "branch", inst_bounds) {
+    if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
         return "";
     }
     let kp: Int = inst_bounds[0];
     let inst_end: Int = inst_bounds[1];
     let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
+    if source_type == "AST_CONTINUE" || source_type == "AST_BREAK" {
+        return "";
+    }
     if source_type == "AST_MATCH_CASE" {
         let match_subject: String = MirObjectStringFact(json, kp, inst_end, "expr0");
         let pattern_count: Int = MirObjectArrayStringFactCount(json, kp, inst_end, "match_patterns");
@@ -115,7 +119,7 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
         let start: String = MirObjectStringFact(json, kp, inst_end, "expr0");
         let stop: String = MirObjectStringFact(json, kp, inst_end, "expr1");
         if StringLength(binding) > 0 && StringLength(start) > 0 && StringLength(stop) > 0 {
-            let iter_type: String = SourceLocalType(json, routine_start, routine_end, start);
+            let iter_type: String = MirRoutineFactIndexSourceLocalType(index, start);
             if start == stop && StringLength(iter_type) >= 6 && Substring(iter_type, 0, 6) == "Array<" {
                 return Concat("for ", Concat(binding, Concat(" in ", start)));
             }
@@ -129,10 +133,10 @@ func BlockCond(json: String, routine_start: Int, routine_end: Int, bs: Int, be: 
     return "";
 }
 
-func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
+func BlockMatchBindingLine(ref index: MirRoutineFactIndex, json: String,
                            bs: Int, be: Int, indent: String) -> String {
     let inst_bounds: Array<Int> = [0, 0];
-    if !BlockInstructionOfKindBounds(json, bs, be, "branch", inst_bounds) {
+    if !BlockInstructionOfKindBounds(index, json, bs, "branch", inst_bounds) {
         return "";
     }
     let kp: Int = inst_bounds[0];
@@ -150,7 +154,7 @@ func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
     if StringLength(match_subject2) == 0 || StringLength(binding) == 0 {
         MirLowerFailClosed("Some match case is missing subject or binding MIR fact");
     }
-    let subject_type: String = SourceLocalType(json, routine_start, routine_end, match_subject2);
+    let subject_type: String = MirRoutineFactIndexSourceLocalType(index, match_subject2);
     let inner_type: String = OptionInnerTypeName(subject_type);
     if StringLength(inner_type) == 0 {
         MirLowerFailClosed(Concat("Some match case subject is not a known Option type: ", match_subject2));
@@ -162,43 +166,37 @@ func BlockMatchBindingLine(json: String, routine_start: Int, routine_end: Int,
 // Emit the non-branch statement lines of block [bs,be) at `indent`. `phi`
 // instructions carry no statement fact and are skipped by the string-value
 // guard.
-func EmitBlockStmts(json: String, routine_start: Int, routine_end: Int,
+func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
                     bs: Int, be: Int, indent: String) -> String {
-    let out: String = "";
+    let chunks: Array<String> = [];
     let row: Int = 0;
     let inst_bounds: Array<Int> = [0, 0];
-    while BlockInstructionBoundsAt(json, bs, be, row, inst_bounds) {
+    while BlockInstructionBoundsAt(index, bs, row, inst_bounds) {
         let kp: Int = inst_bounds[0];
         let inst_end: Int = inst_bounds[1];
         let ikind: String = BlockInstructionKind(json, kp, inst_end);
         if ikind == "destructure" {
             let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-            out = Concat(out, RenderDestructureFromFacts(
-                json, routine_start, routine_end, kp, inst_end, indent,
-                d_expr0));
+            let destructure_type: String =
+                MirRoutineFactIndexSourceLocalType(index, StringTrim(d_expr0));
+            ArrayPush(chunks, RenderDestructureFromFacts(
+                json, kp, inst_end, indent, d_expr0, destructure_type));
         }
         if ikind != "branch" && ikind != "loop-init" {
             let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
             let expr1: String = MirObjectStringFact(json, kp, inst_end, "expr1");
             let arg0: String = MirObjectStringFact(json, kp, inst_end, "arg0");
             let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
-            let local_type: String = SourceLocalType(json, routine_start, routine_end, arg0);
+            let local_type: String = MirRoutineFactIndexSourceLocalType(index, arg0);
             if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
-                out = Concat(out, RenderDeferFromFacts(json, kp, inst_end, indent));
+                ArrayPush(chunks, RenderDeferFromFacts(json, kp, inst_end, indent));
             } else if ikind != "destructure" && StringLength(expr0) > 0 {
-                out = Concat(out, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
+                ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
         }
         row = row + 1;
     }
-    return out;
-}
-
-// True if block [bs,be) carries a `phi` -- the marker of a loop header (a
-// `while` header is a block holding both a phi and a branch).
-func BlockHasPhi(json: String, bs: Int, be: Int) -> Bool {
-    let inst_bounds: Array<Int> = [0, 0];
-    return BlockInstructionOfKindBounds(json, bs, be, "phi", inst_bounds);
+    return StringJoin(chunks, "");
 }
 
 // Render a loop header. A `for` branch carries `for <binding>` as its condition
@@ -208,34 +206,6 @@ func LoopHeaderLine(cond: String) -> String {
         return Concat("For: ", Substring(cond, 4, StringLength(cond) - 4));
     }
     return Concat("While: ", cond);
-}
-
-// The block at which the single-entry region starting at `start` rejoins its
-// parent (the if's merge / post-dominator). Plain blocks fall through to their
-// successor; branch blocks recurse to skip past their own if. "" = no exit.
-func RegionExit(json: String, routine_start: Int, span_end: Int, start: String) -> String {
-    let cur: String = start;
-    let guard: Int = 0;
-    while StringLength(cur) > 0 && guard < 100000 {
-        guard = guard + 1;
-        let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, routine_start, span_end, cur, o) {
-            return "";
-        }
-        let cond: String = BlockCond(json, routine_start, span_end, o[0], o[1]);
-        if StringLength(cond) == 0 {
-            return ReadSucc(json, o[0], o[1], "succ_true");
-        }
-        let t: String = ReadSucc(json, o[0], o[1], "succ_true");
-        let f: String = ReadSucc(json, o[0], o[1], "succ_false");
-        let te: String = RegionExit(json, routine_start, span_end, t);
-        if te == f {
-            cur = f;
-        } else {
-            cur = te;
-        }
-    }
-    return "";
 }
 
 func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
@@ -251,101 +221,81 @@ func IsLoopAbrupt(id: String, loop_header: String, loop_exit: String) -> Bool {
     return false;
 }
 
-func BlockHasIncomingBackedge(json: String, routine_start: Int, span_end: Int, want: String) -> Bool {
+func BlockHasIncomingBackedge(ref index: MirRoutineFactIndex, want: String) -> Bool {
     if StringLength(want) == 0 {
         return false;
     }
-    let i: Int = ToInt(want) + 1;
-    while i < 1000 {
-        let id: String = ToString(i);
-        let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, routine_start, span_end, id, o) {
-            return false;
-        }
-        if ReadSucc(json, o[0], o[1], "succ_true") == want {
-            return true;
-        }
-        if ReadSucc(json, o[0], o[1], "succ_false") == want {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
+    return MirRoutineFactIndexHasIncomingBackedge(index, ToInt(want));
 }
 
 // Emit the structured tree for blocks from `start` until reaching `stop`
 // (exclusive). Straight-line blocks emit their statements; a branch block emits
 // `If:/Then:/Else:` and recurses into the then/else regions, then continues from
 // the merge. `indent` is the leading whitespace for statements at this level.
-func EmitRegion(json: String, routine_start: Int, span_end: Int,
+func EmitRegion(index: MirRoutineFactIndex, json: String,
                 start: String, stop: String, indent: String,
                 loop_header: String, loop_exit: String) -> String {
-    let out: String = "";
+    let chunks: Array<String> = [];
     let cur: String = start;
     let guard: Int = 0;
     while StringLength(cur) > 0 && cur != stop && guard < 100000 {
         guard = guard + 1;
         let o: Array<Int> = [0, 0];
-        if !BlockBounds(json, routine_start, span_end, cur, o) {
-            return out;
+        if !BlockBounds(index, json, cur, o) {
+            return StringJoin(chunks, "");
         }
         let bs: Int = o[0];
         let be: Int = o[1];
-        let stmts: String = EmitBlockStmts(json, routine_start, span_end, bs, be, indent);
-        let had_stmts: Bool = StringLength(stmts) > 0;
-        out = Concat(out, stmts);
-        let cond: String = BlockCond(json, routine_start, span_end, bs, be);
+        let stmts: String = EmitBlockStmts(index, json, bs, be, indent);
+        ArrayPush(chunks, stmts);
+        let cond: String = BlockCond(index, json, bs, be);
         if StringLength(cond) == 0 {
-            let next: String = ReadSucc(json, bs, be, "succ_true");
+            let next: String = ReadSucc(index, bs, false);
             if StringLength(loop_header) > 0 && next == loop_header {
-                out = Concat(out, Concat(indent, "Continue\n"));
+                ArrayPush(chunks, Concat(indent, "Continue\n"));
                 cur = stop;
             } else if StringLength(loop_exit) > 0 && next == loop_exit {
-                out = Concat(out, Concat(indent, "Break\n"));
+                ArrayPush(chunks, Concat(indent, "Break\n"));
                 cur = stop;
             } else {
                 cur = next;
             }
         } else {
-            let t: String = ReadSucc(json, bs, be, "succ_true");
-            let f: String = ReadSucc(json, bs, be, "succ_false");
+            let t: String = ReadSucc(index, bs, false);
+            let f: String = ReadSucc(index, bs, true);
             let isFor: Bool = StringLength(cond) >= 4 && Substring(cond, 0, 4) == "for ";
-            let isLoop: Bool = isFor || (BlockHasPhi(json, bs, be)
-                && BlockHasIncomingBackedge(json, routine_start, span_end, cur));
+            let isLoop: Bool = isFor ||
+                BlockHasIncomingBackedge(index, cur);
             if isLoop {
                 // Loop header: the body region (succ_true) flows back here, so we
                 // bound it by `cur` (this header); the loop exit is succ_false.
-                out = Concat(out, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
-                out = Concat(out, Concat(indent, "  Block:\n"));
-                out = Concat(out, EmitRegion(json, routine_start, span_end, t, cur, Concat(indent, "    "), cur, f));
+                ArrayPush(chunks, Concat(indent, Concat(LoopHeaderLine(cond), "\n")));
+                ArrayPush(chunks, Concat(indent, "  Block:\n"));
+                ArrayPush(chunks, EmitRegion(index, json, t, cur, Concat(indent, "    "), cur, f));
                 cur = f;
             } else {
-                let te: String = RegionExit(json, routine_start, span_end, t);
-                let merge: String = "";
-                let hasElse: Bool = false;
-                if IsLoopAbrupt(te, loop_header, loop_exit) {
+                let structural_merge: String =
+                    MirRoutineFactIndexBlockStructuralMerge(index, ToInt(cur));
+                let merge: String = structural_merge;
+                if IsLoopAbrupt(structural_merge, loop_header, loop_exit) {
                     merge = f;
-                } else if te == f {
-                    merge = f;
-                } else {
-                    merge = te;
-                    hasElse = true;
                 }
-                out = Concat(out, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
-                out = Concat(out, Concat(indent, "  Then:\n"));
-                out = Concat(out, Concat(indent, "    Block:\n"));
-                out = Concat(out, BlockMatchBindingLine(json, routine_start, span_end, bs, be, Concat(indent, "      ")));
-                out = Concat(out, EmitRegion(json, routine_start, span_end, t, merge, Concat(indent, "      "), loop_header, loop_exit));
+                let hasElse: Bool = StringLength(f) > 0 && f != merge;
+                ArrayPush(chunks, Concat(indent, Concat("If: ", Concat(cond, "\n"))));
+                ArrayPush(chunks, Concat(indent, "  Then:\n"));
+                ArrayPush(chunks, Concat(indent, "    Block:\n"));
+                ArrayPush(chunks, BlockMatchBindingLine(index, json, bs, be, Concat(indent, "      ")));
+                ArrayPush(chunks, EmitRegion(index, json, t, merge, Concat(indent, "      "), loop_header, loop_exit));
                 if hasElse {
-                    out = Concat(out, Concat(indent, "  Else:\n"));
-                    out = Concat(out, Concat(indent, "    Block:\n"));
-                    out = Concat(out, EmitRegion(json, routine_start, span_end, f, merge, Concat(indent, "      "), loop_header, loop_exit));
+                    ArrayPush(chunks, Concat(indent, "  Else:\n"));
+                    ArrayPush(chunks, Concat(indent, "    Block:\n"));
+                    ArrayPush(chunks, EmitRegion(index, json, f, merge, Concat(indent, "      "), loop_header, loop_exit));
                 }
                 cur = merge;
             }
         }
     }
-    return out;
+    return StringJoin(chunks, "");
 }
 
 func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String, self_type: String) -> String {
@@ -356,12 +306,16 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     let routine_name_end: Int = UnwrapOption(routine_name_end_opt);
     let routine: String = RoutineName(json, rpos);
     let span_end: Int = RoutineSpanEnd(json, routine_name_end);
+    let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(json, rpos, span_end);
+    if !index.valid {
+        MirLowerFailClosed(Concat("routine MIR fact index is incomplete: ", routine));
+    }
     let header_end: Int = RoutineHeaderEnd(json, routine_name_end, span_end);
     let ppad: String = Concat(routine_indent, "  ");
     let item_pad: String = Concat(routine_indent, "    ");
-    let out: String = Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")));
+    let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
 
-    out = Concat(out, Concat(ppad, "Parameters:\n"));
+    ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
     let param_count: Int = RoutineParamCount(json, rpos, header_end);
     let param_row: Int = 0;
     while param_row < param_count {
@@ -374,28 +328,29 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
             ptype = self_type;
         }
         if StringLength(ptype) > 0 {
-            out = Concat(out, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
+            ArrayPush(chunks, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
         } else {
-            out = Concat(out, Concat(item_pad, Concat(pname, "\n")));
+            ArrayPush(chunks, Concat(item_pad, Concat(pname, "\n")));
         }
         param_row = param_row + 1;
     }
 
     let rtype: String = RoutineReturnType(json, rpos, header_end);
-    out = Concat(out, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
-    out = Concat(out, Concat(ppad, "Body:\n"));
-    out = Concat(out, Concat(item_pad, "Block:\n"));
+    ArrayPush(chunks, Concat(ppad, Concat("Returns: ", Concat(rtype, "\n"))));
+    ArrayPush(chunks, Concat(ppad, "Body:\n"));
+    ArrayPush(chunks, Concat(item_pad, "Block:\n"));
 
     let bp: Option<Int> = RoutineBlocksStart(json, routine_name_end, span_end);
     if !IsSome(bp) {
         MirLowerFailClosed(Concat("routine is missing blocks fact: ", routine));
     }
-    let region: String = EmitRegion(json, routine_name_end, span_end, "0", "",
+    let region: String = EmitRegion(index, json, "0", "",
         Concat(item_pad, "  "), "", "");
     if StringLength(region) == 0 {
         MirLowerFailClosed(Concat("unsupported or empty MIR CFG shape in routine: ", routine));
     }
-    return Concat(out, region);
+    ArrayPush(chunks, region);
+    return StringJoin(chunks, "");
 }
 
 func EmitRoutineTree(json: String, rpos: Int, routine_indent: String) -> String {

@@ -10,12 +10,46 @@ struct StructLiteralFieldEntryFact {
     let value: String;
 }
 
+func StructLiteralTopLevelFieldColon(part: String) -> Option<Int> {
+    let depth: Int = 0;
+    let in_string: Bool = false;
+    let i: Int = 0;
+    while i < StringLength(part) {
+        let c: String = CodegenCharAt(part, i);
+        if in_string {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_string = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_string = true;
+        } else if c == "(" || c == "[" || c == "{" || c == "<" {
+            depth = depth + 1;
+        } else if c == ")" || c == "]" || c == "}" || c == ">" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+        } else if c == ":" && depth == 0 && CodegenCharAt(part, i + 1) == " " {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
 func StructLiteralFieldEntryFactOrDie(part: String, field_names: String, field_index: Int, context: String) -> StructLiteralFieldEntryFact {
-    let cp: Int = StringIndexOf(part, ": ");
-    if cp >= 0 {
+    let cp: Option<Int> = StructLiteralTopLevelFieldColon(part);
+    if IsSome(cp) {
+        let colon: Int = UnwrapOption(cp);
         return StructLiteralFieldEntryFact(
-            StringTrim(Substring(part, 0, cp)),
-            Substring(part, cp + 2, StringLength(part) - (cp + 2)));
+            StringTrim(Substring(part, 0, colon)),
+            Substring(part, colon + 2, StringLength(part) - (colon + 2)));
     }
     let field_name: String = CsvAt(field_names, field_index);
     if StringLength(field_name) == 0 {

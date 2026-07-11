@@ -1,0 +1,96 @@
+// Enum declaration and variant facts captured once from the typed AST arena.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+
+struct SemanticAstEnumFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    enum_names: Array<String>;
+    variant_enum_names: Array<String>;
+    variant_names: Array<String>;
+}
+
+func SemanticAstEnumFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstEnumFacts {
+    let enum_names: Array<String> = [];
+    let variant_enum_names: Array<String> = [];
+    let variant_names: Array<String> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindEnumDeclTag()
+        ) {
+            let enum_name_opt: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            let variants_opt: Option<String> = TypedAstArenaAuxValueText(
+                artifact.arena, node_id
+            );
+            if !IsSome(enum_name_opt) || !IsSome(variants_opt) {
+                ok = false;
+            } else {
+                let enum_name: String = UnwrapOption(enum_name_opt);
+                let variants: Array<String> = Split(
+                    UnwrapOption(variants_opt), ","
+                );
+                if StringLength(enum_name) == 0 || ArrayLength(variants) == 0 {
+                    ok = false;
+                } else {
+                    ArrayPush(enum_names, enum_name);
+                    let variant_index: Int = 0;
+                    while variant_index < ArrayLength(variants) && ok {
+                        let variant: String = StringTrim(variants[variant_index]);
+                        let paren: Int = StringIndexOf(variant, "(");
+                        let variant_name: String = variant;
+                        if paren >= 0 {
+                            variant_name = StringTrim(Substring(variant, 0, paren));
+                        }
+                        if StringLength(variant_name) == 0 {
+                            ok = false;
+                        } else {
+                            ArrayPush(variant_enum_names, enum_name);
+                            ArrayPush(variant_names, variant_name);
+                        }
+                        variant_index = variant_index + 1;
+                    }
+                }
+            }
+        }
+        node_id = node_id + 1;
+    }
+    return SemanticAstEnumFacts(
+        ok, artifact.count, enum_names, variant_enum_names, variant_names
+    );
+}
+
+func SemanticAstEnumExpressionType(
+    facts: SemanticAstEnumFacts,
+    expression: String
+) -> Option<String> {
+    if !facts.ok ||
+        ArrayLength(facts.variant_enum_names) != ArrayLength(facts.variant_names) {
+        return None;
+    }
+    let dot: Int = StringIndexOf(expression, ".");
+    if dot <= 0 || StringIndexOf(
+        Substring(expression, dot + 1, StringLength(expression) - dot - 1), "."
+    ) >= 0 {
+        return None;
+    }
+    let enum_name: String = Substring(expression, 0, dot);
+    let variant_name: String = Substring(
+        expression, dot + 1, StringLength(expression) - dot - 1
+    );
+    let i: Int = 0;
+    while i < ArrayLength(facts.variant_names) {
+        if facts.variant_enum_names[i] == enum_name &&
+            facts.variant_names[i] == variant_name {
+            return Some(enum_name);
+        }
+        i = i + 1;
+    }
+    return None;
+}

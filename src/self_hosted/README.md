@@ -123,12 +123,13 @@ instead of creating another folder-local orchestration alias.
 
 The executable driver spine is also single-owned.
 `compiler/driver_pipeline_owner.pgy` owns source-to-AST-to-C composition;
-DRV-0/DRV-1 add compiler-world and CLI policy, while
+DRV-0/DRV-1 add compiler-world and CLI policy, while DRV-2 owns the bounded
+source-to-MIR-to-C verified composition and
 `compiler/driver_bootstrap_main.pgy` is only the fixed-point file boundary.
 `self-host-driver-bootstrap-test-smoke` now proves that a Pergyra-built copy of
-this integrated parser/codegen driver rebuilds itself (`gen2 == gen3`). That is
-a bounded compiler bootstrap, not a whole-compiler claim: semantic and MIR are
-not yet executed by the bootstrap driver.
+this integrated parser/semantic/MIR/codegen driver rebuilds itself
+(`gen2 == gen3`). That remains a bounded compiler bootstrap, not a
+whole-compiler or released-default substitution claim.
 
 Import de-duplication is now a compiler fact and a self-hosted parser fact.
 Sibling owner modules should declare the fact-owner imports they actually

@@ -417,6 +417,14 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_expr_or_null(out, inst->expr0);
     fputs(",\"expr1\":", out);
     mir_json_emit_expr_or_null(out, inst->expr1);
+    fputs(",\"speculation\":", out);
+    if (inst->has_speculation_safety_fact) {
+        fprintf(out, "{\"pure\":%s,\"non_trapping\":%s}",
+            inst->speculation_is_pure ? "true" : "false",
+            inst->speculation_is_non_trapping ? "true" : "false");
+    } else {
+        fputs("null", out);
+    }
     fputs(",\"source_type\":", out);
     mir_json_emit_str_or_null(out,
         mir_instruction_source_inline_text(inst) != NULL

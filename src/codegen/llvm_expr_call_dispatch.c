@@ -14,7 +14,7 @@
 #include "llvm_expr_event_calls.h"
 #include "llvm_expr_intent_observability_calls.h"
 #include "llvm_expr_log_calls.h"
-#include "llvm_expr_math_calls.h"
+#include "llvm/expression/math_calls.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_expr_projection_path_helpers.h"
 #include "llvm_expr_rc_calls.h"

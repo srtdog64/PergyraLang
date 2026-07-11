@@ -106,7 +106,8 @@ and follow-up debt over older design notes.
 | [`51_c_backend_reference_policy.md`](51_c_backend_reference_policy.md) | C backend reference policy |
 | [`52_llvm_native_first_roadmap.md`](52_llvm_native_first_roadmap.md) | LLVM/native-first roadmap |
 | [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md) | LLVM backend remaining debt |
-| [`92_inc_split_roadmap.md`](92_inc_split_roadmap.md) | Include-split cleanup roadmap |
+| [`92_inc_split_roadmap.md`](92_inc_split_roadmap.md) | Include-split closure and P0 physical owner-module promotion process |
+| [`compiler_owner_clusters.tsv`](compiler_owner_clusters.tsv) | Machine-readable inventory of landed physical compiler owner clusters |
 | [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md) | Current `.inc` cleanup ledger |
 | [`known_bug_if_call_assign_then_let_then_if.md`](known_bug_if_call_assign_then_let_then_if.md) | Open lowering bug: outer call assignment inside `if` can be dropped in a narrow CFG shape |
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
@@ -116,7 +117,7 @@ and follow-up debt over older design notes.
 | [`139_golden_adt_verification_methodology.md`](139_golden_adt_verification_methodology.md) | Golden, ADT, and verification methodology: evidence ladder, ADT owner rules, differential/property/model-check/proof roles, and hard self-host review checklist |
 | [`141_closure_capture_design.md`](141_closure_capture_design.md) | Closure capture design: local capture gap, explicit environment ownership, and backend lowering obligations |
 | [`142_evidence_driven_guard_amortization.md`](142_evidence_driven_guard_amortization.md) | Evidence-driven guard amortization: measured preflight-view gate for slot-style hot paths |
-| [`143_evidence_parameter_attributes.md`](143_evidence_parameter_attributes.md) | Evidence-projected LLVM parameter attributes: ownership evidence lowered to backend optimization facts |
+| [`143_evidence_parameter_attributes.md`](143_evidence_parameter_attributes.md) | LLVM pointer contracts: carriage owns ABI shape; optimizer attributes require separate MIR proof facts |
 | [`145_bit_layout_boundary_matrix.md`](145_bit_layout_boundary_matrix.md) | Bit/layout boundary matrix: explicit bit-order value conversion, world-bound reinterpretation, and language-by-language gap tracking |
 | [`162_target4_unified_mir_consumption_blueprint.md`](162_target4_unified_mir_consumption_blueprint.md) | Target #4 blueprint for unifying C/LLVM MIR consumption so backend parity becomes structural, not only output-differential |
 

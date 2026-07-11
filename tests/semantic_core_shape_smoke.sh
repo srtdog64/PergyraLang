@@ -2084,7 +2084,7 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/llvm_expr_domain_query_utils.c \
     src/codegen/llvm_expr_identifier_slot_helpers.c \
     src/codegen/llvm_expr_log_calls.c \
-    src/codegen/llvm_expr_math_calls.c \
+    src/codegen/llvm/expression/math_calls.c \
     src/codegen/llvm_expr_result_option_calls.c \
     src/codegen/llvm_expr_stdlib_scalar_io_calls.c \
     src/codegen/llvm_expr_slot_device_calls.c \

@@ -1,0 +1,53 @@
+// Canonical semantic type facts for constructed Array<T> values.
+
+import "../lib/source_scan_owner.pgy";
+import "text_scan_owner.pgy";
+import "expr_type_owner.pgy";
+import "ast_expression_verdict_owner.pgy";
+import "env_owner.pgy";
+
+func SemanticArrayElementType(type_name: String) -> Option<String> {
+    if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
+        SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
+        return Some(Substring(type_name, 6, StringLength(type_name) - 7));
+    }
+    return None;
+}
+
+func SemanticArrayAccessExpressionType(
+    expression: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Option<String> {
+    let bracket: Int = StringIndexOf(expression, "[");
+    let n: Int = StringLength(expression);
+    if bracket <= 0 || n < bracket + 2 || CharAt(expression, n - 1) != "]" {
+        return None;
+    }
+    let base_name: String = Substring(expression, 0, bracket);
+    if !IsIdentText(base_name) || !EnvContainsName(names, base_name) {
+        return None;
+    }
+    let element_type_opt: Option<String> = SemanticArrayElementType(
+        EnvLookup(names, types, base_name)
+    );
+    if !IsSome(element_type_opt) {
+        return None;
+    }
+    let index_expression: String = Substring(
+        expression, bracket + 1, n - bracket - 2
+    );
+    let index_verdict: SemanticAstExpressionVerdict =
+        SemanticAstExpressionVerdictFromPayload(
+            index_expression, names, types, modes,
+            function_names, function_returns, function_params
+        );
+    if !index_verdict.ok || index_verdict.inferred_type_name != "Int" {
+        return None;
+    }
+    return element_type_opt;
+}

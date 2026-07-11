@@ -111,6 +111,67 @@ llvm_operator_overload_suffix(PgyTokenType op)
     }
 }
 
+static const char *
+llvm_expr_unwrap_option_payload_class_name(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *callee;
+    ASTNode *arg;
+
+    if (node == NULL || ctx == NULL || node->type != AST_CALL
+        || ast_call_arg_count(node) != 1)
+        return NULL;
+    callee = ast_call_callee(node);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_identifier_name(callee) == NULL
+        || strcmp(ast_identifier_name(callee), "UnwrapOption") != 0)
+        return NULL;
+
+    arg = ast_call_argument(node, 0);
+    if (arg != NULL && arg->type == AST_IDENTIFIER) {
+        const MIRRoutine *routine = ctx->current_mir_routine;
+        const char *source_type;
+        char payload_name[256];
+
+        if (routine == NULL) {
+            const char *function_name = ctx->current_func_decl != NULL
+                && ctx->current_func_decl->type == AST_FUNC_DECL
+                    ? ast_declaration_name(ctx->current_func_decl)
+                    : NULL;
+            routine = llvm_active_function_routine_by_name(ctx, function_name);
+        }
+        source_type = routine != NULL
+            ? mir_routine_source_local_type_name(routine,
+                ast_identifier_name(arg))
+            : NULL;
+        if (source_type != NULL
+            && strncmp(source_type, "Option<", 7) == 0
+            && llvm_constructed_arg_name_copy(source_type, 0,
+                payload_name, sizeof(payload_name))) {
+            LLVMClassTypeEntry *payload = llvm_lookup_class(ctx, payload_name);
+            if (payload != NULL)
+                return payload->class_name;
+        }
+        if (routine != NULL)
+            return NULL;
+    }
+
+    {
+        LLVMTypeRef option_type = llvm_stmt_infer_expr_type(ctx, arg);
+        LLVMTypeRef fields[2];
+        LLVMClassTypeEntry *payload;
+
+        if (option_type == NULL
+            || LLVMGetTypeKind(option_type) != LLVMStructTypeKind
+            || LLVMCountStructElementTypes(option_type) != 2)
+            return NULL;
+        LLVMGetStructElementTypes(option_type, fields);
+        if (fields[0] != ctx->type_i32)
+            return NULL;
+        payload = llvm_lookup_class_by_type(ctx, fields[1]);
+        return payload != NULL ? payload->class_name : NULL;
+    }
+}
+
 const char *
 llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -180,6 +241,12 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_array_access_element_class_name(ctx, node);
     }
     case AST_CALL:
+        {
+            const char *payload_class =
+                llvm_expr_unwrap_option_payload_class_name(node, ctx);
+            if (payload_class != NULL)
+                return payload_class;
+        }
         if (ast_call_callee(node) != NULL
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
             const char *callee = ast_identifier_name(ast_call_callee(node));

@@ -431,6 +431,11 @@ mir_dump(const MIRProgram *mir, FILE *out)
                     fprintf(out, " channel-recv-stmt-emit");
                 if (inst->requires_select_receive_statement_emit)
                     fprintf(out, " select-recv-stmt-emit");
+                if (inst->has_speculation_safety_fact) {
+                    fprintf(out, " speculation=pure:%s,non-trapping:%s",
+                        inst->speculation_is_pure ? "yes" : "no",
+                        inst->speculation_is_non_trapping ? "yes" : "no");
+                }
                 fprintf(out, "\n");
             }
             free(source_loc);

@@ -119,6 +119,11 @@ typedef struct
     char            *lifecycle_receiver_name;
     char            *lifecycle_op;
     char            *lifecycle_subject;
+    /* Lowering-owned speculation contract for expr0. Backends may only
+     * if-convert when both facts are present and true. */
+    bool             has_speculation_safety_fact;
+    bool             speculation_is_pure;
+    bool             speculation_is_non_trapping;
     /* Canonical ABI type name and layout: backends read these instead of
      * inventing layouts. abi_type_name remains populated for dynamic nominal
      * layouts such as Slot<Vec2> even when the static layout table has no

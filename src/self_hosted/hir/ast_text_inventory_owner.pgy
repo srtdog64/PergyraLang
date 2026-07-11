@@ -179,7 +179,8 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
     }
     if kind == TypedAstKindLogStmtTag() {
-        if CodegenCharAt(text, StringLength(text) - 1) == ")" {
+        let n: Int = StringLength(text);
+        if CodegenCharCodeAt(text, n, n - 1) == 41 {
             return StringTrim(Substring(text, 4, StringLength(text) - 5));
         }
     }
@@ -187,22 +188,26 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         return StringTrim(Substring(text, 7, StringLength(text) - 7));
     }
     if kind == TypedAstKindArrayPopStmtTag() {
-        if CodegenCharAt(text, StringLength(text) - 1) == ")" {
+        let n: Int = StringLength(text);
+        if CodegenCharCodeAt(text, n, n - 1) == 41 {
             return StringTrim(Substring(text, 9, StringLength(text) - 10));
         }
     }
     if kind == TypedAstKindExitStmtTag() {
-        if CodegenCharAt(text, StringLength(text) - 1) == ")" {
+        let n: Int = StringLength(text);
+        if CodegenCharCodeAt(text, n, n - 1) == 41 {
             return StringTrim(Substring(text, 5, StringLength(text) - 6));
         }
     }
     if kind == TypedAstKindArraySetStmtTag() {
-        if CodegenCharAt(text, StringLength(text) - 1) == ")" {
+        let n: Int = StringLength(text);
+        if CodegenCharCodeAt(text, n, n - 1) == 41 {
             return Substring(text, 9, StringLength(text) - 10);
         }
     }
     if kind == TypedAstKindArrayPushStmtTag() {
-        if CodegenCharAt(text, StringLength(text) - 1) == ")" {
+        let n: Int = StringLength(text);
+        if CodegenCharCodeAt(text, n, n - 1) == 41 {
             return Substring(text, 10, StringLength(text) - 11);
         }
     }
@@ -236,7 +241,8 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
 func CodegenAstTextAuxPayloadFor(text: String, kind: Int) -> String {
     if kind == TypedAstKindEnumDeclTag() {
         let brace: Int = StringIndexOf(text, " { ");
-        if brace >= 0 && CodegenCharAt(text, StringLength(text) - 1) == "}" {
+        let n: Int = StringLength(text);
+        if brace >= 0 && CodegenCharCodeAt(text, n, n - 1) == 125 {
             return StringTrim(Substring(text, brace + 3, StringLength(text) - (brace + 4)));
         }
     }
@@ -251,7 +257,7 @@ func CodegenAstTextProvenance(node: CodegenAstTextNode) -> String {
 func CodegenAstTextIndentOf(raw: String) -> Int {
     let n: Int = StringLength(raw);
     let i: Int = 0;
-    while i < n && CodegenCharAt(raw, i) == " " {
+    while i < n && CodegenCharCodeAt(raw, n, i) == 32 {
         i = i + 1;
     }
     return i;

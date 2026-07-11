@@ -1,12 +1,12 @@
 # `.inc` Split Roadmap
 
-마지막 업데이트: 2026-04-30
+마지막 업데이트: 2026-07-12
 
 과거의 `.inc` 파일은 “모듈화”가 아니라 **파일이 분할된 단일 translation unit**에 가까웠다. 2026-04-30 기준 production `src` tree의 `.inc` contract는 닫혔다: `src` 아래 `.inc` 파일은 0개이며, test fixture는 `.cases.h`만 사용한다. 이 문서는 닫힌 `.inc` debt와 아직 남은 large-owner / owner-boundary debt를 구분한다.
 
 ---
 
-## 현 상태 (2026-04-30)
+## 현 상태 (2026-07-12)
 
 `src` production/test helper include contract:
 - `src/**/*.inc`: **0 files / 0 LOC**
@@ -14,13 +14,83 @@
 - test fragments: `.cases.h` only
 - current gate: `make backend-inc-size-test-smoke`, `make production-header-size-test-smoke`, `make test_inc_size_smoke`
 
-남은 부채는 `.inc`가 아니라 source-of-truth seam이다. 현재 600 LOC 초과 production owner는 없다:
+남은 부채는 `.inc`가 아니라 source-of-truth seam과 물리적 module
+경계다. 현재 production owner는 699 LOC hard cap을 지키지만, 600 LOC는
+목표선이지 현재 전체 inventory의 사실이 아니다.
 
 | LOC | file | owner debt |
 | ---: | --- | --- |
-| - | - | 600 LOC 초과 production `.c/.h` owner 없음 |
+| 699 이하 | production `.c/.h` | hard cap은 닫혔지만 600 목표 초과 owner는 남아 있음 |
 
 Current rule: `.inc` is closed; do not create new `.inc` files to split large owners. Split large owners into named `.c` / `.h` files with explicit owner responsibility and preserve ABI/source-of-truth gates.
+
+## P0: physical owner-module promotion
+
+2026-07-11 inventory는 source tree가 논리 owner까지는 분리했지만 이를
+찾을 수 있는 물리적 cluster로 승격하지 못했음을 보여 준다.
+
+| flat root | C | headers | C LOC | median C LOC |
+|---|---:|---:|---:|---:|
+| `src/codegen` | 420 | 319 | 112,561 | 244 |
+| `src/compiler` | 168 | 99 | 44,956 | 234 |
+| `src/semantic` | 207 | 52 | 47,929 | 192 |
+
+이 수치는 모든 파일이 지나치게 작다는 뜻은 아니다. 세 root에서 50 LOC
+미만 C 파일은 합계 49개뿐이다. 실제 문제는 795개 C translation unit이
+세 개의 flat directory에 있고, owner dependency와 탐색 경계가 파일명
+접두사에만 인코딩돼 있다는 점이다. 현재 local build tree도 885개 object를
+만든다.
+
+### 실행 순서
+
+1. **B0 baseline**: clean/incremental compile, preprocess, link wall time과 peak
+   RSS, object count를 phase별로 기록한다. `lld`나 archive를 적용하기 전의
+   수치를 보존한다.
+2. **B1 cluster manifest**: 변경 결합도, include graph, SoT owner를 이용해
+   cluster를 선언한다. 임시 `helpers/` bucket은 금지한다. 후보는 C/LLVM
+   emission, MIR consumption, ABI projection, diagnostics처럼 책임을 이름으로
+   갖는다.
+3. **B2 leaf move**: 한 cluster만 하위 directory로 이동하고 Makefile source
+   inventory를 갱신한다. 구 경로 alias, wrapper header, fallback source list는
+   남기지 않는다.
+4. **B3 invalidation gate**: leaf `.c` 수정은 해당 object와 최종 artifact만,
+   private cluster header 수정은 해당 cluster만 다시 빌드해야 한다. 부분
+   build 측정에 `make -B`를 쓰지 않는다. `-B`는 config stamp recipe까지
+   강제로 실행해 전체 `.o/.d`를 지우므로 leaf invalidation 증거가 아니다.
+   일반 `make`에서 같은 전역 삭제가 발생할 때만 빌드 결함으로 판정한다.
+5. **B4 link experiment**: response file은 이미 command-length 문제를 닫는다.
+   `libsemantic.a` 같은 archive와 `lld`는 link wall time/RSS가 실제로 줄 때만
+   채택한다. archive는 translation-unit compile 비용을 줄였다는 증거로
+   계산하지 않는다.
+6. **B5 coalesce**: 항상 함께 바뀌고 private API만 공유하는 tiny owners만
+   병합해 `static` 캡슐화를 회복한다. 단순 파일 수 감소를 위한 병합은
+   금지한다.
+
+### Promotion gate
+
+- directory path가 backend 종류만이 아니라 owner responsibility를 말한다.
+- cluster dependency는 parser/semantic/IR/backend 방향을 거슬러 올라가지
+  않는다.
+- 한 slice 전후 C/LLVM output, diagnostics, MIR/AIR facts는 동일하다.
+- clean build와 representative incremental build의 wall/RSS가 baseline보다
+  악화되면 이동을 중단한다.
+- broad directory move는 beta-closure SoT patch와 섞지 않는다. 한 owner
+  cluster와 그 inventory/gate를 한 milestone으로 취급한다.
+
+First landed leaf (2026-07-12):
+
+- `codegen.llvm.expression.math` moved to
+  `src/codegen/llvm/expression/{math_calls.c,math_calls.h}`.
+- `docs/compiler_owner_clusters.tsv` is the machine-readable landed-cluster
+  inventory; it records owners, not planned aliases.
+- `compiler-owner-cluster-test-smoke` rejects the old flat path, a generic
+  helpers bucket, missing build wiring, and non-recursive nested artifact
+  cleanup. Dependency paths are derived from `ALL_BUILD_OBJECTS`; Makefile
+  parsing must not recursively scan the build tree.
+- `measure_build_pressure.ps1` schema `pgy.build-pressure.v2` records
+  orchestration/compile/link samples, phase peaks, total wall time, and a JSON
+  summary under `.tmp/build-pressure`. `build-pressure-contract-smoke` prevents
+  the probe from regressing to one opaque process peak.
 
 Recently closed:
 - `semantic/type_checker_ownership_return.inc`, `semantic/type_checker_ownership_assign.inc`,

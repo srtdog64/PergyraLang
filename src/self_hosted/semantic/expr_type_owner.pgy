@@ -170,15 +170,12 @@ func CallReturnType(text: String, func_names: Array<String>, func_rets: Array<St
         return "Unknown";
     }
     let callee: String = Trim(Substring(text, 0, paren));
-    if !IsIdentText(callee) {
+    if !SemanticCallableSourceNameValid(callee) {
         return "Unknown";
     }
-    let i: Int = 0;
-    while i < ArrayLength(func_names) {
-        if func_names[i] == callee {
-            return func_rets[i];
-        }
-        i = i + 1;
+    let index: Option<Int> = SemanticCallableIndex(func_names, callee);
+    if IsSome(index) {
+        return func_rets[UnwrapOption(index)];
     }
     return "Unknown";
 }
@@ -415,6 +412,11 @@ func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
 }
 func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
     let n: Int = StringLength(text);
+    if n > 1 && CharAt(text, 0) == "?" {
+        ArraySet(bounds, 0, 1);
+        ArraySet(bounds, 1, n - 1);
+        return true;
+    }
     if n >= 4 && CharAt(text, 0) == "(" && CharAt(text, 1) == "?" && CharAt(text, n - 1) == ")" {
         ArraySet(bounds, 0, 2);
         ArraySet(bounds, 1, n - 3);
@@ -593,3 +595,4 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     }
     return "Unknown";
 }
+import "callable_resolution_owner.pgy";

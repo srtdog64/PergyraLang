@@ -15,11 +15,10 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_binding_rewrite_owner.pgy";
 import "literal_rewrite.pgy";
-
+import "array_value_emit_owner.pgy";
 func RewriteExpr(e: String, env: String) -> String {
     return RewriteRoleOperators(e, env);
 }
-
 func RewriteRoleOperators(e: String, env: String) -> String {
     let s: String = StripOuterParens(e);
     let p_opt: Option<Int> = FindTopLevelPlus(s);
@@ -282,9 +281,10 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
                 let array_kind: String = CollectionRuntimeKindFromTypeName(ftype);
                 let array_val: String = StringTrim(val);
                 if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
-                    Die(Concat("array struct argument field must consume a named array value: ", ftype));
+                    cval = EmitArrayLiteralValue(array_val, ftype, env);
+                } else {
+                    cval = RewriteExpr(array_val, env);
                 }
-                cval = RewriteExpr(array_val, env);
                 if StringLength(array_kind) == 0 {
                     Die(Concat("unsupported struct argument array field type: ", ftype));
                 }
@@ -305,6 +305,11 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
 }
 
 func RewriteCallArgForExpectedType(part: String, expected_type: String, env: String) -> String {
+    let argument: String = StringTrim(part);
+    if StartsWith(expected_type, "Array<") &&
+        StringLength(argument) > 0 && CodegenCharAt(argument, 0) == "[" {
+        return EmitArrayLiteralValue(argument, expected_type, env);
+    }
     if StringLength(expected_type) > 0 && LookupKindType(env, expected_type, "s") == "struct" {
         return RewriteStructLiteralCallArg(part, expected_type, env);
     }

@@ -5,35 +5,34 @@
 
 import "error_owner.pgy";
 import "decl_lower.pgy";
+import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_lower.pgy";
 
 func EmitMirProgramTree(json: String) -> String {
-    let out: String = Concat("Program:\n", EmitStructDecls(json));
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    if !routines.valid {
+        MirLowerFailClosed("MIR routine inventory is missing");
+    }
+    let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];
     let total: Int = 0;
-    let rpos_opt: Option<Int> = FindRoutine(json, 0);
-    if !IsSome(rpos_opt) {
+    let row: Int = 0;
+    if MirProgramRoutineIndexCount(routines) == 0 {
         MirLowerFailClosed("no routine name in MIR-JSON");
     }
-    while IsSome(rpos_opt) {
-        let rpos: Int = UnwrapOption(rpos_opt);
-        let nend_opt: Option<Int> = RoutineNameEnd(json, rpos);
-        if !IsSome(nend_opt) {
-            MirLowerFailClosed("malformed routine name");
-        }
-        let nend: Int = UnwrapOption(nend_opt);
-        let span_end: Int = RoutineSpanEnd(json, nend);
-        let kind: String = RoutineKind(json, rpos, nend, span_end);
-        let owner: String = RoutineOwner(json, rpos, nend, span_end);
+    while row < MirProgramRoutineIndexCount(routines) {
+        let rpos: Int = routines.starts[row];
+        let kind: String = routines.kinds[row];
+        let owner: String = routines.owners[row];
         if kind == "function" || StringLength(owner) == 0 {
-            out = Concat(out, EmitRoutineTree(json, rpos, "  "));
+            ArrayPush(chunks, EmitRoutineTree(json, rpos, "  "));
             total = total + 1;
         }
-        rpos_opt = FindRoutine(json, span_end);
+        row = row + 1;
     }
 
     if total == 0 {
         MirLowerFailClosed("no supported routines found in MIR-JSON document");
     }
-    return out;
+    return StringJoin(chunks, "");
 }

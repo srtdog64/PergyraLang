@@ -56,6 +56,7 @@ manifest_contains() {
 
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 require_file "src/self_hosted/compiler/README.md"
@@ -176,8 +177,9 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSo
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstToC("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_pipeline_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToCArtifact(args[0]).payload)"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_owner.pgy";'
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToCVerified(args[0]).payload)"
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CompilerStagePathManifestReady()"
@@ -1149,6 +1151,7 @@ fi
 pgy_bin="$(pgy_path_for_bash_tool "$pgy_bin")"
 pgy_require_runnable_binary_here "self-host-compiler-world" "$pgy_bin" ||
     fail "PGY_BIN is not runnable: $pgy_bin"
+PGY="$pgy_bin"
 
 tmp_dir="$ROOT_DIR/.tmp/self_hosted/compiler_world"
 mkdir -p "$tmp_dir"
@@ -1178,8 +1181,12 @@ manifest_err="$tmp_dir/test_harness_manifest.err"
     { cat "$manifest_out" "$manifest_err" >&2; fail "compiler world TestHarness path projection failed"; }
 
 tr -d '\r' <"$manifest_out" | sort -u >"$pgy_paths"
-cmp -s "$shell_paths" "$pgy_paths" ||
-    { diff -u "$shell_paths" "$pgy_paths" >&2 || true; fail "compiler world shell projection drifted from Pergyra path owner"; }
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-compiler-world:paths" \
+    "$tmp_dir" \
+    "$shell_paths" \
+    "$pgy_paths" \
+    "run_output"
 
 ast_out="$tmp_dir/world.ast.txt"
 (cd "$ROOT_DIR" && "$pgy_bin" --ast \

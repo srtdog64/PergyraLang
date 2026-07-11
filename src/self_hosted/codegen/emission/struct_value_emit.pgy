@@ -10,6 +10,7 @@ import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "expr_rewrite.pgy";
+import "array_value_emit_owner.pgy";
 
 // Emit a C struct-valued expression: a `Name(f: v, ...)` literal becomes a
 // compound literal; anything else (e.g. a struct-returning call) passes through.
@@ -59,9 +60,10 @@ func EmitStructLit(expr: String, env: String) -> String {
                 let array_kind: String = CollectionRuntimeKindFromTypeName(ftype);
                 let array_val: String = StringTrim(val);
                 if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
-                    Die(Concat("array struct initializer field must consume a named array value: ", ftype));
+                    cval = EmitArrayLiteralValue(array_val, ftype, env);
+                } else {
+                    cval = RewriteExpr(array_val, env);
                 }
-                cval = RewriteExpr(array_val, env);
                 if StringLength(array_kind) == 0 {
                     Die(Concat("unsupported struct initializer array field type: ", ftype));
                 }

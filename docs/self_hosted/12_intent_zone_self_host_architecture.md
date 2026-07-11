@@ -97,7 +97,7 @@ Path facts must not be rediscovered by every stage. The current shared owner is
 
 - `SelfHostPath.Dirname`;
 - `SelfHostPath.IsAbsolute`;
-- `SelfHostPath.Join`;
+- `SelfHostPath.JoinRelativePath`;
 - `SelfHostPath.NormalizeImportRelative`.
 
 Runtime file-access authorization still belongs to the native runtime path

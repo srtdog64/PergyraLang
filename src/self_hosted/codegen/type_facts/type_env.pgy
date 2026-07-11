@@ -11,29 +11,57 @@ func LookupKindType(env: String, name: String, kind: String) -> String {
         return "";
     }
     let start: Int = idx + StringLength(needle);
-    let rest: String = Substring(env, start, StringLength(env) - start);
-    let bar: Int = StringIndexOf(rest, "|");
+    let env_length: Int = StringLength(env);
+    let bar: Int = SubIndexOfWithLen(
+        env, env_length, start, env_length - start, "|"
+    );
     if bar < 0 {
-        return rest;
+        return Substring(env, start, env_length - start);
     }
-    return Substring(rest, 0, bar);
+    return Substring(env, start, bar);
+}
+
+func TypeEnvValueBindingRows(
+    source_name: String, value_kind: String, c_name: String
+) -> String {
+    return Concat(
+        source_name,
+        Concat("=v:", Concat(value_kind, Concat(
+            "|", Concat(source_name, Concat("=cbind:", Concat(c_name, "|")))
+        )))
+    );
 }
 
 func TypeEnvAppendValueBinding(env: String, source_name: String, value_kind: String, c_name: String) -> String {
-    let with_value: String = Concat(env, Concat(source_name, Concat("=v:", Concat(value_kind, "|"))));
-    return Concat(with_value, Concat(source_name, Concat("=cbind:", Concat(c_name, "|"))));
+    if LookupKindType(env, source_name, "v") == value_kind &&
+        LookupKindType(env, source_name, "cbind") == c_name {
+        return env;
+    }
+    return Concat(env, TypeEnvValueBindingRows(source_name, value_kind, c_name));
+}
+
+func TypeEnvReadonlyRefBindingRows(
+    source_name: String, value_kind: String, ref_c_name: String
+) -> String {
+    return Concat(
+        TypeEnvValueBindingRows(
+            source_name, value_kind, Concat("(*", Concat(ref_c_name, ")"))
+        ),
+        Concat(source_name, Concat("=cref:", Concat(ref_c_name, "|")))
+    );
 }
 
 func TypeEnvAppendReadonlyRefBinding(
     env: String, source_name: String, value_kind: String, ref_c_name: String
 ) -> String {
-    let with_value: String = TypeEnvAppendValueBinding(
-        env, source_name, value_kind,
-        Concat("(*", Concat(ref_c_name, ")"))
-    );
+    if LookupKindType(env, source_name, "v") == value_kind &&
+        LookupKindType(env, source_name, "cref") == ref_c_name {
+        return env;
+    }
     return Concat(
-        with_value,
-        Concat(source_name, Concat("=cref:", Concat(ref_c_name, "|")))
+        env, TypeEnvReadonlyRefBindingRows(
+            source_name, value_kind, ref_c_name
+        )
     );
 }
 
@@ -150,6 +178,9 @@ func ExprCollectionElementKind(kind: String) -> String {
     if kind == "ArrayInt" || kind == "Array<Int>" || kind == "Array<Int: Int>" {
         return "Int";
     }
+    if kind == "ArrayBool" || kind == "Array<Bool>" || kind == "Array<Bool: Bool>" {
+        return "Bool";
+    }
     return "";
 }
 
@@ -234,6 +265,9 @@ func ExprKind(expr: String, env: String) -> String {
             if ExprKind(some_inner, env) == "String" {
                 return "OptionString";
             }
+            if ExprKind(some_inner, env) == "Bool" {
+                return "OptionBool";
+            }
         }
         return "OptionInt";
     }
@@ -250,6 +284,9 @@ func ExprKind(expr: String, env: String) -> String {
             let unwrap_inner: String = StringTrim(Substring(e, unwrap_open + 1, UnwrapOption(unwrap_close_opt) - unwrap_open - 1));
             if ExprKind(unwrap_inner, env) == "OptionString" {
                 return "String";
+            }
+            if ExprKind(unwrap_inner, env) == "OptionBool" {
+                return "Bool";
             }
         }
         return "Int";

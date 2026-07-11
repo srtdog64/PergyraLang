@@ -6655,7 +6655,9 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
 - Extended the four MIR intersection fixtures to compare canonical C-oracle and
   Pergyra-produced MIR, emitted C, compiled execution, and C/LLVM-built
   self-host driver outputs. Unsupported facts remain fail-closed.
-- Fixed the progress metric to include `src/self_hosted/mir/`. The current
-  measured implementation volume is 24,211 Pergyra LOC over 38,346 compiler
-  core LOC (8.61%); bounded DRV-2 replacement is live, while released/default
-  native replacement remains honestly 0%.
+- Fixed the progress metric to include `src/self_hosted/mir/`. The corrected
+  current inventory is 25,389 frontend/backend Pergyra LOC over 283,326 C
+  reference LOC (8.96%), while the broader Pergyra compiler-core inventory is
+  40,192 LOC. The first ratio does not use the compiler-core inventory as its
+  denominator. Bounded DRV-2 replacement is live; released/default native
+  replacement remains honestly 0%.

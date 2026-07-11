@@ -265,20 +265,14 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
         return "";
     }
     let callee: String = Trim(Substring(trimmed, 0, paren));
-    if !IsIdentText(callee) {
+    if !SemanticCallableSourceNameValid(callee) {
         return "";
     }
-    let idx: Int = 0;
-    let found: Int = -1;
-    while idx < ArrayLength(func_names) {
-        if func_names[idx] == callee {
-            found = idx;
-        }
-        idx = idx + 1;
-    }
-    if found < 0 {
+    let found_opt: Option<Int> = SemanticCallableIndex(func_names, callee);
+    if !IsSome(found_opt) {
         return SemanticError1("undefined_function", "func", callee);
     }
+    let found: Int = UnwrapOption(found_opt);
     let sig: String = func_params[found];
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
     let receiver_error: String = CheckCollectionMutatorReceiver(callee, args_src, names, types, modes);
@@ -303,3 +297,4 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
     }
     return CompareCallArgs(callee, args_src, sig, names, types, func_names, func_rets);
 }
+import "callable_resolution_owner.pgy";

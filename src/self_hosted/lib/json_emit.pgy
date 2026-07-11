@@ -1,27 +1,27 @@
 // Shared JSON emission primitives for self-hosted fact-shaped tools.
 
 func JsonEscapeString(value: String) -> String {
-    let out: String = "";
+    let chunks: Array<String> = [];
     let i: Int = 0;
     let n: Int = StringLength(value);
     while i < n {
         let c: String = Substring(value, i, 1);
         if c == "\"" {
-            out = Concat(out, "\\\"");
+            ArrayPush(chunks, "\\\"");
         } else if c == "\\" {
-            out = Concat(out, "\\\\");
+            ArrayPush(chunks, "\\\\");
         } else if c == "\n" {
-            out = Concat(out, "\\n");
+            ArrayPush(chunks, "\\n");
         } else if c == "\r" {
-            out = Concat(out, "\\r");
+            ArrayPush(chunks, "\\r");
         } else if c == "\t" {
-            out = Concat(out, "\\t");
+            ArrayPush(chunks, "\\t");
         } else {
-            out = Concat(out, c);
+            ArrayPush(chunks, c);
         }
         i = i + 1;
     }
-    return out;
+    return StringJoin(chunks, "");
 }
 
 func JsonStringLiteral(value: String) -> String {

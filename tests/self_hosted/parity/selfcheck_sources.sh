@@ -15,6 +15,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/portable_process_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -113,7 +114,9 @@ for backend in $BACKENDS; do
         out_file="$BUILD_DIR/selfcheck_${backend}_${source_index}.out"
         err_file="$BUILD_DIR/selfcheck_${backend}_${source_index}.err"
         set +e
-        (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$TOOL_BIN" --check "$target" >"$out_file" 2>"$err_file")
+        (cd "$ROOT_DIR" && pgy_run_with_timeout \
+            "$CHECK_TIMEOUT_SEC" "$out_file" "$err_file" \
+            "$TOOL_BIN" --check "$target")
         rc="$?"
         set -e
         if [[ "$rc" -eq "$TIMEOUT_EXIT_CODE" ]]; then
