@@ -1,0 +1,28 @@
+// Expression-form witness (docs/181 SS1, R2): `let rs = parallel ... join
+// with all { give <expr>; };` collects one result per task into an
+// Array<R> in INDEX ORDER (never completion order -- that is what lets
+// byte-equal compare bite a parallel result). Round 1 squares an array
+// through the element mode; round 2 doubles it through the index mode
+// (give + admitted [i] array read). The element probes pin index order;
+// the sums are order-independent backstops.
+//   squares = [1,4,9,...,64]        sum = 204
+//   doubled = [2,8,18,...,72] (n=6) sum = 182, doubled[0]=2, doubled[5]=72
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..8 { ArrayPush(xs, k + 1); }
+    let squares = parallel (x in xs) join with all {
+        give x * x;
+    };
+    let mut sum: Int = 0;
+    for t in 0..8 { sum = sum + squares[t]; }
+    Log(sum);
+    let n: Int = 6;
+    let doubled: Array<Int> = parallel (i in 0..n) join with all {
+        give squares[i] * 2;
+    };
+    let mut sum2: Int = 0;
+    for u in 0..6 { sum2 = sum2 + doubled[u]; }
+    Log(sum2);
+    Log(doubled[0]);
+    Log(doubled[5]);
+}

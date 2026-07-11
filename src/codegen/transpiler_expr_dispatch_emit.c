@@ -8,6 +8,7 @@
 #include "../semantic/diag_codes.h"
 
 #include "codegen_match_variant_policy.h"
+#include "transpiler_async_parallel_emit.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
@@ -489,6 +490,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_SPAWN_EXPR:
         return emit_spawn_expr(node, ctx);
+
+    case AST_PARALLEL_BLOCK:
+        /* Expression-form parallel join (docs/181 R2). */
+        return transpiler_emit_parallel_join_expr_parts(node, ctx);
 
     case AST_CHANNEL_SEND:
         return emit_channel_send(node, ctx);

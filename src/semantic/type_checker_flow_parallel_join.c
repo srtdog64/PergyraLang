@@ -266,3 +266,131 @@ type_check_parallel_join_admit(ASTNode *node, SemanticContext *ctx,
     *elem_type_out = elem_type;
     return !ctx->has_error;
 }
+
+/* --- R2: expression form (`let rs = parallel ... { give <expr>; };`) --- */
+
+/* Counts give statements in the body without descending into a nested
+ * parallel block (a nested join owns its own gives). */
+static size_t
+parallel_join_count_gives(const ASTNode *node)
+{
+    if (node == NULL)
+        return 0;
+    switch (node->type) {
+    case AST_GIVE_STMT:
+        return 1;
+    case AST_BLOCK: {
+        size_t n = 0;
+        for (size_t i = 0; i < node->data.block.count; i++)
+            n += parallel_join_count_gives(node->data.block.statements[i]);
+        return n;
+    }
+    case AST_IF_STMT:
+        return parallel_join_count_gives(node->data.if_stmt.then_branch)
+             + parallel_join_count_gives(node->data.if_stmt.else_branch);
+    case AST_WHILE_LOOP:
+        return parallel_join_count_gives(node->data.while_loop.body);
+    case AST_FOR_LOOP:
+        return parallel_join_count_gives(node->data.for_loop.body);
+    case AST_PARALLEL_BLOCK:
+        return 0;
+    default:
+        return 0;
+    }
+}
+
+/* Statement flow for `give <expr>;` -- legal only inside an
+ * expression-form parallel join body. */
+FlowFlags
+type_check_give_stmt_flow(ASTNode *node, SemanticContext *ctx)
+{
+    if (node == NULL || ctx == NULL)
+        return FLOW_FALLTHROUGH;
+    if (!ctx->in_parallel_join_expr) {
+        semantic_error(ctx, node,
+            "give names a per-task result; it is only legal as the final statement of an expression-form parallel join 'let rs = parallel ...' (docs/181 R2)");
+        return FLOW_FALLTHROUGH;
+    }
+    (void)type_check_expression(ast_give_value(node), ctx);
+    return FLOW_FALLTHROUGH;
+}
+
+/* Type of an expression-position parallel join: Array<R> where R is the
+ * give value's (primitive) type. Runs the full statement admission --
+ * the expression form is the statement form plus a result. */
+Type *
+type_check_parallel_join_expr_type(ASTNode *node, SemanticContext *ctx)
+{
+    ASTNode *body;
+    ASTNode *last = NULL;
+    size_t gives;
+    Type *elem_type = NULL;
+    Type *give_type;
+    bool prev_expr_flag;
+
+    if (node == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+    if (!ast_parallel_is_join_form(node)) {
+        semantic_error(ctx, node,
+            "parallel/async block in expression position: only the join form 'parallel (x in xs) ... { give <expr>; }' produces a value (docs/181 R2)");
+        return TYPE_UNKNOWN;
+    }
+    body = ast_parallel_task(node, 0);
+    if (body != NULL && body->type == AST_BLOCK
+        && body->data.block.count > 0)
+        last = body->data.block.statements[body->data.block.count - 1];
+    gives = parallel_join_count_gives(body);
+    if (last == NULL || last->type != AST_GIVE_STMT) {
+        if (gives == 0)
+            semantic_error(ctx, node,
+                "parallel join expression form requires a final 'give' statement (docs/181 R2)");
+        else
+            semantic_error(ctx, node,
+                "'give' must be the final statement of the parallel join body (docs/181 R2)");
+        return TYPE_UNKNOWN;
+    }
+    if (gives != 1) {
+        semantic_error(ctx, node,
+            "'give' must be the final statement of the parallel join body, exactly once (docs/181 R2)");
+        return TYPE_UNKNOWN;
+    }
+
+    prev_expr_flag = ctx->in_parallel_join_expr;
+    ctx->in_parallel_join_expr = true;
+    (void)type_check_parallel_block_flow(node, ctx);
+    ctx->in_parallel_join_expr = prev_expr_flag;
+    if (ctx->has_error)
+        return TYPE_UNKNOWN;
+
+    /* Result element type: the give value checked in the body scope (the
+     * element binding declared exactly like the task loop declares it).
+     * The admission re-run is idempotent by design. */
+    if (!type_check_parallel_join_admit(node, ctx, &elem_type))
+        return TYPE_UNKNOWN;
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    if (elem_type != NULL) {
+        const char *elem_name = ast_parallel_join_element(node);
+        Symbol *elem_sym = elem_name != NULL
+            ? symbol_create_variable(elem_name, elem_type,
+                                     node->line, node->column)
+            : NULL;
+        if (elem_sym != NULL)
+            scope_declare(ctx->scope, elem_sym);
+    }
+    give_type = flow_normalize_type(
+        type_check_expression(ast_give_value(last), ctx));
+    scope_exit(&ctx->scope);
+    if (!parallel_join_element_type_supported(give_type)) {
+        semantic_error(ctx, last,
+            "parallel join 'give' carries primitive results only (Int/Long/Float/Double/Bool); wider result kinds are a later rung (docs/181 SS1.4)");
+        return TYPE_UNKNOWN;
+    }
+    /* Seal the result type as a node fact: both backend emitters derive
+     * Array<R> from it instead of re-inferring the body (docs/180 SS6). */
+    if (!ast_parallel_set_join_give_type(node, give_type->name)) {
+        semantic_error(ctx, node,
+            "Give-result fact allocation failed while admitting parallel join expression");
+        return TYPE_UNKNOWN;
+    }
+    return wrap_constructed(TYPE_ARRAY, give_type);
+}

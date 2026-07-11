@@ -150,6 +150,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_ARRAY_LITERAL:
         return type_check_array_literal(expr, ctx);
 
+    case AST_PARALLEL_BLOCK:
+        /* Expression-form parallel join (docs/181 R2):
+         * `let rs = parallel ... join with all { give <expr>; };` */
+        return type_check_parallel_join_expr_type(expr, ctx);
+
     case AST_MAP_LITERAL:
         return type_check_map_literal(expr, ctx);
 

@@ -203,6 +203,7 @@ void ast_destroy(ASTNode* node) {
                 free(node->data.parallel.join_index_arrays[i]);
             }
             free(node->data.parallel.join_index_arrays);
+            free(node->data.parallel.join_give_type_name);
             break;
             
         case AST_BLOCK:
@@ -265,6 +266,10 @@ void ast_destroy(ASTNode* node) {
             
         case AST_RETURN:
             ast_destroy(node->data.return_stmt.value);
+            break;
+
+        case AST_GIVE_STMT:
+            ast_destroy(node->data.give_stmt.value);
             break;
             
         case AST_BINARY:

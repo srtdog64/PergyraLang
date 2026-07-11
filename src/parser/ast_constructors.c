@@ -506,6 +506,14 @@ ASTNode* ast_create_return_statement(void) {
     return node;
 }
 
+/* Give statement (docs/181 R2): per-task result of an expression-form
+ * parallel join body. */
+ASTNode* ast_create_give_statement(ASTNode* value) {
+    ASTNode* node = ast_create_node(AST_GIVE_STMT);
+    node->data.give_stmt.value = value;
+    return node;
+}
+
 // Expression constructors
 // Binary operation
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right) {

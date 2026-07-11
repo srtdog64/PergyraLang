@@ -2,6 +2,20 @@
 
 Status: `design-contract`, post-beta projection work (2026-07-06)
 
+**Ruler decision (BDFL 2026-07-12):** the competitive bar for Pergyra's
+parallel model is **game-expression sufficiency, not Fortran parity** --
+"완전히 포트란을 이길 필요는 없어. 아직은. 핵심은 우리가 게임을 표현할 때
+가져올 수 있냐지." Per-frame entity updates, spatial grids, and event
+channels are the workloads this ladder is climbed for; BLAS-class numeric
+supremacy is explicitly not the near-term target. Pergyra is C-family
+row-major; column-major stays a per-target layout fact (see "What Not To
+Import"). Progress record: the `parallel (i in lo..hi)` join form
+(docs/181 R0-R2) landed a *declared* instance of DP-3-shaped evidence --
+construction-guaranteed index-disjoint writes on the join surface --
+ahead of the general derived ladder below. The claim gate stands: no
+Fortran-class optimization claim before general DP-3, no reduction claim
+before DP-4.
+
 This document records the part of Fortran worth importing into Pergyra's
 parallel model. The target is not Fortran syntax, column-major defaults, or
 implicit compiler trust. The target is the evidence shape that lets a compiler

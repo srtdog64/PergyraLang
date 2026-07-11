@@ -238,3 +238,24 @@ ast_parallel_join_index_array_admitted(const ASTNode* node, const char* name)
     }
     return false;
 }
+
+/* --- Expression form (docs/181 R2): checker-sealed give result type --- */
+
+bool
+ast_parallel_set_join_give_type(ASTNode* node, const char* type_name)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK
+        || type_name == NULL)
+        return false;
+    free(node->data.parallel.join_give_type_name);
+    node->data.parallel.join_give_type_name = pergyra_strdup(type_name);
+    return node->data.parallel.join_give_type_name != NULL;
+}
+
+const char*
+ast_parallel_join_give_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return NULL;
+    return node->data.parallel.join_give_type_name;
+}

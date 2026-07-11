@@ -83,6 +83,8 @@ FlowFlags type_check_let_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_destructure_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx);
 FlowFlags type_check_return_stmt_flow(ASTNode *node, SemanticContext *ctx);
+/* docs/181 R2 (type_checker_flow_parallel_join.c) */
+FlowFlags type_check_give_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_event_stmt_flow(ASTNode *node,
                                      SemanticContext *ctx,
                                      const char *event_kind);

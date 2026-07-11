@@ -187,6 +187,8 @@ ast_contains_identifier_call(const ASTNode *node,
             || ast_contains_identifier_call(node->data.if_stmt.else_branch, predicate, userdata);
     case AST_RETURN:
         return ast_contains_identifier_call(node->data.return_stmt.value, predicate, userdata);
+    case AST_GIVE_STMT:
+        return ast_contains_identifier_call(node->data.give_stmt.value, predicate, userdata);
     case AST_ENUM_DECL:
         return ast_decl_methods_contain_identifier_call(node, predicate, userdata);
     case AST_SELECT_STMT:

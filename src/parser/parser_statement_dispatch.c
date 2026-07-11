@@ -337,6 +337,23 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_if_statement(parser));
     }
 
+    /* give 문 (docs/181 R2): the per-task result of an expression-form
+     * parallel join body. Contextual -- recognized only inside a parallel
+     * body, so `give` stays an ordinary identifier everywhere else. */
+    if (parser->in_parallel_block
+        && parser->current_token.type == TOKEN_IDENTIFIER
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "give") == 0) {
+        Token give_tok = parser_advance(parser);
+        ASTNode *give = ast_create_give_statement(
+            parser_parse_expression(parser));
+        give->line = give_tok.line;
+        give->column = give_tok.column;
+        parser_consume_statement_terminator(parser,
+            "Expected ';' after give value");
+        return parser_finalize_statement(parser, give);
+    }
+
     // return 문
     if (parser_match(parser, TOKEN_RETURN)) {
         return parser_finalize_statement(parser, parse_return_statement(parser));

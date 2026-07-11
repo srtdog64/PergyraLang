@@ -148,6 +148,8 @@ typedef enum
     AST_SELECT_STMT,
     AST_MATCH_STMT,
     AST_MATCH_CASE,
+    /* docs/181 R2: per-task result of an expression-form parallel join. */
+    AST_GIVE_STMT,
     
     /* Expressions */
     AST_BINARY,

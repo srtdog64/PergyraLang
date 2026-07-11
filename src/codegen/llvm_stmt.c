@@ -399,6 +399,35 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_return_stmt(node, ctx);
         break;
 
+    case AST_GIVE_STMT: {
+        /* docs/181 R2: the per-task result store; legal only inside an
+         * expression-form parallel join wrapper. */
+        LLVMValueRef give_val;
+        if (ctx->pjoin_give_ptr == NULL || ctx->pjoin_give_type == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "give statement reached the LLVM emitter outside an expression-form parallel join body");
+            break;
+        }
+        give_val = llvm_emit_expression(ast_give_value(node), ctx);
+        if (give_val == NULL)
+            break;
+        if (LLVMTypeOf(give_val) != ctx->pjoin_give_type
+            && LLVMGetTypeKind(ctx->pjoin_give_type) == LLVMIntegerTypeKind
+            && LLVMGetTypeKind(LLVMTypeOf(give_val)) == LLVMIntegerTypeKind) {
+            give_val = LLVMGetIntTypeWidth(ctx->pjoin_give_type)
+                    > LLVMGetIntTypeWidth(LLVMTypeOf(give_val))
+                ? LLVMBuildSExt(ctx->builder, give_val,
+                    ctx->pjoin_give_type, llvm_tmp_name(ctx))
+                : LLVMBuildTrunc(ctx->builder, give_val,
+                    ctx->pjoin_give_type, llvm_tmp_name(ctx));
+        }
+        LLVMBuildStore(ctx->builder, give_val, ctx->pjoin_give_ptr);
+        break;
+    }
+
     case AST_BREAK:
         if (ctx->loop_depth > 0) {
             int target_depth = ctx->loop_depth - 1;

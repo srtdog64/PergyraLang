@@ -630,3 +630,11 @@ ast_return_value(const ASTNode* node)
         return NULL;
     return node->data.return_stmt.value;
 }
+
+ASTNode*
+ast_give_value(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_GIVE_STMT)
+        return NULL;
+    return node->data.give_stmt.value;
+}

@@ -8,6 +8,9 @@
 #     order-independent, so the output is deterministic)
 #   - parallel_join_index (compare corpus, R1) prints 164 then 328:
 #     in-place element writes buckets[i] under index-disjointness
+#   - parallel_join_expr (compare corpus, R2) prints 204/182/2/72:
+#     `let rs = parallel ... { give <expr>; };` collects per-task
+#     results into an Array<R> in index order
 #   - reject_no_binding    binding-less sketch form        -> reject
 #   - reject_base_in_body  body touches the collection     -> reject
 #   - reject_elem_write    element binding written         -> reject
@@ -17,6 +20,9 @@
 #   - reject_index_whole_array     ArrayPush in index form  -> reject
 #   - reject_collection_array_write ys[0]=x in element mode -> reject
 #   - reject_collection_array_read  ys[0] read in element mode -> reject
+#   - reject_expr_missing_give        expression form, no give   -> reject
+#   - reject_give_in_statement_form   give without a result sink -> reject
+#   - reject_give_not_last            give before other stmts    -> reject
 
 set -euo pipefail
 
@@ -34,6 +40,7 @@ fi
 FIXTURES="$ROOT_DIR/tests/cases/parallel_join"
 ACCEPT_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_collection/main.pgy"
 INDEX_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_index/main.pgy"
+EXPR_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_expr/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -77,6 +84,7 @@ BACKENDS="${PGY_PARALLEL_JOIN_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do
     expect_runs "$backend" "$ACCEPT_SRC" "join" "204"
     expect_runs "$backend" "$INDEX_SRC" "join_index" "$(printf '164\n328')"
+    expect_runs "$backend" "$EXPR_SRC" "join_expr" "$(printf '204\n182\n2\n72')"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"
@@ -87,5 +95,8 @@ expect_reject reject_index_nonbinding.pgy      "outside the index-disjoint form"
 expect_reject reject_index_whole_array.pgy     "outside the index-disjoint form"
 expect_reject reject_collection_array_write.pgy "join arms are replicated"
 expect_reject reject_collection_array_read.pgy  "cannot capture mutable collection"
+expect_reject reject_expr_missing_give.pgy      "requires a final 'give'"
+expect_reject reject_give_in_statement_form.pgy "give names a per-task result"
+expect_reject reject_give_not_last.pgy          "must be the final statement"
 
-echo "[parallel-join] rungs 0+1 admitted (204 + 164/328 on: $BACKENDS); 8 reject shapes fail closed"
+echo "[parallel-join] rungs 0+1+2 admitted (204 + 164/328 + 204/182/2/72 on: $BACKENDS); 11 reject shapes fail closed"

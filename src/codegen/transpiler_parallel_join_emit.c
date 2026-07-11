@@ -25,6 +25,7 @@
 #include "../semantic/diag_codes.h"
 #include "codegen_type_mapping.h"
 #include "transpiler_context.h"
+#include "transpiler_format.h"
 #include "transpiler_symbols.h"
 #include "transpiler_parallel_capture.h"
 #include "transpiler_type_require.h"
@@ -56,8 +57,14 @@ join_set_error(TranspilerCtx *ctx, const char *fmt, const char *arg)
         fmt, arg != NULL ? arg : "(anonymous)");
 }
 
-void
-emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
+/* Shared emission for both forms; expression mode (give_suffix != NULL)
+ * adds a per-task result slot to the context struct, wires `give` to it,
+ * and pushes the results into `res_name` in index order after the join. */
+static void
+emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
+                          const char *give_suffix,
+                          const char *give_c_type,
+                          const char *res_name)
 {
     const char *elem_name = ast_parallel_join_element(node);
     ASTNode *coll = ast_parallel_join_collection(node);
@@ -173,8 +180,12 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
                       capture_typed_names[i]);
     }
     codebuf_write(ctx->helpers,
-        "    %s __join_elem;\n"
-        "} _pgy_pjoin_ctx_%u;\n\n", elem_c_type, pid);
+        "    %s __join_elem;\n", elem_c_type);
+    if (give_suffix != NULL)
+        codebuf_write(ctx->helpers,
+            "    %s __join_result;\n", give_c_type);
+    codebuf_write(ctx->helpers,
+        "} _pgy_pjoin_ctx_%u;\n\n", pid);
 
     /* ---------------------------------------------------------------
      * 2) The one replicated wrapper.
@@ -189,10 +200,13 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
     {
         TranspilerParallelWrapperState wrapper_state;
         char no_slots[MAX_SLOT_VARS][64] = {{0}};
+        bool saved_give = ctx->in_pjoin_give;
 
         transpiler_parallel_wrapper_state_enter(ctx, &wrapper_state,
             no_slots, 0, capture_typed_names, capture_typed_count, NULL);
+        ctx->in_pjoin_give = give_suffix != NULL;
         emit_statement(body, ctx);
+        ctx->in_pjoin_give = saved_give;
         transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
     }
 
@@ -307,6 +321,15 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out,
             "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
             "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
+        if (give_suffix != NULL) {
+            /* Index order, never completion order: the collection walk is
+             * the loop below, not the workers' finish sequence. */
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+                "pgy_array_push_%s(&%s, _pj_ctxs_%u[_pj_i].__join_result);\n",
+                pid, give_suffix, res_name, pid);
+        }
         write_indent(ctx);
         codebuf_write(ctx->out,
             "free(_pj_ctxs_%u);\n", pid);
@@ -318,4 +341,56 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
     }
+}
+
+void
+emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
+{
+    emit_parallel_join_common(node, ctx, NULL, NULL, NULL);
+}
+
+char *
+transpiler_emit_parallel_join_expr_parts(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *give = ast_parallel_join_give_type(node);
+    char give_c_type[128];
+    char res_name[48];
+    CodeBuf *saved_out;
+    CodeBuf *tmp;
+    int saved_indent;
+    char *result;
+
+    if (give == NULL || give[0] == '\0') {
+        join_set_error(ctx,
+            "parallel block in expression position lacks the checker-sealed give-result fact; the statement form cannot produce a value%s",
+            "");
+        return NULL;
+    }
+    if (!transpiler_require_type_name_c_type_copy(ctx, give,
+            "parallel join give result", give_c_type, sizeof(give_c_type)))
+        return NULL;
+    /* The common emitter consumes this id; peeking keeps names aligned. */
+    snprintf(res_name, sizeof(res_name), "_pj_res_%u", ctx->parallel_id);
+
+    tmp = codebuf_create();
+    if (tmp == NULL) {
+        join_set_error(ctx,
+            "out of memory while lowering parallel join expression%s", "");
+        return NULL;
+    }
+    saved_out = ctx->out;
+    saved_indent = ctx->indent;
+    ctx->out = tmp;
+    ctx->indent = 1;
+    emit_parallel_join_common(node, ctx, give, give_c_type, res_name);
+    ctx->out = saved_out;
+    ctx->indent = saved_indent;
+    if (ctx->backend_error != NULL) {
+        codebuf_destroy(tmp);
+        return NULL;
+    }
+    result = strdup_fmt("({ PgyArray_%s %s = {0};\n%s    %s; })",
+        give, res_name, tmp->data != NULL ? tmp->data : "", res_name);
+    codebuf_destroy(tmp);
+    return result;
 }

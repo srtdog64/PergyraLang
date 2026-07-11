@@ -372,6 +372,10 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     type_task_handle;
     LLVMTypeRef     type_allocator;
     int             parallel_counter;
+    /* Expression-form parallel join (docs/181 R2): while emitting such a
+     * wrapper body, `give` stores through this per-task result slot. */
+    LLVMValueRef    pjoin_give_ptr;
+    LLVMTypeRef     pjoin_give_type;
 
     LLVMTypeRef     slot_type_Int;
     LLVMTypeRef     slot_type_Long;

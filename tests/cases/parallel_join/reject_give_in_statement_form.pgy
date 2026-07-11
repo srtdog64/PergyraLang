@@ -1,0 +1,11 @@
+// docs/181 R2 reject: give names a per-task result, and only the
+// expression form has somewhere to put it. The statement form fails
+// closed instead of silently discarding the value.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 4 { ArrayPush(xs, k); k = k + 1; }
+    parallel (x in xs) join with all {
+        give x * x;
+    }
+}

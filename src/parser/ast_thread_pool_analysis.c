@@ -46,6 +46,8 @@ ast_uses_thread_pool_surface(const ASTNode *node)
             || ast_uses_thread_pool_surface(node->data.let_decl.initializer);
     case AST_RETURN:
         return ast_uses_thread_pool_surface(node->data.return_stmt.value);
+    case AST_GIVE_STMT:
+        return ast_uses_thread_pool_surface(node->data.give_stmt.value);
     case AST_CALL:
         return ast_uses_thread_pool_surface(node->data.call.callee)
             || ast_array_uses_thread_pool_surface(

@@ -234,6 +234,9 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
     case AST_RETURN:
         ast_assign_node(node->data.return_stmt.value, next_id);
         break;
+    case AST_GIVE_STMT:
+        ast_assign_node(node->data.give_stmt.value, next_id);
+        break;
     case AST_ENUM_DECL:
         ast_assign_enum_variant_params(node, next_id);
         ast_assign_decl_methods(node, next_id);

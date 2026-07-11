@@ -301,6 +301,12 @@ void ast_print(ASTNode* node, int indent) {
             printf("\n");
             break;
 
+        case AST_GIVE_STMT:
+            printf("Give: ");
+            ast_print_inline(node->data.give_stmt.value);
+            printf("\n");
+            break;
+
         case AST_ASSIGNMENT:
             printf("Assign: ");
             ast_print_inline(node->data.assignment.target);

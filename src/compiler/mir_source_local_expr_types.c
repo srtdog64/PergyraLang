@@ -555,6 +555,14 @@ mir_source_local_expr_type_name(const MIRProgram *program,
             routine, scratch, ast_spawn_function(expr));
         return mir_source_local_type_scratch_format(scratch, "Future", inner);
     }
+    case AST_PARALLEL_BLOCK: {
+        /* Expression-form parallel join (docs/181 R2): the result type is
+         * the checker-sealed give fact -- never re-derived from the body. */
+        const char *give = ast_parallel_join_give_type(expr);
+        if (give == NULL || give[0] == '\0')
+            return NULL;
+        return mir_source_local_type_scratch_format(scratch, "Array", give);
+    }
     case AST_UNARY:
         if (ast_unary_operator(expr).type == TOKEN_NOT)
             return "Bool";

@@ -40,8 +40,18 @@ void llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx);
-/* Join form (docs/181 SS1 rung 0; llvm_stmt_parallel_join.c). */
+/* Join form (docs/181 SS1 rungs 0-2; llvm_stmt_parallel_join.c). */
 void llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx);
+/* Expression form (docs/181 R2): Array<R> value from per-task gives. */
+LLVMValueRef llvm_emit_parallel_join_expr(ASTNode *node, LLVMGenCtx *ctx);
+/* R2 result materialization (llvm_stmt_parallel_join_result.c). */
+void llvm_pjoin_materialize_result(LLVMGenCtx *ctx, ASTNode *node,
+                                   const char *give_name,
+                                   LLVMTypeRef give_type,
+                                   LLVMTypeRef ctx_struct_type,
+                                   LLVMValueRef ctxs, size_t n_captured,
+                                   LLVMValueRef n_val, LLVMValueRef i_slot,
+                                   LLVMValueRef *result_out);
 /* Shared with the join emitter (defined in llvm_stmt_parallel_async.c). */
 bool llvm_capture_entry_is_required(LLVMGenCtx *ctx, const ASTNode *body,
                                     LLVMScopeFrame *frame, int index);

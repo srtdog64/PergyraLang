@@ -5,8 +5,12 @@
 
 void emit_parallel_block(ASTNode *node, TranspilerCtx *ctx);
 void emit_async_block(ASTNode *node, TranspilerCtx *ctx);
-/* Join form (docs/181 SS1 rung 0; transpiler_parallel_join_emit.c). */
+/* Join form (docs/181 SS1 rungs 0-2; transpiler_parallel_join_emit.c). */
 void emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx);
+/* Expression form (docs/181 R2): the whole fan-out as a GNU statement
+ * expression yielding a PgyArray_<R> value (give results, index order). */
+char *transpiler_emit_parallel_join_expr_parts(ASTNode *node,
+                                               TranspilerCtx *ctx);
 
 /* Wrapper emission state shared with the join-form emitter
  * (transpiler_parallel_join_emit.c, docs/181 SS1). Enter swaps the

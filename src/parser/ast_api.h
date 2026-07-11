@@ -141,6 +141,7 @@ ASTNode* ast_find_match_subject_for_case(const ASTNode* root,
                                          const ASTNode* case_node);
 ASTNode* ast_create_if_statement(void);
 ASTNode* ast_create_return_statement(void);
+ASTNode* ast_create_give_statement(ASTNode* value);
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right);
 ASTNode* ast_create_unary(Token op, ASTNode* operand);
 ASTNode* ast_create_call(ASTNode* callee);
@@ -195,6 +196,7 @@ ASTNode* ast_transaction_block_body(const ASTNode* node);
 ASTNode* ast_fail_stmt_reason(const ASTNode* node);
 ASTNode* ast_defer_body(const ASTNode* node);
 ASTNode* ast_return_value(const ASTNode* node);
+ASTNode* ast_give_value(const ASTNode* node);
 ASTNode* ast_create_number(const char* value);
 ASTNode* ast_create_string(const char* value);
 ASTNode* ast_create_boolean(bool value);
@@ -276,6 +278,9 @@ void ast_parallel_reset_join_index_arrays(ASTNode* node);
 bool ast_parallel_add_join_index_array(ASTNode* node, const char* name);
 bool ast_parallel_join_index_array_admitted(const ASTNode* node,
                                             const char* name);
+/* Expression form (docs/181 R2): checker-sealed give result type name. */
+bool ast_parallel_set_join_give_type(ASTNode* node, const char* type_name);
+const char* ast_parallel_join_give_type(const ASTNode* node);
 ASTNode* ast_with_slot_type(const ASTNode* node);
 const char* ast_with_alias(const ASTNode* node);
 ASTNode* ast_with_body(const ASTNode* node);

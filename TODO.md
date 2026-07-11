@@ -36,6 +36,15 @@ English anchor for tooling/doc gates:
   `ExecutionLane` negative regressions, AIR/backend access lint, and stdlib L2
   doctrine pass. These augment the five closure targets above and do not make
   beta complete.
+- P0 physical owner-module promotion: the flat `src/codegen` (420 C / 319 H),
+  `src/compiler` (168 C / 99 H), and `src/semantic` (207 C / 52 H) roots are an
+  active navigation and incremental-build debt. Execute `docs/92` B0-B5 in
+  order: phase/RSS baseline -> owner cluster manifest -> one leaf move ->
+  scoped invalidation gate -> measured archive/lld experiment -> evidence-only
+  coalescing. Do not create `helpers/`, compatibility path aliases, or a broad
+  folder reshuffle. The first gate must distinguish ordinary incremental make
+  from `make -B`: `-B` intentionally reruns the config stamp and deletes all
+  `.o/.d`, so it cannot be used as leaf invalidation evidence.
 - Self-host real-source selfcheck frontier: the M2 completeness ledger now locks
   195 production self-host sources through lexer/parser/semantic/codegen and
   full-pipeline identity. `main.pgy` stays orchestration, not a hidden dependency
@@ -302,9 +311,24 @@ English anchor for tooling/doc gates:
   unoptimized paths, and add a reduced-regression corpus for every optimizer
   bug before broadening optimization scope.
   Conditional-value if-conversion remains open: introduce no C spelling hack.
-  First capture a MIR-owned pure/non-trapping/non-volatile conditional-value
-  fact, then compare branch versus C ternary versus LLVM `select` across
-  Clang/GCC, x86-64/AArch64, and skewed/random distributions. See docs/127.
+  Rung 0 now captures and verifies conservative MIR-owned
+  pure/non-trapping facts for `expr0`; only literals, MIR-confirmed locals, and
+  logical-not over a safe operand qualify. Composite expressions remain closed
+  until typed operator/effect evidence exists. Next add the PHI/branch diamond
+  conditional-value fact, then compare
+  branch versus C ternary versus LLVM `select` across Clang/GCC,
+  x86-64/AArch64, and skewed/random distributions. No backend may infer this
+  from source AST spelling. See docs/127.
+  Self-host compiler text lifetime is also open: the allocation-free
+  `CharCode`/`SubEqualsWithLen` usage scan reduced the measured pre-emission
+  peak from 717,696 KiB to 51,968 KiB, but full emission still peaks at
+  3,719,552 KiB. Runtime rung 0 now provides an owned `PgyTextBuilder` with
+  explicit finish/drop and one-result promotion, gated by `test-memory`
+  (79/0). This does not yet close the language surface: current
+  `AllocatorScratch` is not a bulk-reset arena. Add the typed builtin, MIR ABI
+  row, C/LLVM lowering, and one measured self-host emission consumer before
+  claiming a memory reduction; do not substitute `Array<String>` or a higher
+  CI memory cap. See docs/127 section 8.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a
@@ -18445,8 +18469,8 @@ world_roster_city) — 둘 다 "Status: design sketch" 라벨(문서게이트가
 바인딩 필수 / reactive-형 = SEA lane 표면, `on`=lane 선언-증거 재해석 /
 가상 시간 필수 = compare가 물 수 있는 유일한 길 / 취소 = 협조적만). 후속
 WO:
-- **WO-PARSURF-2 — ✅ R0+R1 CLOSED (2026-07-11)**: `parallel (x in xs) join
-  with all` 실행 개통 — 파서/semantic/C/LLVM 전층, 목격자
+- **WO-PARSURF-2 — ✅ R0+R1+R2 CLOSED (2026-07-11/12)**: `parallel (x in
+  xs) join with all` 실행 개통 — 파서/semantic/C/LLVM 전층, 목격자
   `parallel_join_collection`(204, compare 등록) + 거절 4종 스모크
   (`parallel-join-test-smoke`, 3플랫폼 CI). replicated-arm 규칙(외부 쓰기
   전면 거절)이 핵심 admission. 상세 = docs/181 §1.4 R0 착지 노트. **새
@@ -18460,7 +18484,19 @@ WO:
   `parallel_join_index`(164/328, compare 등록) + 거절 4종 추가(스모크
   8종). walker 신설 `ast_parallel_index_analysis.c`(fail-close 기본).
   상세 = docs/181 §1.4 R1 착지 노트. 크기 잔여에 ast_identity.c 579 추가
-  (기존 578+1, 600 전 분리 대상). R2(식 형태+청킹 측정)가 다음 디딤돌.
+  (기존 578+1, 600 전 분리 대상).
+  **R2 (2026-07-12, BDFL (b)안 비준)**: 식 형태 `let rs = parallel ...
+  { give e; };` — 명시 `give` 문맥 키워드(구두점 register 정합), 결과는
+  **인덱스 순서** Array<R>. give 결과 타입 = checker-sealed fact
+  (`join_give_type_name`), 소비 3지점(transpiler/LLVM/MIR infer) 재추론
+  금지. 목격자 `parallel_join_expr`(204/182/2/72, compare 등록) + 거절
+  3종(스모크 11종). AST_GIVE_STMT walker 11지점 배선. 상세 = docs/181
+  §1.4 R2 착지 노트. 잔여 = 청킹/그레인 측정(게임 소음 없는 시점 —
+  amortized-cost 원칙).
+- **재조준 (BDFL 2026-07-12, docs/168 status)**: 병렬 비교 기준 =
+  **게임-표현 충분성**(Fortran parity 아님). 표현력 다음 돌 후보:
+  리덕션(DP-4, docs/168 `reduce` 스케치), prefill 생성자, 스텐실/이웃
+  읽기(alias 증거 rung).
 - **WO-PARSURF-5 — 크기-잔여 분리의 실스코프 census (2026-07-11)**:
   parser.c 619와 llvm_stmt_parallel_async.c 657은 **게이트가 파일명
   단위로 무는 파일** — parser.c는 parser_lexer_diagnostic(에러 엔진
@@ -18472,6 +18508,9 @@ WO:
   (a) parser.c → parser_core.c(토큰커서/에러 엔진 ~240) + 게이트 2종,
   (b) llvm → llvm_stmt_async_block.c + llvm_stmt_capture_boundary.c
   분리 + 게이트 6종의 파일 참조·부정검사 이주 + 각 스모크 재실행.
+  +잔여 추가 (2026-07-12): llvm_stmt.c 686(기존 653 + R2 give 케이스 33;
+  statement 디스패처 — 게이트 참조 census 필요). ast_identity.c 582.
+  llvm_stmt_parallel_join.c는 정확히 550 — R3 성장 전 캡처-스캔 분리.
 - **WO-PARSURF-3**: 형 B rung 1+ — duration 리터럴 + 가상 클록 선행,
   R3은 SEA facade fill과 병합. (docs/181 §2.5)
 - **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).
@@ -18501,14 +18540,20 @@ corpus가 전부 Main-내부·단일-기능이라 못 밟던 조합. 채널-lval
   축별(이론/보장/정체성/구현/구조-시간) 정직 수준 + 부족분 + 게이트 +
   **채움 순서 단일 큐**. 미래 세션은 강함/약점 질문에 fresh 분석 전 이
   문서부터.
-- **V1 버그클래스 동결**: post_selfhost_validation_milestone.md의 "etc."를
-  **N=10 고정 목록**(S=정적 7 / R=런타임 fail-close 3, 클래스별 crawler
-  fixture 스케치 + 담당 기제)으로 교체. 합격선 = S 7중 6 정적 격파 + R
-  전부 결정적 fail-close. 크롤러 착수 후 목록 수정 = 실험 무효 명시.
+- **V1 버그클래스 동결**: canonical JSON manifest가 N=10, S 포함 8,
+  R 포함 4(S-only 6 / S+R 2 / R-only 2)를 소유하고 문서 표·합격선을
+  생성한다. 합격선은 S 포함 8개 중 6개 정적 격파 + R 포함 4개 전부
+  결정적 fail-close다. 크롤러 착수 후 identity 수정은 실험 무효다.
 - 다음 후보(원장 큐 순): 스트림 CI green 복귀 대기 → manifest row(WO-PAR-1
   잔여) → R3 경계 감사 1급화 → 런타임 행동 목격자 corpus.
 
 ## 진행 노트 — CI 3플랫폼 RED 전수 진단 (2026-07-10, BDFL "싹 다 체크")
+
+> Historical snapshot. The with-slot early-release item below was closed by
+> `c9155225`: HIR `resource_scope_exit` facts now place Release after the loop
+> body, and `test-mir` carries the loop cleanup-order witness. The intermittent
+> LLVM blocked-send item remains open until the dedicated bounded stress gate
+> is repeatedly green in Linux CI.
 
 CI annotation 기준 실패 3종의 근인을 전부 확정. 수정 1건은 소유 경계 문제로
 인계(아래), 나머지는 소유 스트림 몫.

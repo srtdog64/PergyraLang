@@ -156,6 +156,11 @@ struct ASTNode
              * this list only. */
             char**    join_index_arrays;
             size_t    join_index_array_count;
+            /* Expression form (docs/181 R2): checker-sealed primitive
+             * result type name of the final `give` (NULL = statement
+             * form). Emitters derive Array<R> from this fact instead of
+             * re-inferring the body. */
+            char*     join_give_type_name;
         } parallel;
         
         /* For loop */
@@ -186,6 +191,12 @@ struct ASTNode
         struct {
             ASTNode* value;
         } return_stmt;
+
+        /* Give statement (docs/181 R2): the per-task result of an
+         * expression-form parallel join body. */
+        struct {
+            ASTNode* value;
+        } give_stmt;
 
         struct {
             char* label;

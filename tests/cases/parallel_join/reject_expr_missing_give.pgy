@@ -1,0 +1,10 @@
+// docs/181 R2 reject: the expression form must end with a give -- a
+// body that produces nothing has no per-task result to collect.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 4 { ArrayPush(xs, k); k = k + 1; }
+    let rs = parallel (x in xs) join with all {
+        Log(x);
+    };
+}

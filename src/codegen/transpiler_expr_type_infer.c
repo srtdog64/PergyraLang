@@ -259,6 +259,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             return "Unknown";
         return transpiler_infer_arena_format_type_name(ctx, "Future", inner);
     }
+    case AST_PARALLEL_BLOCK: {
+        /* Expression-form parallel join (docs/181 R2): the result type is
+         * a checker-sealed fact on the node, never re-inferred here. */
+        const char *give = ast_parallel_join_give_type(expr);
+        if (give == NULL || give[0] == '\0')
+            return "Unknown";
+        return transpiler_infer_arena_format_type_name(ctx, "Array", give);
+    }
     case AST_AWAIT_EXPR: {
         ASTNode *awaited = ast_await_expression(expr);
         char inner_buf[128];

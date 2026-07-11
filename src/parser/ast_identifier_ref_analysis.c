@@ -205,6 +205,8 @@ ast_contains_identifier_ref(const ASTNode *node,
             || ast_contains_identifier_ref(node->data.if_stmt.else_branch, predicate, userdata);
     case AST_RETURN:
         return ast_contains_identifier_ref(node->data.return_stmt.value, predicate, userdata);
+    case AST_GIVE_STMT:
+        return ast_contains_identifier_ref(node->data.give_stmt.value, predicate, userdata);
     case AST_SELECT_STMT:
         return ast_array_contains_identifier_ref(
                 node->data.select_stmt.cases, node->data.select_stmt.case_count, predicate, userdata)
@@ -329,6 +331,8 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
             || ast_contains_free_identifier_ref(node->data.if_stmt.else_branch, name);
     case AST_RETURN:
         return ast_contains_free_identifier_ref(node->data.return_stmt.value, name);
+    case AST_GIVE_STMT:
+        return ast_contains_free_identifier_ref(node->data.give_stmt.value, name);
     case AST_SELECT_STMT:
         return ast_array_contains_free_identifier_ref(
                 node->data.select_stmt.cases, node->data.select_stmt.case_count, name)
@@ -468,6 +472,11 @@ ast_statement_assigns_identifier(const ASTNode *node, const char *name)
     case AST_FOR_LOOP:
         return ast_statement_assigns_identifier(
                    node->data.for_loop.body, name);
+    case AST_GIVE_STMT:
+        /* The give value is an expression position; any assignment shape
+         * inside it must stay visible to the replicated-arm analysis. */
+        return ast_statement_assigns_identifier(
+                   node->data.give_stmt.value, name);
     default:
         return false;
     }

@@ -878,6 +878,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
                    $(COMPILER_DIR)/mir_source_local_expr_call_facts.c \
                    $(COMPILER_DIR)/mir_source_local_expr_types.c \
+                   $(COMPILER_DIR)/mir_speculation_facts.c \
                    $(COMPILER_DIR)/mir_source_inventory_build.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
@@ -1108,7 +1109,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_member_call_support.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_log_calls.c \
-                        $(CODEGEN_DIR)/llvm_expr_math_calls.c \
+                        $(CODEGEN_DIR)/llvm/expression/math_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_member_access.c \
                         $(CODEGEN_DIR)/llvm_expr_member_lvalue.c \
                         $(CODEGEN_DIR)/llvm_expr_rc_calls.c \
@@ -1151,6 +1152,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_join.c \
+                        $(CODEGEN_DIR)/llvm_stmt_parallel_join_result.c \
                         $(CODEGEN_DIR)/llvm_stmt_select.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_render.c \
@@ -1409,6 +1411,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
+                   $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
@@ -1499,11 +1502,10 @@ ALL_BUILD_OBJECTS = $(sort \
                    $(AIR_CORE_OBJECTS) \
                    $(MIR_CORE_OBJECTS) \
                    $(RUNTIME_ASM_OBJECTS))
-BUILD_ARTIFACT_GLOBS = $(BUILD_DIR)/*.o $(BUILD_DIR)/*/*.o $(BUILD_DIR)/*/*/*.o \
-                       $(BUILD_DIR)/*.d $(BUILD_DIR)/*/*.d $(BUILD_DIR)/*/*/*.d
-ALL_DEP_FILES = $(wildcard $(BUILD_DIR)/*.d) \
-                $(wildcard $(BUILD_DIR)/*/*.d) \
-                $(wildcard $(BUILD_DIR)/*/*/*.d)
+define pgy_clean_build_artifacts
+$(BASH) -c "if [ -d '$(BUILD_DIR)' ]; then find '$(BUILD_DIR)' -type f \( -name '*.o' -o -name '*.d' \) -delete; fi"
+endef
+ALL_DEP_FILES = $(ALL_BUILD_OBJECTS:.o=.d)
 
 # -----------------------------------------------------------------
 # Executables
@@ -1737,7 +1739,7 @@ $(BUILD_DIR):
 
 $(CONFIG_STAMP): | $(BUILD_DIR)
 	rm -f $(BUILD_DIR)/.config_llvm_*.stamp
-	rm -f $(BUILD_ARTIFACT_GLOBS)
+	$(pgy_clean_build_artifacts)
 	printf "LLVM_ENABLED=%s\nCC=%s\nCC_MACHINE=%s\n" \
 		"$(LLVM_ENABLED)" "$(CC)" "$(CC_MACHINE)" > $@
 
@@ -1985,9 +1987,10 @@ test-rir: $(RIR_TEST)
 	@echo "=== RIR Test ==="
 	$(call pgy_run_native,$(RIR_TEST))
 
-test-mir: $(MIR_TEST)
+test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
 
 test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
@@ -2110,6 +2113,8 @@ beta-test-suite-freeze-test-smoke:
 
 build-source-inventory-test-smoke:
 	"$(BASH)" tests/build_source_inventory_smoke.sh
+	"$(BASH)" tests/compiler_owner_cluster_smoke.sh
+	"$(BASH)" tests/build_pressure_contract_smoke.sh
 
 ci-step-runner-test-smoke:
 	"$(BASH)" tests/ci_step_runner_smoke.sh
@@ -2137,6 +2142,13 @@ agent-boundary-sentinel-test-smoke:
 
 documentation-quality-test-smoke: agent-boundary-sentinel-test-smoke
 	"$(BASH)" tests/documentation_quality_smoke.sh
+	"$(BASH)" tests/post_selfhost_validation_manifest_smoke.sh
+
+post-selfhost-validation-manifest-test-smoke:
+	"$(BASH)" tests/post_selfhost_validation_manifest_smoke.sh
+
+parallel-backpressure-stress-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_backpressure_stress_smoke.sh
 
 backend-wasm-pointer-closure-test-smoke:
 	"$(BASH)" tests/backend_wasm_pointer_closure_smoke.sh
@@ -2957,7 +2969,7 @@ clean:
 	"$(BASH)" -c "rm -rf '$(BUILD_DIR)' '$(BIN_DIR)'"
 
 clean-objects:
-	"$(BASH)" -c "rm -f $(BUILD_ARTIFACT_GLOBS)"
+	$(pgy_clean_build_artifacts)
 
 clean-scratch:
 	"$(BASH)" -c "rm -rf '$(PROJECT_ROOT)'/.tmp"

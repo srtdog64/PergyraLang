@@ -55,14 +55,39 @@ llvm_join_set_error(LLVMGenCtx *ctx, ASTNode *node, const char *fmt,
         fmt, arg != NULL ? arg : "<binding>");
 }
 
-void
-llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
+/* Shared emission for both forms; expression mode (result_out != NULL)
+ * adds a per-task result slot to the context struct, wires `give` to it
+ * through ctx->pjoin_give_ptr, and materializes an Array<R> value in
+ * index order after the join. */
+static void
+llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
+                               LLVMValueRef *result_out)
 {
     const char *elem_name = ast_parallel_join_element(node);
     ASTNode *coll = ast_parallel_join_collection(node);
     ASTNode *range_end = ast_parallel_join_range_end(node);
     bool index_mode = range_end != NULL;
+    bool expr_mode = result_out != NULL;
+    const char *give_name = ast_parallel_join_give_type(node);
+    LLVMTypeRef give_type = NULL;
     ASTNode *body = ast_parallel_task(node, 0);
+
+    if (expr_mode) {
+        *result_out = NULL;
+        if (give_name == NULL || give_name[0] == '\0') {
+            llvm_join_set_error(ctx, node,
+                "LLVM parallel join expression lacks the checker-sealed give-result fact%s",
+                "");
+            return;
+        }
+        give_type = pgy_kind_to_llvm(ctx, pgy_classify_type(give_name));
+        if (give_type == NULL) {
+            llvm_join_set_error(ctx, node,
+                "LLVM parallel join give result '%s' has no primitive lowering",
+                give_name);
+            return;
+        }
+    }
     const char *coll_name = NULL;
     LLVMVarEntry coll_var = {0};
     LLVMArrayVarEntry *coll_entry = NULL;
@@ -194,11 +219,13 @@ llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
     /* ---------------------------------------------------------------
      * Per-element context struct: [captures as i8*..., element value].
      * --------------------------------------------------------------- */
-    size_t n_fields = n_captured + 1;
-    LLVMTypeRef ctx_fields[PJOIN_MAX_CAPTURES + 1];
+    size_t n_fields = n_captured + 1 + (expr_mode ? 1 : 0);
+    LLVMTypeRef ctx_fields[PJOIN_MAX_CAPTURES + 2];
     for (size_t i = 0; i < n_captured; i++)
         ctx_fields[i] = ctx->type_i8ptr;
     ctx_fields[n_captured] = elem_type;
+    if (expr_mode)
+        ctx_fields[n_captured + 1] = give_type;
 
     char ctx_name[64];
     if (!llvm_parallel_counter_name(ctx, ctx_name, sizeof(ctx_name),
@@ -284,7 +311,23 @@ llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
             llvm_scope_declare(ctx, elem_name, elem_local, elem_type);
         }
 
-        llvm_emit_statement(body, ctx);
+        {
+            LLVMValueRef saved_give_ptr = ctx->pjoin_give_ptr;
+            LLVMTypeRef saved_give_type = ctx->pjoin_give_type;
+
+            if (expr_mode) {
+                ctx->pjoin_give_ptr = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 1), "_pj_give");
+                ctx->pjoin_give_type = give_type;
+            } else {
+                ctx->pjoin_give_ptr = NULL;
+                ctx->pjoin_give_type = NULL;
+            }
+            llvm_emit_statement(body, ctx);
+            ctx->pjoin_give_ptr = saved_give_ptr;
+            ctx->pjoin_give_type = saved_give_type;
+        }
 
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder))
                 == NULL)
@@ -481,6 +524,27 @@ llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, join_done);
+
+    /* Expression mode: materialize Array<R> from the per-task result
+     * slots (llvm_stmt_parallel_join_result.c). */
+    if (expr_mode)
+        llvm_pjoin_materialize_result(ctx, node, give_name, give_type,
+            ctx_struct_type, ctxs, n_captured, n_val, i_slot, result_out);
+}
+
+void
+llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx)
+{
+    llvm_emit_parallel_join_common(node, ctx, NULL);
+}
+
+LLVMValueRef
+llvm_emit_parallel_join_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    LLVMValueRef result = NULL;
+
+    llvm_emit_parallel_join_common(node, ctx, &result);
+    return result;
 }
 
 #endif /* PGY_LLVM_ENABLED */

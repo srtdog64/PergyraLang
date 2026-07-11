@@ -9,6 +9,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_control_flow_emit.h"
+#include "transpiler_expr_dispatch_operand.h"
 #include "transpiler_defer_emit.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_destructure_emit.h"
@@ -312,6 +313,27 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_RETURN:
         emit_return_stmt(node, ctx);
         break;
+    case AST_GIVE_STMT: {
+        /* docs/181 R2: the per-task result store; legal only inside an
+         * expression-form parallel join wrapper. */
+        char *val;
+        if (!ctx->in_pjoin_give) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "give statement reached the C emitter outside an expression-form parallel join body");
+            break;
+        }
+        val = transpiler_dispatch_emit_part(ctx, ast_give_value(node),
+            "give", "value");
+        if (val == NULL)
+            break;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pctx->__join_result = (%s);\n", val);
+        free(val);
+        break;
+    }
     case AST_BREAK:
         if (ast_break_label(node) != NULL) {
             int target = transpiler_find_loop_label_depth(

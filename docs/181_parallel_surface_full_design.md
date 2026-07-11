@@ -61,7 +61,7 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 |---|---|---|
 | R0 ✅ | 문 형태 · all-join · read-only 원소 · Array<T> | 목격자 `parallel_join_collection`(compare) + 거절 4종(무바인딩/xs 직접 접근/원소 쓰기/외부 쓰기) |
 | R1 ✅ | 인덱스형 `(i in lo..hi)` + `arr[i]` in-place 쓰기 | 목격자 `parallel_join_index`(compare, 164/328) + 거절 4종(비-바인딩 인덱스/whole-array/원소모드 배열 쓰기/읽기) |
-| R2 | 식 형태(결과 Array<R>) + 청킹 측정 | 결과-수집 목격자 + perf 계약 |
+| R2 ✅ | 식 형태 `let rs = parallel ... { give e; };` (결과 Array<R>, 인덱스 순서) | 목격자 `parallel_join_expr`(compare, 204/182/2/72 — 원소 프로브가 인덱스 순서를 고정) + 거절 3종(give 없음/give 비-최종/문장형 give). 청킹 측정은 잔여(게임 소음 없는 시점) |
 | R3 | `join with any` | §2.4 취소 프로토콜 선행 |
 
 **R0 착지 (2026-07-11, WO-PARSURF-2)**: 파서(`parser_parallel.c`, 원소
@@ -90,6 +90,22 @@ scope alloca 키라 경계 넘으면 재바인딩 필수, 캡처 시점에 elem 
 거절 8종 스모크 · 유닛 918/0·2794/0·parser·concurrency. Int=i32/int32_t
 parity 유지. 부수 수확: 원소 모드의 배열-읽기 캡처 C/LLVM 수용 비대칭이
 semantic 단일 거절로 닫힘.
+
+**R2 착지 (2026-07-12, WO-PARSURF-2 R2)**: BDFL (b)안 비준 — body의 값
+산출은 **명시 `give <expr>;`**(구두점 register 원칙과 정합: code층 유지;
+(a) 마지막-식-값 안은 무종결=세계층 의미와 충돌해 기각). `give`는
+parallel body 안에서만 인식되는 문맥 키워드(밖에서는 평범한 식별자;
+corpus 충돌 0 전수 확인). 규칙: 정확히 1회·body 최종 문장·primitive 결과.
+결과는 **인덱스 순서**로 Array<R>에 수집(완료 순서 아님 — byte-equal
+compare가 병렬 결과를 물 수 있는 이유; 목격자의 원소 프로브 2/72가 순서를
+고정). fact 규율: checker가 give 결과 타입을 노드에 봉인
+(`join_give_type_name`), 양 백엔드 infer(transpiler/LLVM/MIR
+source-local-expr 3지점)가 소비 — body 재추론 금지. C는 GNU
+statement-expr(`({ PgyArray_R _pj_res = {0}; ...; _pj_res; })`)로,
+LLVM은 `pgy_array_new_R(n)` + per-task 결과 슬롯 push 루프로 물질화.
+착지 위치는 let-초기화가 유일 검증 지점이나 admission은 표현식 일반
+(parse는 이미 primary). 잔여: 청킹/그레인 측정(게임 소음 없는 시점),
+non-primitive give, give-in-branch.
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 

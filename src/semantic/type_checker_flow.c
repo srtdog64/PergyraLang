@@ -173,6 +173,8 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_destructure_stmt_flow(node, ctx);
     case AST_RETURN:
         return type_check_return_stmt_flow(node, ctx);
+    case AST_GIVE_STMT:
+        return type_check_give_stmt_flow(node, ctx);
     case AST_BREAK:
         return type_check_loop_control_flow(node, ctx, loop_flow, true);
     case AST_CONTINUE:

@@ -520,6 +520,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
     case AST_SPAWN_EXPR:
         return ctx->type_task_handle;
+    case AST_PARALLEL_BLOCK: {
+        /* Expression-form parallel join (docs/181 R2): Array<R> from the
+         * checker-sealed give-result fact. The statement form stays a
+         * void statement node, exactly as before. */
+        const char *give = ast_parallel_join_give_type(expr);
+        if (give != NULL && give[0] != '\0')
+            return llvm_array_struct_type(ctx, give);
+        return ctx->type_void;
+    }
     case AST_AWAIT_EXPR:
         return llvm_stmt_infer_await_expr_type(ctx, expr);
     case AST_ASYNC_BLOCK:
@@ -535,7 +544,6 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_IF_STMT:
     case AST_WHILE_LOOP:
     case AST_FOR_LOOP:
-    case AST_PARALLEL_BLOCK:
     case AST_DEFER_STMT:
         return ctx->type_void;
     default:

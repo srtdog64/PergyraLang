@@ -297,6 +297,11 @@ ast_print_compact(ASTNode* node)
             }
             break;
 
+        case AST_GIVE_STMT:
+            printf("give ");
+            ast_print_compact(node->data.give_stmt.value);
+            break;
+
         case AST_BLOCK:
             printf("{...}");
             break;

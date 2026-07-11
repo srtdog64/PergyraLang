@@ -111,6 +111,10 @@ struct SemanticContext
                                     * (advisories are an editor recognition aid). */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
+    bool         in_parallel_join_expr; /* Inside an expression-form
+                                    * parallel join body (docs/181 R2):
+                                    * the only scope where `give` is
+                                    * legal. */
     int          loop_depth;     /* Inside loop nesting            */
     int          transaction_depth; /* Inside transaction nesting (fail scope) */
     const char  *loop_labels[SEMANTIC_MAX_LOOP_DEPTH];

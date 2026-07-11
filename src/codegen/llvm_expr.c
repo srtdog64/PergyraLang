@@ -287,6 +287,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_SPAWN_EXPR:
         return llvm_emit_spawn_expr(node, ctx);
 
+    case AST_PARALLEL_BLOCK:
+        /* Expression-form parallel join (docs/181 R2). */
+        return llvm_emit_parallel_join_expr(node, ctx);
+
     case AST_AWAIT_EXPR:
         if (ast_await_expression(node) != NULL) {
             ASTNode *inner_expr = ast_await_expression(node);

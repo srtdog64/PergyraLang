@@ -86,6 +86,9 @@ ast_identifier_only_indexed_by(const ASTNode *node, const char *name,
     case AST_CHANNEL_RECV:
         return ast_identifier_only_indexed_by(
             node->data.channel_recv.channel, name, index_name);
+    case AST_GIVE_STMT:
+        return ast_identifier_only_indexed_by(
+            node->data.give_stmt.value, name, index_name);
     case AST_LET_DECL:
         /* Body-local rebinding of the admitted name is not modelled; the
          * initializer walk keeps any use of the outer name disciplined
