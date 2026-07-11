@@ -18528,8 +18528,17 @@ census — src/runtime 인라인 헤더 전체에서 각 warn 경로를 **계약
 해제 = PGY_RUNTIME_PANIC 승격) 으로 분류. (2) 분류를 allowlist로 동결하는
 grep 게이트 — 신규 warn-and-continue 추가 시 RED. (3) 승격분은 양 런타임
 twin + `.bc` 재생성 + 양 백엔드 동일-observable 목격자(V1 #8-R PASS 기준
-그대로). 채널 4경로 fix 자체 = 칩 task_a7b3717b (이 WO의 첫 슬라이스).
-V1 doc 주석은 타 세션 clean 후(파일 dirty).
+그대로). **첫 슬라이스 ✅ (2026-07-12, 6136c370)**: 채널 twin 3종(Int
+매크로/String/spsc)의 raw-op 진입 가드 **17지점** panic 승격 — 공유 가드
+`pgy_channel_require_operable`, INVALID_LIFECYCLE_STATE 클래스, 무음
+status 2경로 포함. closed/full/empty/timeout = 계약 결과 유지, *_result
+변형 = failure-as-data 계층 유지(자체 가드가 raw-op 전에 ERR 반환). 직접
+프로브(panic+abort, SURVIVED 미출력) + test-concurrency + join 스모크 +
+채널 compare 5종(.bc 재생성 후) green. memory-concurrency 게이트에
+긍정+부정 pin(warn-and-continue 문구 재도입 시 RED). 칩 task_a7b3717b
+회수(세션 내 해결). 잔여 census: cond-wait/init 실패 warn류 분류
+(채널+parallel), 비-채널 런타임 패밀리 warn 경로 전수. V1 doc 주석은
+타 세션 clean 후(파일 dirty).
 
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
