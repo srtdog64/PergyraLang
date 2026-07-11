@@ -1,0 +1,15 @@
+// docs/181 R1 boundary: element-binding mode admits no outer-array
+// captures at all (even reads) -- a shared read could alias an array
+// written elsewhere, and the value binding carries no index evidence.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let mut ys: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 4 { ArrayPush(xs, k); ArrayPush(ys, 7); k = k + 1; }
+    let ch: Channel<Int> = Channel(4);
+    parallel (x in xs) join with all {
+        ch <- ys[0] + x;
+    }
+    let mut t: Int = 0;
+    while t < 4 { let v: Int = <- ch; t = t + 1; }
+}

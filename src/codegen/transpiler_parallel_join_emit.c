@@ -1,15 +1,17 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * C emission for the join-form parallel block (docs/181 SS1, rung 0):
- * `parallel (x in xs) [join with all] { body }`.
+ * C emission for the join-form parallel block (docs/181 SS1, rungs 0+1):
+ *   parallel (x in xs)     [join with all] { body }   element mode
+ *   parallel (i in lo..hi) [join with all] { body }   index mode (R1)
  *
- * One wrapper function, N runtime tasks: the call site reads the
- * collection length, builds one capture context per element (captures
- * by pointer exactly like the arms form; the element travels by value —
- * the N-way disjointness copy), fans out through the worker pool, and
- * joins on every handle. Rung 0 keeps the capture surface narrow and
- * fails closed on the kinds it does not carry yet (slots, callable
- * locals).
+ * One wrapper function, N runtime tasks: the call site reads the fan-out
+ * length (collection length, or hi-lo clamped at zero), builds one
+ * capture context per task (captures by pointer exactly like the arms
+ * form; the element/index travels by value), fans out through the worker
+ * pool, and joins on every handle. Array captures are admitted from the
+ * checker-sealed index-disjointness fact list only; the rungs keep the
+ * remaining capture surface narrow and fail closed on the kinds they do
+ * not carry yet (slots, callable locals).
  */
 
 #include "transpiler_async_parallel_emit.h"
@@ -21,6 +23,7 @@
 #include "../parser/ast_api.h"
 #include "../parser/ast_analysis.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_type_mapping.h"
 #include "transpiler_context.h"
 #include "transpiler_symbols.h"
 #include "transpiler_parallel_capture.h"
@@ -58,8 +61,10 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *elem_name = ast_parallel_join_element(node);
     ASTNode *coll = ast_parallel_join_collection(node);
+    ASTNode *range_end = ast_parallel_join_range_end(node);
+    bool index_mode = range_end != NULL;
     ASTNode *body = ast_parallel_task(node, 0);
-    const char *coll_name;
+    const char *coll_name = NULL;
     TypedVarEntry *coll_entry;
     char inner_suffix[64];
     char elem_c_type[128];
@@ -72,25 +77,32 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
     if (elem_name == NULL || body == NULL || coll == NULL
-        || coll->type != AST_IDENTIFIER) {
+        || (!index_mode && coll->type != AST_IDENTIFIER)) {
         join_set_error(ctx,
-            "parallel join block reached the C emitter in a non rung-0 shape%s",
+            "parallel join block reached the C emitter in a non-admitted shape%s",
             "");
         return;
     }
-    coll_name = ast_identifier_name(coll);
-    coll_entry = lookup_typed_entry(ctx, coll_name);
-    if (coll_entry == NULL
-        || !join_collection_inner_suffix(coll_entry->type_name,
-                inner_suffix, sizeof(inner_suffix))) {
-        join_set_error(ctx,
-            "parallel join collection '%s' requires concrete Array<T> metadata",
-            coll_name);
-        return;
+    if (index_mode) {
+        /* The binding is the Int index; endpoints are Int expressions. */
+        if (!transpiler_require_type_name_c_type_copy(ctx, "Int",
+                "parallel join index", elem_c_type, sizeof(elem_c_type)))
+            return;
+    } else {
+        coll_name = ast_identifier_name(coll);
+        coll_entry = lookup_typed_entry(ctx, coll_name);
+        if (coll_entry == NULL
+            || !join_collection_inner_suffix(coll_entry->type_name,
+                    inner_suffix, sizeof(inner_suffix))) {
+            join_set_error(ctx,
+                "parallel join collection '%s' requires concrete Array<T> metadata",
+                coll_name);
+            return;
+        }
+        if (!transpiler_require_type_name_c_type_copy(ctx, inner_suffix,
+                "parallel join element", elem_c_type, sizeof(elem_c_type)))
+            return;
     }
-    if (!transpiler_require_type_name_c_type_copy(ctx, inner_suffix,
-            "parallel join element", elem_c_type, sizeof(elem_c_type)))
-        return;
 
     pid = ctx->parallel_id++;
 
@@ -121,6 +133,23 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
                 "parallel join rung 0 does not carry callable captures yet ('%s'); a later rung will (docs/181 SS1.4)",
                 capture_typed_names[i]);
             return;
+        }
+        /* Array captures cross the boundary only with the checker-sealed
+         * index-disjointness fact (docs/181 R1); anything else is the
+         * shared-mutable-collection hazard the arms form rejects too. */
+        {
+            TypedVarEntry *entry =
+                lookup_typed_entry(ctx, capture_typed_names[i]);
+            const char *tn = entry != NULL ? entry->type_name : NULL;
+
+            if (tn != NULL && transpiler_type_name_is_array(tn)
+                && !ast_parallel_join_index_array_admitted(node,
+                        capture_typed_names[i])) {
+                join_set_error(ctx,
+                    "parallel join capture '%s' shares a mutable array without index-disjointness evidence; the checker fact is missing",
+                    capture_typed_names[i]);
+                return;
+            }
         }
     }
 
@@ -175,26 +204,55 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
      * 3) Call site: length snapshot, fan-out, all-join.
      * --------------------------------------------------------------- */
     {
-        char *coll_expr = emit_expression(coll, ctx);
-
-        if (coll_expr == NULL) {
-            join_set_error(ctx,
-                "parallel join could not lower collection expression '%s'",
-                coll_name);
-            return;
-        }
-
         write_indent(ctx);
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
 
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "PgyArray_%s *_pj_src_%u = &%s;\n", inner_suffix, pid, coll_expr);
-        free(coll_expr);
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "size_t _pj_n_%u = _pj_src_%u->length;\n", pid, pid);
+        if (index_mode) {
+            char *lo_expr = emit_expression(coll, ctx);
+            char *hi_expr = lo_expr != NULL
+                ? emit_expression(range_end, ctx)
+                : NULL;
+
+            if (lo_expr == NULL || hi_expr == NULL) {
+                join_set_error(ctx,
+                    "parallel join could not lower a range endpoint expression%s",
+                    "");
+                free(lo_expr);
+                free(hi_expr);
+                return;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "%s _pj_lo_%u = (%s);\n", elem_c_type, pid, lo_expr);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "%s _pj_hi_%u = (%s);\n", elem_c_type, pid, hi_expr);
+            free(lo_expr);
+            free(hi_expr);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "size_t _pj_n_%u = _pj_hi_%u > _pj_lo_%u"
+                " ? (size_t)(_pj_hi_%u - _pj_lo_%u) : 0;\n",
+                pid, pid, pid, pid, pid);
+        } else {
+            char *coll_expr = emit_expression(coll, ctx);
+
+            if (coll_expr == NULL) {
+                join_set_error(ctx,
+                    "parallel join could not lower collection expression '%s'",
+                    coll_name);
+                return;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "PgyArray_%s *_pj_src_%u = &%s;\n", inner_suffix, pid,
+                coll_expr);
+            free(coll_expr);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "size_t _pj_n_%u = _pj_src_%u->length;\n", pid, pid);
+        }
         write_indent(ctx);
         codebuf_write(ctx->out,
             "_pgy_pjoin_ctx_%u *_pj_ctxs_%u = (_pgy_pjoin_ctx_%u *)malloc("
@@ -228,8 +286,15 @@ emit_parallel_join_block(ASTNode *node, TranspilerCtx *ctx)
             transpiler_write_capture_address(ctx, capture_typed_names[i]);
             codebuf_write(ctx->out, ", ");
         }
-        codebuf_write(ctx->out,
-            "pgy_array_get_%s(_pj_src_%u, _pj_i) };\n", inner_suffix, pid);
+        if (index_mode) {
+            codebuf_write(ctx->out,
+                "(%s)(_pj_lo_%u + (%s)_pj_i) };\n",
+                elem_c_type, pid, elem_c_type);
+        } else {
+            codebuf_write(ctx->out,
+                "pgy_array_get_%s(_pj_src_%u, _pj_i) };\n", inner_suffix,
+                pid);
+        }
         write_indent(ctx);
         codebuf_write(ctx->out,
             "_pj_hs_%u[_pj_i] = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, "

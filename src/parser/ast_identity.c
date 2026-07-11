@@ -214,6 +214,7 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         ast_assign_array(node->data.parallel.tasks,
                          node->data.parallel.task_count, next_id);
         ast_assign_node(node->data.parallel.join_collection, next_id);
+        ast_assign_node(node->data.parallel.join_range_end, next_id);
         break;
     case AST_FOR_LOOP:
         ast_assign_node(node->data.for_loop.range_start, next_id);

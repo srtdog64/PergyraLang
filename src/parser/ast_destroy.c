@@ -197,6 +197,12 @@ void ast_destroy(ASTNode* node) {
             free(node->data.parallel.snapshot_rows);
             free(node->data.parallel.join_element);
             ast_destroy(node->data.parallel.join_collection);
+            ast_destroy(node->data.parallel.join_range_end);
+            for (size_t i = 0;
+                 i < node->data.parallel.join_index_array_count; i++) {
+                free(node->data.parallel.join_index_arrays[i]);
+            }
+            free(node->data.parallel.join_index_arrays);
             break;
             
         case AST_BLOCK:

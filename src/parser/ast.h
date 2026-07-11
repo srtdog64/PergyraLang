@@ -145,7 +145,17 @@ struct ASTNode
              * task per element. */
             bool      is_join_form;
             char*     join_element;    /* element binding name */
-            ASTNode*  join_collection; /* collection expression */
+            ASTNode*  join_collection; /* collection expr; index form: range start */
+            /* Index form (docs/181 R1): `parallel (i in lo..hi)`.
+             * Non-NULL range end selects the index mode; join_collection
+             * then holds the range start expression. */
+            ASTNode*  join_range_end;
+            /* Index-disjointness facts (docs/181 R1): checker-sealed
+             * names of arrays whose every body access is `name[binding]`
+             * (task i owns index i). Emitters admit array captures from
+             * this list only. */
+            char**    join_index_arrays;
+            size_t    join_index_array_count;
         } parallel;
         
         /* For loop */

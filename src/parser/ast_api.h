@@ -266,6 +266,16 @@ bool ast_parallel_set_join_form(ASTNode* node, const char* element_name,
 bool ast_parallel_is_join_form(const ASTNode* node);
 const char* ast_parallel_join_element(const ASTNode* node);
 ASTNode* ast_parallel_join_collection(const ASTNode* node);
+/* Index form (docs/181 R1): `parallel (i in lo..hi)`; join_collection is
+ * the range start. Index-disjointness fact rows are produced by the join
+ * admission checker (single producer) and consumed by both emitters. */
+void ast_parallel_set_join_range_end(ASTNode* node, ASTNode* range_end);
+ASTNode* ast_parallel_join_range_end(const ASTNode* node);
+bool ast_parallel_is_index_join(const ASTNode* node);
+void ast_parallel_reset_join_index_arrays(ASTNode* node);
+bool ast_parallel_add_join_index_array(ASTNode* node, const char* name);
+bool ast_parallel_join_index_array_admitted(const ASTNode* node,
+                                            const char* name);
 ASTNode* ast_with_slot_type(const ASTNode* node);
 const char* ast_with_alias(const ASTNode* node);
 ASTNode* ast_with_body(const ASTNode* node);

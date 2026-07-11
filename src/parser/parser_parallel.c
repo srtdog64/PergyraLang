@@ -12,18 +12,29 @@
 
 #include <string.h>
 
-/* Rung 0 of the join form (docs/181 SS1.4): statement form, all-join,
- * mandatory element binding. `join`/`with`/`all`/`any` are contextual
- * identifiers, not keywords. */
+/* Rungs 0+1 of the join form (docs/181 SS1.4): statement form, all-join,
+ * mandatory binding. Two modes share the parse:
+ *   parallel (x in xs)      element mode (rung 0)
+ *   parallel (i in lo..hi)  index mode (R1) -- same `..` shape as the
+ *                           range for-loop, zero new surface.
+ * `join`/`with`/`all`/`any` are contextual identifiers, not keywords. */
 static ASTNode*
 parser_parse_parallel_join_form(Parser* parser, ASTNode* parallel)
 {
     Token elem = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected element binding name in parallel (x in xs)");
     char* elem_name = elem.text != NULL ? pergyra_strdup(elem.text) : NULL;
+    ASTNode* range_end = NULL;
 
     parser_consume(parser, TOKEN_IN, "Expected 'in' in parallel (x in xs)");
     ASTNode* collection = parser_parse_expression(parser);
+    if (parser_check(parser, TOKEN_DOT)
+        && parser->current_token.length == 2
+        && parser->current_token.text != NULL
+        && strncmp(parser->current_token.text, "..", 2) == 0) {
+        parser_advance(parser);
+        range_end = parser_parse_expression(parser);
+    }
     parser_consume(parser, TOKEN_RPAREN,
         "Expected ')' after parallel collection");
 
@@ -70,6 +81,9 @@ parser_parse_parallel_join_form(Parser* parser, ASTNode* parallel)
         parser_error(parser,
             "Out of memory while recording parallel join form");
         ast_destroy(collection);
+        ast_destroy(range_end);
+    } else {
+        ast_parallel_set_join_range_end(parallel, range_end);
     }
     free(elem_name);
     return parallel;

@@ -135,6 +135,13 @@ parallel_reject_shared_collection_capture(ASTNode *parallel_node,
             if (type_is_constructed_named(sym->type, "Slice")
                 && parallel_disjoint_split_admitted(parallel_node, ctx, sym))
                 continue;
+            /* Index-disjointness evidence (docs/181 R1): the join
+             * admission sealed this array as [binding]-only, so every
+             * task touches its own element. */
+            if (ast_parallel_is_index_join(parallel_node)
+                && ast_parallel_join_index_array_admitted(parallel_node,
+                                                          sym->name))
+                continue;
 
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BORROW_ESCAPE,

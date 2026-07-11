@@ -1,0 +1,29 @@
+// Index-form witness (docs/181 SS1, R1): `parallel (i in lo..hi)` fans
+// out one task per index; task i owns index i by construction
+// (index-disjointness evidence), so in-place element writes buckets[i]
+// are admitted. Two rounds:
+//   round 1: buckets[i] = i*i + base   (write + scalar capture)
+//   round 2: buckets[i] = buckets[i]*2 (read and write at [i])
+// The sequential sums after each join are order-independent:
+//   sum1 = (0+1+4+...+49) + 8*3 = 164,  sum2 = 164*2 = 328.
+func Main() -> Void {
+    let mut buckets: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(buckets, 0); k = k + 1; }
+    let base: Int = 3;
+    parallel (i in 0..8) join with all {
+        buckets[i] = i * i + base;
+    }
+    let mut sum: Int = 0;
+    let mut t: Int = 0;
+    while t < 8 { sum = sum + buckets[t]; t = t + 1; }
+    Log(sum);
+    let n: Int = 8;
+    parallel (i in 0..n) join with all {
+        buckets[i] = buckets[i] * 2;
+    }
+    let mut sum2: Int = 0;
+    let mut u: Int = 0;
+    while u < 8 { sum2 = sum2 + buckets[u]; u = u + 1; }
+    Log(sum2);
+}

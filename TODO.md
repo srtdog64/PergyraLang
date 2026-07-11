@@ -301,6 +301,10 @@ English anchor for tooling/doc gates:
   behavior contracts through each transform, compare C/LLVM for optimized and
   unoptimized paths, and add a reduced-regression corpus for every optimizer
   bug before broadening optimization scope.
+  Conditional-value if-conversion remains open: introduce no C spelling hack.
+  First capture a MIR-owned pure/non-trapping/non-volatile conditional-value
+  fact, then compare branch versus C ternary versus LLVM `select` across
+  Clang/GCC, x86-64/AArch64, and skewed/random distributions. See docs/127.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a
@@ -18441,14 +18445,22 @@ world_roster_city) — 둘 다 "Status: design sketch" 라벨(문서게이트가
 바인딩 필수 / reactive-형 = SEA lane 표면, `on`=lane 선언-증거 재해석 /
 가상 시간 필수 = compare가 물 수 있는 유일한 길 / 취소 = 협조적만). 후속
 WO:
-- **WO-PARSURF-2 — ✅ R0 CLOSED (2026-07-11)**: `parallel (x in xs) join
+- **WO-PARSURF-2 — ✅ R0+R1 CLOSED (2026-07-11)**: `parallel (x in xs) join
   with all` 실행 개통 — 파서/semantic/C/LLVM 전층, 목격자
   `parallel_join_collection`(204, compare 등록) + 거절 4종 스모크
   (`parallel-join-test-smoke`, 3플랫폼 CI). replicated-arm 규칙(외부 쓰기
   전면 거절)이 핵심 admission. 상세 = docs/181 §1.4 R0 착지 노트. **새
   책임=새 파일 4개** + 크기 지시 이행: parser_domain 595→537,
   ast_async_lambda_accessors 502→394, parser.c 679→619(잔여), llvm
-  651→657(잔여 — async 분리 후속). R1(원소 쓰기)이 다음 디딤돌.
+  651→657(잔여 — async 분리 후속).
+  **R1 (같은 날)**: 인덱스형 `parallel (i in lo..hi)` + `arr[i]` in-place
+  쓰기 — §1.2 옵션 (ii) 확정, [i]-정칙(읽기 포함, alias-robust) admission이
+  index-disjointness fact rows를 생산하고 양 이미터가 소비(배열 캡처는
+  fact 게이트 + LLVM wrapper 배열 레지스트리 재등록). 목격자
+  `parallel_join_index`(164/328, compare 등록) + 거절 4종 추가(스모크
+  8종). walker 신설 `ast_parallel_index_analysis.c`(fail-close 기본).
+  상세 = docs/181 §1.4 R1 착지 노트. 크기 잔여에 ast_identity.c 579 추가
+  (기존 578+1, 600 전 분리 대상). R2(식 형태+청킹 측정)가 다음 디딤돌.
 - **WO-PARSURF-3**: 형 B rung 1+ — duration 리터럴 + 가상 클록 선행,
   R3은 SEA facade fill과 병합. (docs/181 §2.5)
 - **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).

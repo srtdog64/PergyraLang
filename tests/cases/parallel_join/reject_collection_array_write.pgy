@@ -1,0 +1,12 @@
+// docs/181 R1 boundary: element-binding mode (`x in xs`) admits NO
+// outer-array writes -- x is a value, not an index, so no
+// index-disjointness theorem applies. Use `parallel (i in 0..n)`.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let mut ys: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 4 { ArrayPush(xs, k); ArrayPush(ys, 0); k = k + 1; }
+    parallel (x in xs) join with all {
+        ys[0] = x;
+    }
+}

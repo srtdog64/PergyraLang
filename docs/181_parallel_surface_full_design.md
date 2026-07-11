@@ -36,10 +36,16 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 - **컬렉션 본체**: body 안에서 `xs` 직접 참조 = 거절(base-in-arm reject
   재사용). 순회 길이는 진입 시 고정(스냅샷 길이) — 구조 변경 원천 차단.
 - **R0 원소 = read-only 값 복사**(spawn-arg 복사와 동형; 복사-교리 유지).
-  원소 in-place 쓰기는 R1에서: 옵션 (i) 원소-view 바인딩(1-원소 slice로
-  x[0]=v) vs (ii) `parallel (i in 0..N)` 인덱스형 + buckets[i] 쓰기의
-  인덱스-서로소 정리 확장. **권고 (ii)** — slice-split 정리의 직계 확장이고
-  표면 추가가 0이다. R1 착수 시 확정.
+- **R1 확정 (2026-07-11): 옵션 (ii) 인덱스형** — `parallel (i in lo..hi)`,
+  range는 for-루프와 동형 어휘(표면 추가 0). 옵션 (i) 원소-view 바인딩은
+  기각(1-원소 slice 특수 규칙이 늘 뿐, 인덱스형이 그 일반화를 이미 담는다).
+  **[i]-정칙**: 캡처 배열의 body 내 모든 출현(읽기 포함)은 정확히
+  `name[binding]`이어야 admit — 읽기까지 묶는 이유는 alias 견고성(두 캡처
+  이름이 같은 backing을 alias해도 모든 접근이 task i의 원소 i에 착지 →
+  값-독립 무중첩). 고정/계산 인덱스·whole-array 사용은 거절(스텐실류
+  이웃 읽기는 alias 증거가 생기는 후속 rung). 원소 바인딩 모드(`x in xs`)는
+  배열 캡처 전면 불허(값 바인딩엔 인덱스 정리가 성립 안 함) — 인덱스형으로
+  유도하는 진단. 범위 밖 인덱스는 런타임 OOB fail-closed panic이 문다.
 
 ### 1.3 런타임 매핑
 
@@ -54,7 +60,7 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 | rung | 내용 | 게이트 |
 |---|---|---|
 | R0 ✅ | 문 형태 · all-join · read-only 원소 · Array<T> | 목격자 `parallel_join_collection`(compare) + 거절 4종(무바인딩/xs 직접 접근/원소 쓰기/외부 쓰기) |
-| R1 | 원소 쓰기(§1.2 옵션 확정) | in-place 목격자(합계 판별) |
+| R1 ✅ | 인덱스형 `(i in lo..hi)` + `arr[i]` in-place 쓰기 | 목격자 `parallel_join_index`(compare, 164/328) + 거절 4종(비-바인딩 인덱스/whole-array/원소모드 배열 쓰기/읽기) |
 | R2 | 식 형태(결과 Array<R>) + 청킹 측정 | 결과-수집 목격자 + perf 계약 |
 | R3 | `join with any` | §2.4 취소 프로토콜 선행 |
 
@@ -69,6 +75,21 @@ alloca 유도변수, 핸들 non-null guard). rung-0 명시 경계: slot/callable
 캡처는 양 백엔드 동일 fail-close("a later rung"). 검증: 204 양 백엔드 ·
 compare 등록 · 스모크(`parallel_join_smoke.sh`) 3플랫폼 CI 배선 · 유닛
 918/0·2794/0. 새 책임 = 새 파일 4개(550-line 규칙).
+
+**R1 착지 (2026-07-11, WO-PARSURF-2 R1)**: 파서(range 끝점, for-루프와
+같은 `..` 인라인 매칭) → AST(`join_range_end` + **index-disjointness fact
+rows** `join_index_arrays` — join admission checker가 단일 생산자,
+snapshot-row 패밀리와 reset 소유권 분리) → semantic([i]-정칙 walker
+`ast_parallel_index_analysis.c` 신설: 알 수 없는 노드 종류는 free-ref
+oracle로 fail-close = over-reject-never-over-admit; replicated-arm 루프는
+fact-admitted 배열만 완화; arms 공유-컬렉션 거절에 index-fact 예외) →
+C 이미터(인덱스 fan-out `lo+i`, 배열 캡처는 fact 게이트) → LLVM 이미터
+(endpoint sext→i64·클램프, **wrapper 내 배열 레지스트리 재등록** — 레지스트리가
+scope alloca 키라 경계 넘으면 재바인딩 필수, 캡처 시점에 elem 메타 값-스태시).
+검증: 164/328 양 백엔드 byte-equal · compare `parallel_join_index` 등록 ·
+거절 8종 스모크 · 유닛 918/0·2794/0·parser·concurrency. Int=i32/int32_t
+parity 유지. 부수 수확: 원소 모드의 배열-읽기 캡처 C/LLVM 수용 비대칭이
+semantic 단일 거절로 닫힘.
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 
