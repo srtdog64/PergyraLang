@@ -18413,6 +18413,35 @@ row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shad
   유닛테스트 집합이라 스모크 배선처가 아님(house 패턴 = run-line) — WO
   문구의 test-all 항은 착오로 정정.
 
+## 진행 노트 — "parallel" 표면 census (2026-07-11, BDFL "페럴렐 블록도 있는 거 알지?")
+
+질문이 전수조사를 촉발. 이름에 parallel이 붙는 표면은 **4종**이고 실체가 갈린다:
+
+1. `parallel { arms }` — 유일한 실행 표면(checker+양 이미터+증거 4종+캡스톤).
+2. `parallel (collection) [join with mode] [{body}]` — 파서가 collection 식을
+   즉시 ast_destroy(parser.c:590), join 모드 스킵-폐기. body 있으면 1-arm으로
+   퇴화, 없으면 0-arm. 사용자 코드가 오늘 이 형을 쓰면 **진단 0으로 무음
+   no-op**.
+3. role의 `parallel [on (t)] { every(1000ms){..} / continuous{..} }` —
+   reactive 어휘를 다 받되 on-target·주기 폐기(parser_domain.c:406,419).
+   `role_decl.parallel_block` 소비자는 walker 인프라(print/identity/normalize/
+   scan)뿐 — **semantic 검사 0, 이미터 0, 생성 코드 0**. 역시 무음.
+4. `task_group`(wait_all) AST — 파서 생산 자체가 없음. AST-전용 잔재
+   (유닛테스트에서만 손조립).
+
+사용처 census: 형 2·3은 vision 데모 2개뿐(party_system_demo /
+world_roster_city) — 둘 다 "Status: design sketch" 라벨(문서게이트가 라벨을
+강제) + example 컴파일 게이트 제외. 즉 **게이트 load-bearing 아님, 예제는
+정직하게 격리됨. 무음인 것은 문법 수용 자체다** — §1.1 unobservable-branch
+클래스의 문법판(capability overclaim의 grammar 버전).
+
+**WO-PARSURF-1 (BDFL 표면 결정 대기)**: (a) 형 2·3을 명시 진단으로
+fail-close("reactive/join parallel은 vision 표면 — 실행 문법 아님" + 데모
+2개는 sketch라 컴파일 대상 아님, 게이트 무손상) ← 권고 / (b) 실제 구현
+(join-over-collection은 SEA lane·구조적 동시성과 설계 겹침 — 크고 설계
+선행 필요) / (c) 현상 유지 + cheatsheet에 "비-표면" 명시. task_group 잔재
+정리는 (a/b/c) 무관하게 가능.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
