@@ -18435,12 +18435,18 @@ world_roster_city) — 둘 다 "Status: design sketch" 라벨(문서게이트가
 정직하게 격리됨. 무음인 것은 문법 수용 자체다** — §1.1 unobservable-branch
 클래스의 문법판(capability overclaim의 grammar 버전).
 
-**WO-PARSURF-1 (BDFL 표면 결정 대기)**: (a) 형 2·3을 명시 진단으로
-fail-close("reactive/join parallel은 vision 표면 — 실행 문법 아님" + 데모
-2개는 sketch라 컴파일 대상 아님, 게이트 무손상) ← 권고 / (b) 실제 구현
-(join-over-collection은 SEA lane·구조적 동시성과 설계 겹침 — 크고 설계
-선행 필요) / (c) 현상 유지 + cheatsheet에 "비-표면" 명시. task_group 잔재
-정리는 (a/b/c) 무관하게 가능.
+**WO-PARSURF-1 — ✅ 결정+Declare 착지 (BDFL 2026-07-11)**: 목적지 = **전체
+구현**, 과도기 = **(a) fail-close**, 진행 = rung 사다리("돌다리"). 전체
+설계 = **docs/181**(표면 문법 확정: `parallel (x in xs) join with all` 원소
+바인딩 필수 / reactive-형 = SEA lane 표면, `on`=lane 선언-증거 재해석 /
+가상 시간 필수 = compare가 물 수 있는 유일한 길 / 취소 = 협조적만). 후속
+WO:
+- **WO-PARSURF-2**: 형 A rung 0 — 문 형태·all-join·read-only 원소·Array<T>,
+  목격자 `parallel_join_collection` + 거절 3종. (docs/181 §1.4)
+- **WO-PARSURF-3**: 형 B rung 1+ — duration 리터럴 + 가상 클록 선행,
+  R3은 SEA facade fill과 병합. (docs/181 §2.5)
+- **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).
+- fail-close 진단 + 목격자 스모크 = WO-PARSURF-1 마감 커밋에 포함.
 
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
