@@ -119,26 +119,48 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
         return true;
     }
 
+    /* The guard must reference the channel through the channel-lvalue
+     * path: wrapper captures resolve to their context fields
+     * ((*_pctx->ch)) and the SSA map is bypassed because the runtime call
+     * takes the address of the raw channel struct -- the MIR let path also
+     * emits a dead zero-initialized SSA twin that must never be addressed.
+     * (Both halves found by the scheduler capstone fixture.) */
+    char *channel_expr = transpiler_emit_channel_lvalue_expr(ctx, channel);
+    if (channel_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C select lowering could not lower case guard channel expression");
+        return false;
+    }
+
     if (bind_name != NULL) {
         char recv_fn[128];
         if (!select_channel_runtime_symbol(ctx, "bound receive",
-                "try_recv", inner, recv_fn, sizeof(recv_fn)))
+                "try_recv", inner, recv_fn, sizeof(recv_fn))) {
+            free(channel_expr);
             return false;
+        }
         codebuf_write(ctx->out,
             "%s (%s(PGY_LANE_PINNED_ZONE, &%s, &_sel_recv_%zu)) { /* select case %zu */\n",
-            prefix, recv_fn, channel_name, index, index);
+            prefix, recv_fn, channel_expr, index, index);
+        free(channel_expr);
         return true;
     }
 
     {
         char ready_fn[128];
         if (!select_channel_runtime_symbol(ctx, "readiness",
-                "ready", inner, ready_fn, sizeof(ready_fn)))
+                "ready", inner, ready_fn, sizeof(ready_fn))) {
+            free(channel_expr);
             return false;
+        }
         codebuf_write(ctx->out,
             "%s (%s(PGY_LANE_PINNED_ZONE, &%s)) { /* select case %zu */\n",
-            prefix, ready_fn, channel_name, index);
+            prefix, ready_fn, channel_expr, index);
     }
+    free(channel_expr);
     return true;
 }
 
@@ -146,7 +168,7 @@ static bool
 select_emit_unbound_consume(ASTNode *channel, const char *inner,
                             TranspilerCtx *ctx)
 {
-    char *channel_expr = emit_expression(channel, ctx);
+    char *channel_expr = transpiler_emit_channel_lvalue_expr(ctx, channel);
     if (channel_expr == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,

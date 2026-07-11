@@ -448,7 +448,8 @@ pgy_channel_try_recv_String(PgyChannel_String *ch, char **out)
         (void)pgy_async_progress_one();
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
-        pgy_runtime_warn_invalid_channel("try_recv_String", "channel is empty");
+        /* Empty is the CONTRACT outcome of a non-blocking try_recv, not
+         * misuse; see the Int-family twin. */
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }

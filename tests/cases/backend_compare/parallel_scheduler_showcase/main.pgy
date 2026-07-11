@@ -1,0 +1,177 @@
+// MiniSched -- the parallel-surface capstone (docs/178 all four evidences
+// composed in one program), shaped as a Linux-flavoured scheduler model:
+// an admission source feeds a bounded run queue, a balancer migrates jobs
+// to two CPUs, each CPU burns CFS-style vruntime (weights are the head of
+// Linux sched_prio_to_weight[]) into its own half of a per-CPU stat array,
+// and a telemetry probe snapshots the boot epoch. A spawned auditor
+// recomputes the expected vruntime sequentially and the program ends by
+// checking that the parallel run and the sequential audit agree.
+//
+// Every sharing below is admitted by exactly one evidence class:
+//   Channel      runq/cpu queues/acks/gates -- runtime-synchronized
+//                (bounded runq exercises blocked-send backpressure)
+//   Disjointness cpu0v/cpu1v -- construction-guaranteed split halves of
+//                vbuckets, one arm each, base untouched inside parallel
+//   Copy         clock -- single writer (admission) + reader (telemetry):
+//                the reader observes the pre-parallel snapshot (0), the
+//                parent observes the writer's live value (8) after join
+//   Exclusivity  migrated -- written by exactly one arm, read after join
+// The rejected variants (two writers, base touched in an arm, overlapping
+// views, non-primitive read-write) are the parallel_* sibling fixtures'
+// territory: this program is the composed ACCEPTED shape.
+//
+// Grammar surface on display: statement arm (for-in), bare-block arms,
+// channel send/recv, select with default (idle tick), spawn/await future
+// composed with a parallel block, slices, functions called from arms.
+// Determinism: all Log calls are sequential (post-join / post-drain), and
+// both aggregation paths (ack accumulation vs stat halves) must agree, on
+// both backends, byte-equal.
+
+func NiceToWeight(nice: Int) -> Int {
+    // head of Linux sched_prio_to_weight[]: nice 0..3
+    if nice == 0 { return 1024; }
+    if nice == 1 { return 820; }
+    if nice == 2 { return 655; }
+    return 526;
+}
+
+func Vruntime(nice: Int) -> Int {
+    // CFS-style scaling: slice_ns * NICE_0_LOAD / weight
+    return (6000 * 1024) / NiceToWeight(nice);
+}
+
+func AuditVruntime(jobs: Int) -> Int {
+    let mut total: Int = 0;
+    let mut id: Int = 0;
+    while id < jobs {
+        total = total + Vruntime((id / 2) % 4);
+        id = id + 1;
+    }
+    return total;
+}
+
+func RunSched() -> Int {
+    let runq: Channel<Int> = Channel(2);
+    let cpu0q: Channel<Int> = Channel(2);
+    let cpu1q: Channel<Int> = Channel(2);
+    let ack0: Channel<Int> = Channel(8);
+    let ack1: Channel<Int> = Channel(8);
+    let epoch_gate: Channel<Int> = Channel(1);
+    let epoch_out: Channel<Int> = Channel(1);
+    let counts: Channel<Int> = Channel(2);
+
+    let mut vbuckets: Array<Int> = [];
+    let mut z: Int = 0;
+    while z < 8 { ArrayPush(vbuckets, 0); z = z + 1; }
+    let mid: Int = 4;
+    let cpu0v: Slice<Int> = vbuckets.Slice(0, mid);
+    let cpu1v: Slice<Int> = vbuckets.Slice(mid, 4);
+
+    let mut clock: Int = 0;
+    let mut migrated: Int = 0;
+
+    parallel {
+        // [admission] statement arm: 8 jobs into the bounded run queue.
+        // Writes clock (the single writer keeps the live location).
+        for id in 0..8 {
+            runq <- id;
+            clock = clock + 1;
+            if id == 7 { epoch_gate <- 1; }
+        }
+        // [balancer] routes by parity, poisons both CPUs, then drains
+        // acks through select (default = idle tick, never printed).
+        {
+            let mut routed: Int = 0;
+            while routed < 8 {
+                let job: Int = <- runq;
+                if job % 2 == 0 {
+                    cpu0q <- job;
+                } else {
+                    cpu1q <- job;
+                    migrated = migrated + 1;
+                }
+                routed = routed + 1;
+            }
+            cpu0q <- 0 - 1;
+            cpu1q <- 0 - 1;
+            let mut got0: Int = 0;
+            let mut got1: Int = 0;
+            let mut idle: Int = 0;
+            while got0 + got1 < 8 {
+                select {
+                    case a = <-ack0:
+                        got0 = got0 + a;
+                    case b = <-ack1:
+                        got1 = got1 + b;
+                    default:
+                        idle = idle + 1;
+                }
+            }
+            counts <- got0;
+            counts <- got1;
+        }
+        // [cpu0] consumes until poison; writes its OWN split half.
+        {
+            let mut running: Int = 1;
+            while running == 1 {
+                let job: Int = <- cpu0q;
+                if job < 0 {
+                    running = 0;
+                } else {
+                    let nice: Int = (job / 2) % 4;
+                    cpu0v[nice] = Vruntime(nice);
+                    ack0 <- 1;
+                }
+            }
+        }
+        // [cpu1] the other half, the other queue.
+        {
+            let mut running: Int = 1;
+            while running == 1 {
+                let job: Int = <- cpu1q;
+                if job < 0 {
+                    running = 0;
+                } else {
+                    let nice: Int = (job / 2) % 4;
+                    cpu1v[nice] = Vruntime(nice);
+                    ack1 <- 1;
+                }
+            }
+        }
+        // [telemetry] gated after the last admission: still reads the
+        // pre-parallel snapshot of clock (0). A shared-pointer regression
+        // would surface 8 here and the compare gate goes RED.
+        {
+            let gate: Int = <- epoch_gate;
+            epoch_out <- clock + gate - gate;
+        }
+    }
+
+    let epoch: Int = <- epoch_out;
+    let done0: Int = <- counts;
+    let done1: Int = <- counts;
+    Log(clock);
+    Log(epoch);
+    Log(migrated);
+    Log(done0);
+    Log(done1);
+    // scheduler invariant: completions == admitted jobs
+    if done0 + done1 == clock { Log(1); } else { Log(0); }
+    let mut v0: Int = 0;
+    let mut v1: Int = 0;
+    let mut t: Int = 0;
+    while t < 4 { v0 = v0 + vbuckets[t]; t = t + 1; }
+    while t < 8 { v1 = v1 + vbuckets[t]; t = t + 1; }
+    Log(v0);
+    Log(v1);
+    return v0 + v1;
+}
+
+async func Main() -> Void {
+    let audit: Future<Int> = spawn AuditVruntime(8);
+    let measured: Int = RunSched();
+    let expected: Int = await audit;
+    Log(measured);
+    Log(expected);
+    if measured == expected { Log(1); } else { Log(0); }
+}

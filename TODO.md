@@ -18413,6 +18413,21 @@ row 생산, 이미터는 소비만, 부재=fail-closed)를 선언. manifest shad
   유닛테스트 집합이라 스모크 배선처가 아님(house 패턴 = run-line) — WO
   문구의 test-all 항은 착오로 정정.
 
+## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
+
+`parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
+한 프로그램으로 보여주는 capstone. 증거 4종+select+spawn 합성, 값 전부
+결정적(10회 실측), 양 백엔드 byte-equal, compare 등록. **합성이 즉시 실버그
+2건 적발**: C select guard의 raw-name 방출(모든 arm-내 select 불능) + 비-Main
+함수 채널 let의 죽은 SSA 쌍둥이에 캡처 배선(미초기화 무한 스핀) — 기존
+corpus가 전부 Main-내부·단일-기능이라 못 밟던 조합. 채널-lvalue canon
+(SSA-bypass)으로 통일 교정, try_recv empty 계약-경고 소음 제거(+runtime-bc
+재생성). 상세 = docs/178 §5 캡스톤 항목. 회귀: transpile 918/0 · semantic
+2794/0 · concurrency 유닛 전부 · compare 17/17(select 5종 포함) · 스모크 3종.
+교훈 등록: **runtime-behavior 목격자 corpus(원장 큐 3번)는 단일-기능이 아니라
+합성-형이어야 한다** — 다음 목격자 후보: 비-Main 함수 future 캡처(같은 SSA
+쌍둥이 의심), async-내 select, spawn-내 채널.
+
 ## 진행 노트 — 부족분·설계도 채움 arc (2026-07-11, BDFL "전반적으로 채워넣어봐")
 
 강함 판정(4축)의 부족분을 같은 날 실행으로 전환. 커밋 3: `09e6353f`

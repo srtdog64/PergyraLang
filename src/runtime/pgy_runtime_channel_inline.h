@@ -388,7 +388,10 @@ pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
         (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->count == 0) { \
-        pgy_runtime_warn_invalid_channel("try_recv_" #SuffixName, "channel is empty"); \
+        /* Empty is the CONTRACT outcome of a non-blocking try_recv (the
+         * select default path polls exactly this), not misuse -- warning
+         * here floods stderr nondeterministically under polling. Only
+         * null/uninitialized stay warned above. */ \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \

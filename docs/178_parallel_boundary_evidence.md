@@ -106,6 +106,20 @@ DOP가 가장 병렬-친화적 지향(그래서 게임 엔진이 ECS로 감)인�
   0) · Copy(snapshot) = ctx 복사 후 원본과 절연 → **erase** · Channel =
   런타임 **retain**(동기화 상태 자체가 증거) · 무증거 공유 = **reject**.
   "Evidence-carrying compiler, not evidence-hoarding runtime."
+- **캡스톤 `parallel_scheduler_showcase` (2026-07-11)**: 단일-기능 격리
+  목격자들과 달리 **증거 4종 + select + spawn/await + for-in + 함수 호출을
+  한 프로그램에 합성** — Linux 풍 스케줄러 모델(bounded runq 백프레셔,
+  parity 마이그레이션, per-CPU vruntime을 disjoint 분할에, boot-epoch
+  스냅샷, select ack drain, spawn 감사자와 이중 검증; nice→weight는
+  sched_prio_to_weight[] 머리값). 5-arm/4-worker 데드락 분석 포함, 10회
+  반복 결정성 실측, 양 백엔드 byte-equal. **착지 과정에서 실버그 2건
+  적발**(합성 테스트의 가치 실증 — 기존 corpus는 전부 Main-내부·단일
+  기능이라 못 밟던 조합): ① C select case guard가 채널을 raw AST 이름으로
+  방출 → wrapper 캡처(`(*_pctx->ch)`) 미해석(모든 arm-내 select 불능),
+  ② 비-Main 함수에서 채널 let의 **죽은 SSA 쌍둥이**(`_pgy_ssa_ch_1={0}`)에
+  캡처 주소가 배선 → 미초기화 채널 무한 스핀. 둘 다 채널-lvalue canon
+  (SSA-bypass)으로 교정 + try_recv의 "empty" 계약-결과 경고 소음 제거
+  (비결정 stderr가 compare를 오염시키던 것).
 
 ## 6. 자기-신고: capture-disposition은 docs/180 §6의 이주 신호를 울린다
 

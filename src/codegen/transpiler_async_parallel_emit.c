@@ -87,6 +87,23 @@ transpiler_write_capture_address(TranspilerCtx *ctx, const char *name)
     if (ctx == NULL || name == NULL)
         return;
 
+    /* Channel bindings are canonical under their SOURCE name: the channel
+     * init and every runtime op address the raw struct (the channel-lvalue
+     * path bypasses the SSA map for the same reason), while the MIR let
+     * path also emits a dead zero-initialized SSA twin. Resolving the SSA
+     * name here would wire wrapper arms to the dead twin -- an
+     * uninitialized channel. Found by the scheduler capstone fixture,
+     * which is the first corpus program with parallel+channels in a
+     * non-Main function. */
+    {
+        TypedVarEntry *entry = lookup_typed_entry(ctx, name);
+        const char *type_name = entry != NULL ? entry->type_name : NULL;
+        if (type_name != NULL && strncmp(type_name, "Channel", 7) == 0) {
+            codebuf_write(ctx->out, "&%s", name);
+            return;
+        }
+    }
+
     ssa_name = transpiler_resolve_active_ssa_name(ctx, name);
     if (ssa_name == NULL) {
         codebuf_write(ctx->out, "&%s", name);
