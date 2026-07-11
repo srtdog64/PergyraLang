@@ -140,6 +140,12 @@ struct ASTNode
             size_t    snapshot_row_count;
             size_t    snapshot_row_capacity;
             bool      dispositions_sealed;
+            /* Join form (docs/181 SS1, rung 0): `parallel (x in xs)`.
+             * tasks[0] is the replicated body; the runtime fans out one
+             * task per element. */
+            bool      is_join_form;
+            char*     join_element;    /* element binding name */
+            ASTNode*  join_collection; /* collection expression */
         } parallel;
         
         /* For loop */

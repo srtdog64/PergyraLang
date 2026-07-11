@@ -341,6 +341,14 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    /* Join form (docs/181 SS1 rung 0): admission first -- its replicated
+     * arms reject every outer write, so the scalar race check below can
+     * never record rows for it. */
+    Type *join_elem_type = NULL;
+    if (ast_parallel_is_join_form(node)
+        && !type_check_parallel_join_admit(node, ctx, &join_elem_type))
+        return false;
+
     if (parallel_reject_scalar_write_race(node, ctx))
         return false;
     /* Every capture disposition is now recorded; the seal is what the
@@ -371,6 +379,17 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
          * each firing of that warning was a false data-race claim. */
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
+        if (ast_parallel_is_join_form(node) && join_elem_type != NULL) {
+            /* The element binding is body-scoped and read-only; the
+             * admission above already rejected writes to it. */
+            const char *elem_name = ast_parallel_join_element(node);
+            Symbol *elem_sym = elem_name != NULL
+                ? symbol_create_variable(elem_name, join_elem_type,
+                                         node->line, node->column)
+                : NULL;
+            if (elem_sym != NULL)
+                scope_declare(ctx->scope, elem_sym);
+        }
         (void)type_check_statement_flow(task, ctx, NULL);
         task_snap = snapshot_resource_states_from_scope(
             ctx->scope != NULL ? ctx->scope->parent : NULL, ctx);

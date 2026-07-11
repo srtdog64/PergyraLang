@@ -260,6 +260,12 @@ void ast_parallel_seal_dispositions(ASTNode* node);
 bool ast_parallel_dispositions_sealed(const ASTNode* node);
 const ASTParallelSnapshotRow* ast_parallel_snapshot_row_find(
     const ASTNode* node, const char* name);
+/* Join form (docs/181 SS1 rung 0): `parallel (x in xs) [join with all]`. */
+bool ast_parallel_set_join_form(ASTNode* node, const char* element_name,
+                                ASTNode* collection);
+bool ast_parallel_is_join_form(const ASTNode* node);
+const char* ast_parallel_join_element(const ASTNode* node);
+ASTNode* ast_parallel_join_collection(const ASTNode* node);
 ASTNode* ast_with_slot_type(const ASTNode* node);
 const char* ast_with_alias(const ASTNode* node);
 ASTNode* ast_with_body(const ASTNode* node);

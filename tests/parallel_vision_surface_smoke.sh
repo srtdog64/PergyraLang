@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 #
-# parallel_vision_surface_smoke.sh — the two declared-but-unexecutable
+# parallel_vision_surface_smoke.sh — the declared-but-unexecutable
 # parallel surfaces (docs/181) must fail closed with the vision-surface
 # diagnostic instead of silently no-op'ing:
 #
-#   - join_form.pgy      parallel (xs) join with all     -> reject
-#   - reactive_form.pgy  role parallel on/every block    -> reject
+#   - any_join.pgy       parallel (x in xs) join with any -> reject (R3)
+#   - reactive_form.pgy  role parallel on/every block     -> reject
 #
+# (The all-join form graduated to execution in rung 0 -- its witness is
+# parallel_join_smoke.sh / the parallel_join_collection compare case.)
 # When a rung of docs/181 opens one of these forms for real execution,
 # this smoke goes RED on purpose: update docs/181 and replace the reject
 # with that rung's witness.
@@ -46,7 +48,7 @@ expect_reject() {
         fail "$fixture failed without the vision-surface diagnostic"
 }
 
-expect_reject join_form.pgy
+expect_reject any_join.pgy
 expect_reject reactive_form.pgy
 
-echo "[parallel-vision-surface] join-form and reactive-form fail closed with the docs/181 vision-surface diagnostic"
+echo "[parallel-vision-surface] any-join and reactive-form fail closed with the docs/181 vision-surface diagnostic"

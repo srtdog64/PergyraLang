@@ -299,6 +299,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_role_type_accessors.c \
                    $(PARSER_DIR)/ast_expr_control_accessors.c \
                    $(PARSER_DIR)/ast_async_lambda_accessors.c \
+                   $(PARSER_DIR)/ast_parallel_accessors.c \
                    $(PARSER_DIR)/ast_domain_accessors_world.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
                    $(PARSER_DIR)/ast_world_constructors.c \
@@ -331,6 +332,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_expr_string.c \
                    $(PARSER_DIR)/parser_expr_util.c \
                    $(PARSER_DIR)/parser_pin.c \
+                   $(PARSER_DIR)/parser_parallel.c \
                    $(PARSER_DIR)/parser_stmt.c \
                    $(PARSER_DIR)/parser_statement_dispatch.c \
                    $(PARSER_DIR)/parser_name_tokens.c \
@@ -577,6 +579,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_parallel_join.c \
                    $(SEMANTIC_DIR)/type_checker_flow_statement_kinds.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
@@ -593,6 +596,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_async_parallel_emit.c \
+                   $(CODEGEN_DIR)/transpiler_parallel_join_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_constructor_result_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_subject_arg_policy.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
@@ -1145,6 +1149,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
+                        $(CODEGEN_DIR)/llvm_stmt_parallel_join.c \
                         $(CODEGEN_DIR)/llvm_stmt_select.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_render.c \
@@ -2498,6 +2503,9 @@ ability-coherence-test-smoke: $(PGY)
 
 parallel-vision-surface-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_vision_surface_smoke.sh
+
+parallel-join-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_join_smoke.sh
 
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh

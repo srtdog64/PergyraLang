@@ -92,6 +92,9 @@ ASTNode *parser_parse_pin_block(Parser *parser);
 bool     parser_check_within_context_block_start(Parser *parser);
 ASTNode *parser_parse_within_context_block(Parser *parser);
 
+/* --- Parallel surfaces (parser_parallel.c, docs/181) --- */
+ASTNode *parser_parse_reactive_parallel_block(Parser *parser);
+
 /* --- Statements (parser_stmt.c) --- */
 ASTNode *parse_if_statement(Parser *parser);
 ASTNode *parse_while_statement(Parser *parser);

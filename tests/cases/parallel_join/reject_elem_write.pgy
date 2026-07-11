@@ -1,0 +1,8 @@
+// The element binding is read-only in rung 0 (docs/181 SS1.2).
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    ArrayPush(xs, 1);
+    parallel (x in xs) join with all {
+        x = x + 1;
+    }
+}

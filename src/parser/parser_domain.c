@@ -393,66 +393,8 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
 /* Reactive concurrency block in a role/subject body:
  *   parallel [on (thread)] { [every (N[unit]) { ... } | stmt]* }
  * Parsed structurally; the schedule metadata is currently erased. */
-static ASTNode*
-parse_reactive_parallel_block(Parser* parser)
-{
-    ASTNode* blk = ast_create_parallel_block();
-
-    /* Role reactive parallel (`on (lane)` / `every (d)` / `continuous`) is
-     * a declared vision surface (docs/181 §2): pinned as the SEA lane
-     * surface, gated on duration literals + virtual clock + cooperative
-     * cancellation. No rung executes yet, so the form fails closed instead
-     * of parsing into a block no checker or emitter consumes. Tokens are
-     * still consumed for clean recovery. */
-    parser_error(parser,
-        "role reactive parallel (on/every/continuous) is a declared vision surface (docs/181): not yet executable");
-    parser_consume(parser, TOKEN_PARALLEL, "Expected 'parallel'");
-    if (parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "on") == 0) {
-        parser_advance(parser);
-        parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'on'");
-        ast_destroy(parser_parse_expression(parser));
-        parser_consume(parser, TOKEN_RPAREN, "Expected ')' after 'on' target");
-    }
-
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' for parallel block");
-    bool saved_async = parser->in_async_context;
-    parser->in_parallel_block = true;
-    parser->in_async_context = true;
-    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "every") == 0) {
-            parser_advance(parser);
-            parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'every'");
-            ast_destroy(parser_parse_expression(parser));  /* duration count */
-            if (parser_check(parser, TOKEN_IDENTIFIER))
-                parser_advance(parser);  /* unit suffix: ms / s / ... */
-            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after duration");
-            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for every block");
-            ASTNode* body = parser_parse_block(parser);
-            if (body != NULL)
-                ast_add_parallel_task(blk, body);
-        } else if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "continuous") == 0
-            && parser_peek_next(parser).type == TOKEN_LBRACE) {
-            parser_advance(parser);
-            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for continuous block");
-            ASTNode* body = parser_parse_block(parser);
-            if (body != NULL)
-                ast_add_parallel_task(blk, body);
-        } else {
-            ASTNode* stmt = parser_parse_statement(parser);
-            if (stmt != NULL)
-                ast_add_parallel_task(blk, stmt);
-        }
-        if (parser->has_error)
-            parser_synchronize(parser);
-    }
-    parser->in_parallel_block = false;
-    parser->in_async_context = saved_async;
-    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after parallel block");
-    return blk;
-}
+/* Role reactive parallel parsing은 parser_parallel.c 소유 (docs/181 §2;
+ * 550-line responsibility rule). */
 
 ASTNode* parse_role_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name");
@@ -575,7 +517,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
 
         } else if (parser_check(parser, TOKEN_PARALLEL)) {
             role->data.role_decl.parallel_block =
-                parse_reactive_parallel_block(parser);
+                parser_parse_reactive_parallel_block(parser);
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,

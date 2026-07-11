@@ -10,7 +10,7 @@
  * Parallel / async / select statement emission
  * ================================================================= */
 
-static bool
+bool
 llvm_capture_entry_is_required(LLVMGenCtx *ctx,
                                const ASTNode *body,
                                LLVMScopeFrame *frame,
@@ -65,7 +65,7 @@ llvm_capture_entry_is_slice_view(LLVMGenCtx *ctx, const char *name)
         && strncmp(struct_name, "PgySlice_", 9) == 0;
 }
 
-static bool
+bool
 llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
                                       const char *boundary,
                                       const char *name,
@@ -93,7 +93,7 @@ llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
     return true;
 }
 
-static bool
+bool
 llvm_emit_task_handle_nonnull_guard(LLVMGenCtx *ctx, ASTNode *site,
                                     LLVMValueRef handle, const char *reason)
 {
@@ -152,6 +152,12 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     size_t count = ast_parallel_task_count(node);
     if (count == 0)
         return;
+
+    /* Join form (docs/181 SS1): one replicated wrapper, N runtime tasks. */
+    if (ast_parallel_is_join_form(node)) {
+        llvm_emit_parallel_join_block(node, ctx);
+        return;
+    }
 
     /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
      * unsealed node never ran the checker, and re-deriving the analysis

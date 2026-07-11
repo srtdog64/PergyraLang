@@ -1,0 +1,19 @@
+// Join-form witness (docs/181 SS1, rung 0): `parallel (x in xs)` fans
+// out one task per element (N-way disjointness evidence: task i owns
+// element i by construction). Each task sends its element's square
+// through a channel; the parent drains after the join. The sum is
+// order-independent, so the output is deterministic under any
+// interleaving: 1+4+9+...+64 = 204 on both backends.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    let mut k: Int = 0;
+    while k < 8 { ArrayPush(xs, k + 1); k = k + 1; }
+    let ch: Channel<Int> = Channel(8);
+    parallel (x in xs) join with all {
+        ch <- x * x;
+    }
+    let mut sum: Int = 0;
+    let mut t: Int = 0;
+    while t < 8 { let v: Int = <- ch; sum = sum + v; t = t + 1; }
+    Log(sum);
+}

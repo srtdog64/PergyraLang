@@ -40,6 +40,18 @@ void llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx);
+/* Join form (docs/181 SS1 rung 0; llvm_stmt_parallel_join.c). */
+void llvm_emit_parallel_join_block(ASTNode *node, LLVMGenCtx *ctx);
+/* Shared with the join emitter (defined in llvm_stmt_parallel_async.c). */
+bool llvm_capture_entry_is_required(LLVMGenCtx *ctx, const ASTNode *body,
+                                    LLVMScopeFrame *frame, int index);
+bool llvm_emit_task_handle_nonnull_guard(LLVMGenCtx *ctx, ASTNode *site,
+                                         LLVMValueRef handle,
+                                         const char *reason);
+bool llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
+                                           const char *boundary,
+                                           const char *name,
+                                           bool allow_slice_views);
 void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
 
 #endif /* PGY_LLVM_STMT_INTERNAL_H */

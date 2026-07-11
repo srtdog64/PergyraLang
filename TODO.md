@@ -18441,8 +18441,14 @@ world_roster_city) — 둘 다 "Status: design sketch" 라벨(문서게이트가
 바인딩 필수 / reactive-형 = SEA lane 표면, `on`=lane 선언-증거 재해석 /
 가상 시간 필수 = compare가 물 수 있는 유일한 길 / 취소 = 협조적만). 후속
 WO:
-- **WO-PARSURF-2**: 형 A rung 0 — 문 형태·all-join·read-only 원소·Array<T>,
-  목격자 `parallel_join_collection` + 거절 3종. (docs/181 §1.4)
+- **WO-PARSURF-2 — ✅ R0 CLOSED (2026-07-11)**: `parallel (x in xs) join
+  with all` 실행 개통 — 파서/semantic/C/LLVM 전층, 목격자
+  `parallel_join_collection`(204, compare 등록) + 거절 4종 스모크
+  (`parallel-join-test-smoke`, 3플랫폼 CI). replicated-arm 규칙(외부 쓰기
+  전면 거절)이 핵심 admission. 상세 = docs/181 §1.4 R0 착지 노트. **새
+  책임=새 파일 4개** + 크기 지시 이행: parser_domain 595→537,
+  ast_async_lambda_accessors 502→394, parser.c 679→619(잔여), llvm
+  651→657(잔여 — async 분리 후속). R1(원소 쓰기)이 다음 디딤돌.
 - **WO-PARSURF-3**: 형 B rung 1+ — duration 리터럴 + 가상 클록 선행,
   R3은 SEA facade fill과 병합. (docs/181 §2.5)
 - **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).

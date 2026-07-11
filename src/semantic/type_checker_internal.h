@@ -202,6 +202,9 @@ bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
 bool type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx);
 bool type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx);
+/* docs/181 SS1 rung 0 (type_checker_flow_parallel_join.c) */
+bool type_check_parallel_join_admit(ASTNode *node, SemanticContext *ctx,
+                                    Type **elem_type_out);
 bool type_check_match_case_patterns(ASTNode *mc,
                                     Type *subj_type,
                                     SemanticContext *ctx);

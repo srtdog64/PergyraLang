@@ -1,0 +1,9 @@
+// The binding-less sketch form stays rejected (docs/181 SS1): the body
+// would have no way to touch its element.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    ArrayPush(xs, 1);
+    parallel (xs) join with all {
+        Log(1);
+    }
+}

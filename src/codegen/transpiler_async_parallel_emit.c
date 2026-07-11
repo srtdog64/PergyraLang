@@ -78,7 +78,7 @@ transpiler_capture_reject_shared_collection(TranspilerCtx *ctx,
     return true;
 }
 
-static void
+void
 transpiler_write_capture_address(TranspilerCtx *ctx, const char *name)
 {
     const char *ssa_name;
@@ -135,18 +135,7 @@ transpiler_write_capture_value(TranspilerCtx *ctx, const char *name)
     free(c_name);
 }
 
-typedef struct TranspilerParallelWrapperState {
-    CodeBuf *out;
-    int indent;
-    bool in_parallel_wrapper;
-    int slot_count;
-    int typed_count;
-    char slot_names[MAX_SLOT_VARS][64];
-    char typed_names[MAX_SLOT_VARS][64];
-    bool typed_snapshot[MAX_SLOT_VARS];
-} TranspilerParallelWrapperState;
-
-static void
+void
 transpiler_parallel_wrapper_state_enter(
     TranspilerCtx *ctx,
     TranspilerParallelWrapperState *state,
@@ -189,7 +178,7 @@ transpiler_parallel_wrapper_state_enter(
     }
 }
 
-static void
+void
 transpiler_parallel_wrapper_state_restore(
     TranspilerCtx *ctx,
     const TranspilerParallelWrapperState *state)
@@ -216,6 +205,12 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     size_t count = ast_parallel_task_count(node);
     if (count == 0)
         return;
+
+    /* Join form (docs/181 SS1): one replicated wrapper, N runtime tasks. */
+    if (ast_parallel_is_join_form(node)) {
+        emit_parallel_join_block(node, ctx);
+        return;
+    }
 
     /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
      * unsealed node never ran the checker, and re-deriving the analysis

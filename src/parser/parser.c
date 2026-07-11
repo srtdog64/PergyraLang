@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * Parser implementation with generic-first design
  */
@@ -579,68 +579,8 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
     return with_stmt;
 }
 
-// parallel 블록 파싱
-ASTNode* parser_parse_parallel_block(Parser* parser) {
-    ASTNode* parallel = ast_create_parallel_block();
-
-    /* `parallel (collection) [join with <mode>]`: a declared vision surface
-     * (docs/181 §1) -- the full design is fixed (element binding, N-way
-     * disjointness evidence, rung ladder) but no rung executes yet, so the
-     * form fails closed instead of silently degenerating to a no-op. The
-     * tokens are still consumed for clean recovery. */
-    if (parser_check(parser, TOKEN_LPAREN)) {
-        parser_error(parser,
-            "parallel (collection) join is a declared vision surface (docs/181): not yet executable; use parallel { ... } arms");
-        parser_advance(parser);  /* '(' */
-        ast_destroy(parser_parse_expression(parser));
-        parser_consume(parser, TOKEN_RPAREN,
-            "Expected ')' after parallel target");
-        if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "join") == 0) {
-            parser_advance(parser);  /* join */
-            if (parser->current_token.text != NULL
-                && strcmp(parser->current_token.text, "with") == 0)
-                parser_advance(parser);  /* with */
-            if (parser_check(parser, TOKEN_IDENTIFIER))
-                parser_advance(parser);  /* mode: all / any / ... */
-        }
-        if (parser_match(parser, TOKEN_LBRACE)) {
-            parser->in_parallel_block = true;
-            ASTNode* body = parser_parse_block(parser);
-            parser->in_parallel_block = false;
-            if (body != NULL)
-                ast_add_parallel_task(parallel, body);
-        }
-        return parallel;
-    }
-
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'parallel'");
-
-    parser->in_parallel_block = true;
-    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        ASTNode* stmt;
-        /* docs/177 F3(a) (BDFL 2026-07-09): a bare `{ ... }` inside a
-         * parallel block is one multi-statement arm. The statement grammar
-         * outside parallel is unchanged. */
-        if (parser_check(parser, TOKEN_LBRACE)) {
-            parser_advance(parser);  /* '{' */
-            stmt = parser_parse_block(parser);
-        } else {
-            stmt = parser_parse_statement(parser);
-        }
-        if (stmt) {
-            ast_add_parallel_task(parallel, stmt);
-        }
-        if (parser->has_error) {
-            parser_synchronize(parser);
-        }
-    }
-    parser->in_parallel_block = false;
-
-    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after parallel block");
-
-    return parallel;
-}
+/* parallel 블록 파싱은 parser_parallel.c 소유 (docs/181; 550-line
+ * responsibility rule). */
 
 // 블록 파싱
 ASTNode* parser_parse_block(Parser* parser) {

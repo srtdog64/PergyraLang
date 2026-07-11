@@ -1,0 +1,9 @@
+// The body must not touch the collection it fans out over (docs/181
+// SS1.2): each task owns exactly one element.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    ArrayPush(xs, 1);
+    parallel (x in xs) join with all {
+        Log(xs[0] + x);
+    }
+}

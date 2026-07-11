@@ -53,10 +53,22 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 
 | rung | 내용 | 게이트 |
 |---|---|---|
-| R0 | 문 형태 · all-join · read-only 원소 · Array<T> | 목격자 `parallel_join_collection`(compare) + 거절 3종(xs 직접 접근/원소간 race/외부 무증거 공유) |
+| R0 ✅ | 문 형태 · all-join · read-only 원소 · Array<T> | 목격자 `parallel_join_collection`(compare) + 거절 4종(무바인딩/xs 직접 접근/원소 쓰기/외부 쓰기) |
 | R1 | 원소 쓰기(§1.2 옵션 확정) | in-place 목격자(합계 판별) |
 | R2 | 식 형태(결과 Array<R>) + 청킹 측정 | 결과-수집 목격자 + perf 계약 |
 | R3 | `join with any` | §2.4 취소 프로토콜 선행 |
+
+**R0 착지 (2026-07-11, WO-PARSURF-2)**: 파서(`parser_parallel.c`, 원소
+바인딩 필수·all 기본·any는 R3 fail-close) → semantic
+(`type_checker_flow_parallel_join.c`: Array<primitive> 요구, 원소 read-only,
+collection-in-body 거절, **replicated-arm 규칙** = 외부 바인딩 쓰기 전면
+거절 — N개 동시 인스턴스라 single-writer 증거가 성립 불가) → C 이미터
+(`transpiler_parallel_join_emit.c`: per-element ctx 배열 + 단일 wrapper +
+fan-out/join 루프) → LLVM 이미터(`llvm_stmt_parallel_join.c`: 동적 IR 루프,
+alloca 유도변수, 핸들 non-null guard). rung-0 명시 경계: slot/callable
+캡처는 양 백엔드 동일 fail-close("a later rung"). 검증: 204 양 백엔드 ·
+compare 등록 · 스모크(`parallel_join_smoke.sh`) 3플랫폼 CI 배선 · 유닛
+918/0·2794/0. 새 책임 = 새 파일 4개(550-line 규칙).
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 
@@ -119,6 +131,10 @@ not yet executable". 폐기하던 의미(collection 식, on-target, 주기)는
 무손상(두 sketch 데모는 라벨 강제 + 컴파일 게이트 제외). 목격자 스모크가
 진단 문구를 고정하고, rung이 실행을 여는 순간 그 스모크가 RED로 울려
 **이 문서 갱신을 강제**한다.
+
+*갱신 (2026-07-11, R0 개통)*: 예고대로 작동했다 — all-join이 실행으로
+졸업하며 vision 스모크에서 join-form 거절을 빼고 any-join(R3)으로 교체.
+남은 fail-close 표면 = any-join + reactive-형 전체.
 
 ## §5. 이행 프로토콜
 
