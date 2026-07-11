@@ -3,6 +3,21 @@
 #include "diag_codes.h"
 
 void
+type_check_func_validate_return_boundary(ASTNode *node,
+                                         SemanticContext *ctx,
+                                         Type *return_type)
+{
+    if (!type_is_builtin_owner_handle(return_type))
+        return;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
+        PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL,
+        ast_func_return_type(node),
+        "TextBuilder cannot cross a return boundary in the bounded owner rung; return the finished String instead");
+}
+
+void
 type_check_func_validate_param_boundary(ASTNode *node,
                                         SemanticContext *ctx,
                                         const char *func_name,
@@ -11,6 +26,20 @@ type_check_func_validate_param_boundary(ASTNode *node,
 {
     if (param == NULL)
         return;
+
+    if (type_is_builtin_owner_handle(param_type)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
+            PGY_FIX_USE_BOUNDARY_VISIBLE_TYPE_OR_DROP_QUALIFIER,
+            node,
+            "TextBuilder parameters are not supported by the bounded owner rung.\n"
+            "Reason:\n"
+            "- parameter carriage would expose an unproved copy, borrow, or transfer boundary\n"
+            "Fix:\n"
+            "- create and consume the TextBuilder inside one function owner scope\n"
+            "- pass the finished String across the function boundary instead");
+        return;
+    }
 
     if (param->mode != PARAM_MODE_DEFAULT
         && semantic_classify_ownership_type(param_type, ctx)

@@ -480,6 +480,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    ownership_let_validate_builtin_owner_binding(node, ctx, decl_type, init);
+
     if (init != NULL) {
         semantic_validate_borrowed_escape(
             node, init, ctx, init_type, NULL,

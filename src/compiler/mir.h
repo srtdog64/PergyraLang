@@ -132,6 +132,7 @@ typedef struct
     ASTNode         *expr1;
     const char      *abi_type_name;
     const MIRTypeLayout *type_layout;
+    const MIRTextBuilderRuntimeRow *text_builder_runtime_row;
 } MIRInstruction;
 
 typedef struct

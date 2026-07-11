@@ -270,6 +270,7 @@ extern Type* TYPE_REMOTE_FUTURE;
 extern Type* TYPE_TOKEN;
 extern Type* TYPE_DEVICE_SLOT;
 extern Type* TYPE_ALLOCATOR;
+extern Type* TYPE_TEXT_BUILDER;
 extern Type* TYPE_RESULT;
 extern Type* TYPE_OPTION;
 

@@ -3,11 +3,25 @@ test_text_builder_lifetime(void)
 {
     printf("\n[text_builder_lifetime]\n");
 
-    TEST("TextBuilder promotes one result and releases scratch storage");
+    TEST("TextBuilder runtime layout matches the ABI owner row");
+    EXPECT(sizeof(PgyTextBuilder) == sizeof(pgy_abi_text_builder)
+           && offsetof(PgyTextBuilder, data)
+                == offsetof(pgy_abi_text_builder, data)
+           && offsetof(PgyTextBuilder, length)
+                == offsetof(pgy_abi_text_builder, length)
+           && offsetof(PgyTextBuilder, capacity)
+                == offsetof(pgy_abi_text_builder, capacity)
+           && offsetof(PgyTextBuilder, finished)
+                == offsetof(pgy_abi_text_builder, finished));
+
+    EXPECT_PANIC("TextBuilder rejects negative capacity before allocation", {
+        (void)pgy_text_builder_new(-1);
+    });
+
+    TEST("TextBuilder promotes one result and releases intermediate storage");
     {
-        PgyAllocator scratch = pgy_allocator_scratch();
         PgyAllocator result_allocator = pgy_allocator_result();
-        PgyTextBuilder builder = pgy_text_builder_new(&scratch, 4);
+        PgyTextBuilder builder = pgy_text_builder_new(4);
         char *result;
 
         pgy_text_builder_append(&builder, "Pergyra");
@@ -16,20 +30,16 @@ test_text_builder_lifetime(void)
         EXPECT(strcmp(result, "PergyraLang") == 0
                && builder.finished
                && builder.data == NULL
-               && scratch.bytes_in_use == 0
                && result_allocator.bytes_in_use == strlen(result) + 1);
         pgy_free(&result_allocator, result, strlen(result) + 1);
     }
 
-    TEST("TextBuilder drop is idempotent and releases owned storage");
+    TEST("TextBuilder drop releases owned storage");
     {
-        PgyAllocator scratch = pgy_allocator_scratch();
-        PgyTextBuilder builder = pgy_text_builder_new(&scratch, 8);
+        PgyTextBuilder builder = pgy_text_builder_new(8);
 
         pgy_text_builder_append(&builder, "temporary");
         pgy_text_builder_drop(&builder);
-        pgy_text_builder_drop(&builder);
-        EXPECT(builder.finished && builder.data == NULL
-               && scratch.bytes_in_use == 0);
+        EXPECT(builder.finished && builder.data == NULL);
     }
 }

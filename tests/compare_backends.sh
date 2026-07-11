@@ -590,6 +590,7 @@ main() {
         "tests/cases/backend_compare/array_builtins"
         "tests/cases/backend_compare/allocator_lane_boxarray"
         "tests/cases/backend_compare/allocator_defer_cleanup"
+        "tests/cases/backend_compare/text_builder_lifecycle"
         "tests/cases/backend_compare/array_inline_access"
         "tests/cases/backend_compare/destructure_array"
         "tests/cases/backend_compare/destructure_tuple_return"

@@ -71,6 +71,8 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     Type *ret_type = TYPE_VOID;
     ASTNode *value = ast_return_value(node);
 
+    semantic_require_no_live_text_builder(ctx->scope, node, ctx, "return");
+
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
     if (value != NULL && value->type == AST_LAMBDA_EXPR

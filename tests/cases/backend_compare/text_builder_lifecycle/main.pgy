@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let result: Allocator = AllocatorResult();
+
+    let finished: TextBuilder = TextBuilderNew(2);
+    TextBuilderAppend(finished, "Pergyra");
+    TextBuilderAppend(finished, "Lang");
+    let text: String = TextBuilderFinish(finished, result);
+
+    let dropped: TextBuilder = TextBuilderNew(1);
+    TextBuilderAppend(dropped, "discarded");
+    TextBuilderDrop(dropped);
+
+    Print(text);
+    AllocatorDestroy(result);
+}

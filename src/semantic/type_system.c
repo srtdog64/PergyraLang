@@ -41,6 +41,7 @@ Type *TYPE_REMOTE_FUTURE = NULL;
 Type *TYPE_TOKEN = NULL;
 Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
+Type *TYPE_TEXT_BUILDER = NULL;
 Type *TYPE_RESULT = NULL;
 Type *TYPE_OPTION = NULL;
 
@@ -88,6 +89,7 @@ type_system_init(void)
     TYPE_TOKEN = type_create_primitive("Token", 0, false);
     TYPE_DEVICE_SLOT = type_create_primitive("DeviceSlot", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
+    TYPE_TEXT_BUILDER = type_create_primitive("TextBuilder", 0, false);
     TYPE_RESULT = type_create_primitive("Result", 0, false);
     TYPE_OPTION = type_create_primitive("Option", 0, false);
 }
@@ -119,6 +121,7 @@ type_system_cleanup(void)
     type_free_singleton(&TYPE_TOKEN);
     type_free_singleton(&TYPE_DEVICE_SLOT);
     type_free_singleton(&TYPE_ALLOCATOR);
+    type_free_singleton(&TYPE_TEXT_BUILDER);
     type_free_singleton(&TYPE_RESULT);
     type_free_singleton(&TYPE_OPTION);
 }

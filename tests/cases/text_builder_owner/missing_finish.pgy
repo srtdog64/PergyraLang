@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let builder: TextBuilder = TextBuilderNew(4);
+    TextBuilderAppend(builder, "unfinished");
+}

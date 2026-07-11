@@ -1,4 +1,5 @@
 #include "mir.h"
+#include "mir_abi_layout.h"
 #include "mir_decl_headers.h"
 
 #include <stdio.h>
@@ -417,6 +418,25 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_expr_or_null(out, inst->expr0);
     fputs(",\"expr1\":", out);
     mir_json_emit_expr_or_null(out, inst->expr1);
+    if (inst->text_builder_runtime_row != NULL) {
+        const MIRTextBuilderRuntimeRow *row =
+            inst->text_builder_runtime_row;
+        fputs(",\"runtime_call_abi\":{\"owner\":\"TextBuilder\",\"source\":", out);
+        mir_json_emit_str_or_null(out, row->source_name);
+        fputs(",\"operation\":", out);
+        mir_json_emit_str_or_null(out, row->operation);
+        fputs(",\"c_symbol\":", out);
+        mir_json_emit_str_or_null(out, row->c_inline_fn);
+        fputs(",\"llvm_symbol\":", out);
+        mir_json_emit_str_or_null(out, row->llvm_export_fn);
+        fputs(",\"c_shape\":", out);
+        mir_json_emit_str(out,
+            mir_text_builder_call_shape_name(row->c_call_shape));
+        fputs(",\"llvm_shape\":", out);
+        mir_json_emit_str(out,
+            mir_text_builder_call_shape_name(row->llvm_call_shape));
+        fputc('}', out);
+    }
     fputs(",\"speculation\":", out);
     if (inst->has_speculation_safety_fact) {
         fprintf(out, "{\"pure\":%s,\"non_trapping\":%s}",

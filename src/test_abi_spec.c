@@ -365,6 +365,23 @@ int main(void) {
     ABI_TEST("Slice<String>: runtime size matches ABI spec",
              sizeof(PgySlice_String) == sizeof(pgy_abi_slice_string));
 
+    printf("\n[TextBuilder]\n");
+    PRINT_LAYOUT(pgy_abi_text_builder);
+    ABI_TEST("TextBuilder: runtime size matches ABI spec",
+             sizeof(PgyTextBuilder) == sizeof(pgy_abi_text_builder));
+    ABI_TEST("TextBuilder: data offset matches",
+             offsetof(PgyTextBuilder, data)
+                 == offsetof(pgy_abi_text_builder, data));
+    ABI_TEST("TextBuilder: length offset matches",
+             offsetof(PgyTextBuilder, length)
+                 == offsetof(pgy_abi_text_builder, length));
+    ABI_TEST("TextBuilder: capacity offset matches",
+             offsetof(PgyTextBuilder, capacity)
+                 == offsetof(pgy_abi_text_builder, capacity));
+    ABI_TEST("TextBuilder: finished offset matches",
+             offsetof(PgyTextBuilder, finished)
+                 == offsetof(pgy_abi_text_builder, finished));
+
     /* ================================================================
      * 10. Auxiliary Types
      * ================================================================ */

@@ -26,6 +26,7 @@ typedef enum
     PGY_TK_CHANNEL,
     PGY_TK_FUTURE,
     PGY_TK_ALLOCATOR,
+    PGY_TK_TEXT_BUILDER,
     PGY_TK_BOX,
     PGY_TK_RC,
     PGY_TK_WEAK,

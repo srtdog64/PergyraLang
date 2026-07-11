@@ -322,6 +322,7 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         {"ListStr", "PgyList_String"},
         {"Queue", "PgyQueue_Int"},
         {"Set", "PgySet_String"},
+        {"TextBuilder", "PgyTextBuilder"},
         {"Timer", "PgyTimer"},
     };
     char suffix[96];

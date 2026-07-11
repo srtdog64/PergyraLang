@@ -60,6 +60,15 @@ llvm_ctx_create(const char *module_name)
             "PgyAllocator");
         LLVMStructSetBody(ctx->type_allocator, allocator_fields, 8, 0);
     }
+    {
+        LLVMTypeRef text_builder_fields[] = {
+            ctx->type_i8ptr, ctx->type_i64, ctx->type_i64, ctx->type_i1
+        };
+        ctx->type_text_builder = LLVMStructCreateNamed(ctx->context,
+            "PgyTextBuilder");
+        LLVMStructSetBody(ctx->type_text_builder,
+            text_builder_fields, 4, 0);
+    }
 
     pgy_arena_init(&ctx->scratch, 0);
     pgy_arena_init(&ctx->persistent, 0);

@@ -182,6 +182,13 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
             }
             if (strcmp(callee, "AllocatorDestroy") == 0)
                 return TYPE_VOID;
+            if (strcmp(callee, "TextBuilderNew") == 0)
+                return TYPE_TEXT_BUILDER;
+            if (strcmp(callee, "TextBuilderFinish") == 0)
+                return TYPE_STRING;
+            if (strcmp(callee, "TextBuilderAppend") == 0
+                || strcmp(callee, "TextBuilderDrop") == 0)
+                return TYPE_VOID;
             if (strcmp(callee, "ClaimQubit") == 0)
                 return TYPE_QUBIT;
             if (strcmp(callee, "Measure") == 0

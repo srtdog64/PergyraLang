@@ -24,6 +24,7 @@
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_stdlib_scalar_io_calls.h"
 #include "llvm_expr_task_channel_calls.h"
+#include "llvm_expr_text_builder_calls.h"
 #include "llvm_mir_signature.h"
 #include "llvm_intent_internal.h"
 #include "llvm_internal_api.h"
@@ -126,6 +127,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (llvm_emit_array_builtin_call(node, ctx, callee_name, &array_call))
             return array_call;
         if (llvm_emit_allocator_builtin_call(node, ctx, callee_name, &array_call))
+            return array_call;
+        if (llvm_emit_text_builder_builtin_call(node, ctx, callee_name, &array_call))
             return array_call;
     }
 

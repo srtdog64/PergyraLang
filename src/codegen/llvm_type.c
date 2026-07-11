@@ -56,6 +56,9 @@ pgy_classify_type(const char *type_name)
         if (strncmp(type_name, "Slice<", 6) == 0)       return PGY_TK_SLICE;
         if (strncmp(type_name, "Set<", 4) == 0)         return PGY_TK_SET;
         break;
+    case 'T':
+        if (strcmp(type_name, "TextBuilder") == 0) return PGY_TK_TEXT_BUILDER;
+        break;
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
     case 'H':
         if (strncmp(type_name, "HashMap<", 8) == 0)     return PGY_TK_HASHMAP;
@@ -108,6 +111,7 @@ pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind)
     case PGY_TK_REMOTE_FUTURE: return ctx->type_task_handle;
     case PGY_TK_FUTURE:        return ctx->type_task_handle;
     case PGY_TK_ALLOCATOR:     return ctx->type_allocator;
+    case PGY_TK_TEXT_BUILDER:  return ctx->type_text_builder;
     case PGY_TK_VOID:          return ctx->type_void;
     default:                   return NULL;
     }

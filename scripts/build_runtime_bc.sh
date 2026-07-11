@@ -86,11 +86,21 @@ esac
 # define the hot primitives (Substring et al.). Refuse to "succeed" with an
 # empty artifact that would make the optimization a no-op.
 if command -v llvm-nm >/dev/null 2>&1; then
-    if [ "$(llvm-nm "$OUT" 2>/dev/null | grep -cE ' T ')" -eq 0 ]; then
+    SYMBOLS="$(llvm-nm "$OUT" 2>/dev/null)"
+    if [ "$(printf '%s\n' "$SYMBOLS" | grep -cE ' T ')" -eq 0 ]; then
         echo "build_runtime_bc: ERROR: bitcode has no defined functions" >&2
         echo "  (is -DPGY_LLVM_ENABLED reaching the compile? is the target/include right?)" >&2
         exit 1
     fi
+    for symbol in pgy_text_builder_new_export \
+                  pgy_text_builder_append_export \
+                  pgy_text_builder_finish_export \
+                  pgy_text_builder_drop_export; do
+        if ! printf '%s\n' "$SYMBOLS" | grep -Eq " T ${symbol}$"; then
+            echo "build_runtime_bc: ERROR: missing TextBuilder export '$symbol'" >&2
+            exit 1
+        fi
+    done
 fi
 
 echo "build_runtime_bc: wrote $OUT"

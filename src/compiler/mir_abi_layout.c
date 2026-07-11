@@ -252,6 +252,17 @@ static const MIRTypeLayout k_abi_type_table[] = {
              ABI_FIELD_STRUCT("capacity", pgy_abi_array_string, capacity),
              ABI_FIELD_STRUCT("allocator", pgy_abi_array_string, allocator)),
 
+    /* Single-consume text assembly owner. Runtime mutation is only exposed through
+     * MIR-owned TextBuilder call rows. */
+    ABI_TYPE("TextBuilder",
+             sizeof(pgy_abi_text_builder),
+             _Alignof(pgy_abi_text_builder),
+             "pgy_text_builder_new_export", "char", 4,
+             ABI_FIELD_STRUCT("data", pgy_abi_text_builder, data),
+             ABI_FIELD_STRUCT("length", pgy_abi_text_builder, length),
+             ABI_FIELD_STRUCT("capacity", pgy_abi_text_builder, capacity),
+             ABI_FIELD_STRUCT("finished", pgy_abi_text_builder, finished)),
+
     /* Slice<T> */
     ABI_TYPE("Slice<Int>",
              sizeof(pgy_abi_slice_int),

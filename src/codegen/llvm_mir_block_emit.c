@@ -208,6 +208,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
+        ctx->current_mir_instruction = inst;
         llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
         if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
@@ -626,6 +627,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             break;
         }
     }
+    ctx->current_mir_instruction = NULL;
 
     if (!emitted_terminator) {
         if (mir_block->has_succ_true && mir_block->has_succ_false) {

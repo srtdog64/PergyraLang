@@ -2,12 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SOURCE="$ROOT_DIR/tests/cases/mir_speculation_facts/main.pgy"
 OUT="$ROOT_DIR/.tmp/mir-speculation-facts.json"
 
 mkdir -p "$(dirname "$OUT")"
-"$PGY" "$SOURCE" --mir-json > "$OUT" 2> "$OUT.stderr"
+"$PGY" "$(pgy_path_for_compiler "$PGY" "$SOURCE")" --mir-json \
+    > "$OUT" 2> "$OUT.stderr"
 
 grep -Fq '"expr0":"7","expr1":"chosen","speculation":{"pure":true,"non_trapping":true}' "$OUT"
 grep -Fq '"speculation":{"pure":true,"non_trapping":true}' "$OUT"

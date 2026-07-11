@@ -64,6 +64,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     TranspilerSSANameMap ssa_map = {0};
     TranspilerSSANameMap *ssa_map_out = &ssa_map;
     const void *saved_active_ssa_map;
+    const MIRInstruction *saved_active_mir_instruction;
     bool source_order_mode = false;
     size_t *inst_order = NULL;
     bool ok = true;
@@ -97,23 +98,28 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     if (!transpiler_mir_seed_block_phi_names(block, ssa_map_out))
         return false;
     saved_active_ssa_map = ctx->active_ssa_map;
+    saved_active_mir_instruction = ctx->active_mir_instruction;
     ctx->active_ssa_map = ssa_map_out;
     if (!transpiler_mir_remap_active_match_bindings(
             mir_routine, block, ctx, ssa_map_out)) {
         ctx->active_ssa_map = saved_active_ssa_map;
+        ctx->active_mir_instruction = saved_active_mir_instruction;
         return false;
     }
     if (!transpiler_mir_emit_match_case_body_binding(
             buf, mir_routine, block, ctx, ssa_map_out)) {
         ctx->active_ssa_map = saved_active_ssa_map;
+        ctx->active_mir_instruction = saved_active_mir_instruction;
         return false;
     }
     if (!transpiler_emit_mir_pin_enter_local(buf, ctx, block, reason, reason_cap)) {
         ctx->active_ssa_map = saved_active_ssa_map;
+        ctx->active_mir_instruction = saved_active_mir_instruction;
         return false;
     }
     if (!transpiler_mir_seed_pin_view_alias(block, ssa_map_out)) {
         ctx->active_ssa_map = saved_active_ssa_map;
+        ctx->active_mir_instruction = saved_active_mir_instruction;
         return false;
     }
     /* Seed function parameter names into the per-block SSA name map so that
@@ -147,6 +153,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (!transpiler_mir_block_build_source_order(block, &inst_order,
                                                      reason, reason_cap)) {
             ctx->active_ssa_map = saved_active_ssa_map;
+            ctx->active_mir_instruction = saved_active_mir_instruction;
             return false;
         }
     }
@@ -155,6 +162,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                            reason, reason_cap)) {
         free(inst_order);
         ctx->active_ssa_map = saved_active_ssa_map;
+        ctx->active_mir_instruction = saved_active_mir_instruction;
         return false;
     }
 
@@ -163,6 +171,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     for (size_t i = 0; i < block->instruction_count; i++) {
         size_t inst_index = source_order_mode ? inst_order[i] : i;
         const MIRInstruction *inst = &block->instructions[inst_index];
+        ctx->active_mir_instruction = inst;
 
         if (debug_source_path != NULL) {
             uint32_t debug_line = mir_instruction_source_line(inst);
@@ -421,5 +430,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         break;
     }
     ctx->active_ssa_map = saved_active_ssa_map;
+    ctx->active_mir_instruction = saved_active_mir_instruction;
     return ok;
 }

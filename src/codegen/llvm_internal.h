@@ -350,6 +350,7 @@ typedef struct LLVMGenCtx
     const char     *current_within_zone_name;
     ASTNode        *current_func_decl;
     const MIRRoutine *current_mir_routine;
+    const MIRInstruction *current_mir_instruction;
     ASTNode        *current_host_decl;
     const char     *current_class_name;
     bool            uses_intent_observability;
@@ -371,6 +372,7 @@ typedef struct LLVMGenCtx
 
     LLVMTypeRef     type_task_handle;
     LLVMTypeRef     type_allocator;
+    LLVMTypeRef     type_text_builder;
     int             parallel_counter;
     /* Expression-form parallel join (docs/181 R2): while emitting such a
      * wrapper body, `give` stores through this per-task result slot. */

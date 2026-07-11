@@ -53,4 +53,24 @@ typedef struct
     bool             pass_indirect;
 } MIRParamAbiFact;
 
+typedef enum MIRTextBuilderCallShape
+{
+    MIR_TEXT_BUILDER_CALL_CAPACITY_TO_BUILDER,
+    MIR_TEXT_BUILDER_CALL_OUT_CAPACITY_TO_VOID,
+    MIR_TEXT_BUILDER_CALL_BUILDER_STRING_TO_VOID,
+    MIR_TEXT_BUILDER_CALL_BUILDER_ALLOCATOR_TO_STRING,
+    MIR_TEXT_BUILDER_CALL_BUILDER_TO_VOID,
+} MIRTextBuilderCallShape;
+
+typedef struct MIRTextBuilderRuntimeRow
+{
+    const char *source_name;
+    const char *operation;
+    const char *c_inline_fn;
+    const char *llvm_export_fn;
+    MIRTextBuilderCallShape c_call_shape;
+    MIRTextBuilderCallShape llvm_call_shape;
+    const char *materialization;
+} MIRTextBuilderRuntimeRow;
+
 #endif /* PERGYRA_MIR_ABI_H */

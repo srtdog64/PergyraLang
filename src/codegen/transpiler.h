@@ -276,6 +276,7 @@ typedef struct
     const char *current_overlay_receiver_expr;
     bool uses_intent_observability;
     const void *active_ssa_map;
+    const MIRInstruction *active_mir_instruction;
     /* Persistent alias map for match-case bindings, valid for the whole
      * function emission. Each entry maps source binding name (e.g. "v") to
      * the SSA-renamed unique C variable name (e.g. "_pgy_match_v_42").

@@ -64,6 +64,7 @@
 #define PGY_CODE_SEM_VIEW_KIND_MISMATCH         "PGY_SEM_VIEW_KIND_MISMATCH"
 #define PGY_CODE_SEM_MOVE_TOKEN_MISUSE          "PGY_SEM_MOVE_TOKEN_MISUSE"
 #define PGY_CODE_SEM_MOVE_FROM_RELEASED         "PGY_SEM_MOVE_FROM_RELEASED"
+#define PGY_CODE_SEM_OWNER_NOT_CONSUMED         "PGY_SEM_OWNER_NOT_CONSUMED"
 #define PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT     "PGY_SEM_PARALLEL_SLOT_CONFLICT"
 #define PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK    "PGY_SEM_PARALLEL_SLOT_RACE_RISK"
 #define PGY_CODE_SEM_EFFECT_CONFLICT            "PGY_SEM_EFFECT_CONFLICT"
@@ -190,6 +191,7 @@
 #define PGY_CAUSE_BORROW_ESCAPE                 "semantic:borrow_escape"
 #define PGY_CAUSE_MOVE_ONLY_ASSIGNMENT_REBIND   "semantic:move_only:assignment_rebind"
 #define PGY_CAUSE_MOVE_FROM_RELEASED            "semantic:move:from_released"
+#define PGY_CAUSE_OWNER_NOT_CONSUMED            "semantic:owner:not_consumed"
 #define PGY_CAUSE_MOVE_SOURCE_NOT_NAMED         "semantic:move:source_not_named"
 #define PGY_CAUSE_MOVE_TOKEN_DIRECT_ACCESS      "semantic:move_token:direct_access"
 #define PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT  "semantic:anchored_handle:copy_attempt"
@@ -413,6 +415,7 @@
 
 /* --- reclaim / release / return --- */
 #define PGY_FIX_RECLAIM_BEFORE_USE              "reclaim-before-use"
+#define PGY_FIX_CONSUME_OWNER_BEFORE_EXIT       "consume-owner-before-exit"
 #define PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE   "reclaim-or-trace-earlier-move"
 #define PGY_FIX_RECLAIM_SOURCE_OR_DROP_VIEW     "reclaim-source-or-drop-view"
 #define PGY_FIX_RECLAIM_SOURCE_OR_TRACE_EARLIER_RELEASE \

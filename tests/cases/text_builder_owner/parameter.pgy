@@ -1,0 +1,6 @@
+func Consume(builder: TextBuilder) -> Void {
+    TextBuilderDrop(builder);
+}
+
+func Main() -> Void {
+}

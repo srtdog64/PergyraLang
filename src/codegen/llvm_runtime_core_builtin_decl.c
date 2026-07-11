@@ -8,6 +8,45 @@
 #include "llvm_internal.h"
 #include "llvm_runtime_internal.h"
 #include "../common/intent_observability_abi.h"
+#include "../compiler/mir_abi_layout.h"
+
+#include <string.h>
+
+static void
+llvm_declare_text_builder_builtins(LLVMGenCtx *ctx)
+{
+    LLVMTypeRef builder_ptr = LLVMPointerType(ctx->type_text_builder, 0);
+    LLVMTypeRef allocator_ptr = LLVMPointerType(ctx->type_allocator, 0);
+
+    for (size_t i = 0; i < mir_text_builder_runtime_row_count(); i++) {
+        const MIRTextBuilderRuntimeRow *row =
+            mir_text_builder_runtime_row_at(i);
+        LLVMTypeRef params[3] = { NULL, NULL, NULL };
+        LLVMTypeRef ret = ctx->type_void;
+        unsigned count = 1;
+
+        if (row == NULL)
+            continue;
+        params[0] = builder_ptr;
+        if (row->llvm_call_shape
+            == MIR_TEXT_BUILDER_CALL_BUILDER_STRING_TO_VOID) {
+            params[1] = ctx->type_i8ptr;
+            count = 2;
+        } else if (row->llvm_call_shape
+                   == MIR_TEXT_BUILDER_CALL_BUILDER_ALLOCATOR_TO_STRING) {
+            params[1] = allocator_ptr;
+            ret = ctx->type_i8ptr;
+            count = 2;
+        } else if (row->llvm_call_shape
+                   == MIR_TEXT_BUILDER_CALL_OUT_CAPACITY_TO_VOID) {
+            params[1] = ctx->type_i64;
+            count = 2;
+        }
+        LLVMTypeRef ft = LLVMFunctionType(ret, params, count, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module, row->llvm_export_fn, ft);
+        llvm_register_function(ctx, row->llvm_export_fn, fn, ft, ret);
+    }
+}
 
 static LLVMTypeRef
 llvm_intent_observability_return_type(
@@ -62,6 +101,7 @@ llvm_declare_intent_observability_builtins(LLVMGenCtx *ctx)
 void
 llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
 {
+    llvm_declare_text_builder_builtins(ctx);
     struct { const char *name; LLVMTypeRef param; } log_fns[] = {
         { "pgy_log_int",    ctx->type_i32 },
         { "pgy_log_long",   ctx->type_i64 },

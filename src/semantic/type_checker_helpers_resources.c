@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "diag_codes.h"
 #include "../common/worker_boundary_storage_policy.h"
 
 #include <string.h>
@@ -63,7 +64,8 @@ type_is_resource_handle(const Type *type)
 {
     return type_is_qubit(type)
         || type_is_owned_slot_handle(type)
-        || type_is_constructed_named(type, "DeviceSlot");
+        || type_is_constructed_named(type, "DeviceSlot")
+        || type_is_builtin_owner_handle(type);
 }
 
 bool
@@ -74,9 +76,55 @@ type_is_anchored_resource_handle(const Type *type)
 }
 
 bool
+type_is_builtin_owner_handle(const Type *type)
+{
+    return type != NULL && TYPE_TEXT_BUILDER != NULL
+        && type_equals(type, TYPE_TEXT_BUILDER);
+}
+
+bool
 type_is_movable_resource_handle(const Type *type)
 {
-    return type_is_qubit(type);
+    return type_is_qubit(type) || type_is_builtin_owner_handle(type);
+}
+
+bool
+semantic_require_no_live_text_builder(Scope *scope, ASTNode *site,
+                                      SemanticContext *ctx,
+                                      const char *boundary)
+{
+    if (scope == NULL || ctx == NULL)
+        return true;
+    for (Scope *current = scope; current != NULL; current = current->parent) {
+        for (size_t i = 0; i < current->symbol_count; i++) {
+            Symbol *symbol = current->symbols[i];
+            if (symbol == NULL || symbol->is_consumed
+                || !type_is_builtin_owner_handle(symbol->type))
+                continue;
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_OWNER_NOT_CONSUMED,
+                PGY_CAUSE_OWNER_NOT_CONSUMED,
+                PGY_FIX_CONSUME_OWNER_BEFORE_EXIT,
+                site,
+                "TextBuilder owner '%s' is still live at %s.\n"
+                "Reason:\n"
+                "- the bounded TextBuilder rung requires exactly one Finish or Drop in its declaration scope\n"
+                "- implicit cleanup is not yet a MIR-owned fact\n"
+                "Fix:\n"
+                "- call TextBuilderFinish(%s, resultAllocator) before %s\n"
+                "- or call TextBuilderDrop(%s) before %s",
+                symbol->name != NULL ? symbol->name : "<builder>",
+                boundary != NULL ? boundary : "scope exit",
+                symbol->name != NULL ? symbol->name : "builder",
+                boundary != NULL ? boundary : "scope exit",
+                symbol->name != NULL ? symbol->name : "builder",
+                boundary != NULL ? boundary : "scope exit");
+            return false;
+        }
+        if (current->kind == SCOPE_FUNCTION)
+            break;
+    }
+    return true;
 }
 
 static bool
@@ -202,6 +250,8 @@ resource_handle_display_name(const Type *type)
         return "resource";
     if (type_is_qubit(type))
         return "QubitSlot";
+    if (type_is_builtin_owner_handle(type))
+        return "TextBuilder";
     if (type_is_read_view(type))
         return "ReadView";
     if (type_is_write_view(type))

@@ -17,7 +17,12 @@ bool type_is_write_view(const Type *type);
 bool type_is_move_token(const Type *type);
 bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
+bool type_is_builtin_owner_handle(const Type *type);
 bool type_is_movable_resource_handle(const Type *type);
+bool semantic_require_no_live_text_builder(Scope *scope,
+                                           ASTNode *site,
+                                           SemanticContext *ctx,
+                                           const char *boundary);
 bool semantic_find_active_slot_view(Scope *scope,
                                     const char **view_name_out,
                                     const char **view_kind_out,
@@ -147,6 +152,9 @@ void type_check_func_validate_param_boundary(ASTNode *node,
                                              const char *func_name,
                                              FuncParam *param,
                                              Type *param_type);
+void type_check_func_validate_return_boundary(ASTNode *node,
+                                              SemanticContext *ctx,
+                                              Type *return_type);
 char *flatten_static_member_access(const ASTNode *expr, char separator);
 Type *expr_current_host_field_type(SemanticContext *ctx,
                                    const char *field_name);

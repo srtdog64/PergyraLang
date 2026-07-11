@@ -322,13 +322,16 @@ English anchor for tooling/doc gates:
   Self-host compiler text lifetime is also open: the allocation-free
   `CharCode`/`SubEqualsWithLen` usage scan reduced the measured pre-emission
   peak from 717,696 KiB to 51,968 KiB, but full emission still peaks at
-  3,719,552 KiB. Runtime rung 0 now provides an owned `PgyTextBuilder` with
-  explicit finish/drop and one-result promotion, gated by `test-memory`
-  (79/0). This does not yet close the language surface: current
-  `AllocatorScratch` is not a bulk-reset arena. Add the typed builtin, MIR ABI
-  row, C/LLVM lowering, and one measured self-host emission consumer before
-  claiming a memory reduction; do not substitute `Array<String>` or a higher
-  CI memory cap. See docs/127 section 8.
+  3,719,552 KiB. TextBuilder rung 1 now has a typed move-only builtin, a
+  MIR-owned target-specific runtime-call ABI row, C/LLVM lowering, explicit
+  finish/drop, and ABI/MIR/differential/negative/memory gates (`test-memory`
+  81/0). The bounded surface admits only a directly constructed immutable local
+  consumed in its declaration scope; general moves, parameters, returns,
+  fields, containers, and branch-sensitive lifecycle remain fail-closed.
+  Repoint one measured self-host emission owner and repeat the 3.7 GiB probe
+  before claiming a memory reduction. `AllocatorScratch` is still not a
+  bulk-reset arena; do not substitute `Array<String>` or a higher CI memory cap.
+  See docs/127 section 8.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a

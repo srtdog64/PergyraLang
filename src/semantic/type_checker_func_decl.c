@@ -121,6 +121,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             "- or use Box<T>/another explicit handle layer",
             type_name_or_unknown(return_type));
     }
+    type_check_func_validate_return_boundary(node, ctx, return_type);
 
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *param = ast_func_param(node, i);
@@ -564,6 +565,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 final_ret = ctx->inferred_return;
             }
         }
+        type_check_func_validate_return_boundary(node, ctx, final_ret);
         type_function_set_return_type(func_type, final_ret);
         if (final_ret != NULL && final_ret != TYPE_UNKNOWN
             && final_ret->name != NULL
@@ -573,6 +575,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Out of memory while recording inferred function return type");
         }
     }
+    semantic_require_no_live_text_builder(ctx->scope, node, ctx, "function exit");
+
     ctx->inferring_return = prev_inferring;
     ctx->inferred_return = prev_inferred;
     ctx->inferred_return_conflict = prev_infer_conflict;

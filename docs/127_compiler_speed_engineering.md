@@ -192,15 +192,27 @@ do not close this: `AllocatorScratch()` is currently a system-backed lane label,
 not a bulk-reset arena, and `AllocatorDestroy()` only releases pool backing
 storage.
 
-Text-builder rung 0 landed on 2026-07-12. `PgyTextBuilder` owns one growable
-buffer, checks length/capacity overflow, and requires explicit `Finish` promotion
-or `Drop`. The memory-layout gate proves that finishing releases scratch-owned
-storage and charges exactly one promoted result allocation. This is runtime
-substrate only: no Pergyra builtin, MIR runtime-call ABI row, C/LLVM lowering, or
-self-host consumer is claimed yet. The next rung must add that typed surface and
-repoint one measured emission owner before repeating the 3.7 GiB probe. Do not
-hide this debt behind `Array<String>`, a higher CI memory limit, or documentation
-that calls the current scratch lane a checkpoint arena.
+Text-builder rung 1 landed on 2026-07-12. `TextBuilder` is a typed, move-only
+builtin owner with `New`, `Append`, `Finish`, and `Drop` operations. A
+`MIRTextBuilderRuntimeRow` owns the C and LLVM runtime symbols and their distinct
+call shapes; both backends consume the row attached to each MIR instruction.
+The runtime owner checks length/capacity overflow, keeps intermediate storage in
+the system lane, and requires exactly one explicit `Finish` promotion or
+`Drop`. `Finish` copies the result into the caller-provided result allocator and
+releases the intermediate buffer. The ABI, MIR mutation, C/LLVM differential,
+negative ownership, runtime-bitcode symbol, and memory-layout gates cover this
+bounded contract.
+
+This is deliberately not a general linear-owner claim. The accepted surface is
+an immutable function local initialized directly by `TextBuilderNew`; it must
+be finished or dropped in its declaration scope. Parameters, returns, fields,
+containers, generic moves, mutable rebinding, nested-scope lifecycle, and
+branch-sensitive consumption remain fail-closed. The first self-host emission
+owner has not been repointed, so the measured 3.7 GiB peak has not changed and
+must not be presented as closed. The next rung is one typed self-host consumer
+plus a repeat of that same full-emission measurement. Do not hide the remaining
+debt behind `Array<String>`, a higher CI memory limit, or documentation that
+calls the current scratch lane a checkpoint arena.
 
 The measured artifact was stale enough to omit `SelfMirExpressionKind`; a
 regenerated 6,338,740-byte MIR artifact contains that enum and closes that

@@ -467,6 +467,15 @@ typedef struct {
     PgyAbiPoolAllocatorState *pool;
 } pgy_abi_allocator;
 
+/* TextBuilder owns its intermediate allocation. It is consumed exactly once
+ * by Finish or Drop at the typed language boundary. */
+typedef struct {
+    char   *data;
+    size_t  length;
+    size_t  capacity;
+    bool    finished;
+} pgy_abi_text_builder;
+
 /* =================================================================
  * 15. Future<T> / RemoteFuture<T> — Async Result Handles
  *

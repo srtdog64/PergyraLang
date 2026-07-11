@@ -50,6 +50,7 @@
 /* Enable debug mode for slot safety checks */
 #define PGY_DEBUG
 #include "runtime/pgy_runtime.h"
+#include "runtime/pgy_abi_spec.h"
 
 /* -----------------------------------------------------------------
  * Test runner

@@ -287,6 +287,71 @@
         hir_destroy(hir);
     }
 
+    TEST("MIR captures and validates TextBuilder runtime-call ABI facts");
+    {
+        const char *src =
+            "func TextBuilderFacts() -> Void {\n"
+            "    let result: Allocator = AllocatorResult();\n"
+            "    let builder: TextBuilder = TextBuilderNew(2);\n"
+            "    TextBuilderAppend(builder, \"x\");\n"
+            "    let text: String = TextBuilderFinish(builder, result);\n"
+            "    Print(text);\n"
+            "    AllocatorDestroy(result);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *append_inst = NULL;
+        bool saw_new = false;
+        bool saw_finish = false;
+        bool rejected_missing_row = false;
+        char *mir_error = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(
+                mir, "TextBuilderFacts", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    const MIRTextBuilderRuntimeRow *row =
+                        inst->text_builder_runtime_row;
+                    if (row == NULL || row->operation == NULL)
+                        continue;
+                    if (strcmp(row->operation, "New") == 0)
+                        saw_new = true;
+                    else if (strcmp(row->operation, "Append") == 0)
+                        append_inst = inst;
+                    else if (strcmp(row->operation, "Finish") == 0)
+                        saw_finish = true;
+                }
+            }
+        }
+        if (append_inst != NULL) {
+            const MIRTextBuilderRuntimeRow *saved =
+                append_inst->text_builder_runtime_row;
+            append_inst->text_builder_runtime_row = NULL;
+            rejected_missing_row = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "TextBuilder runtime-call ABI fact")
+                    != NULL;
+            append_inst->text_builder_runtime_row = saved;
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && saw_new
+               && append_inst != NULL
+               && saw_finish
+               && rejected_missing_row);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects DEF without initializer expression fact");
     {
         const char *src =

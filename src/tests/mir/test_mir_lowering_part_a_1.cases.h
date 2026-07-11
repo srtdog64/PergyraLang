@@ -171,6 +171,38 @@ test_mir_lowering_part_a(void)
                    MIR_RESOURCE_ABI_SLOT, "Unknown", "Claim") == NULL);
     }
 
+    TEST("MIR owns TextBuilder layout and target-specific runtime symbols");
+    {
+        const MIRTypeLayout *layout = mir_abi_lookup("TextBuilder");
+        const MIRTextBuilderRuntimeRow *append =
+            mir_text_builder_runtime_row("Append");
+        const MIRTextBuilderRuntimeRow *finish =
+            mir_text_builder_runtime_row("Finish");
+        const MIRTextBuilderRuntimeRow *create =
+            mir_text_builder_runtime_row("New");
+
+        EXPECT(layout != NULL
+               && layout->field_count == 4
+               && strcmp(layout->fields[0].field_name, "data") == 0
+               && strcmp(layout->fields[3].field_name, "finished") == 0
+               && mir_text_builder_runtime_row_count() == 4
+               && append != NULL
+               && strcmp(append->c_inline_fn,
+                         "pgy_text_builder_append") == 0
+               && strcmp(append->llvm_export_fn,
+                         "pgy_text_builder_append_export") == 0
+               && finish != NULL
+               && finish->c_call_shape
+                    == MIR_TEXT_BUILDER_CALL_BUILDER_ALLOCATOR_TO_STRING
+               && finish->llvm_call_shape
+                    == MIR_TEXT_BUILDER_CALL_BUILDER_ALLOCATOR_TO_STRING
+               && create != NULL
+               && create->c_call_shape
+                    == MIR_TEXT_BUILDER_CALL_CAPACITY_TO_BUILDER
+               && create->llvm_call_shape
+                    == MIR_TEXT_BUILDER_CALL_OUT_CAPACITY_TO_VOID);
+    }
+
     TEST("MIR ABI resource runtime row table exposes native resource rows");
     {
         EXPECT(mir_abi_resource_runtime_row_count() == 150);

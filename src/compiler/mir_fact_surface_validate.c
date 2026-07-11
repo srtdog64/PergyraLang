@@ -1,10 +1,23 @@
 #include "mir_fact_validate_internal.h"
+#include "mir_abi_layout.h"
 
 #include <string.h>
 
 #include "../parser/ast_analysis.h"
 
 #define mir_strdup_fmt mir_fact_strdup_fmt
+
+static const char *
+mir_instruction_root_call_name(const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return NULL;
+    if (inst->kind == MIR_INST_STMT)
+        return inst->arg0;
+    if (inst->kind == MIR_INST_DEF)
+        return inst->arg1;
+    return NULL;
+}
 
 static bool
 mir_def_source_requires_initializer_fact(const MIRInstruction *inst)
@@ -166,6 +179,19 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
+        const char *root_call_name = mir_instruction_root_call_name(inst);
+        const MIRTextBuilderRuntimeRow *expected_text_builder_row =
+            mir_text_builder_runtime_row_by_source_name(root_call_name);
+        if (expected_text_builder_row != inst->text_builder_runtime_row) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] TextBuilder runtime-call ABI fact is missing or mismatched",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (mir_instruction_has_lifecycle_guard(inst)
             && (mir_instruction_lifecycle_receiver_name(inst) == NULL
                 || mir_instruction_lifecycle_receiver_name(inst)[0] == '\0')) {

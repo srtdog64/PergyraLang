@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let first: TextBuilder = TextBuilderNew(4);
+    let second: TextBuilder = first;
+    TextBuilderDrop(first);
+    TextBuilderDrop(second);
+}

@@ -6,6 +6,24 @@
 #include "../parser/ast_api.h"
 #include "../semantic/lifecycle_state.h"
 #include "mir_type_helpers.h"
+#include "mir_abi_layout.h"
+
+static void
+mir_attach_text_builder_runtime_row(MIRInstruction *inst,
+                                    const ASTNode *call)
+{
+    ASTNode *callee;
+    const char *source_name;
+
+    if (inst == NULL || call == NULL || call->type != AST_CALL)
+        return;
+    callee = ast_call_callee(call);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return;
+    source_name = ast_identifier_name(callee);
+    inst->text_builder_runtime_row =
+        mir_text_builder_runtime_row_by_source_name(source_name);
+}
 
 static void
 mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
@@ -100,6 +118,7 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     inst->arg0 = ast_identifier_name(ast_call_callee(stmt));
+    mir_attach_text_builder_runtime_row(inst, stmt);
 }
 
 static void
@@ -154,6 +173,7 @@ mir_attach_def_initializer_call_fact(MIRRoutine *routine,
         return;
     }
     inst->arg1 = ast_identifier_name(ast_call_callee(expr));
+    mir_attach_text_builder_runtime_row(inst, expr);
 }
 
 void

@@ -89,6 +89,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_set_intent_trace_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_intent_slot_core_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_text_builder_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_secure_slot_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_device_slot_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_array_exports.h",
@@ -147,6 +148,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
          * object, so they must invalidate the cache -- omitting them silently
          * links a stale runtime on the LLVM path (a C/LLVM divergence). */
         PGY_RUNTIME_DIR "/pgy_runtime_allocator_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_text_builder_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_budget.h",
         PGY_RUNTIME_DIR "/pgy_runtime_capability.h",
         PGY_RUNTIME_DIR "/pgy_runtime_media_stub.h",

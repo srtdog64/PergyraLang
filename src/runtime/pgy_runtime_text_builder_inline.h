@@ -10,20 +10,23 @@ typedef struct {
     char *data;
     size_t length;
     size_t capacity;
-    PgyAllocator *allocator;
     bool finished;
 } PgyTextBuilder;
 
 static inline PgyTextBuilder
-pgy_text_builder_new(PgyAllocator *allocator, size_t initial_capacity)
+pgy_text_builder_new(int64_t initial_capacity)
 {
     PgyTextBuilder builder;
-    size_t capacity = initial_capacity > 0 ? initial_capacity : 64;
+    size_t capacity;
+
+    if (initial_capacity < 0
+        || (uint64_t)initial_capacity > (uint64_t)SIZE_MAX)
+        PGY_PANIC("TextBuilder capacity must be non-negative and target-sized");
+    capacity = initial_capacity > 0 ? (size_t)initial_capacity : 64;
 
     memset(&builder, 0, sizeof(builder));
-    builder.data = (char *)pgy_alloc(allocator, capacity, _Alignof(char));
+    builder.data = (char *)pgy_alloc(NULL, capacity, _Alignof(char));
     builder.capacity = capacity;
-    builder.allocator = allocator;
     builder.data[0] = '\0';
     return builder;
 }
@@ -50,15 +53,8 @@ pgy_text_builder_reserve(PgyTextBuilder *builder, size_t required)
     if (capacity < required)
         PGY_PANIC("TextBuilder capacity overflow");
 
-    if (builder->allocator != NULL && builder->allocator->pool != NULL) {
-        grown = (char *)pgy_alloc(builder->allocator, capacity, _Alignof(char));
-        if (builder->length > 0)
-            memcpy(grown, builder->data, builder->length);
-        pgy_free(builder->allocator, builder->data, builder->capacity);
-    } else {
-        grown = (char *)pgy_realloc(builder->allocator, builder->data,
-                                   builder->capacity, capacity);
-    }
+    grown = (char *)pgy_realloc(NULL, builder->data,
+                               builder->capacity, capacity);
     builder->data = grown;
     builder->capacity = capacity;
     builder->data[builder->length] = '\0';
@@ -107,7 +103,7 @@ pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)
     result_size = builder->length + 1;
     result = (char *)pgy_alloc(result_allocator, result_size, _Alignof(char));
     memcpy(result, builder->data, result_size);
-    pgy_free(builder->allocator, builder->data, builder->capacity);
+    pgy_free(NULL, builder->data, builder->capacity);
     builder->data = NULL;
     builder->length = 0;
     builder->capacity = 0;
@@ -119,8 +115,8 @@ static inline void
 pgy_text_builder_drop(PgyTextBuilder *builder)
 {
     if (builder == NULL || builder->finished)
-        return;
-    pgy_free(builder->allocator, builder->data, builder->capacity);
+        PGY_PANIC("TextBuilder drop after finish or drop");
+    pgy_free(NULL, builder->data, builder->capacity);
     builder->data = NULL;
     builder->length = 0;
     builder->capacity = 0;
