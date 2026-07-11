@@ -18461,6 +18461,17 @@ WO:
   8종). walker 신설 `ast_parallel_index_analysis.c`(fail-close 기본).
   상세 = docs/181 §1.4 R1 착지 노트. 크기 잔여에 ast_identity.c 579 추가
   (기존 578+1, 600 전 분리 대상). R2(식 형태+청킹 측정)가 다음 디딤돌.
+- **WO-PARSURF-5 — 크기-잔여 분리의 실스코프 census (2026-07-11)**:
+  parser.c 619와 llvm_stmt_parallel_async.c 657은 **게이트가 파일명
+  단위로 무는 파일** — parser.c는 parser_lexer_diagnostic(에러 엔진
+  리터럴 5종), llvm 쪽은 backend_fail_closed/lane_scheduler/
+  memory_concurrency/mir_declaration_inventory/perf_contract/raw_escape가
+  긍정+**부정** 검사(예: "async가 캡처 컨텍스트 재도입 금지"의 negative
+  grep)를 걸어둠. 코드만 옮기면 부정 검사가 공허 통과 = **게이트 무음
+  증발**. 분리는 게이트 참조 lockstep 이주가 본체인 전용 커밋:
+  (a) parser.c → parser_core.c(토큰커서/에러 엔진 ~240) + 게이트 2종,
+  (b) llvm → llvm_stmt_async_block.c + llvm_stmt_capture_boundary.c
+  분리 + 게이트 6종의 파일 참조·부정검사 이주 + 각 스모크 재실행.
 - **WO-PARSURF-3**: 형 B rung 1+ — duration 리터럴 + 가상 클록 선행,
   R3은 SEA facade fill과 병합. (docs/181 §2.5)
 - **WO-PARSURF-4**: task_group AST+walker 잔재 삭제(~25파일 기계적 커밋).
