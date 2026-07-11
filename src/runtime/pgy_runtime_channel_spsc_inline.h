@@ -70,11 +70,9 @@ pgy_spsc_close_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 static inline bool \
 pgy_spsc_try_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("spsc_try_send_" #SuffixName, \
-            ch == NULL ? "null channel" : "channel is not initialized"); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "spsc_try_send_" #SuffixName); \
     if (atomic_load_explicit(&ch->closed, memory_order_acquire)) \
         return false; \
     size_t t = atomic_load_explicit(&ch->tail, memory_order_relaxed); \
@@ -89,8 +87,11 @@ pgy_spsc_try_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 static inline bool \
 pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
-        return false; \
+    /* The blocking spsc send spins on try_send: an uninitialized channel
+     * here was the literal infinite-warn shape of the incident. */ \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "spsc_send_" #SuffixName); \
     for (;;) { \
         if (pgy_spsc_try_send_##SuffixName(ch, val)) \
             return true; \
@@ -106,11 +107,9 @@ pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 static inline bool \
 pgy_spsc_try_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
 { \
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("spsc_try_recv_" #SuffixName, \
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL, \
+        "spsc_try_recv_" #SuffixName); \
     size_t h = atomic_load_explicit(&ch->head, memory_order_relaxed); \
     size_t t = atomic_load_explicit(&ch->tail, memory_order_acquire); \
     if (h >= t) \

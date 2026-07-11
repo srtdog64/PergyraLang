@@ -19,6 +19,31 @@
 #include "pgy_runtime_channel_status.h"
 #include "pgy_runtime_channel_lane_inline.h"
 
+/* Lifecycle guard (docs/179 3a; V1 bug class #8-R): an operation on a
+ * NULL or uninitialized channel is a contract VIOLATION, never a contract
+ * outcome, and it panics fail-closed. The prior warn-and-continue let a
+ * pre-fix binary retry a silently-lost send forever and write a 4.7GB
+ * warn log (2026-07-12 incident). Closed/full/empty/timeout stay
+ * data-carrying contract outcomes, and the *_result variants stay the
+ * failure-as-data tier: their own guards return ERR before ever reaching
+ * these raw operations. */
+static inline void
+pgy_channel_require_operable(bool ch_is_null, bool ch_uninitialized,
+                             bool out_is_null, const char *op)
+{
+    const char *what;
+
+    if (!ch_is_null && !ch_uninitialized && !out_is_null)
+        return;
+    what = ch_is_null ? "null channel"
+         : out_is_null ? "null output pointer"
+                       : "uninitialized channel";
+    fprintf(stderr, "%s channel lifecycle violation: op=%s on %s\n",
+            PGY_RUNTIME_PANIC_PREFIX, op, what);
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
+                      PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE);
+}
+
 #define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
 typedef struct \
 { \
@@ -123,11 +148,9 @@ pgy_channel_destroy_##SuffixName(PgyChannel_##SuffixName *ch) \
 PGY_CH_STORAGE bool \
 pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
-            ch == NULL ? "null channel" : "channel is not initialized"); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "send_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
         if (pgy_async_in_coroutine()) { \
@@ -160,11 +183,9 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 PGY_CH_STORAGE bool \
 pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("try_send_" #SuffixName, \
-            ch == NULL ? "null channel" : "channel is not initialized"); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "try_send_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->closed || ch->count >= ch->cap) { \
         pgy_runtime_warn_invalid_channel("try_send_" #SuffixName, \
@@ -184,8 +205,11 @@ pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 PGY_CH_STORAGE PgyOption_Bool \
 pgy_channel_try_send_status_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
-        return Some_Bool(false); \
+    /* Silently reporting an uninitialized channel as "closed" was the
+     * worst tier of the incident class -- not even a warn. */ \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "try_send_status_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->closed) { \
         pthread_mutex_unlock(&ch->mutex); \
@@ -208,11 +232,9 @@ PGY_CH_STORAGE bool \
 pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType value, uint64_t timeout_ns) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, \
-            ch == NULL ? "null channel" : "channel is not initialized"); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "send_timeout_" #SuffixName); \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
@@ -249,8 +271,9 @@ PGY_CH_STORAGE PgyOption_Bool \
 pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
                                              CType value, uint64_t timeout_ns) \
 { \
-    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
-        return Some_Bool(false); \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
+        "send_timeout_status_" #SuffixName); \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
@@ -283,11 +306,9 @@ pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
 PGY_CH_STORAGE bool \
 pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("recv_" #SuffixName, \
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL, \
+        "recv_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count == 0 && !ch->closed) { \
         if (pgy_async_in_coroutine()) { \
@@ -327,11 +348,9 @@ PGY_CH_STORAGE bool \
 pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType *out, uint64_t timeout_ns) \
 { \
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL, \
+        "recv_timeout_" #SuffixName); \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count == 0 && !ch->closed) { \
@@ -379,11 +398,9 @@ pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
 PGY_CH_STORAGE bool \
 pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
-        pgy_runtime_warn_invalid_channel("try_recv_" #SuffixName, \
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
-        return false; \
-    } \
+    pgy_channel_require_operable(ch == NULL, \
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL, \
+        "try_recv_" #SuffixName); \
     if (!pgy_async_in_coroutine()) \
         (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \

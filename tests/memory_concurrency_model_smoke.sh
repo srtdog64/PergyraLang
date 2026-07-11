@@ -233,6 +233,31 @@ for channel_wait_contract_file in \
         fi
     done
 done
+# Lifecycle-violation promotion (docs/179 3a; V1 bug class #8-R): an op on
+# a NULL/uninitialized channel panics fail-closed. Warn-and-continue here
+# once let a pre-fix binary retry a lost send forever and log 4.7GB. The
+# positive pin requires the panic guard; the negative pin keeps the old
+# warn-and-continue shape from coming back in any channel twin.
+for channel_lifecycle_contract_file in \
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_spsc_inline.h"; do
+    if ! grep -Fq "pgy_channel_require_operable" \
+        "$channel_lifecycle_contract_file"; then
+        echo "[memory-concurrency] channel runtime missing lifecycle-violation panic guard: $channel_lifecycle_contract_file" >&2
+        exit 1
+    fi
+    if grep -Fq "channel is not initialized" \
+        "$channel_lifecycle_contract_file"; then
+        echo "[memory-concurrency] channel runtime reintroduced warn-and-continue on an uninitialized channel: $channel_lifecycle_contract_file" >&2
+        exit 1
+    fi
+done
+if ! grep -Fq "PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h"; then
+    echo "[memory-concurrency] channel lifecycle violation must panic with the invalid-lifecycle-state class" >&2
+    exit 1
+fi
 if ! grep -Fq "PGY_CHANNEL_DEFINE(Int, int32_t, extern)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h"; then
     echo "[memory-concurrency] Int channel export twin must reuse the shared fail-closed body" >&2

@@ -157,11 +157,9 @@ pgy_channel_destroy_String(PgyChannel_String *ch)
 PGY_CH_STR_STORAGE bool
 pgy_channel_send_String(PgyChannel_String *ch, char *value)
 {
-    if (!pgy_channel_string_inline_is_initialized(ch)) {
-        pgy_runtime_warn_invalid_channel("send_String",
-            ch == NULL ? "null channel" : "channel is not initialized");
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && !pgy_channel_string_inline_is_initialized(ch), false,
+        "send_String");
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->cap && !ch->closed) {
         if (pgy_async_in_coroutine()) {
@@ -199,11 +197,9 @@ pgy_channel_send_String(PgyChannel_String *ch, char *value)
 PGY_CH_STR_STORAGE bool
 pgy_channel_try_send_String(PgyChannel_String *ch, char *value)
 {
-    if (!pgy_channel_string_inline_is_initialized(ch)) {
-        pgy_runtime_warn_invalid_channel("try_send_String",
-            ch == NULL ? "null channel" : "channel is not initialized");
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && !pgy_channel_string_inline_is_initialized(ch), false,
+        "try_send_String");
     pthread_mutex_lock(&ch->mutex);
     if (ch->closed || ch->count >= ch->cap) {
         pgy_runtime_warn_invalid_channel("try_send_String",
@@ -256,11 +252,9 @@ PGY_CH_STR_STORAGE bool
 pgy_channel_send_timeout_String(PgyChannel_String *ch,
                                 char *value, uint64_t timeout_ns)
 {
-    if (!pgy_channel_string_inline_is_initialized(ch)) {
-        pgy_runtime_warn_invalid_channel("send_timeout_String",
-            ch == NULL ? "null channel" : "channel is not initialized");
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && !pgy_channel_string_inline_is_initialized(ch), false,
+        "send_timeout_String");
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->cap && !ch->closed) {
@@ -340,11 +334,9 @@ pgy_channel_send_timeout_status_String(PgyChannel_String *ch,
 PGY_CH_STR_STORAGE bool
 pgy_channel_recv_String(PgyChannel_String *ch, char **out)
 {
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) {
-        pgy_runtime_warn_invalid_channel("recv_String",
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized"));
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL,
+        "recv_String");
     *out = NULL;
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
@@ -385,11 +377,9 @@ PGY_CH_STR_STORAGE bool
 pgy_channel_recv_timeout_String(PgyChannel_String *ch,
                                 char **out, uint64_t timeout_ns)
 {
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) {
-        pgy_runtime_warn_invalid_channel("recv_timeout_String",
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized"));
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL,
+        "recv_timeout_String");
     *out = NULL;
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
@@ -438,11 +428,9 @@ pgy_channel_recv_timeout_String(PgyChannel_String *ch,
 PGY_CH_STR_STORAGE bool
 pgy_channel_try_recv_String(PgyChannel_String *ch, char **out)
 {
-    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) {
-        pgy_runtime_warn_invalid_channel("try_recv_String",
-            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized"));
-        return false;
-    }
+    pgy_channel_require_operable(ch == NULL,
+        ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL,
+        "try_recv_String");
     *out = NULL;
     if (!pgy_async_in_coroutine())
         (void)pgy_async_progress_one();
