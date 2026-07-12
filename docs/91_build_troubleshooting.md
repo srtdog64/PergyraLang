@@ -105,6 +105,32 @@ The source filter is local validation only. It requires every selected source
 to pass every selected stage, but it does not prove source-count minima,
 pipeline identity, or the full 204-source replacement ledger.
 
+The codegen parity matrix is also an integration gate, not a narrow edit loop.
+Its 69 fixtures each run through oracle, C-built self-host, and LLVM-built
+self-host legs. The runner uses bounded fixture parallelism with two workers by
+default; set `PGY_SELFHOST_CODEGEN_JOBS=1` for pressure diagnosis or at most 4
+on a measured CI worker. Unbounded parallelism is forbidden because it trades
+wall time for desktop stalls and hides per-process memory regressions. During a
+local slice, select only the fixtures that exercise the owner:
+
+```sh
+PGY_SELFHOST_CODEGEN_FIXTURES=hello,func_recursive \
+PGY_SELFHOST_CODEGEN_JOBS=2 \
+mingw32-make self-host-codegen-parity-test-smoke
+```
+
+The complete 69-fixture matrix remains the integration proof. It should not be
+silently substituted for a compiler build, and it should not be repeated by
+multiple aggregate targets in one CI job.
+
+Windows evidence on 2026-07-12: the serial full matrix took about 31 minutes;
+the same 69-fixture C/LLVM matrix with the default two workers completed in
+1,342,043 ms (22 minutes 22 seconds), with both backends at 69/69. This is a
+bounded wall-time improvement, not a fast edit loop. Parser/tool compilation
+and native process orchestration remain serial. Use
+`self-host-preparation-contract-test-smoke` for owner-shape edits and reserve
+`self-host-preparation-parity-test-smoke` for integration or scheduled CI.
+
 ---
 
 ## 1. "Nothing to be done for 'bin/pgy.exe'"

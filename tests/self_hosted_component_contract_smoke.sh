@@ -1279,6 +1279,11 @@ reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "inout env: Codege
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "inout env: CodegenTypeEnv"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "inout env: CodegenTypeEnv"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "Concat(base_env"
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'CODEGEN_JOBS="${PGY_SELFHOST_CODEGEN_JOBS:-2}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'PGY_SELFHOST_CODEGEN_JOBS must be 1..4'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_tool_fixture "$backend" "$tool_bin" "$base" &'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'check_oracle_drift "$base" &'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'wait_fixture_batch "${pids[@]}" || exit 1'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextTypedArenaFromNodes(nodes, count)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[i].indent"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "nodes[j].indent"

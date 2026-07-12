@@ -61,6 +61,11 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     echo "[self-host-parity:codegen] SKIP missing C compiler on PATH: $CC"
     exit 0
 fi
+CODEGEN_JOBS="${PGY_SELFHOST_CODEGEN_JOBS:-2}"
+if ! [[ "$CODEGEN_JOBS" =~ ^[1-9][0-9]*$ ]] || [[ "$CODEGEN_JOBS" -gt 4 ]]; then
+    echo "[self-host-parity:codegen] PGY_SELFHOST_CODEGEN_JOBS must be 1..4" >&2
+    exit 1
+fi
 
 # Build artifacts live under a repo-relative dir. The Pergyra codegen tool is a
 # native binary that resolves its AST-path argument relative to cwd, so it is
@@ -423,19 +428,19 @@ read_codegen_fixture_manifest() {
     fi
 }
 
-run_tool_backend() {
+run_tool_fixture() {
     local backend="$1"
     local tool_bin="$2"
+    local base="$3"
 
-    for base in "${FIXTURES[@]}"; do
-        local src="$FIXTURE_DIR/${base}.pgy"
-        local expected_file="$EXPECTED_DIR/${base}_stdout.txt"
-        local ast_rel="$REL_BUILD/${base}_${backend}_ast.txt"
-        local ast_file="$ROOT_DIR/$ast_rel"
-        local ast_raw="$ast_file.raw"
-        local ast_err="$ast_file.err"
-        local c_file="$ABS_BUILD/${base}_${backend}.c"
-        local self_exe="$ABS_BUILD/${base}_${backend}_self.exe"
+    local src="$FIXTURE_DIR/${base}.pgy"
+    local expected_file="$EXPECTED_DIR/${base}_stdout.txt"
+    local ast_rel="$REL_BUILD/${base}_${backend}_ast.txt"
+    local ast_file="$ROOT_DIR/$ast_rel"
+    local ast_raw="$ast_file.raw"
+    local ast_err="$ast_file.err"
+    local c_file="$ABS_BUILD/${base}_${backend}.c"
+    local self_exe="$ABS_BUILD/${base}_${backend}_self.exe"
 
         # 1. AST text from the self-host parser (written to a repo-relative path).
         local src_rel
@@ -498,19 +503,61 @@ run_tool_backend() {
         # 4. Compare against committed expected (== oracle, guarded above).
         # The verdict is owned by the Pergyra backend-output comparator so
         # run-output artifact parity consumes ArtifactZone/TestHarness rows.
-        compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2
-        run_generated_secure_open_probe "$backend" "$base" "$self_exe"
+    compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2
+    run_generated_secure_open_probe "$backend" "$base" "$self_exe"
+}
+
+wait_fixture_batch() {
+    local failed=0
+    local pid
+    for pid in "$@"; do
+        if ! wait "$pid"; then
+            failed=1
+        fi
     done
+    return "$failed"
+}
+
+run_tool_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+    local pids=()
+    local base
+    for base in "${FIXTURES[@]}"; do
+        run_tool_fixture "$backend" "$tool_bin" "$base" &
+        pids+=("$!")
+        if [[ "${#pids[@]}" -ge "$CODEGEN_JOBS" ]]; then
+            wait_fixture_batch "${pids[@]}" || exit 1
+            pids=()
+        fi
+    done
+    if [[ "${#pids[@]}" -gt 0 ]]; then
+        wait_fixture_batch "${pids[@]}" || exit 1
+    fi
 
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"
+}
+
+run_oracle_drift_checks() {
+    local pids=()
+    local base
+    for base in "${FIXTURES[@]}"; do
+        check_oracle_drift "$base" &
+        pids+=("$!")
+        if [[ "${#pids[@]}" -ge "$CODEGEN_JOBS" ]]; then
+            wait_fixture_batch "${pids[@]}" || exit 1
+            pids=()
+        fi
+    done
+    if [[ "${#pids[@]}" -gt 0 ]]; then
+        wait_fixture_batch "${pids[@]}" || exit 1
+    fi
 }
 
 compile_backend_output_comparator
 compile_parser_ast_producer
 read_codegen_fixture_manifest
-for base in "${FIXTURES[@]}"; do
-    check_oracle_drift "$base"
-done
+run_oracle_drift_checks
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
 RAN_BACKENDS=()
