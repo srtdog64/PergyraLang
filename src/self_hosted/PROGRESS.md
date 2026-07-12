@@ -240,6 +240,12 @@ The earlier runtime-consumer-specific owner label was generalized to node-kind
 surface ownership rather than duplicated. Event rejection is now a committed
 TestHarness negative leg, and no codegen arena declaration predicate remains.
 
+The follow-up ratchet deleted the final dead codegen arena payload views:
+atom, type, value, auxiliary value, parameter type, and parameter mode. The
+remaining mixed-expression blocker is therefore exact: semantic owner rows
+still carry expression text into lowering. Codegen no longer has a direct arena
+payload recovery API that can bypass those owners.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while

@@ -21,6 +21,9 @@ rewrite history.
 - Verified the component contract, seven focused C/LLVM declaration fixtures,
   payload-enum and event-declaration fail-closed behavior, and role-operator
   parity. The owner spine remains 28 rows: `CLOSED=13 BRIDGE=6 ACTIVE=9`.
+- Deleted the dead codegen arena atom/type/value/aux/parameter payload views.
+  The remaining mixed-expression blocker is now expression text inside semantic
+  rows, not a backend-accessible arena fallback.
 
 ## 2026-07-11 - Readonly ref carriage and 250-source M2 closure
 

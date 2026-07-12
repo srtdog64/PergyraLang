@@ -16,7 +16,7 @@ import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "stmt_emit.pgy";
 
 func ParamModeCsvAppend(csv: String, mode: Int) -> String {
-    let next: String = CodegenAstArenaParamModeName(mode);
+    let next: String = CodegenParamModeName(mode);
     if StringLength(csv) == 0 {
         return next;
     }

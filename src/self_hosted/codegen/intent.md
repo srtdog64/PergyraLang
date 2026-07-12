@@ -199,6 +199,10 @@ rewrites call arguments from those facts. It preserves but fail-closes on `own`
 and `ref` until their ABI and ownership facts have owners.
 This is a transitional text bridge; the mixed AST-like tagged-node owner remains
 an active expansion surface.
+The codegen arena view is now structural/provenance-only: direct atom, type,
+value, auxiliary-value, parameter-type, and parameter-mode accessors are
+absent. The remaining blocker is expression text carried inside semantic owner
+rows and parsed by expression lowering, not a codegen reread of the arena.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired

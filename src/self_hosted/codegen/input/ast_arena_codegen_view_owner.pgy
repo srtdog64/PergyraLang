@@ -25,38 +25,6 @@ func CodegenAstTreeArtifactReady(artifact: AstTreeArtifact) -> Bool {
         artifact.count > 0 && CodegenAstArenaIsProgramRoot(artifact.arena, 0);
 }
 
-func CodegenAstArenaAtomOrDie(arena: AstArena, node_id: Int) -> String {
-    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    if !IsSome(atom) {
-        Die(Concat("typed AST arena missing atom for node: ", ToString(node_id)));
-    }
-    return UnwrapOption(atom);
-}
-
-func CodegenAstArenaTypeNameOrDie(arena: AstArena, node_id: Int) -> String {
-    let type_name: Option<String> = TypedAstArenaTypeName(arena, node_id);
-    if !IsSome(type_name) {
-        Die(Concat("typed AST arena missing type name for node: ", ToString(node_id)));
-    }
-    return UnwrapOption(type_name);
-}
-
-func CodegenAstArenaValueOrDie(arena: AstArena, node_id: Int) -> String {
-    let value: Option<String> = TypedAstArenaValueText(arena, node_id);
-    if !IsSome(value) {
-        Die(Concat("typed AST arena missing value for node: ", ToString(node_id)));
-    }
-    return UnwrapOption(value);
-}
-
-func CodegenAstArenaAuxValueOrDie(arena: AstArena, node_id: Int) -> String {
-    let value: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
-    if !IsSome(value) {
-        Die(Concat("typed AST arena missing auxiliary value for node: ", ToString(node_id)));
-    }
-    return UnwrapOption(value);
-}
-
 func CodegenAstArenaIsProgramRoot(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindProgramTag());
 }
@@ -120,15 +88,7 @@ func CodegenAstArenaHasElseAt(arena: AstArena, count: Int, index: Int, if_indent
         && CodegenAstArenaIndentOrDie(arena, index) == if_indent + 2;
 }
 
-func CodegenAstArenaModeOrDie(arena: AstArena, node_id: Int) -> Int {
-    let mode: Option<Int> = TypedAstArenaMode(arena, node_id);
-    if !IsSome(mode) {
-        Die(Concat("typed AST arena missing mode for node: ", ToString(node_id)));
-    }
-    return UnwrapOption(mode);
-}
-
-func CodegenAstArenaParamModeName(mode: Int) -> String {
+func CodegenParamModeName(mode: Int) -> String {
     if mode == 1 {
         return "inout";
     }
@@ -139,18 +99,6 @@ func CodegenAstArenaParamModeName(mode: Int) -> String {
         return "ref";
     }
     return "default";
-}
-
-func CodegenAstArenaParamTypeOrDie(arena: AstArena, node_id: Int, owner_name: String) -> String {
-    let type_name: Option<String> = TypedAstArenaTypeName(arena, node_id);
-    if IsSome(type_name) {
-        return UnwrapOption(type_name);
-    }
-    if StringLength(owner_name) > 0 && CodegenAstArenaAtomOrDie(arena, node_id) == "self" {
-        return owner_name;
-    }
-    Die(Concat("typed AST arena missing parameter type for node: ", ToString(node_id)));
-    return "";
 }
 
 func CodegenAstArenaParentOrDie(arena: AstArena, node_id: Int) -> Int {

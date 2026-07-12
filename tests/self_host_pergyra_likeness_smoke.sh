@@ -74,7 +74,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # 107 -> 83 (2026-07-12): lock the measured compiler-core surface after the
 # typed owner-spine wave and try-expression fact cutover. New codegen text
 # recovery cannot consume the unratcheted margin.
-CORE_STRING_MUNGE_SIG_MAX=83
+# 83 -> 82 (2026-07-13): dead arena payload views were deleted; no live
+# semantic consumer moved back to string recovery.
+CORE_STRING_MUNGE_SIG_MAX=82
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -188,7 +190,10 @@ SENTINEL_MAX=0
 # nominal, role, and enum semantic identity through Option-backed indexes.
 # 1283 -> 1288 (2026-07-13): ability/event routing consumes the canonical
 # semantic node-kind identity instead of direct arena predicates.
-RESULT_USE_MIN=1288
+# 1288 -> 1282 (2026-07-13): six uncalled fail-closed arena payload accessors
+# were deleted. This re-bases to live errors-as-data use; no live Result/Option
+# path was replaced by a sentinel or hidden failure.
+RESULT_USE_MIN=1282
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
