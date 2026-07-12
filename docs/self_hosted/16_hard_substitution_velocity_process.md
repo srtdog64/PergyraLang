@@ -122,7 +122,8 @@ consumes only that owner row, and the AST-text enum variant owner is deleted.
 The native and self-host parser printers preserve variant parameter types;
 188 parser rows are byte-equal on C/LLVM, payload-free enum codegen remains
 run-equal, and the codegen parity gate requires both backend-built tools to
-reject the TestHarness-owned payload enum rather than erasing arity.
+reject the TestHarness-owned two-parameter payload enum rather than splitting
+its nested comma or erasing arity.
 
 Fifth executable delta, 2026-07-13: nominal names and ordered field rows now
 flow from `SemanticAstNominalConstructorFacts` through a fail-closed codegen

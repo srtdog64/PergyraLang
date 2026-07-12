@@ -2,6 +2,7 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
+import "delimited_range_fact_owner.pgy";
 
 struct SemanticAstEnumFacts {
     ok: Bool;
@@ -35,16 +36,19 @@ func SemanticAstEnumFactsFromArtifact(
                 ok = false;
             } else {
                 let enum_name: String = UnwrapOption(enum_name_opt);
-                let variants: Array<String> = Split(
-                    UnwrapOption(variants_opt), ","
-                );
-                if StringLength(enum_name) == 0 || ArrayLength(variants) == 0 {
+                let variants_text: String = UnwrapOption(variants_opt);
+                let variants: SemanticDelimitedRangeFacts =
+                    SemanticNestedCommaRangeFactsFromSource(variants_text);
+                if StringLength(enum_name) == 0 ||
+                    SemanticDelimitedRangeCount(variants) == 0 {
                     ok = false;
                 } else {
                     ArrayPush(enum_names, enum_name);
                     let variant_index: Int = 0;
-                    while variant_index < ArrayLength(variants) && ok {
-                        let variant: String = StringTrim(variants[variant_index]);
+                    while variant_index < SemanticDelimitedRangeCount(variants) && ok {
+                        let variant: String = SemanticDelimitedRangeText(
+                            variants, variants_text, variant_index
+                        );
                         let paren: Int = StringIndexOf(variant, "(");
                         let variant_name: String = variant;
                         let param_count: Int = 0;
@@ -53,10 +57,17 @@ func SemanticAstEnumFactsFromArtifact(
                             let close: Int = StringIndexOf(variant, ")");
                             if close <= paren {
                                 ok = false;
-                            } else if StringLength(StringTrim(Substring(
-                                variant, paren + 1, close - paren - 1
-                            ))) > 0 {
-                                param_count = 1;
+                            } else {
+                                let params_text: String = Substring(
+                                    variant, paren + 1, close - paren - 1
+                                );
+                                let params: SemanticDelimitedRangeFacts =
+                                    SemanticNestedCommaRangeFactsFromSource(
+                                        params_text
+                                    );
+                                param_count = SemanticDelimitedNonEmptyRangeCount(
+                                    params
+                                );
                             }
                         }
                         if StringLength(variant_name) == 0 {
@@ -77,6 +88,26 @@ func SemanticAstEnumFactsFromArtifact(
         ok, artifact.count, enum_names, variant_enum_names, variant_names,
         variant_param_counts
     );
+}
+
+func SemanticAstEnumNestedPayloadContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Enum: Shape { Circle(Int), Rect(Int, Int), None }\n"
+    );
+    let facts: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let circle: Option<Int> = SemanticAstEnumVariantParamCountAt(
+        facts, "Shape", 0
+    );
+    let rect: Option<Int> = SemanticAstEnumVariantParamCountAt(
+        facts, "Shape", 1
+    );
+    let none: Option<Int> = SemanticAstEnumVariantParamCountAt(
+        facts, "Shape", 2
+    );
+    return facts.ok && SemanticAstEnumCount(facts) == 1 &&
+        IsSome(circle) && UnwrapOption(circle) == 1 &&
+        IsSome(rect) && UnwrapOption(rect) == 2 &&
+        IsSome(none) && UnwrapOption(none) == 0;
 }
 
 func SemanticAstEnumExpressionType(

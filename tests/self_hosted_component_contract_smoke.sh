@@ -2775,6 +2775,10 @@ require_text "src/self_hosted/parser/decl_enum_owner.pgy" "let param_type: Strin
 require_text "src/self_hosted/parser/fixture/enum_data_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
 require_text "src/self_hosted/parser/fixture/tagged_union_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumNestedPayloadContractReady"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "SemanticNestedCommaRangeFactsFromSource(variants_text)"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "SemanticDelimitedNonEmptyRangeCount("
+reject_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" 'Split(UnwrapOption(variants_opt), ",")'
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumCount"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumNameAt"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantCountForName"
@@ -6149,7 +6153,7 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
 require_file "src/self_hosted/codegen/reject_fixture/enum_payload.pgy"
 require_file "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"
-require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int)"
+require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int, String)"
 require_text "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt" "payload enum variants are not supported"
 require_text "tests/self_hosted/parity/codegen_parity.sh" "run_payload_enum_reject"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'if [[ "$reject_rc" -eq 0 ]]'

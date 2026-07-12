@@ -177,7 +177,9 @@ codegen. Native and self-host AST printers now preserve variant parameter
 types; parser parity is 188/188 on C and LLVM with live drift enabled.
 `enum_match` remains run-equal and byte-identical across codegen tool backends,
 while `codegen_parity.sh` requires both tools to reject the TestHarness-owned
-payload-enum artifact with the same committed fail-closed diagnostic.
+two-parameter payload-enum artifact with the same committed fail-closed
+diagnostic. Semantic enum capture uses nested comma ranges, so
+`Rect(Int, Int)` is one variant with arity two rather than two rows.
 
 The fifth executable delta reused the already integrated
 `SemanticAstNominalConstructorFacts` owner for nominal names and ordered field

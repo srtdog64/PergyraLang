@@ -54,7 +54,8 @@ fallback consumers are gone.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` owns collection
   mutation payload rows consumed by the semantic statement codegen view;
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` owns enum declaration rows
-  consumed by the semantic enum codegen view and `CollectEnums`;
+  consumed by the semantic enum codegen view and `CollectEnums`; its nested
+  range contract preserves multi-parameter variant arity;
 - `src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy` owns nominal
   names and ordered field rows consumed by `CollectStructs`;
 - the retired AST-text array, try-let, collection, enum, and mixed declaration

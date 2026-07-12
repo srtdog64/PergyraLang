@@ -239,7 +239,7 @@ compares the resulting program stdout with the committed expected output. The
 expected output is guarded against drift by re-running the original fixture
 through the C backend oracle.
 
-The same TestHarness manifest owns a payload-enum reject source and its expected
-diagnostic artifact. Both C-built and LLVM-built tools must exit non-zero and
+The same TestHarness manifest owns a two-parameter payload-enum reject source
+and its expected diagnostic artifact. Both C-built and LLVM-built tools must exit non-zero and
 match that artifact through the Pergyra output comparator; accepting the input,
 dropping payload arity, or recovering it from enum aux text fails this gate.

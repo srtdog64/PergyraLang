@@ -170,7 +170,9 @@ SENTINEL_MAX=0
 # consumes Option-returning semantic owner accessors instead of direct arrays.
 # 1193 -> 1204 (2026-07-13): nominal name/field count/name/type projection now
 # consumes Option-returning semantic owner accessors instead of arena rows.
-RESULT_USE_MIN=1204
+# 1204 -> 1208 (2026-07-13): nested enum payload contract keeps each captured
+# variant arity behind Option-returning semantic accessors.
+RESULT_USE_MIN=1208
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
