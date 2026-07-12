@@ -10,6 +10,12 @@
   <em>An intent-first language that closes complex behavior into executable units and derives the rest of the structure from purpose.</em>
 </p>
 
+> **Developer experience is a core language invariant:** 개발자가 즐거워야 유저도 즐겁다.
+> Pergyra asks developers to state intent, resources, authority, and real
+> boundaries. Proof strategy, execution lane, materialization, and ABI choices
+> are compiler-derived by default and remain inspectable instead of becoming
+> routine source-level ceremony.
+
 <p align="center">
   <a href="docs/README_ko.md">Korean README</a> ·
   <a href="docs/01_intent_first_design.md">Intent-First Design</a> ·

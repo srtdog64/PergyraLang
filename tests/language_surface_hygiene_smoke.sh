@@ -16,6 +16,10 @@ require_text() {
 }
 
 for rel in \
+    "AGENTS.md" \
+    "README.md" \
+    "docs/00_vision.md" \
+    "docs/19_design_philosophy.md" \
     "docs/134_language_surface_hygiene.md" \
     "docs/mut_borrow_parameters.md" \
     "docs/42_keyword_orthogonality.md" \
@@ -27,6 +31,22 @@ for rel in \
     "src/parser/parser_async.c" \
     "src/semantic/type_checker_helpers_late.c"; do
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing $rel"
+done
+
+require_text "README.md" "Developer experience is a core language invariant"
+require_text "docs/00_vision.md" "Developer Experience Prime Directive"
+require_text "docs/19_design_philosophy.md" "DX Prime Directive"
+require_text "docs/19_design_philosophy.md" "Rust-style choice exposure"
+require_text "docs/19_design_philosophy.md" "single ergonomic path backed by visible evidence"
+require_text "docs/134_language_surface_hygiene.md" "DX Is A Surface Invariant"
+require_text "docs/134_language_surface_hygiene.md" "prefer one sound default"
+require_text "docs/134_language_surface_hygiene.md" "real semantic boundary"
+require_text "docs/134_language_surface_hygiene.md" "keep every derived decision inspectable"
+require_text "docs/134_language_surface_hygiene.md" "fails the DX invariant"
+require_text "AGENTS.md" 'The language slogan is: `개발자가 즐거워야 유저도 즐겁다.`'
+for rel in README.md docs/00_vision.md docs/19_design_philosophy.md \
+    docs/134_language_surface_hygiene.md AGENTS.md; do
+    require_text "$rel" "개발자가 즐거워야 유저도 즐겁다."
 done
 
 require_text "docs/134_language_surface_hygiene.md" "not to reduce Pergyra's domain vocabulary."
@@ -70,4 +90,4 @@ require_text "src/parser/parser_async.c" "strcmp(parser->current_token.text, \"i
 require_text "src/parser/parser_async.c" "'&mut' is not a binding mode in this language."
 require_text "src/semantic/type_checker_helpers_late.c" "multiple inout parameters"
 
-echo "[language-surface-hygiene] surface naming and domain-kit placement ok"
+echo "[language-surface-hygiene] DX invariant, surface naming, and domain-kit placement ok"

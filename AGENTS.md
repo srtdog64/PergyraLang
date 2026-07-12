@@ -3,6 +3,20 @@
 This repository is in beta-closure mode. Prefer source-of-truth closure over
 cosmetic reshuffling.
 
+## Developer Experience Is A Core Invariant
+
+- The language slogan is: `개발자가 즐거워야 유저도 즐겁다.`
+- Preserve strong typing, evidence, ownership, and fail-closed behavior without
+  exposing proof strategy, execution lane, materialization, layout, or backend
+  mechanisms as routine user choices.
+- Prefer one sound default. Add explicit syntax only for a real authority,
+  interoperability, observable-cost, loss-tolerance, or ownership boundary.
+- Derived choices must remain inspectable through diagnostics or IR facts.
+  Convenience must not hide failure until runtime.
+- Treat repeated Option/Result rituals, one-element out-parameter arrays,
+  namespace prefixes, and string-concatenation pyramids as language DX debt,
+  not as failures of user discipline.
+
 ## Objective Function Before Structure
 
 - Before a structural change, state the objective, priority order, fact owner,

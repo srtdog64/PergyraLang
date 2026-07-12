@@ -1,5 +1,32 @@
 # Pergyra 설계 철학
 
+## DX Prime Directive
+
+> **개발자가 즐거워야 유저도 즐겁다.**
+
+Developer experience is a core language invariant, not polish after semantic
+closure. Pergyra must preserve strong typing, evidence, ownership, and
+fail-closed behavior without charging every internal compiler choice to the
+developer.
+
+The surface contract is:
+
+- developers declare intent, resources, authority, loss tolerance, and actual
+  external boundaries;
+- the compiler derives proof strategy, execution lane, guard placement,
+  materialization, layout, and backend projection whenever one sound default
+  exists;
+- derived decisions remain inspectable through stable diagnostics and IR facts;
+- an explicit escape hatch appears only where the developer truly chooses a
+  different authority, cost, lifetime, or interoperability contract;
+- missing evidence rejects. It must not become hidden runtime failure or a menu
+  of compiler-mechanism choices in ordinary source.
+
+This deliberately rejects two failure modes: Rust-style choice exposure, where
+routine work requires selecting compiler mechanisms, and dynamic-language
+opacity, where convenience hides failure until runtime. Pergyra's target is a
+single ergonomic path backed by visible evidence and precise rejection.
+
 ## 0. Pergyra는 시스템 언어다 — 모든 것이 그 위에 얹힌다
 
 이 문서의 모든 다른 chapter, 그리고 docs/106 / 114 / 117 / 118 같은 sister

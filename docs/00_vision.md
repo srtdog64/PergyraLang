@@ -1,5 +1,20 @@
 # Pergyra 언어 비전
 
+## Developer Experience Prime Directive
+
+> **개발자가 즐거워야 유저도 즐겁다.**
+
+Pergyra는 개발자 경험을 안전성이나 성능 뒤에 붙는 편의 기능으로 보지
+않는다. DX는 언어의 핵심 불변식이다. 개발자는 목적, 자원, 권한, 손실 허용
+범위처럼 프로그램의 의미를 선언한다. 증명 전략, 실행 lane, materialization,
+ABI projection처럼 컴파일러가 소유할 수 있는 기계적 선택은 기본적으로
+컴파일러가 파생한다.
+
+이 원칙은 검사를 숨기거나 실패를 런타임으로 미룬다는 뜻이 아니다. 파생된
+결정은 diagnostics, explain output, AIR/MIR facts로 관찰 가능해야 하며, 증거가
+부족하면 fail closed 해야 한다. 사용자의 선택이 필요한 실제 권한·비용·외부
+경계에서는 하나의 안전한 기본 경로와 하나의 명시적 escape hatch를 제공한다.
+
 ## Machine-Neutral Compute Vision
 
 Pergyra should not make the von Neumann CPU the shape of the language. C and

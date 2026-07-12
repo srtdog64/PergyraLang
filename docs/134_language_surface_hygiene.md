@@ -2,6 +2,34 @@
 
 Status: beta-closure policy.
 
+## DX Is A Surface Invariant
+
+> **개발자가 즐거워야 유저도 즐겁다.**
+
+Surface hygiene is measured by how directly a developer can state domain
+meaning, not by how many compiler mechanisms the syntax exposes. A safe feature
+is not complete when it merely rejects bad programs; its common valid path must
+also avoid repeated proof, ownership, dispatch, layout, or error-handling
+ceremony.
+
+Rules:
+
+- prefer one sound default over a family of mechanism-level choices;
+- ask for explicit syntax only at a real semantic boundary: authority, external
+  interoperability, observable cost, loss tolerance, or ownership transfer;
+- derive execution lane, guard placement, materialization, layout, and backend
+  projection from owner facts;
+- keep every derived decision inspectable in diagnostics or IR;
+- reject missing evidence instead of inventing a fallback or deferring a hidden
+  failure to runtime;
+- treat repeated four-line consumption rituals, one-element out-parameter
+  arrays, prefix-heavy global names, and string-concatenation pyramids as
+  language DX debt rather than user discipline failures.
+
+This is not permission to add invisible control flow. Sugar is acceptable only
+when it lowers to an existing semantic owner, preserves error and effect
+visibility, and has a negative gate for ambiguity.
+
 This note records the current language-surface cleanup decision. The target is
 not to reduce Pergyra's domain vocabulary. `intent`, `zone`, `world`, `subject`,
 `object`, `tobject`, `ability`, `role`, `party`, and `roster` remain distinct
@@ -132,3 +160,8 @@ projection machinery instead of adding new core keywords.
 Allowed debt must be named. Unnamed fallback is not allowed. A compatibility
 alias is acceptable only with an owner, an expiry path, and a smoke gate; the
 language surface should otherwise prefer one spelling for one semantic flow.
+
+Any new stable surface must therefore answer both questions: which owner proves
+its semantics, and whether its ordinary valid use adds developer ceremony. A
+feature that improves proof coverage while needlessly exposing compiler
+mechanisms fails the DX invariant and must be redesigned before promotion.

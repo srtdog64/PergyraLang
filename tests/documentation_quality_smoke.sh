@@ -335,6 +335,11 @@ for term in "${proof_spine_coq_terms[@]}"; do
 done
 
 language_surface_terms=(
+    "DX Is A Surface Invariant"
+    "개발자가 즐거워야 유저도 즐겁다."
+    "prefer one sound default"
+    "keep every derived decision inspectable"
+    "fails the DX invariant"
     "not to reduce Pergyra's domain vocabulary."
     "Keyword count is not the"
     "debt; duplicated truth paths are the debt."
@@ -389,6 +394,9 @@ require_text "TODO.md" "Self-host boundary guard"
 require_text "TODO.md" "self-hosting is post-beta consumer work"
 
 systems_identity_terms=(
+    "DX Prime Directive"
+    "Rust-style choice exposure"
+    "single ergonomic path backed by visible evidence"
     "Pergyra is a systems language with domain extensions"
     "The systems-language baseline"
     "raw escape"
