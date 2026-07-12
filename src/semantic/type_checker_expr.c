@@ -43,6 +43,11 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     switch (expr->type) {
     case AST_NUMBER:
+        /* Duration first: it rides the is_long lane for codegen, but
+         * its TYPE stays distinct so bare numbers cannot pose as time
+         * (docs/181 SS2.3). */
+        if (ast_number_is_duration(expr))
+            return TYPE_DURATION;
         if (ast_number_is_long(expr))
             return TYPE_LONG;
         if (ast_number_is_float(expr))

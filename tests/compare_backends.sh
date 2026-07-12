@@ -560,6 +560,7 @@ main() {
         "tests/cases/backend_compare/parallel_join_collection"
         "tests/cases/backend_compare/parallel_join_expr"
         "tests/cases/backend_compare/parallel_join_index"
+        "tests/cases/backend_compare/duration_literal"
         "tests/cases/backend_compare/parallel_generic_arms"
         "tests/cases/backend_compare/parallel_generic_join"
         "tests/cases/backend_compare/parallel_join_any"

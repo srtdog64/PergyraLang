@@ -25,7 +25,17 @@ staged 상태로 진행 중이라(ast.h/채널 런타임/join 이미터/Makefile
 
 ## §1. WO-PARSURF-3a — Duration 리터럴 + Duration 타입 (반응형 R1 잔여)
 
-**잠금**: ast.h/ast_domain_data.h/ast_destroy.c (경로 A), 없음(경로 B).
+**상태 (2026-07-12 당일 갱신)**: **착지 완료** — 실행은 경로 A/B가 아닌
+더 얇은 제3경로(number 노드에 duration 플래그 + is_long 동승; 새 AST
+종류도 desugar도 불요)로. 파서가 ns 정규화+타입 봉인, 단위 5종
+(ns/us/ms/s/min), 2^53 fail-close, stdlib datetime의 Duration 클래스는
+TimeSpan으로 개명(실험 모듈). 감사 부수확: 기존 "단위 스킵" 눙침이
+`1500ms`를 조용히 1500으로 만드는 **살아있는 silent-value 결함**이었음
+— 이 착지가 그 결함의 수리이기도 함. canonical = docs/181 §2.3 착지
+노트. 잔여: Duration 산술/비교, `every(d)`의 소비(§3).
+
+**잠금(원문)**: ast.h/ast_domain_data.h/ast_destroy.c (경로 A),
+없음(경로 B).
 
 - 렉서: `<digits>ms|s` 닫힌 집합(us/ns는 필요 실증 후). 숫자 직후
   공백-없는 접미사만; `5 ms`는 리터럴 아님. 현행 "숫자 후 식별자 스킵"

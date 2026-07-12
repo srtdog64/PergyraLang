@@ -247,6 +247,10 @@ Type* type_instantiate(Type* generic_type, Type** type_args, size_t arg_count);
 /* Built-in types */
 extern Type* TYPE_INT;
 extern Type* TYPE_LONG;
+/* Duration (docs/181 SS2.3): a Long-backed distinct primitive carrying
+ * normalized nanoseconds. Distinctness is the point -- Int/Long never
+ * mix with it implicitly, so a bare number cannot pose as time. */
+extern Type* TYPE_DURATION;
 extern Type* TYPE_FLOAT;
 extern Type* TYPE_DOUBLE;
 extern Type* TYPE_BOOL;

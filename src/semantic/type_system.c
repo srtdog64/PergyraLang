@@ -18,6 +18,7 @@
 
 Type *TYPE_INT    = NULL;
 Type *TYPE_LONG   = NULL;
+Type *TYPE_DURATION = NULL;
 Type *TYPE_FLOAT  = NULL;
 Type *TYPE_DOUBLE = NULL;
 Type *TYPE_BOOL   = NULL;
@@ -66,6 +67,7 @@ type_system_init(void)
 
     TYPE_INT    = type_create_primitive("Int",    4, true);
     TYPE_LONG   = type_create_primitive("Long",   8, true);
+    TYPE_DURATION = type_create_primitive("Duration", 8, true);
     TYPE_FLOAT  = type_create_primitive("Float",  4, false);
     TYPE_DOUBLE = type_create_primitive("Double", 8, false);
     TYPE_BOOL   = type_create_primitive("Bool",   1, false);
@@ -99,6 +101,7 @@ type_system_cleanup(void)
 {
     type_free_singleton(&TYPE_INT);
     type_free_singleton(&TYPE_LONG);
+    type_free_singleton(&TYPE_DURATION);
     type_free_singleton(&TYPE_FLOAT);
     type_free_singleton(&TYPE_DOUBLE);
     type_free_singleton(&TYPE_BOOL);

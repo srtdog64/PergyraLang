@@ -391,7 +391,7 @@
             "    let key: IdempotencyKey = MakeIdempotencyKey(\"pay\", 1);\n"
             "    let posting: LedgerPosting = BuildTransferPosting(\"cash\", \"sales\", amount, version, key, \"memo\");\n"
             "    let started: Instant = InstantNow();\n"
-            "    let delay: Duration = DurationMs(50);\n"
+            "    let delay: TimeSpan = DurationMs(50);\n"
             "    let deadline: Instant = InstantAdd(started, delay);\n"
             "    let schedule: TimerSpec = TimerAfter(\"tick\", started.milliseconds, delay.milliseconds);\n"
             "    let due: Bool = TimerExpired(schedule, deadline.milliseconds);\n"

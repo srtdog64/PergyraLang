@@ -258,6 +258,7 @@ semantic_type_resolution_metadata_builtin_singleton(const char *name)
         { "Allocator", &TYPE_ALLOCATOR },
         { "Bool", &TYPE_BOOL },
         { "Double", &TYPE_DOUBLE },
+        { "Duration", &TYPE_DURATION },
         { "Float", &TYPE_FLOAT },
         { "Int", &TYPE_INT },
         { "Long", &TYPE_LONG },

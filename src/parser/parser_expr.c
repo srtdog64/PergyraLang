@@ -482,18 +482,48 @@ ASTNode* parser_parse_primary(Parser* parser) {
     if (parser_match(parser, TOKEN_NUMBER)) {
         Token num = parser->previous_token;
         ASTNode* number = ast_create_number(num.text);
-        /* Adjacent time-unit suffix (`10000ms`, `5s`): the unit is erased at the
-         * parse level and the numeric value carries through. Adjacency (no
-         * space) distinguishes a duration from `5 s` with a separate name. */
+        /* Duration literal (docs/181 SS2.3): `<digits><unit>` with no
+         * space. The previous path ATE the unit and kept the bare
+         * number -- 1500ms silently meant 1500 -- which is exactly the
+         * silent-value drift the reactive surface exists to forbid.
+         * Now the value normalizes to nanoseconds and types as
+         * Duration; fractional counts, non-integral spellings, and
+         * counts past the exactly-representable range fail closed.
+         * A non-unit adjacent identifier keeps falling through to the
+         * grammar (syntax error), exactly as before. */
         if (parser_check(parser, TOKEN_IDENTIFIER)
             && parser->current_token.text != NULL
-            && parser->current_token.column == num.column + (uint32_t)num.length
-            && (strcmp(parser->current_token.text, "ms") == 0
-                || strcmp(parser->current_token.text, "s") == 0
-                || strcmp(parser->current_token.text, "us") == 0
-                || strcmp(parser->current_token.text, "ns") == 0
-                || strcmp(parser->current_token.text, "min") == 0))
-            parser_advance(parser);
+            && parser->current_token.column == num.column + (uint32_t)num.length) {
+            const char *unit = parser->current_token.text;
+            uint64_t mult = 0;
+            if (strcmp(unit, "ns") == 0)       mult = 1ULL;
+            else if (strcmp(unit, "us") == 0)  mult = 1000ULL;
+            else if (strcmp(unit, "ms") == 0)  mult = 1000000ULL;
+            else if (strcmp(unit, "s") == 0)   mult = 1000000000ULL;
+            else if (strcmp(unit, "min") == 0) mult = 60000000000ULL;
+            if (mult != 0) {
+                bool digits_only = num.text != NULL && num.length > 0
+                    && strspn(num.text, "0123456789") == (size_t)num.length;
+                if (!digits_only) {
+                    parser_error(parser,
+                        "duration literal takes a bare integer count (no decimal point or suffix) before its unit (docs/181 SS2.3)");
+                } else {
+                    /* number.value is a double, so the honest ceiling is
+                     * the exactly-representable integer range (2^53 ns,
+                     * about 104 days) -- past it the literal would drift
+                     * silently, so it fails closed instead. */
+                    uint64_t count = strtoull(num.text, NULL, 10);
+                    if (count > 9007199254740992ULL / mult) {
+                        parser_error(parser,
+                            "duration literal exceeds the exactly-representable nanosecond range (docs/181 SS2.3)");
+                    } else {
+                        ast_number_make_duration(number,
+                            (double)(count * mult));
+                    }
+                }
+                parser_advance(parser);  /* the unit word */
+            }
+        }
         return number;
     }
 

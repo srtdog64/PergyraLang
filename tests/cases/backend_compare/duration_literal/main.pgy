@@ -1,0 +1,20 @@
+// Duration literal witness (docs/181 SS2.3, docs/182 SS1): a
+// `<digits><unit>` literal normalizes to NANOSECONDS and types as
+// Duration, a Long-backed distinct primitive. The old parse path ATE
+// the unit and kept the bare number -- 1500ms silently meant 1500 --
+// which is exactly the silent-value drift the reactive surface forbids.
+// Closed unit set: ns / us / ms / s / min.
+func Main() -> Void {
+    let d: Duration = 1500ms;
+    Log(d);
+    let s1: Duration = 5s;
+    Log(s1);
+    let u: Duration = 250us;
+    Log(u);
+    let n: Duration = 90ns;
+    Log(n);
+    let m: Duration = 2min;
+    Log(m);
+    let inferred = 3s;
+    Log(inferred);
+}

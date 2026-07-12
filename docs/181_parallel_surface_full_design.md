@@ -221,9 +221,19 @@ fail-closed, 취소 프로토콜과 자연 결합) (iii) main 진입 자동. SEA
 
 ### 2.3 시간 (확정 — compare가 물 수 있는 유일한 길)
 
-- **duration 리터럴**: `1000ms` / `5s` — 렉서에서 숫자+단위 접미사를
-  Duration 리터럴 토큰으로(내부 Int ns). 현행 "숫자 파싱 후 식별자 스킵"
-  눙침 폐기. R1.
+- **duration 리터럴 ✅ (2026-07-12 착지)**: `1000ms` / `5s` — 파서가
+  숫자+인접 단위를 **ns 정규화 + Duration 타입**으로 봉인(닫힌 단위 5종
+  ns/us/ms/s/min; 내부는 Long-급 i64 ns — 구상의 "Int ns"는 i32 2.1초
+  한계라 상향). 눙침("숫자 파싱 후 식별자 스킵" — `1500ms`가 조용히
+  1500이던 silent-value drift)은 폐기 실측. Duration은 **구별되는
+  primitive**(Int/Long과 암시 혼용 불가 — 맨 숫자가 시간 행세 불가),
+  fail-close 3종: 소수 카운트/미지 인접 단위(기존 문법 오류로 낙하)/
+  2^53ns(≈104일, number 노드의 double 표현 정밀 한계) 초과. 목격자
+  `duration_literal`(compare, 6값 byte-equal) +
+  `duration_literal_smoke.sh`(거절 3종). 부수: stdlib datetime(실험
+  모듈)의 자체 Duration 클래스가 primitive와 충돌 →
+  **TimeSpan**(C# 계보의 정확한 이름)으로 개명. Duration 산술(+/비교)은
+  후속 rung.
 - **가상 시간 필수**: `PGY_VIRTUAL_CLOCK=1`에서 every는 벽시계 대신 틱 큐
   소비, 테스트 훅 `pgy_clock_advance(ms)`. **compare 게이트는 가상 모드만
   문다**(벽시계 경로는 비결정 — 스트레스 스모크 전용). 가상 클록 없이

@@ -21,6 +21,8 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
 
     switch (expr->type) {
     case AST_NUMBER:
+        if (ast_number_is_duration(expr))
+            return TYPE_DURATION;
         if (ast_number_is_long(expr))
             return TYPE_LONG;
         if (ast_number_is_float(expr))

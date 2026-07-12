@@ -42,6 +42,9 @@ pgy_classify_type(const char *type_name)
         break;
     case 'D':
         if (strcmp(type_name, "Double") == 0)           return PGY_TK_DOUBLE;
+        /* Duration (docs/181 SS2.3): Long-backed nanoseconds -- rides
+         * the i64 lane everywhere below the type checker. */
+        if (strcmp(type_name, "Duration") == 0)         return PGY_TK_LONG;
         if (strncmp(type_name, "DeviceSlot<", 11) == 0) return PGY_TK_DEVICE_SLOT;
         break;
     case 'B':

@@ -173,6 +173,28 @@ ast_number_is_float(const ASTNode* node)
         && node->data.number.is_float;
 }
 
+bool
+ast_number_is_duration(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_NUMBER
+        && node->data.number.is_duration;
+}
+
+/* Duration literal seal (docs/181 SS2.3): the parser normalizes
+ * `<digits><unit>` to nanoseconds and re-stamps the node in one step so
+ * a half-marked literal (duration without the i64 lane) cannot exist. */
+bool
+ast_number_make_duration(ASTNode* node, double ns_value)
+{
+    if (node == NULL || node->type != AST_NUMBER)
+        return false;
+    node->data.number.value = ns_value;
+    node->data.number.is_long = true;
+    node->data.number.is_float = false;
+    node->data.number.is_duration = true;
+    return true;
+}
+
 const char*
 ast_string_value(const ASTNode* node)
 {

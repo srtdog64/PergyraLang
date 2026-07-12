@@ -315,6 +315,12 @@ struct ASTNode
             double value;
             bool is_long;   /* true if source had 'L' suffix (int64_t literal) */
             bool is_float;  /* true if source had a decimal point */
+            /* Duration literal (docs/181 SS2.3): `1500ms`/`5s` -- value
+             * holds NORMALIZED NANOSECONDS and the node types as
+             * Duration. is_long rides along so both backends take the
+             * i64 constant lane. The old parse path ate the unit and
+             * kept the bare number (1500ms silently meant 1500). */
+            bool is_duration;
         } number;
         
         struct {

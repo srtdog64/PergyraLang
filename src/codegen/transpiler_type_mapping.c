@@ -68,6 +68,8 @@ pergyra_primitive_to_c(const char *name)
     static const TranspilerTypeNameMap primitive_maps[] = {
         {"Bool", "bool"},
         {"Double", "double"},
+        /* Duration (docs/181 SS2.3): Long-backed nanoseconds. */
+        {"Duration", "int64_t"},
         {"Float", "float"},
         {"Int", "int32_t"},
         {"Long", "int64_t"},

@@ -44,7 +44,7 @@ export class DateTime
     }
 }
 
-export class Duration
+export class TimeSpan
 {
     let milliseconds: Int;
 
@@ -58,14 +58,14 @@ export class Instant
 {
     let milliseconds: Int;
 
-    func Add(self, delta: Duration) -> Instant
+    func Add(self, delta: TimeSpan) -> Instant
     {
         return Instant(milliseconds + delta.milliseconds);
     }
 
-    func Since(self, earlier: Instant) -> Duration
+    func Since(self, earlier: Instant) -> TimeSpan
     {
-        return Duration(milliseconds - earlier.milliseconds);
+        return TimeSpan(milliseconds - earlier.milliseconds);
     }
 
     func Reached(self, deadline: Instant) -> Bool
@@ -101,22 +101,22 @@ export func DateTimeOnDate(at: DateTime, date: LocalDate) -> Bool
     return at.IsOnDate(date);
 }
 
-export func DurationMs(ms: Int) -> Duration
+export func DurationMs(ms: Int) -> TimeSpan
 {
-    return Duration(ms);
+    return TimeSpan(ms);
 }
 
-export func DurationSeconds(seconds: Int) -> Duration
+export func DurationSeconds(seconds: Int) -> TimeSpan
 {
-    return Duration(seconds * 1000);
+    return TimeSpan(seconds * 1000);
 }
 
-export func DurationMinutes(minutes: Int) -> Duration
+export func DurationMinutes(minutes: Int) -> TimeSpan
 {
     return DurationSeconds(minutes * 60);
 }
 
-export func FormatDuration(delta: Duration) -> String
+export func FormatDuration(delta: TimeSpan) -> String
 {
     return delta.Format();
 }
@@ -126,14 +126,14 @@ export func InstantNow() -> Instant
     return Instant(Now());
 }
 
-export func InstantAdd(at: Instant, delta: Duration) -> Instant
+export func InstantAdd(at: Instant, delta: TimeSpan) -> Instant
 {
     return at.Add(delta);
 }
 
-export func DurationBetween(start: Instant, end: Instant) -> Duration
+export func DurationBetween(start: Instant, end: Instant) -> TimeSpan
 {
-    return Duration(end.milliseconds - start.milliseconds);
+    return TimeSpan(end.milliseconds - start.milliseconds);
 }
 
 export func DeadlineReached(now: Instant, deadline: Instant) -> Bool
