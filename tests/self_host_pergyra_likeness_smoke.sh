@@ -168,7 +168,9 @@ SENTINEL_MAX=0
 # errors-as-data boundary; re-base the lexical metric to the measured form.
 # 1175 -> 1193 (2026-07-13): enum name/count/variant/arity projection now
 # consumes Option-returning semantic owner accessors instead of direct arrays.
-RESULT_USE_MIN=1193
+# 1193 -> 1204 (2026-07-13): nominal name/field count/name/type projection now
+# consumes Option-returning semantic owner accessors instead of arena rows.
+RESULT_USE_MIN=1204
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

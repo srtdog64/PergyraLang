@@ -189,6 +189,28 @@ func SemanticAstNominalConstructorCount(
     return ArrayLength(facts.node_ids);
 }
 
+func SemanticAstNominalConstructorNameAt(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> Option<String> {
+    if !facts.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) {
+        return None;
+    }
+    return Some(facts.names[constructor_index]);
+}
+
+func SemanticAstNominalConstructorFieldCountAt(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> Option<Int> {
+    if !facts.ok || constructor_index < 0 ||
+        constructor_index >= SemanticAstNominalConstructorCount(facts) {
+        return None;
+    }
+    return Some(facts.param_counts[constructor_index]);
+}
+
 func SemanticAstNominalConstructorRowsReady(
     facts: SemanticAstNominalConstructorFacts
 ) -> Bool {
@@ -229,6 +251,16 @@ func SemanticAstNominalConstructorParamTypeAt(
         facts.param_type_names[
             facts.param_starts[constructor_index] + param_index
         ]
+    );
+}
+
+func SemanticAstNominalConstructorFieldTypeAt(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> Option<String> {
+    return SemanticAstNominalConstructorParamTypeAt(
+        facts, constructor_index, field_index
     );
 }
 

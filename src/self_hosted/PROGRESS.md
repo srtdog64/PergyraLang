@@ -179,19 +179,27 @@ types; parser parity is 188/188 on C and LLVM with live drift enabled.
 while `codegen_parity.sh` requires both tools to reject the TestHarness-owned
 payload-enum artifact with the same committed fail-closed diagnostic.
 
+The fifth executable delta reused the already integrated
+`SemanticAstNominalConstructorFacts` owner for nominal names and ordered field
+name/type rows. `CollectStructs` no longer walks nominal/field AST rows; the old
+mixed declaration owner was deleted and the remaining role bridge was renamed
+to its exact responsibility. Four struct fixtures are run-equal under C-built
+and LLVM-built codegen tools.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
 `tests/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
 owner and codegen consumer and mutation-tests missing-owner and fallback
 reintroduction. The bounded model now covers the array-literal body, try-let
-operand, collection-mutation statement, and enum declaration consumers; it
+operand, collection-mutation statement, enum declaration, and nominal/field
+declaration consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 18-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus three
-bounded self-host closure rows, with three `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 19-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus four
+bounded self-host closure rows, with four `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

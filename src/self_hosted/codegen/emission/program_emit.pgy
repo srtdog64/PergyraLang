@@ -6,7 +6,6 @@ import "../text/text_owner.pgy";
 import "../../hir/ast_text_inventory_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
-import "../input/ast_text_declaration_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
@@ -276,7 +275,9 @@ func GenerateCUnitFromSemanticArtifact(
     }
     let env_acc: Array<String> = [BuildFunctionEnv(signatures)];
     let enum_block: String = CollectEnums(semantic_analysis.enums, env_acc);
-    let typedef_block: String = CollectStructs(count, arena, env_acc);
+    let typedef_block: String = CollectStructs(
+        semantic_analysis.constructors, env_acc
+    );
     CollectRoleOperators(count, arena, signatures, env_acc);
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);

@@ -231,7 +231,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned array-literal body facts into top-level emission items.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
-- `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.
+- `src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy` --
+  transitional AST-text role name and target-type facts; nominal/field rows are
+  forbidden from this bridge.
+- `src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy` --
+  fail-closed codegen projection of semantic nominal names and ordered field
+  name/type rows.
 - `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned try-let operand facts.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.

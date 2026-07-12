@@ -309,11 +309,12 @@ artifact-bound function owner/name, parameter node/name/type/mode, and return
 rows. `semantic_signature_codegen_view_owner.pgy` is a fail-closed consumer
 view; it cannot derive missing facts from the arena.
 
-TypedAst delta, 2026-07-09: declaration facts now have a dedicated owner.
-`ast_text_declaration_owner.pgy` owns nominal names, role names/target types,
-enum names, and field name/type rows. `function_emit.pgy` and `program_emit.pgy`
-consume those accessors and are ratcheted against reopening direct arena
-atom/type reads for declaration payloads.
+TypedAst delta, superseded 2026-07-13: the mixed declaration bridge has been
+split by truth owner. `SemanticAstNominalConstructorFacts` owns nominal names
+and ordered field name/type rows consumed through
+`semantic_nominal_codegen_view_owner.pgy`; the old declaration owner is
+deleted. `ast_text_role_declaration_owner.pgy` now names the exact remaining
+role name/target-type bridge rather than implying shared declaration authority.
 
 TypedAst delta, 2026-07-07: `ArraySet` and `For` statement emission now consume
 typed arena atom/value/aux-value rows. `ArraySet` maps receiver/index/value;

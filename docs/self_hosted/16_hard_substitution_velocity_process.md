@@ -124,10 +124,15 @@ The native and self-host parser printers preserve variant parameter types;
 run-equal, and the codegen parity gate requires both backend-built tools to
 reject the TestHarness-owned payload enum rather than erasing arity.
 
+Fifth executable delta, 2026-07-13: nominal names and ordered field rows now
+flow from `SemanticAstNominalConstructorFacts` through a fail-closed codegen
+view. The mixed declaration owner is deleted, the remaining bridge is explicitly
+role-only, and four struct fixtures are run-equal under C/LLVM-built tools.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
-try-operand, collection-mutation, and enum declaration rows are closed in the
+try-operand, collection-mutation, enum declaration, and nominal/field rows are closed in the
 bounded model and that missing facts, duplicate producers, and
 owner-plus-fallback bridges are not closed. The source adequacy gate binds only
 those modeled rows to live files; future consumers require new bindings rather
@@ -135,9 +140,9 @@ than inheriting a global proof claim.
 
 Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
 have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
-The registry now carries 15 architectural rows plus three bounded self-host
+The registry now carries 15 architectural rows plus four bounded self-host
 closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
-honestly split into `CLOSED=3 BRIDGE=6 ACTIVE=9`; only executable rung closure
+honestly split into `CLOSED=4 BRIDGE=6 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 

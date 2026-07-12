@@ -6,7 +6,8 @@ import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
-import "../input/ast_text_declaration_owner.pgy";
+import "../input/ast_text_role_declaration_owner.pgy";
+import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
@@ -316,38 +317,40 @@ func CollectRoleOperators(count: Int, arena: AstArena,
 
 // Scan top-level nominal declarations into C typedefs, and append
 // `Name=s:struct|Name=fields:a,b|Name.field=field:Type|` entries to env_box[0].
-func CollectStructs(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectStructs(
+    facts: SemanticAstNominalConstructorFacts,
+    inout env_box: Array<String>
+) -> String {
     let typedefs: Array<String> = [];
     let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaIsNominalDecl(arena, i) {
-            let struct_env_rows: Array<String> = [];
-            let sname: String = CodegenAstArenaNominalNameOrDie(arena, i);
-            let c_sname: String = AbiLayoutCStructTypeName(sname);
-            let s_indent: Int = CodegenAstArenaIndentOrDie(arena, i);
-            let j: Int = i + 1;
-            if j < count && CodegenAstArenaIsFieldsHeader(arena, j) {
-                j = j + 1;
-            }
-            let fields_c: Array<String> = [];
-            let field_names: Array<String> = [];
-            while j < count && CodegenAstArenaIndentOrDie(arena, j) == s_indent + 4 {
-                let fname: String = CodegenAstArenaFieldNameOrDie(arena, j);
-                let ftype: String = CodegenAstArenaFieldTypeNameOrDie(arena, j);
-                let cfield_type: String = AbiLayoutCFieldType(
-                    ftype, CodegenTypeEnv(env_box[0], "")
-                );
-                let c_fname: String = CompilerSymbolCFieldName(fname);
-                ArrayPush(field_names, fname);
-                ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
-                ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
-                j = j + 1;
-            }
-            ArrayPush(typedefs, Concat("typedef struct {\n", Concat(StringJoin(fields_c, ""), Concat("} ", Concat(c_sname, ";\n\n")))));
-            ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
-            ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
-            ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
+    while i < SemanticAstNominalConstructorCount(facts) {
+        let struct_env_rows: Array<String> = [];
+        let sname: String = CodegenSemanticNominalNameOrDie(facts, i);
+        let c_sname: String = AbiLayoutCStructTypeName(sname);
+        let fields_c: Array<String> = [];
+        let field_names: Array<String> = [];
+        let field_count: Int = CodegenSemanticNominalFieldCountOrDie(facts, i);
+        let field_index: Int = 0;
+        while field_index < field_count {
+            let fname: String = CodegenSemanticNominalFieldNameOrDie(
+                facts, i, field_index
+            );
+            let ftype: String = CodegenSemanticNominalFieldTypeOrDie(
+                facts, i, field_index
+            );
+            let cfield_type: String = AbiLayoutCFieldType(
+                ftype, CodegenTypeEnv(env_box[0], "")
+            );
+            let c_fname: String = CompilerSymbolCFieldName(fname);
+            ArrayPush(field_names, fname);
+            ArrayPush(struct_env_rows, Concat(sname, Concat(".", Concat(fname, Concat("=field:", Concat(ftype, "|"))))));
+            ArrayPush(fields_c, Concat("    ", Concat(cfield_type, Concat(" ", Concat(c_fname, ";\n")))));
+            field_index = field_index + 1;
         }
+        ArrayPush(typedefs, Concat("typedef struct {\n", Concat(StringJoin(fields_c, ""), Concat("} ", Concat(c_sname, ";\n\n")))));
+        ArrayPush(struct_env_rows, Concat(sname, "=s:struct|"));
+        ArrayPush(struct_env_rows, Concat(sname, Concat("=fields:", Concat(StringJoin(field_names, ","), "|"))));
+        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(struct_env_rows, "")));
         i = i + 1;
     }
     return StringJoin(typedefs, "");

@@ -1,0 +1,57 @@
+// Fail-closed codegen view over semantic-owned nominal declaration rows.
+
+import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
+
+func CodegenSemanticNominalNameOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> String {
+    let name: Option<String> = SemanticAstNominalConstructorNameAt(
+        facts, constructor_index
+    );
+    if !IsSome(name) {
+        Die("semantic nominal declaration name fact missing");
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticNominalFieldCountOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int
+) -> Int {
+    let count: Option<Int> = SemanticAstNominalConstructorFieldCountAt(
+        facts, constructor_index
+    );
+    if !IsSome(count) {
+        Die("semantic nominal declaration field-count fact missing");
+    }
+    return UnwrapOption(count);
+}
+
+func CodegenSemanticNominalFieldNameOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> String {
+    let name: Option<String> = SemanticAstNominalConstructorFieldNameAt(
+        facts, constructor_index, field_index
+    );
+    if !IsSome(name) {
+        Die("semantic nominal declaration field-name fact missing");
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticNominalFieldTypeOrDie(
+    facts: SemanticAstNominalConstructorFacts,
+    constructor_index: Int,
+    field_index: Int
+) -> String {
+    let type_name: Option<String> = SemanticAstNominalConstructorFieldTypeAt(
+        facts, constructor_index, field_index
+    );
+    if !IsSome(type_name) {
+        Die("semantic nominal declaration field-type fact missing");
+    }
+    return UnwrapOption(type_name);
+}

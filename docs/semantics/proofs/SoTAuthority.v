@@ -7,7 +7,7 @@
   a fallback read is not closed.
 
   It does not prove that the whole compiler has no future SoT seams. The live
-  adequacy gate binds the concrete array-literal instance below to source.
+  adequacy gate binds the concrete bounded instances below to source.
 *)
 
 Inductive Fact : Type :=
@@ -15,6 +15,7 @@ Inductive Fact : Type :=
   | FInitializerTryOperand
   | FCollectionMutationParts
   | FEnumDeclarationRows
+  | FNominalDeclarationRows
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -25,6 +26,7 @@ Inductive Owner : Type :=
   | OSemanticLocalBindingFacts
   | OSemanticStatementFacts
   | OSemanticEnumFacts
+  | OSemanticNominalConstructorFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -32,7 +34,8 @@ Inductive Consumer : Type :=
   | CArrayLiteralEmitter
   | CTryLetEmitter
   | CCollectionMutationEmitter
-  | CEnumEmitter.
+  | CEnumEmitter
+  | CNominalEmitter.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -116,6 +119,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FInitializerTryOperand => SemanticFact
   | FCollectionMutationParts => SemanticFact
   | FEnumDeclarationRows => SemanticFact
+  | FNominalDeclarationRows => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -125,6 +129,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FInitializerTryOperand => OSemanticLocalBindingFacts
   | FCollectionMutationParts => OSemanticStatementFacts
   | FEnumDeclarationRows => OSemanticEnumFacts
+  | FNominalDeclarationRows => OSemanticNominalConstructorFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -137,6 +142,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticStatementFacts FCollectionMutationParts
   | CurrentEnumDeclarationProducer :
       current_produces OSemanticEnumFacts FEnumDeclarationRows
+  | CurrentNominalDeclarationProducer :
+      current_produces OSemanticNominalConstructorFacts FNominalDeclarationRows
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -352,6 +359,64 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive nominal_requires : Consumer -> Fact -> Prop :=
+  | CurrentEmitterRequiresNominalDeclarationRows :
+      nominal_requires CNominalEmitter FNominalDeclarationRows.
+
+Inductive nominal_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | CurrentEmitterReadsNominalDeclarationRows :
+      nominal_reads CNominalEmitter OSemanticNominalConstructorFacts
+        FNominalDeclarationRows OwnedRead.
+
+Definition nominal_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := nominal_requires;
+     reads := nominal_reads |}.
+
+Theorem current_nominal_declaration_rung_closed : RungClosed nominal_model.
+Proof.
+  unfold RungClosed.
+  split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive nominal_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | NominalBridgeOwnedRead :
+      nominal_bridge_reads CNominalEmitter OSemanticNominalConstructorFacts
+        FNominalDeclarationRows OwnedRead
+  | NominalBridgeFallbackRead :
+      nominal_bridge_reads CNominalEmitter OCodegenTextRecovery
+        FNominalDeclarationRows FallbackRead.
+
+Definition nominal_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := nominal_requires;
+     reads := nominal_bridge_reads |}.
+
+Theorem nominal_owner_plus_text_fallback_is_not_closed :
+  ~ RungClosed nominal_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CNominalEmitter OCodegenTextRecovery
+    FNominalDeclarationRows FallbackRead NominalBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -440,7 +505,8 @@ Inductive SpineFact : Type :=
   | SFCompatibilityEvolution
   | SFInitializerExpressionShape
   | SFCollectionMutationStatement
-  | SFEnumDeclarationRows.
+  | SFEnumDeclarationRows
+  | SFNominalDeclarationRows.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -460,7 +526,8 @@ Inductive SpineOwner : Type :=
   | SOCompatibilityEvolution
   | SOSemanticLocalBinding
   | SOSemanticStatement
-  | SOSemanticEnum.
+  | SOSemanticEnum
+  | SOSemanticNominalConstructor.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -482,6 +549,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFInitializerExpressionShape => SOSemanticLocalBinding
   | SFCollectionMutationStatement => SOSemanticStatement
   | SFEnumDeclarationRows => SOSemanticEnum
+  | SFNominalDeclarationRows => SOSemanticNominalConstructor
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -516,11 +584,13 @@ Qed.
 (* Claim limit: future facts and consumers require new concrete bindings. *)
 Theorem current_model_does_not_claim_future_consumer_coverage :
   forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
-    c = CCollectionMutationEmitter \/ c = CEnumEmitter.
+    c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
+    c = CNominalEmitter.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
   - right. left. reflexivity.
   - right. right. left. reflexivity.
-  - right. right. right. reflexivity.
+  - right. right. right. left. reflexivity.
+  - right. right. right. right. reflexivity.
 Qed.

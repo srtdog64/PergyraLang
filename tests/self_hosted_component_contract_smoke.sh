@@ -883,7 +883,8 @@ require_owner_surface codegen \
     "input/semantic_array_literal_codegen_view_owner.pgy" \
     "input/semantic_enum_codegen_view_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
-    "input/ast_text_declaration_owner.pgy" \
+    "input/ast_text_role_declaration_owner.pgy" \
+    "input/semantic_nominal_codegen_view_owner.pgy" \
     "input/semantic_try_let_codegen_view_owner.pgy" \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
@@ -1264,8 +1265,6 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbo
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIndentOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "struct CodegenTypeEnv"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "global_rows: String;"
@@ -2982,7 +2981,7 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstAren
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsAbilityDecl(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsFunction(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "ast_text_declaration_owner.pgy"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let signatures: SemanticAstFunctionSignatureFacts ="
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "semantic_analysis.signatures;"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "let owner_name: String = CodegenAstArenaNominalNameOrDie(arena, cur[0])"
@@ -3023,7 +3022,8 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(count: Int"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(count: Int"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstEnumFacts"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectEnums(semantic_analysis.enums, env_acc)"
@@ -3084,25 +3084,30 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "rtype = Codege
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsReturns(arena, cur[0])"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "SemanticAstFunctionSignatureCount(signatures)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsParameters(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFieldsHeader(arena, j)"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie(arena, i)"
+reject_file "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy"
+require_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
+require_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
+reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "Nominal"
+reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "Field"
+require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalNameOrDie"
+require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldCountOrDie"
+require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldNameOrDie"
+require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldTypeOrDie"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_role_declaration_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_nominal_codegen_view_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstNominalConstructorCount(facts)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie(arena, i)"
-reject_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie(arena, j)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie(arena, j)"
+reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "owner = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let role_name: String = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i)"
@@ -3161,7 +3166,7 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyc_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyi_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstEnumCount(facts)"
