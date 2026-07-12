@@ -18553,6 +18553,27 @@ status 2경로 포함. closed/full/empty/timeout = 계약 결과 유지, *_resul
 (채널+parallel), 비-채널 런타임 패밀리 warn 경로 전수. V1 doc 주석은
 타 세션 clean 후(파일 dirty).
 
+**WO-PARSURF-2 R3+R4+R5 ✅ + WO-RT-2 슬라이스 (2026-07-12, 게임 잣대
+5/5 완성)**: reduce `join with sum|product|min|max`(299091c6 — 인덱스-
+순서 고정 left fold, Int/Long은 checked-arith export 재사용, empty
+min/max fail-closed panic) · stencil 야코비형(acec0699 — snapshot-read
+fact + `let b = a`가 handle-copy임을 실측, (쓰기×읽기) base-포인터
+진입검사 = authority-mismatch export twin 신설) · any-join(5ab596bf —
+최초 give CAS 승리, 원소+식형 한정; **슬라이스 2 = 6d29fef9**: 순서-
+await의 블로킹-패자 구멍을 스핀-결정→cancel-all→await-all + **취소가능
+채널 대기**(3-twin, 10ms quantum + `pgy_runtime_cancel_probe.h` 결합-
+차단 hook)로 닫음, 목격자 `parallel_join_any_blocked` 양 백엔드 42 유한
+복귀). 전 rung 목격자-선행 + compare 등록 + 거절 17종. 상세 =
+docs/181 착지 노트. **잔여 주문서 전체 = docs/182**(취소 §2.3 루프
+백엣지, duration §1, every/continuous §3은 BDFL 판정 3건 선행,
+task_group §4, 분할 §5, 교리-게이트 §6). 부수: §2.3 클록 기반 착지
+(955b14bc — `pgy_clock_*_export` 3종, 가상/실 모드, misuse panic,
+`virtual_clock_smoke.sh`; test-all 배선 잔여) · **빌드 플로어 수술**
+(2772f054 — `.d` 900개 implicit-rule 탐색을 빈 명시규칙으로 차단,
+no-op make 10.6s→~3s, 헤더 편집 루프 23→11s) · memory-concurrency
+게이트 panic-class pin을 guard 새 owner로 이주(filename-pin 함정
+실사례, 6d29fef9에 포함).
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
