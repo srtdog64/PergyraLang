@@ -118,6 +118,28 @@ abstraction 금지). ast.h 해제 직후 기계적 단일 커밋.
 - **타입 폭**: non-primitive give / 사용자 모노이드(ability/witness
   필요) / 2D·타일 stencil — 각각 필요 실증 후 rung.
 
+## §7. 파이프라인 방출 감사 (2026-07-12) — "그래프에서 출발한 것이 전부 방출되는가"
+
+키워드→AST(+fact)→semantic→MIR(source-shape 운반)→양 이미터의 논리
+사슬을 놓고 약한 고리를 프로브로 두드렸다. 운반 구조 확인: parallel은
+MIR source-shape 행이 노드 포인터째 운반(mir_source_shape.c), fact는
+노드 위에 있어 함께 간다. admission 없는 방출은 이미터의
+dispositions_sealed/fact 게이트가, 방출 없는 admission은 이미터
+hard-error가 막는다(구조 ✓).
+
+- 프로브 GREEN 3: **비-Main 함수** 안 join expr(캡스톤 SSA-쌍둥이
+  버그류의 온상이었으나 미발화, 204) · **중첩 if + 함수 경계 반환**
+  (40) · **let-init 밖 인자 위치** `Log(parallel ...)` (10) — 전부 양
+  백엔드 동일.
+- **프로브 RED 1 (구멍 발견, 칩 task_6fd52632)**: generic 특수화 안의
+  parallel — C 백엔드가 wrapper를 특수화 함수 **본문 안에** 방출
+  ("invalid storage class"). 원인 = 특수화 함수가 ctx->helpers 버퍼로
+  방출되는데(transpiler_generic_specialization_emit.c:203) wrapper
+  방출도 같은 버퍼를 겨냥. **선존재**(arms형 R0부터; join형은 상속),
+  LLVM은 모듈-추가 구조라 무관(10|6 정상). 수리 설계(helpers-스왑 +
+  오프셋 삽입) 칩에 동봉. semantic은 통과하므로 "무단 방출"이 아니라
+  "방출 실패는 시끄럽다" 축에 있음 — 무음 wrong-code 아님.
+
 ## 실행 순서 (잠금 해제 시)
 
 §2(취소 — any의 정직성 구멍이 걸려 있어 최우선) → §1 경로 A →
