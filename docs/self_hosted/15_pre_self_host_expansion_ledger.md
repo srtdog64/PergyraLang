@@ -708,6 +708,12 @@ forbidden by the component contract from calling `CodegenAstArenaKindPresent`
 or `CodegenAstArenaKindIs` directly. This keeps aggregate runtime/header
 decisions from reopening raw kind-row scans.
 
+Superseded, 2026-07-13: semantic `SemanticAstKindSurfaceFacts` now owns these
+rows, `ast_kind_usage_owner.pgy` is only a backend policy projection, and
+aggregate runtime usage has no arena/count input. The old `array literal` label
+was also corrected to canonical `ArrayPopStmt`; direct kind scans and local tag
+aliases are ratcheted out of this consumer path.
+
 Completeness delta, 2026-07-09: `completeness_ledger_owner.pgy` locked the
 M2 minima at 219 for source inventory, lexer, parser, semantic, codegen,
 lex+parse, lex+parse+semantic, and full-pipeline intersection. The latest broad

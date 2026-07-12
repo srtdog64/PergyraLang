@@ -1,41 +1,24 @@
 // Codegen kind usage fact owner.
 //
-// Runtime/header usage decisions need statement-shape facts, but the
-// aggregate runtime usage owner should not scan typed arena kind rows itself.
+// Runtime/header usage decisions need statement-shape facts. Codegen projects
+// those facts from the semantic owner and never scans typed arena kind rows.
 
-import "ast_arena_codegen_view_owner.pgy";
+import "../../semantic/ast_kind_surface_fact_owner.pgy";
 
 struct CodegenKindUsageFacts {
     let has_log_stmt: Bool;
     let has_exit_stmt: Bool;
-    let has_array_literal: Bool;
+    let has_array_pop: Bool;
     let has_array_push: Bool;
     let has_array_set: Bool;
 }
 
-func CodegenAstKindLogStmt() -> Int { return 13; }
-func CodegenAstKindArrayLiteral() -> Int { return 16; }
-func CodegenAstKindExitStmt() -> Int { return 17; }
-func CodegenAstKindArraySetStmt() -> Int { return 18; }
-func CodegenAstKindArrayPushStmt() -> Int { return 19; }
-
-func CodegenAstArenaKindPresent(arena: AstArena, count: Int, kind: Int) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if TypedAstArenaNodeKindIs(arena, i, kind) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenKindUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenKindUsageFacts {
+func CodegenKindUsageFactsFromSemantic(facts: SemanticAstKindSurfaceFacts) -> CodegenKindUsageFacts {
     return CodegenKindUsageFacts(
-        CodegenAstArenaKindPresent(arena, count, CodegenAstKindLogStmt()),
-        CodegenAstArenaKindPresent(arena, count, CodegenAstKindExitStmt()),
-        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArrayLiteral()),
-        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArrayPushStmt()),
-        CodegenAstArenaKindPresent(arena, count, CodegenAstKindArraySetStmt())
+        SemanticAstKindSurfaceContains(facts, TypedAstKindLogStmtTag()),
+        SemanticAstKindSurfaceContains(facts, TypedAstKindExitStmtTag()),
+        SemanticAstKindSurfaceContains(facts, TypedAstKindArrayPopStmtTag()),
+        SemanticAstKindSurfaceContains(facts, TypedAstKindArrayPushStmtTag()),
+        SemanticAstKindSurfaceContains(facts, TypedAstKindArraySetStmtTag())
     );
 }

@@ -721,6 +721,18 @@ rewrite history.
   source inventory, lexer, parser, semantic, codegen, lex+parse,
   lex+parse+semantic, and full-pipeline intersection.
 
+## 2026-07-13 - Kind usage authority moves to semantic facts
+
+- Added `SemanticAstKindSurfaceFacts` as the canonical artifact node-kind
+  owner consumed by runtime/header projection.
+- Replaced `CodegenKindUsageFactsFromArena(...)` with the semantic-only
+  `CodegenKindUsageFactsFromSemantic(...)` projection and removed arena/count
+  from aggregate runtime usage.
+- Removed the incorrect backend-local `ArrayLiteral` alias for tag 16; the
+  canonical kind is `ArrayPopStmt`.
+- Locked the cutover with Coq owner/fallback theorems, source mutations, the
+  23-row owner registry, and five-fixture C/LLVM parity.
+
 ## 2026-07-09 - Type usage facts enter codegen input ownership
 
 - Added `ast_type_usage_owner.pgy` as the named owner for codegen type-surface

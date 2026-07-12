@@ -205,6 +205,14 @@ The eighth executable delta moved canonical runtime type usage to
 The LLVM leg exposed and then closed one missing concrete `String` unwrap fact;
 the same nine runtime-family fixtures now pass C/LLVM parity.
 
+The ninth executable delta moved runtime statement-kind usage to
+`SemanticAstKindSurfaceFacts`. Codegen no longer scans arena kind rows, and the
+old local tag named `ArrayLiteral` was removed because canonical tag 16 is
+`ArrayPopStmt`. Five kind-driven fixtures plus the enum/role fail-closed legs
+are run-equal under C-built and LLVM-built tools. Runtime usage projection now
+accepts only semantic expression, type, and kind facts; its dead arena/count
+parameters are gone.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
@@ -216,9 +224,9 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 22-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus seven
-bounded self-host closure rows, with seven `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 23-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus eight
+bounded self-host closure rows, with eight `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

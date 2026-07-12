@@ -13,6 +13,7 @@ NOMINAL_OWNER="src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 ROLE_OWNER="src/self_hosted/semantic/ast_role_fact_owner.pgy"
 EXPRESSION_SURFACE_OWNER="src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
+KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy"
 TRY_CONSUMER="src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy"
 COLLECTION_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
@@ -22,6 +23,7 @@ NOMINAL_CONSUMER="src/self_hosted/codegen/input/semantic_nominal_codegen_view_ow
 ROLE_CONSUMER="src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy"
 EXPRESSION_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_expression_usage_owner.pgy"
 TYPE_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_type_usage_owner.pgy"
+KIND_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_kind_usage_owner.pgy"
 
 fail() {
     echo "[sot-authority] $*" >&2
@@ -127,6 +129,14 @@ check_type_surface_owner_copy() {
         grep -Fq -- "func SemanticAstTypeSurfaceFactsMatchArtifact(" "$path"
 }
 
+check_kind_surface_owner_copy() {
+    local path="$1"
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Eq -- '^    kind_tags: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstKindSurfaceContains(" "$path" &&
+        grep -Fq -- "func SemanticAstKindSurfaceFactsMatchArtifact(" "$path"
+}
+
 require_file "$PROOF"
 require_file "docs/semantics/proofs/SoTAuthority.md"
 require_file "$OWNER"
@@ -136,6 +146,7 @@ require_file "$NOMINAL_OWNER"
 require_file "$ROLE_OWNER"
 require_file "$EXPRESSION_SURFACE_OWNER"
 require_file "$TYPE_SURFACE_OWNER"
+require_file "$KIND_SURFACE_OWNER"
 require_file "$ARRAY_CONSUMER"
 require_file "$TRY_CONSUMER"
 require_file "$COLLECTION_CONSUMER"
@@ -145,6 +156,7 @@ require_file "$NOMINAL_CONSUMER"
 require_file "$ROLE_CONSUMER"
 require_file "$EXPRESSION_USAGE_CONSUMER"
 require_file "$TYPE_USAGE_CONSUMER"
+require_file "$KIND_USAGE_CONSUMER"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" ]] ||
     fail "retired AST-text array-literal owner returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" ]] ||
@@ -174,6 +186,7 @@ for term in \
     "Theorem current_role_declaration_rung_closed" \
     "Theorem current_expression_runtime_usage_rung_closed" \
     "Theorem current_type_runtime_usage_rung_closed" \
+    "Theorem current_kind_runtime_usage_rung_closed" \
     "Theorem owned_plus_fallback_bridge_is_not_closed" \
     "Theorem try_owner_plus_text_fallback_is_not_closed" \
     "Theorem collection_owner_plus_text_fallback_is_not_closed" \
@@ -182,6 +195,7 @@ for term in \
     "Theorem role_owner_plus_ast_fallback_is_not_closed" \
     "Theorem expression_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem type_usage_owner_plus_ast_fallback_is_not_closed" \
+    "Theorem kind_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem duplicate_semantic_producer_is_not_closed" \
     "Theorem missing_required_fact_is_not_closed"; do
     require_text "$PROOF" "$term"
@@ -195,6 +209,7 @@ require_text "$PROOF" "FNominalDeclarationRows"
 require_text "$PROOF" "FRoleDeclarationRows"
 require_text "$PROOF" "FExpressionRuntimeUsageSurface"
 require_text "$PROOF" "FTypeRuntimeUsageSurface"
+require_text "$PROOF" "FKindRuntimeUsageSurface"
 require_text "$PROOF" "OSemanticLocalBindingFacts"
 require_text "$PROOF" "OSemanticStatementFacts"
 require_text "$PROOF" "OSemanticEnumFacts"
@@ -202,6 +217,7 @@ require_text "$PROOF" "OSemanticNominalConstructorFacts"
 require_text "$PROOF" "OSemanticRoleFacts"
 require_text "$PROOF" "OSemanticExpressionSurfaceFacts"
 require_text "$PROOF" "OSemanticTypeSurfaceFacts"
+require_text "$PROOF" "OSemanticKindSurfaceFacts"
 require_text "$PROOF" "CArrayLiteralEmitter"
 require_text "$PROOF" "CTryLetEmitter"
 require_text "$PROOF" "CCollectionMutationEmitter"
@@ -225,6 +241,8 @@ check_expression_surface_owner_copy "$ROOT_DIR/$EXPRESSION_SURFACE_OWNER" ||
     fail "live semantic expression-surface owner does not provide usage rows"
 check_type_surface_owner_copy "$ROOT_DIR/$TYPE_SURFACE_OWNER" ||
     fail "live semantic type-surface owner does not provide usage rows"
+check_kind_surface_owner_copy "$ROOT_DIR/$KIND_SURFACE_OWNER" ||
+    fail "live semantic kind-surface owner does not provide usage rows"
 check_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" \
     "SemanticAstLocalBindingArrayLiteralBodyAt(" ||
     fail "live array codegen consumer reopened text recovery"
@@ -259,6 +277,9 @@ check_consumer_copy "$ROOT_DIR/$EXPRESSION_USAGE_CONSUMER" \
 check_consumer_copy "$ROOT_DIR/$TYPE_USAGE_CONSUMER" \
     "CodegenTypeUsageFactsFromSemantic(" ||
     fail "runtime usage projection reopened AST type recovery"
+check_consumer_copy "$ROOT_DIR/$KIND_USAGE_CONSUMER" \
+    "CodegenKindUsageFactsFromSemantic(" ||
+    fail "runtime usage projection reopened AST kind recovery"
 
 for consumer in "$ARRAY_CONSUMER" "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_CONSUMER"; do
     reject_text "$consumer" "StringTrim("
@@ -284,6 +305,13 @@ for fallback in \
     "CodegenExpressionUsageFactsFromArena" \
     "CodegenAstArenaExpressionPartsAt"; do
     reject_text "$EXPRESSION_USAGE_CONSUMER" "$fallback"
+done
+for fallback in \
+    "TypedAstArenaNodeKindIs" \
+    "CodegenAstArenaKindPresent" \
+    "CodegenKindUsageFactsFromArena" \
+    "CodegenAstKindArrayLiteral"; do
+    reject_text "$KIND_USAGE_CONSUMER" "$fallback"
 done
 for fallback in \
     "CodegenAstArenaRoleNameOrDie" \
@@ -373,6 +401,14 @@ sed 's/^    type_names: Array<String>;/    removed_type_names: Array<String>;/' 
 mv "$tmp_dir/type_surface_owner_missing.next" "$tmp_dir/type_surface_owner_missing.pgy"
 if check_type_surface_owner_copy "$tmp_dir/type_surface_owner_missing.pgy"; then
     fail "missing type-surface owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$KIND_SURFACE_OWNER" "$tmp_dir/kind_surface_owner_missing.pgy"
+sed 's/^    kind_tags: Array<Int>;/    removed_kind_tags: Array<Int>;/' \
+    "$tmp_dir/kind_surface_owner_missing.pgy" >"$tmp_dir/kind_surface_owner_missing.next"
+mv "$tmp_dir/kind_surface_owner_missing.next" "$tmp_dir/kind_surface_owner_missing.pgy"
+if check_kind_surface_owner_copy "$tmp_dir/kind_surface_owner_missing.pgy"; then
+    fail "missing kind-surface owner mutation was not rejected"
 fi
 
 cp "$ROOT_DIR/$TRY_CONSUMER" "$tmp_dir/consumer_fallback.pgy"

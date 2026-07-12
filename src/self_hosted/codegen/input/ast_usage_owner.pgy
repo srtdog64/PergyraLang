@@ -1,10 +1,8 @@
 // Codegen AST usage fact owner.
 //
-// The self-host C emitter still consumes the transitional AST-text bridge, but
-// runtime/header decisions should not rescan the raw AST document. This owner
-// derives those decisions from the typed line inventory.
+// Runtime/header decisions consume semantic expression, type, and kind facts.
+// This owner has no AST arena authority and only applies backend policy.
 
-import "ast_arena_codegen_view_owner.pgy";
 import "ast_expression_usage_owner.pgy";
 import "ast_kind_usage_owner.pgy";
 import "ast_type_usage_owner.pgy";
@@ -38,15 +36,15 @@ struct CodegenRuntimeUsageFacts {
     let uses_text_builder: Bool;
 }
 
-func CodegenRuntimeUsageFactsFromSemanticAndArena(
+func CodegenRuntimeUsageFactsFromSemantic(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     type_surfaces: SemanticAstTypeSurfaceFacts,
-    arena: AstArena,
-    count: Int
+    kind_surfaces: SemanticAstKindSurfaceFacts
 ) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts =
         CodegenExpressionUsageFactsFromSemantic(expression_surfaces);
-    let kind_usage: CodegenKindUsageFacts = CodegenKindUsageFactsFromArena(arena, count);
+    let kind_usage: CodegenKindUsageFacts =
+        CodegenKindUsageFactsFromSemantic(kind_surfaces);
     let type_usage: CodegenTypeUsageFacts =
         CodegenTypeUsageFactsFromSemantic(type_surfaces);
     let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());
@@ -69,7 +67,7 @@ func CodegenRuntimeUsageFactsFromSemanticAndArena(
     let uses_array: Bool = type_usage.has_array
         || kind_usage.has_array_push
         || kind_usage.has_array_set
-        || kind_usage.has_array_literal
+        || kind_usage.has_array_pop
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayCore())
         || uses_array_sort
         || uses_array_reverse

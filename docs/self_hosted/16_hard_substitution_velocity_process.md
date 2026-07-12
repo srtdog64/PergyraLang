@@ -145,6 +145,12 @@ Eighth executable delta, 2026-07-13: runtime/header type usage now consumes
 canonical `SemanticAstTypeSurfaceFacts`; codegen no longer scans arena
 type-name rows. C/LLVM parity also locks the explicit LLVM `String` unwrap fact.
 
+Ninth executable delta, 2026-07-13: runtime/header statement-kind usage now
+consumes canonical `SemanticAstKindSurfaceFacts`; codegen no longer scans arena
+kind rows. The incorrect local `ArrayLiteral` alias for canonical tag 16 was
+deleted in favor of `ArrayPopStmt`. The aggregate runtime usage projection now
+has no arena/count input, and five kind-driven fixtures pass C/LLVM parity.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
@@ -156,9 +162,9 @@ than inheriting a global proof claim.
 
 Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
 have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
-The registry now carries 15 architectural rows plus seven bounded self-host
+The registry now carries 15 architectural rows plus eight bounded self-host
 closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
-honestly split into `CLOSED=7 BRIDGE=6 ACTIVE=9`; only executable rung closure
+honestly split into `CLOSED=8 BRIDGE=6 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 

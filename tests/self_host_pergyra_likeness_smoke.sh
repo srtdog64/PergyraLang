@@ -178,7 +178,9 @@ SENTINEL_MAX=0
 # expression surfaces instead of direct arena atom/value/auxiliary rows.
 # 1258 -> 1264 (2026-07-13): runtime type usage consumes Option-returning
 # canonical semantic type-surface rows instead of arena type-name scans.
-RESULT_USE_MIN=1264
+# 1264 -> 1265 (2026-07-13): runtime kind usage consumes semantic-owned kind
+# surface facts and removes the final arena parameters from usage projection.
+RESULT_USE_MIN=1265
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

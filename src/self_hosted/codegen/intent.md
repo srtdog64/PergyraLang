@@ -254,3 +254,8 @@ presence by reading arena atom/value/auxiliary rows.
 
 Runtime type-family materialization consumes canonical semantic type-surface
 facts; direct arena type-name scans are forbidden.
+
+Runtime statement-kind materialization consumes canonical semantic kind-surface
+facts. Direct arena kind scans and backend-local kind tag aliases are
+forbidden. The aggregate runtime usage projection accepts only semantic
+expression, type, and kind facts.

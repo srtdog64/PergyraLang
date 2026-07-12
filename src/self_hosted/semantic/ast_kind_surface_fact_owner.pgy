@@ -1,0 +1,84 @@
+// Canonical artifact node-kind rows used by runtime projection.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+
+struct SemanticAstKindSurfaceFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    kind_tags: Array<Int>;
+}
+
+func SemanticAstKindSurfaceFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstKindSurfaceFacts {
+    let node_ids: Array<Int> = [];
+    let kind_tags: Array<Int> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        let kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, node_id);
+        if !IsSome(kind) {
+            ok = false;
+        } else {
+            ArrayPush(node_ids, node_id);
+            ArrayPush(kind_tags, UnwrapOption(kind));
+        }
+        node_id = node_id + 1;
+    }
+    return SemanticAstKindSurfaceFacts(
+        ok, artifact.count, node_ids, kind_tags
+    );
+}
+
+func SemanticAstKindSurfaceCount(facts: SemanticAstKindSurfaceFacts) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstKindSurfaceContains(
+    facts: SemanticAstKindSurfaceFacts,
+    kind_tag: Int
+) -> Bool {
+    if !facts.ok { return false; }
+    let i: Int = 0;
+    while i < SemanticAstKindSurfaceCount(facts) {
+        if facts.kind_tags[i] == kind_tag { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstKindSurfaceFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstKindSurfaceFacts
+) -> Bool {
+    let rebuilt: SemanticAstKindSurfaceFacts =
+        SemanticAstKindSurfaceFactsFromArtifact(artifact);
+    let count: Int = SemanticAstKindSurfaceCount(facts);
+    if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
+        SemanticAstKindSurfaceCount(rebuilt) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.kind_tags[i] != rebuilt.kind_tags[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstKindSurfaceFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Log(1)\n        Exit(0)\n"
+    );
+    let facts: SemanticAstKindSurfaceFacts =
+        SemanticAstKindSurfaceFactsFromArtifact(artifact);
+    return SemanticAstKindSurfaceFactsMatchArtifact(artifact, facts) &&
+        SemanticAstKindSurfaceContains(facts, TypedAstKindLogStmtTag()) &&
+        SemanticAstKindSurfaceContains(facts, TypedAstKindExitStmtTag()) &&
+        !SemanticAstKindSurfaceContains(facts, TypedAstKindArrayPopStmtTag());
+}

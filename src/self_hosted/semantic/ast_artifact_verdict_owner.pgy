@@ -12,6 +12,7 @@ import "ast_enum_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
+import "ast_kind_surface_fact_owner.pgy";
 
 struct SemanticAstArtifactVerdict {
     ok: Bool;
@@ -33,6 +34,7 @@ struct SemanticAstArtifactAnalysis {
     roles: SemanticAstRoleFacts;
     expression_surfaces: SemanticAstExpressionSurfaceFacts;
     type_surfaces: SemanticAstTypeSurfaceFacts;
+    kind_surfaces: SemanticAstKindSurfaceFacts;
 }
 
 func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
@@ -136,6 +138,8 @@ func SemanticAstArtifactAnalyze(
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
     let type_surfaces: SemanticAstTypeSurfaceFacts =
         SemanticAstTypeSurfaceFactsFromArtifact(artifact);
+    let kind_surfaces: SemanticAstKindSurfaceFacts =
+        SemanticAstKindSurfaceFactsFromArtifact(artifact);
     if !signatures.ok {
         let rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
             signatures.diagnostic_code,
@@ -152,7 +156,8 @@ func SemanticAstArtifactAnalyze(
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
             rejected, signatures, constructors, empty_locals, empty_assignments,
-            empty_statements, enums, roles, expression_surfaces, type_surfaces
+            empty_statements, enums, roles, expression_surfaces, type_surfaces,
+            kind_surfaces
         );
     }
     if !constructors.ok {
@@ -174,7 +179,7 @@ func SemanticAstArtifactAnalyze(
             rejected_constructor, signatures, constructors,
             constructor_locals, constructor_assignments,
             constructor_statements, enums, roles, expression_surfaces,
-            type_surfaces
+            type_surfaces, kind_surfaces
         );
     }
     if !enums.ok {
@@ -191,7 +196,7 @@ func SemanticAstArtifactAnalyze(
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
-            enums, roles, expression_surfaces, type_surfaces
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
         );
     }
     if !roles.ok {
@@ -208,7 +213,7 @@ func SemanticAstArtifactAnalyze(
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
-            enums, roles, expression_surfaces, type_surfaces
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
         );
     }
     if !expression_surfaces.ok {
@@ -226,7 +231,7 @@ func SemanticAstArtifactAnalyze(
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
-            enums, roles, expression_surfaces, type_surfaces
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
         );
     }
     if !type_surfaces.ok {
@@ -243,7 +248,24 @@ func SemanticAstArtifactAnalyze(
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
-            enums, roles, expression_surfaces, type_surfaces
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
+        );
+    }
+    if !kind_surfaces.ok {
+        let rejected_kind_surface: SemanticAstArtifactVerdict =
+            SemanticAstArtifactVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "SemanticAstKindSurfaceFacts"
+                ),
+                artifact.count, 0, requires_entrypoint
+            );
+        return SemanticAstArtifactAnalysis(
+            rejected_kind_surface, signatures, constructors,
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
+            SemanticAstStatementFactsFromArtifact(artifact, signatures),
+            enums, roles, expression_surfaces, type_surfaces, kind_surfaces
         );
     }
     let local_bindings: SemanticAstLocalBindingFacts =
@@ -263,7 +285,8 @@ func SemanticAstArtifactAnalyze(
         return SemanticAstArtifactAnalysis(
             rejected2, signatures, constructors, local_bindings,
             rejected_assignments,
-            rejected_statements, enums, roles, expression_surfaces, type_surfaces
+            rejected_statements, enums, roles, expression_surfaces, type_surfaces,
+            kind_surfaces
         );
     }
     let assignments: SemanticAstAssignmentFacts =
@@ -279,7 +302,7 @@ func SemanticAstArtifactAnalyze(
         return SemanticAstArtifactAnalysis(
             rejected3, signatures, constructors, local_bindings, assignments,
             SemanticAstStatementFactsFromArtifact(artifact, signatures), enums,
-            roles, expression_surfaces, type_surfaces
+            roles, expression_surfaces, type_surfaces, kind_surfaces
         );
     }
     let statements: SemanticAstStatementFacts =
@@ -295,14 +318,15 @@ func SemanticAstArtifactAnalyze(
         return SemanticAstArtifactAnalysis(
             rejected4, signatures, constructors, local_bindings,
             assignments, statements, enums, roles, expression_surfaces,
-            type_surfaces
+            type_surfaces, kind_surfaces
         );
     }
     let verdict: SemanticAstArtifactVerdict =
         SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
     return SemanticAstArtifactAnalysis(
         verdict, signatures, constructors, local_bindings, assignments,
-        statements, enums, roles, expression_surfaces, type_surfaces
+        statements, enums, roles, expression_surfaces, type_surfaces,
+        kind_surfaces
     );
 }
 
@@ -331,6 +355,8 @@ func SemanticAstArtifactAnalysisMatches(
         artifact, analysis.expression_surfaces
     ) && SemanticAstTypeSurfaceFactsMatchArtifact(
         artifact, analysis.type_surfaces
+    ) && SemanticAstKindSurfaceFactsMatchArtifact(
+        artifact, analysis.kind_surfaces
     );
 }
 
