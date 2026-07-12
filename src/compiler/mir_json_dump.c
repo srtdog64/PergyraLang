@@ -1,6 +1,7 @@
 #include "mir.h"
 #include "mir_abi_layout.h"
 #include "mir_decl_headers.h"
+#include "mir_parallel_capture_facts.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -559,8 +560,15 @@ mir_json_emit_routines(FILE *out, const MIRProgram *mir)
 static const char *
 mir_parallel_capture_kind_name(MIRParallelCaptureDispositionKind kind)
 {
-    return kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
-        ? "snapshot_copy" : "unknown";
+    switch (kind) {
+    case MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY:
+        return "snapshot_copy";
+    case MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT:
+        return "join_index_disjoint";
+    case MIR_PARALLEL_CAPTURE_JOIN_READONLY:
+        return "join_readonly";
+    }
+    return "unknown";
 }
 
 static void

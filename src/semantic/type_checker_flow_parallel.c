@@ -139,15 +139,17 @@ parallel_reject_shared_collection_capture(ASTNode *parallel_node,
              * admission sealed this array as [binding]-only, so every
              * task touches its own element. */
             if (ast_parallel_is_index_join(parallel_node)
-                && ast_parallel_join_index_array_admitted(parallel_node,
-                                                          sym->name))
+                && semantic_parallel_capture_disposition_find(
+                    ctx, parallel_node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) != NULL)
                 continue;
             /* Snapshot-read evidence (docs/181 R5): never written and
              * only ever `name[<expr>]` reads; the emitters' fan-out
              * entry alias check closes the written-backing residual. */
             if (ast_parallel_is_index_join(parallel_node)
-                && ast_parallel_join_readonly_array_admitted(parallel_node,
-                                                             sym->name))
+                && semantic_parallel_capture_disposition_find(
+                    ctx, parallel_node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY) != NULL)
                 continue;
 
             semantic_error_with_hints(ctx,
@@ -187,15 +189,6 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || ctx == NULL)
         return false;
     task_count = ast_parallel_task_count(node);
-    /* This checker is the single producer of capture-disposition facts
-     * (docs/178, docs/180 §6). Rows are keyed by stable boundary ID and
-     * projected into MIR for both backends. Reset keeps re-checks idempotent. */
-    if (!semantic_parallel_capture_facts_reset(ctx, node)) {
-        semantic_error(ctx, node,
-            "Capture-disposition fact boundary allocation failed");
-        return true;
-    }
-
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
             Symbol *sym = scope->symbols[i];
@@ -271,8 +264,10 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
              * (Exclusivity). Both backends materialize the snapshot from
              * the fact row recorded here. docs/178. */
             if (writers == 1 && refs >= 2
-                && !semantic_parallel_capture_facts_add_snapshot(
-                    ctx, node, sym->name, writer_task)) {
+                && !semantic_parallel_capture_disposition_add(
+                    ctx, node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY,
+                    writer_task)) {
                 semantic_error(ctx, node,
                     "Capture-disposition fact allocation failed while admitting parallel snapshot");
                 return true;
@@ -365,6 +360,15 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         && !ctx->in_parallel_join_expr) {
         semantic_error(ctx, node,
             "parallel join with any/sum/product/min/max produces a value; bind it: let x = parallel (...) join with any { give <expr>; }; (docs/181 R3/R4)");
+        return false;
+    }
+
+    /* One boundary owner is reset before any producer runs. Join admission
+     * and scalar-race analysis append different disposition kinds to this
+     * table, then the completed boundary is sealed exactly once. */
+    if (!semantic_parallel_capture_facts_reset(ctx, node)) {
+        semantic_error(ctx, node,
+            "Capture-disposition fact boundary allocation failed");
         return false;
     }
 

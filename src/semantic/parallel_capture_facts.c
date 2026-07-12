@@ -78,23 +78,65 @@ semantic_parallel_capture_facts_reset(SemanticContext *ctx,
     return true;
 }
 
+const SemanticParallelCaptureDispositionRow *
+semantic_parallel_capture_disposition_find(
+    const SemanticContext *ctx,
+    const ASTNode *boundary,
+    const char *name,
+    SemanticParallelCaptureDispositionKind kind)
+{
+    uint32_t stable_id;
+
+    if (ctx == NULL || boundary == NULL || name == NULL)
+        return NULL;
+    stable_id = ast_node_stable_id(boundary);
+    for (size_t i = 0; i < ctx->parallel_capture_boundary_count; i++) {
+        const SemanticParallelCaptureBoundaryFact *fact =
+            &ctx->parallel_capture_boundaries[i];
+        if (fact->source_stable_id != stable_id)
+            continue;
+        for (size_t j = 0; j < fact->row_count; j++) {
+            const SemanticParallelCaptureDispositionRow *row =
+                &fact->rows[j];
+            if (row->kind == kind && row->name != NULL
+                && strcmp(row->name, name) == 0)
+                return row;
+        }
+    }
+    return NULL;
+}
+
 bool
-semantic_parallel_capture_facts_add_snapshot(SemanticContext *ctx,
-                                             const ASTNode *boundary,
-                                             const char *name,
-                                             size_t writer_task)
+semantic_parallel_capture_disposition_add(
+    SemanticContext *ctx,
+    const ASTNode *boundary,
+    const char *name,
+    SemanticParallelCaptureDispositionKind kind,
+    size_t writer_task)
 {
     SemanticParallelCaptureBoundaryFact *fact;
 
     if (ctx == NULL || boundary == NULL || name == NULL)
         return false;
     fact = parallel_capture_boundary_find(ctx, ast_node_stable_id(boundary));
-    if (fact == NULL || fact->sealed || writer_task >= fact->task_count)
+    if (fact == NULL)
         return false;
-    for (size_t i = 0; i < fact->row_count; i++) {
-        if (strcmp(fact->rows[i].name, name) == 0)
-            return fact->rows[i].writer_task == writer_task;
+    if (kind == SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY) {
+        if (writer_task >= fact->task_count)
+            return false;
+    } else if ((kind != SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT
+                && kind != SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY)
+               || writer_task != 0) {
+        return false;
     }
+    for (size_t i = 0; i < fact->row_count; i++) {
+        if (strcmp(fact->rows[i].name, name) == 0) {
+            return fact->rows[i].kind == kind
+                && fact->rows[i].writer_task == writer_task;
+        }
+    }
+    if (fact->sealed)
+        return false;
     if (fact->row_count == fact->row_capacity) {
         size_t next = fact->row_capacity == 0 ? 4 : fact->row_capacity * 2;
         if (next < fact->row_capacity
@@ -111,7 +153,7 @@ semantic_parallel_capture_facts_add_snapshot(SemanticContext *ctx,
     row->name = pergyra_strdup(name);
     if (row->name == NULL)
         return false;
-    row->kind = SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY;
+    row->kind = kind;
     row->writer_task = writer_task;
     fact->row_count++;
     return true;

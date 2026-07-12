@@ -10,7 +10,9 @@ typedef struct SemanticContext SemanticContext;
 
 typedef enum
 {
-    SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY
+    SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY,
+    SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT,
+    SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY
 } SemanticParallelCaptureDispositionKind;
 
 typedef struct
@@ -32,10 +34,18 @@ typedef struct
 
 bool semantic_parallel_capture_facts_reset(SemanticContext *ctx,
                                            const ASTNode *boundary);
-bool semantic_parallel_capture_facts_add_snapshot(SemanticContext *ctx,
-                                                  const ASTNode *boundary,
-                                                  const char *name,
-                                                  size_t writer_task);
+bool semantic_parallel_capture_disposition_add(
+    SemanticContext *ctx,
+    const ASTNode *boundary,
+    const char *name,
+    SemanticParallelCaptureDispositionKind kind,
+    size_t writer_task);
+const SemanticParallelCaptureDispositionRow *
+semantic_parallel_capture_disposition_find(
+    const SemanticContext *ctx,
+    const ASTNode *boundary,
+    const char *name,
+    SemanticParallelCaptureDispositionKind kind);
 bool semantic_parallel_capture_facts_seal(SemanticContext *ctx,
                                           const ASTNode *boundary);
 void semantic_parallel_capture_facts_clear(

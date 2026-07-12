@@ -87,6 +87,7 @@ void llvm_active_externs(const LLVMGenCtx *ctx,
                          ASTNode ***nodes_out,
                          size_t *count_out);
 bool llvm_active_has_mir(const LLVMGenCtx *ctx);
+const MIRProgram *llvm_active_mir_identity(const LLVMGenCtx *ctx);
 const char *llvm_active_source_path(const LLVMGenCtx *ctx);
 bool llvm_active_has_main_function(const LLVMGenCtx *ctx);
 const char *llvm_active_main_function_name(const LLVMGenCtx *ctx);

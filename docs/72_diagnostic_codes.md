@@ -331,6 +331,19 @@ Read or Write through a `MoveToken<T>`. Move tokens are one-shot ownership trans
 - **Reason**: move transfers ownership; a released source has no ownership to transfer.
 - **Fix**: re-Claim the source, or trace back to the earlier move/release that consumed it.
 
+#### `PGY_SEM_OWNER_NOT_CONSUMED`
+
+An explicit owner handle reaches a scope or function boundary without its
+required consuming operation.
+
+- **Reason**: the current bounded ownership contract requires exactly one
+  explicit finish, transfer, or drop, and MIR does not own implicit cleanup
+  for this handle yet.
+- **Fix**: consume the owner with its typed finish/drop operation before the
+  reported boundary.
+- **cause_ir**: `semantic:owner:not_consumed`
+- **fix_source**: `consume-owner-before-exit`
+
 ### Parallel / Effect
 
 #### `PGY_SEM_PARALLEL_SLOT_CONFLICT`

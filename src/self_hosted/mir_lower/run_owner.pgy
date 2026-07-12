@@ -18,6 +18,14 @@ func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read {
         EmitMirParityFixtureManifest();
         return;
     }
+    if ArrayLength(args) > 0 && args[0] == "--verify-input" {
+        if ArrayLength(args) != 2 {
+            MirLowerFailClosed("usage: mir_lower --verify-input <mir-json-file>");
+        }
+        MirJsonReadInput(args[1]);
+        Log("pgy.mir.v1 input verified");
+        return;
+    }
     let path: String = MirJsonInputPath(args);
     let json: String = MirJsonReadInput(path);
     Print(EmitMirProgramTree(json));

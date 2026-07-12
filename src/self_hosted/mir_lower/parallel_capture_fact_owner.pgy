@@ -1,0 +1,123 @@
+// Parallel capture fact owner for self-hosted MIR JSON consumption.
+//
+// Validates the same boundary/row invariants as the C MIR verifier. Lowering
+// owners may consume only documents admitted here; unknown kinds and malformed
+// writer rows fail closed instead of being ignored as extension text.
+
+import "../lib/json_fact_table.pgy";
+
+func MirParallelCaptureBoundaryTable(json: String) -> JsonArrayObjectFactTable {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    return JsonObjectFactArrayObjectTable(root, "parallel_capture_boundaries");
+}
+
+func MirParallelCaptureBoolEquals(
+    row: JsonObjectFactTable,
+    field: String,
+    expected: Bool
+) -> Bool {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactValueBounds(row, field, bounds) {
+        return false;
+    }
+    let token: String = JsonScalarToken(row.json, bounds[0], bounds[1]);
+    if expected {
+        return token == "true";
+    }
+    return token == "false";
+}
+
+func MirParallelCaptureRowReady(
+    row: JsonObjectFactTable,
+    task_count: Int
+) -> Bool {
+    let name_opt: Option<String> = JsonObjectFactStringFieldOpt(row, "name");
+    let kind_opt: Option<String> = JsonObjectFactStringFieldOpt(row, "kind");
+    let writer_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, "writer_task");
+    if !IsSome(name_opt) || !IsSome(kind_opt) || !IsSome(writer_opt) {
+        return false;
+    }
+    if StringLength(UnwrapOption(name_opt)) == 0 {
+        return false;
+    }
+    let kind: String = UnwrapOption(kind_opt);
+    let writer: Int = ToInt(UnwrapOption(writer_opt));
+    if kind == "snapshot_copy" {
+        return writer >= 0 && writer < task_count;
+    }
+    if kind == "join_index_disjoint" || kind == "join_readonly" {
+        return writer == 0;
+    }
+    return false;
+}
+
+func MirParallelCaptureBoundaryReady(row: JsonObjectFactTable) -> Bool {
+    let id_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, "source_stable_id");
+    let tasks_opt: Option<String> = JsonObjectFactNumberFieldOpt(row, "task_count");
+    if !IsSome(id_opt) || !IsSome(tasks_opt) ||
+       !MirParallelCaptureBoolEquals(row, "sealed", true) {
+        return false;
+    }
+    if ToInt(UnwrapOption(id_opt)) <= 0 || ToInt(UnwrapOption(tasks_opt)) < 0 {
+        return false;
+    }
+    let rows: JsonArrayObjectFactTable = JsonObjectFactArrayObjectTable(row, "rows");
+    if !JsonArrayObjectFactTableReady(rows) {
+        return false;
+    }
+    let task_count: Int = ToInt(UnwrapOption(tasks_opt));
+    let row_count: Int = JsonArrayObjectFactCount(rows);
+    let i: Int = 0;
+    while i < row_count {
+        let capture: JsonObjectFactTable = JsonArrayObjectFactAt(rows, i);
+        if !MirParallelCaptureRowReady(capture, task_count) {
+            return false;
+        }
+        let name: String = UnwrapOption(
+            JsonObjectFactStringFieldOpt(capture, "name"));
+        let j: Int = 0;
+        while j < i {
+            let prior: JsonObjectFactTable = JsonArrayObjectFactAt(rows, j);
+            let prior_name: Option<String> =
+                JsonObjectFactStringFieldOpt(prior, "name");
+            if IsSome(prior_name) && UnwrapOption(prior_name) == name {
+                return false;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func MirParallelCaptureFactsReady(json: String) -> Bool {
+    let boundaries: JsonArrayObjectFactTable =
+        MirParallelCaptureBoundaryTable(json);
+    if !JsonArrayObjectFactTableReady(boundaries) {
+        return false;
+    }
+    let count: Int = JsonArrayObjectFactCount(boundaries);
+    let i: Int = 0;
+    while i < count {
+        let boundary: JsonObjectFactTable =
+            JsonArrayObjectFactAt(boundaries, i);
+        if !MirParallelCaptureBoundaryReady(boundary) {
+            return false;
+        }
+        let id: Int = ToInt(UnwrapOption(
+            JsonObjectFactNumberFieldOpt(boundary, "source_stable_id")));
+        let j: Int = 0;
+        while j < i {
+            let prior: JsonObjectFactTable =
+                JsonArrayObjectFactAt(boundaries, j);
+            let prior_id: Option<String> =
+                JsonObjectFactNumberFieldOpt(prior, "source_stable_id");
+            if IsSome(prior_id) && ToInt(UnwrapOption(prior_id)) == id {
+                return false;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}

@@ -292,7 +292,7 @@ grep -Fq "llvm_scope_lookup_snapshot(ctx, inst->arg0, &target_var)" \
 grep -Fq "llvm_scope_contains(ctx, target_name)" \
     "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, vname, &var)" \
-    "$ROOT_DIR/src/codegen/llvm_stmt.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, party_var, &party_entry)" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_scope_lookup_snapshot(ctx, source_name," \
@@ -1764,7 +1764,7 @@ if awk '
 fi
 for rel in \
     "src/codegen/llvm_mir_emit.c" \
-    "src/codegen/llvm_stmt.c" \
+    "src/codegen/llvm_stmt_block.c" \
     "src/codegen/llvm_stmt_loop_match.c" \
     "src/codegen/llvm_stmt_match.c" \
     "src/codegen/llvm_stmt_with.c" \
@@ -4860,7 +4860,7 @@ grep -Fq "llvm_require_secure_token_var(ctx, node, name" "$ROOT_DIR/src/codegen/
 grep -Fq "llvm_lookup_secure_token_var(ctx, source_name," "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "llvm_mir_base_name_from_versioned(source_name," "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "source_base_name, &token_var)" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
-grep -Fq "llvm_lookup_secure_token_var(ctx, vname, &token_var)" "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "llvm_lookup_secure_token_var(ctx, vname, &token_var)" "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
 grep -Fq "llvm_lookup_secure_token_var(ctx, alias, &token_var)" "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
 ! grep -RInF --include='*.c' --include='*.h' "LLVMVarEntry *token_var" "$ROOT_DIR/src/codegen" >/dev/null
 ! grep -RInF --include='*.c' --include='*.h' "token_var->" "$ROOT_DIR/src/codegen" >/dev/null
@@ -4948,10 +4948,10 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/llvm_stmt
 grep -Fq "LLVM slot initializer requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
 ! grep -Fq 'is_secure ? "pgy_secure_write_%s" : "pgy_write_%s"' "$ROOT_DIR/src/codegen/llvm_stmt_let_names.c"
-grep -Fq "LLVM auto-release requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/llvm_stmt.c"
-grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/llvm_stmt.c"
-! grep -Fq 'is_secure ? "pgy_secure_release_" : "pgy_release_"' "$ROOT_DIR/src/codegen/llvm_stmt.c"
-grep -Fq "LLVM secure slot auto-release requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "LLVM auto-release requires MIR ABI runtime function row" "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
+grep -Fq "mir_abi_resource_runtime_fn_by_kind(" "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
+! grep -Fq 'is_secure ? "pgy_secure_release_" : "pgy_release_"' "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
+grep -Fq "LLVM secure slot auto-release requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
 grep -Fq "LLVM secure with-slot cleanup requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
 grep -Fq "llvm_select_required_runtime_function" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
 grep -Fq "LLVMSelectCaseInfo" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"

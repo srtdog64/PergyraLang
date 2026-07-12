@@ -144,20 +144,6 @@ struct ASTNode
              * Non-NULL range end selects the index mode; join_collection
              * then holds the range start expression. */
             ASTNode*  join_range_end;
-            /* Index-disjointness facts (docs/181 R1): checker-sealed
-             * names of arrays whose every body access is `name[binding]`
-             * (task i owns index i). Emitters admit array captures from
-             * this list only. */
-            char**    join_index_arrays;
-            size_t    join_index_array_count;
-            /* Snapshot-read facts (docs/181 R5): checker-sealed names of
-             * arrays the body never writes and only ever uses as
-             * `name[<any expr>]` reads. Free-index reads are safe
-             * against a written array only if the backings are
-             * disjoint; the emitters close that residual with a
-             * fail-closed alias check at fan-out entry. */
-            char**    join_readonly_arrays;
-            size_t    join_readonly_array_count;
             /* Expression form (docs/181 R2): checker-sealed primitive
              * result type name of the final `give` (NULL = statement
              * form). Emitters derive Array<R> from this fact instead of
@@ -550,36 +536,10 @@ struct ASTNode
             size_t transition_capacity;
         } lifecycle_decl;
 
-        /* Event declaration */
-        struct {
-            char* name;
-            ASTNode** params;          /* Event handler parameters */
-            size_t param_count;
-            size_t param_capacity;
-            ASTNode* return_type;      /* Usually Void */
-            AccessModifier access;
-        } event_decl;
-
-        /* Event subscribe/unsubscribe */
-        struct {
-            ASTNode* event;            /* Event reference */
-            ASTNode* handler;          /* Handler function/lambda */
-        } event_op;
-
-        /* Event invoke */
-        struct {
-            ASTNode* event;            /* Internal carrier; surface OnEvent(x) parses as AST_CALL. */
-            ASTNode** arguments;       /* Arguments to pass */
-            size_t arg_count;
-        } event_invoke;
-
-        /* Event handler type */
-        struct {
-            ASTNode** param_types;     /* Parameter types */
-            size_t param_count;
-            size_t param_capacity;
-            ASTNode* return_type;      /* Return type */
-        } event_handler_type;
+        ASTEventDeclData event_decl;
+        ASTEventOpData event_op;
+        ASTEventInvokeData event_invoke;
+        ASTEventHandlerTypeData event_handler_type;
 
         /* Lambda expression */
         struct {

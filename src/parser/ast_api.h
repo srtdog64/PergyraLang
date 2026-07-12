@@ -259,20 +259,10 @@ bool ast_parallel_is_join_form(const ASTNode* node);
 const char* ast_parallel_join_element(const ASTNode* node);
 ASTNode* ast_parallel_join_collection(const ASTNode* node);
 /* Index form (docs/181 R1): `parallel (i in lo..hi)`; join_collection is
- * the range start. Index-disjointness fact rows are produced by the join
- * admission checker (single producer) and consumed by both emitters. */
+ * the range start. */
 void ast_parallel_set_join_range_end(ASTNode* node, ASTNode* range_end);
 ASTNode* ast_parallel_join_range_end(const ASTNode* node);
 bool ast_parallel_is_index_join(const ASTNode* node);
-void ast_parallel_reset_join_index_arrays(ASTNode* node);
-bool ast_parallel_add_join_index_array(ASTNode* node, const char* name);
-bool ast_parallel_join_index_array_admitted(const ASTNode* node,
-                                            const char* name);
-/* Snapshot-read fact rows (docs/181 R5): unwritten, indexed-reads-only. */
-void ast_parallel_reset_join_readonly_arrays(ASTNode* node);
-bool ast_parallel_add_join_readonly_array(ASTNode* node, const char* name);
-bool ast_parallel_join_readonly_array_admitted(const ASTNode* node,
-                                               const char* name);
 /* Expression form (docs/181 R2): checker-sealed give result type name. */
 bool ast_parallel_set_join_give_type(ASTNode* node, const char* type_name);
 const char* ast_parallel_join_give_type(const ASTNode* node);

@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "../compiler/mir_parallel_capture_facts.h"
 #include "llvm_stmt_parallel_names.h"
 #include "codegen_type_mapping.h"
 #include "../common/execution_lane_kind.h"
@@ -155,7 +156,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         return;
 
     capture_boundary = mir_parallel_capture_boundary_find(
-        ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+        llvm_active_mir_identity(ctx), ast_node_stable_id(node));
     if (capture_boundary == NULL || !capture_boundary->sealed
         || capture_boundary->task_count != count) {
         llvm_set_error_at_with_hints(ctx, node,
@@ -295,8 +296,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             || captured[i].future_inner != NULL
             || captured[i].slot_inner != NULL)
             continue;
-        row = mir_parallel_capture_snapshot_find(capture_boundary,
-                                                  captured[i].name);
+        row = mir_parallel_capture_disposition_find(
+            capture_boundary, captured[i].name,
+            MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY);
         if (row == NULL)
             continue;
         if (!(vt == ctx->type_i32 || vt == ctx->type_i64

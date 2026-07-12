@@ -78,10 +78,10 @@ alloca 유도변수, 핸들 non-null guard). rung-0 명시 경계: slot/callable
 compare 등록 · 스모크(`parallel_join_smoke.sh`) 3플랫폼 CI 배선 · 유닛
 918/0·2794/0. 새 책임 = 새 파일 4개(550-line 규칙).
 
-**R1 착지 (2026-07-11, WO-PARSURF-2 R1)**: 파서(range 끝점, for-루프와
-같은 `..` 인라인 매칭) → AST(`join_range_end` + **index-disjointness fact
-rows** `join_index_arrays` — join admission checker가 단일 생산자,
-snapshot-row 패밀리와 reset 소유권 분리) → semantic([i]-정칙 walker
+**R1 착지 (2026-07-11, WO-PARSURF-2 R1; MIR 이주 2026-07-12)**: 파서
+(range 끝점, for-루프와 같은 `..` 인라인 매칭) → semantic stable-boundary
+fact(`join_index_disjoint`; join admission checker가 단일 생산자) → MIR
+projection/verifier/JSON → semantic([i]-정칙 walker
 `ast_parallel_index_analysis.c` 신설: 알 수 없는 노드 종류는 free-ref
 oracle로 fail-close = over-reject-never-over-admit; replicated-arm 루프는
 fact-admitted 배열만 완화; arms 공유-컬렉션 거절에 index-fact 예외) →
@@ -137,8 +137,8 @@ non-primitive/사용자-정의 모노이드(ability/witness 필요 — 별개 ru
 body가 한 번도 쓰지 않고(`ast_statement_assigns_identifier` 부정) 모든
 사용이 `name[<임의 식>]`인(신설 `ast_identifier_only_indexed_reads`,
 [i]-walker의 NULL-인덱스 일반화 — ArrayPush 등 whole-array 사용은 여전히
-fail-close) 배열은 snapshot-read fact(`join_readonly_arrays`, checker
-단일 생산)로 임의-인덱스 읽기 admit. 쓰기 배열은 [i]-정칙 그대로 —
+fail-close) 배열은 stable-boundary snapshot-read fact(`join_readonly`,
+checker 단일 생산)로 임의-인덱스 읽기 admit. 쓰기 배열은 [i]-정칙 그대로 —
 **in-place 스텐실은 계속 거절**(이웃 태스크의 쓰기와 구조적 race), 야코비
 이중버퍼형만 허용(게임의 올바른 틱 모양이기도 함: 이전 프레임 읽기 →
 다음 프레임 쓰기). **② 런타임 backstop** — 남는 유일 구멍인 "읽기
@@ -150,7 +150,9 @@ fail-close) 배열은 snapshot-read fact(`join_readonly_arrays`, checker
 배열(쓰기+읽기 모두)의 elem 메타를 wrapper 재등록에 스태시
 (`is_admitted_array`로 필드 의미 확장). 검증: 33×3/0/0/100/103 양 백엔드
 byte-equal(compare 등록) · alias panic 양 백엔드 · 거절 15종 스모크 ·
-concurrency/memory-concurrency/semantic 2794/0. 잔여: 원소 모드 배열
+MIR JSON kind golden · self-hosted MIR input owner positive/mutation parity ·
+concurrency/memory-concurrency/semantic 2794/0. AST에는 R1/R5 처분 행을
+저장하지 않는다. 잔여: 원소 모드 배열
 캡처는 여전히 전면 거절(인덱스 없음 — 필요 실증 시 별도 rung), 2D/타일
 stencil, 함수 경계 넘는 alias 증거.
 

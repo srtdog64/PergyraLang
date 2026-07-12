@@ -217,6 +217,44 @@ for tool in mir_lower codegen; do
         exit 1
     fi
 done
+
+# The self-hosted input owner must consume parallel capture facts even while
+# the MIR->AST lowering subset does not yet emit parallel bodies. This keeps
+# schema acceptance from becoming an ignore-unknown compatibility fallback.
+parallel_src="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.pgy"
+parallel_mir="$B/parallel_capture_valid.mirjson"
+parallel_bad_kind="$B/parallel_capture_bad_kind.mirjson"
+parallel_bad_writer="$B/parallel_capture_bad_writer.mirjson"
+(cd "$ROOT_DIR" && "$PGY" --mir-json \
+    "$(pgy_path_for_compiler "$PGY" "$parallel_src")" \
+    2>/dev/null | tr -d '\r' >"$parallel_mir")
+if ! (cd "$ROOT_DIR" && "$B/mir_lower.exe" --verify-input \
+        "${parallel_mir#$ROOT_DIR/}" \
+        >"$B/parallel_capture_valid.out" \
+        2>"$B/parallel_capture_valid.err"); then
+    echo "[self-host-parity:mir-json] self-host input owner rejected valid parallel capture facts" >&2
+    cat "$B/parallel_capture_valid.out" "$B/parallel_capture_valid.err" >&2
+    exit 1
+fi
+grep -Fq 'pgy.mir.v1 input verified' "$B/parallel_capture_valid.out" || {
+    echo "[self-host-parity:mir-json] verify-input success marker is missing" >&2
+    exit 1
+}
+sed 's/"kind":"join_readonly"/"kind":"unknown"/g' \
+    "$parallel_mir" >"$parallel_bad_kind"
+if (cd "$ROOT_DIR" && "$B/mir_lower.exe" --verify-input \
+        "${parallel_bad_kind#$ROOT_DIR/}") >/dev/null 2>&1; then
+    echo "[self-host-parity:mir-json] self-host input owner admitted an unknown parallel capture kind" >&2
+    exit 1
+fi
+sed 's/"kind":"join_index_disjoint","writer_task":0/"kind":"join_index_disjoint","writer_task":1/g' \
+    "$parallel_mir" >"$parallel_bad_writer"
+if (cd "$ROOT_DIR" && "$B/mir_lower.exe" --verify-input \
+        "${parallel_bad_writer#$ROOT_DIR/}") >/dev/null 2>&1; then
+    echo "[self-host-parity:mir-json] self-host input owner admitted a writer on a join disposition" >&2
+    exit 1
+fi
+
 read_mir_fixture_manifest
 
 pass=0

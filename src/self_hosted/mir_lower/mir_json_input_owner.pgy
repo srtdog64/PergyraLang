@@ -5,6 +5,7 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
+import "parallel_capture_fact_owner.pgy";
 
 func MirJsonInputPath(args: Array<String>) -> String {
     if ArrayLength(args) < 1 {
@@ -20,6 +21,9 @@ func MirJsonReadInput(path: String) -> String {
     }
     if !MirDocumentSchemaEquals(json, "pgy.mir.v1") {
         MirLowerFailClosed("input is not a pgy.mir.v1 MIR-JSON document");
+    }
+    if !MirParallelCaptureFactsReady(json) {
+        MirLowerFailClosed("MIR parallel capture facts are missing or invalid");
     }
     return json;
 }

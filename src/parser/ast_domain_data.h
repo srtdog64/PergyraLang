@@ -388,4 +388,31 @@ typedef struct {
     char* right_slot_name;
 } ASTZoneStateData;
 
+typedef struct {
+    char* name;
+    ASTNode** params;
+    size_t param_count;
+    size_t param_capacity;
+    ASTNode* return_type;
+    AccessModifier access;
+} ASTEventDeclData;
+
+typedef struct {
+    ASTNode* event;
+    ASTNode* handler;
+} ASTEventOpData;
+
+typedef struct {
+    ASTNode* event;
+    ASTNode** arguments;
+    size_t arg_count;
+} ASTEventInvokeData;
+
+typedef struct {
+    ASTNode** param_types;
+    size_t param_count;
+    size_t param_capacity;
+    ASTNode* return_type;
+} ASTEventHandlerTypeData;
+
 #endif /* PERGYRA_AST_DOMAIN_DATA_H */

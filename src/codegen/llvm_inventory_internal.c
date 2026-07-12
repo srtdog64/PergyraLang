@@ -305,6 +305,12 @@ llvm_active_has_mir(const LLVMGenCtx *ctx)
     return ctx != NULL && ctx->mir != NULL;
 }
 
+const MIRProgram *
+llvm_active_mir_identity(const LLVMGenCtx *ctx)
+{
+    return llvm_active_has_mir(ctx) ? ctx->mir : NULL;
+}
+
 const char *
 llvm_active_source_path(const LLVMGenCtx *ctx)
 {

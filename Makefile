@@ -1134,6 +1134,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_task_channel_policy.c \
                         $(CODEGEN_DIR)/llvm_expr_task_channel_calls.c \
                         $(CODEGEN_DIR)/llvm_stmt.c \
+                        $(CODEGEN_DIR)/llvm_stmt_block.c \
                         $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                         $(CODEGEN_DIR)/llvm_stmt_array_type_infer.c \
@@ -1158,6 +1159,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_join.c \
+                        $(CODEGEN_DIR)/llvm_stmt_parallel_join_capture.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_join_result.c \
                         $(CODEGEN_DIR)/llvm_stmt_select.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_names.c \

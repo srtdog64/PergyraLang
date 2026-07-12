@@ -100,14 +100,19 @@ run_reject() {
 
 cat >"$WORK_DIR/array_late_runtime_surface.pgy" <<'PGY'
 func Main() -> Void {
-    let values = [1, parallel { Log(2); }];
+    let source: Array<Int> = [2];
+    let values: Array<Array<Int>> = [
+        [1],
+        parallel (x in source) join with all { give x; }
+    ];
     Log(0);
 }
 PGY
 
 cat >"$WORK_DIR/tuple_late_runtime_surface.pgy" <<'PGY'
 func Main() -> Void {
-    let values = (1, parallel { Log(2); });
+    let source: Array<Int> = [2];
+    let values = (1, parallel (x in source) join with all { give x; });
     Log(0);
 }
 PGY

@@ -101,11 +101,13 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   for this rung, 88.1 percent cumulative). A same-window control ran in 36.528
   seconds and candidates in 36.432-36.743 seconds, so CPU remains neutral. C
   and LLVM emitted the same artifact.
-- Parallel snapshot capture disposition is no longer stored on AST nodes.
-  Semantic analysis owns a stable-boundary-ID table, MIR imports and validates
-  the sealed rows, MIR JSON exports them, and both C and LLVM emitters consume
-  only the MIR table. MIR mutation coverage and the parallel snapshot smoke
-  reject missing or malformed facts and forbid restoration of the AST storage.
+- Parallel snapshot, join index-disjoint, and join readonly capture
+  dispositions are no longer stored on AST nodes. Semantic analysis owns one
+  stable-boundary-ID table, MIR imports and validates the sealed kind rows, MIR
+  JSON exports them, and both C and LLVM emitters consume only that table. The
+  Pergyra-written MIR input owner validates the same closed kind/writer shape.
+  MIR mutations and snapshot/join smokes reject malformed facts and forbid
+  restoration of AST storage.
 
 ## Remaining Work Order
 
@@ -120,7 +122,7 @@ byte-identical. Integrated-driver text lifetime remains active debt.
    increase memory limits or broaden owner transfer without CFG/MIR evidence.
 4. Move the remaining executable call-ABI facts into MIR-owned rows, with C,
    LLVM, and self-hosted consumers reading the same records. Parallel snapshot
-   capture disposition has completed this migration.
+   and join capture dispositions have completed this migration.
 
 ## Integrated Bootstrap Refresh
 

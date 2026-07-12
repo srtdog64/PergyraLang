@@ -231,15 +231,17 @@ func SelfMirBlockRowsValidationError(
 
 func SelfMirBlockRowsFirstInstructionStartMismatch(
     blocks: SelfMirBlockRows
-) -> Int {
+) -> Option<Int> {
     let instruction_cursor: Int = 0;
     let i: Int = 0;
     while i < ArrayLength(blocks.ids) {
-        if blocks.instruction_starts[i] != instruction_cursor { return i; }
+        if blocks.instruction_starts[i] != instruction_cursor {
+            return Some(i);
+        }
         instruction_cursor = instruction_cursor + blocks.instruction_counts[i];
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 func SelfMirRoutineNameForBlockRow(
@@ -347,13 +349,13 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
         let block_error: String = SelfMirBlockRowsValidationError(
             facts.cfg.blocks, ArrayLength(facts.cfg.instructions.ids)
         );
-        let block_row: Int = SelfMirBlockRowsFirstInstructionStartMismatch(
+        let block_row: Option<Int> = SelfMirBlockRowsFirstInstructionStartMismatch(
             facts.cfg.blocks
         );
-        if block_row >= 0 {
+        if IsSome(block_row) {
             return Concat(block_error, Concat(
                 " routine=", SelfMirRoutineNameForBlockRow(
-                    facts.routines, block_row
+                    facts.routines, UnwrapOption(block_row)
                 )
             ));
         }

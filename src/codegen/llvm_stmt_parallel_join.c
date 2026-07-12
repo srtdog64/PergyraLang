@@ -18,43 +18,13 @@
  */
 
 #include "llvm_internal.h"
+#include "llvm_stmt_parallel_join_capture.h"
 #include "llvm_stmt_parallel_names.h"
 #include "../common/execution_lane_kind.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
 
 #include <string.h>
-
-/* Rung-0 capture cap (mirrors the C emitter's MAX_SLOT_VARS scale). */
-#define PJOIN_MAX_CAPTURES 64
-
-typedef struct {
-    const char *name;
-    LLVMValueRef alloca;
-    LLVMTypeRef type;
-    const char *channel_inner;
-    const char *future_inner;
-    const char *slot_inner;
-    bool future_is_remote;
-    bool slot_is_secure;
-    /* Fact-admitted array (docs/181 R1 index-disjointness or R5
-     * snapshot-read): element metadata stashed by value so the wrapper
-     * can re-register the binding. */
-    bool is_admitted_array;
-    LLVMTypeRef array_elem_type;
-    const char *array_elem_name;
-} JoinCapturedVar;
-
-static void
-llvm_join_set_error(LLVMGenCtx *ctx, ASTNode *node, const char *fmt,
-                    const char *arg)
-{
-    llvm_set_error_at_with_hints(ctx, node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        fmt, arg != NULL ? arg : "<binding>");
-}
 
 /* Shared emission for both forms; expression mode (result_out != NULL)
  * adds a per-task result slot to the context struct, wires `give` to it
@@ -76,14 +46,14 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     if (expr_mode) {
         *result_out = NULL;
         if (give_name == NULL || give_name[0] == '\0') {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join expression lacks the checker-sealed give-result fact%s",
                 "");
             return;
         }
         give_type = pgy_kind_to_llvm(ctx, pgy_classify_type(give_name));
         if (give_type == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join give result '%s' has no primitive lowering",
                 give_name);
             return;
@@ -95,18 +65,18 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMTypeRef elem_type;
     const MIRParallelCaptureBoundaryFact *capture_boundary =
         mir_parallel_capture_boundary_find(
-            ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+            llvm_active_mir_identity(ctx), ast_node_stable_id(node));
 
     if (capture_boundary == NULL || !capture_boundary->sealed
         || capture_boundary->task_count != ast_parallel_task_count(node)) {
-        llvm_join_set_error(ctx, node,
+        llvm_parallel_join_set_error(ctx, node,
             "LLVM parallel join block reached the emitter without a matching sealed MIR capture boundary%s",
             "");
         return;
     }
     if (elem_name == NULL || body == NULL || coll == NULL
         || (!index_mode && coll->type != AST_IDENTIFIER)) {
-        llvm_join_set_error(ctx, node,
+        llvm_parallel_join_set_error(ctx, node,
             "LLVM parallel join block reached the emitter in a non-admitted shape%s",
             "");
         return;
@@ -118,14 +88,14 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         coll_name = ast_identifier_name(coll);
         if (!llvm_scope_lookup_snapshot(ctx, coll_name, &coll_var)
             || coll_var.alloca == NULL || coll_var.type == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join collection '%s' requires a storage-backed binding",
                 coll_name);
             return;
         }
         coll_entry = llvm_lookup_array_var(ctx, coll_name);
         if (coll_entry == NULL || coll_entry->elem_type == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join collection '%s' requires concrete Array<T> element metadata",
                 coll_name);
             return;
@@ -141,7 +111,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     if (!index_mode) {
         const char *elem_suffix = llvm_type_to_suffix(ctx, elem_type);
         if (elem_suffix == NULL || strcmp(elem_suffix, "Unknown") == 0) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join rung 0 requires a primitive element lowering for '%s'",
                 coll_name);
             return;
@@ -152,79 +122,17 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (spawn_fn == NULL || await_fn == NULL
         || (!index_mode && get_fn == NULL)) {
-        llvm_join_set_error(ctx, node,
+        llvm_parallel_join_set_error(ctx, node,
             "LLVM parallel join requires registered runtime functions (spawn/await/%s); sequential fallback is disabled",
             get_fn_name);
         return;
     }
 
-    /* ---------------------------------------------------------------
-     * Captures (arms discipline; element binding is NOT a capture).
-     * --------------------------------------------------------------- */
-    JoinCapturedVar captured[PJOIN_MAX_CAPTURES];
+    LLVMParallelJoinCapture captured[PJOIN_MAX_CAPTURES];
     size_t n_captured = 0;
-
-    for (int i = 0; i < ctx->scope_depth; i++) {
-        LLVMScopeFrame *frame = &ctx->scopes[i];
-        for (int j = 0; j < frame->count; j++) {
-            if (!llvm_capture_entry_is_required(ctx, body, frame, j))
-                continue;
-            if (coll_name != NULL && frame->entries[j].name != NULL
-                && strcmp(frame->entries[j].name, coll_name) == 0)
-                continue; /* fan-out source is read at the call site only */
-            if (n_captured >= PJOIN_MAX_CAPTURES) {
-                llvm_join_set_error(ctx, node,
-                    "LLVM parallel join capture registry overflow%s", "");
-                return;
-            }
-            if (frame->entries[j].alloca == NULL) {
-                llvm_join_set_error(ctx, node,
-                    "LLVM parallel join capture requires storage-backed binding '%s'",
-                    frame->entries[j].name);
-                return;
-            }
-            /* Fact-admitted arrays cross the boundary: R1
-             * index-disjointness rows and R5 snapshot-read rows. Every
-             * other collection keeps the shared-mutable reject. The
-             * element metadata is stashed by value for the wrapper-side
-             * registry re-bind. */
-            LLVMArrayVarEntry *arr_entry =
-                llvm_lookup_array_var(ctx, frame->entries[j].name);
-            bool index_admitted = arr_entry != NULL
-                && ast_parallel_join_index_array_admitted(node,
-                       frame->entries[j].name);
-            bool readonly_admitted = arr_entry != NULL
-                && ast_parallel_join_readonly_array_admitted(node,
-                       frame->entries[j].name);
-            bool array_admitted = index_admitted || readonly_admitted;
-            if (!array_admitted
-                && llvm_capture_reject_shared_collection(ctx, node,
-                    "parallel join", frame->entries[j].name, true)) {
-                return;
-            }
-            captured[n_captured] = (JoinCapturedVar){
-                frame->entries[j].name,
-                frame->entries[j].alloca,
-                frame->entries[j].type,
-                llvm_lookup_channel_inner(ctx, frame->entries[j].name),
-                llvm_lookup_future_inner(ctx, frame->entries[j].name),
-                llvm_lookup_slot_inner(ctx, frame->entries[j].name),
-                llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
-                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name),
-                array_admitted,
-                array_admitted ? arr_entry->elem_type : NULL,
-                array_admitted ? arr_entry->elem_name : NULL
-            };
-            if (captured[n_captured].slot_inner != NULL) {
-                /* Parity with the C emitter's rung-0 edge. */
-                llvm_join_set_error(ctx, node,
-                    "parallel join rung 0 does not carry slot captures yet ('%s'); a later rung will (docs/181 SS1.4)",
-                    frame->entries[j].name);
-                return;
-            }
-            n_captured++;
-        }
-    }
+    if (!llvm_parallel_join_collect_captures(ctx, node, body, coll_name,
+            capture_boundary, captured, &n_captured))
+        return;
 
     /* ---------------------------------------------------------------
      * Per-element context struct: [captures as i8*..., element value],
@@ -416,74 +324,9 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     if (ctx->has_error)
         return;
 
-    /* R5 alias fail-close (docs/181): a snapshot-read capture whose
-     * backing IS an index-written array would let free-index reads race
-     * the per-index writes (`let b = a;` copies the handle, not the
-     * buffer). One pointer compare per (written, read) pair at fan-out
-     * entry; the C twin emits the same check into the same panic export
-     * pair, so class and reason match across backends. */
-    for (size_t wi = 0; wi < n_captured; wi++) {
-        if (!captured[wi].is_admitted_array
-            || !ast_parallel_join_index_array_admitted(node,
-                   captured[wi].name))
-            continue;
-        for (size_t ri = 0; ri < n_captured; ri++) {
-            if (!captured[ri].is_admitted_array
-                || !ast_parallel_join_readonly_array_admitted(node,
-                       captured[ri].name))
-                continue;
-            LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
-                "pgy_runtime_panic_authority_mismatch_export");
-            if (panic_fn == NULL) {
-                llvm_join_set_error(ctx, node,
-                    "parallel join alias check requires the registered panic runtime%s",
-                    "");
-                return;
-            }
-            LLVMTypeRef w_data_ty = LLVMStructGetTypeAtIndex(
-                captured[wi].type, 0);
-            LLVMTypeRef r_data_ty = LLVMStructGetTypeAtIndex(
-                captured[ri].type, 0);
-            LLVMValueRef w_gep = LLVMBuildStructGEP2(ctx->builder,
-                captured[wi].type, captured[wi].alloca, 0,
-                llvm_tmp_name(ctx));
-            LLVMValueRef w_data = LLVMBuildLoad2(ctx->builder, w_data_ty,
-                w_gep, llvm_tmp_name(ctx));
-            LLVMValueRef r_gep = LLVMBuildStructGEP2(ctx->builder,
-                captured[ri].type, captured[ri].alloca, 0,
-                llvm_tmp_name(ctx));
-            LLVMValueRef r_data = LLVMBuildLoad2(ctx->builder, r_data_ty,
-                r_gep, llvm_tmp_name(ctx));
-            LLVMValueRef w8 = LLVMBuildBitCast(ctx->builder, w_data,
-                ctx->type_i8ptr, llvm_tmp_name(ctx));
-            LLVMValueRef r8 = LLVMBuildBitCast(ctx->builder, r_data,
-                ctx->type_i8ptr, llvm_tmp_name(ctx));
-            LLVMValueRef same = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
-                w8, r8, llvm_tmp_name(ctx));
-            LLVMValueRef nonnull = LLVMBuildICmp(ctx->builder, LLVMIntNE,
-                w8, LLVMConstPointerNull(ctx->type_i8ptr),
-                llvm_tmp_name(ctx));
-            LLVMValueRef aliased = LLVMBuildAnd(ctx->builder, same,
-                nonnull, llvm_tmp_name(ctx));
-            LLVMBasicBlockRef alias_bb = LLVMAppendBasicBlockInContext(
-                ctx->context, ctx->current_function, "pj.alias.panic");
-            LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(
-                ctx->context, ctx->current_function, "pj.alias.cont");
-            LLVMBuildCondBr(ctx->builder, aliased, alias_bb, cont_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, alias_bb);
-            {
-                LLVMValueRef panic_args[] = {
-                    LLVMBuildGlobalStringPtr(ctx->builder,
-                        "parallel join read-only capture aliases an index-written array",
-                        llvm_tmp_name(ctx))
-                };
-                LLVMBuildCall2(ctx->builder, panic_fn->fn_type,
-                    panic_fn->fn, panic_args, 1, "");
-                LLVMBuildUnreachable(ctx->builder);
-            }
-            LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
-        }
-    }
+    if (!llvm_parallel_join_emit_alias_guard(ctx, node, capture_boundary,
+            captured, n_captured))
+        return;
 
     /* ---------------------------------------------------------------
      * Call site: fan-out length, fan-out loop, all-join loop.
@@ -501,7 +344,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
             ? llvm_emit_expression(range_end, ctx)
             : NULL;
         if (lo == NULL || hi == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join could not lower a range endpoint expression%s",
                 "");
             return;
@@ -524,7 +367,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
             coll_var.alloca, llvm_tmp_name(ctx));
         n_val = llvm_array_length_i64(ctx, aggregate);
         if (n_val == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM parallel join could not read the collection length%s",
                 "");
             return;
@@ -688,7 +531,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
             LLVMFuncEntry *cancel_fn = llvm_lookup_function(ctx,
                 "pgy_task_cancel_export");
             if (cancel_fn == NULL) {
-                llvm_join_set_error(ctx, node,
+                llvm_parallel_join_set_error(ctx, node,
                     "LLVM any-join requires the registered task-cancel runtime%s",
                     "");
                 return;
@@ -732,7 +575,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
             "pgy_runtime_panic_out_of_bounds_export");
         if (panic_fn == NULL) {
-            llvm_join_set_error(ctx, node,
+            llvm_parallel_join_set_error(ctx, node,
                 "LLVM any-join requires the registered panic runtime%s",
                 "");
             return;

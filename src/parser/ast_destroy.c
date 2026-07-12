@@ -193,16 +193,6 @@ void ast_destroy(ASTNode* node) {
             free(node->data.parallel.join_element);
             ast_destroy(node->data.parallel.join_collection);
             ast_destroy(node->data.parallel.join_range_end);
-            for (size_t i = 0;
-                 i < node->data.parallel.join_index_array_count; i++) {
-                free(node->data.parallel.join_index_arrays[i]);
-            }
-            free(node->data.parallel.join_index_arrays);
-            for (size_t i = 0;
-                 i < node->data.parallel.join_readonly_array_count; i++) {
-                free(node->data.parallel.join_readonly_arrays[i]);
-            }
-            free(node->data.parallel.join_readonly_arrays);
             free(node->data.parallel.join_give_type_name);
             free(node->data.parallel.join_reduce_op);
             break;

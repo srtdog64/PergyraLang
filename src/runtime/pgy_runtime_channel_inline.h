@@ -18,6 +18,7 @@
 
 #include "pgy_runtime_channel_status.h"
 #include "pgy_runtime_channel_lane_inline.h"
+#include "pgy_runtime_channel_lifecycle_inline.h"
 
 /* Lifecycle guard (docs/179 3a; V1 bug class #8-R): an operation on a
  * NULL or uninitialized channel is a contract VIOLATION, never a contract
@@ -27,23 +28,6 @@
  * data-carrying contract outcomes, and the *_result variants stay the
  * failure-as-data tier: their own guards return ERR before ever reaching
  * these raw operations. */
-static inline void
-pgy_channel_require_operable(bool ch_is_null, bool ch_uninitialized,
-                             bool out_is_null, const char *op)
-{
-    const char *what;
-
-    if (!ch_is_null && !ch_uninitialized && !out_is_null)
-        return;
-    what = ch_is_null ? "null channel"
-         : out_is_null ? "null output pointer"
-                       : "uninitialized channel";
-    fprintf(stderr, "%s channel lifecycle violation: op=%s on %s\n",
-            PGY_RUNTIME_PANIC_PREFIX, op, what);
-    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
-                      PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE);
-}
-
 #define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
 typedef struct \
 { \

@@ -41,9 +41,15 @@ semantic_parallel_capture_facts_validate(const SemanticResult *semantic,
         for (size_t j = 0; j < boundary->row_count; j++) {
             const SemanticParallelCaptureDispositionRow *row =
                 &boundary->rows[j];
-            if (row->name == NULL || row->name[0] == '\0'
-                || row->kind != SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY
-                || row->writer_task >= boundary->task_count) {
+            bool kind_valid =
+                row->kind == SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY
+                    ? row->writer_task < boundary->task_count
+                    : (row->kind
+                            == SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT
+                       || row->kind
+                            == SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY)
+                        && row->writer_task == 0;
+            if (row->name == NULL || row->name[0] == '\0' || !kind_valid) {
                 if (error_message != NULL)
                     *error_message = mir_strdup_fmt(
                         "semantic parallel capture boundary[%zu] row[%zu] is invalid",
@@ -151,7 +157,18 @@ mir_import_parallel_capture_facts(MIRProgram *mir,
                     *error_message = pergyra_strdup("out of memory");
                 return false;
             }
-            target->rows[j].kind = MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY;
+            switch (source->rows[j].kind) {
+            case SEMANTIC_PARALLEL_CAPTURE_SNAPSHOT_COPY:
+                target->rows[j].kind = MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY;
+                break;
+            case SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT:
+                target->rows[j].kind =
+                    MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT;
+                break;
+            case SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY:
+                target->rows[j].kind = MIR_PARALLEL_CAPTURE_JOIN_READONLY;
+                break;
+            }
             target->rows[j].writer_task = source->rows[j].writer_task;
         }
     }
@@ -188,15 +205,17 @@ mir_parallel_capture_boundary_find(const MIRProgram *mir,
 }
 
 const MIRParallelCaptureDispositionRow *
-mir_parallel_capture_snapshot_find(
+mir_parallel_capture_disposition_find(
     const MIRParallelCaptureBoundaryFact *boundary,
-    const char *name)
+    const char *name,
+    MIRParallelCaptureDispositionKind kind)
 {
     if (boundary == NULL || name == NULL)
         return NULL;
     for (size_t i = 0; i < boundary->row_count; i++) {
         const MIRParallelCaptureDispositionRow *row = &boundary->rows[i];
-        if (row->name != NULL && strcmp(row->name, name) == 0)
+        if (row->kind == kind && row->name != NULL
+            && strcmp(row->name, name) == 0)
             return row;
     }
     return NULL;
@@ -237,9 +256,12 @@ mir_validate_parallel_capture_facts(const MIRProgram *mir,
         }
         for (size_t j = 0; j < boundary->row_count; j++) {
             const MIRParallelCaptureDispositionRow *row = &boundary->rows[j];
-            if (row->name == NULL || row->name[0] == '\0'
-                || row->kind != MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
-                || row->writer_task >= boundary->task_count) {
+            bool kind_valid = row->kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
+                ? row->writer_task < boundary->task_count
+                : (row->kind == MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT
+                   || row->kind == MIR_PARALLEL_CAPTURE_JOIN_READONLY)
+                    && row->writer_task == 0;
+            if (row->name == NULL || row->name[0] == '\0' || !kind_valid) {
                 if (error_message != NULL)
                     *error_message = mir_strdup_fmt(
                         "MIR parallel capture boundary[%zu] row[%zu] is invalid",

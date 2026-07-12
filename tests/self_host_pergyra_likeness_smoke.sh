@@ -153,7 +153,10 @@ SENTINEL_MAX=0
 # 808 -> 1024 (2026-07-11): typed statement/expression/MIR facts, the
 # subject-action signature contract, and readonly-ref C bindings carry absence
 # through Option-owned rows.
-RESULT_USE_MIN=1024
+# 1024 -> 1172 (2026-07-12): current tracked self-host owners, including MIR
+# parallel-capture verification and Option-backed block-row mismatch evidence,
+# keep errors and absence as typed data.
+RESULT_USE_MIN=1172
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

@@ -292,7 +292,8 @@ test_mir_lowering_part_i(void)
 
         if (ok && mir_parallel_capture_boundary_count(mir) == 1) {
             boundary = &mir->parallel_capture_boundaries[0];
-            row = mir_parallel_capture_snapshot_find(boundary, "x");
+            row = mir_parallel_capture_disposition_find(
+                boundary, "x", MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY);
             boundary->sealed = false;
             rejected_unsealed = !mir_validate(mir, &mir_error)
                 && mir_error != NULL
@@ -309,8 +310,66 @@ test_mir_lowering_part_i(void)
                && row != NULL
                && row->kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
                && row->writer_task == 0
-               && mir_parallel_capture_snapshot_find(boundary, "seen") == NULL
+               && mir_parallel_capture_disposition_find(
+                    boundary, "seen", MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY)
+                    == NULL
                && rejected_unsealed
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR owns parallel join index and readonly capture facts");
+    {
+        const char *src =
+            "func Main() -> Void {\n"
+            "    let src: Array<Int> = [1, 2, 3, 4];\n"
+            "    let mut dst: Array<Int> = [0, 0, 0, 0];\n"
+            "    parallel (i in 1..4) {\n"
+            "        dst[i] = src[i - 1];\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRParallelCaptureBoundaryFact *boundary = NULL;
+        MIRParallelCaptureDispositionRow *index_row = NULL;
+        const MIRParallelCaptureDispositionRow *readonly_row = NULL;
+        char *mir_error = NULL;
+        bool rejected_writer_on_join_row = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok && mir_parallel_capture_boundary_count(mir) == 1) {
+            boundary = &mir->parallel_capture_boundaries[0];
+            for (size_t i = 0; i < boundary->row_count; i++) {
+                if (boundary->rows[i].kind
+                        == MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT
+                    && strcmp(boundary->rows[i].name, "dst") == 0) {
+                    index_row = &boundary->rows[i];
+                }
+            }
+            readonly_row = mir_parallel_capture_disposition_find(
+                boundary, "src", MIR_PARALLEL_CAPTURE_JOIN_READONLY);
+            if (index_row != NULL) {
+                index_row->writer_task = 1;
+                rejected_writer_on_join_row = !mir_validate(mir, &mir_error)
+                    && mir_error != NULL
+                    && strstr(mir_error,
+                              "MIR parallel capture boundary[0] row")
+                        != NULL;
+                index_row->writer_task = 0;
+            }
+        }
+        EXPECT(ok
+               && boundary != NULL
+               && boundary->sealed
+               && boundary->task_count == 1
+               && boundary->row_count == 2
+               && index_row != NULL
+               && readonly_row != NULL
+               && rejected_writer_on_join_row
                && mir_validate(mir, NULL));
         free(mir_error);
         mir_destroy(mir);

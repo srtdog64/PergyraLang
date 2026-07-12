@@ -111,7 +111,9 @@ parallel_join_admit_index_arrays(ASTNode *node, ASTNode *body,
                 continue;
             /* A shadowed outer array of the same name resolves to the
              * same admission verdict; the first (innermost) row wins. */
-            if (ast_parallel_join_index_array_admitted(node, sym->name))
+            if (semantic_parallel_capture_disposition_find(
+                    ctx, node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) != NULL)
                 continue;
             if (type_constructed_arg_count(sym->type) != 1
                 || !parallel_join_element_type_supported(
@@ -131,8 +133,9 @@ parallel_join_admit_index_arrays(ASTNode *node, ASTNode *body,
              * shape; in-place neighbor access stays rejected below. */
             if (!ast_statement_assigns_identifier(body, sym->name)
                 && ast_identifier_only_indexed_reads(body, sym->name)) {
-                if (!ast_parallel_add_join_readonly_array(node,
-                                                          sym->name)) {
+                if (!semantic_parallel_capture_disposition_add(
+                        ctx, node, sym->name,
+                        SEMANTIC_PARALLEL_CAPTURE_JOIN_READONLY, 0)) {
                     semantic_error(ctx, node,
                         "Snapshot-read fact allocation failed while admitting parallel join array");
                     return false;
@@ -158,7 +161,9 @@ parallel_join_admit_index_arrays(ASTNode *node, ASTNode *body,
                     sym->name, elem_name);
                 return false;
             }
-            if (!ast_parallel_add_join_index_array(node, sym->name)) {
+            if (!semantic_parallel_capture_disposition_add(
+                    ctx, node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT, 0)) {
                 semantic_error(ctx, node,
                     "Index-disjointness fact allocation failed while admitting parallel join array");
                 return false;
@@ -191,13 +196,6 @@ type_check_parallel_join_admit(ASTNode *node, SemanticContext *ctx,
     index_mode = range_end != NULL;
     elem_name = ast_parallel_join_element(node);
     body = ast_parallel_task(node, 0);
-
-    /* This checker is the single producer of the index-disjointness and
-     * snapshot-read fact families (docs/180 SS6); the resets keep
-     * re-checks idempotent. The scalar-race checker owns (and resets)
-     * the snapshot-row family. */
-    ast_parallel_reset_join_index_arrays(node);
-    ast_parallel_reset_join_readonly_arrays(node);
 
     if (index_mode) {
         if (coll == NULL || !parallel_join_admit_range(coll, range_end, ctx))
@@ -262,7 +260,9 @@ type_check_parallel_join_admit(ASTNode *node, SemanticContext *ctx,
 
             if (sym == NULL || sym->name == NULL)
                 continue;
-            if (ast_parallel_join_index_array_admitted(node, sym->name))
+            if (semantic_parallel_capture_disposition_find(
+                    ctx, node, sym->name,
+                    SEMANTIC_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) != NULL)
                 continue;
             if (!ast_statement_assigns_identifier(body, sym->name))
                 continue;
@@ -302,17 +302,17 @@ parallel_join_count_gives(const ASTNode *node)
         return 1;
     case AST_BLOCK: {
         size_t n = 0;
-        for (size_t i = 0; i < node->data.block.count; i++)
-            n += parallel_join_count_gives(node->data.block.statements[i]);
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            n += parallel_join_count_gives(ast_block_statement(node, i));
         return n;
     }
     case AST_IF_STMT:
-        return parallel_join_count_gives(node->data.if_stmt.then_branch)
-             + parallel_join_count_gives(node->data.if_stmt.else_branch);
+        return parallel_join_count_gives(ast_if_then_branch(node))
+             + parallel_join_count_gives(ast_if_else_branch(node));
     case AST_WHILE_LOOP:
-        return parallel_join_count_gives(node->data.while_loop.body);
+        return parallel_join_count_gives(ast_while_body(node));
     case AST_FOR_LOOP:
-        return parallel_join_count_gives(node->data.for_loop.body);
+        return parallel_join_count_gives(ast_for_body(node));
     case AST_PARALLEL_BLOCK:
         return 0;
     default:
@@ -358,8 +358,9 @@ type_check_parallel_join_expr_type(ASTNode *node, SemanticContext *ctx)
     }
     body = ast_parallel_task(node, 0);
     if (body != NULL && body->type == AST_BLOCK
-        && body->data.block.count > 0)
-        last = body->data.block.statements[body->data.block.count - 1];
+        && ast_block_statement_count(body) > 0)
+        last = ast_block_statement(
+            body, ast_block_statement_count(body) - 1);
     gives = parallel_join_count_gives(body);
     if (last == NULL || last->type != AST_GIVE_STMT) {
         if (gives == 0)

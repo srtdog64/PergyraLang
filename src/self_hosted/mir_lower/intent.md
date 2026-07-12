@@ -37,6 +37,12 @@ signatures, source-local type facts, bounded CFG statement facts, nominal
 declaration inventory facts, and explicitly listed declaration facts. Missing
 or unsupported MIR facts are hard errors.
 
+`parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
+task count, unique row names, and the closed `snapshot_copy` /
+`join_index_disjoint` / `join_readonly` kind set. `--verify-input` exposes this
+same production input contract to parity and mutation gates; it is not a
+second parser or a compatibility fallback.
+
 ## Output Contract
 
 The output is the compact tree text used by `pgy --ast`, with LF line endings.

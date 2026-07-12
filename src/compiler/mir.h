@@ -13,7 +13,9 @@ typedef struct SemanticResult SemanticResult;
 
 typedef enum
 {
-    MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
+    MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY,
+    MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT,
+    MIR_PARALLEL_CAPTURE_JOIN_READONLY
 } MIRParallelCaptureDispositionKind;
 
 typedef struct
@@ -396,17 +398,6 @@ struct MIRProgram
 };
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                       const SemanticResult *semantic, char **error_message);
-size_t      mir_parallel_capture_boundary_count(const MIRProgram *mir);
-const MIRParallelCaptureBoundaryFact *
-            mir_parallel_capture_boundary_at(const MIRProgram *mir,
-                                              size_t index);
-const MIRParallelCaptureBoundaryFact *
-            mir_parallel_capture_boundary_find(const MIRProgram *mir,
-                                                uint32_t source_stable_id);
-const MIRParallelCaptureDispositionRow *
-            mir_parallel_capture_snapshot_find(
-                const MIRParallelCaptureBoundaryFact *boundary,
-                const char *name);
 void        mir_instruction_capture_source_provenance(
                 MIRInstruction *inst,
                 const ASTNode *source);

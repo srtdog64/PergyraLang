@@ -597,11 +597,13 @@ for term in \
     "pgy_channel_string_inline_dup" \
     "pgy_channel_string_inline_free_pending" \
     "pgy_channel_string_inline_is_initialized" \
-    "channel is not initialized" \
     "ch->buf[ch->head] = NULL"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
         fail "shared Channel<String> owned-transfer owner missing: $term"
 done
+grep -Fq '"uninitialized channel"' \
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_lifecycle_inline.h" ||
+    fail "shared channel lifecycle owner must name the uninitialized state"
 for term in \
     "PGY_CHANNEL_DEFINE(Int, int32_t, extern)" \
     "#include \"pgy_runtime_channel_inline.h\"" \

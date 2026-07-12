@@ -1,4 +1,5 @@
 #include "transpiler_async_parallel_emit.h"
+#include "../compiler/mir_parallel_capture_facts.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -98,7 +99,7 @@ transpiler_write_capture_address(TranspilerCtx *ctx, const char *name)
     {
         TypedVarEntry *entry = lookup_typed_entry(ctx, name);
         const char *type_name = entry != NULL ? entry->type_name : NULL;
-        if (type_name != NULL && strncmp(type_name, "Channel", 7) == 0) {
+        if (transpiler_type_name_is_channel(type_name)) {
             codebuf_write(ctx->out, "&%s", name);
             return;
         }
@@ -208,7 +209,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         return;
 
     capture_boundary = mir_parallel_capture_boundary_find(
-        ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+        transpiler_active_mir_identity(ctx), ast_node_stable_id(node));
     if (capture_boundary == NULL || !capture_boundary->sealed
         || capture_boundary->task_count != count) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -258,8 +259,9 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     size_t capture_typed_snap_writer[MAX_SLOT_VARS] = {0};
     for (int ci = 0; ci < capture_typed_count; ci++) {
         const MIRParallelCaptureDispositionRow *row =
-            mir_parallel_capture_snapshot_find(capture_boundary,
-                                                capture_typed_names[ci]);
+            mir_parallel_capture_disposition_find(
+                capture_boundary, capture_typed_names[ci],
+                MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY);
         if (row == NULL)
             continue;
         capture_typed_snap_needed[ci] = true;

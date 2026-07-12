@@ -18633,5 +18633,5 @@ gh 로그 실측 기준 현재 red 전체와 소유 매핑. "전부 실패"의 �
 | example-smoke + llvm-dnd-campaign | linux/win | with-slot 조기 release(`ba4cc576`, bisect 확정) | 칩 인계 완료(재현+메커니즘+실패접근 2건 포함) |
 | module-test-smoke | linux | 최신 커밋대(Die builtin/semantic ownership 계열) 신규 | self-host/semantic 스트림, 신규 — tail에 마지막 케이스 잘림, 재조사 필요 |
 | ir-pipeline-test-smoke | linux | 동상 — 3개 컴파일 후 Error 1 (diff류 추정) | 동상 |
-| inc-sentinel | linux | test-case include fragment 139>138 — ratchet 위반(신규 .cases.h 추가 시 경계 문서 미갱신) | 스트림, 기계적 |
+| inc-sentinel | linux | CLOSED: 139번째 `.cases.h`를 `docs/115` inventory와 cap에 함께 반영 | 2026-07-12 local gate green |
 | backend-compare shard 7 | linux, **간헐**(13:07 green→14:03 red) | `parallel_backpressure_witness`의 **LLVM leg만 30s 행**(C=0/LLVM=124). blocked-send(cond_not_full) 경로 고유 — 핑퐁(blocked-recv)은 통과. 로컬 10ms(예산 1/3000)라 실체 있는 간헐 deadlock. .bc 인라인/실행기 차이/pool 크기/타이밍 가설 전부 실측 배제 | **칩 인계**(Linux stress 재현 필요). witness는 유지 — 이 발견이 목적한 R2/R3급 신호 |

@@ -15,6 +15,7 @@
  */
 
 #include "transpiler_async_parallel_emit.h"
+#include "../compiler/mir_parallel_capture_facts.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -76,13 +77,12 @@ join_collection_inner_suffix(const char *type_name, char *out,
 {
     size_t len;
 
-    if (type_name == NULL || strncmp(type_name, "Array<", 6) != 0)
+    if (!transpiler_type_name_is_array(type_name))
         return false;
-    len = strlen(type_name);
-    if (len < 8 || type_name[len - 1] != '>' || len - 7 >= out_size)
+    copy_constructed_arg_name_at(type_name, 0, out, out_size);
+    len = strlen(out);
+    if (len == 0 || len >= out_size)
         return false;
-    memcpy(out, type_name + 6, len - 7);
-    out[len - 7] = '\0';
     return true;
 }
 
@@ -117,7 +117,7 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
     unsigned int pid;
     const MIRParallelCaptureBoundaryFact *capture_boundary =
         mir_parallel_capture_boundary_find(
-            ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+            transpiler_active_mir_identity(ctx), ast_node_stable_id(node));
 
     if (capture_boundary == NULL || !capture_boundary->sealed
         || capture_boundary->task_count != ast_parallel_task_count(node)) {
@@ -194,10 +194,12 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             const char *tn = entry != NULL ? entry->type_name : NULL;
 
             if (tn != NULL && transpiler_type_name_is_array(tn)
-                && !ast_parallel_join_index_array_admitted(node,
-                        capture_typed_names[i])
-                && !ast_parallel_join_readonly_array_admitted(node,
-                        capture_typed_names[i])) {
+                && mir_parallel_capture_disposition_find(
+                    capture_boundary, capture_typed_names[i],
+                    MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) == NULL
+                && mir_parallel_capture_disposition_find(
+                    capture_boundary, capture_typed_names[i],
+                    MIR_PARALLEL_CAPTURE_JOIN_READONLY) == NULL) {
                 join_set_error(ctx,
                     "parallel join capture '%s' shares a mutable array without index-disjointness evidence; the checker fact is missing",
                     capture_typed_names[i]);
@@ -364,12 +366,14 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
          * same panic export pair, so class and reason match across
          * backends. */
         for (int wi = 0; wi < capture_typed_count; wi++) {
-            if (!ast_parallel_join_index_array_admitted(node,
-                    capture_typed_names[wi]))
+            if (mir_parallel_capture_disposition_find(
+                    capture_boundary, capture_typed_names[wi],
+                    MIR_PARALLEL_CAPTURE_JOIN_INDEX_DISJOINT) == NULL)
                 continue;
             for (int ri = 0; ri < capture_typed_count; ri++) {
-                if (!ast_parallel_join_readonly_array_admitted(node,
-                        capture_typed_names[ri]))
+                if (mir_parallel_capture_disposition_find(
+                        capture_boundary, capture_typed_names[ri],
+                        MIR_PARALLEL_CAPTURE_JOIN_READONLY) == NULL)
                     continue;
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if ((");
