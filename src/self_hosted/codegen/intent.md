@@ -205,6 +205,8 @@ atom-expression path consumes that row through
 `expr_semantic_shape_emit_owner.pgy`; it does not rediscover the top-level
 additive position. Scalar/String returns reuse the atom lane. Ordinary
 scalar/String local initializers and assignments consume the value lane.
+Root `if`/`while` conditions consume distinct semantic `||`, `&&`, `==`, and
+`!=` facts. Child conditions still recurse through the compact-text bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. The remaining blocker is indexed collection value/auxiliary payloads,

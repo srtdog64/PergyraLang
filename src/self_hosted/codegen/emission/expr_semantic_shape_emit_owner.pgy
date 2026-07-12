@@ -2,6 +2,44 @@
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 
+func RewriteBoolWithSemanticShape(
+    e: String,
+    env: CodegenTypeEnv,
+    shape: SemanticAstExpressionShapeFact
+) -> String {
+    let s: String = StripOuterParens(e);
+    let n: Int = StringLength(s);
+    if !shape.ok || shape.normalized_text != s {
+        Die("semantic boolean-expression shape does not match codegen expression");
+    }
+    if shape.logical_or_index >= 0 {
+        let p: Int = shape.logical_or_index;
+        let lhs: String = Substring(s, 0, p);
+        let rhs: String = Substring(s, p + 2, n - (p + 2));
+        return Concat(
+            RewriteBool(lhs, env), Concat(" || ", RewriteBool(rhs, env))
+        );
+    }
+    if shape.logical_and_index >= 0 {
+        let p: Int = shape.logical_and_index;
+        let lhs: String = Substring(s, 0, p);
+        let rhs: String = Substring(s, p + 2, n - (p + 2));
+        return Concat(
+            RewriteBool(lhs, env), Concat(" && ", RewriteBool(rhs, env))
+        );
+    }
+    if shape.equality_index >= 0 {
+        let p: Int = shape.equality_index;
+        let lhs: String = StringTrim(Substring(s, 0, p));
+        let rhs: String = StringTrim(Substring(s, p + 2, n - (p + 2)));
+        let projected: Option<String> = RewriteEqualityProjection(
+            lhs, rhs, !shape.equality_is_not, env
+        );
+        if IsSome(projected) { return UnwrapOption(projected); }
+    }
+    return RewriteTokens(s, env);
+}
+
 func RewriteExprWithSemanticShape(
     e: String,
     env: CodegenTypeEnv,
@@ -35,7 +73,21 @@ func RewriteExprWithSemanticShape(
             }
         }
     }
-    return RewriteBool(e, env);
+    return RewriteBoolWithSemanticShape(e, env, shape);
+}
+
+func WrapCondWithSemanticShape(
+    cond: String,
+    env: CodegenTypeEnv,
+    shape: SemanticAstExpressionShapeFact
+) -> String {
+    let c: String = StringTrim(cond);
+    if !shape.ok || shape.normalized_text != StripOuterParens(c) {
+        Die("semantic condition shape does not match codegen expression");
+    }
+    return Concat("(", Concat(
+        RewriteExprWithSemanticShape(c, env, shape), ")"
+    ));
 }
 
 func IntEvalWithSemanticShape(

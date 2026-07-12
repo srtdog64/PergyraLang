@@ -208,6 +208,54 @@ func FindTopLevelOp2(s: String, op: String) -> Option<Int> {
     return None;
 }
 
+func RewriteEqualityProjection(
+    lhs: String,
+    rhs: String,
+    is_eq: Bool,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    if ExprKind(lhs, env) == "String" || ExprKind(rhs, env) == "String" {
+        let tail: String = ") == 0)";
+        if !is_eq { tail = ") != 0)"; }
+        return Some(Concat("(", Concat(
+            StringRuntimeCStringCompareFn(), Concat("(", Concat(
+                RewriteExpr(lhs, env), Concat(", ", Concat(
+                    RewriteExpr(rhs, env), tail
+                ))
+            ))
+        )));
+    }
+    let lhs_kind: String = ExprKind(lhs, env);
+    let rhs_kind: String = ExprKind(rhs, env);
+    let op_text: String = " == ";
+    if !is_eq { op_text = " != "; }
+    if LookupKindType(env, lhs_kind, "enum") == "payload_free" {
+        let rhs_enum_opt: Option<EnumLiteralProjectionFact> =
+            EnumPayloadFreeArgumentProjectionFactOpt(rhs, lhs_kind, env);
+        if IsSome(rhs_enum_opt) {
+            let rhs_enum: EnumLiteralProjectionFact =
+                UnwrapOption(rhs_enum_opt);
+            return Some(Concat("(", Concat(
+                RewriteExpr(lhs, env),
+                Concat(op_text, Concat(rhs_enum.c_value, ")"))
+            )));
+        }
+    }
+    if LookupKindType(env, rhs_kind, "enum") == "payload_free" {
+        let lhs_enum_opt: Option<EnumLiteralProjectionFact> =
+            EnumPayloadFreeArgumentProjectionFactOpt(lhs, rhs_kind, env);
+        if IsSome(lhs_enum_opt) {
+            let lhs_enum: EnumLiteralProjectionFact =
+                UnwrapOption(lhs_enum_opt);
+            return Some(Concat("(", Concat(
+                lhs_enum.c_value,
+                Concat(op_text, Concat(RewriteExpr(rhs, env), ")"))
+            )));
+        }
+    }
+    return None;
+}
+
 // Recursively lower a boolean/comparison expression. The key job: a string
 // `==` / `!=` over strings must consume the string runtime owner's target
 // compare fact. Int comparisons keep `==`. Operand expressions still flow
@@ -254,33 +302,10 @@ func RewriteBool(e: String, env: CodegenTypeEnv) -> String {
         let cmp_pos: Int = UnwrapOption(cmpp);
         let lhs: String = StringTrim(Substring(s, 0, cmp_pos));
         let rhs: String = StringTrim(Substring(s, cmp_pos + 2, n - (cmp_pos + 2)));
-        if ExprKind(lhs, env) == "String" || ExprKind(rhs, env) == "String" {
-            let tail: String = ") == 0)";
-            if !is_eq {
-                tail = ") != 0)";
-            }
-            return Concat("(", Concat(StringRuntimeCStringCompareFn(), Concat("(", Concat(RewriteExpr(lhs, env), Concat(", ", Concat(RewriteExpr(rhs, env), tail))))));
-        }
-        let lhs_kind: String = ExprKind(lhs, env);
-        let rhs_kind: String = ExprKind(rhs, env);
-        let op_text: String = " == ";
-        if !is_eq {
-            op_text = " != ";
-        }
-        if LookupKindType(env, lhs_kind, "enum") == "payload_free" {
-            let rhs_enum_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(rhs, lhs_kind, env);
-            if IsSome(rhs_enum_opt) {
-                let rhs_enum: EnumLiteralProjectionFact = UnwrapOption(rhs_enum_opt);
-                return Concat("(", Concat(RewriteExpr(lhs, env), Concat(op_text, Concat(rhs_enum.c_value, ")"))));
-            }
-        }
-        if LookupKindType(env, rhs_kind, "enum") == "payload_free" {
-            let lhs_enum_opt: Option<EnumLiteralProjectionFact> = EnumPayloadFreeArgumentProjectionFactOpt(lhs, rhs_kind, env);
-            if IsSome(lhs_enum_opt) {
-                let lhs_enum: EnumLiteralProjectionFact = UnwrapOption(lhs_enum_opt);
-                return Concat("(", Concat(lhs_enum.c_value, Concat(op_text, Concat(RewriteExpr(rhs, env), ")"))));
-            }
-        }
+        let projected: Option<String> = RewriteEqualityProjection(
+            lhs, rhs, is_eq, env
+        );
+        if IsSome(projected) { return UnwrapOption(projected); }
     }
     return RewriteTokens(s, env);
 }

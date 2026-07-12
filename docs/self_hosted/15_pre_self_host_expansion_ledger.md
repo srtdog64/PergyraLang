@@ -136,6 +136,14 @@ and `-` non-dispatch. Indexed collection elements, Option/Result/struct wrapper
 internals, auxiliary lanes, and recursive child expressions remain bridge
 consumers.
 
+Typed-expression delta, 2026-07-13 (condition roots): the semantic operator row
+now records separate `||`, `&&`, equality position, and equality kind facts.
+`if` and `while` root lowering consumes those rows and is ratcheted against
+`FindTopLevelOp2`; String/enum equality projection is shared with the legacy
+child-expression path. Logical precedence, String `==`/`!=`, and concat-before-
+comparison fixtures pass under C-built and LLVM-built tools. Recursive child
+conditions remain compact-text backed.
+
 | Blocker | Required owner | Why it matters |
 |---|---|---|
 | Mixed AST-like tree owner | Pergyra record/class/tagged-node owner plus traversal parity | Typed arena rows own parent/kind/name/type/value/aux/mode facts. Semantic signature, local, assignment, statement, iteration, and body owners consume those rows once. Codegen has no direct atom/type/value/aux/parameter payload view; it receives semantic owner rows and retains only structural/provenance arena traversal. Semantic expression surfaces own normalized top-level operator rows; `Log`, scalar/String returns, and ordinary scalar/String local/assignment consumers use them. Indexed collection elements, Option/Result/struct wrapper internals, auxiliary lanes, and recursive child-expression lowering still parse compact text, so the blocker remains active. |

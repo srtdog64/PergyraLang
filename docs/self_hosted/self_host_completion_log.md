@@ -20,6 +20,10 @@ rewrite history.
   and ordinary scalar/String local initializers and assignments through the
   value lane. Focused Int/String return, Int/Float initializer, and Long
   assignment fixtures pass C/LLVM oracle parity; no alias owner was added.
+- Added distinct top-level `||`, `&&`, equality position, and equality-kind
+  rows. `if`/`while` root lowering consumes them without `FindTopLevelOp2`, and
+  a shared equality projection preserves String/enum behavior. Logical
+  precedence and String equality fixtures pass C/LLVM parity.
 - Split semantic-shape and log projection from the large expression/statement
   emitters rather than raising the 600-line responsibility cap.
 - Verified self-host codegen C emission, component contracts, and focused

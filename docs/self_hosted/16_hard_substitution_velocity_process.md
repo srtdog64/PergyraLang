@@ -196,6 +196,15 @@ under C-built and LLVM-built tools. Indexed collection elements,
 Option/Result/struct wrappers, auxiliary lanes, and recursive child expressions
 remain the explicit bridge.
 
+Sixteenth executable delta, 2026-07-13: semantic operator rows now distinguish
+top-level `||`, `&&`, `==`, and `!=` instead of carrying one ambiguous logical
+position. `if`/`while` root conditions consume those rows through
+`RewriteBoolWithSemanticShape`; the migrated function cannot call
+`FindTopLevelOp2`. A shared equality projection keeps String and payload-free
+enum behavior identical. `bool_logic`, `string_equality`, and
+`string_equality_concat` pass C/LLVM oracle parity, including precedence and
+String equality cases. Recursive child conditions remain bridge consumers.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

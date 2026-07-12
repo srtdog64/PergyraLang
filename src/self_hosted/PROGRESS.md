@@ -258,6 +258,13 @@ under C-built and LLVM-built tools. Indexed collection values,
 Option/Result/struct wrapper internals, auxiliary lanes, and recursive child
 expressions remain bridge consumers.
 
+The sixteenth executable delta made logical/comparison root facts precise:
+separate `||`, `&&`, equality position, and equality-kind rows now drive
+`if`/`while` lowering. The shape-aware condition function cannot call
+`FindTopLevelOp2`; both paths share one String/enum equality projection.
+Logical precedence and String equality fixtures pass C/LLVM parity. Recursive
+child conditions remain the next expression-tree seam.
+
 The follow-up ratchet deleted the final dead codegen arena payload views:
 atom, type, value, auxiliary value, parameter type, and parameter mode. The
 remaining mixed-expression blocker is therefore exact: semantic owner rows

@@ -196,7 +196,10 @@ SENTINEL_MAX=0
 # 1282 -> 1286 (2026-07-13): the semantic expression-shape row added a
 # node-index Option lookup and fail-closed codegen view. Ratchet the executable
 # owner/consumer path rather than leaving the improvement as unowned headroom.
-RESULT_USE_MIN=1286
+# 1286 -> 1293 (2026-07-13): condition-root shape consumption extracted one
+# Option-returning String/enum equality projection shared by legacy children
+# and semantic-root emission. No sentinel or hidden failure replaced it.
+RESULT_USE_MIN=1293
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

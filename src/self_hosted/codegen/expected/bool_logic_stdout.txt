@@ -1,5 +1,7 @@
 flag-on
 other-off
+and
+logic
 0
 2
 4

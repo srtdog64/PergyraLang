@@ -10,6 +10,12 @@ func Main() -> Void {
     if !other {
         Log("other-off");
     }
+    if flag && !other {
+        Log("and");
+    }
+    if flag && !other || other {
+        Log("logic");
+    }
     let i: Int = 0;
     while i < 5 {
         if IsEven(i) {

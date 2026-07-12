@@ -4,8 +4,12 @@ import "text_scan_owner.pgy";
 
 struct SemanticTopLevelOperatorFacts {
     logical_index: Int;
+    logical_or_index: Int;
+    logical_and_index: Int;
     comparison_index: Int;
     comparison_length: Int;
+    equality_index: Int;
+    equality_is_not: Bool;
     additive_index: Int;
     multiplicative_index: Int;
     arithmetic_marker_index: Int;
@@ -34,8 +38,12 @@ func SemanticTopLevelOperatorFactsFromExpression(
     let i: Int = 0;
     let depth: Int = 0;
     let logical_index: Int = -1;
+    let logical_or_index: Int = -1;
+    let logical_and_index: Int = -1;
     let comparison_index: Int = -1;
     let comparison_length: Int = 0;
+    let equality_index: Int = -1;
+    let equality_is_not: Bool = false;
     let additive_index: Int = -1;
     let multiplicative_index: Int = -1;
     let arithmetic_marker_index: Int = -1;
@@ -74,6 +82,12 @@ func SemanticTopLevelOperatorFactsFromExpression(
             if logical_index < 0 {
                 logical_index = i;
             }
+            if c == pipe && logical_or_index < 0 {
+                logical_or_index = i;
+            }
+            if c == ampersand && logical_and_index < 0 {
+                logical_and_index = i;
+            }
             i = i + 2;
             continue;
         }
@@ -82,6 +96,10 @@ func SemanticTopLevelOperatorFactsFromExpression(
             if comparison_index < 0 {
                 comparison_index = i;
                 comparison_length = 2;
+            }
+            if (c == equal || c == bang) && equality_index < 0 {
+                equality_index = i;
+                equality_is_not = c == bang;
             }
             i = i + 2;
             continue;
@@ -129,7 +147,8 @@ func SemanticTopLevelOperatorFactsFromExpression(
         i = i + 1;
     }
     return SemanticTopLevelOperatorFacts(
-        logical_index, comparison_index, comparison_length,
+        logical_index, logical_or_index, logical_and_index,
+        comparison_index, comparison_length, equality_index, equality_is_not,
         additive_index, multiplicative_index, arithmetic_marker_index
     );
 }

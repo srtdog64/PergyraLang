@@ -485,14 +485,32 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
             ArrayPush(result, Concat(pad, "}\n"));
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindWhileStmtTag()) {
-            let cond: String = WrapCond(CodegenSemanticWhileConditionOrDie(statements, idx), env);
+            let while_expr: String = CodegenSemanticWhileConditionOrDie(
+                statements, idx
+            );
+            let while_shape: SemanticAstExpressionShapeFact =
+                CodegenSemanticAtomExpressionShapeOrDie(
+                    expression_surfaces, idx
+                );
+            let cond: String = WrapCondWithSemanticShape(
+                while_expr, env, while_shape
+            );
             ArrayPush(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
             ArrayPush(result, Concat(pad, "}\n"));
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindIfStmtTag()) {
-            let cond2: String = WrapCond(CodegenSemanticIfConditionOrDie(statements, idx), env);
+            let if_expr: String = CodegenSemanticIfConditionOrDie(
+                statements, idx
+            );
+            let if_shape: SemanticAstExpressionShapeFact =
+                CodegenSemanticAtomExpressionShapeOrDie(
+                    expression_surfaces, idx
+                );
+            let cond2: String = WrapCondWithSemanticShape(
+                if_expr, env, if_shape
+            );
             ArrayPush(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);

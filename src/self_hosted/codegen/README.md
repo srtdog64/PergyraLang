@@ -206,6 +206,10 @@ Scalar/String returns reuse the atom row; ordinary scalar/String local
 initializers and assignments consume the value row. Indexed collection
 elements, Option/Result/struct wrapper internals, auxiliary payloads, and
 recursive child-expression lowering remain the explicit compact-text bridge.
+Root `if`/`while` conditions additionally consume separate semantic `||`,
+`&&`, equality-position, and equality-kind facts. String and payload-free enum
+equality share one projection with the legacy child path; recursive child
+conditions remain transitional.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

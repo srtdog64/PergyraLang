@@ -9,8 +9,12 @@ struct SemanticAstExpressionShapeFact {
     ok: Bool;
     normalized_text: String;
     logical_index: Int;
+    logical_or_index: Int;
+    logical_and_index: Int;
     comparison_index: Int;
     comparison_length: Int;
+    equality_index: Int;
+    equality_is_not: Bool;
     additive_index: Int;
     additive_operator_code: Int;
     multiplicative_index: Int;
@@ -36,8 +40,8 @@ struct SemanticAstExpressionSurfaceFacts {
 func SemanticAstExpressionAtomLane() -> Int { return 0; }
 func SemanticAstExpressionValueLane() -> Int { return 1; }
 func SemanticAstExpressionAuxiliaryLane() -> Int { return 2; }
-func SemanticAstExpressionOperatorWidth() -> Int { return 7; }
-func SemanticAstExpressionShapeWidth() -> Int { return 21; }
+func SemanticAstExpressionOperatorWidth() -> Int { return 11; }
+func SemanticAstExpressionShapeWidth() -> Int { return 33; }
 
 func SemanticAstExpressionOperatorRowsAppend(
     inout rows: Array<Int>,
@@ -45,8 +49,14 @@ func SemanticAstExpressionOperatorRowsAppend(
     normalized_text: String
 ) -> Void {
     ArrayPush(rows, operators.logical_index);
+    ArrayPush(rows, operators.logical_or_index);
+    ArrayPush(rows, operators.logical_and_index);
     ArrayPush(rows, operators.comparison_index);
     ArrayPush(rows, operators.comparison_length);
+    ArrayPush(rows, operators.equality_index);
+    let equality_is_not: Int = 0;
+    if operators.equality_is_not { equality_is_not = 1; }
+    ArrayPush(rows, equality_is_not);
     ArrayPush(rows, operators.additive_index);
     let additive_operator_code: Int = -1;
     if operators.additive_index >= 0 {
@@ -62,7 +72,8 @@ func SemanticAstExpressionOperatorRowsAppend(
 
 func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
     return SemanticAstExpressionShapeFact(
-        false, "", -1, -1, 0, -1, -1, -1, -1
+        false, "", -1, -1, -1, -1, 0, -1, false,
+        -1, -1, -1, -1
     );
 }
 
@@ -212,7 +223,9 @@ func SemanticAstExpressionShapeAt(
         facts.operator_rows[base], facts.operator_rows[base + 1],
         facts.operator_rows[base + 2], facts.operator_rows[base + 3],
         facts.operator_rows[base + 4], facts.operator_rows[base + 5],
-        facts.operator_rows[base + 6]
+        facts.operator_rows[base + 6] == 1,
+        facts.operator_rows[base + 7], facts.operator_rows[base + 8],
+        facts.operator_rows[base + 9], facts.operator_rows[base + 10]
     );
 }
 
@@ -361,16 +374,24 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
 
 func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n        Log(ready && enabled || fallback != denied)\n"
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
     let additive_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
+    let logical_shape: SemanticAstExpressionShapeFact =
+        SemanticAstExpressionInvalidShape();
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
             additive_shape = SemanticAstExpressionShapeAt(
+                facts, i, SemanticAstExpressionAtomLane()
+            );
+        }
+        if facts.has_atoms[i] && facts.normalized_atoms[i] ==
+            "ready && enabled || fallback != denied" {
+            logical_shape = SemanticAstExpressionShapeAt(
                 facts, i, SemanticAstExpressionAtomLane()
             );
         }
@@ -382,5 +403,8 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&
         additive_shape.ok && additive_shape.normalized_text == "left + right" &&
         additive_shape.additive_index == 5 &&
-        additive_shape.additive_operator_code == SourceByteOf("+");
+        additive_shape.additive_operator_code == SourceByteOf("+") &&
+        logical_shape.ok && logical_shape.logical_and_index == 6 &&
+        logical_shape.logical_or_index == 17 &&
+        logical_shape.equality_index == 29 && logical_shape.equality_is_not;
 }
