@@ -20,6 +20,16 @@ files_equal() {
     local left="$1"
     local right="$2"
 
+    # cmp is byte-exact and ~20x cheaper than spawning a Python
+    # interpreter per comparison (measured 0.08s vs 1.6s per call on
+    # Windows; two calls per case). Python stays as the fallback for
+    # hosts without coreutils, and show_diff still uses it for the
+    # human-readable diff on failure.
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
     if [[ -n "$PYTHON_BIN" ]]; then
         "$PYTHON_BIN" - "$left" "$right" <<'PY'
 import pathlib, sys
@@ -32,11 +42,6 @@ PY
 
     if command -v git >/dev/null 2>&1; then
         git diff --no-index --quiet -- "$left" "$right"
-        return $?
-    fi
-
-    if command -v cmp >/dev/null 2>&1; then
-        cmp -s "$left" "$right"
         return $?
     fi
 
@@ -76,7 +81,10 @@ PY
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
-case "$(uname -s 2>/dev/null || echo unknown)" in
+# One uname for the whole run: every $(uname ...) is a fork, MSYS forks
+# are expensive, and several sites ran one per case.
+UNAME_S="$(uname -s 2>/dev/null || echo unknown)"
+case "$UNAME_S" in
     MINGW*|MSYS*|CYGWIN*)
         TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
         ;;
@@ -103,7 +111,7 @@ select_default_pgy_bin() {
     local candidate
     local -a candidates
 
-    case "$(uname -s 2>/dev/null || echo unknown)" in
+    case "$UNAME_S" in
         MINGW*|MSYS*|CYGWIN*)
             candidates=("$TMP_PGY" "$CODEX_PGY" "$DEFAULT_PGY")
             ;;
@@ -212,7 +220,7 @@ setup_windows_launch_path() {
     local cc_path=""
     local clang_path=""
 
-    case "$(uname -s 2>/dev/null || echo unknown)" in
+    case "$UNAME_S" in
         MINGW*|MSYS*|CYGWIN*)
             add_tool_dir_to_path "$tool"
             add_tool_dir_to_path "$PGY_BIN"
@@ -239,7 +247,7 @@ run_windows_abi_pipeline_precheck_fallback() {
     local abi_native_ps=""
     local path_prefix_ps=""
 
-    case "$(uname -s 2>/dev/null || echo unknown)" in
+    case "$UNAME_S" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 127 ;;
     esac
@@ -275,6 +283,10 @@ fi
 export PGY_BIN
 
 setup_windows_launch_path "$PGY_BIN"
+# Every case's compiled binaries land in WORK_DIR, so one launch-path
+# registration covers them all; the old per-case calls cost two
+# command-v forks each on a path that never changed.
+setup_windows_launch_path "$WORK_DIR/case_probe"
 
 if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
     ABI_PIPELINE_BIN="${PGY_ABI_PIPELINE_TEST_BIN:-}"
@@ -309,7 +321,7 @@ if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
     set -e
     if [[ "$abi_rc" -ne 0 ]]; then
         echo "backend-compare: ABI pipeline same-process precheck failed (exit=$abi_rc): $ABI_PIPELINE_BIN" >&2
-        case "$(uname -s 2>/dev/null || echo unknown):$abi_rc" in
+        case "$UNAME_S:$abi_rc" in
             MINGW*:126|MINGW*:127|MSYS*:126|MSYS*:127|CYGWIN*:126|CYGWIN*:127)
                 echo "backend-compare: Windows executable launch failed; verify LLVM runtime DLL directories are on PATH" >&2
                 ;;
@@ -361,7 +373,7 @@ run_windows_native_binary_fallback() {
     local timeout_ms
     local path_prefix_ps
 
-    case "$(uname -s 2>/dev/null || echo unknown)" in
+    case "$UNAME_S" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 127 ;;
     esac
@@ -391,7 +403,7 @@ run_windows_compiler_backend_fallback() {
     local log_native
     local path_prefix_ps
 
-    case "$(uname -s 2>/dev/null || echo unknown)" in
+    case "$UNAME_S" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 127 ;;
     esac
@@ -491,8 +503,6 @@ run_case() {
 
     c_bin="$(resolve_native_bin "$c_bin")"
     llvm_bin="$(resolve_native_bin "$llvm_bin")"
-    setup_windows_launch_path "$c_bin"
-    setup_windows_launch_path "$llvm_bin"
 
     if (cd "$run_dir" && run_native_binary "$c_bin" "$c_out" "$c_err"); then
         c_rc=0
@@ -509,7 +519,7 @@ run_case() {
         echo "backend-compare: execution timeout for $source_rel after ${RUN_TIMEOUT_SECONDS}s (C=$c_rc LLVM=$llvm_rc)" >&2
     fi
 
-    case "$(uname -s 2>/dev/null || echo unknown):$c_rc:$llvm_rc" in
+    case "$UNAME_S:$c_rc:$llvm_rc" in
         MINGW*:126:*|MINGW*:127:*|MSYS*:126:*|MSYS*:127:*|CYGWIN*:126:*|CYGWIN*:127:*|MINGW*:*:126|MINGW*:*:127|MSYS*:*:126|MSYS*:*:127|CYGWIN*:*:126|CYGWIN*:*:127)
             echo "backend-compare: Windows executable launch failed for $source_rel; verify LLVM runtime DLL directories are on PATH" >&2
             echo "backend-compare: resolved C binary: $c_bin" >&2
@@ -1573,16 +1583,86 @@ main() {
     local -a failed=()
     local passed=0
 
-    for source_rel in "${cases[@]}"; do
-        # Run each case with failure-tolerance so one broken backend
-        # parity doesn't mask the rest of the suite. `run_case` already
-        # prints PASS/diff to stdout/stderr; we just track the tally.
-        if run_case "$source_rel"; then
-            passed=$((passed + 1))
-        else
-            failed+=("$source_rel")
+    # Concurrency: cases are independent (per-case artifacts are keyed by
+    # case name inside WORK_DIR), so they fan out across cores. The
+    # ticker line is the liveness signal -- a silent run and a dead run
+    # were previously indistinguishable for the whole wallclock.
+    local jobs="${PGY_BACKEND_COMPARE_JOBS:-auto}"
+    if [[ "$jobs" == "auto" ]]; then
+        jobs="$(nproc 2>/dev/null || echo 1)"
+        if (( jobs > 8 )); then
+            jobs=8
         fi
-    done
+    fi
+    if [[ ! "$jobs" =~ ^[0-9]+$ || "$jobs" -lt 1 ]]; then
+        echo "backend-compare: PGY_BACKEND_COMPARE_JOBS must be a positive integer or 'auto'" >&2
+        return 1
+    fi
+    # wait -n arrived in bash 4.3; older hosts (macOS /bin/bash) run serially.
+    if (( jobs > 1 )) \
+        && (( BASH_VERSINFO[0] < 4
+              || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 3) )); then
+        jobs=1
+    fi
+
+    local case_total=${#cases[@]}
+    local done_count=0
+
+    if (( jobs <= 1 || case_total <= 1 )); then
+        for source_rel in "${cases[@]}"; do
+            # Run each case with failure-tolerance so one broken backend
+            # parity doesn't mask the rest of the suite. `run_case` already
+            # prints PASS/diff to stdout/stderr; we just track the tally.
+            if run_case "$source_rel"; then
+                passed=$((passed + 1))
+            else
+                failed+=("$source_rel")
+            fi
+            done_count=$((done_count + 1))
+            echo "backend-compare: [${done_count}/${case_total}]"
+        done
+    else
+        echo "backend-compare: running ${case_total} cases across ${jobs} workers"
+        local pool_dir="$WORK_DIR/.pool"
+        mkdir -p "$pool_dir"
+        local spawn_idx=0
+        local running=0
+        for source_rel in "${cases[@]}"; do
+            (
+                if run_case "$source_rel" \
+                    >"$pool_dir/${spawn_idx}.log" 2>&1; then
+                    : >"$pool_dir/${spawn_idx}.ok"
+                fi
+            ) &
+            spawn_idx=$((spawn_idx + 1))
+            running=$((running + 1))
+            if (( running >= jobs )); then
+                # A failing worker's status surfaces through the missing
+                # .ok marker; wait -n must not trip set -e.
+                wait -n || true
+                running=$((running - 1))
+                done_count=$((done_count + 1))
+                echo "backend-compare: [${done_count}/${case_total}]"
+            fi
+        done
+        while (( running > 0 )); do
+            wait -n || true
+            running=$((running - 1))
+            done_count=$((done_count + 1))
+            echo "backend-compare: [${done_count}/${case_total}]"
+        done
+        # Replay per-case output in registry order so failure diffs stay
+        # coherent instead of interleaving across workers.
+        local replay_idx
+        for replay_idx in "${!cases[@]}"; do
+            cat "$pool_dir/${replay_idx}.log"
+            if [[ -e "$pool_dir/${replay_idx}.ok" ]]; then
+                passed=$((passed + 1))
+            else
+                failed+=("${cases[$replay_idx]}")
+            fi
+        done
+    fi
 
     local total=${#cases[@]}
     local fail_count=${#failed[@]}
