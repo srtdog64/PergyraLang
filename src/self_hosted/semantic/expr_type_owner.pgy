@@ -4,6 +4,7 @@ import "text_scan_owner.pgy";
 import "env_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
+import "delimited_range_fact_owner.pgy";
 
 func IsIdentText(text: String) -> Bool {
     if StringLength(text) == 0 {
@@ -117,111 +118,46 @@ func ParamTypeOf(part: String) -> String {
     return Trim(Substring(part, colon + 1, StringLength(part) - colon - 1));
 }
 func ParamTypes(param_src: String) -> String {
-    let n: Int = StringLength(param_src);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let part_start: Int = 0;
+    let facts: SemanticDelimitedRangeFacts =
+        SemanticCallArgumentRangeFactsFromSource(param_src);
     let result: String = "";
-    while i <= n {
-        let at_end: Bool = i >= n;
-        let c: String = "";
-        if !at_end {
-            c = CharAt(param_src, i);
-        }
-        if !at_end && (c == "<" || c == "(" || c == "[") {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if !at_end && (c == ">" || c == ")" || c == "]") {
-            if depth > 0 {
-                depth = depth - 1;
+    let i: Int = 0;
+    while i < SemanticDelimitedRangeCount(facts) {
+        let part: String = SemanticDelimitedRangeText(facts, param_src, i);
+        if StringLength(part) > 0 {
+            let ptype: String = ParamTypeOf(part);
+            if StringLength(result) > 0 {
+                result = Concat(result, "|");
             }
-            i = i + 1;
-            continue;
-        }
-        if at_end || (depth == 0 && c == ",") {
-            let part: String = Trim(Substring(param_src, part_start, i - part_start));
-            if StringLength(part) > 0 {
-                let ptype: String = ParamTypeOf(part);
-                if StringLength(result) > 0 {
-                    result = Concat(result, "|");
-                }
-                result = Concat(result, ptype);
-            }
-            part_start = i + 1;
+            result = Concat(result, ptype);
         }
         i = i + 1;
     }
     return result;
 }
+func NthExpectedFromFacts(
+    ref facts: SemanticDelimitedRangeFacts,
+    sig: String,
+    target: Int
+) -> String {
+    return SemanticDelimitedRangeText(facts, sig, target);
+}
 func NthExpected(sig: String, target: Int) -> String {
-    let n: Int = StringLength(sig);
-    let i: Int = 0;
-    let field: Int = 0;
-    let start: Int = 0;
-    while i <= n {
-        let at_end: Bool = i >= n;
-        let c: String = "";
-        if !at_end {
-            c = CharAt(sig, i);
-        }
-        if at_end || c == "|" {
-            if field == target {
-                return Trim(Substring(sig, start, i - start));
-            }
-            field = field + 1;
-            start = i + 1;
-        }
-        i = i + 1;
-    }
-    return "";
+    let facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(sig);
+    return NthExpectedFromFacts(facts, sig, target);
+}
+func CallArgAtFromFacts(
+    ref facts: SemanticDelimitedRangeFacts,
+    args_src: String,
+    target: Int
+) -> String {
+    return SemanticDelimitedRangeText(facts, args_src, target);
 }
 func CallArgAt(args_src: String, target: Int) -> String {
-    let n: Int = StringLength(args_src);
-    let i: Int = 0;
-    let depth: Int = 0;
-    let field: Int = 0;
-    let start: Int = 0;
-    while i <= n {
-        let at_end: Bool = i >= n;
-        let c: String = "";
-        if !at_end {
-            c = CharAt(args_src, i);
-        }
-        if !at_end && c == "\"" {
-            i = i + 1;
-            while i < n && CharAt(args_src, i) != "\"" {
-                if CharAt(args_src, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if !at_end && (c == "<" || c == "(" || c == "[") {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if !at_end && (c == ">" || c == ")" || c == "]") {
-            if depth > 0 {
-                depth = depth - 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if at_end || (depth == 0 && c == ",") {
-            if field == target {
-                return Trim(Substring(args_src, start, i - start));
-            }
-            field = field + 1;
-            start = i + 1;
-        }
-        i = i + 1;
-    }
-    return "";
+    let facts: SemanticDelimitedRangeFacts =
+        SemanticCallArgumentRangeFactsFromSource(args_src);
+    return CallArgAtFromFacts(facts, args_src, target);
 }
 func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);

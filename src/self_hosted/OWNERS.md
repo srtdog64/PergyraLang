@@ -123,6 +123,8 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/call_check_owner.pgy` -- call arity and argument checks.
 - `src/self_hosted/semantic/callable_resolution_owner.pgy` -- exact-first,
   unique namespace-local callable resolution.
+- `src/self_hosted/semantic/delimited_range_fact_owner.pgy` -- trimmed call
+  argument and signature ranges shared by arity, builtin, and type checks.
 - `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
   element and direct index-access facts.
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum

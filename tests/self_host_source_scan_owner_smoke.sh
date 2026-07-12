@@ -30,6 +30,8 @@ OPERATOR_FACTS="src/self_hosted/semantic/expression_operator_fact_owner.pgy"
 EXPR_TYPES="src/self_hosted/semantic/expr_type_owner.pgy"
 EXPR_VALIDATION="src/self_hosted/semantic/expr_validation_owner.pgy"
 CALLABLE_RESOLUTION="src/self_hosted/semantic/callable_resolution_owner.pgy"
+DELIMITED_FACTS="src/self_hosted/semantic/delimited_range_fact_owner.pgy"
+CALL_CHECK="src/self_hosted/semantic/call_check_owner.pgy"
 
 for term in \
     "func SourceByteAt" \
@@ -91,6 +93,24 @@ fi
 if grep -Fq "Substring(" "$CALLABLE_RESOLUTION"; then
     fail "callable resolution reopened segment copies"
 fi
+require_text "$DELIMITED_FACTS" "struct SemanticDelimitedRangeFacts"
+require_text "$DELIMITED_FACTS" \
+    "func SemanticCallArgumentRangeFactsFromSource"
+require_text "$DELIMITED_FACTS" \
+    "func SemanticSignatureRangeFactsFromSource"
+if grep -Fq "CharAt(" "$DELIMITED_FACTS"; then
+    fail "delimited range owner reopened allocating character reads"
+fi
+require_text "$CALL_CHECK" \
+    "SemanticCallArgumentRangeFactsFromSource(args_src)"
+require_text "$CALL_CHECK" "ArgCountFromFacts(argument_facts)"
+require_text "$CALL_CHECK" "ParamCountFromFacts(signature_facts, sig)"
+for function in CompareCallArgs ParamCount ArgCount FirstArg; do
+    reject_region_text "$CALL_CHECK" "func $function" "CharAt("
+done
+for function in ParamTypes NthExpected CallArgAt; do
+    reject_region_text "$EXPR_TYPES" "func $function" "CharAt("
+done
 
 EVIDENCE="benchmarks/selfhost_source_scan_owner_evidence.json"
 owner_hash="$({
@@ -108,13 +128,8 @@ require_text "$EVIDENCE" '"semantic_fixtures": 110'
 require_text "$EVIDENCE" '"integrated_driver_c_llvm_byte_identical": true'
 
 operator_owner_hash="$({
-    for file in \
-        "$OPERATOR_FACTS" \
-        "$EXPR_TYPES" \
-        "$EXPR_VALIDATION"; do
-        printf '%s:' "$file"
-        git hash-object "$file"
-    done
+    printf '%s:' "$OPERATOR_FACTS"
+    git hash-object "$OPERATOR_FACTS"
 } | sha256sum | awk '{ print toupper($1) }')"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$operator_owner_hash\""
 require_text "$EVIDENCE" '"char_at_reduction_percent": 60.4'
@@ -130,6 +145,16 @@ require_text "$EVIDENCE" '"char_at_calls_after": 776073'
 require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 72.8'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-inconclusive-allocation-surface-reduction"'
+
+delimited_owner_hash="$({
+    printf '%s:' "$DELIMITED_FACTS"
+    git hash-object "$DELIMITED_FACTS"
+} | sha256sum | awk '{ print toupper($1) }')"
+require_text "$EVIDENCE" "\"owner_set_sha256\": \"$delimited_owner_hash\""
+require_text "$EVIDENCE" '"char_at_calls_after": 424152'
+require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 85.1'
+require_text "$EVIDENCE" \
+    '"performance_verdict": "cpu-neutral-shared-range-facts"'
 
 baseline_min="$(sed -n '/"baseline"/,/}/s/.*"elapsed_ms": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
     tr ',' '\n' | awk 'BEGIN { min = 999999999 } { gsub(/ /, ""); if ($1 + 0 < min) min = $1 + 0 } END { print min }')"

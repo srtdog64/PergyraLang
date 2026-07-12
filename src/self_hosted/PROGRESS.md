@@ -69,6 +69,17 @@ under C and LLVM, and the C/LLVM integrated drivers emit the same 151,762-byte
 artifact. This is one source-scan owner closure, not whole parser/semantic text
 lifetime closure.
 
+The next semantic slices give top-level operators one shared fact owner,
+validate qualified callable names through byte ranges, and capture call
+argument/signature partitions as `SemanticDelimitedRangeFacts`. Arity,
+builtin, receiver, and type checks now share those ranges by `ref`. Integrated
+`CharAt` calls fell from 2,851,682 to 424,152 (85.1 percent), while same-window
+runtime remained neutral at 36.854-36.927 seconds against a 37.029-second
+control. C/LLVM semantic parity remains 110/110 and both integrated drivers
+emit the same 151,762-byte artifact. This closes duplicated semantic text
+ownership; it does not close remaining type-name/expression scans or the
+full-source gen3 fixed point.
+
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
 closed those six at 6/6, and the two newly split executable contract owners

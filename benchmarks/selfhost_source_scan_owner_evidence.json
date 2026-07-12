@@ -26,7 +26,7 @@
   },
   "semantic_operator_fact_owner": {
     "source_commit": "b0a81826",
-    "owner_set_sha256": "0957E01EAAB463371374FAF28D0435F3945D453134DFA2DD0F6DF70979500EDA",
+    "owner_set_sha256": "C2395481F3586A826F0CEBFBDA7DA05EAFDDCCED7E4261097DFA0CD3E18929F9",
     "elapsed_ms": [37273, 37002],
     "peak_private_mb": [170.4, 88.1],
     "required_max_elapsed_ms": 38000,
@@ -49,6 +49,20 @@
     "char_at_reduction_percent": 31.2,
     "cumulative_char_at_reduction_percent": 72.8,
     "performance_verdict": "cpu-inconclusive-allocation-surface-reduction"
+  },
+  "semantic_delimited_range_facts": {
+    "source_commit": "0f4938e0",
+    "owner_set_sha256": "C7F88E85F260DF4B9D6CB0D559661050B16976DA32E399812657B7568FCD5F30",
+    "elapsed_ms": [36854, 36927],
+    "same_window_control_elapsed_ms": 37029,
+    "peak_private_mb": [165.7, 104.1],
+    "char_at_calls_before": 776073,
+    "char_at_calls_after": 424152,
+    "char_at_reduction_percent": 45.3,
+    "cumulative_char_at_reduction_percent": 85.1,
+    "call_argument_fact_rows": 5649,
+    "signature_fact_rows": 3177,
+    "performance_verdict": "cpu-neutral-shared-range-facts"
   },
   "parity": {
     "parser_fixtures": 188,

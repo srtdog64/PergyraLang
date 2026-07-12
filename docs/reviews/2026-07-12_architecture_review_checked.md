@@ -86,6 +86,14 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   ran in 40.686 seconds and candidates in 39.823-40.236 seconds, which is not
   enough evidence for a CPU-speed claim. The emitted artifact remained
   byte-identical.
+- Call arguments and signature rows now lower once into trimmed
+  `SemanticDelimitedRangeFacts`. Arity, builtin, receiver, expected-type, and
+  argument-type checks share the same range facts by `ref`; compatibility
+  wrappers also consume that owner instead of maintaining separate parsers.
+  Integrated-driver `CharAt` calls fell from 776,073 to 424,152 (45.3 percent
+  for this rung, 85.1 percent cumulative). A same-window control ran in 37.029
+  seconds and candidates in 36.854-36.927 seconds, so CPU remains neutral. C
+  and LLVM emitted the same artifact.
 
 ## Remaining Work Order
 
@@ -93,8 +101,8 @@ byte-identical. Integrated-driver text lifetime remains active debt.
    it fails, preserve the exact backend, iteration, timeout, stdout, and stderr.
 2. Continue hard self-host replacement through typed owner facts and verifier
    parity. Do not replace missing MIR facts with source-text or AST recovery.
-3. Continue repointing the remaining per-character expression/literal/statement
-   owners and add scope reclamation for ordinary String temporaries. Prefer
+3. Continue repointing the remaining type-name and expression/literal owners
+   and add scope reclamation for ordinary String temporaries. Prefer
    `CharCode`, `StrView`, `TextSpan`, or another explicit non-owning fact over
    changing `String` lifetime semantics to make `CharAtN` appear cheap. Do not
    increase memory limits or broaden owner transfer without CFG/MIR evidence.

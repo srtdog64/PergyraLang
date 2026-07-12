@@ -684,6 +684,7 @@ require_file "src/self_hosted/semantic/env_owner.pgy"
 require_file "src/self_hosted/semantic/expr_type_owner.pgy"
 require_file "src/self_hosted/semantic/expr_validation_owner.pgy"
 require_file "src/self_hosted/semantic/expression_operator_fact_owner.pgy"
+require_file "src/self_hosted/semantic/delimited_range_fact_owner.pgy"
 require_file "src/self_hosted/semantic/call_check_owner.pgy"
 require_file "src/self_hosted/semantic/body_check_owner.pgy"
 require_file "src/self_hosted/semantic/program_check_owner.pgy"
@@ -750,6 +751,13 @@ require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
+require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "struct SemanticDelimitedRangeFacts"
+require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticCallArgumentRangeFactsFromSource"
+require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticSignatureRangeFactsFromSource"
+require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticDelimitedRangeFactContractReady"
+require_max_lines "src/self_hosted/semantic/delimited_range_fact_owner.pgy" 600
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "delimited_range_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/call_check_owner.pgy" 'import "delimited_range_fact_owner.pgy";'
 require_file "src/self_hosted/semantic/expression_normalization_owner.pgy"
 require_max_lines "src/self_hosted/semantic/expression_normalization_owner.pgy" 600
 require_text "src/self_hosted/semantic/expression_normalization_owner.pgy" "func SemanticExpressionNormalizationContractReady"

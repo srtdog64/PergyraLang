@@ -1,0 +1,179 @@
+// Semantic owner for trimmed ranges in call arguments and signature rows.
+
+import "text_scan_owner.pgy";
+
+struct SemanticDelimitedRangeFacts {
+    source_length: Int;
+    starts: Array<Int>;
+    lengths: Array<Int>;
+}
+
+func SemanticDelimitedTrimmedStart(
+    source: String,
+    source_length: Int,
+    start: Int,
+    end: Int
+) -> Int {
+    let result: Int = start;
+    while result < end && SourceByteIsWhitespace(
+        SourceByteAt(source, source_length, result)
+    ) {
+        result = result + 1;
+    }
+    return result;
+}
+
+func SemanticDelimitedTrimmedEnd(
+    source: String,
+    source_length: Int,
+    start: Int,
+    end: Int
+) -> Int {
+    let result: Int = end;
+    while result > start && SourceByteIsWhitespace(
+        SourceByteAt(source, source_length, result - 1)
+    ) {
+        result = result - 1;
+    }
+    return result;
+}
+
+func SemanticCallArgumentRangeFactsFromSource(
+    source: String
+) -> SemanticDelimitedRangeFacts {
+    let n: Int = StringLength(source);
+    let starts: Array<Int> = [];
+    let lengths: Array<Int> = [];
+    let quote: Int = SourceByteOf("\"");
+    let escape: Int = SourceByteOf("\\");
+    let comma: Int = SourceByteOf(",");
+    let open_angle: Int = SourceByteOf("<");
+    let close_angle: Int = SourceByteOf(">");
+    let open_paren: Int = SourceByteOf("(");
+    let close_paren: Int = SourceByteOf(")");
+    let open_bracket: Int = SourceByteOf("[");
+    let close_bracket: Int = SourceByteOf("]");
+    let i: Int = 0;
+    let depth: Int = 0;
+    let range_start: Int = 0;
+    while i <= n {
+        let at_end: Bool = i >= n;
+        let c: Int = -1;
+        if !at_end {
+            c = SourceByteAt(source, n, i);
+        }
+        if !at_end && c == quote {
+            i = i + 1;
+            while i < n && SourceByteAt(source, n, i) != quote {
+                if SourceByteAt(source, n, i) == escape {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if !at_end && (c == open_angle || c == open_paren ||
+            c == open_bracket) {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if !at_end && (c == close_angle || c == close_paren ||
+            c == close_bracket) {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if at_end || (depth == 0 && c == comma) {
+            let trimmed_start: Int = SemanticDelimitedTrimmedStart(
+                source, n, range_start, i
+            );
+            let trimmed_end: Int = SemanticDelimitedTrimmedEnd(
+                source, n, trimmed_start, i
+            );
+            ArrayPush(starts, trimmed_start);
+            ArrayPush(lengths, trimmed_end - trimmed_start);
+            range_start = i + 1;
+        }
+        i = i + 1;
+    }
+    return SemanticDelimitedRangeFacts(n, starts, lengths);
+}
+
+func SemanticSignatureRangeFactsFromSource(
+    source: String
+) -> SemanticDelimitedRangeFacts {
+    let n: Int = StringLength(source);
+    let starts: Array<Int> = [];
+    let lengths: Array<Int> = [];
+    let separator: Int = SourceByteOf("|");
+    let range_start: Int = 0;
+    let i: Int = 0;
+    while i <= n {
+        if i == n || SourceByteAt(source, n, i) == separator {
+            let trimmed_start: Int = SemanticDelimitedTrimmedStart(
+                source, n, range_start, i
+            );
+            let trimmed_end: Int = SemanticDelimitedTrimmedEnd(
+                source, n, trimmed_start, i
+            );
+            ArrayPush(starts, trimmed_start);
+            ArrayPush(lengths, trimmed_end - trimmed_start);
+            range_start = i + 1;
+        }
+        i = i + 1;
+    }
+    return SemanticDelimitedRangeFacts(n, starts, lengths);
+}
+
+func SemanticDelimitedRangeCount(
+    ref facts: SemanticDelimitedRangeFacts
+) -> Int {
+    return ArrayLength(facts.starts);
+}
+
+func SemanticDelimitedNonEmptyRangeCount(
+    ref facts: SemanticDelimitedRangeFacts
+) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(facts.lengths) {
+        if facts.lengths[i] > 0 {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func SemanticDelimitedRangeText(
+    ref facts: SemanticDelimitedRangeFacts,
+    source: String,
+    index: Int
+) -> String {
+    if index < 0 || index >= ArrayLength(facts.starts) {
+        return "";
+    }
+    return Substring(source, facts.starts[index], facts.lengths[index]);
+}
+
+func SemanticDelimitedRangeFactContractReady() -> Bool {
+    let arguments: String = "1, F(2, 3), \"a,b\"";
+    let argument_facts: SemanticDelimitedRangeFacts =
+        SemanticCallArgumentRangeFactsFromSource(arguments);
+    let signature: String = "Int|Option<String>";
+    let signature_facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(signature);
+    return SemanticDelimitedRangeCount(argument_facts) == 3 &&
+        SemanticDelimitedRangeText(argument_facts, arguments, 0) == "1" &&
+        SemanticDelimitedRangeText(argument_facts, arguments, 1) ==
+            "F(2, 3)" &&
+        SemanticDelimitedRangeText(argument_facts, arguments, 2) ==
+            "\"a,b\"" &&
+        SemanticDelimitedRangeCount(signature_facts) == 2 &&
+        SemanticDelimitedRangeText(signature_facts, signature, 1) ==
+            "Option<String>";
+}
