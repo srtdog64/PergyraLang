@@ -33,7 +33,7 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares 15 architectural compiler-spine fact families plus five
+The file also declares 15 architectural compiler-spine fact families plus six
 bounded self-host closure facts and a total `spine_authority` mapping.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
@@ -60,6 +60,9 @@ fallback consumers are gone.
   names and ordered field rows consumed by `CollectStructs`;
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` owns role names, target
   types, and method `NodeId` rows consumed by operator binding and receiver ABI;
+- `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` owns
+  expression atom/value/auxiliary rows and call/token queries consumed by
+  runtime usage projection;
 - the retired AST-text array, try-let, collection, enum, and mixed declaration
   codegen owners must
   not exist; and

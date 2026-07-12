@@ -194,6 +194,12 @@ consume those rows; the role AST bridge and descendant scan are deleted. The
 TestHarness-owned role operator prints `123` under C-built and LLVM-built
 codegen tools, matching the native C oracle.
 
+The seventh executable delta moved runtime/header expression usage to
+`SemanticAstExpressionSurfaceFacts`. Codegen keeps builtin-group policy but no
+longer reads arena atom/value/auxiliary rows or parses calls locally. Nine
+runtime-family fixtures plus the role/enum hard legs are run-equal under
+C-built and LLVM-built tools.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
@@ -205,9 +211,9 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 20-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus five
-bounded self-host closure rows, with five `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 21-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus six
+bounded self-host closure rows, with six `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

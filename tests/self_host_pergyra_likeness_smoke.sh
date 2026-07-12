@@ -174,7 +174,9 @@ SENTINEL_MAX=0
 # variant arity behind Option-returning semantic accessors.
 # 1208 -> 1243 (2026-07-13): role name/target/method/receiver projection uses
 # Option-returning semantic owner accessors instead of AST descendant scans.
-RESULT_USE_MIN=1243
+# 1243 -> 1258 (2026-07-13): runtime usage consumes Option-returning semantic
+# expression surfaces instead of direct arena atom/value/auxiliary rows.
+RESULT_USE_MIN=1258
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

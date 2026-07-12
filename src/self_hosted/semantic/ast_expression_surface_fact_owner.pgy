@@ -1,0 +1,218 @@
+// Artifact-bound expression surface rows used by later projection decisions.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../lib/source_scan_owner.pgy";
+
+struct SemanticAstExpressionSurfaceFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    has_atoms: Array<Bool>;
+    atoms: Array<String>;
+    has_values: Array<Bool>;
+    values: Array<String>;
+    has_auxiliary_values: Array<Bool>;
+    auxiliary_values: Array<String>;
+}
+
+func SemanticAstExpressionSurfaceFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstExpressionSurfaceFacts {
+    let node_ids: Array<Int> = [];
+    let has_atoms: Array<Bool> = [];
+    let atoms: Array<String> = [];
+    let has_values: Array<Bool> = [];
+    let values: Array<String> = [];
+    let has_auxiliary_values: Array<Bool> = [];
+    let auxiliary_values: Array<String> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
+        let value: Option<String> = TypedAstArenaValueText(artifact.arena, node_id);
+        let auxiliary: Option<String> = TypedAstArenaAuxValueText(
+            artifact.arena, node_id
+        );
+        if IsSome(atom) || IsSome(value) || IsSome(auxiliary) {
+            let atom_text: String = "";
+            let value_text: String = "";
+            let auxiliary_text: String = "";
+            if IsSome(atom) { atom_text = UnwrapOption(atom); }
+            if IsSome(value) { value_text = UnwrapOption(value); }
+            if IsSome(auxiliary) { auxiliary_text = UnwrapOption(auxiliary); }
+            ArrayPush(node_ids, node_id);
+            ArrayPush(has_atoms, IsSome(atom));
+            ArrayPush(atoms, atom_text);
+            ArrayPush(has_values, IsSome(value));
+            ArrayPush(values, value_text);
+            ArrayPush(has_auxiliary_values, IsSome(auxiliary));
+            ArrayPush(auxiliary_values, auxiliary_text);
+        }
+        node_id = node_id + 1;
+    }
+    return SemanticAstExpressionSurfaceFacts(
+        ok, artifact.count, node_ids, has_atoms, atoms, has_values, values,
+        has_auxiliary_values, auxiliary_values
+    );
+}
+
+func SemanticAstExpressionSurfaceCount(
+    facts: SemanticAstExpressionSurfaceFacts
+) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstExpressionSurfaceAtomAt(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int
+) -> Option<String> {
+    if !facts.ok || index < 0 || index >= SemanticAstExpressionSurfaceCount(facts) ||
+        !facts.has_atoms[index] { return None; }
+    return Some(facts.atoms[index]);
+}
+
+func SemanticAstExpressionSurfaceValueAt(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int
+) -> Option<String> {
+    if !facts.ok || index < 0 || index >= SemanticAstExpressionSurfaceCount(facts) ||
+        !facts.has_values[index] { return None; }
+    return Some(facts.values[index]);
+}
+
+func SemanticAstExpressionSurfaceAuxiliaryAt(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int
+) -> Option<String> {
+    if !facts.ok || index < 0 || index >= SemanticAstExpressionSurfaceCount(facts) ||
+        !facts.has_auxiliary_values[index] { return None; }
+    return Some(facts.auxiliary_values[index]);
+}
+
+func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
+    return SourceByteIsAlphaNum(c) || c == SourceByteOf("_");
+}
+
+func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
+    let n: Int = StringLength(text);
+    let m: Int = StringLength(token);
+    let i: Int = 0;
+    let in_string: Bool = false;
+    while i < n {
+        let c: Int = SourceByteAt(text, n, i);
+        if in_string {
+            if c == SourceByteOf("\\") { i = i + 2; continue; }
+            if c == SourceByteOf("\"") { in_string = false; }
+            i = i + 1;
+            continue;
+        }
+        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
+        if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, token) {
+            let before_ok: Bool = i == 0 || !SemanticExpressionSurfaceIdentifierByte(
+                SourceByteAt(text, n, i - 1)
+            );
+            let after: Int = i + m;
+            let after_ok: Bool = after >= n || !SemanticExpressionSurfaceIdentifierByte(
+                SourceByteAt(text, n, after)
+            );
+            if before_ok && after_ok { return true; }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
+    let n: Int = StringLength(text);
+    let needle: String = Concat(callee, "(");
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_string: Bool = false;
+    while i < n {
+        let c: Int = SourceByteAt(text, n, i);
+        if in_string {
+            if c == SourceByteOf("\\") { i = i + 2; continue; }
+            if c == SourceByteOf("\"") { in_string = false; }
+            i = i + 1;
+            continue;
+        }
+        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
+        if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, needle) &&
+            (i == 0 || !SemanticExpressionSurfaceIdentifierByte(
+                SourceByteAt(text, n, i - 1)
+            )) { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstExpressionSurfaceTokenPresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    token: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if (facts.has_atoms[i] && SemanticExpressionSurfaceHasToken(facts.atoms[i], token)) ||
+            (facts.has_values[i] && SemanticExpressionSurfaceHasToken(facts.values[i], token)) ||
+            (facts.has_auxiliary_values[i] && SemanticExpressionSurfaceHasToken(
+                facts.auxiliary_values[i], token
+            )) { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstExpressionSurfaceCallPresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    callee: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if (facts.has_atoms[i] && SemanticExpressionSurfaceCalls(facts.atoms[i], callee)) ||
+            (facts.has_values[i] && SemanticExpressionSurfaceCalls(facts.values[i], callee)) ||
+            (facts.has_auxiliary_values[i] && SemanticExpressionSurfaceCalls(
+                facts.auxiliary_values[i], callee
+            )) { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstExpressionSurfaceFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstExpressionSurfaceFacts
+) -> Bool {
+    let rebuilt: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
+    let count: Int = SemanticAstExpressionSurfaceCount(facts);
+    if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
+        SemanticAstExpressionSurfaceCount(rebuilt) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.has_atoms[i] != rebuilt.has_atoms[i] ||
+            facts.atoms[i] != rebuilt.atoms[i] ||
+            facts.has_values[i] != rebuilt.has_values[i] ||
+            facts.values[i] != rebuilt.values[i] ||
+            facts.has_auxiliary_values[i] != rebuilt.has_auxiliary_values[i] ||
+            facts.auxiliary_values[i] != rebuilt.auxiliary_values[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log(None)\n"
+    );
+    let facts: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
+    return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
+        SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
+        SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
+        !SemanticAstExpressionSurfaceCallPresent(facts, "Substring");
+}

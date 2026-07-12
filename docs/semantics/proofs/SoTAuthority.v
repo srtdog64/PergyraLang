@@ -17,6 +17,7 @@ Inductive Fact : Type :=
   | FEnumDeclarationRows
   | FNominalDeclarationRows
   | FRoleDeclarationRows
+  | FExpressionRuntimeUsageSurface
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -29,6 +30,7 @@ Inductive Owner : Type :=
   | OSemanticEnumFacts
   | OSemanticNominalConstructorFacts
   | OSemanticRoleFacts
+  | OSemanticExpressionSurfaceFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -38,7 +40,8 @@ Inductive Consumer : Type :=
   | CCollectionMutationEmitter
   | CEnumEmitter
   | CNominalEmitter
-  | CRoleOperatorEmitter.
+  | CRoleOperatorEmitter
+  | CRuntimeUsageProjection.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -124,6 +127,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FEnumDeclarationRows => SemanticFact
   | FNominalDeclarationRows => SemanticFact
   | FRoleDeclarationRows => SemanticFact
+  | FExpressionRuntimeUsageSurface => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -135,6 +139,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FEnumDeclarationRows => OSemanticEnumFacts
   | FNominalDeclarationRows => OSemanticNominalConstructorFacts
   | FRoleDeclarationRows => OSemanticRoleFacts
+  | FExpressionRuntimeUsageSurface => OSemanticExpressionSurfaceFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -151,6 +156,9 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticNominalConstructorFacts FNominalDeclarationRows
   | CurrentRoleDeclarationProducer :
       current_produces OSemanticRoleFacts FRoleDeclarationRows
+  | CurrentExpressionRuntimeUsageProducer :
+      current_produces OSemanticExpressionSurfaceFacts
+        FExpressionRuntimeUsageSurface
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -481,6 +489,67 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive expression_usage_requires : Consumer -> Fact -> Prop :=
+  | RuntimeProjectionRequiresExpressionSurface :
+      expression_usage_requires CRuntimeUsageProjection
+        FExpressionRuntimeUsageSurface.
+
+Inductive expression_usage_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | RuntimeProjectionReadsExpressionSurface :
+      expression_usage_reads CRuntimeUsageProjection
+        OSemanticExpressionSurfaceFacts FExpressionRuntimeUsageSurface OwnedRead.
+
+Definition expression_usage_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := expression_usage_requires;
+     reads := expression_usage_reads |}.
+
+Theorem current_expression_runtime_usage_rung_closed :
+  RungClosed expression_usage_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive expression_usage_bridge_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | ExpressionUsageBridgeOwnedRead :
+      expression_usage_bridge_reads CRuntimeUsageProjection
+        OSemanticExpressionSurfaceFacts FExpressionRuntimeUsageSurface OwnedRead
+  | ExpressionUsageBridgeFallbackRead :
+      expression_usage_bridge_reads CRuntimeUsageProjection OCodegenTextRecovery
+        FExpressionRuntimeUsageSurface FallbackRead.
+
+Definition expression_usage_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := expression_usage_requires;
+     reads := expression_usage_bridge_reads |}.
+
+Theorem expression_usage_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed expression_usage_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CRuntimeUsageProjection OCodegenTextRecovery
+    FExpressionRuntimeUsageSurface FallbackRead
+    ExpressionUsageBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -571,7 +640,8 @@ Inductive SpineFact : Type :=
   | SFCollectionMutationStatement
   | SFEnumDeclarationRows
   | SFNominalDeclarationRows
-  | SFRoleDeclarationRows.
+  | SFRoleDeclarationRows
+  | SFExpressionRuntimeUsageSurface.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -593,7 +663,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticStatement
   | SOSemanticEnum
   | SOSemanticNominalConstructor
-  | SOSemanticRole.
+  | SOSemanticRole
+  | SOSemanticExpressionSurface.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -617,6 +688,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFEnumDeclarationRows => SOSemanticEnum
   | SFNominalDeclarationRows => SOSemanticNominalConstructor
   | SFRoleDeclarationRows => SOSemanticRole
+  | SFExpressionRuntimeUsageSurface => SOSemanticExpressionSurface
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -652,7 +724,8 @@ Qed.
 Theorem current_model_does_not_claim_future_consumer_coverage :
   forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
     c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
-    c = CNominalEmitter \/ c = CRoleOperatorEmitter.
+    c = CNominalEmitter \/ c = CRoleOperatorEmitter \/
+    c = CRuntimeUsageProjection.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
@@ -660,5 +733,6 @@ Proof.
   - right. right. left. reflexivity.
   - right. right. right. left. reflexivity.
   - right. right. right. right. left. reflexivity.
-  - right. right. right. right. right. reflexivity.
+  - right. right. right. right. right. left. reflexivity.
+  - right. right. right. right. right. right. reflexivity.
 Qed.

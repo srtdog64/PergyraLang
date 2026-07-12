@@ -38,8 +38,13 @@ struct CodegenRuntimeUsageFacts {
     let uses_text_builder: Bool;
 }
 
-func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
-    let expr_usage: CodegenExpressionUsageFacts = CodegenExpressionUsageFactsFromArena(arena, count);
+func CodegenRuntimeUsageFactsFromSemanticAndArena(
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    arena: AstArena,
+    count: Int
+) -> CodegenRuntimeUsageFacts {
+    let expr_usage: CodegenExpressionUsageFacts =
+        CodegenExpressionUsageFactsFromSemantic(expression_surfaces);
     let kind_usage: CodegenKindUsageFacts = CodegenKindUsageFactsFromArena(arena, count);
     let type_usage: CodegenTypeUsageFacts = CodegenTypeUsageFactsFromArena(arena, count);
     let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());

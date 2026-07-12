@@ -60,17 +60,18 @@ selfhost.collection_mutation_statement | semantic | SyntaxNodeId | SFCollectionM
 selfhost.enum_declaration_rows | semantic | SyntaxNodeId | SFEnumDeclarationRows | SOSemanticEnum | src/self_hosted/semantic/ast_enum_fact_owner.pgy | SemanticAstEnumFacts | src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy | TypedAstArenaAuxValueText,ExprSequenceItemCount,ExprSequenceItemAt,ast_text_enum_variant_owner.pgy,CodegenAstArenaEnumNameOrDie,CodegenAstArenaEnumVariantCount,CodegenAstArenaEnumVariantNameAt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.nominal_declaration_rows | semantic | SyntaxNodeId | SFNominalDeclarationRows | SOSemanticNominalConstructor | src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy | SemanticAstNominalConstructorFacts | src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy | ast_text_declaration_owner.pgy,CodegenAstArenaNominalNameOrDie,CodegenAstArenaFieldNameOrDie,CodegenAstArenaFieldTypeNameOrDie,CodegenAstArenaIsNominalDecl(arena, i),CodegenAstArenaIsFieldsHeader(arena, j) | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.role_declaration_rows | semantic | SyntaxNodeId | SFRoleDeclarationRows | SOSemanticRole | src/self_hosted/semantic/ast_role_fact_owner.pgy | SemanticAstRoleFacts | src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy | ast_text_role_declaration_owner.pgy,CodegenAstArenaRoleNameOrDie,CodegenAstArenaRoleTargetTypeNameOrDie,CodegenAstArenaIsRoleDecl(arena, i),CodegenAstArenaIsDescendantOf(arena, j, i) | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
+selfhost.expression_runtime_usage_surface | semantic | SyntaxNodeId | SFExpressionRuntimeUsageSurface | SOSemanticExpressionSurface | src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy | SemanticAstExpressionSurfaceFacts | src/self_hosted/codegen/input/ast_expression_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy | TypedAstArenaAtomText,TypedAstArenaValueText,TypedAstArenaAuxValueText,ContainsCallOutsideStrings,CodegenExpressionUsageFactsFromArena,CodegenAstArenaExpressionPartsAt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 ```
 <!-- END sot-owner-spine-registry -->
 
 ## Current Judgment
 
 The owner outline is complete for the listed compiler spine, but implementation
-closure is not. There are five `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
+closure is not. There are six `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
 rows. The exact counts are gate-owned and must change only when a row gains or
 loses the evidence required by its status.
 
-Current status counts: `CLOSED=5 BRIDGE=6 ACTIVE=9`.
+Current status counts: `CLOSED=6 BRIDGE=6 ACTIVE=9`.
 
 The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact

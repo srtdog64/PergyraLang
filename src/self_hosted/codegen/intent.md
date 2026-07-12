@@ -247,3 +247,7 @@ dropping payload arity, or recovering it from enum aux text fails this gate.
 The TestHarness also owns a role-operator source and expected stdout. Both
 backend-built tools must consume semantic role target/method rows, emit a valid
 receiver ABI, and match the native C oracle output.
+
+Runtime/header materialization consumes semantic expression-surface facts.
+Backend builtin groups remain codegen policy, but codegen may not recover their
+presence by reading arena atom/value/auxiliary rows.

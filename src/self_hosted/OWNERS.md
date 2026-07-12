@@ -138,6 +138,9 @@ inventory must not become a second fact-family owner registry.
   declaration and variant facts for expression typing.
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
   name, target type, and owned method `NodeId` rows.
+- `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
+  artifact-bound atom/value/auxiliary expression surfaces and string-safe
+  call/token queries consumed by runtime projection.
 - `src/self_hosted/semantic/projection_type_owner.pgy` -- nominal member,
   array-index, and contextual array-literal types from owner facts.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
@@ -243,7 +246,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement payload rows, including `For` loop and `ArrayPush` / `ArraySet` projections.
-- `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- expression usage facts and builtin-callee group rows derived from typed arena payload rows.
+- `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- backend
+  builtin-group vocabulary projected from semantic expression-surface facts.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- type-surface usage facts derived from typed arena type-name rows.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.

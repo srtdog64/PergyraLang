@@ -5,8 +5,7 @@
 // arena payload strings, but the scan and builtin vocabulary are owned here so
 // runtime/header usage can consume a fact row instead of reopening payloads.
 
-import "../text/text_owner.pgy";
-import "ast_arena_codegen_view_owner.pgy";
+import "../../semantic/ast_expression_surface_fact_owner.pgy";
 
 struct CodegenExpressionUsageFacts {
     let has_args: Bool;
@@ -181,60 +180,29 @@ func CodegenUsageBuiltinGroupCalleeAt(group: Int, index: Int) -> String {
     return "";
 }
 
-func CodegenAstArenaExpressionPartHasToken(part: Option<String>, token: String) -> Bool {
+func CodegenExpressionPartHasToken(part: Option<String>, token: String) -> Bool {
     if !IsSome(part) {
         return false;
     }
-    let text: String = UnwrapOption(part);
-    let n: Int = StringLength(text);
-    let m: Int = StringLength(token);
-    let i: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: Int = CodegenCharCodeAt(text, n, i);
-        if in_str {
-            if c == 92 {
-                i = i + 2;
-                continue;
-            }
-            if c == 34 {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == 34 {
-            in_str = true;
-            i = i + 1;
-            continue;
-        }
-        if m > 0 && i + m <= n &&
-            SubEqualsWithLen(text, n, i, m, token) {
-            let before_ok: Bool = i == 0 ||
-                !IsIdentCode(CodegenCharCodeAt(text, n, i - 1));
-            let after_pos: Int = i + m;
-            let after_ok: Bool = after_pos >= n ||
-                !IsIdentCode(CodegenCharCodeAt(text, n, after_pos));
-            if before_ok && after_ok {
-                return true;
-            }
-        }
-        i = i + 1;
-    }
-    return false;
+    return SemanticExpressionSurfaceHasToken(UnwrapOption(part), token);
 }
 
-func CodegenAstArenaExpressionPartCalls(part: Option<String>, callee: String) -> Bool {
+func CodegenExpressionPartCalls(part: Option<String>, callee: String) -> Bool {
     if !IsSome(part) {
         return false;
     }
-    return ContainsCallOutsideStrings(UnwrapOption(part), callee);
+    return SemanticExpressionSurfaceCalls(UnwrapOption(part), callee);
 }
 
-func CodegenAstArenaExpressionPartsAt(arena: AstArena, node_id: Int) -> CodegenExpressionParts {
-    let atom_opt: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    let value_opt: Option<String> = TypedAstArenaValueText(arena, node_id);
-    let aux_value_opt: Option<String> = TypedAstArenaAuxValueText(arena, node_id);
+func CodegenSemanticExpressionPartsAt(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int
+) -> CodegenExpressionParts {
+    let atom_opt: Option<String> = SemanticAstExpressionSurfaceAtomAt(facts, index);
+    let value_opt: Option<String> = SemanticAstExpressionSurfaceValueAt(facts, index);
+    let aux_value_opt: Option<String> = SemanticAstExpressionSurfaceAuxiliaryAt(
+        facts, index
+    );
     let atom_text: String = "";
     let value_text: String = "";
     let aux_value_text: String = "";
@@ -258,21 +226,21 @@ func CodegenAstArenaExpressionPartsAt(arena: AstArena, node_id: Int) -> CodegenE
 }
 
 func CodegenExpressionPartsHasToken(parts: CodegenExpressionParts, token: String) -> Bool {
-    return (parts.has_atom && CodegenAstArenaExpressionPartHasToken(Some(parts.atom), token)) ||
-        (parts.has_value && CodegenAstArenaExpressionPartHasToken(Some(parts.value), token)) ||
-        (parts.has_aux_value && CodegenAstArenaExpressionPartHasToken(Some(parts.aux_value), token));
+    return (parts.has_atom && CodegenExpressionPartHasToken(Some(parts.atom), token)) ||
+        (parts.has_value && CodegenExpressionPartHasToken(Some(parts.value), token)) ||
+        (parts.has_aux_value && CodegenExpressionPartHasToken(Some(parts.aux_value), token));
 }
 
 func CodegenExpressionPartsCalls(parts: CodegenExpressionParts, callee: String) -> Bool {
-    return (parts.has_atom && CodegenAstArenaExpressionPartCalls(Some(parts.atom), callee)) ||
-        (parts.has_value && CodegenAstArenaExpressionPartCalls(Some(parts.value), callee)) ||
-        (parts.has_aux_value && CodegenAstArenaExpressionPartCalls(Some(parts.aux_value), callee));
+    return (parts.has_atom && CodegenExpressionPartCalls(Some(parts.atom), callee)) ||
+        (parts.has_value && CodegenExpressionPartCalls(Some(parts.value), callee)) ||
+        (parts.has_aux_value && CodegenExpressionPartCalls(Some(parts.aux_value), callee));
 }
 
-func CodegenAstArenaExpressionTokenPresent(arena: AstArena, count: Int, token: String) -> Bool {
+func CodegenSemanticExpressionTokenPresent(facts: SemanticAstExpressionSurfaceFacts, token: String) -> Bool {
     let i: Int = 0;
-    while i < count {
-        let parts: CodegenExpressionParts = CodegenAstArenaExpressionPartsAt(arena, i);
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        let parts: CodegenExpressionParts = CodegenSemanticExpressionPartsAt(facts, i);
         if CodegenExpressionPartsHasToken(parts, token) {
             return true;
         }
@@ -281,10 +249,10 @@ func CodegenAstArenaExpressionTokenPresent(arena: AstArena, count: Int, token: S
     return false;
 }
 
-func CodegenAstArenaBuiltinCallPresent(arena: AstArena, count: Int, callee: String) -> Bool {
+func CodegenSemanticBuiltinCallPresent(facts: SemanticAstExpressionSurfaceFacts, callee: String) -> Bool {
     let i: Int = 0;
-    while i < count {
-        let parts: CodegenExpressionParts = CodegenAstArenaExpressionPartsAt(arena, i);
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        let parts: CodegenExpressionParts = CodegenSemanticExpressionPartsAt(facts, i);
         if CodegenExpressionPartsCalls(parts, callee) {
             return true;
         }
@@ -293,11 +261,11 @@ func CodegenAstArenaBuiltinCallPresent(arena: AstArena, count: Int, callee: Stri
     return false;
 }
 
-func CodegenAstArenaBuiltinGroupPresent(arena: AstArena, count: Int, group: Int) -> Bool {
+func CodegenSemanticBuiltinGroupPresent(facts: SemanticAstExpressionSurfaceFacts, group: Int) -> Bool {
     let callee_index: Int = 0;
     while callee_index < CodegenUsageBuiltinGroupCalleeCount(group) {
         let callee: String = CodegenUsageBuiltinGroupCalleeAt(group, callee_index);
-        if StringLength(callee) > 0 && CodegenAstArenaBuiltinCallPresent(arena, count, callee) {
+        if StringLength(callee) > 0 && CodegenSemanticBuiltinCallPresent(facts, callee) {
             return true;
         }
         callee_index = callee_index + 1;
@@ -305,30 +273,30 @@ func CodegenAstArenaBuiltinGroupPresent(arena: AstArena, count: Int, group: Int)
     return false;
 }
 
-func CodegenExpressionUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenExpressionUsageFacts {
+func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurfaceFacts) -> CodegenExpressionUsageFacts {
     return CodegenExpressionUsageFacts(
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArgs()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupString()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupMath()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArraySort()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayReverse()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayMap()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayFilter()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupResult()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupOption()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupExit()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupArrayCore()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupIo()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupJoin()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupSplit()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupDirWalk()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupLog()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupFileHandle()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupPrint()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupFloat()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupRandomValue()),
-        CodegenAstArenaBuiltinGroupPresent(arena, count, CodegenUsageBuiltinGroupSeedRandom()),
-        CodegenAstArenaExpressionTokenPresent(arena, count, "None")
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArgs()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupString()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupMath()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArraySort()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayReverse()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayMap()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayFilter()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupResult()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupOption()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupExit()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArrayCore()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupIo()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupJoin()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSplit()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupDirWalk()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupLog()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupFileHandle()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupPrint()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupFloat()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupRandomValue()),
+        CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSeedRandom()),
+        CodegenSemanticExpressionTokenPresent(facts, "None")
     );
 }
 

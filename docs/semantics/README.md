@@ -230,7 +230,7 @@ Mechanized artifacts:
   role declaration facts and their
   codegen consumers; it is not a whole-compiler SoT proof.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
-  20-row declaration of 15 architectural fact families plus five bounded
+  21-row declaration of 15 architectural fact families plus six bounded
   self-host closure facts, stable handles, unique owners,
   last legitimate consumers, forbidden fallbacks, enforcement gates, and
   honest `ACTIVE` / `BRIDGE` / `CLOSED` status.

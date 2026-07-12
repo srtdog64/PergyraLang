@@ -280,7 +280,10 @@ func GenerateCUnitFromSemanticArtifact(
     );
     CollectRoleOperators(semantic_analysis.roles, signatures, env_acc);
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
-    let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
+    let usage: CodegenRuntimeUsageFacts =
+        CodegenRuntimeUsageFactsFromSemanticAndArena(
+            semantic_analysis.expression_surfaces, arena, count
+        );
     let uses_args: Bool = usage.uses_args;
 
     let defs: Array<String> = [];
