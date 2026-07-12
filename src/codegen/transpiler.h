@@ -173,6 +173,9 @@ typedef struct
     /* Expression-form parallel join (docs/181 R2): inside such a wrapper
      * body, `give <expr>;` stores to the per-task result slot. */
     bool  in_pjoin_give;
+    /* any-join (docs/181 R3): `give` instead CASes the shared decision
+     * cell and only the winner writes the shared result. */
+    bool  in_pjoin_any;
     char  par_capture_slot_names[MAX_SLOT_VARS][64];
     int   par_capture_slot_count;
     char  par_capture_typed_names[MAX_SLOT_VARS][64];

@@ -1,0 +1,16 @@
+// any-join witness (docs/181 R3): the FIRST give wins a CAS on a
+// shared decision cell; later tasks retire at the entry safe point and
+// queued tasks get a cancel hint. The winner is scheduling-dependent,
+// so byte-equal compare is reconciled two ways: every task gives the
+// SAME value (any winner yields one output), and a single-element
+// fan-out (deterministic winner) pins the value flow.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..4 { ArrayPush(xs, k); }
+    let first: Int = parallel (x in xs) join with any { give 7; };
+    Log(first);
+    let mut ys: Array<Int> = [];
+    ArrayPush(ys, 5);
+    let only: Int = parallel (y in ys) join with any { give y * 6; };
+    Log(only);
+}

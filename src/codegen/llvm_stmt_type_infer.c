@@ -527,7 +527,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
          * a void statement node, exactly as before. */
         const char *give = ast_parallel_join_give_type(expr);
         if (give != NULL && give[0] != '\0') {
-            if (ast_parallel_join_reduce_op(expr) != NULL)
+            if (ast_parallel_join_reduce_op(expr) != NULL
+                || ast_parallel_join_is_any(expr))
                 return pgy_kind_to_llvm(ctx, pgy_classify_type(give));
             return llvm_array_struct_type(ctx, give);
         }

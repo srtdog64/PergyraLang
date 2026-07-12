@@ -176,6 +176,12 @@ struct ASTNode
              * deterministic and byte-equal across backends); Int/Long
              * lanes ride the checked-arith exports. */
             char*     join_reduce_op;
+            /* any-join (docs/181 R3): first give wins a CAS on a shared
+             * decision cell; later tasks skip at the entry safe point
+             * and queued tasks are cancel-hinted (cooperative protocol,
+             * SS2.4 -- loop back-edge / channel-entry safe points are a
+             * later slice). Element mode + expression form only. */
+            bool      join_is_any;
         } parallel;
         
         /* For loop */

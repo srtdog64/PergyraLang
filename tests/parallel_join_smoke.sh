@@ -42,6 +42,14 @@
 #     (class=authority-mismatch, same reason on both backends)
 #   - reject_stencil_inplace          in-place neighbor stencil    -> reject
 #     (only the Jacobi shape is admitted)
+#   - parallel_join_any (compare corpus, R3) prints 7/30: first give
+#     wins a CAS; same-give fan-out and a single-element fan-out make
+#     the nondeterministic winner byte-equal comparable
+#   - panic_any_empty                 any over an empty fan-out -> panic
+#     ("first of nothing", same fail-closed rationale as empty min/max)
+#   - reject_any_statement_form       winner value must be bound  -> reject
+#   - reject_any_index_mode           any + in-place writes       -> reject
+#     (losers' partial writes would be observable)
 
 set -euo pipefail
 
@@ -62,6 +70,7 @@ INDEX_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_index/main.pgy"
 EXPR_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_expr/main.pgy"
 REDUCE_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_reduce/main.pgy"
 STENCIL_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.pgy"
+ANY_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -132,6 +141,10 @@ for backend in $BACKENDS; do
     expect_panics "$backend" "$FIXTURES/panic_stencil_alias.pgy" \
         "stencil_alias" \
         "read-only capture aliases an index-written array"
+    expect_runs "$backend" "$ANY_SRC" "join_any" "$(printf '7\n30')"
+    expect_panics "$backend" "$FIXTURES/panic_any_empty.pgy" \
+        "any_empty" \
+        "any-join over an empty parallel fan-out"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"
@@ -150,5 +163,7 @@ expect_reject reject_reduce_unknown_op.pgy \
 expect_reject reject_reduce_bool_give.pgy       "folds numeric gives only"
 expect_reject reject_reduce_statement_form.pgy  "produces a value; bind it"
 expect_reject reject_stencil_inplace.pgy        "outside the index-disjoint form"
+expect_reject reject_any_statement_form.pgy     "produces a value; bind it"
+expect_reject reject_any_index_mode.pgy         "element mode only"
 
-echo "[parallel-join] rungs 0+1+2+R4+R5 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + stencil 33x3/0/0/100/103 + 2 runtime panic witnesses on: $BACKENDS); 15 reject shapes fail closed"
+echo "[parallel-join] rungs 0+1+2+R3+R4+R5 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + stencil 33x3/0/0/100/103 + any 7/30 + 3 runtime panic witnesses on: $BACKENDS); 17 reject shapes fail closed"

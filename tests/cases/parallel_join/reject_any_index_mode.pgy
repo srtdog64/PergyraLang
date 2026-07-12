@@ -1,0 +1,12 @@
+// R3 reject: any + index-form in-place writes would leave losers'
+// partial writes observable after the early decision; this slice
+// admits the element mode only. Fail closed.
+func Main() -> Void {
+    let mut buckets: Array<Int> = [];
+    for k in 0..4 { ArrayPush(buckets, 0); }
+    let w: Int = parallel (i in 0..4) join with any {
+        buckets[i] = i;
+        give i;
+    };
+    Log(w);
+}

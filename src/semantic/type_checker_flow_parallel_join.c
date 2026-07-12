@@ -426,5 +426,17 @@ type_check_parallel_join_expr_type(ASTNode *node, SemanticContext *ctx)
         }
         return give_type;
     }
+    /* R3 any-join (docs/181): the first give wins; the result is one
+     * scalar. Element mode only in this slice -- losers' effects stay
+     * discarded values by construction (no index-written arrays), which
+     * is what keeps early decision sound. */
+    if (ast_parallel_join_is_any(node)) {
+        if (ast_parallel_join_range_end(node) != NULL) {
+            semantic_error(ctx, node,
+                "parallel join with any carries the element mode only in this slice; index-form in-place writes would leave losers' partial writes observable (docs/181 R3)");
+            return TYPE_UNKNOWN;
+        }
+        return give_type;
+    }
     return wrap_constructed(TYPE_ARRAY, give_type);
 }

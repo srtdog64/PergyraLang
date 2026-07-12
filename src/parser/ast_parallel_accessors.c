@@ -333,3 +333,21 @@ ast_parallel_join_reduce_op(const ASTNode* node)
         return NULL;
     return node->data.parallel.join_reduce_op;
 }
+
+/* --- any-join (docs/181 R3): parse-time combinator flag --- */
+
+bool
+ast_parallel_set_join_any(ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return false;
+    node->data.parallel.join_is_any = true;
+    return true;
+}
+
+bool
+ast_parallel_join_is_any(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_PARALLEL_BLOCK
+        && node->data.parallel.join_is_any;
+}

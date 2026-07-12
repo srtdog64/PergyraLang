@@ -329,8 +329,26 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             "give", "value");
         if (val == NULL)
             break;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "_pctx->__join_result = (%s);\n", val);
+        if (ctx->in_pjoin_any) {
+            /* R3 any-join: the first give wins a CAS on the shared
+             * decision cell; only the winner writes the shared result
+             * (no race by construction), and the task retires. The
+             * LLVM twin emits the same cmpxchg/store/ret shape. */
+            write_indent(ctx);
+            codebuf_write(ctx->out, "{ int32_t _pj_exp = 0;\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "  if (__atomic_compare_exchange_n(_pctx->__join_any, "
+                "&_pj_exp, 1, 0, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "      *(_pctx->__join_any_res) = (%s); }\n", val);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "return NULL;\n");
+        } else {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pctx->__join_result = (%s);\n", val);
+        }
         free(val);
         break;
     }

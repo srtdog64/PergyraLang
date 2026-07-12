@@ -266,7 +266,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         const char *give = ast_parallel_join_give_type(expr);
         if (give == NULL || give[0] == '\0')
             return "Unknown";
-        if (ast_parallel_join_reduce_op(expr) != NULL)
+        if (ast_parallel_join_reduce_op(expr) != NULL
+            || ast_parallel_join_is_any(expr))
             return give;
         return transpiler_infer_arena_format_type_name(ctx, "Array", give);
     }

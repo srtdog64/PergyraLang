@@ -223,15 +223,22 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     /* ---------------------------------------------------------------
-     * Per-element context struct: [captures as i8*..., element value].
+     * Per-element context struct: [captures as i8*..., element value],
+     * plus a give slot (R2) or the shared any-join cell pointers (R3).
      * --------------------------------------------------------------- */
-    size_t n_fields = n_captured + 1 + (expr_mode ? 1 : 0);
-    LLVMTypeRef ctx_fields[PJOIN_MAX_CAPTURES + 2];
+    bool is_any = ast_parallel_join_is_any(node);
+    size_t n_fields = n_captured + 1
+        + (expr_mode ? (is_any ? 2 : 1) : 0);
+    LLVMTypeRef ctx_fields[PJOIN_MAX_CAPTURES + 3];
     for (size_t i = 0; i < n_captured; i++)
         ctx_fields[i] = ctx->type_i8ptr;
     ctx_fields[n_captured] = elem_type;
-    if (expr_mode)
+    if (expr_mode && is_any) {
+        ctx_fields[n_captured + 1] = ctx->type_i8ptr; /* i32* state  */
+        ctx_fields[n_captured + 2] = ctx->type_i8ptr; /* give T* res */
+    } else if (expr_mode) {
         ctx_fields[n_captured + 1] = give_type;
+    }
 
     char ctx_name[64];
     if (!llvm_parallel_counter_name(ctx, ctx_name, sizeof(ctx_name),
@@ -320,19 +327,70 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         {
             LLVMValueRef saved_give_ptr = ctx->pjoin_give_ptr;
             LLVMTypeRef saved_give_type = ctx->pjoin_give_type;
+            LLVMValueRef saved_any_state = ctx->pjoin_any_state_ptr;
+            LLVMValueRef saved_any_res = ctx->pjoin_any_res_ptr;
 
-            if (expr_mode) {
+            if (expr_mode && is_any) {
+                /* R3: the shared decision/result cells travel as i8*
+                 * fields; give redirects through them. The entry safe
+                 * point (docs/181 SS2.4) retires a task that starts
+                 * after the decision. */
+                LLVMValueRef st_gep = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 1), llvm_tmp_name(ctx));
+                LLVMValueRef st_raw = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i8ptr, st_gep, llvm_tmp_name(ctx));
+                LLVMValueRef st_ptr = LLVMBuildBitCast(ctx->builder,
+                    st_raw, LLVMPointerType(ctx->type_i32, 0),
+                    llvm_tmp_name(ctx));
+                LLVMValueRef rs_gep = LLVMBuildStructGEP2(
+                    ctx->builder, ctx_struct_type, ctx_ptr,
+                    (unsigned)(n_captured + 2), llvm_tmp_name(ctx));
+                LLVMValueRef rs_raw = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i8ptr, rs_gep, llvm_tmp_name(ctx));
+                LLVMValueRef rs_ptr = LLVMBuildBitCast(ctx->builder,
+                    rs_raw, LLVMPointerType(give_type, 0),
+                    llvm_tmp_name(ctx));
+
+                LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
+                    ctx->type_i32, st_ptr, llvm_tmp_name(ctx));
+                LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+                LLVMValueRef decided = LLVMBuildICmp(ctx->builder,
+                    LLVMIntNE, st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+                    llvm_tmp_name(ctx));
+                LLVMBasicBlockRef retire_bb =
+                    LLVMAppendBasicBlockInContext(ctx->context,
+                        wrapper_fn, "pj.any.retire");
+                LLVMBasicBlockRef body_bb =
+                    LLVMAppendBasicBlockInContext(ctx->context,
+                        wrapper_fn, "pj.any.body");
+                LLVMBuildCondBr(ctx->builder, decided, retire_bb, body_bb);
+                LLVMPositionBuilderAtEnd(ctx->builder, retire_bb);
+                LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
+                LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+
+                ctx->pjoin_any_state_ptr = st_ptr;
+                ctx->pjoin_any_res_ptr = rs_ptr;
+                ctx->pjoin_give_ptr = NULL;
+                ctx->pjoin_give_type = give_type;
+            } else if (expr_mode) {
                 ctx->pjoin_give_ptr = LLVMBuildStructGEP2(
                     ctx->builder, ctx_struct_type, ctx_ptr,
                     (unsigned)(n_captured + 1), "_pj_give");
                 ctx->pjoin_give_type = give_type;
+                ctx->pjoin_any_state_ptr = NULL;
+                ctx->pjoin_any_res_ptr = NULL;
             } else {
                 ctx->pjoin_give_ptr = NULL;
                 ctx->pjoin_give_type = NULL;
+                ctx->pjoin_any_state_ptr = NULL;
+                ctx->pjoin_any_res_ptr = NULL;
             }
             llvm_emit_statement(body, ctx);
             ctx->pjoin_give_ptr = saved_give_ptr;
             ctx->pjoin_give_type = saved_give_type;
+            ctx->pjoin_any_state_ptr = saved_any_state;
+            ctx->pjoin_any_res_ptr = saved_any_res;
         }
 
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder))
@@ -481,6 +539,20 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         "_pj_i");
     LLVMBuildStore(ctx->builder, zero, i_slot);
 
+    /* R3 shared cells: decision (i32, 0 = undecided) and winner result
+     * (zero-initialized only to quiet uninitialized-value passes; it is
+     * read only after a decision, and no decision panics). */
+    LLVMValueRef any_state = NULL;
+    LLVMValueRef any_res = NULL;
+    if (expr_mode && is_any) {
+        any_state = LLVMBuildAlloca(ctx->builder, ctx->type_i32,
+            "_pj_any");
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0),
+            any_state);
+        any_res = LLVMBuildAlloca(ctx->builder, give_type, "_pj_any_res");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(give_type), any_res);
+    }
+
     LLVMBasicBlockRef spawn_cond = LLVMAppendBasicBlockInContext(
         ctx->context, ctx->current_function, "pj.spawn.cond");
     LLVMBasicBlockRef spawn_body = LLVMAppendBasicBlockInContext(
@@ -530,6 +602,20 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                 ctx_struct_type, ctx_i, (unsigned)n_captured,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, elem_val, elem_ptr);
+        }
+        if (expr_mode && is_any) {
+            LLVMValueRef st_field = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)(n_captured + 1),
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildBitCast(ctx->builder, any_state, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx)), st_field);
+            LLVMValueRef rs_field = LLVMBuildStructGEP2(ctx->builder,
+                ctx_struct_type, ctx_i, (unsigned)(n_captured + 2),
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildBitCast(ctx->builder, any_res, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx)), rs_field);
         }
         {
             LLVMValueRef fn_ptr = LLVMBuildBitCast(ctx->builder, wrapper_fn,
@@ -589,6 +675,40 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
             handles, &i_val, 1, llvm_tmp_name(ctx));
         LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, handle_type,
             h_ptr, llvm_tmp_name(ctx));
+        if (expr_mode && is_any) {
+            /* R3 cancel hint: once decided, still-queued tasks are
+             * skipped by the pool's pre-run safe point. Every handle is
+             * still awaited exactly once (context lifetimes stay
+             * join-bounded); first-give-wins is decided by the CAS,
+             * never by this index-order await walk. */
+            LLVMFuncEntry *cancel_fn = llvm_lookup_function(ctx,
+                "pgy_task_cancel_export");
+            if (cancel_fn == NULL) {
+                llvm_join_set_error(ctx, node,
+                    "LLVM any-join requires the registered task-cancel runtime%s",
+                    "");
+                return;
+            }
+            LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i32, any_state, llvm_tmp_name(ctx));
+            LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+            LLVMValueRef decided = LLVMBuildICmp(ctx->builder, LLVMIntNE,
+                st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+                llvm_tmp_name(ctx));
+            LLVMBasicBlockRef hint_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.any.hint");
+            LLVMBasicBlockRef await_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.any.await");
+            LLVMBuildCondBr(ctx->builder, decided, hint_bb, await_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, hint_bb);
+            {
+                LLVMValueRef cancel_args[] = { handle };
+                LLVMBuildCall2(ctx->builder, cancel_fn->fn_type,
+                    cancel_fn->fn, cancel_args, 1, "");
+                LLVMBuildBr(ctx->builder, await_bb);
+            }
+            LLVMPositionBuilderAtEnd(ctx->builder, await_bb);
+        }
         LLVMValueRef await_args[] = { handle };
         LLVMBuildCall2(ctx->builder, await_fn->fn_type, await_fn->fn,
             await_args, 1, "");
@@ -602,8 +722,45 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
 
     /* Expression mode: materialize the result from the per-task give
      * slots (llvm_stmt_parallel_join_result.c) -- Array<R> for the
-     * all-join, one folded scalar for the R4 reduce combinators. */
-    if (expr_mode) {
+     * all-join, one folded scalar for the R4 reduce combinators, the
+     * winner's value for the R3 any-join. */
+    if (expr_mode && is_any) {
+        LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+            "pgy_runtime_panic_out_of_bounds_export");
+        if (panic_fn == NULL) {
+            llvm_join_set_error(ctx, node,
+                "LLVM any-join requires the registered panic runtime%s",
+                "");
+            return;
+        }
+        LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            any_state, llvm_tmp_name(ctx));
+        LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+        LLVMValueRef undecided = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+            st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+            llvm_tmp_name(ctx));
+        LLVMBasicBlockRef empty_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.empty");
+        LLVMBasicBlockRef done_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.done");
+        LLVMBuildCondBr(ctx->builder, undecided, empty_bb, done_bb);
+        LLVMPositionBuilderAtEnd(ctx->builder, empty_bb);
+        {
+            /* "First of nothing" fails closed, same rationale as empty
+             * min/max (docs/181 R4); shared reason with the C twin. */
+            LLVMValueRef panic_args[] = {
+                LLVMBuildGlobalStringPtr(ctx->builder,
+                    "any-join over an empty parallel fan-out",
+                    llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                panic_args, 1, "");
+            LLVMBuildUnreachable(ctx->builder);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
+        *result_out = LLVMBuildLoad2(ctx->builder, give_type, any_res,
+            "_pj_any_val");
+    } else if (expr_mode) {
         if (ast_parallel_join_reduce_op(node) != NULL)
             llvm_pjoin_materialize_reduce(ctx, node, give_name, give_type,
                 ctx_struct_type, ctxs, n_captured, n_val, i_slot,

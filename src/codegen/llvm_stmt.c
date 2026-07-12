@@ -401,9 +401,13 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_GIVE_STMT: {
         /* docs/181 R2: the per-task result store; legal only inside an
-         * expression-form parallel join wrapper. */
+         * expression-form parallel join wrapper. R3 any-join instead
+         * CASes the shared decision cell and only the winner writes the
+         * shared result (the C twin emits the same shape). */
         LLVMValueRef give_val;
-        if (ctx->pjoin_give_ptr == NULL || ctx->pjoin_give_type == NULL) {
+        bool any_mode = ctx->pjoin_any_state_ptr != NULL;
+        if ((ctx->pjoin_give_ptr == NULL && !any_mode)
+            || ctx->pjoin_give_type == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -423,6 +427,27 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
                     ctx->pjoin_give_type, llvm_tmp_name(ctx))
                 : LLVMBuildTrunc(ctx->builder, give_val,
                     ctx->pjoin_give_type, llvm_tmp_name(ctx));
+        }
+        if (any_mode) {
+            LLVMValueRef cas = LLVMBuildAtomicCmpXchg(ctx->builder,
+                ctx->pjoin_any_state_ptr,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                LLVMConstInt(ctx->type_i32, 1, 0),
+                LLVMAtomicOrderingAcquireRelease,
+                LLVMAtomicOrderingAcquire, 0);
+            LLVMValueRef won = LLVMBuildExtractValue(ctx->builder, cas, 1,
+                llvm_tmp_name(ctx));
+            LLVMBasicBlockRef win_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.give.win");
+            LLVMBasicBlockRef done_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.give.done");
+            LLVMBuildCondBr(ctx->builder, won, win_bb, done_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, win_bb);
+            LLVMBuildStore(ctx->builder, give_val,
+                ctx->pjoin_any_res_ptr);
+            LLVMBuildBr(ctx->builder, done_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
+            break;
         }
         LLVMBuildStore(ctx->builder, give_val, ctx->pjoin_give_ptr);
         break;

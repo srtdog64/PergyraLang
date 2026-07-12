@@ -378,6 +378,10 @@ typedef struct LLVMGenCtx
      * wrapper body, `give` stores through this per-task result slot. */
     LLVMValueRef    pjoin_give_ptr;
     LLVMTypeRef     pjoin_give_type;
+    /* any-join (docs/181 R3): non-NULL state ptr redirects `give` to a
+     * CAS on the shared decision cell plus a winner-only result store. */
+    LLVMValueRef    pjoin_any_state_ptr;
+    LLVMValueRef    pjoin_any_res_ptr;
 
     LLVMTypeRef     slot_type_Int;
     LLVMTypeRef     slot_type_Long;

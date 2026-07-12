@@ -562,7 +562,8 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         const char *give = ast_parallel_join_give_type(expr);
         if (give == NULL || give[0] == '\0')
             return NULL;
-        if (ast_parallel_join_reduce_op(expr) != NULL)
+        if (ast_parallel_join_reduce_op(expr) != NULL
+            || ast_parallel_join_is_any(expr))
             return give;
         return mir_source_local_type_scratch_format(scratch, "Array", give);
     }

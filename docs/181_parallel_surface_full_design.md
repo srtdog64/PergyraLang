@@ -62,7 +62,7 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 | R0 ✅ | 문 형태 · all-join · read-only 원소 · Array<T> | 목격자 `parallel_join_collection`(compare) + 거절 4종(무바인딩/xs 직접 접근/원소 쓰기/외부 쓰기) |
 | R1 ✅ | 인덱스형 `(i in lo..hi)` + `arr[i]` in-place 쓰기 | 목격자 `parallel_join_index`(compare, 164/328) + 거절 4종(비-바인딩 인덱스/whole-array/원소모드 배열 쓰기/읽기) |
 | R2 ✅ | 식 형태 `let rs = parallel ... { give e; };` (결과 Array<R>, 인덱스 순서) | 목격자 `parallel_join_expr`(compare, 204/182/2/72 — 원소 프로브가 인덱스 순서를 고정) + 거절 3종(give 없음/give 비-최종/문장형 give). 청킹 측정은 잔여(게임 소음 없는 시점) |
-| R3 | `join with any` | §2.4 취소 프로토콜 선행 |
+| R3 ✅¹ | `join with any` — 최초 give 승리 (결과 스칼라, 원소 모드+식형 한정) | 목격자 `parallel_join_any`(compare, 7/30 — 동일-give와 n=1이 비결정 승자를 byte-equal화) + empty panic 목격자(양 백엔드) + 거절 2종(문장형/인덱스형). ¹슬라이스 1: 안전점=태스크 진입(+풀 pre-run 검사)+cancel 힌트; 루프 백엣지/채널-진입 안전점은 §2.4 후속 슬라이스 |
 | R4 ✅ | reduce 조합자 `join with sum\|product\|min\|max` (결과 스칼라, 인덱스-순서 고정 left fold) | 목격자 `parallel_join_reduce`(compare, 204/24/3/-2/0/1 — Float 행이 fold 순서를 고정) + empty-min 런타임 panic 목격자(양 백엔드 class=out-of-bounds) + 거절 3종(미지 조합자/Bool give/문장형 reduce) |
 | R5 ✅ | stencil 이웃 읽기 — 야코비 이중버퍼형(비-쓰기 배열 = 임의 인덱스 읽기 허용, 쓰기 배열 = [i]-정칙 유지) | 목격자 `parallel_join_stencil`(compare, 33×3/0/0/100/103) + alias 런타임 panic 목격자(`let b = a;` handle-copy, 양 백엔드 class=authority-mismatch) + in-place 스텐실 거절(기존 [i]-정칙 needle) |
 
@@ -153,6 +153,29 @@ byte-equal(compare 등록) · alias panic 양 백엔드 · 거절 15종 스모�
 concurrency/memory-concurrency/semantic 2794/0. 잔여: 원소 모드 배열
 캡처는 여전히 전면 거절(인덱스 없음 — 필요 실증 시 별도 rung), 2D/타일
 stencil, 함수 경계 넘는 alias 증거.
+
+**R3 착지 — 슬라이스 1 (2026-07-12, WO-PARSURF-2 R3)**: `join with any`
+= **최초 give 승리**. 취소 기반은 발견 사항이 갈랐다 — §2.4가 요구한
+프로토콜의 실체(계층형 `PgyCancelNode` 트리 + **풀 워커의 실행-전 취소
+검사**)가 런타임에 이미 있었고, 부족한 건 join 표면과의 배선뿐. 구조:
+공유 결정 셀(i32)+승자 결과 셀을 ctx 포인터 필드로 전달, `give` =
+CAS(0→1) 승자만 결과 셀에 쓰고 은퇴(C `__atomic_*` ↔ LLVM
+cmpxchg/ordered-load 인라인 쌍둥이 — 관측 없는 순수 동기화라 런타임
+심볼 신설 0), wrapper 진입 안전점(결정 후 시작한 태스크 즉시 은퇴) +
+await 걷기에서 결정-후 핸들에 `pgy_lane_cancel` 힌트(대기열 태스크는
+풀의 기존 pre-run 검사가 스킵). **모든 핸들을 정확히 1회 await** —
+ctx 수명이 join-경계 유지(조기 반환 UAF 원천 차단), 승자 판정은 await
+순서가 아니라 CAS가 소유. admission: 원소 모드+식형 한정(인덱스형
+in-place 쓰기는 패자의 부분 쓰기가 관측돼 fail-close), 문장형
+fail-close, empty fan-out = "first of nothing" panic(R4 empty와 동일
+근거·export). 비결정론 × byte-equal 화해 = 목격자 2형: 동일-give(누가
+이겨도 같은 값) + n=1(승자 강제). vision 스모크는 §4 프로토콜대로
+any-join 졸업 반영(잔여 fail-close 표면 = reactive 형 전체). 검증:
+7/30 양 백엔드 byte-equal · empty panic 양 백엔드 · 거절 17종 ·
+concurrency/semantic 2794/0 · transpile 918/0. **잔여(슬라이스 2+)**:
+루프 백엣지/채널-블로킹-진입 안전점(§2.4 선언 잔여 — 달리는 패자의
+중도 은퇴), true waitany(현재 await 걷기는 인덱스 순서라 지연이 승자
+prefix에 바운드), 원소 외 give 종류.
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 

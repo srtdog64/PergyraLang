@@ -223,9 +223,16 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
     }
     codebuf_write(ctx->helpers,
         "    %s __join_elem;\n", elem_c_type);
-    if (give_suffix != NULL)
+    if (give_suffix != NULL && ast_parallel_join_is_any(node)) {
+        /* R3 any-join: shared decision cell + shared winner-result cell
+         * (both call-site locals), instead of a per-task slot. */
+        codebuf_write(ctx->helpers,
+            "    int32_t *__join_any;\n"
+            "    %s *__join_any_res;\n", give_c_type);
+    } else if (give_suffix != NULL) {
         codebuf_write(ctx->helpers,
             "    %s __join_result;\n", give_c_type);
+    }
     codebuf_write(ctx->helpers,
         "} _pgy_pjoin_ctx_%u;\n\n", pid);
 
@@ -234,21 +241,35 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
      * --------------------------------------------------------------- */
     codebuf_write(ctx->helpers,
         "static void *_pgy_pjoin_%u(void *_arg) {\n"
-        "    _pgy_pjoin_ctx_%u *_pctx = (_pgy_pjoin_ctx_%u *)_arg;\n"
+        "    _pgy_pjoin_ctx_%u *_pctx = (_pgy_pjoin_ctx_%u *)_arg;\n",
+        pid, pid, pid);
+    if (give_suffix != NULL && ast_parallel_join_is_any(node)) {
+        /* Entry safe point (docs/181 SS2.4): a task that starts after
+         * the decision retires immediately; queued tasks are also
+         * skipped by the pool's own pre-run cancel check. */
+        codebuf_write(ctx->helpers,
+            "    if (__atomic_load_n(_pctx->__join_any, __ATOMIC_ACQUIRE)"
+            " != 0) return NULL;\n");
+    }
+    codebuf_write(ctx->helpers,
         "    %s %s = _pctx->__join_elem;\n"
         "    (void)%s;\n",
-        pid, pid, pid, elem_c_type, elem_name, elem_name);
+        elem_c_type, elem_name, elem_name);
 
     {
         TranspilerParallelWrapperState wrapper_state;
         char no_slots[MAX_SLOT_VARS][64] = {{0}};
         bool saved_give = ctx->in_pjoin_give;
+        bool saved_any = ctx->in_pjoin_any;
 
         transpiler_parallel_wrapper_state_enter(ctx, &wrapper_state,
             no_slots, 0, capture_typed_names, capture_typed_count, NULL);
         ctx->in_pjoin_give = give_suffix != NULL;
+        ctx->in_pjoin_any = give_suffix != NULL
+            && ast_parallel_join_is_any(node);
         emit_statement(body, ctx);
         ctx->in_pjoin_give = saved_give;
+        ctx->in_pjoin_any = saved_any;
         transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
     }
 
@@ -375,13 +396,17 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         }
         if (index_mode) {
             codebuf_write(ctx->out,
-                "(%s)(_pj_lo_%u + (%s)_pj_i) };\n",
+                "(%s)(_pj_lo_%u + (%s)_pj_i)",
                 elem_c_type, pid, elem_c_type);
         } else {
             codebuf_write(ctx->out,
-                "pgy_array_get_%s(_pj_src_%u, _pj_i) };\n", inner_suffix,
+                "pgy_array_get_%s(_pj_src_%u, _pj_i)", inner_suffix,
                 pid);
         }
+        if (give_suffix != NULL && ast_parallel_join_is_any(node))
+            codebuf_write(ctx->out, ", &_pj_any_%u, &_pj_any_res_%u",
+                pid, pid);
+        codebuf_write(ctx->out, " };\n");
         write_indent(ctx);
         codebuf_write(ctx->out,
             "_pj_hs_%u[_pj_i] = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, "
@@ -390,11 +415,40 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
 
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
-            "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
-        if (give_suffix != NULL) {
+        if (give_suffix != NULL && ast_parallel_join_is_any(node)) {
+            /* R3: once decided, later handles get a cancel hint (the
+             * pool skips still-queued tasks at its pre-run safe point);
+             * every handle is still awaited exactly once, so context
+             * lifetimes stay join-bounded. First-give-wins is decided
+             * by the CAS, never by this index-order await walk. */
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) {\n"
+                , pid);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "    if (__atomic_load_n(&_pj_any_%u, __ATOMIC_ACQUIRE)"
+                " != 0) pgy_lane_cancel(_pj_hs_%u[_pj_i]);\n", pid, pid);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "    pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+            /* Nothing decided after a full join <=> the fan-out was
+             * empty. "First of nothing" is a domain violation, same
+             * fail-closed rationale as empty min/max (docs/181 R4). */
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "if (__atomic_load_n(&_pj_any_%u, __ATOMIC_ACQUIRE) == 0)"
+                " pgy_runtime_panic_out_of_bounds_export("
+                "\"any-join over an empty parallel fan-out\");\n", pid);
+        } else {
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+                "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
+        }
+        if (give_suffix != NULL && !ast_parallel_join_is_any(node)) {
             const char *rop = ast_parallel_join_reduce_op(node);
 
             if (rop == NULL) {
@@ -484,7 +538,8 @@ transpiler_emit_parallel_join_expr_parts(ASTNode *node, TranspilerCtx *ctx)
             "parallel join give result", give_c_type, sizeof(give_c_type)))
         return NULL;
     /* The common emitter consumes this id; peeking keeps names aligned. */
-    snprintf(res_name, sizeof(res_name), "_pj_res_%u", ctx->parallel_id);
+    unsigned int res_pid = ctx->parallel_id;
+    snprintf(res_name, sizeof(res_name), "_pj_res_%u", res_pid);
 
     tmp = codebuf_create();
     if (tmp == NULL) {
@@ -514,6 +569,15 @@ transpiler_emit_parallel_join_expr_parts(ASTNode *node, TranspilerCtx *ctx)
                 give_c_type, res_name,
                 strcmp(rop, "product") == 0 ? "1" : "0",
                 tmp->data != NULL ? tmp->data : "", res_name);
+        } else if (ast_parallel_join_is_any(node)) {
+            /* R3: shared decision cell + winner-result cell; the zero
+             * init of the result only quiets may-be-uninitialized (it
+             * is read only after a decision, and no decision panics). */
+            result = strdup_fmt(
+                "({ int32_t _pj_any_%u = 0; %s _pj_any_res_%u = 0;\n"
+                "%s    _pj_any_res_%u; })",
+                res_pid, give_c_type, res_pid,
+                tmp->data != NULL ? tmp->data : "", res_pid);
         } else {
             result = strdup_fmt("({ PgyArray_%s %s = {0};\n%s    %s; })",
                 give, res_name, tmp->data != NULL ? tmp->data : "",

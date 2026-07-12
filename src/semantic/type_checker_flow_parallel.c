@@ -355,13 +355,14 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    /* R4 (docs/181): a reduce join produces one scalar; the statement
-     * form would compute and silently drop it, so the shape fails
-     * closed instead of becoming a lost result. */
-    if (ast_parallel_join_reduce_op(node) != NULL
+    /* R4/R3 (docs/181): reduce and any joins produce one scalar; the
+     * statement form would compute and silently drop it, so the shape
+     * fails closed instead of becoming a lost result. */
+    if ((ast_parallel_join_reduce_op(node) != NULL
+         || ast_parallel_join_is_any(node))
         && !ctx->in_parallel_join_expr) {
         semantic_error(ctx, node,
-            "parallel join with sum/product/min/max produces a value; bind it: let x = parallel (...) join with sum { give <expr>; }; (docs/181 R4)");
+            "parallel join with any/sum/product/min/max produces a value; bind it: let x = parallel (...) join with any { give <expr>; }; (docs/181 R3/R4)");
         return false;
     }
 

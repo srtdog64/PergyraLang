@@ -52,11 +52,12 @@ parser_parse_parallel_join_form(Parser* parser, ASTNode* parallel)
         }
         if (parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "any") == 0) {
-            /* R3 of the ladder: any-join needs the cooperative
-             * cancellation protocol first. Fail closed, never a silent
-             * all-join downgrade. */
-            parser_error(parser,
-                "parallel join with any is a declared vision surface (docs/181 R3): not yet executable; use join with all");
+            /* R3 (docs/181): first give wins; the checker narrows the
+             * admitted shape (element mode, expression form). */
+            if (!ast_parallel_set_join_any(parallel)) {
+                parser_error(parser,
+                    "Out of memory while recording parallel join any mode");
+            }
             parser_advance(parser);
         } else if (parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "all") == 0) {
