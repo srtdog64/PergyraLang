@@ -19,6 +19,17 @@ func CodegenSemanticSignatureIndexOrDie(
     return UnwrapOption(index);
 }
 
+func CodegenSemanticFunctionNodeOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Int {
+    let node: Option<Int> = SemanticAstFunctionNodeAt(facts, signature_index);
+    if !IsSome(node) {
+        Die("semantic signature facts missing function node");
+    }
+    return UnwrapOption(node);
+}
+
 func CodegenSemanticFunctionOwnerOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int

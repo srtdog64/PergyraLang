@@ -20,7 +20,7 @@ import "../hir/ast_text_row_fact_owner.pgy";
 import "input/semantic_array_literal_codegen_view_owner.pgy";
 import "input/semantic_enum_codegen_view_owner.pgy";
 import "input/semantic_signature_codegen_view_owner.pgy";
-import "input/ast_text_role_declaration_owner.pgy";
+import "input/semantic_role_codegen_view_owner.pgy";
 import "input/semantic_nominal_codegen_view_owner.pgy";
 import "input/semantic_try_let_codegen_view_owner.pgy";
 import "input/semantic_local_binding_codegen_view_owner.pgy";

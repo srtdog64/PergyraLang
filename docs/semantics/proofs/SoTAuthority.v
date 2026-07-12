@@ -16,6 +16,7 @@ Inductive Fact : Type :=
   | FCollectionMutationParts
   | FEnumDeclarationRows
   | FNominalDeclarationRows
+  | FRoleDeclarationRows
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -27,6 +28,7 @@ Inductive Owner : Type :=
   | OSemanticStatementFacts
   | OSemanticEnumFacts
   | OSemanticNominalConstructorFacts
+  | OSemanticRoleFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -35,7 +37,8 @@ Inductive Consumer : Type :=
   | CTryLetEmitter
   | CCollectionMutationEmitter
   | CEnumEmitter
-  | CNominalEmitter.
+  | CNominalEmitter
+  | CRoleOperatorEmitter.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -120,6 +123,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FCollectionMutationParts => SemanticFact
   | FEnumDeclarationRows => SemanticFact
   | FNominalDeclarationRows => SemanticFact
+  | FRoleDeclarationRows => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -130,6 +134,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FCollectionMutationParts => OSemanticStatementFacts
   | FEnumDeclarationRows => OSemanticEnumFacts
   | FNominalDeclarationRows => OSemanticNominalConstructorFacts
+  | FRoleDeclarationRows => OSemanticRoleFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -144,6 +149,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticEnumFacts FEnumDeclarationRows
   | CurrentNominalDeclarationProducer :
       current_produces OSemanticNominalConstructorFacts FNominalDeclarationRows
+  | CurrentRoleDeclarationProducer :
+      current_produces OSemanticRoleFacts FRoleDeclarationRows
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -417,6 +424,63 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive role_requires : Consumer -> Fact -> Prop :=
+  | CurrentEmitterRequiresRoleDeclarationRows :
+      role_requires CRoleOperatorEmitter FRoleDeclarationRows.
+
+Inductive role_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | CurrentEmitterReadsRoleDeclarationRows :
+      role_reads CRoleOperatorEmitter OSemanticRoleFacts
+        FRoleDeclarationRows OwnedRead.
+
+Definition role_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := role_requires;
+     reads := role_reads |}.
+
+Theorem current_role_declaration_rung_closed : RungClosed role_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive role_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | RoleBridgeOwnedRead :
+      role_bridge_reads CRoleOperatorEmitter OSemanticRoleFacts
+        FRoleDeclarationRows OwnedRead
+  | RoleBridgeFallbackRead :
+      role_bridge_reads CRoleOperatorEmitter OCodegenTextRecovery
+        FRoleDeclarationRows FallbackRead.
+
+Definition role_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := role_requires;
+     reads := role_bridge_reads |}.
+
+Theorem role_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed role_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CRoleOperatorEmitter OCodegenTextRecovery
+    FRoleDeclarationRows FallbackRead RoleBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -506,7 +570,8 @@ Inductive SpineFact : Type :=
   | SFInitializerExpressionShape
   | SFCollectionMutationStatement
   | SFEnumDeclarationRows
-  | SFNominalDeclarationRows.
+  | SFNominalDeclarationRows
+  | SFRoleDeclarationRows.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -527,7 +592,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticLocalBinding
   | SOSemanticStatement
   | SOSemanticEnum
-  | SOSemanticNominalConstructor.
+  | SOSemanticNominalConstructor
+  | SOSemanticRole.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -550,6 +616,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFCollectionMutationStatement => SOSemanticStatement
   | SFEnumDeclarationRows => SOSemanticEnum
   | SFNominalDeclarationRows => SOSemanticNominalConstructor
+  | SFRoleDeclarationRows => SOSemanticRole
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -585,12 +652,13 @@ Qed.
 Theorem current_model_does_not_claim_future_consumer_coverage :
   forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
     c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
-    c = CNominalEmitter.
+    c = CNominalEmitter \/ c = CRoleOperatorEmitter.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
   - right. left. reflexivity.
   - right. right. left. reflexivity.
   - right. right. right. left. reflexivity.
-  - right. right. right. right. reflexivity.
+  - right. right. right. right. left. reflexivity.
+  - right. right. right. right. right. reflexivity.
 Qed.

@@ -883,7 +883,7 @@ require_owner_surface codegen \
     "input/semantic_array_literal_codegen_view_owner.pgy" \
     "input/semantic_enum_codegen_view_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
-    "input/ast_text_role_declaration_owner.pgy" \
+    "input/semantic_role_codegen_view_owner.pgy" \
     "input/semantic_nominal_codegen_view_owner.pgy" \
     "input/semantic_try_let_codegen_view_owner.pgy" \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
@@ -1265,7 +1265,6 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbo
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "struct CodegenTypeEnv"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "global_rows: String;"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "local_rows: String;"
@@ -3025,7 +3024,8 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringIndexOf(a
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(count: Int"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "roles: SemanticAstRoleFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstNominalConstructorFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums("
@@ -3095,23 +3095,29 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
 reject_file "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy"
-require_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
-reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "Nominal"
-reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "Field"
+reject_file "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "struct SemanticAstRoleFacts"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleAncestorNodeId"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleMethodNodeAt"
+require_text "src/self_hosted/semantic/ast_role_fact_owner.pgy" "func SemanticAstRoleFactsMatchArtifact"
+require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleNameOrDie"
+require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleTargetTypeOrDie"
+require_text "src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy" "func CodegenSemanticRoleMethodNodeOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalNameOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldCountOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldNameOrDie"
 require_text "src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy" "func CodegenSemanticNominalFieldTypeOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_role_declaration_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_role_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_nominal_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstNominalConstructorCount(facts)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie(arena, i)"
-reject_text "src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsDescendantOf(arena, j, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstRoleCount(roles)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticRoleMethodNodeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "owner = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let role_name: String = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let for_type: String = CodegenAstArenaTypeNameOrDie(arena, i)"
@@ -3171,10 +3177,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyi_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstEnumCount(facts)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCStructTypeName(sname)"
@@ -4847,7 +4853,9 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenExpectedDirPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 7;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 9;"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParityReady"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserParitySuiteName"
@@ -6151,6 +6159,8 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'FIXTURE_DIR="$ROOT_DI
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"'
 require_file "src/self_hosted/codegen/reject_fixture/enum_payload.pgy"
 require_file "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"
 require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int, String)"
@@ -6158,6 +6168,12 @@ require_text "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt" "
 require_text "tests/self_hosted/parity/codegen_parity.sh" "run_payload_enum_reject"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'if [[ "$reject_rc" -eq 0 ]]'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$REJECT_EXPECTED" "$reject_norm" 2'
+require_file "tests/self_hosted/parity/codegen_role_parity_leg.sh"
+require_max_lines "tests/self_hosted/parity/codegen_role_parity_leg.sh" 600
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_role_operator_parity "$backend" "$tool_bin"'
+require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" "run_role_operator_parity()"
+require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" 'compare_run_output_with_owner "$backend" "$base" "$ROLE_EXPECTED" "$run_out" 2'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$PARSER_BIN" "$src_rel"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$manifest_bin" --fixture-manifest'

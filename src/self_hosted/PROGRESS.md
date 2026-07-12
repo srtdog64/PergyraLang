@@ -188,6 +188,12 @@ mixed declaration owner was deleted and the remaining role bridge was renamed
 to its exact responsibility. Four struct fixtures are run-equal under C-built
 and LLVM-built codegen tools.
 
+The sixth executable delta added `SemanticAstRoleFacts` for role name, target
+type, and owned method `NodeId` rows. Operator binding and role receiver ABI now
+consume those rows; the role AST bridge and descendant scan are deleted. The
+TestHarness-owned role operator prints `123` under C-built and LLVM-built
+codegen tools, matching the native C oracle.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
@@ -195,13 +201,13 @@ uniqueness, required consumption, and zero semantic fallback, while
 owner and codegen consumer and mutation-tests missing-owner and fallback
 reintroduction. The bounded model now covers the array-literal body, try-let
 operand, collection-mutation statement, enum declaration, and nominal/field
-declaration consumers; it
+declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 19-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus four
-bounded self-host closure rows, with four `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 20-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus five
+bounded self-host closure rows, with five `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

@@ -278,7 +278,7 @@ func GenerateCUnitFromSemanticArtifact(
     let typedef_block: String = CollectStructs(
         semantic_analysis.constructors, env_acc
     );
-    CollectRoleOperators(count, arena, signatures, env_acc);
+    CollectRoleOperators(semantic_analysis.roles, signatures, env_acc);
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
@@ -301,7 +301,8 @@ func GenerateCUnitFromSemanticArtifact(
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(
-                        count, arena, signatures, local_bindings, assignments, statements,
+                        count, arena, signatures, semantic_analysis.roles,
+                        local_bindings, assignments, statements,
                         cur, method_indent,
                         base_env, uses_args
                     );
@@ -317,7 +318,8 @@ func GenerateCUnitFromSemanticArtifact(
                 if CodegenAstArenaIsFunction(arena, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(
-                        count, arena, signatures, local_bindings, assignments, statements,
+                        count, arena, signatures, semantic_analysis.roles,
+                        local_bindings, assignments, statements,
                         cur, role_method_indent,
                         base_env, uses_args
                     );
@@ -328,7 +330,8 @@ func GenerateCUnitFromSemanticArtifact(
             }
         } else if CodegenAstArenaIsFunction(arena, cur[0]) && cur_indent == f_indent {
             let def: String = EmitFunction(
-                count, arena, signatures, local_bindings, assignments, statements,
+                count, arena, signatures, semantic_analysis.roles,
+                local_bindings, assignments, statements,
                 cur, f_indent, base_env, uses_args
             );
             ArrayPush(defs, Concat(def, "\n"));
@@ -338,7 +341,9 @@ func GenerateCUnitFromSemanticArtifact(
     }
 
     // Forward declarations come from a GenerateC-scope pre-pass.
-    let proto_block: String = CollectProtos(signatures, base_env);
+    let proto_block: String = CollectProtos(
+        signatures, semantic_analysis.roles, base_env
+    );
     let option_struct_block_fact: OptionStructDefinitionBlockFact =
         OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows);
     let option_struct_block: String = option_struct_block_fact.c_block;

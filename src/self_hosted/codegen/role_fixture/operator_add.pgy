@@ -1,0 +1,15 @@
+ability Arithmetic {
+    func Add(self, rhs: Int) -> Int;
+}
+
+role IntMath for Int {
+    impl Arithmetic {
+        func Add(self, rhs: Int) -> Int {
+            return 123;
+        }
+    }
+}
+
+func Main() -> Void {
+    Log(1 + 2);
+}

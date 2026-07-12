@@ -136,6 +136,8 @@ inventory must not become a second fact-family owner registry.
   element and direct index-access facts.
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum
   declaration and variant facts for expression typing.
+- `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
+  name, target type, and owned method `NodeId` rows.
 - `src/self_hosted/semantic/projection_type_owner.pgy` -- nominal member,
   array-index, and contextual array-literal types from owner facts.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
@@ -231,9 +233,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned array-literal body facts into top-level emission items.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
-- `src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy` --
-  transitional AST-text role name and target-type facts; nominal/field rows are
-  forbidden from this bridge.
+- `src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy` --
+  fail-closed role name, target-type, and method-identity projection from
+  semantic role facts.
 - `src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy` --
   fail-closed codegen projection of semantic nominal names and ordered field
   name/type rows.
@@ -439,6 +441,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/reject_fixture/enum_payload.pgy` -- TestHarness-owned
   negative codegen artifact paired with the committed payload-enum diagnostic;
   it proves unsupported payload arity fails closed under C/LLVM tool parity.
+- `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
+  positive role operator artifact proving role target and method identity rows
+  through C/LLVM codegen parity.
 - `src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy` -- local,
   parameter, and loop source-reference rewrite from `type_env` `cbind` rows.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact

@@ -36,6 +36,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -89,8 +90,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 7 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 7 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 9 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 9 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -101,8 +102,10 @@ FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"
 EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"
 REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"
 REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"
+ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"
+ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"
 
-for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" "$REJECT_SOURCE" "$REJECT_EXPECTED"; do
+for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" "$REJECT_SOURCE" "$REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -625,6 +628,7 @@ for backend in $BACKENDS; do
     fi
     run_tool_backend "$backend" "$tool_bin"
     run_payload_enum_reject "$backend" "$tool_bin"
+    run_role_operator_parity "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done
 

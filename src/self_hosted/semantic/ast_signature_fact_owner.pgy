@@ -473,30 +473,31 @@ func SemanticAstFunctionSignatureIndexForNode(
     return None;
 }
 
-func SemanticAstFunctionOwnerNameAt(
-    facts: SemanticAstFunctionSignatureFacts,
+func SemanticAstFunctionNodeAt(facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Option<Int> {
+    if signature_index < 0 || signature_index >=
+        SemanticAstFunctionSignatureCount(facts) { return None; }
+    return Some(facts.function_node_ids[signature_index]);
+}
+
+func SemanticAstFunctionOwnerNameAt(facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Option<String> {
-    if signature_index < 0 ||
-        signature_index >= SemanticAstFunctionSignatureCount(facts) {
-        return None;
-    }
+    if signature_index < 0 || signature_index >=
+        SemanticAstFunctionSignatureCount(facts) { return None; }
     return Some(facts.owner_names[signature_index]);
 }
 
-func SemanticAstFunctionRuntimeCallableAt(
-    facts: SemanticAstFunctionSignatureFacts,
+func SemanticAstFunctionRuntimeCallableAt(facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Option<Bool> {
-    if signature_index < 0 ||
-        signature_index >= SemanticAstFunctionSignatureCount(facts) {
-        return None;
-    }
+    if signature_index < 0 || signature_index >=
+        SemanticAstFunctionSignatureCount(facts) { return None; }
     return Some(facts.runtime_callables[signature_index]);
 }
 
-func SemanticAstFunctionNameAt(
-    facts: SemanticAstFunctionSignatureFacts,
+func SemanticAstFunctionNameAt(facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int
 ) -> Option<String> {
     if signature_index < 0 ||

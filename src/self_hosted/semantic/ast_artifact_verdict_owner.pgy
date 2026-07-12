@@ -9,6 +9,7 @@ import "ast_local_binding_fact_owner.pgy";
 import "ast_assignment_fact_owner.pgy";
 import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
+import "ast_role_fact_owner.pgy";
 
 struct SemanticAstArtifactVerdict {
     ok: Bool;
@@ -27,6 +28,7 @@ struct SemanticAstArtifactAnalysis {
     assignments: SemanticAstAssignmentFacts;
     statements: SemanticAstStatementFacts;
     enums: SemanticAstEnumFacts;
+    roles: SemanticAstRoleFacts;
 }
 
 func SemanticAstArtifactVerdictOk(node_count: Int, main_count: Int,
@@ -125,6 +127,7 @@ func SemanticAstArtifactAnalyze(
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
+    let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
     if !signatures.ok {
         let rejected: SemanticAstArtifactVerdict = SemanticAstArtifactVerdictError(
             signatures.diagnostic_code,
@@ -141,7 +144,7 @@ func SemanticAstArtifactAnalyze(
             SemanticAstStatementFactsFromArtifact(artifact, signatures);
         return SemanticAstArtifactAnalysis(
             rejected, signatures, constructors, empty_locals, empty_assignments,
-            empty_statements, enums
+            empty_statements, enums, roles
         );
     }
     if !constructors.ok {
@@ -162,7 +165,7 @@ func SemanticAstArtifactAnalyze(
         return SemanticAstArtifactAnalysis(
             rejected_constructor, signatures, constructors,
             constructor_locals, constructor_assignments,
-            constructor_statements, enums
+            constructor_statements, enums, roles
         );
     }
     if !enums.ok {
@@ -179,7 +182,24 @@ func SemanticAstArtifactAnalyze(
             SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
             SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
             SemanticAstStatementFactsFromArtifact(artifact, signatures),
-            enums
+            enums, roles
+        );
+    }
+    if !roles.ok {
+        let rejected_role: SemanticAstArtifactVerdict =
+            SemanticAstArtifactVerdictError(
+                "ast_artifact_invalid",
+                SemanticError1("ast_artifact_invalid", "owner", "SemanticAstRoleFacts"),
+                artifact.count,
+                0,
+                requires_entrypoint
+            );
+        return SemanticAstArtifactAnalysis(
+            rejected_role, signatures, constructors,
+            SemanticAstLocalBindingFactsFromArtifact(artifact, signatures),
+            SemanticAstAssignmentFactsFromArtifact(artifact, signatures),
+            SemanticAstStatementFactsFromArtifact(artifact, signatures),
+            enums, roles
         );
     }
     let local_bindings: SemanticAstLocalBindingFacts =
@@ -199,7 +219,7 @@ func SemanticAstArtifactAnalyze(
         return SemanticAstArtifactAnalysis(
             rejected2, signatures, constructors, local_bindings,
             rejected_assignments,
-            rejected_statements, enums
+            rejected_statements, enums, roles
         );
     }
     let assignments: SemanticAstAssignmentFacts =
@@ -214,7 +234,8 @@ func SemanticAstArtifactAnalyze(
         );
         return SemanticAstArtifactAnalysis(
             rejected3, signatures, constructors, local_bindings, assignments,
-            SemanticAstStatementFactsFromArtifact(artifact, signatures), enums
+            SemanticAstStatementFactsFromArtifact(artifact, signatures), enums,
+            roles
         );
     }
     let statements: SemanticAstStatementFacts =
@@ -229,14 +250,14 @@ func SemanticAstArtifactAnalyze(
         );
         return SemanticAstArtifactAnalysis(
             rejected4, signatures, constructors, local_bindings,
-            assignments, statements, enums
+            assignments, statements, enums, roles
         );
     }
     let verdict: SemanticAstArtifactVerdict =
         SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
     return SemanticAstArtifactAnalysis(
         verdict, signatures, constructors, local_bindings, assignments,
-        statements, enums
+        statements, enums, roles
     );
 }
 
@@ -259,6 +280,8 @@ func SemanticAstArtifactAnalysisMatches(
         artifact, analysis.signatures, analysis.statements
     ) && SemanticAstEnumFactsMatchArtifact(
         artifact, analysis.enums
+    ) && SemanticAstRoleFactsMatchArtifact(
+        artifact, analysis.roles
     );
 }
 

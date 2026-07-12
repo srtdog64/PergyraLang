@@ -10,12 +10,14 @@ OWNER="src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 STATEMENT_OWNER="src/self_hosted/semantic/ast_statement_fact_owner.pgy"
 ENUM_OWNER="src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 NOMINAL_OWNER="src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
+ROLE_OWNER="src/self_hosted/semantic/ast_role_fact_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy"
 TRY_CONSUMER="src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy"
 COLLECTION_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
 ENUM_CONSUMER="src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy"
 ENUM_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
 NOMINAL_CONSUMER="src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy"
+ROLE_CONSUMER="src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy"
 
 fail() {
     echo "[sot-authority] $*" >&2
@@ -91,18 +93,30 @@ check_nominal_owner_copy() {
         grep -Fq -- "func SemanticAstNominalConstructorFieldTypeAt(" "$path"
 }
 
+check_role_owner_copy() {
+    local path="$1"
+    grep -Eq -- '^    role_node_ids: Array<Int>;$' "$path" &&
+        grep -Eq -- '^    target_type_names: Array<String>;$' "$path" &&
+        grep -Eq -- '^    method_node_ids: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstRoleAncestorNodeId(" "$path" &&
+        grep -Fq -- "func SemanticAstRoleMethodNodeAt(" "$path" &&
+        grep -Fq -- "func SemanticAstRoleFactsMatchArtifact(" "$path"
+}
+
 require_file "$PROOF"
 require_file "docs/semantics/proofs/SoTAuthority.md"
 require_file "$OWNER"
 require_file "$STATEMENT_OWNER"
 require_file "$ENUM_OWNER"
 require_file "$NOMINAL_OWNER"
+require_file "$ROLE_OWNER"
 require_file "$ARRAY_CONSUMER"
 require_file "$TRY_CONSUMER"
 require_file "$COLLECTION_CONSUMER"
 require_file "$ENUM_CONSUMER"
 require_file "$ENUM_EMITTER"
 require_file "$NOMINAL_CONSUMER"
+require_file "$ROLE_CONSUMER"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" ]] ||
     fail "retired AST-text array-literal owner returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" ]] ||
@@ -113,6 +127,8 @@ require_file "$NOMINAL_CONSUMER"
     fail "retired AST-text enum variant owner returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" ]] ||
     fail "retired mixed AST-text declaration owner returned"
+[[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_role_declaration_owner.pgy" ]] ||
+    fail "retired AST-text role declaration owner returned"
 
 for term in \
     "Definition AuthorityComplete" \
@@ -127,11 +143,13 @@ for term in \
     "Theorem current_collection_mutation_rung_closed" \
     "Theorem current_enum_declaration_rung_closed" \
     "Theorem current_nominal_declaration_rung_closed" \
+    "Theorem current_role_declaration_rung_closed" \
     "Theorem owned_plus_fallback_bridge_is_not_closed" \
     "Theorem try_owner_plus_text_fallback_is_not_closed" \
     "Theorem collection_owner_plus_text_fallback_is_not_closed" \
     "Theorem enum_owner_plus_text_fallback_is_not_closed" \
     "Theorem nominal_owner_plus_text_fallback_is_not_closed" \
+    "Theorem role_owner_plus_ast_fallback_is_not_closed" \
     "Theorem duplicate_semantic_producer_is_not_closed" \
     "Theorem missing_required_fact_is_not_closed"; do
     require_text "$PROOF" "$term"
@@ -142,15 +160,18 @@ require_text "$PROOF" "FInitializerTryOperand"
 require_text "$PROOF" "FCollectionMutationParts"
 require_text "$PROOF" "FEnumDeclarationRows"
 require_text "$PROOF" "FNominalDeclarationRows"
+require_text "$PROOF" "FRoleDeclarationRows"
 require_text "$PROOF" "OSemanticLocalBindingFacts"
 require_text "$PROOF" "OSemanticStatementFacts"
 require_text "$PROOF" "OSemanticEnumFacts"
 require_text "$PROOF" "OSemanticNominalConstructorFacts"
+require_text "$PROOF" "OSemanticRoleFacts"
 require_text "$PROOF" "CArrayLiteralEmitter"
 require_text "$PROOF" "CTryLetEmitter"
 require_text "$PROOF" "CCollectionMutationEmitter"
 require_text "$PROOF" "CEnumEmitter"
 require_text "$PROOF" "CNominalEmitter"
+require_text "$PROOF" "CRoleOperatorEmitter"
 require_text "$PROOF" "OCodegenTextRecovery"
 
 check_owner_copy "$ROOT_DIR/$OWNER" ||
@@ -161,6 +182,8 @@ check_enum_owner_copy "$ROOT_DIR/$ENUM_OWNER" ||
     fail "live semantic enum owner does not provide declaration rows"
 check_nominal_owner_copy "$ROOT_DIR/$NOMINAL_OWNER" ||
     fail "live semantic nominal owner does not provide declaration rows"
+check_role_owner_copy "$ROOT_DIR/$ROLE_OWNER" ||
+    fail "live semantic role owner does not provide declaration rows"
 check_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" \
     "SemanticAstLocalBindingArrayLiteralBodyAt(" ||
     fail "live array codegen consumer reopened text recovery"
@@ -184,6 +207,11 @@ check_consumer_copy "$ROOT_DIR/$NOMINAL_CONSUMER" \
 require_text "$NOMINAL_CONSUMER" "CodegenSemanticNominalFieldNameOrDie("
 require_text "$NOMINAL_CONSUMER" "CodegenSemanticNominalFieldTypeOrDie("
 require_text "$ENUM_EMITTER" "SemanticAstNominalConstructorCount(facts)"
+check_consumer_copy "$ROOT_DIR/$ROLE_CONSUMER" \
+    "CodegenSemanticRoleNameOrDie(" ||
+    fail "live role codegen consumer reopened arena recovery"
+require_text "$ROLE_CONSUMER" "CodegenSemanticRoleMethodNodeOrDie("
+require_text "$ENUM_EMITTER" "SemanticAstRoleCount(roles)"
 
 for consumer in "$ARRAY_CONSUMER" "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_CONSUMER"; do
     reject_text "$consumer" "StringTrim("
@@ -194,6 +222,13 @@ for consumer in "$ARRAY_CONSUMER" "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_
     reject_text "$consumer" "CodegenAstArenaValueOrDie"
     reject_text "$consumer" "ContainsOutsideStrings("
     reject_text "$consumer" "FindMatchingParen("
+done
+for fallback in \
+    "CodegenAstArenaRoleNameOrDie" \
+    "CodegenAstArenaRoleTargetTypeNameOrDie" \
+    "CodegenAstArenaIsRoleDecl(arena, i)" \
+    "CodegenAstArenaIsDescendantOf(arena, j, i)"; do
+    reject_text "$ENUM_EMITTER" "$fallback"
 done
 for fallback in \
     "CodegenAstArenaNominalNameOrDie" \
@@ -252,6 +287,14 @@ sed 's/^    field_names: Array<String>;/    removed_field_names: Array<String>;/
 mv "$tmp_dir/nominal_owner_missing.next" "$tmp_dir/nominal_owner_missing.pgy"
 if check_nominal_owner_copy "$tmp_dir/nominal_owner_missing.pgy"; then
     fail "missing nominal-owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$ROLE_OWNER" "$tmp_dir/role_owner_missing.pgy"
+sed 's/^    method_node_ids: Array<Int>;/    removed_method_node_ids: Array<Int>;/' \
+    "$tmp_dir/role_owner_missing.pgy" >"$tmp_dir/role_owner_missing.next"
+mv "$tmp_dir/role_owner_missing.next" "$tmp_dir/role_owner_missing.pgy"
+if check_role_owner_copy "$tmp_dir/role_owner_missing.pgy"; then
+    fail "missing role-owner mutation was not rejected"
 fi
 
 cp "$ROOT_DIR/$TRY_CONSUMER" "$tmp_dir/consumer_fallback.pgy"

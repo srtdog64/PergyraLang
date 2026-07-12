@@ -172,7 +172,9 @@ SENTINEL_MAX=0
 # consumes Option-returning semantic owner accessors instead of arena rows.
 # 1204 -> 1208 (2026-07-13): nested enum payload contract keeps each captured
 # variant arity behind Option-returning semantic accessors.
-RESULT_USE_MIN=1208
+# 1208 -> 1243 (2026-07-13): role name/target/method/receiver projection uses
+# Option-returning semantic owner accessors instead of AST descendant scans.
+RESULT_USE_MIN=1243
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

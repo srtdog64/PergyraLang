@@ -1,0 +1,214 @@
+// Role declaration and owned-method facts captured once from the typed AST.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstRoleFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    role_node_ids: Array<Int>;
+    names: Array<String>;
+    target_type_names: Array<String>;
+    method_starts: Array<Int>;
+    method_counts: Array<Int>;
+    method_node_ids: Array<Int>;
+}
+
+func SemanticAstRoleAncestorNodeId(
+    arena: AstArena,
+    node_id: Int
+) -> Option<Int> {
+    let parent: Option<Int> = TypedAstArenaParentId(arena, node_id);
+    let remaining: Int = TypedAstArenaNodeCount(arena);
+    while IsSome(parent) && remaining > 0 {
+        let parent_id: Int = UnwrapOption(parent);
+        if TypedAstArenaNodeKindIs(
+            arena, parent_id, TypedAstKindRoleDeclTag()
+        ) {
+            return Some(parent_id);
+        }
+        parent = TypedAstArenaParentId(arena, parent_id);
+        remaining = remaining - 1;
+    }
+    return None;
+}
+
+func SemanticAstRoleFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstRoleFacts {
+    let role_node_ids: Array<Int> = [];
+    let names: Array<String> = [];
+    let target_types: Array<String> = [];
+    let method_starts: Array<Int> = [];
+    let method_counts: Array<Int> = [];
+    let method_node_ids: Array<Int> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindRoleDeclTag()
+        ) {
+            let name: Option<String> = TypedAstArenaAtomText(
+                artifact.arena, node_id
+            );
+            let target: Option<String> = TypedAstArenaTypeName(
+                artifact.arena, node_id
+            );
+            if !IsSome(name) || !IsSome(target) ||
+                StringLength(UnwrapOption(name)) == 0 ||
+                StringLength(UnwrapOption(target)) == 0 {
+                ok = false;
+            } else {
+                let method_start: Int = ArrayLength(method_node_ids);
+                let candidate: Int = 0;
+                while candidate < artifact.count {
+                    if TypedAstArenaNodeKindIs(
+                        artifact.arena, candidate, TypedAstKindFuncDeclTag()
+                    ) {
+                        let owner: Option<Int> = SemanticAstRoleAncestorNodeId(
+                            artifact.arena, candidate
+                        );
+                        if IsSome(owner) && UnwrapOption(owner) == node_id {
+                            ArrayPush(method_node_ids, candidate);
+                        }
+                    }
+                    candidate = candidate + 1;
+                }
+                ArrayPush(role_node_ids, node_id);
+                ArrayPush(names, UnwrapOption(name));
+                ArrayPush(
+                    target_types,
+                    SemanticCanonicalTypeName(UnwrapOption(target))
+                );
+                ArrayPush(method_starts, method_start);
+                ArrayPush(
+                    method_counts, ArrayLength(method_node_ids) - method_start
+                );
+            }
+        }
+        node_id = node_id + 1;
+    }
+    return SemanticAstRoleFacts(
+        ok, artifact.count, role_node_ids, names, target_types,
+        method_starts, method_counts, method_node_ids
+    );
+}
+
+func SemanticAstRoleCount(facts: SemanticAstRoleFacts) -> Int {
+    return ArrayLength(facts.role_node_ids);
+}
+
+func SemanticAstRoleNameAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int
+) -> Option<String> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) {
+        return None;
+    }
+    return Some(facts.names[role_index]);
+}
+
+func SemanticAstRoleTargetTypeAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int
+) -> Option<String> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) {
+        return None;
+    }
+    return Some(facts.target_type_names[role_index]);
+}
+
+func SemanticAstRoleMethodCountAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int
+) -> Option<Int> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) {
+        return None;
+    }
+    return Some(facts.method_counts[role_index]);
+}
+
+func SemanticAstRoleMethodNodeAt(
+    facts: SemanticAstRoleFacts,
+    role_index: Int,
+    method_index: Int
+) -> Option<Int> {
+    if !facts.ok || role_index < 0 || role_index >= SemanticAstRoleCount(facts) ||
+        method_index < 0 || method_index >= facts.method_counts[role_index] {
+        return None;
+    }
+    return Some(
+        facts.method_node_ids[facts.method_starts[role_index] + method_index]
+    );
+}
+
+func SemanticAstRoleTargetTypeForMethodNode(
+    facts: SemanticAstRoleFacts,
+    method_node_id: Int
+) -> Option<String> {
+    if !facts.ok {
+        return None;
+    }
+    let role_index: Int = 0;
+    while role_index < SemanticAstRoleCount(facts) {
+        let method_index: Int = 0;
+        while method_index < facts.method_counts[role_index] {
+            if facts.method_node_ids[
+                facts.method_starts[role_index] + method_index
+            ] == method_node_id {
+                return Some(facts.target_type_names[role_index]);
+            }
+            method_index = method_index + 1;
+        }
+        role_index = role_index + 1;
+    }
+    return None;
+}
+
+func SemanticAstRoleFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstRoleFacts
+) -> Bool {
+    let rebuilt: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
+    let count: Int = SemanticAstRoleCount(facts);
+    if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
+        SemanticAstRoleCount(rebuilt) != count ||
+        ArrayLength(facts.method_node_ids) != ArrayLength(rebuilt.method_node_ids) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.role_node_ids[i] != rebuilt.role_node_ids[i] ||
+            facts.names[i] != rebuilt.names[i] ||
+            facts.target_type_names[i] != rebuilt.target_type_names[i] ||
+            facts.method_starts[i] != rebuilt.method_starts[i] ||
+            facts.method_counts[i] != rebuilt.method_counts[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    let method_index: Int = 0;
+    while method_index < ArrayLength(facts.method_node_ids) {
+        if facts.method_node_ids[method_index] != rebuilt.method_node_ids[method_index] {
+            return false;
+        }
+        method_index = method_index + 1;
+    }
+    return true;
+}
+
+func SemanticAstRoleFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Role: IntMath for Int\n    Impl ability: Arithmetic\n      Function: Add\n        Parameters:\n          self\n          rhs: Int\n        Returns: Int\n        Body:\n          Block:\n            Return: 123\n"
+    );
+    let facts: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
+    let method: Option<Int> = SemanticAstRoleMethodNodeAt(facts, 0, 0);
+    return SemanticAstRoleFactsMatchArtifact(artifact, facts) &&
+        SemanticAstRoleCount(facts) == 1 &&
+        IsSome(SemanticAstRoleNameAt(facts, 0)) &&
+        UnwrapOption(SemanticAstRoleNameAt(facts, 0)) == "IntMath" &&
+        IsSome(SemanticAstRoleTargetTypeAt(facts, 0)) &&
+        UnwrapOption(SemanticAstRoleTargetTypeAt(facts, 0)) == "Int" &&
+        IsSome(method);
+}

@@ -226,11 +226,11 @@ Mechanized artifacts:
   authority-only consumption, and rejection of missing facts, duplicate
   producers, and owner-plus-fallback bridges. The adequacy smoke binds the
   first concrete instances to semantic-owned array-literal body, try-let
-  operand, collection-mutation statement, enum declaration, and nominal/field
-  declaration facts and their
+  operand, collection-mutation statement, enum declaration, nominal/field, and
+  role declaration facts and their
   codegen consumers; it is not a whole-compiler SoT proof.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
-  19-row declaration of 15 architectural fact families plus four bounded
+  20-row declaration of 15 architectural fact families plus five bounded
   self-host closure facts, stable handles, unique owners,
   last legitimate consumers, forbidden fallbacks, enforcement gates, and
   honest `ACTIVE` / `BRIDGE` / `CLOSED` status.
