@@ -144,10 +144,11 @@ compiler-stage `.pgy` source to be listed here.
 
 ## Shared Source Scan
 
-- `src/self_hosted/lib/source_scan_owner.pgy` -- common character class and
-  whitespace/comment traversal facts consumed by parser and semantic. Their
-  distinct keyword/identifier cursor policies remain explicitly named in the
-  stage owners.
+- `src/self_hosted/lib/source_scan_owner.pgy` -- allocation-free source byte,
+  character-class, exact-window, and whitespace/comment traversal facts
+  consumed by parser and semantic. Their distinct keyword/identifier cursor
+  policies remain in stage owners; String-returning character access is a
+  compatibility surface, not the hot scan path.
 
 ## HIR
 

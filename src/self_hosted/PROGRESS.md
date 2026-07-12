@@ -59,6 +59,16 @@ consumed rows. That reduced peak private memory from 223.4 MB to
 the current CPU boundary; these measurements do not close the expensive
 full-source gen3 fixed point.
 
+The first shared source-scan slice now consumes `CharCode` and
+`SubEqualsWithLen` facts rather than allocating one-character and keyword
+`String` values in trivia, parser-cursor, and semantic-text hot loops. On the
+same integrated-driver `mir_lower` input, the measured runtime moved from
+37.915-38.071 seconds to 36.891-37.131 seconds with byte-identical output.
+Parser 188/188 and semantic 110/110 manifests remain expected-artifact equal
+under C and LLVM, and the C/LLVM integrated drivers emit the same 151,762-byte
+artifact. This is one source-scan owner closure, not whole parser/semantic text
+lifetime closure.
+
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
 closed those six at 6/6, and the two newly split executable contract owners

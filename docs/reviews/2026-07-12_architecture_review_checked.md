@@ -1,7 +1,7 @@
 # Architecture Review Check, 2026-07-12
 
 Source review: external 2026-07-11 review of repository head `2259a622`.
-Checked against current head `2009d552` plus the active worktree. This document
+Checked through current main `2772f054` plus the active worktree. This document
 records routing, not a production-readiness claim.
 
 ## Accepted Current Findings
@@ -63,6 +63,12 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   fell from 223.4 MB to 159.4-161.0 MB. Runtime stayed effectively flat, so the
   result closes an ownership/validation-cost seam rather than the integrated
   CPU blocker.
+- Shared parser/semantic source scanning now has an allocation-free byte/code
+  owner. The converted trivia, parser-cursor, and semantic-text regions no
+  longer materialize one-character or keyword-window Strings. Parser 188/188,
+  semantic 110/110, and integrated-driver C/LLVM artifact parity are green;
+  the same-input runtime moved from 37.915-38.071 seconds to
+  36.891-37.131 seconds. Unmigrated text consumers remain active debt.
 
 ## Remaining Work Order
 

@@ -720,9 +720,13 @@ require_text "src/self_hosted/semantic/program_check_owner.pgy" 'if SemanticMatc
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'if !SemanticMatchKeyword(content, i, "let")'
 require_file "src/self_hosted/lib/source_scan_owner.pgy"
 require_max_lines "src/self_hosted/lib/source_scan_owner.pgy" 600
+require_file "tests/self_host_source_scan_owner_smoke.sh"
+require_text "Makefile" '"$(BASH)" tests/self_host_source_scan_owner_smoke.sh'
 require_text "src/self_hosted/parser/cursor_owner.pgy" 'import "../lib/source_scan_owner.pgy";'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" 'import "../lib/source_scan_owner.pgy";'
 require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SkipWhitespaceAndComments"
+require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SourceByteAt"
+require_text "src/self_hosted/lib/source_scan_owner.pgy" "func SourceByteIsAlphaNum"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SemanticMatchKeyword"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SemanticReadIdent"
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "func IsAlpha("

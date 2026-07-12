@@ -208,7 +208,10 @@ and most ordinary `String` transforms remain active ownership gaps. Typed-arena
 access now seals full parallel-row shape once at the artifact boundary and
 checks only consumed rows in hot readers; the integrated-driver probe fell from
 223.4 MB to 159.4-161.0 MB with byte-identical output, while runtime remained
-34-36 seconds. This is not a CPU-closure claim.
+34-36 seconds. The first shared byte-scan owner then reduced the same
+integrated `mir_lower` run from 37.915-38.071 seconds to 36.891-37.131 seconds,
+with parser 188/188, semantic 110/110, and integrated C/LLVM artifact parity.
+This remains a bounded scan slice, not whole compiler text-lifetime closure.
 
 ## Next substrate work
 

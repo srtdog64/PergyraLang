@@ -1,0 +1,37 @@
+{
+  "schema": "pgy.benchmark.selfhost-source-scan.v1",
+  "measured_at": "2026-07-12",
+  "platform": "windows-x86_64",
+  "input": {
+    "driver_source": "src/self_hosted/compiler/driver_bootstrap_main.pgy",
+    "source": "src/self_hosted/mir_lower/main.pgy"
+  },
+  "owner": {
+    "owner_set_sha256": "9E5747B02A354208D2ABE900535C0629D5A6FED88105B60AB8AE7010F0984813",
+    "paths": [
+      "src/self_hosted/lib/source_scan_owner.pgy",
+      "src/self_hosted/parser/cursor_owner.pgy",
+      "src/self_hosted/semantic/text_scan_owner.pgy"
+    ]
+  },
+  "baseline": {
+    "source_commit": "982ea499",
+    "elapsed_ms": [38071, 37915],
+    "peak_private_mb": [258.0, 177.1]
+  },
+  "byte_scan_owner": {
+    "elapsed_ms": [36891, 37131],
+    "peak_private_mb": [188.8, 114.2],
+    "required_max_elapsed_ms": 37500
+  },
+  "parity": {
+    "parser_fixtures": 188,
+    "semantic_fixtures": 110,
+    "backends": ["c", "llvm"],
+    "integrated_driver_c_llvm_byte_identical": true
+  },
+  "output": {
+    "bytes": 151762,
+    "sha256": "A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F"
+  }
+}

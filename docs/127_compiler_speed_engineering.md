@@ -266,6 +266,23 @@ On the same generated integrated driver, this changed peak private memory from
 223.4 MB to 159.4-161.0 MB. Elapsed time remained 34.883-35.663 seconds versus
 the 34.275-second exploratory baseline, so this is a memory/ownership closure,
 not a CPU-speed claim. The generated artifact SHA-256 remained
-`A7760C88E479296F1A9E4848235A324555A04655BE561B29787FE2EF24867819`.
+`A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F`.
 The next CPU target remains allocation-heavy character and substring scanning
 in parser/semantic/MIR composition.
+
+That next scan-owner slice is now landed without changing `String` ownership.
+`source_scan_owner.pgy` owns allocation-free byte reads, ASCII class facts,
+exact-window comparison, and whitespace/comment traversal. Parser cursor and
+semantic text scanning consume those facts; their compatibility String
+character accessors remain available to unmigrated call sites but are forbidden
+inside the converted hot regions.
+
+On the same integrated driver and `mir_lower/main.pgy` input, two sequential
+Windows runs moved from 37.915-38.071 seconds to 36.891-37.131 seconds. All
+outputs were 151,762 bytes with SHA-256
+`A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F`.
+Peak private memory varied between runs, so it is recorded but not claimed as
+a closed improvement. Parser 188/188 and semantic 110/110 expected artifacts
+match under both C and LLVM; C- and LLVM-built integrated drivers emit the same
+MIR-lower C artifact. `self-host-source-scan-owner-test-smoke` hashes the owner
+set and rejects allocation-returning reads in these hot regions.

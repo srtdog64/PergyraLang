@@ -335,7 +335,13 @@ English anchor for tooling/doc gates:
   seal instead of reopening on every accessor. The same integrated-driver
   output reduced peak private memory from 223.4 MB to 159.4-161.0 MB, but its
   34-36 second runtime did not improve; parser/semantic/MIR character and
-  substring scans remain the next measured CPU owner.
+  substring scans remain the next measured CPU owner. The first shared scan
+  slice now uses allocation-free byte and exact-window facts for trivia,
+  parser-cursor, and semantic-text hot loops. Same-input runtime moved from
+  37.915-38.071 seconds to 36.891-37.131 seconds with parser 188/188,
+  semantic 110/110, and integrated C/LLVM artifact parity. Continue migrating
+  the remaining direct `ParserCharAt`/`CharAt` consumers; do not change String
+  ownership to hide their allocation cost.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a

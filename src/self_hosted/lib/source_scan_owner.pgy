@@ -5,23 +5,42 @@ func SourceCharAt(s: String, i: Int) -> String {
     if i < 0 || i >= n {
         return "";
     }
-    return Substring(s, i, 1);
+    return CharAtN(s, n, i);
+}
+
+func SourceByteAt(s: String, length: Int, i: Int) -> Int {
+    return CharCode(s, length, i);
+}
+
+func SourceByteOf(character: String) -> Int {
+    return CharCode(character, StringLength(character), 0);
+}
+
+func SourceByteIsAlpha(byte: Int) -> Bool {
+    return (byte >= 97 && byte <= 122) ||
+        (byte >= 65 && byte <= 90) || byte == 95;
+}
+
+func SourceByteIsDigit(byte: Int) -> Bool {
+    return byte >= 48 && byte <= 57;
+}
+
+func SourceByteIsAlphaNum(byte: Int) -> Bool {
+    return SourceByteIsAlpha(byte) || SourceByteIsDigit(byte);
+}
+
+func SourceByteIsWhitespace(byte: Int) -> Bool {
+    return byte == 32 || byte == 9 || byte == 10 || byte == 13;
 }
 
 func IsAlpha(c: String) -> Bool {
-    if StringLength(c) != 1 {
-        return false;
-    }
-    return StringIndexOf(
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c
-    ) >= 0;
+    let n: Int = StringLength(c);
+    return n == 1 && SourceByteIsAlpha(SourceByteAt(c, n, 0));
 }
 
 func IsDigit(c: String) -> Bool {
-    if StringLength(c) != 1 {
-        return false;
-    }
-    return StringIndexOf("0123456789", c) >= 0;
+    let n: Int = StringLength(c);
+    return n == 1 && SourceByteIsDigit(SourceByteAt(c, n, 0));
 }
 
 func IsAlphaNum(c: String) -> Bool {
@@ -32,22 +51,24 @@ func SkipWhitespaceAndComments(content: String, start: Int) -> Int {
     let n: Int = StringLength(content);
     let i: Int = start;
     while i < n {
-        let c: String = SourceCharAt(content, i);
-        if c == " " || c == "\t" || c == "\n" || c == "\r" {
+        let c: Int = SourceByteAt(content, n, i);
+        if SourceByteIsWhitespace(c) {
             i = i + 1;
             continue;
         }
-        if c == "/" && SourceCharAt(content, i + 1) == "/" {
-            while i < n && SourceCharAt(content, i) != "\n" {
+        if c == SourceByteOf("/") &&
+            SourceByteAt(content, n, i + 1) == SourceByteOf("/") {
+            while i < n && SourceByteAt(content, n, i) != SourceByteOf("\n") {
                 i = i + 1;
             }
             continue;
         }
-        if c == "/" && SourceCharAt(content, i + 1) == "*" {
+        if c == SourceByteOf("/") &&
+            SourceByteAt(content, n, i + 1) == SourceByteOf("*") {
             i = i + 2;
             while i < n {
-                if SourceCharAt(content, i) == "*" &&
-                    SourceCharAt(content, i + 1) == "/" {
+                if SourceByteAt(content, n, i) == SourceByteOf("*") &&
+                    SourceByteAt(content, n, i + 1) == SourceByteOf("/") {
                     i = i + 2;
                     break;
                 }
