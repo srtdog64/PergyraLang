@@ -41,6 +41,9 @@ static const TranspilerStdlibSpec kTranspilerStdlibSpecs[] = {
 static const TranspilerToStringSpec kTranspilerToStringSpecs[] = {
     {"Bool", TRANSPILER_TO_STRING_KIND_BOOL},
     {"Double", TRANSPILER_TO_STRING_KIND_DOUBLE},
+    /* Long-backed distinct primitive (docs/181 SS2.3); the i32 default
+     * silently truncated nanosecond counts past 2.1 seconds. */
+    {"Duration", TRANSPILER_TO_STRING_KIND_LONG},
     {"Float", TRANSPILER_TO_STRING_KIND_FLOAT},
     {"Long", TRANSPILER_TO_STRING_KIND_LONG},
     {"String", TRANSPILER_TO_STRING_KIND_STRING},

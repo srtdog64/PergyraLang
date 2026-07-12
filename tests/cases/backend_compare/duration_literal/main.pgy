@@ -17,4 +17,12 @@ func Main() -> Void {
     Log(m);
     let inferred = 3s;
     Log(inferred);
+    // The i64 lane must survive NAME-keyed dispatch, not just the
+    // literal's is_long ride: ToString on a Duration VARIABLE and
+    // arithmetic past the i32 range both truncated silently when the
+    // C backend's name-keyed lanes did not know Duration.
+    let t: Duration = 3500ms;
+    Log(ToString(t));
+    let doubled = t + t;
+    Log(doubled);
 }

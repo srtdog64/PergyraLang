@@ -202,8 +202,12 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
                 && (strcmp(lt, "Float") == 0 || strcmp(lt, "Double") == 0))
             || (rt != NULL
                 && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
-        bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
-            || (rt != NULL && strcmp(rt, "Long") == 0);
+        /* Duration rides the i64 lane like Long (docs/181 SS2.3); the
+         * i32 checked helpers would silently truncate the operands. */
+        bool is_long_div = (lt != NULL && (strcmp(lt, "Long") == 0
+                || strcmp(lt, "Duration") == 0))
+            || (rt != NULL && (strcmp(rt, "Long") == 0
+                || strcmp(rt, "Duration") == 0));
         bool rhs_is_safe_divisor_literal =
             !is_long_div
             && pgy_codegen_ast_number_is_safe_divisor_i32_literal(right_expr);

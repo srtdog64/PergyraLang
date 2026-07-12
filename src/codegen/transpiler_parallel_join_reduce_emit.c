@@ -24,7 +24,10 @@ join_reduce_write_step(TranspilerCtx *ctx, const char *rop,
                        unsigned int pid)
 {
     bool int_lane = strcmp(give_name, "Int") == 0;
-    bool long_lane = strcmp(give_name, "Long") == 0;
+    /* Duration gives are Long-backed (docs/181 SS2.3): the i32 checked
+     * lane would silently truncate them. */
+    bool long_lane = strcmp(give_name, "Long") == 0
+                  || strcmp(give_name, "Duration") == 0;
 
     write_indent(ctx);
     if (strcmp(rop, "sum") == 0 && (int_lane || long_lane)) {

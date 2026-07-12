@@ -119,9 +119,13 @@ llvm_pjoin_materialize_reduce(LLVMGenCtx *ctx, ASTNode *node,
     if (!float_lane && (is_sum || is_product)) {
         char fn_name[64];
 
+        /* Duration gives are Long-backed (docs/181 SS2.3): the i32
+         * checked helpers would mismatch the i64 accumulator. */
         snprintf(fn_name, sizeof(fn_name), "pgy_checked_%s_%s_export",
                  is_sum ? "add" : "mul",
-                 strcmp(give_name, "Long") == 0 ? "i64" : "i32");
+                 strcmp(give_name, "Long") == 0
+                     || strcmp(give_name, "Duration") == 0
+                     ? "i64" : "i32");
         fold_fn = llvm_required_runtime_function(ctx, node,
             "parallel join reduce", "CheckedArith", fn_name);
         if (fold_fn == NULL)

@@ -88,6 +88,13 @@ transpiler_promote_numeric_type_name(const char *left_type,
     if ((left_type != NULL && strcmp(left_type, "Float") == 0)
         || (right_type != NULL && strcmp(right_type, "Float") == 0))
         return "Float";
+    /* Duration is Long-backed and DISTINCT (docs/181 SS2.3): the checker
+     * rejects Duration/Int mixing, so a Duration operand means a Duration
+     * result -- naming it "Int" here routed downstream name-keyed lanes
+     * (ToString, checked div) through i32 and silently truncated. */
+    if ((left_type != NULL && strcmp(left_type, "Duration") == 0)
+        || (right_type != NULL && strcmp(right_type, "Duration") == 0))
+        return "Duration";
     if ((left_type != NULL && strcmp(left_type, "Long") == 0)
         || (right_type != NULL && strcmp(right_type, "Long") == 0))
         return "Long";

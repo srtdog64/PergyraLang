@@ -45,7 +45,7 @@ compile() {
     return $rc
 }
 
-WANT="$(printf '1500000000\n5000000000\n250000\n90\n120000000000\n3000000000')"
+WANT="$(printf '1500000000\n5000000000\n250000\n90\n120000000000\n3000000000\n3500000000\n7000000000')"
 BACKENDS="${PGY_DURATION_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do
     compile "$backend" "$SRC" "dur_$backend.exe" ||

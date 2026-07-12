@@ -39,6 +39,22 @@ TimeSpan으로 개명(실험 모듈). 감사 부수확: 기존 "단위 스킵" �
 — 이 착지가 그 결함의 수리이기도 함. canonical = docs/181 §2.3 착지
 노트. 잔여: Duration 산술/비교, `every(d)`의 소비(§3).
 
+**+당일 후속 (2026-07-12 저녁) — 무음 절단 클래스 수리**: 관문-앞
+상태 프로브가 실결함 발견 — C 백엔드의 **이름-키 lane 선택**들이
+Duration을 몰라 i32로 추락, `ToString(t: Duration)`이 3.5초를
+-794967296으로 무음 출력(정확한 i32 랩). LLVM은 classify 단일
+초크포인트(Duration→LONG)라 면역 = **백엔드 분기**. 산탄 지점 전수:
+ToString 스펙 테이블 / promote_numeric(무주석 `a+b`가 "Int"로 명명돼
+하류 lane 오염) / checked div·mod lane / 양 백엔드 reduce fold lane
+(LLVM도 give_name=="Long" 비교였음 — 단 give admission이 Duration을
+시끄럽게 거절해 닫힌 게이트 뒤 방어층). 수리 원칙 = "Duration은 Long
+lane을 탄다" 5지점, 연산 적법성 설계(어떤 연산이 Duration에
+의미론적으로 합법인가)는 §1 잔여 유지. 목격자: duration_literal
+픽스처에 변수-경유 ToString + i32-초과 산술(3500000000/7000000000)
+추가, compare byte-equal. 교훈: **LLVM=classify 초크포인트,
+C=이름-비교 산재** — 새 primitive는 C 쪽 이름-키 lane 전수 grep이
+착지 체크리스트에 필요.
+
 **잠금(원문)**: ast.h/ast_domain_data.h/ast_destroy.c (경로 A),
 없음(경로 B).
 
