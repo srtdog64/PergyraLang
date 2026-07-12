@@ -2224,6 +2224,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
 	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
+	"$(BASH)" tests/self_host_source_scan_owner_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
@@ -2380,6 +2381,11 @@ self-host-text-builder-emission-test-smoke:
 	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
 
 .PHONY: self-host-text-builder-emission-test-smoke
+
+self-host-source-scan-owner-test-smoke:
+	"$(BASH)" tests/self_host_source_scan_owner_smoke.sh
+
+.PHONY: self-host-source-scan-owner-test-smoke
 
 self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
@@ -3050,5 +3056,13 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
+# Explicit empty rule for the generated .d files. Without it GNU make runs
+# an implicit-rule search for every included .d file against every pattern
+# rule in this Makefile, and at ~900 .d files that search dominates the
+# no-op parse floor (measured 2026-07-12 on Windows: no-op `make pgy` was
+# 10.6s, ~8s of it that search; with this rule 2.7s). The .d files are
+# -MMD side effects of compilation with no producing rule of their own, so
+# declaring them unremakable changes no build behavior.
+$(ALL_DEP_FILES): ;
 -include $(ALL_DEP_FILES)
 endif
