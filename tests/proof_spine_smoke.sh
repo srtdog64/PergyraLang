@@ -89,13 +89,15 @@ require_text "docs/semantics/proofs/AuthorityIrreducibility.v" "Theorem authorit
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
 require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem hard_self_host_requires_differential"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem current_array_literal_rung_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem current_declaration_routing_rung_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declaration_routing_owner_plus_ast_fallback_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem owned_plus_fallback_bridge_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem duplicate_semantic_producer_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fact_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem every_spine_fact_has_declared_authority"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_authority_unique"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=12 BRIDGE=6 ACTIVE=9"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=13 BRIDGE=6 ACTIVE=9"
 
 for term in \
     "Inductive ProofNode" \

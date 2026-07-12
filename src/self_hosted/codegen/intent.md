@@ -268,3 +268,9 @@ Statement dispatch consumes three semantic authorities: local-binding rows for
 `Let`, assignment rows for `Assign`, and statement-kind rows for all other
 emitted statements. Arena predicates may retain `Else`/`Block`/`Then` structure
 and provenance, but may not decide semantic statement kinds.
+
+Top-level declaration dispatch consumes semantic node identity: signature rows
+for functions, nominal-constructor rows for nominal declarations, role rows for
+roles, and enum rows for enums. Codegen arena predicates may not reclassify
+those declaration kinds. Ability and event routing remain named active seams
+until equivalent semantic owners land.

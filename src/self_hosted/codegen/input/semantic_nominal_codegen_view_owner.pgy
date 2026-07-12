@@ -2,6 +2,13 @@
 
 import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
 
+func CodegenSemanticNominalIs(
+    facts: SemanticAstNominalConstructorFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstNominalConstructorIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticNominalNameOrDie(
     facts: SemanticAstNominalConstructorFacts,
     constructor_index: Int

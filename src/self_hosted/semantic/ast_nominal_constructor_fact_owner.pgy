@@ -189,6 +189,19 @@ func SemanticAstNominalConstructorCount(
     return ArrayLength(facts.node_ids);
 }
 
+func SemanticAstNominalConstructorIndexForNode(
+    facts: SemanticAstNominalConstructorFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(facts) {
+        if facts.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
 func SemanticAstNominalConstructorNameAt(
     facts: SemanticAstNominalConstructorFacts,
     constructor_index: Int

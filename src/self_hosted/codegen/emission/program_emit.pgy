@@ -10,6 +10,10 @@ import "../input/ast_usage_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../input/semantic_assignment_codegen_view_owner.pgy";
 import "../input/semantic_statement_codegen_view_owner.pgy";
+import "../input/semantic_signature_codegen_view_owner.pgy";
+import "../input/semantic_nominal_codegen_view_owner.pgy";
+import "../input/semantic_role_codegen_view_owner.pgy";
+import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -212,11 +216,15 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
                 ArraySet(cur, 0, cur[0] + 1);
             }
-        } else if CodegenAstArenaIsNominalDecl(arena, cur[0]) {
+        } else if CodegenSemanticNominalIs(
+            semantic_analysis.constructors, cur[0]
+        ) {
             let owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
-                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                if CodegenSemanticFunctionIs(
+                    semantic_analysis.signatures, cur[0]
+                ) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
                         nodes, count, arena, semantic_analysis.signatures,
@@ -230,11 +238,13 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if CodegenAstArenaIsRoleDecl(arena, cur[0]) {
+        } else if CodegenSemanticRoleIs(semantic_analysis.roles, cur[0]) {
             let role_owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
-                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                if CodegenSemanticFunctionIs(
+                    semantic_analysis.signatures, cur[0]
+                ) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
                         nodes, count, arena, semantic_analysis.signatures,
@@ -248,11 +258,13 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if CodegenAstArenaIsEnumDecl(arena, cur[0]) {
+        } else if CodegenSemanticEnumIs(semantic_analysis.enums, cur[0]) {
             ArraySet(cur, 0, cur[0] + 1);
         } else if CodegenAstArenaIsEventDecl(arena, cur[0]) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[cur[0]])));
-        } else if CodegenAstArenaIsFunction(arena, cur[0]) {
+        } else if CodegenSemanticFunctionIs(
+            semantic_analysis.signatures, cur[0]
+        ) {
             CheckFunction(
                 nodes, count, arena, semantic_analysis.signatures,
                 semantic_analysis.local_bindings,
@@ -347,11 +359,13 @@ func GenerateCUnitFromSemanticArtifact(
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
                 ArraySet(cur, 0, cur[0] + 1);
             }
-        } else if CodegenAstArenaIsNominalDecl(arena, cur[0]) {
+        } else if CodegenSemanticNominalIs(
+            semantic_analysis.constructors, cur[0]
+        ) {
             let owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
-                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                if CodegenSemanticFunctionIs(signatures, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
@@ -364,11 +378,11 @@ func GenerateCUnitFromSemanticArtifact(
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if CodegenAstArenaIsRoleDecl(arena, cur[0]) {
+        } else if CodegenSemanticRoleIs(semantic_analysis.roles, cur[0]) {
             let role_owner_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
-                if CodegenAstArenaIsFunction(arena, cur[0]) {
+                if CodegenSemanticFunctionIs(signatures, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
@@ -381,7 +395,8 @@ func GenerateCUnitFromSemanticArtifact(
                     ArraySet(cur, 0, cur[0] + 1);
                 }
             }
-        } else if CodegenAstArenaIsFunction(arena, cur[0]) && cur_indent == f_indent {
+        } else if CodegenSemanticFunctionIs(signatures, cur[0]) &&
+            cur_indent == f_indent {
             let def: String = EmitFunction(
                 count, arena, signatures, semantic_analysis.roles,
                 local_bindings, assignments, statements,

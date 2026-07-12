@@ -88,13 +88,15 @@ inventory must not become a second fact-family owner registry.
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
   function owner, name, parameter, mode, and return signature facts, including
-  ordered function node/name identity for entrypoint cardinality and selection.
+  ordered function node/name identity for entrypoint cardinality, selection,
+  and top-level function declaration routing.
 - `src/self_hosted/semantic/ast_signature_contract_owner.pgy` -- executable
   freshness, duplicate-row, owner, and runtime-callability contract for those
   signature facts.
 - `src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy` --
   artifact-bound nominal constructor name, return type, and ordered field-type
-  rows consumed by expression typing; source constructor scans are forbidden.
+  rows consumed by expression typing and declaration routing; source
+  constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
   payload facts, including array-literal body, try-operand shape, and `Let`
@@ -138,9 +140,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
   element and direct index-access facts.
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum
-  declaration and variant facts for expression typing.
+  declaration identity and variant facts for expression typing and codegen
+  routing.
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
-  name, target type, and owned method `NodeId` rows.
+  declaration identity, name, target type, and owned method `NodeId` rows.
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
   artifact-bound atom/value/auxiliary expression surfaces and string-safe
   call/token queries consumed by runtime projection.

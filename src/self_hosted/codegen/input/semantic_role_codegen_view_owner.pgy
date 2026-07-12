@@ -2,6 +2,13 @@
 
 import "../../semantic/ast_role_fact_owner.pgy";
 
+func CodegenSemanticRoleIs(
+    facts: SemanticAstRoleFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstRoleIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticRoleNameOrDie(
     facts: SemanticAstRoleFacts,
     role_index: Int

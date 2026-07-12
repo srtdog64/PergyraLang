@@ -115,22 +115,6 @@ func CodegenAstArenaIsElseStmt(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindElseStmtTag());
 }
 
-func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag());
-}
-
-func CodegenAstArenaIsRoleDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindRoleDeclTag());
-}
-
-func CodegenAstArenaIsNominalDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindNominalDeclTag());
-}
-
-func CodegenAstArenaIsEnumDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEnumDeclTag());
-}
-
 func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEventDeclTag());
 }

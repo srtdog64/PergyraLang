@@ -112,10 +112,12 @@ check_statement_routing_owner_copy() {
 
 check_enum_owner_copy() {
     local path="$1"
-    grep -Eq -- '^    enum_names: Array<String>;$' "$path" &&
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Eq -- '^    enum_names: Array<String>;$' "$path" &&
         grep -Eq -- '^    variant_enum_names: Array<String>;$' "$path" &&
         grep -Eq -- '^    variant_names: Array<String>;$' "$path" &&
         grep -Eq -- '^    variant_param_counts: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstEnumIndexForNode(" "$path" &&
         grep -Fq -- "func SemanticAstEnumFactsMatchArtifact(" "$path" &&
         grep -Fq -- "func SemanticAstEnumVariantNameAt(" "$path" &&
         grep -Fq -- "func SemanticAstEnumVariantParamCountAt(" "$path"
@@ -123,9 +125,11 @@ check_enum_owner_copy() {
 
 check_nominal_owner_copy() {
     local path="$1"
-    grep -Eq -- '^    names: Array<String>;$' "$path" &&
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Eq -- '^    names: Array<String>;$' "$path" &&
         grep -Eq -- '^    field_names: Array<String>;$' "$path" &&
         grep -Eq -- '^    param_type_names: Array<String>;$' "$path" &&
+        grep -Fq -- "func SemanticAstNominalConstructorIndexForNode(" "$path" &&
         grep -Fq -- "func SemanticAstNominalConstructorNameAt(" "$path" &&
         grep -Fq -- "func SemanticAstNominalConstructorFieldNameAt(" "$path" &&
         grep -Fq -- "func SemanticAstNominalConstructorFieldTypeAt(" "$path"
@@ -136,6 +140,7 @@ check_role_owner_copy() {
     grep -Eq -- '^    role_node_ids: Array<Int>;$' "$path" &&
         grep -Eq -- '^    target_type_names: Array<String>;$' "$path" &&
         grep -Eq -- '^    method_node_ids: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstRoleIndexForNode(" "$path" &&
         grep -Fq -- "func SemanticAstRoleAncestorNodeId(" "$path" &&
         grep -Fq -- "func SemanticAstRoleMethodNodeAt(" "$path" &&
         grep -Fq -- "func SemanticAstRoleFactsMatchArtifact(" "$path"
@@ -238,6 +243,7 @@ for term in \
     "Theorem current_type_runtime_usage_rung_closed" \
     "Theorem current_kind_runtime_usage_rung_closed" \
     "Theorem current_entrypoint_selection_rung_closed" \
+    "Theorem current_declaration_routing_rung_closed" \
     "Theorem current_statement_routing_rung_closed" \
     "Theorem owned_plus_fallback_bridge_is_not_closed" \
     "Theorem try_owner_plus_text_fallback_is_not_closed" \
@@ -249,6 +255,7 @@ for term in \
     "Theorem type_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem kind_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem entrypoint_owner_plus_ast_fallback_is_not_closed" \
+    "Theorem declaration_routing_owner_plus_ast_fallback_is_not_closed" \
     "Theorem statement_routing_owner_plus_ast_fallback_is_not_closed" \
     "Theorem duplicate_semantic_producer_is_not_closed" \
     "Theorem missing_required_fact_is_not_closed"; do
@@ -265,6 +272,7 @@ require_text "$PROOF" "FExpressionRuntimeUsageSurface"
 require_text "$PROOF" "FTypeRuntimeUsageSurface"
 require_text "$PROOF" "FKindRuntimeUsageSurface"
 require_text "$PROOF" "FEntrypointSelection"
+require_text "$PROOF" "FFunctionDeclarationRows"
 require_text "$PROOF" "FLocalBindingStatementRouting"
 require_text "$PROOF" "FAssignmentStatementRouting"
 require_text "$PROOF" "FStatementKindRouting"
@@ -286,6 +294,7 @@ require_text "$PROOF" "CNominalEmitter"
 require_text "$PROOF" "CRoleOperatorEmitter"
 require_text "$PROOF" "CRuntimeUsageProjection"
 require_text "$PROOF" "CProgramEntrypointProjection"
+require_text "$PROOF" "CDeclarationRoutingEmitter"
 require_text "$PROOF" "CStatementRoutingEmitter"
 require_text "$PROOF" "OCodegenTextRecovery"
 
@@ -356,8 +365,17 @@ reject_text "$ENTRYPOINT_VERDICT_CONSUMER" \
     "func SemanticAstArtifactIsMainFunction"
 require_text "$ENTRYPOINT_PROJECTION_CONSUMER" \
     "func CodegenSemanticSelectedFunctionNode("
+require_text "$ENTRYPOINT_PROJECTION_CONSUMER" \
+    "func CodegenSemanticFunctionIs("
 require_text "$PROGRAM_EMITTER" "CodegenSemanticSelectedFunctionNode("
 reject_text "$PROGRAM_EMITTER" "CodegenAstArenaIsMainFunction"
+require_text "$NOMINAL_CONSUMER" "func CodegenSemanticNominalIs("
+require_text "$ROLE_CONSUMER" "func CodegenSemanticRoleIs("
+require_text "$ENUM_CONSUMER" "func CodegenSemanticEnumIs("
+require_text "$PROGRAM_EMITTER" "CodegenSemanticFunctionIs("
+require_text "$PROGRAM_EMITTER" "CodegenSemanticNominalIs("
+require_text "$PROGRAM_EMITTER" "CodegenSemanticRoleIs("
+require_text "$PROGRAM_EMITTER" "CodegenSemanticEnumIs("
 require_text "$LOCAL_ROUTING_CONSUMER" "func CodegenSemanticLocalBindingIs("
 require_text "$ASSIGNMENT_ROUTING_CONSUMER" "func CodegenSemanticAssignmentIs("
 require_text "$STATEMENT_ROUTING_CONSUMER" "func CodegenSemanticStatementIs("
@@ -401,6 +419,15 @@ for fallback in \
     "SemanticAstArtifactIsMainFunction" \
     "CodegenAstArenaIsMainFunction"; do
     reject_text "$ENTRYPOINT_VERDICT_CONSUMER" "$fallback"
+    reject_text "$PROGRAM_EMITTER" "$fallback"
+done
+for fallback in \
+    "CodegenAstArenaIsFunction" \
+    "CodegenAstArenaIsNominalDecl" \
+    "CodegenAstArenaIsRoleDecl" \
+    "CodegenAstArenaIsEnumDecl"; do
+    reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" \
+        "$fallback"
     reject_text "$PROGRAM_EMITTER" "$fallback"
 done
 for fallback in \
@@ -505,6 +532,46 @@ mv "$tmp_dir/statement_routing_owner_missing.next" \
     "$tmp_dir/statement_routing_owner_missing.pgy"
 if check_statement_routing_owner_copy "$tmp_dir/statement_routing_owner_missing.pgy"; then
     fail "missing statement-routing owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$SIGNATURE_OWNER" "$tmp_dir/function_routing_owner_missing.pgy"
+sed 's/^    function_node_ids: Array<Int>;/    removed_function_node_ids: Array<Int>;/' \
+    "$tmp_dir/function_routing_owner_missing.pgy" \
+    >"$tmp_dir/function_routing_owner_missing.next"
+mv "$tmp_dir/function_routing_owner_missing.next" \
+    "$tmp_dir/function_routing_owner_missing.pgy"
+if check_signature_owner_copy "$tmp_dir/function_routing_owner_missing.pgy"; then
+    fail "missing function-routing identity mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$ENUM_OWNER" "$tmp_dir/enum_routing_owner_missing.pgy"
+sed 's/^    node_ids: Array<Int>;/    removed_node_ids: Array<Int>;/' \
+    "$tmp_dir/enum_routing_owner_missing.pgy" \
+    >"$tmp_dir/enum_routing_owner_missing.next"
+mv "$tmp_dir/enum_routing_owner_missing.next" \
+    "$tmp_dir/enum_routing_owner_missing.pgy"
+if check_enum_owner_copy "$tmp_dir/enum_routing_owner_missing.pgy"; then
+    fail "missing enum-routing identity mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$NOMINAL_OWNER" "$tmp_dir/nominal_routing_owner_missing.pgy"
+sed 's/^    node_ids: Array<Int>;/    removed_node_ids: Array<Int>;/' \
+    "$tmp_dir/nominal_routing_owner_missing.pgy" \
+    >"$tmp_dir/nominal_routing_owner_missing.next"
+mv "$tmp_dir/nominal_routing_owner_missing.next" \
+    "$tmp_dir/nominal_routing_owner_missing.pgy"
+if check_nominal_owner_copy "$tmp_dir/nominal_routing_owner_missing.pgy"; then
+    fail "missing nominal-routing identity mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$ROLE_OWNER" "$tmp_dir/role_routing_owner_missing.pgy"
+sed 's/^    role_node_ids: Array<Int>;/    removed_role_node_ids: Array<Int>;/' \
+    "$tmp_dir/role_routing_owner_missing.pgy" \
+    >"$tmp_dir/role_routing_owner_missing.next"
+mv "$tmp_dir/role_routing_owner_missing.next" \
+    "$tmp_dir/role_routing_owner_missing.pgy"
+if check_role_owner_copy "$tmp_dir/role_routing_owner_missing.pgy"; then
+    fail "missing role-routing identity mutation was not rejected"
 fi
 
 cp "$ROOT_DIR/$ENUM_OWNER" "$tmp_dir/enum_owner_missing.pgy"

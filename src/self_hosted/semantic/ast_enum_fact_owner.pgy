@@ -7,6 +7,7 @@ import "delimited_range_fact_owner.pgy";
 struct SemanticAstEnumFacts {
     ok: Bool;
     artifact_node_count: Int;
+    node_ids: Array<Int>;
     enum_names: Array<String>;
     variant_enum_names: Array<String>;
     variant_names: Array<String>;
@@ -16,6 +17,7 @@ struct SemanticAstEnumFacts {
 func SemanticAstEnumFactsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstEnumFacts {
+    let node_ids: Array<Int> = [];
     let enum_names: Array<String> = [];
     let variant_enum_names: Array<String> = [];
     let variant_names: Array<String> = [];
@@ -43,6 +45,7 @@ func SemanticAstEnumFactsFromArtifact(
                     SemanticDelimitedRangeCount(variants) == 0 {
                     ok = false;
                 } else {
+                    ArrayPush(node_ids, node_id);
                     ArrayPush(enum_names, enum_name);
                     let variant_index: Int = 0;
                     while variant_index < SemanticDelimitedRangeCount(variants) && ok {
@@ -85,7 +88,7 @@ func SemanticAstEnumFactsFromArtifact(
         node_id = node_id + 1;
     }
     return SemanticAstEnumFacts(
-        ok, artifact.count, enum_names, variant_enum_names, variant_names,
+        ok, artifact.count, node_ids, enum_names, variant_enum_names, variant_names,
         variant_param_counts
     );
 }
@@ -141,7 +144,20 @@ func SemanticAstEnumExpressionType(
 }
 
 func SemanticAstEnumCount(facts: SemanticAstEnumFacts) -> Int {
-    return ArrayLength(facts.enum_names);
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstEnumIndexForNode(
+    facts: SemanticAstEnumFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstEnumCount(facts) {
+        if facts.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
 }
 
 func SemanticAstEnumIndexForName(
@@ -248,6 +264,8 @@ func SemanticAstEnumFactsMatchArtifact(
         SemanticAstEnumFactsFromArtifact(artifact);
     if !facts.ok || !rebuilt.ok ||
         facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.node_ids) != ArrayLength(facts.enum_names) ||
+        ArrayLength(facts.node_ids) != ArrayLength(rebuilt.node_ids) ||
         ArrayLength(facts.enum_names) != ArrayLength(rebuilt.enum_names) ||
         ArrayLength(facts.variant_enum_names) !=
             ArrayLength(rebuilt.variant_enum_names) ||
@@ -258,7 +276,8 @@ func SemanticAstEnumFactsMatchArtifact(
     }
     let i: Int = 0;
     while i < ArrayLength(facts.enum_names) {
-        if facts.enum_names[i] != rebuilt.enum_names[i] {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.enum_names[i] != rebuilt.enum_names[i] {
             return false;
         }
         i = i + 1;

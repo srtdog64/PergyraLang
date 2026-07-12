@@ -99,6 +99,19 @@ func SemanticAstRoleCount(facts: SemanticAstRoleFacts) -> Int {
     return ArrayLength(facts.role_node_ids);
 }
 
+func SemanticAstRoleIndexForNode(
+    facts: SemanticAstRoleFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstRoleCount(facts) {
+        if facts.role_node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
 func SemanticAstRoleNameAt(
     facts: SemanticAstRoleFacts,
     role_index: Int

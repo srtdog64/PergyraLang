@@ -3,6 +3,13 @@
 import "../../semantic/ast_signature_fact_owner.pgy";
 import "ast_arena_codegen_view_owner.pgy";
 
+func CodegenSemanticFunctionIs(
+    facts: SemanticAstFunctionSignatureFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstFunctionSignatureIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticSignatureIndexOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     function_node_id: Int

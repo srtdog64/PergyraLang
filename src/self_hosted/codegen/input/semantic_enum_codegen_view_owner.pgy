@@ -2,6 +2,13 @@
 
 import "../../semantic/ast_enum_fact_owner.pgy";
 
+func CodegenSemanticEnumIs(
+    facts: SemanticAstEnumFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstEnumIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticEnumNameAtOrDie(
     facts: SemanticAstEnumFacts,
     index: Int

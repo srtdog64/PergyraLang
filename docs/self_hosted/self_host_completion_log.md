@@ -6,6 +6,21 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-13 - Top-level declaration routing becomes semantic-owned
+
+- Added declaration `NodeId` identity to enum facts and fail-closed node lookup
+  accessors for enum, nominal, and role owners. Function identity reuses the
+  existing semantic signature rows rather than introducing a routing alias.
+- Repointed `program_emit.pgy` so function, nominal, role, and enum routing
+  consumes those semantic owners. Deleted the four corresponding codegen arena
+  predicates; ability and event remain explicit active seams.
+- Proved a bounded four-owner declaration-routing model in `SoTAuthority.v`.
+  The model rejects an owner-plus-AST fallback, while the live adequacy gate
+  mutation-tests removal of each declaration identity row.
+- Verified the component contract, seven focused C/LLVM declaration fixtures,
+  payload-enum fail-closed behavior, and role-operator parity. The owner spine
+  is now 28 rows: `CLOSED=13 BRIDGE=6 ACTIVE=9`.
+
 ## 2026-07-11 - Readonly ref carriage and 250-source M2 closure
 
 - Added readonly `ref` parameter consumption to the self-host C emitter. The

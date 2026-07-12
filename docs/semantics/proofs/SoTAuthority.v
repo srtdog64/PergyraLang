@@ -21,6 +21,7 @@ Inductive Fact : Type :=
   | FTypeRuntimeUsageSurface
   | FKindRuntimeUsageSurface
   | FEntrypointSelection
+  | FFunctionDeclarationRows
   | FLocalBindingStatementRouting
   | FAssignmentStatementRouting
   | FStatementKindRouting
@@ -53,6 +54,7 @@ Inductive Consumer : Type :=
   | CRoleOperatorEmitter
   | CRuntimeUsageProjection
   | CProgramEntrypointProjection
+  | CDeclarationRoutingEmitter
   | CStatementRoutingEmitter.
 
 Inductive ReadKind : Type :=
@@ -143,6 +145,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FTypeRuntimeUsageSurface => SemanticFact
   | FKindRuntimeUsageSurface => SemanticFact
   | FEntrypointSelection => SemanticFact
+  | FFunctionDeclarationRows => SemanticFact
   | FLocalBindingStatementRouting => SemanticFact
   | FAssignmentStatementRouting => SemanticFact
   | FStatementKindRouting => SemanticFact
@@ -161,6 +164,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FTypeRuntimeUsageSurface => OSemanticTypeSurfaceFacts
   | FKindRuntimeUsageSurface => OSemanticKindSurfaceFacts
   | FEntrypointSelection => OSemanticSignatureFacts
+  | FFunctionDeclarationRows => OSemanticSignatureFacts
   | FLocalBindingStatementRouting => OSemanticLocalBindingFacts
   | FAssignmentStatementRouting => OSemanticAssignmentFacts
   | FStatementKindRouting => OSemanticStatementFacts
@@ -189,6 +193,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticKindSurfaceFacts FKindRuntimeUsageSurface
   | CurrentEntrypointSelectionProducer :
       current_produces OSemanticSignatureFacts FEntrypointSelection
+  | CurrentFunctionDeclarationProducer :
+      current_produces OSemanticSignatureFacts FFunctionDeclarationRows
   | CurrentLocalBindingStatementRoutingProducer :
       current_produces OSemanticLocalBindingFacts FLocalBindingStatementRouting
   | CurrentAssignmentStatementRoutingProducer :
@@ -757,6 +763,95 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive declaration_routing_requires : Consumer -> Fact -> Prop :=
+  | DeclarationRoutingRequiresFunction :
+      declaration_routing_requires CDeclarationRoutingEmitter
+        FFunctionDeclarationRows
+  | DeclarationRoutingRequiresNominal :
+      declaration_routing_requires CDeclarationRoutingEmitter
+        FNominalDeclarationRows
+  | DeclarationRoutingRequiresRole :
+      declaration_routing_requires CDeclarationRoutingEmitter
+        FRoleDeclarationRows
+  | DeclarationRoutingRequiresEnum :
+      declaration_routing_requires CDeclarationRoutingEmitter
+        FEnumDeclarationRows.
+
+Inductive declaration_routing_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | DeclarationRoutingFunctionRead :
+      declaration_routing_reads CDeclarationRoutingEmitter
+        OSemanticSignatureFacts FFunctionDeclarationRows OwnedRead
+  | DeclarationRoutingNominalRead :
+      declaration_routing_reads CDeclarationRoutingEmitter
+        OSemanticNominalConstructorFacts FNominalDeclarationRows OwnedRead
+  | DeclarationRoutingRoleRead :
+      declaration_routing_reads CDeclarationRoutingEmitter
+        OSemanticRoleFacts FRoleDeclarationRows OwnedRead
+  | DeclarationRoutingEnumRead :
+      declaration_routing_reads CDeclarationRoutingEmitter
+        OSemanticEnumFacts FEnumDeclarationRows OwnedRead.
+
+Definition declaration_routing_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := declaration_routing_requires;
+     reads := declaration_routing_reads |}.
+
+Theorem current_declaration_routing_rung_closed :
+  RungClosed declaration_routing_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired; constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired;
+          exists OwnedRead; constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread;
+          split; reflexivity.
+Qed.
+
+Inductive declaration_routing_bridge_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | DeclarationRoutingBridgeFunctionRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OSemanticSignatureFacts FFunctionDeclarationRows OwnedRead
+  | DeclarationRoutingBridgeNominalRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OSemanticNominalConstructorFacts FNominalDeclarationRows OwnedRead
+  | DeclarationRoutingBridgeRoleRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OSemanticRoleFacts FRoleDeclarationRows OwnedRead
+  | DeclarationRoutingBridgeEnumRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OSemanticEnumFacts FEnumDeclarationRows OwnedRead
+  | DeclarationRoutingBridgeAstFallbackRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OCodegenTextRecovery FFunctionDeclarationRows FallbackRead.
+
+Definition declaration_routing_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := declaration_routing_requires;
+     reads := declaration_routing_bridge_reads |}.
+
+Theorem declaration_routing_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed declaration_routing_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CDeclarationRoutingEmitter OCodegenTextRecovery
+    FFunctionDeclarationRows FallbackRead
+    DeclarationRoutingBridgeAstFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive statement_routing_requires : Consumer -> Fact -> Prop :=
   | StatementEmitterRequiresLocalBindingRouting :
       statement_routing_requires CStatementRoutingEmitter
@@ -931,6 +1026,7 @@ Inductive SpineFact : Type :=
   | SFTypeRuntimeUsageSurface
   | SFKindRuntimeUsageSurface
   | SFEntrypointSelection
+  | SFFunctionDeclarationRows
   | SFLocalBindingStatementRouting
   | SFAssignmentStatementRouting
   | SFStatementKindRouting.
@@ -988,6 +1084,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
   | SFKindRuntimeUsageSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature
+  | SFFunctionDeclarationRows => SOSemanticSignature
   | SFLocalBindingStatementRouting => SOSemanticLocalBinding
   | SFAssignmentStatementRouting => SOSemanticAssignment
   | SFStatementKindRouting => SOSemanticStatement
@@ -1028,7 +1125,7 @@ Theorem current_model_does_not_claim_future_consumer_coverage :
     c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
     c = CNominalEmitter \/ c = CRoleOperatorEmitter \/
     c = CRuntimeUsageProjection \/ c = CProgramEntrypointProjection \/
-    c = CStatementRoutingEmitter.
+    c = CDeclarationRoutingEmitter \/ c = CStatementRoutingEmitter.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
@@ -1039,5 +1136,6 @@ Proof.
   - right. right. right. right. right. left. reflexivity.
   - right. right. right. right. right. right. left. reflexivity.
   - right. right. right. right. right. right. right. left. reflexivity.
-  - right. right. right. right. right. right. right. right. reflexivity.
+  - right. right. right. right. right. right. right. right. left. reflexivity.
+  - right. right. right. right. right. right. right. right. right. reflexivity.
 Qed.

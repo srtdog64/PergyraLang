@@ -163,6 +163,12 @@ predicates. The statement owner gained `Defer`, `Break`, `Continue`, and
 `MatchDefault`; structural `Else`/`Block`/`Then` traversal remains provenance.
 Twelve representative fixtures pass under C/LLVM-built tools.
 
+Twelfth executable delta, 2026-07-13: top-level function, nominal, role, and
+enum declaration routing now consumes semantic-owned node identity. The four
+codegen arena declaration predicates are deleted; seven declaration fixtures,
+the payload-enum rejection leg, and the role-operator leg pass under C/LLVM-
+built tools.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
@@ -174,9 +180,9 @@ than inheriting a global proof claim.
 
 Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
 have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
-The registry now carries 15 architectural rows plus twelve bounded self-host
+The registry now carries 15 architectural rows plus thirteen bounded self-host
 closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
-honestly split into `CLOSED=12 BRIDGE=6 ACTIVE=9`; only executable rung closure
+honestly split into `CLOSED=13 BRIDGE=6 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 
