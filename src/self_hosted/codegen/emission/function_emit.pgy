@@ -4,7 +4,7 @@
 
 import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
-import "../input/ast_text_enum_variant_owner.pgy";
+import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/ast_text_declaration_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -353,27 +353,30 @@ func CollectStructs(count: Int, arena: AstArena, inout env_box: Array<String>) -
     return StringJoin(typedefs, "");
 }
 
-func CollectEnums(count: Int, arena: AstArena, inout env_box: Array<String>) -> String {
+func CollectEnums(
+    facts: SemanticAstEnumFacts,
+    inout env_box: Array<String>
+) -> String {
     let blocks: Array<String> = [];
     let env_rows: Array<String> = [];
     let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaIsEnumDecl(arena, i) {
-            let ename: String = CodegenAstArenaEnumNameOrDie(arena, i);
-            let variant_total: Int = CodegenAstArenaEnumVariantCount(arena, i);
-            let value: Int = 0;
-            let enum_rows: Array<String> = ["enum {\n"];
-            ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
-            while value < variant_total {
-                let part: String = CodegenAstArenaEnumVariantNameAt(arena, i, value);
-                let cname: String = CompilerSymbolCEnumVariantName(ename, part);
-                ArrayPush(enum_rows, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
-                ArrayPush(env_rows, Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|"))))));
-                value = value + 1;
-            }
-            ArrayPush(enum_rows, "};\n\n");
-            ArrayPush(blocks, StringJoin(enum_rows, ""));
+    while i < SemanticAstEnumCount(facts) {
+        let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
+        let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
+        let value: Int = 0;
+        let enum_rows: Array<String> = ["enum {\n"];
+        ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
+        while value < variant_total {
+            let part: String = CodegenSemanticEnumVariantNameAtOrDie(
+                facts, ename, value
+            );
+            let cname: String = CompilerSymbolCEnumVariantName(ename, part);
+            ArrayPush(enum_rows, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
+            ArrayPush(env_rows, Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|"))))));
+            value = value + 1;
         }
+        ArrayPush(enum_rows, "};\n\n");
+        ArrayPush(blocks, StringJoin(enum_rows, ""));
         i = i + 1;
     }
     if ArrayLength(env_rows) > 0 {

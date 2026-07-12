@@ -161,9 +161,9 @@ construction and parent/indent/child projection into the typed `AstArena`.
 `CodegenTypedAstBridgeReady` fail-closed view consumed before emission.
 `input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
-`input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum
-variant-list facts. The typed arena stores the declaration aux payload, but enum
-variant splitting is not a projection responsibility.
+`../semantic/ast_enum_fact_owner.pgy` owns enum names, ordered variants, and
+payload arity. `input/semantic_enum_codegen_view_owner.pgy` projects the
+payload-free subset fail-closed; codegen does not read or split enum aux text.
 `input/semantic_try_let_codegen_view_owner.pgy` consumes semantic-owned
 try-operand rows. Try syntax recognition belongs to
 `../semantic/try_expression_fact_owner.pgy`; codegen cannot recover that fact
@@ -238,3 +238,8 @@ text with that parser, runs this tool to emit C, compiles the emitted C, and
 compares the resulting program stdout with the committed expected output. The
 expected output is guarded against drift by re-running the original fixture
 through the C backend oracle.
+
+The same TestHarness manifest owns a payload-enum reject source and its expected
+diagnostic artifact. Both C-built and LLVM-built tools must exit non-zero and
+match that artifact through the Pergyra output comparator; accepting the input,
+dropping payload arity, or recovering it from enum aux text fails this gate.

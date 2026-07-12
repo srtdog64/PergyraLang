@@ -89,8 +89,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 5 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 5 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 7 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 7 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -99,8 +99,10 @@ PARSER_SOURCE="$ROOT_DIR/${harness_paths[1]}"
 COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"
 FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"
 EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"
+REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"
+REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"
 
-for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE"; do
+for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" "$REJECT_SOURCE" "$REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -538,6 +540,52 @@ run_tool_backend() {
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"
 }
 
+run_payload_enum_reject() {
+    local backend="$1"
+    local tool_bin="$2"
+    local base="enum_payload_reject"
+    local ast_rel="$REL_BUILD/${base}.ast"
+    local ast_file="$ROOT_DIR/$ast_rel"
+    local ast_raw="$ast_file.raw"
+    local ast_err="$ast_file.err"
+    local reject_raw="$ABS_BUILD/${base}_${backend}.out.raw"
+    local reject_norm="$ABS_BUILD/${base}_${backend}.out"
+    local reject_err="$ABS_BUILD/${base}_${backend}.err"
+    local reject_source_rel
+    local reject_rc
+
+    reject_source_rel="$(path_relative_to_root "$REJECT_SOURCE")"
+    if ! run_native_capture "$ROOT_DIR" "$ast_raw" "$ast_err" "$PARSER_BIN" "$reject_source_rel"; then
+        echo "[self-host-parity:codegen] backend=$backend payload enum: self-parser AST failed" >&2
+        cat "$ast_err" >&2
+        exit 1
+    fi
+    tr -d '\r' < "$ast_raw" > "$ast_file"
+    if [[ ! -s "$ast_file" ]]; then
+        echo "[self-host-parity:codegen] backend=$backend payload enum: empty self-parser AST output" >&2
+        exit 1
+    fi
+
+    set +e
+    run_native_capture "$ROOT_DIR" "$reject_raw" "$reject_err" "$tool_bin" "$ast_rel"
+    reject_rc="$?"
+    set -e
+    tr -d '\r' < "$reject_raw" > "$reject_norm"
+    if [[ "$reject_rc" -eq 0 ]]; then
+        echo "[self-host-parity:codegen] backend=$backend payload enum: codegen accepted unsupported payload" >&2
+        cat "$reject_norm" "$reject_err" >&2
+        exit 1
+    fi
+
+    compare_run_output_with_owner "$backend" "$base" "$REJECT_EXPECTED" "$reject_norm" 2
+    if [[ -s "$reject_err" ]]; then
+        echo "[self-host-parity:codegen] backend=$backend payload enum: diagnostic leaked to stderr" >&2
+        cat "$reject_err" >&2
+        exit 1
+    fi
+    echo "[self-host-parity:codegen] backend=$backend payload enum fail-closed"
+}
+
 run_oracle_drift_checks() {
     local pids=()
     local base
@@ -576,6 +624,7 @@ for backend in $BACKENDS; do
         exit "$compile_rc"
     fi
     run_tool_backend "$backend" "$tool_bin"
+    run_payload_enum_reject "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done
 

@@ -1,6 +1,6 @@
 # Parser -- Intent / Contract
 
-**Status:** *rung-1 expanding* (2026-06-18). Pergyra-written parser
+**Status:** *rung-1 expanding* (2026-07-13). Pergyra-written parser
 substitute for a subset of the C-side `src/parser/`. It lexes + parses a
 growing subset of Pergyra source and emits the same compact text tree
 `pgy --ast` produces, byte-for-byte.
@@ -60,6 +60,9 @@ parity and the examples scale probe.
     `struct`, `object`, `tobject`, `type` aliases/record aliases, `enum`,
     `namespace`, `event`, `ability`, `role`/`impl`, `party`, `roster`, `world`,
     `zone`, and `intent ... with retry(n)` metadata.
+  - enum compact AST preserves ordered variant parameter types, including
+    multiple parameters, so semantic payload arity is not reconstructed or
+    silently erased after parsing.
   - imports with source-relative recursive parse and import graph de-duplication
     through `source_path_owner.pgy`, plus common declaration methods/actions and
     nested generic type names, including simple `impl T`, `any T`,
@@ -94,7 +97,8 @@ Current measured coverage:
 - `parser_parity.sh`: 188 source/fixture rows byte-equal on both generated C
   and LLVM parser binaries. The compiled parser owner emits the manifest,
   including external `examples/hello.pgy` and duplicate
-  `generic_class` coverage.
+  `generic_class` coverage. The 2026-07-13 run includes payload-preserving
+  `enum_data` and `tagged_union` rows with native live-drift enabled.
 - `parser_scale_probe.sh --failing`: 120 of 121 `examples/*.pgy` byte-equal
   against live `pgy --ast`; zero byte-drift, zero self-host parser exits, and 1
   C-oracle skip (`secure_slots`).

@@ -1,5 +1,5 @@
 Program:
-  Enum: Shape { Circle, Rect, None }
+  Enum: Shape { Circle(Int), Rect(Int, Int), None }
   Function: Main
     Parameters:
     Returns: Void
@@ -12,4 +12,3 @@ Program:
         Log(r.Rect._1)
         Let: x : Shape = Circle(7)
         Log(x.Circle._0)
-

@@ -26,13 +26,6 @@ func CodegenAstArenaRoleTargetTypeNameOrDie(arena: AstArena, node_id: Int) -> St
     return CodegenAstArenaTypeNameOrDie(arena, node_id);
 }
 
-func CodegenAstArenaEnumNameOrDie(arena: AstArena, node_id: Int) -> String {
-    if !CodegenAstArenaIsEnumDecl(arena, node_id) {
-        Die(Concat("expected enum declaration at typed AST node: ", ToString(node_id)));
-    }
-    return CodegenAstArenaAtomOrDie(arena, node_id);
-}
-
 func CodegenAstArenaIsFieldRow(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFieldTag());
 }

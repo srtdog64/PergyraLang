@@ -108,3 +108,141 @@ func SemanticAstEnumExpressionType(
     }
     return None;
 }
+
+func SemanticAstEnumCount(facts: SemanticAstEnumFacts) -> Int {
+    return ArrayLength(facts.enum_names);
+}
+
+func SemanticAstEnumIndexForName(
+    facts: SemanticAstEnumFacts,
+    enum_name: String
+) -> Option<Int> {
+    if !facts.ok {
+        return None;
+    }
+    let i: Int = 0;
+    while i < SemanticAstEnumCount(facts) {
+        if facts.enum_names[i] == enum_name {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstEnumNameAt(
+    facts: SemanticAstEnumFacts,
+    index: Int
+) -> Option<String> {
+    if !facts.ok || index < 0 || index >= SemanticAstEnumCount(facts) {
+        return None;
+    }
+    return Some(facts.enum_names[index]);
+}
+
+func SemanticAstEnumVariantCountForName(
+    facts: SemanticAstEnumFacts,
+    enum_name: String
+) -> Option<Int> {
+    if !IsSome(SemanticAstEnumIndexForName(facts, enum_name)) {
+        return None;
+    }
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(facts.variant_names) {
+        if facts.variant_enum_names[i] == enum_name {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return Some(count);
+}
+
+func SemanticAstEnumVariantRowIndex(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    index: Int
+) -> Option<Int> {
+    if !facts.ok || index < 0 ||
+        !IsSome(SemanticAstEnumIndexForName(facts, enum_name)) {
+        return None;
+    }
+    let seen: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(facts.variant_names) {
+        if facts.variant_enum_names[i] == enum_name {
+            if seen == index {
+                return Some(i);
+            }
+            seen = seen + 1;
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstEnumVariantNameAt(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    index: Int
+) -> Option<String> {
+    let row: Option<Int> = SemanticAstEnumVariantRowIndex(
+        facts, enum_name, index
+    );
+    if !IsSome(row) {
+        return None;
+    }
+    return Some(facts.variant_names[UnwrapOption(row)]);
+}
+
+func SemanticAstEnumVariantParamCountAt(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    index: Int
+) -> Option<Int> {
+    let row: Option<Int> = SemanticAstEnumVariantRowIndex(
+        facts, enum_name, index
+    );
+    if !IsSome(row) {
+        return None;
+    }
+    return Some(facts.variant_param_counts[UnwrapOption(row)]);
+}
+
+func SemanticAstEnumFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstEnumFacts
+) -> Bool {
+    let rebuilt: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.enum_names) != ArrayLength(rebuilt.enum_names) ||
+        ArrayLength(facts.variant_enum_names) !=
+            ArrayLength(rebuilt.variant_enum_names) ||
+        ArrayLength(facts.variant_names) != ArrayLength(rebuilt.variant_names) ||
+        ArrayLength(facts.variant_param_counts) !=
+            ArrayLength(rebuilt.variant_param_counts) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(facts.enum_names) {
+        if facts.enum_names[i] != rebuilt.enum_names[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    let variant_index: Int = 0;
+    while variant_index < ArrayLength(facts.variant_names) {
+        if facts.variant_enum_names[variant_index] !=
+                rebuilt.variant_enum_names[variant_index] ||
+            facts.variant_names[variant_index] !=
+                rebuilt.variant_names[variant_index] ||
+            facts.variant_param_counts[variant_index] !=
+                rebuilt.variant_param_counts[variant_index] {
+            return false;
+        }
+        variant_index = variant_index + 1;
+    }
+    return true;
+}

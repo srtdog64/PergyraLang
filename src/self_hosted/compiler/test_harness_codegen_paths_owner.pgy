@@ -27,8 +27,16 @@ func CompilerHarnessCodegenExpectedDirPath() -> String {
     return "src/self_hosted/codegen/expected";
 }
 
+func CompilerHarnessCodegenRejectSourcePath() -> String {
+    return "src/self_hosted/codegen/reject_fixture/enum_payload.pgy";
+}
+
+func CompilerHarnessCodegenRejectExpectedPath() -> String {
+    return "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt";
+}
+
 func CompilerHarnessCodegenPathCount() -> Int {
-    return 5;
+    return 7;
 }
 
 func CompilerHarnessCodegenPathAt(index: Int) -> String {
@@ -37,11 +45,13 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 2 { return CompilerHarnessCodegenComparatorSourcePath(); }
     if index == 3 { return CompilerHarnessCodegenFixtureDirPath(); }
     if index == 4 { return CompilerHarnessCodegenExpectedDirPath(); }
+    if index == 5 { return CompilerHarnessCodegenRejectSourcePath(); }
+    if index == 6 { return CompilerHarnessCodegenRejectExpectedPath(); }
     return "";
 }
 
 func CompilerHarnessCodegenParityReady() -> Bool {
-    if CompilerHarnessCodegenPathCount() != 5 {
+    if CompilerHarnessCodegenPathCount() != 7 {
         return false;
     }
     let i: Int = 0;

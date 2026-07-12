@@ -47,7 +47,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_ability_owner.pgy` -- ability declarations.
 - `src/self_hosted/parser/decl_dispatch_owner.pgy` -- top-level declaration dispatch.
 - `src/self_hosted/parser/decl_effect_relation_owner.pgy` -- effect and relation declarations.
-- `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations.
+- `src/self_hosted/parser/decl_enum_owner.pgy` -- enum declarations and
+  canonical variant parameter-type preservation.
 - `src/self_hosted/parser/decl_event_owner.pgy` -- event declarations.
 - `src/self_hosted/parser/decl_intent_owner.pgy` -- intent declarations.
 - `src/self_hosted/parser/decl_nominal_owner.pgy` -- class/subject/object/tobject/vessel declarations.
@@ -228,7 +229,7 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned array-literal body facts into top-level emission items.
-- `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
+- `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
 - `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.
 - `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned try-let operand facts.
@@ -430,6 +431,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/fixture_manifest_owner.pgy` -- committed codegen
   parity fixture frontier shared by codegen parity, MIR parity, and driver
   artifact rungs.
+- `src/self_hosted/codegen/reject_fixture/enum_payload.pgy` -- TestHarness-owned
+  negative codegen artifact paired with the committed payload-enum diagnostic;
+  it proves unsupported payload arity fails closed under C/LLVM tool parity.
 - `src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy` -- local,
   parameter, and loop source-reference rewrite from `type_env` `cbind` rows.
 - `src/self_hosted/compiler/stage_artifact_owner.pgy` -- stage artifact

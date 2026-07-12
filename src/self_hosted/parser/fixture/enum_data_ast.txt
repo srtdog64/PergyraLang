@@ -1,9 +1,8 @@
 Program:
-  Enum: Shape { Circle, Rect, None }
+  Enum: Shape { Circle(Int), Rect(Int, Int), None }
   Function: Main
     Parameters:
     Returns: Void
     Body:
       Block:
         Log("ok")
-

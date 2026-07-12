@@ -57,17 +57,18 @@ artifact.zone | artifact | ArtifactId | SFBackendArtifact | SOArtifactZone | src
 compatibility.evolution | compatibility | CompatibilitySurfaceId | SFCompatibilityEvolution | SOCompatibilityEvolution | src/self_hosted/compiler/compatibility_evolution_owner.pgy | CompilerCompatibilityEvolutionReady | src/self_hosted/tools/compatibility_evolution_checker/report_owner.pgy,src/compiler/driver_diag.c | local_compatibility_list,warning_without_migration_metadata | tests/self_hosted/parity/compatibility_evolution_manifest_parity.sh#parity ok | ACTIVE | native_diagnostic_ABI_trace_and_package_gates_do_not_all_consume_the_rows
 selfhost.initializer_expression_shape | semantic | SyntaxNodeId | SFInitializerExpressionShape | SOSemanticLocalBinding | src/self_hosted/semantic/ast_local_binding_fact_owner.pgy | SemanticAstLocalBindingFacts | src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy,src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy | StringTrim(,CharAt(,TypedAstArenaValueText,CodegenAstArenaValueOrDie,ContainsOutsideStrings(,FindMatchingParen( | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.collection_mutation_statement | semantic | SyntaxNodeId | SFCollectionMutationStatement | SOSemanticStatement | src/self_hosted/semantic/ast_statement_fact_owner.pgy | SemanticAstStatementFacts | src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy | TypedAstArenaAtomText,TypedAstArenaValueText,TypedAstArenaAuxValueText,ast_text_collection_stmt_owner.pgy,StringTrim( | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
+selfhost.enum_declaration_rows | semantic | SyntaxNodeId | SFEnumDeclarationRows | SOSemanticEnum | src/self_hosted/semantic/ast_enum_fact_owner.pgy | SemanticAstEnumFacts | src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy,src/self_hosted/codegen/emission/function_emit.pgy | TypedAstArenaAuxValueText,ExprSequenceItemCount,ExprSequenceItemAt,ast_text_enum_variant_owner.pgy,CodegenAstArenaEnumNameOrDie,CodegenAstArenaEnumVariantCount,CodegenAstArenaEnumVariantNameAt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 ```
 <!-- END sot-owner-spine-registry -->
 
 ## Current Judgment
 
 The owner outline is complete for the listed compiler spine, but implementation
-closure is not. There are two `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
+closure is not. There are three `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
 rows. The exact counts are gate-owned and must change only when a row gains or
 loses the evidence required by its status.
 
-Current status counts: `CLOSED=2 BRIDGE=6 ACTIVE=9`.
+Current status counts: `CLOSED=3 BRIDGE=6 ACTIVE=9`.
 
 The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact

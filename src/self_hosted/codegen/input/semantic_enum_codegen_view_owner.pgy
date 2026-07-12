@@ -1,0 +1,52 @@
+// Fail-closed codegen view over semantic-owned enum declaration facts.
+
+import "../../semantic/ast_enum_fact_owner.pgy";
+
+func CodegenSemanticEnumNameAtOrDie(
+    facts: SemanticAstEnumFacts,
+    index: Int
+) -> String {
+    let name: Option<String> = SemanticAstEnumNameAt(facts, index);
+    if !IsSome(name) {
+        Die(Concat("semantic enum index out of bounds: ", ToString(index)));
+    }
+    return UnwrapOption(name);
+}
+
+func CodegenSemanticEnumVariantCount(
+    facts: SemanticAstEnumFacts,
+    enum_name: String
+) -> Int {
+    let count: Option<Int> = SemanticAstEnumVariantCountForName(
+        facts, enum_name
+    );
+    if !IsSome(count) {
+        Die(Concat("semantic enum is missing: ", enum_name));
+    }
+    return UnwrapOption(count);
+}
+
+func CodegenSemanticEnumVariantNameAtOrDie(
+    facts: SemanticAstEnumFacts,
+    enum_name: String,
+    index: Int
+) -> String {
+    let name: Option<String> = SemanticAstEnumVariantNameAt(
+        facts, enum_name, index
+    );
+    let param_count: Option<Int> = SemanticAstEnumVariantParamCountAt(
+        facts, enum_name, index
+    );
+    if !IsSome(name) || !IsSome(param_count) {
+        Die(Concat("semantic enum variant index out of bounds: ", ToString(index)));
+    }
+    let resolved_name: String = UnwrapOption(name);
+    let resolved_param_count: Int = UnwrapOption(param_count);
+    if resolved_param_count != 0 {
+        Die(Concat(
+            "payload enum variants are not supported in self-host codegen subset: ",
+            resolved_name
+        ));
+    }
+    return resolved_name;
+}

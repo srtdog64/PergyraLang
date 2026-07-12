@@ -1,0 +1,8 @@
+enum Token {
+    Number(Int),
+    End
+}
+
+func Main() -> Void {
+    Log(0);
+}

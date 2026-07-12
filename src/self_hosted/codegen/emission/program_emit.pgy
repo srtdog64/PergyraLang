@@ -275,7 +275,7 @@ func GenerateCUnitFromSemanticArtifact(
         f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
     }
     let env_acc: Array<String> = [BuildFunctionEnv(signatures)];
-    let enum_block: String = CollectEnums(count, arena, env_acc);
+    let enum_block: String = CollectEnums(semantic_analysis.enums, env_acc);
     let typedef_block: String = CollectStructs(count, arena, env_acc);
     CollectRoleOperators(count, arena, signatures, env_acc);
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");

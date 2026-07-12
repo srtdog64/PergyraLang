@@ -881,7 +881,7 @@ require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_arena_codegen_view_owner.pgy" \
     "input/semantic_array_literal_codegen_view_owner.pgy" \
-    "input/ast_text_enum_variant_owner.pgy" \
+    "input/semantic_enum_codegen_view_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
     "input/ast_text_declaration_owner.pgy" \
     "input/semantic_try_let_codegen_view_owner.pgy" \
@@ -2443,6 +2443,8 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "local_bi
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "constructors: SemanticAstNominalConstructorFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "assignments: SemanticAstAssignmentFacts;"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "statements: SemanticAstStatementFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "enums: SemanticAstEnumFacts;"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "SemanticAstEnumFactsMatchArtifact("
 require_file "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" "func SemanticAstTypeNameCanonicalContractReady"
@@ -2766,21 +2768,31 @@ require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAst
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAstArenaParentId(arena, i)"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAstArenaIndent(arena, i)"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAstArenaChildAt(arena, 0, 0)"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantPayload"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantCount"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantNameAt"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "struct CodegenEnumVariantPayloadFact"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenAstArenaEnumVariantPayloadFactAt"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "func CodegenEnumVariantPayloadText"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "let payload: Option<String> = CodegenEnumVariantPayloadText(fact)"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemCount"
-require_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemAt"
-reject_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemCount(CodegenAstArenaEnumVariantPayload"
-reject_text "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" "ExprSequenceItemAt(CodegenAstArenaEnumVariantPayload"
-enum_variant_payload_reads="$(grep -c 'TypedAstArenaAuxValueText(arena, node_id)' "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy" || true)"
-[[ "$enum_variant_payload_reads" -eq 1 ]] ||
-    fail "ast_text_enum_variant_owner must read enum-variant payload only in the fact constructor"
+reject_file "src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy"
+require_text "src/parser/ast_print.c" "variant_param_counts"
+require_text "src/parser/ast_print.c" "ast_print_inline("
+require_text "src/self_hosted/parser/decl_enum_owner.pgy" 'import "type_name_owner.pgy";'
+require_text "src/self_hosted/parser/decl_enum_owner.pgy" "let param_type: String = ReadType("
+require_text "src/self_hosted/parser/fixture/enum_data_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
+require_text "src/self_hosted/parser/fixture/tagged_union_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumCount"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumNameAt"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantCountForName"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantNameAt"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantParamCountAt"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumNameAtOrDie"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantCount"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantNameAtOrDie"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "SemanticAstEnumVariantParamCountAt("
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "let resolved_param_count: Int = UnwrapOption(param_count)"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "if resolved_param_count != 0"
+require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "payload enum variants are not supported"
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "facts.variant_names"
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "facts.variant_param_counts"
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "ExprSequenceItemCount"
+reject_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "ExprSequenceItemAt"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextExpectNode"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let expected_kind: Int = CodegenAstTextKindOf(expected)"
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "nodes[cur[0]].kind != expected_kind"
@@ -3012,7 +3024,9 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(count: Int"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums(count: Int, arena: AstArena"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstEnumFacts"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectEnums(semantic_analysis.enums, env_acc)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(signatures: SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"const ", Concat(c_param_type'
@@ -3080,14 +3094,13 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaNominalNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaRoleTargetTypeNameOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldNameOrDie"
 require_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaFieldTypeNameOrDie"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_declaration_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaNominalNameOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleNameOrDie(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaRoleTargetTypeNameOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumNameOrDie(arena, i)"
+reject_text "src/self_hosted/codegen/input/ast_text_declaration_owner.pgy" "func CodegenAstArenaEnumNameOrDie"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldNameOrDie(arena, j)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaFieldTypeNameOrDie(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "owner = CodegenAstArenaAtomOrDie(arena, i)"
@@ -3097,9 +3110,10 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let sname: Str
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let fname: String = CodegenAstArenaAtomOrDie(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ename: String = CodegenAstArenaAtomOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantCount(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaEnumVariantNameAt(arena, i, value)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_text_enum_variant_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticEnumVariantCount(facts, ename)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticEnumVariantNameAtOrDie("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_enum_codegen_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypedAstArenaAuxValueText"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
@@ -3149,7 +3163,8 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstEnumCount(facts)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
@@ -4821,6 +4836,9 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenComparatorSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenFixtureDirPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenExpectedDirPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 7;"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParityReady"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserParitySuiteName"
@@ -6122,6 +6140,15 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'PARSER_SOURCE="$ROOT_
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/${harness_paths[3]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/${harness_paths[4]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
+require_file "src/self_hosted/codegen/reject_fixture/enum_payload.pgy"
+require_file "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"
+require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int)"
+require_text "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt" "payload enum variants are not supported"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "run_payload_enum_reject"
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'if [[ "$reject_rc" -eq 0 ]]'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$REJECT_EXPECTED" "$reject_norm" 2'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$PARSER_BIN" "$src_rel"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$manifest_bin" --fixture-manifest'
@@ -6132,6 +6159,8 @@ reject_text "tests/self_hosted/parity/codegen_parity.sh" 'PARSER_SOURCE="$ROOT_D
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/backend_output_comparator/main.pgy"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'FIXTURE_DIR="$ROOT_DIR/src/self_hosted/codegen/fixture"'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'EXPECTED_DIR="$ROOT_DIR/src/self_hosted/codegen/expected"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_DIR/src/self_hosted/codegen/reject_fixture/enum_payload.pgy"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_binary_is_runnable_here "$bin"'
 require_text "tests/pgy_binary_path_helpers.sh" "pgy_reject_wsl_windows_pgy_parity_mix()"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'pgy_reject_wsl_windows_pgy_parity_mix "self-host-parity:codegen" "$PGY"'

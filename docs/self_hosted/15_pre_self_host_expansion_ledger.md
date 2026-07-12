@@ -400,12 +400,12 @@ recognition and body extraction now belong to semantic local-binding facts;
 body into emission items. The component contract rejects bracket/text recovery
 in that view.
 
-TypedAst delta, 2026-07-09: payload-free enum variant payload recognition now
-has a single fact seam. `ast_text_enum_variant_owner.pgy` builds
-`CodegenEnumVariantPayloadFact` once for an enum row, and count/name accessors
-consume an `Option<String>` view of that fact rather than treating missing
-payload as an owner-local empty-string fact. The component contract fixes the
-fact owner and rejects multiple direct enum-variant payload reads.
+TypedAst delta, superseded 2026-07-13: the intermediate
+`ast_text_enum_variant_owner.pgy` is deleted. `SemanticAstEnumFacts` now travels
+inside `SemanticAstArtifactAnalysis`; `CollectEnums` consumes semantic enum
+names, ordered variants, and payload arity through a fail-closed codegen view.
+The component gate rejects aux-text reads and variant-list splitting in
+codegen.
 
 TypedAst delta, superseded 2026-07-10: `For` payload ownership moved out of
 codegen. `semantic/ast_statement_fact_owner.pgy` captures loop variable,

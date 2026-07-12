@@ -18,9 +18,11 @@ first live bounded bindings for semantic-to-codegen facts:
 - fact: `FInitializerArrayBody`;
 - fact: `FInitializerTryOperand`;
 - fact: `FCollectionMutationParts`;
+- fact: `FEnumDeclarationRows`;
 - authorities: `OSemanticLocalBindingFacts`, `OSemanticStatementFacts`;
+- authority: `OSemanticEnumFacts`;
 - consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`,
-  `CCollectionMutationEmitter`;
+  `CCollectionMutationEmitter`, `CEnumEmitter`;
 - read kind: `OwnedRead`.
 
 It also proves three rejection cases:
@@ -29,7 +31,7 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares 15 architectural compiler-spine fact families plus two
+The file also declares 15 architectural compiler-spine fact families plus three
 bounded self-host closure facts and a total `spine_authority` mapping.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
@@ -49,8 +51,10 @@ fallback consumers are gone.
   consumes the semantic try-operand accessor;
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` owns collection
   mutation payload rows consumed by the semantic statement codegen view;
-- the retired AST-text array, try-let, and collection codegen owners must not
-  exist; and
+- `src/self_hosted/semantic/ast_enum_fact_owner.pgy` owns enum declaration rows
+  consumed by the semantic enum codegen view and `CollectEnums`;
+- the retired AST-text array, try-let, collection, and enum codegen owners must
+  not exist; and
 - the codegen views must not contain string-shape recovery or direct AST value
   reads.
 

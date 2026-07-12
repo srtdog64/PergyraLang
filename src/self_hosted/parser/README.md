@@ -30,6 +30,9 @@ inventing a second AST serialization format.
   statement shape itself.
 - `stmt_loop_owner.pgy` - loop statement syntax owner. Owns `while`, `loop`,
   and `for` compact AST header/block emission.
+- `decl_enum_owner.pgy` - enum declaration owner. It preserves canonical
+  variant parameter types in compact AST output instead of erasing payload
+  arity before semantic analysis.
 - `fixture/` - committed `<base>.pgy` sources and `<base>_ast.txt` baselines.
   The parser manifest owner emits the 188-row parity manifest, while the AST
   payload contract consumes the manifest-owned 187-fixture payload frontier

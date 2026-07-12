@@ -421,6 +421,20 @@ void ast_print(ASTNode* node, int indent) {
                            node->data.enum_decl.variants[i] != NULL
                                ? node->data.enum_decl.variants[i]
                                : "?");
+                    size_t param_count =
+                        node->data.enum_decl.variant_param_counts != NULL
+                            ? node->data.enum_decl.variant_param_counts[i]
+                            : 0;
+                    if (param_count > 0) {
+                        printf("(");
+                        for (size_t p = 0; p < param_count; p++) {
+                            if (p > 0)
+                                printf(", ");
+                            ast_print_inline(
+                                node->data.enum_decl.variant_params[i][p]);
+                        }
+                        printf(")");
+                    }
                 }
                 printf(" }");
             }

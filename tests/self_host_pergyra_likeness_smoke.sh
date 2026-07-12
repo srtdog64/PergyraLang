@@ -166,7 +166,9 @@ SENTINEL_MAX=0
 # 1176 -> 1175 (2026-07-12): statement-view index validation was deduplicated
 # behind one fail-closed Option owner. This is one fewer token, not one fewer
 # errors-as-data boundary; re-base the lexical metric to the measured form.
-RESULT_USE_MIN=1175
+# 1175 -> 1193 (2026-07-13): enum name/count/variant/arity projection now
+# consumes Option-returning semantic owner accessors instead of direct arrays.
+RESULT_USE_MIN=1193
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

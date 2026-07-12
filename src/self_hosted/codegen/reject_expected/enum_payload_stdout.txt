@@ -1,0 +1,1 @@
+CODEGEN ERROR: payload enum variants are not supported in self-host codegen subset: Number
