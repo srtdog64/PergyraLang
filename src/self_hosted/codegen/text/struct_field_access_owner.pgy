@@ -4,7 +4,7 @@ import "text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 
-func RewriteStructFieldAccess(e: String, env: String) -> String {
+func RewriteStructFieldAccess(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;

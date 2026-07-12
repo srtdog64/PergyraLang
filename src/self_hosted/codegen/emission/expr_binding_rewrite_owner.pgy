@@ -1,7 +1,7 @@
 import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 
-func RewriteBindingRefs(e: String, env: String) -> String {
+func RewriteBindingRefs(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let result_allocator: Allocator = AllocatorResult();
     let out: TextBuilder = TextBuilderNew(n + 1);

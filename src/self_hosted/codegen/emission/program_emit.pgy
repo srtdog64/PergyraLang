@@ -278,7 +278,7 @@ func GenerateCUnitFromSemanticArtifact(
     let enum_block: String = CollectEnums(count, arena, env_acc);
     let typedef_block: String = CollectStructs(count, arena, env_acc);
     CollectRoleOperators(count, arena, signatures, env_acc);
-    let base_env: String = env_acc[0];
+    let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts = CodegenRuntimeUsageFactsFromArena(arena, count);
     let uses_args: Bool = usage.uses_args;
 
@@ -338,7 +338,8 @@ func GenerateCUnitFromSemanticArtifact(
 
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(signatures, base_env);
-    let option_struct_block_fact: OptionStructDefinitionBlockFact = OptionResultRuntimeCStructOptionDefinitionBlock(base_env);
+    let option_struct_block_fact: OptionStructDefinitionBlockFact =
+        OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows);
     let option_struct_block: String = option_struct_block_fact.c_block;
 
     // String programs need the runtime string helpers; bool programs need

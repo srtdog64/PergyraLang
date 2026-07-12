@@ -14,7 +14,7 @@ import "array_value_emit_owner.pgy";
 
 // Emit a C struct-valued expression: a `Name(f: v, ...)` literal becomes a
 // compound literal; anything else (e.g. a struct-returning call) passes through.
-func EmitStructValue(expr: String, sname: String, env: String) -> String {
+func EmitStructValue(expr: String, sname: String, env: CodegenTypeEnv) -> String {
     let e: String = StringTrim(expr);
     if StructLiteralCallMatchesType(e, sname) {
         return EmitStructLit(e, env);
@@ -24,7 +24,7 @@ func EmitStructValue(expr: String, sname: String, env: String) -> String {
 
 // Emit a C compound literal for a `Name(f: v, ...)` struct construction:
 // `(Name){ .f = (v), ... }`, routing each field by the collected field type.
-func EmitStructLit(expr: String, env: String) -> String {
+func EmitStructLit(expr: String, env: CodegenTypeEnv) -> String {
     let e: String = StringTrim(expr);
     let call_fact: StructLiteralCallFact = StructLiteralCallFactOrDie(e, "struct literal");
     let sname: String = call_fact.type_name;

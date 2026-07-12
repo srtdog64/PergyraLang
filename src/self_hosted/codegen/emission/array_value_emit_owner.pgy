@@ -8,7 +8,7 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 func EmitArrayLiteralValue(
     expr: String,
     expected_type: String,
-    env: String
+    env: CodegenTypeEnv
 ) -> String {
     let literal: String = StringTrim(expr);
     if StringLength(literal) < 2 || CodegenCharAt(literal, 0) != "[" ||

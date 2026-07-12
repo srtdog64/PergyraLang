@@ -1,24 +1,78 @@
 // src/self_hosted/codegen/type_facts/type_env.pgy
 //
-// Flat type-environment and expression-kind owner for self-host C emission.
+// Layered type-environment and expression-kind owner for self-host C emission.
 
 import "../text/text_owner.pgy";
 
-func LookupKindType(env: String, name: String, kind: String) -> String {
+struct CodegenTypeEnv {
+    global_rows: String;
+    local_rows: String;
+}
+
+func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
     let needle: String = Concat("|", Concat(name, Concat("=", Concat(kind, ":"))));
-    let idx: Int = StringIndexOf(env, needle);
+    let idx: Int = StringIndexOf(rows, needle);
     if idx < 0 {
         return "";
     }
     let start: Int = idx + StringLength(needle);
-    let env_length: Int = StringLength(env);
+    let env_length: Int = StringLength(rows);
     let bar: Int = SubIndexOfWithLen(
-        env, env_length, start, env_length - start, "|"
+        rows, env_length, start, env_length - start, "|"
     );
     if bar < 0 {
-        return Substring(env, start, env_length - start);
+        return Substring(rows, start, env_length - start);
     }
-    return Substring(env, start, bar);
+    return Substring(rows, start, bar);
+}
+
+func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {
+    // Preserve the flat owner's established first-row semantics while the
+    // rows live in separate storage. Scope-aware shadowing needs typed scope
+    // facts; changing precedence here would silently redefine name lookup.
+    let global_value: String = LookupKindTypeRows(env.global_rows, name, kind);
+    if StringLength(global_value) > 0 {
+        return global_value;
+    }
+    return LookupKindTypeRows(env.local_rows, name, kind);
+}
+
+func TypeEnvAppendLocalRows(
+    env: CodegenTypeEnv, rows: String
+) -> CodegenTypeEnv {
+    let local_rows: String = env.local_rows;
+    if StringLength(local_rows) == 0 {
+        local_rows = "|";
+    }
+    return CodegenTypeEnv(
+        env.global_rows, Concat(local_rows, rows)
+    );
+}
+
+func CodegenTypeEnvStateView(state: Array<String>) -> CodegenTypeEnv {
+    if ArrayLength(state) != 2 {
+        Die("codegen type environment state requires global/local rows");
+    }
+    return CodegenTypeEnv(state[0], state[1]);
+}
+
+func CodegenTypeEnvStateStoreLocal(
+    inout state: Array<String>, env: CodegenTypeEnv
+) -> Void {
+    if ArrayLength(state) != 2 || state[0] != env.global_rows {
+        Die("codegen type environment global owner changed during emission");
+    }
+    ArraySet(state, 1, env.local_rows);
+}
+
+func CodegenTypeEnvStateAppendValueBinding(
+    inout state: Array<String>, source_name: String,
+    value_kind: String, c_name: String
+) -> Void {
+    let env: CodegenTypeEnv = TypeEnvAppendValueBinding(
+        CodegenTypeEnvStateView(state), source_name, value_kind, c_name
+    );
+    CodegenTypeEnvStateStoreLocal(state, env);
 }
 
 func TypeEnvValueBindingRows(
@@ -32,12 +86,16 @@ func TypeEnvValueBindingRows(
     );
 }
 
-func TypeEnvAppendValueBinding(env: String, source_name: String, value_kind: String, c_name: String) -> String {
+func TypeEnvAppendValueBinding(env: CodegenTypeEnv, source_name: String, value_kind: String, c_name: String) -> CodegenTypeEnv {
     if LookupKindType(env, source_name, "v") == value_kind &&
         LookupKindType(env, source_name, "cbind") == c_name {
         return env;
     }
-    return Concat(env, TypeEnvValueBindingRows(source_name, value_kind, c_name));
+    return TypeEnvAppendLocalRows(
+        env, TypeEnvValueBindingRows(
+            source_name, value_kind, c_name
+        )
+    );
 }
 
 func TypeEnvReadonlyRefBindingRows(
@@ -52,13 +110,13 @@ func TypeEnvReadonlyRefBindingRows(
 }
 
 func TypeEnvAppendReadonlyRefBinding(
-    env: String, source_name: String, value_kind: String, ref_c_name: String
-) -> String {
+    env: CodegenTypeEnv, source_name: String, value_kind: String, ref_c_name: String
+) -> CodegenTypeEnv {
     if LookupKindType(env, source_name, "v") == value_kind &&
         LookupKindType(env, source_name, "cref") == ref_c_name {
         return env;
     }
-    return Concat(
+    return TypeEnvAppendLocalRows(
         env, TypeEnvReadonlyRefBindingRows(
             source_name, value_kind, ref_c_name
         )
@@ -66,7 +124,7 @@ func TypeEnvAppendReadonlyRefBinding(
 }
 
 func TypeEnvReadonlyRefCName(
-    env: String, source_name: String
+    env: CodegenTypeEnv, source_name: String
 ) -> Option<String> {
     let ref_c_name: String = LookupKindType(env, source_name, "cref");
     if StringLength(ref_c_name) == 0 {
@@ -75,11 +133,11 @@ func TypeEnvReadonlyRefCName(
     return Some(ref_c_name);
 }
 
-func TypeEnvBindingIsReadonlyRef(env: String, source_name: String) -> Bool {
+func TypeEnvBindingIsReadonlyRef(env: CodegenTypeEnv, source_name: String) -> Bool {
     return IsSome(TypeEnvReadonlyRefCName(env, source_name));
 }
 
-func TypeEnvBindingCName(env: String, source_name: String) -> String {
+func TypeEnvBindingCName(env: CodegenTypeEnv, source_name: String) -> String {
     let c_name: String = LookupKindType(env, source_name, "cbind");
     if StringLength(c_name) > 0 {
         return c_name;
@@ -124,11 +182,11 @@ func ParamModeCsvAt(modes: String, want: Int) -> String {
     return CsvAt(modes, want);
 }
 
-func LookupFieldType(env: String, owner: String, field: String) -> String {
+func LookupFieldType(env: CodegenTypeEnv, owner: String, field: String) -> String {
     return LookupKindType(env, Concat(owner, Concat(".", field)), "field");
 }
 
-func ExprMemberFieldType(expr: String, env: String) -> String {
+func ExprMemberFieldType(expr: String, env: CodegenTypeEnv) -> String {
     let e: String = StringTrim(expr);
     let n: Int = StringLength(e);
     let first_dot: Int = StringIndexOf(e, ".");
@@ -185,7 +243,7 @@ func ExprCollectionElementKind(kind: String) -> String {
 }
 
 // Classify an expression using the environment.
-func ExprKind(expr: String, env: String) -> String {
+func ExprKind(expr: String, env: CodegenTypeEnv) -> String {
     let e: String = StringTrim(expr);
     if StringLength(e) == 0 {
         return "Int";

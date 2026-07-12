@@ -14,13 +14,14 @@ func AbiLayoutRequireCompilerRows() -> Void {
     }
 }
 
-func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
+func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     AbiLayoutRequireCompilerRows();
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) {
         return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));
     }
-    let option_struct_fact_opt: Option<OptionStructRuntimeFact> = OptionResultRuntimeStructOptionFact(type_name, struct_env);
+    let option_struct_fact_opt: Option<OptionStructRuntimeFact> =
+        OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows);
     if IsSome(option_struct_fact_opt) {
         let option_struct_fact: OptionStructRuntimeFact = UnwrapOption(option_struct_fact_opt);
         return option_struct_fact.c_type;
@@ -35,7 +36,7 @@ func AbiLayoutCValueType(type_name: String, struct_env: String) -> String {
     return "";
 }
 
-func AbiLayoutCParamType(type_name: String, struct_env: String) -> String {
+func AbiLayoutCParamType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }
 
@@ -43,7 +44,7 @@ func AbiLayoutCStructTypeName(type_name: String) -> String {
     return CompilerSymbolCTypeName(type_name);
 }
 
-func AbiLayoutCReturnType(type_name: String, struct_env: String) -> String {
+func AbiLayoutCReturnType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     if type_name == CompilerAbiLayoutVoidTypeName() {
         return CompilerAbiLayoutVoidCValueType();
     }
@@ -62,7 +63,7 @@ func AbiLayoutCEmptyParameterList() -> String {
     return CompilerAbiLayoutVoidCValueType();
 }
 
-func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: String) -> String {
+func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: CodegenTypeEnv) -> String {
     AbiLayoutRequireCompilerRows();
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) {
@@ -78,11 +79,11 @@ func AbiLayoutCDefaultReturnValue(type_name: String, struct_env: String) -> Stri
     return "";
 }
 
-func AbiLayoutCLocalType(type_name: String, struct_env: String) -> String {
+func AbiLayoutCLocalType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     return AbiLayoutCValueType(type_name, struct_env);
 }
 
-func AbiLayoutCFieldType(type_name: String, struct_env: String) -> String {
+func AbiLayoutCFieldType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) && !CompilerAbiLayoutFieldAllowed(type_name) {
         Die(Concat("struct/class fields must be Int/Bool/Float/String/previous struct, got: ", type_name));

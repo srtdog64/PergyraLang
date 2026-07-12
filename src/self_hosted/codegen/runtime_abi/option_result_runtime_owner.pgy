@@ -107,7 +107,8 @@ func OptionResultRuntimeStructOptionFact(type_name: String, env: String) -> Opti
     if colon >= 0 {
         inner = StringTrim(Substring(inner, 0, colon));
     }
-    if StringLength(inner) == 0 || LookupKindType(env, inner, "s") != "struct" {
+    if StringLength(inner) == 0 ||
+        LookupKindTypeRows(env, inner, "s") != "struct" {
         return None;
     }
     return Some(OptionStructRuntimeFact(

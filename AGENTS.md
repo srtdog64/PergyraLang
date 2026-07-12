@@ -33,6 +33,10 @@ cosmetic reshuffling.
   explicit invariant, or a documented panic boundary.
 - Do not re-scan AST/program roots when a typed owner seam, MIR fact, AIR
   evidence node, or DAG metadata fact already owns the answer.
+- Do not concatenate a large program-global fact serialization with per-routine
+  local rows. Keep global and local facts in a structured view, preserve the
+  owner's explicit lookup order, and measure the fixed compiler-scale input.
+  A byte-equal output alone does not excuse repeated whole-program copies.
 - Do not keep a borrowed `LLVMVarEntry *` from `llvm_scope_lookup()` across
   `llvm_scope_push`, `llvm_scope_pop`, or `llvm_scope_declare`. Snapshot
   `alloca` / `type` first; scope declarations may realloc the frame storage.

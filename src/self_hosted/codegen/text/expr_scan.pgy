@@ -32,7 +32,7 @@ func ReplaceAll(s: String, from: String, to: String) -> String {
 
 // Rewrite `ArrayLength(<arr>)` through the collection runtime symbol owner per
 // the array's element type (rung-10 growable-array representation).
-func RewriteArrayLengthEnv(e: String, env: String) -> String {
+func RewriteArrayLengthEnv(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;
@@ -88,7 +88,7 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
 // Rewrite array index reads through the collection runtime symbol owner for
 // array variables (rung-10). String literals are copied verbatim so a `[` inside
 // a string is never touched.
-func RewriteIndexing(e: String, env: String) -> String {
+func RewriteIndexing(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;
@@ -212,7 +212,7 @@ func FindTopLevelOp2(s: String, op: String) -> Option<Int> {
 // `==` / `!=` over strings must consume the string runtime owner's target
 // compare fact. Int comparisons keep `==`. Operand expressions still flow
 // through the token pipeline (RewriteTokens).
-func RewriteBool(e: String, env: String) -> String {
+func RewriteBool(e: String, env: CodegenTypeEnv) -> String {
     let s: String = StringTrim(e);
     let n: Int = StringLength(s);
     if n == 0 {

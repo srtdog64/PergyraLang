@@ -10,7 +10,7 @@ struct EnumLiteralProjectionFact {
     let c_value: String;
 }
 
-func EnumLiteralProjectionFactOpt(token: String, owner_type: String, env: String) -> Option<EnumLiteralProjectionFact> {
+func EnumLiteralProjectionFactOpt(token: String, owner_type: String, env: CodegenTypeEnv) -> Option<EnumLiteralProjectionFact> {
     let p: String = StringTrim(token);
     if !IsIdentifier(p) {
         return None;
@@ -29,7 +29,7 @@ func EnumLiteralProjectionFactOpt(token: String, owner_type: String, env: String
     return None;
 }
 
-func EnumPayloadFreeArgumentProjectionFactOpt(token: String, expected_type: String, env: String) -> Option<EnumLiteralProjectionFact> {
+func EnumPayloadFreeArgumentProjectionFactOpt(token: String, expected_type: String, env: CodegenTypeEnv) -> Option<EnumLiteralProjectionFact> {
     if StringLength(expected_type) == 0 || LookupKindType(env, expected_type, "enum") != "payload_free" {
         return None;
     }

@@ -17,10 +17,10 @@ import "expr_binding_rewrite_owner.pgy";
 import "runtime_call_rewrite_owner.pgy";
 import "literal_rewrite.pgy";
 import "array_value_emit_owner.pgy";
-func RewriteExpr(e: String, env: String) -> String {
+func RewriteExpr(e: String, env: CodegenTypeEnv) -> String {
     return RewriteRoleOperators(e, env);
 }
-func RewriteRoleOperators(e: String, env: String) -> String {
+func RewriteRoleOperators(e: String, env: CodegenTypeEnv) -> String {
     let s: String = StripOuterParens(e);
     let p_opt: Option<Int> = FindTopLevelPlus(s);
     if IsSome(p_opt) {
@@ -43,7 +43,7 @@ func RewriteRoleOperators(e: String, env: String) -> String {
     return RewriteBool(e, env);
 }
 
-func RewriteMemberCalls(e: String, env: String) -> String {
+func RewriteMemberCalls(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;
@@ -127,7 +127,7 @@ func RewriteMemberCalls(e: String, env: String) -> String {
     return out;
 }
 
-func RewriteEnumRefs(e: String, env: String) -> String {
+func RewriteEnumRefs(e: String, env: CodegenTypeEnv) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;
@@ -243,7 +243,7 @@ func RewriteQualifiedCalls(e: String) -> String {
     return out;
 }
 
-func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: String) -> String {
+func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: CodegenTypeEnv) -> String {
     let e: String = StringTrim(expr);
     if LookupKindType(env, expected_type, "s") != "struct" ||
         !StructLiteralCallMatchesType(e, expected_type) {
@@ -305,7 +305,7 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Strin
     return Concat(out, " }");
 }
 
-func RewriteCallArgForExpectedType(part: String, expected_type: String, env: String) -> String {
+func RewriteCallArgForExpectedType(part: String, expected_type: String, env: CodegenTypeEnv) -> String {
     let argument: String = StringTrim(part);
     if StartsWith(expected_type, "Array<") &&
         StringLength(argument) > 0 && CodegenCharAt(argument, 0) == "[" {
@@ -322,7 +322,7 @@ func RewriteCallArgForExpectedType(part: String, expected_type: String, env: Str
     return RewriteExpr(part, env);
 }
 
-func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String, env: String, mode_count: Int) -> String {
+func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String, env: CodegenTypeEnv, mode_count: Int) -> String {
     let out: String = "";
     let arg_index: Int = 0;
     let arg_count: Int = ExprSequenceItemCount(inner);
@@ -374,7 +374,7 @@ func RewriteCallArgsWithModes(inner: String, modes: String, param_types: String,
     return out;
 }
 
-func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
+func RewriteInoutCallArgs(e: String, env: CodegenTypeEnv, strict: Bool) -> String {
     let n: Int = StringLength(e);
     let out: String = "";
     let i: Int = 0;
@@ -446,7 +446,7 @@ func RewriteInoutCallArgs(e: String, env: String, strict: Bool) -> String {
     return out;
 }
 
-func RewriteTokens(e: String, env: String) -> String {
+func RewriteTokens(e: String, env: CodegenTypeEnv) -> String {
     let enumed: String = RewriteEnumRefs(e, env);
     let q0: String = RewriteMemberCalls(enumed, env);
     let q: String = RewriteQualifiedCalls(q0);
@@ -511,11 +511,11 @@ func RewriteTokens(e: String, env: String) -> String {
     return RewriteLongLiteralSuffixes(RewriteBoolLiterals(optioned_runtime_calls));
 }
 
-func IntEval(expr: String, env: String) -> String {
+func IntEval(expr: String, env: CodegenTypeEnv) -> String {
     return RewriteExpr(expr, env);
 }
 
-func StrEval(expr: String, env: String) -> String {
+func StrEval(expr: String, env: CodegenTypeEnv) -> String {
     let e: String = StripOuterParens(expr);
     let p_opt: Option<Int> = FindTopLevelPlus(e);
     if IsSome(p_opt) {
@@ -537,7 +537,7 @@ func StrEval(expr: String, env: String) -> String {
     return RewriteExpr(StringTrim(expr), env);
 }
 
-func WrapCond(cond: String, env: String) -> String {
+func WrapCond(cond: String, env: CodegenTypeEnv) -> String {
     let c: String = StringTrim(cond);
     let n: Int = StringLength(c);
     let close_opt: Option<Int> = FindMatchingParen(c, 0);

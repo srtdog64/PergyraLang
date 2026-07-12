@@ -14,10 +14,10 @@ struct OptionExprEmissionFact {
 func EmitOptionExprFactForType(
     expr: String,
     option_type: String,
-    env: String
+    env: CodegenTypeEnv
 ) -> OptionExprEmissionFact {
     let struct_fact: Option<OptionStructRuntimeFact> =
-        OptionResultRuntimeStructOptionFact(option_type, env);
+        OptionResultRuntimeStructOptionFact(option_type, env.global_rows);
     if IsSome(struct_fact) {
         let option_struct: OptionStructRuntimeFact = UnwrapOption(struct_fact);
         let trimmed: String = StringTrim(expr);
@@ -51,7 +51,7 @@ func EmitOptionExprFactForType(
     return OptionExprEmissionFact(option_expr);
 }
 
-func EmitReturn(rexpr: String, return_type: String, env: String) -> String {
+func EmitReturn(rexpr: String, return_type: String, env: CodegenTypeEnv) -> String {
     if StringLength(rexpr) == 0 { return "return;"; }
     if return_type == "String" {
         return Concat("return ", Concat(StrEval(rexpr, env), ";"));
@@ -77,7 +77,7 @@ func EmitReturn(rexpr: String, return_type: String, env: String) -> String {
     if StartsWith(return_type, "Option<") {
         let kind: Int = OptionResultRuntimeOptionPayloadKindForType(return_type);
         let struct_fact: Option<OptionStructRuntimeFact> =
-            OptionResultRuntimeStructOptionFact(return_type, env);
+            OptionResultRuntimeStructOptionFact(return_type, env.global_rows);
         if kind == 0 && !IsSome(struct_fact) {
             Die(Concat("unsupported option return payload type: ", return_type));
         }

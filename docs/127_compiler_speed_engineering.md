@@ -284,6 +284,32 @@ claim: elapsed time did not improve. It also does not make
 `AllocatorScratch()` a checkpoint arena or reclaim ordinary `String`
 temporaries at function boundaries.
 
+A follow-up allocation census found that the remaining peak was not uniformly
+distributed. On the same artifact, checked String primitives requested about
+497.4 MiB: `Concat` accounted for 423.9 MiB, one-character reads for 32.5 MiB,
+`Substring` for 27.3 MiB, and `StringTrim` for 13.6 MiB. The dominant single
+site copied the roughly 178 KiB program-global function/type row string into
+each routine's local environment. Across 1,215 routines that site alone
+requested about 216 MiB.
+
+The type environment now has one structured owner, `CodegenTypeEnv`, with
+separate `global_rows` and `local_rows`. The C/LLVM-compatible state carriage
+stores those lanes separately and only the owner may project or update them;
+it never concatenates the program-global rows into a routine-local string.
+The owner preserves the previous global-then-local first-row lookup order, and
+the local lane owns its leading `|` row delimiter. Scope-aware shadowing must
+arrive as typed scope facts rather than as an accidental storage-migration
+precedence change.
+
+With 100 ms process-tree sampling, the C-built emitter measured 811.1 MB peak
+private memory and 14.440 seconds; the LLVM-built emitter measured 782.0 MB and
+20.832 seconds. Both emitted 1,191,490 bytes with SHA-256
+`CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC`.
+Against the immediately preceding 948.4-985.5 MB control range, this removes
+137.3-174.4 MB of peak private memory. The component contract rejects the old
+global/local concatenation, scalar `LookupKindType` authority, and unsupported
+`Array<CodegenTypeEnv>` or `inout CodegenTypeEnv` carriage paths.
+
 That next scan-owner slice is now landed without changing `String` ownership.
 `source_scan_owner.pgy` owns allocation-free byte reads, ASCII class facts,
 exact-window comparison, and whitespace/comment traversal. Parser cursor and
