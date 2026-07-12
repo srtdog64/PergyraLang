@@ -19,7 +19,7 @@
     "elapsed_ms": [21091, 20263]
   },
   "candidate": {
-    "owner_set_sha256": "4DBB3C2F5DAEDE8BD491EFC66F6ED5CCC3FC177A5EA25EB216F7D9E99384C3A0",
+    "owner_set_sha256": "3902676264B4FFCCDE3C1184F453C9A659D81837F66891BC6B404EF4794351F0",
     "owner_paths": [
       "src/self_hosted/codegen/emission/program_emit.pgy",
       "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy",
@@ -37,10 +37,21 @@
     "required_max_peak_private_mb": 2500.0
   },
   "single_pass_runtime_rewrite": {
+    "owner_set_sha256": "4DBB3C2F5DAEDE8BD491EFC66F6ED5CCC3FC177A5EA25EB216F7D9E99384C3A0",
     "peak_private_mb": [956.1, 956.5],
     "elapsed_ms": [15792, 15877],
     "max_peak_private_mb": 956.5,
     "required_max_peak_private_mb": 1250.0
+  },
+  "allocation_free_token_compare": {
+    "baseline_peak_private_mb": [948.4, 985.5],
+    "candidate_peak_private_mb": [947.6, 951.6],
+    "baseline_elapsed_ms": [16942, 15798],
+    "candidate_elapsed_ms": [17031, 16286],
+    "max_peak_private_mb": 951.6,
+    "required_max_peak_private_mb": 1250.0,
+    "all_four_runs_byte_identical": true,
+    "llvm_candidate_byte_identical": true
   },
   "output": {
     "bytes": 1191490,

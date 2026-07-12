@@ -30,11 +30,23 @@ require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" \
     'let out: TextBuilder = TextBuilderNew(n + 1);'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" \
     'SubEqualsWithLen(s, n, i, fl, from)'
+require_text "src/self_hosted/codegen/emission/literal_rewrite.pgy" \
+    'SubEqualsWithLen(e, n, i, 4, "true")'
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'SubEqualsWithLen(e, n, i, 12, "ArrayLength(")'
 
 reject_region_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" \
     'func RewriteBindingRefs' 'out = Concat(out'
 reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
     'func ReplaceAll(' 'out = Concat(out'
+reject_region_text "src/self_hosted/codegen/emission/literal_rewrite.pgy" \
+    'func RewriteBoolLiterals' 'Substring(e, i, 4) == "true"'
+reject_region_text "src/self_hosted/codegen/emission/literal_rewrite.pgy" \
+    'func RewriteNoneLiteral' 'Substring(e, i, 4) == "None"'
+reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'func RewriteArrayLength' 'Substring(e, i, 12) == "ArrayLength("'
+reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'func FindTopLevelOp2' 'Substring(s, i, 2) == op'
 if grep -Fq 'func ReplaceAllOutsideStrings' \
     "src/self_hosted/codegen/text/expr_scan.pgy"; then
     echo "[self-host-text-builder] repeated runtime-call scan owner returned" >&2
@@ -55,6 +67,12 @@ require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
     '"required_max_peak_private_mb": 1250.0'
 require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
     '"all_six_runs_byte_identical": true'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"allocation_free_token_compare"'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"all_four_runs_byte_identical": true'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"llvm_candidate_byte_identical": true'
 
 EVIDENCE="benchmarks/selfhost_codegen_text_builder_evidence.json"
 owner_hash="$({
@@ -84,6 +102,13 @@ awk -v baseline="$baseline_max" -v previous="$previous_max" -v sample="$candidat
     -v declared="$declared_max" -v required="$required_max" \
     'BEGIN { exit !(sample == declared && declared <= required && declared < previous && previous < baseline) }' || {
     echo "[self-host-text-builder] benchmark evidence relationships drifted" >&2
+    exit 1
+}
+compare_max="$(sed -n '/"allocation_free_token_compare"/,/}/s/.*"max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+compare_required_max="$(sed -n '/"allocation_free_token_compare"/,/}/s/.*"required_max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+awk -v sample="$compare_max" -v required="$compare_required_max" \
+    'BEGIN { exit !(sample <= required) }' || {
+    echo "[self-host-text-builder] allocation-free compare evidence exceeded its ceiling" >&2
     exit 1
 }
 grep -Eq '"sha256": "[A-F0-9]{64}"' "$EVIDENCE" || {

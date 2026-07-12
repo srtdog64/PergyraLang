@@ -270,6 +270,20 @@ not a CPU-speed claim. The generated artifact SHA-256 remained
 The next CPU target remains allocation-heavy character and substring scanning
 in parser/semantic/MIR composition.
 
+The next bounded codegen scan slice removed five allocation-returning
+`Substring(...) == token` comparisons from literal and expression scanning.
+Those sites now consume the existing `SubEqualsWithLen` runtime fact; no new
+comparison owner or compatibility alias was added. On the pinned 1,289,598-byte
+artifact, two HEAD-control runs measured 948.4-985.5 MB peak private memory and
+15.798-16.942 seconds. Two candidate runs measured 947.6-951.6 MB and
+16.286-17.031 seconds. All four outputs remained 1,191,490 bytes with SHA-256
+`CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC`.
+An LLVM-built candidate emitted the same bytes and hash.
+This is an allocation-removal and memory-ceiling closure, not a runtime-speed
+claim: elapsed time did not improve. It also does not make
+`AllocatorScratch()` a checkpoint arena or reclaim ordinary `String`
+temporaries at function boundaries.
+
 That next scan-owner slice is now landed without changing `String` ownership.
 `source_scan_owner.pgy` owns allocation-free byte reads, ASCII class facts,
 exact-window comparison, and whitespace/comment traversal. Parser cursor and

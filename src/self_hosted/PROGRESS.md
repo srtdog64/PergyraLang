@@ -59,6 +59,17 @@ consumed rows. That reduced peak private memory from 223.4 MB to
 the current CPU boundary; these measurements do not close the expensive
 full-source gen3 fixed point.
 
+A later allocation-free comparison slice repointed five remaining hot
+`Substring(...) == token` checks in codegen literal/expression scans to the
+existing `SubEqualsWithLen` fact. On that same pinned artifact, two control runs
+measured 948.4-985.5 MB peak private memory and two candidate runs measured
+947.6-951.6 MB; all four emitted the same 1,191,490-byte artifact and canonical
+SHA, and an LLVM-built candidate emitted that same artifact. Candidate elapsed
+time was 16.286-17.031 seconds versus 15.798-16.942 for
+the controls, so this is not recorded as a speed win. Function-level String
+reclamation and integrated parser/semantic/MIR stage lifetime measurement
+remain open.
+
 Generic type canonicalization now consumes the same nested-comma range owner as
 call and parameter facts. The call-only producer name was removed instead of
 kept as an alias. Top-level label and closing-delimiter checks use byte facts;

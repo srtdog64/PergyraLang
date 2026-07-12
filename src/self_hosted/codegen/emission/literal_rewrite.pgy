@@ -30,7 +30,8 @@ func RewriteBoolLiterals(e: String) -> String {
             continue;
         }
         let prev_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(e, i - 1));
-        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "true" {
+        if prev_ok && i + 4 <= n &&
+            SubEqualsWithLen(e, n, i, 4, "true") {
             let next_true_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
             if next_true_ok {
                 out = Concat(out, "1");
@@ -38,7 +39,8 @@ func RewriteBoolLiterals(e: String) -> String {
                 continue;
             }
         }
-        if prev_ok && i + 5 <= n && Substring(e, i, 5) == "false" {
+        if prev_ok && i + 5 <= n &&
+            SubEqualsWithLen(e, n, i, 5, "false") {
             let next_false_ok: Bool = i + 5 == n || !IsIdentChar(CodegenCharAt(e, i + 5));
             if next_false_ok {
                 out = Concat(out, "0");
@@ -79,7 +81,8 @@ func RewriteNoneLiteral(e: String) -> String {
             continue;
         }
         let prev_ok: Bool = i == 0 || (!IsIdentChar(CodegenCharAt(e, i - 1)) && CodegenCharAt(e, i - 1) != ".");
-        if prev_ok && i + 4 <= n && Substring(e, i, 4) == "None" {
+        if prev_ok && i + 4 <= n &&
+            SubEqualsWithLen(e, n, i, 4, "None") {
             let next_ok: Bool = i + 4 == n || !IsIdentChar(CodegenCharAt(e, i + 4));
             if next_ok {
                 out = Concat(out, Concat(OptionResultRuntimeCOptionNoneFn(), "()"));

@@ -58,7 +58,8 @@ func RewriteArrayLengthEnv(e: String, env: String) -> String {
             i = i + 1;
             continue;
         }
-        if i + 12 <= n && Substring(e, i, 12) == "ArrayLength(" {
+        if i + 12 <= n &&
+            SubEqualsWithLen(e, n, i, 12, "ArrayLength(") {
             let open: Int = i + 11;
             let close_opt: Option<Int> = FindMatchingParen(e, open);
             if !IsSome(close_opt) {
@@ -198,7 +199,8 @@ func FindTopLevelOp2(s: String, op: String) -> Option<Int> {
             i = i + 1;
             continue;
         }
-        if depth == 0 && i + 2 <= n && Substring(s, i, 2) == op {
+        if depth == 0 && i + 2 <= n &&
+            SubEqualsWithLen(s, n, i, 2, op) {
             return Some(i);
         }
         i = i + 1;
