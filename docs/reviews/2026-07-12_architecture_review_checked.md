@@ -1,8 +1,9 @@
 # Architecture Review Check, 2026-07-12
 
 Source review: external 2026-07-11 review of repository head `2259a622`.
-Checked through current main `299091c6` plus the active worktree. This document
-records routing, not a production-readiness claim.
+Checked against main on 2026-07-12, including the source-scan, semantic
+operator-fact, and callable byte-range owner slices. This document records
+routing, not a production-readiness claim.
 
 ## Accepted Current Findings
 
