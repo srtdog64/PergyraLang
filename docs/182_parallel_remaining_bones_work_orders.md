@@ -19,9 +19,14 @@ staged 상태로 진행 중이라(ast.h/채널 런타임/join 이미터/Makefile
 실시계 advance/음수 advance = lifecycle panic(무음 no-op 금지 — 테스트
 훅이 조용히 삼키면 그 훅이 잡으려는 drift를 숨긴다). LLVM 빌트인 선언
 3종 등록. 목격자 3/3(실모드 단조·가상 0→5ms 정확·misuse panic),
-`tests/virtual_clock_smoke.sh`(독립 실행형 — **test-all 배선은 Makefile
-해제 후**; 로컬 주의: 게임 중 bash→gcc 무음 사망 채널 함정, CI에는
-해당 없음).
+`tests/virtual_clock_smoke.sh`(독립 실행형 — 로컬 주의: 게임 중
+bash→gcc 무음 사망 채널 함정, CI에는 해당 없음). **make 배선 완료
+(2026-07-12)**: `virtual-clock-test-smoke` + `duration-literal-test-
+smoke` 타깃 — 배선 당일 duration은 make 경유 GREEN, virtual-clock은
+정확히 위 채널 함정으로 로컬 FAIL(진단 재현: bash→gcc rc=1 무출력,
+PowerShell→gcc rc=0 — 함정 조건 그대로). FAIL이 뜬 것 자체가 타깃→
+스크립트 배관의 목격자이고, SKIP으로 눅이지 않는 게 fail-closed 원칙
+(무음-사망 컴파일러를 SKIP으로 가리면 진짜 컴파일 실패도 가려진다).
 
 ## §1. WO-PARSURF-3a — Duration 리터럴 + Duration 타입 (반응형 R1 잔여)
 

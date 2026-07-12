@@ -2548,6 +2548,12 @@ parallel-vision-surface-test-smoke: $(PGY)
 parallel-join-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/parallel_join_smoke.sh
 
+duration-literal-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/duration_literal_smoke.sh
+
+virtual-clock-test-smoke: $(PGY)
+	CC="$(CC)" "$(BASH)" tests/virtual_clock_smoke.sh
+
 stdlib-inventory-test-smoke:
 	"$(BASH)" tests/stdlib_inventory_smoke.sh
 
