@@ -187,6 +187,15 @@ remain oracle-equal for the role fixture, including `+` dispatch versus raw
 The owner remains `BRIDGE`: value/auxiliary consumers and recursive child
 expressions still parse compact text.
 
+Fifteenth executable delta, 2026-07-13: scalar and String value returns now
+consume the atom-lane shape row, while ordinary scalar/String local
+initializers and assignments consume the value-lane row. The role fixture
+proves operator dispatch from both `Log` and `return`; `func_call`,
+`string_concat_op`, `c_reserved_binding`, `long_scalar`, and `float_math` pass
+under C-built and LLVM-built tools. Indexed collection elements,
+Option/Result/struct wrappers, auxiliary lanes, and recursive child expressions
+remain the explicit bridge.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

@@ -202,8 +202,10 @@ expression shape by artifact node and payload lane. The first live consumer is
 top-level additive index and operator kind, while
 `emission/log_emit_owner.pgy` owns log type routing and scalar formatting ABI.
 The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
-Value/auxiliary and recursive child-expression lowering remain the explicit
-compact-text bridge.
+Scalar/String returns reuse the atom row; ordinary scalar/String local
+initializers and assignments consume the value row. Indexed collection
+elements, Option/Result/struct wrapper internals, auxiliary payloads, and
+recursive child-expression lowering remain the explicit compact-text bridge.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

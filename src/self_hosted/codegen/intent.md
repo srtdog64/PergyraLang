@@ -203,12 +203,14 @@ normalized top-level operator rows for all three payload lanes. The `Log`
 atom-expression path consumes that row through
 `semantic_expression_codegen_view_owner.pgy` and
 `expr_semantic_shape_emit_owner.pgy`; it does not rediscover the top-level
-additive position.
+additive position. Scalar/String returns reuse the atom lane. Ordinary
+scalar/String local initializers and assignments consume the value lane.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
-absent. The remaining blocker is value/auxiliary and recursive child expression
-text carried inside semantic owner rows and parsed by expression lowering, not
-a codegen reread of the arena.
+absent. The remaining blocker is indexed collection value/auxiliary payloads,
+Option/Result/struct wrapper internals, and recursive child expression text
+carried inside semantic owner rows and parsed by expression lowering, not a
+codegen reread of the arena.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired

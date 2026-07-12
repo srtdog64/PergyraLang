@@ -250,6 +250,14 @@ function is ratcheted against that fallback, and C/LLVM-built tools remain
 oracle-equal. Value/auxiliary consumers and recursive child expressions remain
 the active mixed-expression bridge.
 
+The fifteenth executable delta extended the same authority without adding a
+new expression owner. Scalar/String returns consume atom-lane shape rows;
+ordinary scalar/String local initializers and assignments consume value-lane
+rows. Five focused fixtures plus the role and negative declaration legs pass
+under C-built and LLVM-built tools. Indexed collection values,
+Option/Result/struct wrapper internals, auxiliary lanes, and recursive child
+expressions remain bridge consumers.
+
 The follow-up ratchet deleted the final dead codegen arena payload views:
 atom, type, value, auxiliary value, parameter type, and parameter mode. The
 remaining mixed-expression blocker is therefore exact: semantic owner rows

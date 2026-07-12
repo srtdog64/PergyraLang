@@ -15,3 +15,17 @@ func CodegenSemanticAtomExpressionShapeOrDie(
     }
     return shape;
 }
+
+func CodegenSemanticValueExpressionShapeOrDie(
+    facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int
+) -> SemanticAstExpressionShapeFact {
+    let shape: SemanticAstExpressionShapeFact =
+        SemanticAstExpressionShapeForNode(
+            facts, node_id, SemanticAstExpressionValueLane()
+        );
+    if !shape.ok {
+        Die("self-host codegen requires a semantic value-expression shape");
+    }
+    return shape;
+}

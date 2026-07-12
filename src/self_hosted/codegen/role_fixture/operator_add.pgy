@@ -10,7 +10,12 @@ role IntMath for Int {
     }
 }
 
+func ComputeAdd() -> Int {
+    return 1 + 2;
+}
+
 func Main() -> Void {
     Log(1 + 2);
+    Log(ComputeAdd());
     Log(5 - 2);
 }
