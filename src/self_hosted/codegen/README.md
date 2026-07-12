@@ -60,6 +60,10 @@ Deterministic RNG: `SeedRandom(seed)` plus `Random(n)`, with parity fixtures
 checking replay semantics instead of pinning a cross-libc random sequence.
 Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
 parameters and returns.
+Source builtin calls are recognized in one expression scan by
+`emission/runtime_call_rewrite_owner.pgy`; C spelling still comes from the
+individual `runtime_abi` owners. The retired per-builtin repeated scans may not
+return.
 The bootstrap-only typed AST bridge also supports
 `Array<CodegenAstTextNode>` through the collection/runtime and ABI owners; that
 record-array lane exists to move the codegen input off parallel text arrays,
@@ -87,8 +91,10 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
 - `inout` parameters are preserved by the parser AST text, recorded as per-function
   `pm` facts, lowered as C pointer parameters with local copy-in/copy-out, and
   call arguments are rewritten to `&name` only from that recorded mode fact.
-  `own` and `ref` are preserved by the parser but fail closed in this bounded
-  self-host C emitter until their ABI and ownership semantics have owners.
+- `ref` parameters lower as readonly C pointers and source references consume
+  their recorded binding row. `own` uses direct owner-handle carriage for the
+  bounded supported value layouts. Neither carriage implies LLVM optimizer
+  attributes or a general memory-safety claim.
 
 **Body statements:**
 

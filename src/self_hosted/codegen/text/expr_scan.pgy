@@ -30,58 +30,6 @@ func ReplaceAll(s: String, from: String, to: String) -> String {
     return replaced;
 }
 
-// Like ReplaceAll, but never matches inside a C string literal -- so a builtin
-// name that appears as *data* (e.g. the literal "ArrayLength(") is left alone.
-// Needed once the emitter compiles code that manipulates builtin-name strings
-// (e.g. the codegen tool itself).
-func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
-    let fl: Int = StringLength(from);
-    if fl == 0 {
-        return s;
-    }
-    let n: Int = StringLength(s);
-    let result_allocator: Allocator = AllocatorResult();
-    let out: TextBuilder = TextBuilderNew(n + 1);
-    let i: Int = 0;
-    let in_str: Bool = false;
-    while i < n {
-        let c: String = CodegenCharAt(s, i);
-        if in_str {
-            TextBuilderAppend(out, c);
-            if c == "\\" && i + 1 < n {
-                TextBuilderAppend(out, CodegenCharAt(s, i + 1));
-                i = i + 2;
-                continue;
-            }
-            if c == "\"" {
-                in_str = false;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "\"" {
-            in_str = true;
-            TextBuilderAppend(out, c);
-            i = i + 1;
-            continue;
-        }
-        // Word-boundary check: only replace `Name(` when it is not the suffix
-        // of a longer identifier (e.g. don't rewrite `Args(` inside
-        // `CompareCallArgs(`). The previous output char must not be ident-ish.
-        let boundary_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(s, i - 1));
-        if boundary_ok && i + fl <= n && SubEqualsWithLen(s, n, i, fl, from) {
-            TextBuilderAppend(out, to);
-            i = i + fl;
-            continue;
-        }
-        TextBuilderAppend(out, c);
-        i = i + 1;
-    }
-    let replaced: String = TextBuilderFinish(out, result_allocator);
-    AllocatorDestroy(result_allocator);
-    return replaced;
-}
-
 // Rewrite `ArrayLength(<arr>)` through the collection runtime symbol owner per
 // the array's element type (rung-10 growable-array representation).
 func RewriteArrayLengthEnv(e: String, env: String) -> String {

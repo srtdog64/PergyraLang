@@ -1,7 +1,7 @@
 # Architecture Review Check, 2026-07-12
 
 Source review: external 2026-07-11 review of repository head `2259a622`.
-Checked against current head `9f281db9` plus the active worktree. This document
+Checked against current head `2009d552` plus the active worktree. This document
 records routing, not a production-readiness claim.
 
 ## Accepted Current Findings
@@ -50,11 +50,19 @@ records routing, not a production-readiness claim.
   is move-only and fail-closed, each MIR call instruction carries a typed
   target-specific runtime-call ABI row, and C/LLVM consume that row. ABI/MIR
   mutation, C/LLVM differential, negative owner-exit, runtime-bitcode export,
-and memory-lifetime witnesses are present. Program assembly and repeated token
-rewrites now consume the owner. Same-input two-run sampling lowers peak
-private memory from 3,347.3-3,394.5 MB to 1,989.5-1,990.4 MB while emitted C
-  remains byte-identical. The remaining roughly 2.0 GiB is still active
-  ordinary-String lifetime debt.
+and memory-lifetime witnesses are present. Program assembly and binding
+rewrites consume the builder owner; runtime builtin projection is a single
+identifier scan whose C names still come from runtime ABI owners. Same-input
+two-run sampling lowers codegen-only peak private memory from
+3,347.3-3,394.5 MB to 956.1-956.5 MB and elapsed time from 22.690-23.205 s to
+15.792-15.877 s relative to the preceding rung, while emitted C remains
+byte-identical. Integrated-driver text lifetime remains active debt.
+- Typed-arena cross-row validation remains mandatory at `AstTreeArtifactReady`,
+  but hot accessors no longer recount every parallel row per field read. The
+  same integrated-driver artifact stayed byte-identical and peak private memory
+  fell from 223.4 MB to 159.4-161.0 MB. Runtime stayed effectively flat, so the
+  result closes an ownership/validation-cost seam rather than the integrated
+  CPU blocker.
 
 ## Remaining Work Order
 
@@ -63,7 +71,9 @@ private memory from 3,347.3-3,394.5 MB to 1,989.5-1,990.4 MB while emitted C
 2. Continue hard self-host replacement through typed owner facts and verifier
    parity. Do not replace missing MIR facts with source-text or AST recovery.
 3. Continue repointing the remaining per-character expression/literal/statement
-   owners and add scope reclamation for ordinary String temporaries. Do not
+   owners and add scope reclamation for ordinary String temporaries. Prefer
+   `CharCode`, `StrView`, `TextSpan`, or another explicit non-owning fact over
+   changing `String` lifetime semantics to make `CharAtN` appear cheap. Do not
    increase memory limits or broaden owner transfer without CFG/MIR evidence.
 4. Move remaining executable capture/call-ABI facts into MIR-owned rows, with C,
    LLVM, and self-hosted consumers reading the same records.

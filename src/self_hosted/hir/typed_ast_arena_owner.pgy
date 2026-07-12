@@ -119,10 +119,14 @@ func TypedAstArenaParallelRowsReady(arena: AstArena) -> Bool {
         ArrayLength(arena.provenance_texts) == n;
 }
 
+// Cross-row shape is sealed at the AstTreeArtifact boundary. Hot readers only
+// validate the rows they consume, so a node lookup is not an O(row-count) pass.
 func TypedAstArenaHasNode(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaParallelRowsReady(arena) &&
-        node_id >= 0 &&
-        node_id < TypedAstArenaNodeCount(arena);
+    return node_id >= 0 && node_id < TypedAstArenaNodeCount(arena);
+}
+
+func TypedAstArenaRowHasNode(row_count: Int, node_id: Int) -> Bool {
+    return node_id >= 0 && node_id < row_count;
 }
 
 func TypedAstArenaNodeKind(arena: AstArena, node_id: Int) -> Option<Int> {
@@ -141,9 +145,10 @@ func TypedAstArenaNominalSubkind(
     arena: AstArena,
     node_id: Int
 ) -> Option<Int> {
-    if !TypedAstArenaHasNode(arena, node_id) || !TypedAstArenaNodeKindIs(
-        arena, node_id, TypedAstKindNominalDeclTag()
-    ) {
+    if !TypedAstArenaRowHasNode(ArrayLength(arena.nominal_subkinds), node_id) ||
+        !TypedAstArenaNodeKindIs(
+            arena, node_id, TypedAstKindNominalDeclTag()
+        ) {
         return None;
     }
     let subkind: Int = arena.nominal_subkinds[node_id];
@@ -154,7 +159,9 @@ func TypedAstArenaNominalSubkind(
 }
 
 func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.first_children), node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.child_counts), node_id) {
         return None;
     }
     if i < 0 {
@@ -171,7 +178,8 @@ func TypedAstArenaChildAt(arena: AstArena, node_id: Int, i: Int) -> Option<Int> 
 }
 
 func TypedAstArenaParentId(arena: AstArena, node_id: Int) -> Option<Int> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.parents), node_id) {
         return None;
     }
     let parent: Int = arena.parents[node_id];
@@ -182,21 +190,25 @@ func TypedAstArenaParentId(arena: AstArena, node_id: Int) -> Option<Int> {
 }
 
 func TypedAstArenaIndent(arena: AstArena, node_id: Int) -> Option<Int> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.indents), node_id) {
         return None;
     }
     return Some(arena.indents[node_id]);
 }
 
 func TypedAstArenaProvenanceText(arena: AstArena, node_id: Int) -> Option<String> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.provenance_texts), node_id) {
         return None;
     }
     return Some(arena.provenance_texts[node_id]);
 }
 
 func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.has_atoms), node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.atoms), node_id) {
         return None;
     }
     if arena.has_atoms[node_id] == 0 {
@@ -210,7 +222,9 @@ func TypedAstArenaAtomText(arena: AstArena, node_id: Int) -> Option<String> {
 }
 
 func TypedAstArenaTypeName(arena: AstArena, node_id: Int) -> Option<String> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.has_type_names), node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.type_names), node_id) {
         return None;
     }
     if arena.has_type_names[node_id] == 0 {
@@ -224,14 +238,17 @@ func TypedAstArenaTypeName(arena: AstArena, node_id: Int) -> Option<String> {
 }
 
 func TypedAstArenaMode(arena: AstArena, node_id: Int) -> Option<Int> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.modes), node_id) {
         return None;
     }
     return Some(arena.modes[node_id]);
 }
 
 func TypedAstArenaValueText(arena: AstArena, node_id: Int) -> Option<String> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.has_values), node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.values), node_id) {
         return None;
     }
     if arena.has_values[node_id] == 0 {
@@ -245,7 +262,9 @@ func TypedAstArenaValueText(arena: AstArena, node_id: Int) -> Option<String> {
 }
 
 func TypedAstArenaAuxValueText(arena: AstArena, node_id: Int) -> Option<String> {
-    if !TypedAstArenaHasNode(arena, node_id) {
+    if !TypedAstArenaHasNode(arena, node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.has_aux_values), node_id) ||
+        !TypedAstArenaRowHasNode(ArrayLength(arena.aux_values), node_id) {
         return None;
     }
     if arena.has_aux_values[node_id] == 0 {

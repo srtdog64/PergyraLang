@@ -199,12 +199,16 @@ reintroducing transitional `"ast"` reads.
 Capability 4 is closed for the allocator-aware container subset and partially
 landed for compiler text assembly. Named lanes can be constructed and
 explicitly destroyed through the same C/LLVM value surface. The first typed
-`TextBuilder` consumers cover program assembly, binding-reference scans, and
-repeated token replacement. Same-input measurement lowers peak private memory
-by at least 40.1% to 1,989.5-1,990.4 MB with byte-identical output and a green
-14,552-line codegen fixed point. Most ordinary `String` transforms still do not
-consume a lane; the remaining roughly 2.0 GiB is an active ownership gap, not
-evidence that the pass-lane substrate is complete.
+`TextBuilder` consumers cover program assembly and binding-reference scans.
+Runtime builtin call projection consumes one identifier scan rather than a
+per-builtin whole-expression scan. Same-input measurement lowers codegen-only
+peak private memory to 956.1-956.5 MB with byte-identical output and a green
+14,673-line codegen fixed point. Integrated parser/semantic/MIR text lifetime
+and most ordinary `String` transforms remain active ownership gaps. Typed-arena
+access now seals full parallel-row shape once at the artifact boundary and
+checks only consumed rows in hot readers; the integrated-driver probe fell from
+223.4 MB to 159.4-161.0 MB with byte-identical output, while runtime remained
+34-36 seconds. This is not a CPU-closure claim.
 
 ## Next substrate work
 

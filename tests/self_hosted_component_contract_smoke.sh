@@ -870,6 +870,7 @@ require_owner_surface codegen \
     "runtime_abi/math_runtime_owner.pgy" \
     "runtime_abi/option_result_runtime_owner.pgy" \
     "runtime_abi/string_runtime_owner.pgy" \
+    "emission/runtime_call_rewrite_owner.pgy" \
     "emission/struct_value_emit.pgy" \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
@@ -2743,6 +2744,22 @@ require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func ChildAt"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func AtomText"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaFixture"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaParallelRowsReady"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaRowHasNode"
+require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" \
+    "TypedAstArenaParallelRowsReady(artifact.arena)"
+if sed -n '/func TypedAstArenaHasNode/,/^}/p' \
+    "src/self_hosted/hir/typed_ast_arena_owner.pgy" | \
+    grep -Fq "TypedAstArenaParallelRowsReady"; then
+    fail "TypedAstArenaHasNode reopened full parallel-row validation"
+fi
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" \
+    "TypedAstArenaRowHasNode(ArrayLength(arena.first_children), node_id)"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" \
+    "TypedAstArenaRowHasNode(ArrayLength(arena.has_type_names), node_id)"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" \
+    "TypedAstArenaRowHasNode(ArrayLength(arena.provenance_texts), node_id)"
+require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" \
+    "TypedAstArenaRowHasNode(ArrayLength(arena.has_aux_values), node_id)"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaNodeKind"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaChildAt"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "func TypedAstArenaAtomText"
@@ -2944,6 +2961,13 @@ require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvRead
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCReadonlyRefParamName"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'mode == "ref"'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "let ref_c_name: Option<String> = TypeEnvReadonlyRefCName("
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "RewriteRuntimeCallsOutsideStrings(bound)"
+reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "ReplaceAllOutsideStrings("
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RuntimeCallCName("
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "func RewriteRuntimeCallsOutsideStrings("
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn()"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "HostIORuntimeCWriteFileFn()"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "OptionResultRuntimeCResultUnwrapFn()"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'Concat("(*", Concat(ref_c_name, ")"))'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectParameters(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaExpectBody(arena, count, cur)"
@@ -3736,8 +3760,8 @@ require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return Some(i)"
 reject_text "src/self_hosted/codegen/text/expr_scan.pgy" "return -1"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCPushFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCSetFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeCIntSortFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCStringLengthFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "CollectionRuntimeCIntSortFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCConcatFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCLogFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFormattedPrintFn"
@@ -3745,18 +3769,17 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCInt
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFloatLineFormat"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" 'import "../runtime_abi/string_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "StringRuntimeCStringCompareFn()"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCAbsFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCSqrtFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCPowFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCFloorFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "MathRuntimeCCeilFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "HostIORuntimeCFileExistsFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCToFloatFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCAbsFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCSqrtFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCPowFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCFloorFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCCeilFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "HostIORuntimeCFileExistsFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCToFloatFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "HostIORuntimeCExitFn"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeOptionPayloadKindFromExprKind(ExprKind(some_inner, env))"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFnForPayloadKind(some_payload_kind)"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCResultOkFn"
+require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "OptionResultRuntimeCResultOkFn"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
 reject_regex_under "src/self_hosted/codegen/emission" '"pgy_[A-Za-z0-9_]*'
 reject_regex_under "src/self_hosted/codegen/text" '"pgy_[A-Za-z0-9_]*'

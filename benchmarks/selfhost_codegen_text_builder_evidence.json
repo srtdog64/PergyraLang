@@ -1,5 +1,5 @@
 {
-  "schema": "pgy.benchmark.selfhost-codegen-text-builder.v1",
+  "schema": "pgy.benchmark.selfhost-codegen-text-builder.v2",
   "measured_at": "2026-07-12",
   "platform": "windows-x86_64",
   "sampler": {
@@ -19,11 +19,13 @@
     "elapsed_ms": [21091, 20263]
   },
   "candidate": {
-    "owner_set_sha256": "42A89EF5DA89322D4E60CE6BB03A9413CC1581642D340E97F7A6060B5FD49398",
+    "owner_set_sha256": "4DBB3C2F5DAEDE8BD491EFC66F6ED5CCC3FC177A5EA25EB216F7D9E99384C3A0",
     "owner_paths": [
       "src/self_hosted/codegen/emission/program_emit.pgy",
       "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy",
       "src/self_hosted/codegen/text/expr_scan.pgy",
+      "src/self_hosted/codegen/emission/expr_rewrite.pgy",
+      "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy",
       "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy",
       "src/runtime/pgy_runtime_text_builder_inline.h"
     ]
@@ -34,9 +36,15 @@
     "max_peak_private_mb": 1990.4,
     "required_max_peak_private_mb": 2500.0
   },
+  "single_pass_runtime_rewrite": {
+    "peak_private_mb": [956.1, 956.5],
+    "elapsed_ms": [15792, 15877],
+    "max_peak_private_mb": 956.5,
+    "required_max_peak_private_mb": 1250.0
+  },
   "output": {
     "bytes": 1191490,
     "sha256": "CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC",
-    "all_four_runs_byte_identical": true
+    "all_six_runs_byte_identical": true
   }
 }

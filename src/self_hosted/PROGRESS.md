@@ -38,7 +38,7 @@ whole compiler. Semantic analysis owns
 executable `Main` cardinality, signatures, local declaration/function/scope,
 initializer, iteration, assignment, expression-use, return, condition, and
 ordered body-verdict rows. The latest standalone codegen bootstrap fixes
-`gen2 == gen3` at 14,552 generated-C lines. DRV-2 now integrates bounded MIR
+`gen2 == gen3` at 14,673 generated-C lines. DRV-2 now integrates bounded MIR
 production and consumption. Its current full-source gen2 artifact builds and a
 34.5-second `mir_lower` owner preflight is byte-identical between seed and gen2;
 the expensive full-source gen3 comparison has not yet been refreshed and must
@@ -47,6 +47,17 @@ The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-
 cheap.
+
+The current codegen-only owner slice is materially cheaper: single-pass
+runtime-call rewriting plus `TextBuilder` measures 956.1-956.5 MB and
+15.792-15.877 seconds on the pinned 1,289,598-byte artifact with byte-identical
+output. A separate integrated-driver probe moved complete typed-arena row-shape
+validation back to the artifact boundary and made readers validate only their
+consumed rows. That reduced peak private memory from 223.4 MB to
+159.4-161.0 MB with identical generated output, but did not improve the
+34-36-second runtime. Parser/semantic/MIR character and substring scans remain
+the current CPU boundary; these measurements do not close the expensive
+full-source gen3 fixed point.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
@@ -647,12 +658,13 @@ The realistic incremental path toward genuine self-host:
    C-oracle `pgy --ast` text, so it is a source-breadth ratchet rather than the
    final self-parser-to-codegen bootstrap. Allocation-free runtime-usage scans
    now reduce the 28,434-node pre-emission probe from 717,696 KiB to 51,968
-   KiB while preserving 69-fixture C parity. TextBuilder rung 2 now owns final
-   C-unit assembly, binding-reference rewriting, and repeated token replacement.
-   Two-run same-input sampling lowers peak private memory from
-   3,347.3-3,394.5 MB to 1,989.5-1,990.4 MB with byte-identical output and a
-   14,552-line gen2==gen3 fixed point. The remaining roughly 2.0 GiB comes from
-   ordinary compiler `String` temporaries outside those owners. Next rungs:
+   KiB while preserving 69-fixture C parity. TextBuilder rung 2 owns final
+   C-unit assembly and binding-reference rewriting. Runtime builtin projection
+   now uses one identifier scan instead of one full scan per builtin. Two-run
+   same-input sampling lowers the codegen-only path from
+   3,347.3-3,394.5 MB to 956.1-956.5 MB with byte-identical output; the latest
+   green codegen fixed point is 14,673 lines. Remaining integrated-driver
+   parser/semantic/MIR text lifetime is tracked separately. Next rungs:
    scope reclamation, block scoping, typed AST-node facts replacing text rows,
    then round-trip
    self-compilation.

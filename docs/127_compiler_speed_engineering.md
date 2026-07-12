@@ -218,10 +218,11 @@ returns, fields, containers, generic moves, mutable rebinding, and
 branch-sensitive consumption remain fail-closed.
 
 The first compiler-internal consumers are now live. Program-level C-unit
-assembly, binding-reference rewriting, and the repeated
-`ReplaceAll[OutsideStrings]` token passes use the typed builder. The latter also
-uses `SubEqualsWithLen` instead of allocating a `Substring` for each candidate.
-The Pergyra-built emitter still reaches a 14,561-line gen2==gen3 fixed point and
+assembly and binding-reference rewriting use the typed builder. Runtime builtin
+call projection now performs one identifier scan and delegates C spelling to
+the existing runtime ABI owners; the retired per-builtin repeated scan is
+gate-forbidden. The Pergyra-built emitter still reaches a 14,673-line
+gen2==gen3 fixed point and
 matches both native backend oracles on all 69 codegen fixtures.
 
 An apples-to-apples Windows process-tree measurement used the same
@@ -229,22 +230,42 @@ An apples-to-apples Windows process-tree measurement used the same
 binary. The pre-rung-2 binary was built from commit `1b1b4208`; the new binary
 was built from the active rung-2 source.
 
-| Metric | Before range | Rung 2 range | Conservative change |
+| Metric | Before range | TextBuilder rung 2 | Single-pass runtime rewrite |
 | --- | ---: | ---: | ---: |
-| peak private memory | 3,347.3-3,394.5 MB | 1,987.7-2,004.3 MB | at least 40.1% lower |
-| elapsed | 20,263-21,091 ms | 18,654-19,458 ms | at least 4.0% lower |
-| emitted C | 1,191,490 bytes | 1,191,490 bytes | byte-identical |
+| peak private memory | 3,347.3-3,394.5 MB | 1,989.5-1,990.4 MB | 956.1-956.5 MB |
+| elapsed | 20,263-21,091 ms | 22,690-23,205 ms | 15,792-15,877 ms |
+| emitted C | 1,191,490 bytes | 1,191,490 bytes | 1,191,490 bytes |
 
-All four emitted artifacts have SHA-256
+All six emitted artifacts have SHA-256
 `CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC`.
 This closes the first measured assembly owner, not compiler text lifetime as a
-whole: roughly 2.0 GiB remains because many expression and statement transforms
-still allocate ordinary `String` temporaries without scope reclamation. Do not
-hide that remainder behind `Array<String>`, a higher CI memory limit, or claims
-that the current scratch lane is a checkpoint arena.
+whole. The current codegen-only path is below 1 GiB, but parser/semantic/MIR
+composition and other expression/statement transforms still allocate ordinary
+`String` temporaries without scope reclamation. Do not hide that remainder
+behind `Array<String>`, a higher CI memory limit, or claims that the current
+scratch lane is a checkpoint arena.
 
 The measured artifact was stale enough to omit `SelfMirExpressionKind`; a
 regenerated 6,338,740-byte MIR artifact contains that enum and closes that
 specific diagnostic explanation. It did not close text-lifetime debt or
 constitute a completed current-artifact bootstrap run; the later rung-2
-measurement above is the current roughly 2.0 GiB result.
+measurement above is the current codegen-only result; the full integrated
+driver remains a separately measured CPU/lifetime boundary.
+
+The next integrated-driver probe found a different owner mistake. Every typed
+arena accessor reopened `TypedAstArenaParallelRowsReady`, so one field lookup
+recounted all parallel rows even though `AstTreeArtifactReady` had already
+sealed their common shape. The artifact boundary still performs that complete
+validation. Readers now bounds-check only the node-kind row and the payload
+rows they consume; missing rows return `None` rather than reading unchecked
+storage. `self-hosted-component-contract-test-smoke` rejects moving the full
+validator back into `TypedAstArenaHasNode` and requires the artifact-boundary
+seal.
+
+On the same generated integrated driver, this changed peak private memory from
+223.4 MB to 159.4-161.0 MB. Elapsed time remained 34.883-35.663 seconds versus
+the 34.275-second exploratory baseline, so this is a memory/ownership closure,
+not a CPU-speed claim. The generated artifact SHA-256 remained
+`A7760C88E479296F1A9E4848235A324555A04655BE561B29787FE2EF24867819`.
+The next CPU target remains allocation-heavy character and substring scanning
+in parser/semantic/MIR composition.

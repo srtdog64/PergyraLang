@@ -35,8 +35,11 @@ reject_region_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.
     'func RewriteBindingRefs' 'out = Concat(out'
 reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
     'func ReplaceAll(' 'out = Concat(out'
-reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
-    'func ReplaceAllOutsideStrings' 'out = Concat(out'
+if grep -Fq 'func ReplaceAllOutsideStrings' \
+    "src/self_hosted/codegen/text/expr_scan.pgy"; then
+    echo "[self-host-text-builder] repeated runtime-call scan owner returned" >&2
+    exit 1
+fi
 
 require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" \
     '19|TextBuilder|PgyTextBuilder|data,length,capacity,finished|none|none|single_owner_linear'
@@ -49,9 +52,9 @@ require_text "src/compiler/mir_text_builder_abi.c" \
 require_text "tests/cases/text_builder_owner/nested_append.pgy" \
     'TextBuilderAppend(text, "nested");'
 require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
-    '"required_max_peak_private_mb": 2500.0'
+    '"required_max_peak_private_mb": 1250.0'
 require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
-    '"all_four_runs_byte_identical": true'
+    '"all_six_runs_byte_identical": true'
 
 EVIDENCE="benchmarks/selfhost_codegen_text_builder_evidence.json"
 owner_hash="$({
@@ -59,6 +62,8 @@ owner_hash="$({
         src/self_hosted/codegen/emission/program_emit.pgy \
         src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy \
         src/self_hosted/codegen/text/expr_scan.pgy \
+        src/self_hosted/codegen/emission/expr_rewrite.pgy \
+        src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy \
         src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy \
         src/runtime/pgy_runtime_text_builder_inline.h; do
         printf '%s:' "$file"
@@ -69,13 +74,15 @@ require_text "$EVIDENCE" "\"owner_set_sha256\": \"$owner_hash\""
 
 baseline_max="$(sed -n '/"baseline"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
     tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"
-candidate_max="$(sed -n '/"text_builder_rung_2"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
+previous_max="$(sed -n '/"text_builder_rung_2"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
     tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"
-declared_max="$(sed -n 's/.*"max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
-required_max="$(sed -n 's/.*"required_max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
-awk -v baseline="$baseline_max" -v sample="$candidate_max" \
+candidate_max="$(sed -n '/"single_pass_runtime_rewrite"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
+    tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"
+declared_max="$(sed -n '/"single_pass_runtime_rewrite"/,/}/s/.*"max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+required_max="$(sed -n '/"single_pass_runtime_rewrite"/,/}/s/.*"required_max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+awk -v baseline="$baseline_max" -v previous="$previous_max" -v sample="$candidate_max" \
     -v declared="$declared_max" -v required="$required_max" \
-    'BEGIN { exit !(sample == declared && declared <= required && declared < baseline) }' || {
+    'BEGIN { exit !(sample == declared && declared <= required && declared < previous && previous < baseline) }' || {
     echo "[self-host-text-builder] benchmark evidence relationships drifted" >&2
     exit 1
 }
@@ -84,4 +91,4 @@ grep -Eq '"sha256": "[A-F0-9]{64}"' "$EVIDENCE" || {
     exit 1
 }
 
-echo "[self-host-text-builder] emission owner, linear scan, ABI rows, and nested-mutation contract ok"
+echo "[self-host-text-builder] emission owner, single-pass runtime rewrite, ABI rows, and nested-mutation contract ok"

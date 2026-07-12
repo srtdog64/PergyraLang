@@ -1,0 +1,121 @@
+// Single-pass source builtin to C runtime-call projection.
+//
+// Runtime symbol spelling remains owned by runtime_abi modules. This owner
+// only recognizes source call identifiers and preserves string literals.
+
+import "../text/text_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/host_io_runtime_owner.pgy";
+import "../runtime_abi/math_runtime_owner.pgy";
+import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
+
+func RuntimeCallCName(source_name: String) -> Option<String> {
+    if source_name == "StringLength" { return Some(StringRuntimeCStringLengthFn()); }
+    if source_name == "StringContains" { return Some(StringRuntimeCStringContainsFn()); }
+    if source_name == "StringIndexOf" { return Some(StringRuntimeCStringIndexOfFn()); }
+    if source_name == "Split" { return Some(StringRuntimeCSplitFn()); }
+    if source_name == "ToInt" { return Some(StringRuntimeCToIntFn()); }
+    if source_name == "StringTrim" { return Some(StringRuntimeCStringTrimFn()); }
+    if source_name == "StringReplace" { return Some(StringRuntimeCStringReplaceFn()); }
+    if source_name == "ToUpper" { return Some(StringRuntimeCToUpperFn()); }
+    if source_name == "ToLower" { return Some(StringRuntimeCToLowerFn()); }
+    if source_name == "Abs" { return Some(MathRuntimeCAbsFn()); }
+    if source_name == "Min" { return Some(MathRuntimeCMinFn()); }
+    if source_name == "Max" { return Some(MathRuntimeCMaxFn()); }
+    if source_name == "Sqrt" { return Some(MathRuntimeCSqrtFn()); }
+    if source_name == "Pow" { return Some(MathRuntimeCPowFn()); }
+    if source_name == "Floor" { return Some(MathRuntimeCFloorFn()); }
+    if source_name == "Ceil" { return Some(MathRuntimeCCeilFn()); }
+    if source_name == "SeedRandom" { return Some(MathRuntimeCSeedRandomFn()); }
+    if source_name == "Random" { return Some(MathRuntimeCRandomFn()); }
+    if source_name == "FileExists" { return Some(HostIORuntimeCFileExistsFn()); }
+    if source_name == "WriteFile" { return Some(HostIORuntimeCWriteFileFn()); }
+    if source_name == "FileOpen" { return Some(HostIORuntimeCFileOpenFn()); }
+    if source_name == "FileWrite" { return Some(HostIORuntimeCFileWriteFn()); }
+    if source_name == "FileClose" { return Some(HostIORuntimeCFileCloseFn()); }
+    if source_name == "FileRead" { return Some(HostIORuntimeCFileReadFn()); }
+    if source_name == "Print" { return Some(StringRuntimeCPrintFn()); }
+    if source_name == "ReadFile" { return Some(HostIORuntimeCReadFileFn()); }
+    if source_name == "ReadStdin" { return Some(HostIORuntimeCReadStdinFn()); }
+    if source_name == "DirWalk" { return Some(HostIORuntimeCDirWalkFn()); }
+    if source_name == "Args" { return Some(HostIORuntimeCArgsFn()); }
+    if source_name == "CharCode" { return Some(StringRuntimeCCharCodeFn()); }
+    if source_name == "CharAtN" { return Some(StringRuntimeCCharAtNFn()); }
+    if source_name == "SubContainsWithLen" { return Some(StringRuntimeCSubContainsWithLenFn()); }
+    if source_name == "SubEqualsWithLen" { return Some(StringRuntimeCSubEqualsWithLenFn()); }
+    if source_name == "SubIndexOfWithLen" { return Some(StringRuntimeCSubIndexOfWithLenFn()); }
+    if source_name == "SubStartsWithLen" { return Some(StringRuntimeCSubStartsWithLenFn()); }
+    if source_name == "Substring" { return Some(StringRuntimeCSubstringFn()); }
+    if source_name == "StringJoin" { return Some(StringRuntimeCStringJoinFn()); }
+    if source_name == "Join" { return Some(StringRuntimeCStringJoinFn()); }
+    if source_name == "ArraySort" { return Some(CollectionRuntimeCIntSortFn()); }
+    if source_name == "ArrayReverse" { return Some(CollectionRuntimeCIntReverseFn()); }
+    if source_name == "ArrayMap" { return Some(CollectionRuntimeCIntMapFn()); }
+    if source_name == "ArrayFilter" { return Some(CollectionRuntimeCIntFilterFn()); }
+    if source_name == "IsSome" { return Some(OptionResultRuntimeCOptionIsSomeFn()); }
+    if source_name == "UnwrapOption" { return Some(OptionResultRuntimeCOptionUnwrapFn()); }
+    if source_name == "Ok" { return Some(OptionResultRuntimeCResultOkFn()); }
+    if source_name == "Err" { return Some(OptionResultRuntimeCResultErrFn()); }
+    if source_name == "IsOk" { return Some(OptionResultRuntimeCResultIsOkFn()); }
+    if source_name == "IsErr" { return Some(OptionResultRuntimeCResultIsErrFn()); }
+    if source_name == "UnwrapOr" { return Some(OptionResultRuntimeCResultUnwrapOrFn()); }
+    if source_name == "Unwrap" { return Some(OptionResultRuntimeCResultUnwrapFn()); }
+    if source_name == "ToFloat" { return Some(StringRuntimeCToFloatFn()); }
+    if source_name == "ToString" { return Some(StringRuntimeCToStringFn()); }
+    if source_name == "Concat" { return Some(StringRuntimeCConcatFn()); }
+    return None;
+}
+
+func RewriteRuntimeCallsOutsideStrings(source: String) -> String {
+    let n: Int = StringLength(source);
+    let result_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(n + 1);
+    let i: Int = 0;
+    let in_string: Bool = false;
+    while i < n {
+        let c: String = CodegenCharAt(source, i);
+        if in_string {
+            TextBuilderAppend(output, c);
+            if c == "\\" && i + 1 < n {
+                TextBuilderAppend(output, CodegenCharAt(source, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_string = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_string = true;
+            TextBuilderAppend(output, c);
+            i = i + 1;
+            continue;
+        }
+        if IsIdentStart(c) {
+            let end: Int = i + 1;
+            while end < n && IsIdentChar(CodegenCharAt(source, end)) {
+                end = end + 1;
+            }
+            let source_name: String = Substring(source, i, end - i);
+            let runtime_name: Option<String> = None;
+            if end < n && CodegenCharAt(source, end) == "(" {
+                runtime_name = RuntimeCallCName(source_name);
+            }
+            if IsSome(runtime_name) {
+                TextBuilderAppend(output, UnwrapOption(runtime_name));
+            } else {
+                TextBuilderAppend(output, source_name);
+            }
+            i = end;
+            continue;
+        }
+        TextBuilderAppend(output, c);
+        i = i + 1;
+    }
+    let rewritten: String = TextBuilderFinish(output, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return rewritten;
+}

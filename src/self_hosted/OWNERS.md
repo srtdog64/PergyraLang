@@ -243,6 +243,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder layout, lifecycle, and runtime-call projection facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
+- `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
+  single-pass source builtin call recognition projected through runtime symbol
+  owners; string literals remain opaque.
 - `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- expected-type array literal value emission.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.

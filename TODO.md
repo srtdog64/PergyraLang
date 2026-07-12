@@ -320,17 +320,22 @@ English anchor for tooling/doc gates:
   x86-64/AArch64, and skewed/random distributions. No backend may infer this
   from source AST spelling. See docs/127.
   Self-host compiler text lifetime remains open, but the first measured owner
-  is closed. TextBuilder rung 2 now covers program C-unit assembly,
-  binding-reference rewriting, and repeated token replacement. On the same
-  1,289,598-byte AST artifact, two-run Windows process-tree sampling reduced
-  peak private memory from 3,347.3-3,394.5 MB to 1,987.7-2,004.3 MB with
-  byte-identical 1,191,490-byte output; gen2==gen3 and 69-fixture C/LLVM codegen
-  parity remain green. Keep general moves, parameters, returns, fields,
+  is closed. TextBuilder rung 2 covers program C-unit assembly and
+  binding-reference rewriting. Runtime builtin projection now uses one
+  identifier scan instead of roughly 50 whole-expression replacement scans.
+  On the same 1,289,598-byte AST artifact, two-run Windows process-tree
+  sampling now measures 956.1-956.5 MB and 15.792-15.877 s with byte-identical
+  1,191,490-byte output; 69-fixture C/LLVM codegen parity remains green. Keep
+  general moves, parameters, returns, fields,
   containers, and branch-sensitive consume fail-closed. Next repoint the
   remaining per-character expression/literal/statement transforms and add
   scope reclamation for ordinary temporary `String` values. `AllocatorScratch`
   is still not a bulk-reset arena; do not raise the CI memory cap. See docs/127
-  section 8.
+  section 8. Typed-arena full parallel-row validation now stays at the artifact
+  seal instead of reopening on every accessor. The same integrated-driver
+  output reduced peak private memory from 223.4 MB to 159.4-161.0 MB, but its
+  34-36 second runtime did not improve; parser/semantic/MIR character and
+  substring scans remain the next measured CPU owner.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a
