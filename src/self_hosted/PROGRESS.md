@@ -240,6 +240,16 @@ The earlier runtime-consumer-specific owner label was generalized to node-kind
 surface ownership rather than duplicated. Event rejection is now a committed
 TestHarness negative leg, and no codegen arena declaration predicate remains.
 
+The fourteenth executable delta moved top-level expression operator positions
+into `SemanticAstExpressionSurfaceFacts`. The owner stores normalized
+atom/value/auxiliary payloads and compact operator rows. `Log` emission now
+looks up its atom row by node identity, and the role-operator path consumes the
+stored additive index and operator kind instead of calling `FindTopLevelPlus`.
+The fixture proves `+` dispatch without misrouting `-`. The migrated
+function is ratcheted against that fallback, and C/LLVM-built tools remain
+oracle-equal. Value/auxiliary consumers and recursive child expressions remain
+the active mixed-expression bridge.
+
 The follow-up ratchet deleted the final dead codegen arena payload views:
 atom, type, value, auxiliary value, parameter type, and parameter mode. The
 remaining mixed-expression blocker is therefore exact: semantic owner rows
@@ -259,7 +269,7 @@ mixed-expression consumers.
 
 The whole compiler skeleton now has a machine-gated 28-row owner declaration in
 `docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus thirteen
-bounded self-host closure rows, with thirteen `CLOSED`, six `BRIDGE`, and nine
+bounded self-host closure rows, with twelve `CLOSED`, seven `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

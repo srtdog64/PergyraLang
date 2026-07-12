@@ -2,6 +2,20 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../lib/source_scan_owner.pgy";
+import "expression_normalization_owner.pgy";
+import "expression_operator_fact_owner.pgy";
+
+struct SemanticAstExpressionShapeFact {
+    ok: Bool;
+    normalized_text: String;
+    logical_index: Int;
+    comparison_index: Int;
+    comparison_length: Int;
+    additive_index: Int;
+    additive_operator_code: Int;
+    multiplicative_index: Int;
+    arithmetic_marker_index: Int;
+}
 
 struct SemanticAstExpressionSurfaceFacts {
     ok: Bool;
@@ -13,6 +27,43 @@ struct SemanticAstExpressionSurfaceFacts {
     values: Array<String>;
     has_auxiliary_values: Array<Bool>;
     auxiliary_values: Array<String>;
+    normalized_atoms: Array<String>;
+    normalized_values: Array<String>;
+    normalized_auxiliary_values: Array<String>;
+    operator_rows: Array<Int>;
+}
+
+func SemanticAstExpressionAtomLane() -> Int { return 0; }
+func SemanticAstExpressionValueLane() -> Int { return 1; }
+func SemanticAstExpressionAuxiliaryLane() -> Int { return 2; }
+func SemanticAstExpressionOperatorWidth() -> Int { return 7; }
+func SemanticAstExpressionShapeWidth() -> Int { return 21; }
+
+func SemanticAstExpressionOperatorRowsAppend(
+    inout rows: Array<Int>,
+    operators: SemanticTopLevelOperatorFacts,
+    normalized_text: String
+) -> Void {
+    ArrayPush(rows, operators.logical_index);
+    ArrayPush(rows, operators.comparison_index);
+    ArrayPush(rows, operators.comparison_length);
+    ArrayPush(rows, operators.additive_index);
+    let additive_operator_code: Int = -1;
+    if operators.additive_index >= 0 {
+        additive_operator_code = SourceByteAt(
+            normalized_text, StringLength(normalized_text),
+            operators.additive_index
+        );
+    }
+    ArrayPush(rows, additive_operator_code);
+    ArrayPush(rows, operators.multiplicative_index);
+    ArrayPush(rows, operators.arithmetic_marker_index);
+}
+
+func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
+    return SemanticAstExpressionShapeFact(
+        false, "", -1, -1, 0, -1, -1, -1, -1
+    );
 }
 
 func SemanticAstExpressionSurfaceFactsFromArtifact(
@@ -25,6 +76,10 @@ func SemanticAstExpressionSurfaceFactsFromArtifact(
     let values: Array<String> = [];
     let has_auxiliary_values: Array<Bool> = [];
     let auxiliary_values: Array<String> = [];
+    let normalized_atoms: Array<String> = [];
+    let normalized_values: Array<String> = [];
+    let normalized_auxiliary_values: Array<String> = [];
+    let operator_rows: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -40,6 +95,10 @@ func SemanticAstExpressionSurfaceFactsFromArtifact(
             if IsSome(atom) { atom_text = UnwrapOption(atom); }
             if IsSome(value) { value_text = UnwrapOption(value); }
             if IsSome(auxiliary) { auxiliary_text = UnwrapOption(auxiliary); }
+            let normalized_atom: String = SemanticStripOuterParens(atom_text);
+            let normalized_value: String = SemanticStripOuterParens(value_text);
+            let normalized_auxiliary: String =
+                SemanticStripOuterParens(auxiliary_text);
             ArrayPush(node_ids, node_id);
             ArrayPush(has_atoms, IsSome(atom));
             ArrayPush(atoms, atom_text);
@@ -47,12 +106,33 @@ func SemanticAstExpressionSurfaceFactsFromArtifact(
             ArrayPush(values, value_text);
             ArrayPush(has_auxiliary_values, IsSome(auxiliary));
             ArrayPush(auxiliary_values, auxiliary_text);
+            ArrayPush(normalized_atoms, normalized_atom);
+            ArrayPush(normalized_values, normalized_value);
+            ArrayPush(normalized_auxiliary_values, normalized_auxiliary);
+            SemanticAstExpressionOperatorRowsAppend(
+                operator_rows,
+                SemanticTopLevelOperatorFactsFromExpression(normalized_atom),
+                normalized_atom
+            );
+            SemanticAstExpressionOperatorRowsAppend(
+                operator_rows,
+                SemanticTopLevelOperatorFactsFromExpression(normalized_value),
+                normalized_value
+            );
+            SemanticAstExpressionOperatorRowsAppend(
+                operator_rows,
+                SemanticTopLevelOperatorFactsFromExpression(
+                    normalized_auxiliary
+                ),
+                normalized_auxiliary
+            );
         }
         node_id = node_id + 1;
     }
     return SemanticAstExpressionSurfaceFacts(
         ok, artifact.count, node_ids, has_atoms, atoms, has_values, values,
-        has_auxiliary_values, auxiliary_values
+        has_auxiliary_values, auxiliary_values, normalized_atoms,
+        normalized_values, normalized_auxiliary_values, operator_rows
     );
 }
 
@@ -87,6 +167,65 @@ func SemanticAstExpressionSurfaceAuxiliaryAt(
     if !facts.ok || index < 0 || index >= SemanticAstExpressionSurfaceCount(facts) ||
         !facts.has_auxiliary_values[index] { return None; }
     return Some(facts.auxiliary_values[index]);
+}
+
+func SemanticAstExpressionSurfaceIndexForNode(
+    facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count {
+        return None;
+    }
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if facts.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstExpressionShapeAt(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int,
+    lane: Int
+) -> SemanticAstExpressionShapeFact {
+    let count: Int = SemanticAstExpressionSurfaceCount(facts);
+    if !facts.ok || index < 0 || index >= count || lane < 0 || lane > 2 ||
+        ArrayLength(facts.operator_rows) !=
+            count * SemanticAstExpressionShapeWidth() {
+        return SemanticAstExpressionInvalidShape();
+    }
+    let present: Bool = facts.has_atoms[index];
+    let normalized: String = facts.normalized_atoms[index];
+    if lane == SemanticAstExpressionValueLane() {
+        present = facts.has_values[index];
+        normalized = facts.normalized_values[index];
+    } else if lane == SemanticAstExpressionAuxiliaryLane() {
+        present = facts.has_auxiliary_values[index];
+        normalized = facts.normalized_auxiliary_values[index];
+    }
+    if !present { return SemanticAstExpressionInvalidShape(); }
+    let base: Int = index * SemanticAstExpressionShapeWidth() +
+        lane * SemanticAstExpressionOperatorWidth();
+    return SemanticAstExpressionShapeFact(
+        true, normalized,
+        facts.operator_rows[base], facts.operator_rows[base + 1],
+        facts.operator_rows[base + 2], facts.operator_rows[base + 3],
+        facts.operator_rows[base + 4], facts.operator_rows[base + 5],
+        facts.operator_rows[base + 6]
+    );
+}
+
+func SemanticAstExpressionShapeForNode(
+    facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int,
+    lane: Int
+) -> SemanticAstExpressionShapeFact {
+    let index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) { return SemanticAstExpressionInvalidShape(); }
+    return SemanticAstExpressionShapeAt(facts, UnwrapOption(index), lane);
 }
 
 func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
@@ -186,7 +325,10 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
     let count: Int = SemanticAstExpressionSurfaceCount(facts);
     if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
-        SemanticAstExpressionSurfaceCount(rebuilt) != count {
+        SemanticAstExpressionSurfaceCount(rebuilt) != count ||
+        ArrayLength(facts.operator_rows) !=
+            count * SemanticAstExpressionShapeWidth() ||
+        ArrayLength(rebuilt.operator_rows) != ArrayLength(facts.operator_rows) {
         return false;
     }
     let i: Int = 0;
@@ -197,22 +339,48 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
             facts.has_values[i] != rebuilt.has_values[i] ||
             facts.values[i] != rebuilt.values[i] ||
             facts.has_auxiliary_values[i] != rebuilt.has_auxiliary_values[i] ||
-            facts.auxiliary_values[i] != rebuilt.auxiliary_values[i] {
+            facts.auxiliary_values[i] != rebuilt.auxiliary_values[i] ||
+            facts.normalized_atoms[i] != rebuilt.normalized_atoms[i] ||
+            facts.normalized_values[i] != rebuilt.normalized_values[i] ||
+            facts.normalized_auxiliary_values[i] !=
+                rebuilt.normalized_auxiliary_values[i] {
             return false;
         }
         i = i + 1;
+    }
+    let operator_index: Int = 0;
+    while operator_index < ArrayLength(facts.operator_rows) {
+        if facts.operator_rows[operator_index] !=
+            rebuilt.operator_rows[operator_index] {
+            return false;
+        }
+        operator_index = operator_index + 1;
     }
     return true;
 }
 
 func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log(None)\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n"
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
+    let additive_shape: SemanticAstExpressionShapeFact =
+        SemanticAstExpressionInvalidShape();
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
+            additive_shape = SemanticAstExpressionShapeAt(
+                facts, i, SemanticAstExpressionAtomLane()
+            );
+        }
+        i = i + 1;
+    }
     return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
         SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
         SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
-        !SemanticAstExpressionSurfaceCallPresent(facts, "Substring");
+        !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&
+        additive_shape.ok && additive_shape.normalized_text == "left + right" &&
+        additive_shape.additive_index == 5 &&
+        additive_shape.additive_operator_code == SourceByteOf("+");
 }

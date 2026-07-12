@@ -196,6 +196,14 @@ from recounting the entrypoint locally.
 `input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
 shape and top-level element facts so statement emission does not split array
 initializer text locally.
+`input/semantic_expression_codegen_view_owner.pgy` projects normalized
+expression shape by artifact node and payload lane. The first live consumer is
+`Log`: `emission/expr_semantic_shape_emit_owner.pgy` consumes the stored
+top-level additive index and operator kind, while
+`emission/log_emit_owner.pgy` owns log type routing and scalar formatting ABI.
+The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
+Value/auxiliary and recursive child-expression lowering remain the explicit
+compact-text bridge.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

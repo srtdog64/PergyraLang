@@ -145,8 +145,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_role_fact_owner.pgy` -- artifact-bound role
   declaration identity, name, target type, and owned method `NodeId` rows.
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
-  artifact-bound atom/value/auxiliary expression surfaces and string-safe
-  call/token queries consumed by runtime projection.
+  artifact-bound atom/value/auxiliary expression surfaces, normalized
+  top-level operator rows, and string-safe call/token queries consumed by
+  semantic and runtime projection.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
   artifact type-name rows consumed by runtime projection.
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` -- canonical
@@ -259,6 +260,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
+- `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
+  -- fail-closed codegen view over semantic-owned expression shape rows keyed
+  by artifact node and payload lane.
 - `src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy` --
   fail-closed node-kind identity projection for ability/event declaration
   routing.
@@ -286,6 +290,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder layout, lifecycle, and runtime-call projection facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
+- `src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy` --
+  top-level expression emission that consumes semantic shape rows instead of
+  rescanning the source payload.
+- `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
+  projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
   owners; string literals remain opaque.

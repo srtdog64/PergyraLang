@@ -12,4 +12,5 @@ role IntMath for Int {
 
 func Main() -> Void {
     Log(1 + 2);
+    Log(5 - 2);
 }

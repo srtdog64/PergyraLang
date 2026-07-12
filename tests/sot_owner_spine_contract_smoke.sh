@@ -34,7 +34,7 @@ coq_path = root / "docs/semantics/proofs/SoTAuthority.v"
 begin = "<!-- BEGIN sot-owner-spine-registry -->"
 end = "<!-- END sot-owner-spine-registry -->"
 statuses = {"ACTIVE", "BRIDGE", "CLOSED"}
-expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 6, "CLOSED": 13})
+expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 7, "CLOSED": 12})
 expected_pairs = {
     "source.module_graph": ("SFSourceModuleGraph", "SOModuleLoader"),
     "lexer.token_stream": ("SFTokenStream", "SOLexer"),
@@ -56,7 +56,7 @@ expected_pairs = {
     "selfhost.enum_declaration_rows": ("SFEnumDeclarationRows", "SOSemanticEnum"),
     "selfhost.nominal_declaration_rows": ("SFNominalDeclarationRows", "SOSemanticNominalConstructor"),
     "selfhost.role_declaration_rows": ("SFRoleDeclarationRows", "SOSemanticRole"),
-    "selfhost.expression_runtime_usage_surface": ("SFExpressionRuntimeUsageSurface", "SOSemanticExpressionSurface"),
+    "selfhost.expression_surface": ("SFExpressionSurface", "SOSemanticExpressionSurface"),
     "selfhost.type_runtime_usage_surface": ("SFTypeRuntimeUsageSurface", "SOSemanticTypeSurface"),
     "selfhost.node_kind_surface": ("SFNodeKindSurface", "SOSemanticKindSurface"),
     "selfhost.entrypoint_selection": ("SFEntrypointSelection", "SOSemanticSignature"),
@@ -217,6 +217,6 @@ must_reject(
 
 print(
     "[sot-owner-spine] 28 owner rows locked "
-    "(CLOSED=13 BRIDGE=6 ACTIVE=9); mutations rejected"
+    "(CLOSED=12 BRIDGE=7 ACTIVE=9); mutations rejected"
 )
 PY

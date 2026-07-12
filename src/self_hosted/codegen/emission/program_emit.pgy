@@ -386,6 +386,7 @@ func GenerateCUnitFromSemanticArtifact(
                     let mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
                         local_bindings, assignments, statements,
+                        semantic_analysis.expression_surfaces,
                         cur, method_indent,
                         base_env, uses_args
                     );
@@ -403,6 +404,7 @@ func GenerateCUnitFromSemanticArtifact(
                     let role_mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
                         local_bindings, assignments, statements,
+                        semantic_analysis.expression_surfaces,
                         cur, role_method_indent,
                         base_env, uses_args
                     );
@@ -416,6 +418,7 @@ func GenerateCUnitFromSemanticArtifact(
             let def: String = EmitFunction(
                 count, arena, signatures, semantic_analysis.roles,
                 local_bindings, assignments, statements,
+                semantic_analysis.expression_surfaces,
                 cur, f_indent, base_env, uses_args
             );
             ArrayPush(defs, Concat(def, "\n"));

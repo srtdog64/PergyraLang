@@ -1,0 +1,71 @@
+// Log expression projection and scalar formatting ABI owner.
+
+import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
+import "expr_rewrite.pgy";
+import "expr_semantic_shape_emit_owner.pgy";
+
+func EmitFormattedScalarLog(
+    c_expr: String,
+    type_name: String,
+    line_format: String,
+    env: CodegenTypeEnv
+) -> String {
+    let stmt: String = Concat(StringRuntimeCFormattedPrintFn(), "(\"");
+    stmt = Concat(stmt, line_format);
+    stmt = Concat(stmt, "\", (");
+    stmt = Concat(stmt, AbiLayoutCValueType(type_name, env));
+    stmt = Concat(stmt, ")(");
+    stmt = Concat(stmt, c_expr);
+    stmt = Concat(stmt, "));");
+    return stmt;
+}
+
+func EmitLog(
+    inner: String,
+    env: CodegenTypeEnv,
+    shape: SemanticAstExpressionShapeFact
+) -> String {
+    if StartsWith(inner, "ToString(") {
+        let n: Int = StringLength(inner);
+        if CodegenCharAt(inner, n - 1) != ")" {
+            Die(Concat("malformed ToString(...): ", inner));
+        }
+        let arg: String = Substring(inner, 9, n - 9 - 1);
+        let arg_kind: String = ExprKind(arg, env);
+        if arg_kind == "String" {
+            return Concat(StringRuntimeCLogFn(), Concat(
+                "(", Concat(StrEval(arg, env), ");")
+            ));
+        }
+        if arg_kind == "Long" {
+            return EmitFormattedScalarLog(
+                IntEval(arg, env), "Long", StringRuntimeCIntLineFormat(), env
+            );
+        }
+        return EmitFormattedScalarLog(
+            IntEval(arg, env), "Int", StringRuntimeCIntLineFormat(), env
+        );
+    }
+    if ExprKind(inner, env) == "Int" {
+        return EmitFormattedScalarLog(
+            IntEvalWithSemanticShape(inner, env, shape), "Int",
+            StringRuntimeCIntLineFormat(), env
+        );
+    }
+    if ExprKind(inner, env) == "Long" {
+        return EmitFormattedScalarLog(
+            IntEvalWithSemanticShape(inner, env, shape), "Long",
+            StringRuntimeCIntLineFormat(), env
+        );
+    }
+    if ExprKind(inner, env) == "Float" {
+        return EmitFormattedScalarLog(
+            RewriteExprWithSemanticShape(inner, env, shape), "Float",
+            StringRuntimeCFloatLineFormat(), env
+        );
+    }
+    return Concat(StringRuntimeCLogFn(), Concat("(", Concat(
+        StrEvalWithSemanticShape(inner, env, shape), ");"
+    )));
+}

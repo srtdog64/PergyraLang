@@ -78,6 +78,23 @@ reject_text() {
     fi
 }
 
+reject_function_text() {
+    local rel="$1"
+    local signature="$2"
+    local term="$3"
+    local body
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing function input: $rel"
+    body="$(awk -v signature="$signature" '
+        index($0, signature) == 1 { in_function = 1 }
+        in_function && seen && /^func / { exit }
+        in_function { print; seen = 1 }
+    ' "$ROOT_DIR/$rel")"
+    [[ -n "$body" ]] || fail "$rel missing function: $signature"
+    [[ "$body" != *"$term"* ]] ||
+        fail "$rel function $signature must not contain retired term: $term"
+}
+
 reject_regex() {
     local rel="$1"
     local pattern="$2"
@@ -889,6 +906,7 @@ require_owner_surface codegen \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
+    "input/semantic_expression_codegen_view_owner.pgy" \
     "input/semantic_kind_codegen_view_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_kind_usage_owner.pgy" \
@@ -910,6 +928,8 @@ require_owner_surface codegen \
     "runtime_abi/option_result_runtime_owner.pgy" \
     "runtime_abi/string_runtime_owner.pgy" \
     "emission/runtime_call_rewrite_owner.pgy" \
+    "emission/expr_semantic_shape_emit_owner.pgy" \
+    "emission/log_emit_owner.pgy" \
     "emission/struct_value_emit.pgy" \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
@@ -2935,6 +2955,12 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "f
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceCallPresent"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceTokenPresent"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "struct SemanticAstExpressionShapeFact"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionShapeForNode"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "operator_rows: Array<Int>"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "additive_operator_code: Int"
+require_file "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
+require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int>"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageGroupPresent"
@@ -3244,7 +3270,8 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstText
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsParameters(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFieldsHeader(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextExpectNode(nodes, count, cur"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "count, arena, local_bindings, assignments, statements, stmt_indent,"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "count, arena, local_bindings, assignments, statements,"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "expression_surfaces, stmt_indent, cur,"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsZeroArtifactDeclLine"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsNominalDeclLine"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsRoleDeclLine"
@@ -3283,7 +3310,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunct
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "indents["
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" ".text"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "statements: SemanticAstStatementFacts, stmt_indent: Int"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expression_surfaces: SemanticAstExpressionSurfaceFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaExpectBlock(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaExpectThen(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int"
@@ -3453,6 +3480,14 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAs
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAtomExpressionShapeOrDie("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLog(log_inner, env, log_shape)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteExprWithSemanticShape("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \
+    "func RewriteExprWithSemanticShape(" "FindTopLevelPlus"
+require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'shape.additive_operator_code == SourceByteOf("+")'
+require_text "src/self_hosted/codegen/role_fixture/operator_add.pgy" "Log(5 - 2);"
+require_text "src/self_hosted/codegen/role_expected/operator_add_stdout.txt" $'123\n3'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindValueReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx)"
@@ -3913,10 +3948,10 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntime
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "CollectionRuntimeCIntSortFn"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCConcatFn"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCLogFn"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFormattedPrintFn"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCIntLineFormat"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "StringRuntimeCFloatLineFormat"
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "StringRuntimeCLogFn"
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "StringRuntimeCFormattedPrintFn"
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "StringRuntimeCIntLineFormat"
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "StringRuntimeCFloatLineFormat"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" 'import "../runtime_abi/string_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "StringRuntimeCStringCompareFn()"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "MathRuntimeCAbsFn"

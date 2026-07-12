@@ -6,6 +6,25 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-13 - First semantic expression-shape consumer
+
+- Extended the existing semantic expression-surface authority instead of
+  creating a second expression owner. It now stores normalized atom, value,
+  and auxiliary payloads plus compact top-level operator rows keyed by
+  `SyntaxNodeId` and lane.
+- Repointed `Log` emission and the role-operator fixture to consume the atom
+  row's additive index and operator kind. The fixture proves `+` dispatch and
+  `-` non-dispatch. The semantic-shape emitter fails closed on a missing or
+  mismatched row and is forbidden from calling `FindTopLevelPlus`.
+- Split semantic-shape and log projection from the large expression/statement
+  emitters rather than raising the 600-line responsibility cap.
+- Verified self-host codegen C emission, component contracts, and focused
+  C/LLVM oracle parity including enum/event negative legs and role execution.
+- Renamed the single registry identity from runtime-only expression usage to
+  the unified expression surface and honestly reopened it as `BRIDGE`. The
+  28-row spine is now `CLOSED=12 BRIDGE=7 ACTIVE=9`; value/auxiliary consumers
+  and recursive child expressions remain compact-text backed.
+
 ## 2026-07-13 - Top-level declaration routing becomes semantic-owned
 
 - Added declaration `NodeId` identity to enum facts and fail-closed node lookup

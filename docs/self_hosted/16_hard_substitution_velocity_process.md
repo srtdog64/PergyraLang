@@ -175,6 +175,18 @@ widens the existing owner instead of creating routing aliases. The final two
 codegen arena declaration predicates are deleted, and event rejection is a
 TestHarness-owned negative C/LLVM parity leg.
 
+Fourteenth executable delta, 2026-07-13: `SemanticAstExpressionSurfaceFacts`
+now stores normalized atom/value/auxiliary payloads and one compact typed
+top-level operator row per lane. `Log` expression emission looks up the atom
+row by `SyntaxNodeId`; the role-operator path consumes its additive index and
+operator kind, then fails closed if the row does not match the emitted
+expression. The migrated function cannot call `FindTopLevelPlus`, and
+C-built/LLVM-built codegen tools
+remain oracle-equal for the role fixture, including `+` dispatch versus raw
+`-`, and both negative declaration legs.
+The owner remains `BRIDGE`: value/auxiliary consumers and recursive child
+expressions still parse compact text.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
@@ -187,8 +199,10 @@ than inheriting a global proof claim.
 Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
 have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
 The registry now carries 15 architectural rows plus thirteen bounded self-host
-closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
-honestly split into `CLOSED=13 BRIDGE=6 ACTIVE=9`; only executable rung closure
+closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. The
+single expression-surface row now covers runtime usage and expression shape
+instead of introducing an alias, so it is honestly split into
+`CLOSED=12 BRIDGE=7 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 

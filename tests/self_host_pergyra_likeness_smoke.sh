@@ -193,7 +193,10 @@ SENTINEL_MAX=0
 # 1288 -> 1282 (2026-07-13): six uncalled fail-closed arena payload accessors
 # were deleted. This re-bases to live errors-as-data use; no live Result/Option
 # path was replaced by a sentinel or hidden failure.
-RESULT_USE_MIN=1282
+# 1282 -> 1286 (2026-07-13): the semantic expression-shape row added a
+# node-index Option lookup and fail-closed codegen view. Ratchet the executable
+# owner/consumer path rather than leaving the improvement as unowned headroom.
+RESULT_USE_MIN=1286
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
