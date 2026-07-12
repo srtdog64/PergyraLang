@@ -70,6 +70,7 @@ AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
 WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
 METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
 PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
+SOT_AUTHORITY_COQ="$PROOF_DIR/proofs/SoTAuthority.v"
 GUARD_COQ="$PROOF_DIR/proofs/GuardCalculus.v"
 WHOLE_PROGRAM_COQ="$PROOF_DIR/proofs/WholeProgramCore.v"
 AIR_BINDING_COQ="$PROOF_DIR/proofs/AIRBinding.v"
@@ -107,6 +108,7 @@ require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
 require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
 require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v"
 require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
+require_file "$SOT_AUTHORITY_COQ" "docs/semantics/proofs/SoTAuthority.v"
 require_file "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v"
 require_file "$WHOLE_PROGRAM_COQ" "docs/semantics/proofs/WholeProgramCore.v"
 require_file "$AIR_BINDING_COQ" "docs/semantics/proofs/AIRBinding.v"
@@ -142,6 +144,7 @@ Slot alone is not advertised as a borrow checker.
 proofs/SlotCalculus.v
 proofs/VerificationMethodology.v
 proofs/ProofSpine.v
+proofs/SoTAuthority.v
 mechanized evidence for those modeled invariants only
 Generic contracts
 Ownership: anchored slot-handle boundary subset only.
@@ -682,6 +685,8 @@ Theorem complete_spine_connects_formal_kernel
 Theorem complete_spine_connects_basis_selection
 Theorem complete_spine_connects_certificate_pipeline
 Theorem complete_spine_connects_methodology
+NodeSoTAuthority
+Theorem complete_spine_connects_sot_authority
 Theorem complete_spine_is_not_whole_language_verification
 Inductive RemainingObligation
 Theorem whole_language_ready_requires_pin_exceptional_cleanup
@@ -691,6 +696,20 @@ Theorem whole_language_ready_requires_transitive_frontier_scheduler
 Theorem whole_language_ready_requires_air_mir_live_owner_binding
 Theorem whole_language_ready_requires_windows_llvm_runner_parity
 Theorem open_obligation_blocks_whole_language_ready
+TERMS
+
+require_terms "$SOT_AUTHORITY_COQ" "docs/semantics/proofs/SoTAuthority.v" <<'TERMS'
+Pergyra single-source-of-truth authority model
+Definition AuthorityComplete
+Definition AuthorityUnique
+Definition RequiredFactsConsumed
+Definition NoSemanticFallback
+Definition RungClosed
+Theorem closed_required_fact_has_exactly_one_authority
+Theorem current_array_literal_rung_closed
+Theorem owned_plus_fallback_bridge_is_not_closed
+Theorem duplicate_semantic_producer_is_not_closed
+Theorem missing_required_fact_is_not_closed
 TERMS
 
 for stale_doc in \
@@ -812,6 +831,7 @@ if command -v coqc >/dev/null 2>&1; then
         docs/semantics/proofs/CompensationCore.v \
         docs/semantics/proofs/CoordinationCore.v \
         docs/semantics/proofs/VerificationMethodology.v \
+        docs/semantics/proofs/SoTAuthority.v \
         docs/semantics/proofs/ProofSpine.v \
         docs/semantics/proofs/GuardCalculus.v \
         docs/semantics/proofs/WholeProgramCore.v \

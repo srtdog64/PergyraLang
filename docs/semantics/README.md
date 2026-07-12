@@ -221,11 +221,17 @@ Mechanized artifacts:
   differential oracles, verifier gates, ADT owners, and mechanized models are
   separate evidence forms and cannot be substituted for each other. The smoke
   gate binds this model to the methodology document and the proof-pack index.
+- [proofs/SoTAuthority.v](proofs/SoTAuthority.v): bounded-rung Coq model for
+  single semantic authority. It proves required-owner existence and uniqueness,
+  authority-only consumption, and rejection of missing facts, duplicate
+  producers, and owner-plus-fallback bridges. The adequacy smoke binds the
+  first concrete instance to semantic-owned array-literal body facts and their
+  codegen consumer; it is not a whole-compiler SoT proof.
 - [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that
   names every mechanized artifact as a proof-pack node and connects the runtime
   safety, axis ownership, intent core, unified machine, formal-kernel,
   basis-selection,
-  certificate pipeline, and verification-methodology groups. Its negative
+  certificate pipeline, verification-methodology, and SoT-authority groups. Its negative
   theorem states that a complete spine is still not whole-language verification.
 
 ## Beta Proof Boundary

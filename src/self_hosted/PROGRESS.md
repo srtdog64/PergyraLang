@@ -152,6 +152,15 @@ and LLVM-built codegen tools (SHA-256
 generated program matched the committed output. This is one mixed-tree
 consumer closure; released/default replacement remains 0%.
 
+The same bounded closure is now modeled in
+`docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
+uniqueness, required consumption, and zero semantic fallback, while
+`tests/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
+owner and codegen consumer and mutation-tests missing-owner and fallback
+reintroduction. This is mechanized evidence for the array-literal rung only;
+it does not increase released/default replacement or close the remaining
+mixed-expression consumers.
+
 ## Headline Number
 
 ### Three-axis scorecard

@@ -44,6 +44,7 @@ for rel in \
     docs/semantics/proofs/AuthorityIrreducibility.v \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/VerificationMethodology.v \
+    docs/semantics/proofs/SoTAuthority.v \
     docs/semantics/proofs/ProofSpine.v \
     docs/semantics/proofs/ProofSpine.md \
     docs/semantics/README.md \
@@ -86,6 +87,10 @@ require_text "docs/semantics/proofs/AuthorityIrreducibility.v" "Theorem delegati
 require_text "docs/semantics/proofs/AuthorityIrreducibility.v" "Theorem authority_beyond_cap_zone"
 require_text "docs/semantics/proofs/ProofCarryingIR.v" "Theorem valid_certificate_allows_backend_consumption"
 require_text "docs/semantics/proofs/VerificationMethodology.v" "Theorem hard_self_host_requires_differential"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem current_array_literal_rung_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem owned_plus_fallback_bridge_is_not_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem duplicate_semantic_producer_is_not_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fact_is_not_closed"
 
 for term in \
     "Inductive ProofNode" \
@@ -107,6 +112,8 @@ for term in \
     "NodeAuthorityIrreducibility" \
     "Theorem complete_spine_connects_certificate_pipeline" \
     "Theorem complete_spine_connects_methodology" \
+    "NodeSoTAuthority" \
+    "Theorem complete_spine_connects_sot_authority" \
     "Theorem complete_spine_is_not_whole_language_verification" \
     "Theorem whole_language_ready_requires_pin_exceptional_cleanup" \
     "Theorem whole_language_ready_requires_parser_to_ast_manifest" \

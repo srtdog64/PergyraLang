@@ -36,7 +36,8 @@ Inductive ProofNode : Type :=
   | NodeIntentConflict
   | NodeAuthorityIrreducibility
   | NodeProofCarryingIR
-  | NodeVerificationMethodology.
+  | NodeVerificationMethodology
+  | NodeSoTAuthority.
 
 Inductive SpineClaim : Type :=
   | RuntimeSafetyConnected
@@ -47,6 +48,7 @@ Inductive SpineClaim : Type :=
   | BasisSelectionConnected
   | CertificatePipelineConnected
   | VerificationMethodologyConnected
+  | SoTAuthorityConnected
   | WholeLanguageVerified.
 
 Inductive RemainingObligation : Type :=
@@ -82,7 +84,8 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeIntentConflict /\
   HasNode s NodeAuthorityIrreducibility /\
   HasNode s NodeProofCarryingIR /\
-  HasNode s NodeVerificationMethodology.
+  HasNode s NodeVerificationMethodology /\
+  HasNode s NodeSoTAuthority.
 
 Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
   match c with
@@ -124,6 +127,8 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeIRMinimality
   | VerificationMethodologyConnected =>
       HasNode s NodeVerificationMethodology
+  | SoTAuthorityConnected =>
+      HasNode s NodeSoTAuthority
   | WholeLanguageVerified => False
   end.
 
@@ -214,6 +219,14 @@ Qed.
 
 Theorem complete_spine_connects_methodology :
   forall s, ProofSpineComplete s -> PermitsClaim s VerificationMethodologyConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  apply complete_spine_has_node. exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_sot_authority :
+  forall s, ProofSpineComplete s -> PermitsClaim s SoTAuthorityConnected.
 Proof.
   intros s Hcomplete.
   unfold PermitsClaim.

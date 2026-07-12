@@ -104,6 +104,14 @@ new view. C-built and LLVM-built codegen tools emitted byte-identical C for the
 focused array fixture. The active rung remains open for the other expression
 shapes.
 
+Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
+as required-owner completeness, authority uniqueness, required consumption,
+and zero semantic fallback. It proves that the current array-literal row is
+closed in the bounded model and that missing facts, duplicate producers, and
+owner-plus-fallback bridges are not closed. The source adequacy gate binds only
+that modeled row to live files; future consumers require new bindings rather
+than inheriting a global proof claim.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,

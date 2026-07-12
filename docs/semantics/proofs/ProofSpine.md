@@ -23,7 +23,8 @@ present before a proof-pack-level claim can be made.
 - basis selection: `BasisCompleteness.v`, `FormalKernel.v`, and
   `AxisOwnership.v`;
 - certificate pipeline: `ProofCarryingIR.v` and `IRMinimality.v`;
-- verification methodology: `VerificationMethodology.v`.
+- verification methodology: `VerificationMethodology.v`;
+- bounded-rung SoT authority: `SoTAuthority.v`.
 
 ## Negative Boundary
 
@@ -81,6 +82,11 @@ remaining obligation blocks that stronger claim.
 - `AuthorityIrreducibility.v` keeps the authority-axis claim tied to the proof
   pack: delegation history distinguishes configurations that have identical
   capability and zone projections;
+- `SoTAuthority.v` keeps hard-substitution closure tied to owner completeness,
+  owner uniqueness, authority-only semantic reads, and zero fallback reads;
+- `sot_authority_adequacy_smoke.sh` binds the first concrete model row to the
+  live semantic array-literal owner and codegen consumer, and mutation-tests
+  missing-owner and reintroduced-fallback rejection;
 - every remaining obligation above is named by the Coq spine and this document;
 - `formal_semantics_smoke.sh` type-checks `ProofSpine.v` when `coqc` exists;
 - the proof-pack README and language golden spine cite the top-level spine.
