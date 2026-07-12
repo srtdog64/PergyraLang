@@ -18574,6 +18574,31 @@ no-op make 10.6s→~3s, 헤더 편집 루프 23→11s) · memory-concurrency
 게이트 panic-class pin을 guard 새 owner로 이주(filename-pin 함정
 실사례, 6d29fef9에 포함).
 
+**관문-앞 잔여 4건 일괄 착지 (2026-07-12 저녁, BDFL "다음관문까지
+끝내")**: docs/182의 실행-가능 주문 전부 소진 — ① §2.3 루프 백엣지
+안전점(112b94d1 — any-wrapper 안 전 루프의 매 반복 결정-검사 은퇴,
+C 3모양/LLVM 4경로 + **람다 상속 절연**(누출 시 int-람다 `return
+NULL`→무음 0 오코드 경로 봉인), 목격자 `parallel_join_any_spinloop`
+유한-복귀=단언; §2.4 선언 3안전점 완성, any 관절 완결) ② §4
+task_group 삭제(555f8e9d — 30소스+테스트2+게이트2, AIR 테스트는 표본
+교체로 커버리지 보존, negative-grep 스탠자는 공허-통과라 삭제, 죽은
+ast.h.fresh 동반 제거) ③ §5 분할(ae4b822d — join await+물질화를
+`transpiler_parallel_join_reduce_emit.c`로, 601→480+160, fact-소비
+pin은 소비 지점에 잔류) ④ 스모크 make 배선(418d8630 — duration GREEN,
+virtual-clock 로컬 FAIL=게임 채널함정 재현 진단 기록, fail-closed
+유지) ⑤ **Duration 무음-절단 클래스 수리** — 상태 프로브가 실결함
+적발: C 이름-키 lane들이 Duration을 몰라 `ToString(t)`가 3.5초를
+-794967296으로(정확한 i32 랩), LLVM은 classify 초크포인트라 면역 =
+백엔드 분기. 5지점(ToString 테이블/promote_numeric/div·mod/양 백엔드
+reduce lane) "Duration=Long lane"으로, 연산 적법성 설계는 §1 잔여
+유지. 목격자 확장(변수-경유 ToString + i32-초과 산술). 교훈 =
+docs/182 §1 후속 노트(새 primitive는 C 이름-키 lane 전수 grep 필수).
+검증: AIR 141/0 · semantic 2794/0 · transpile 918/0(수리 후 재실행
+포함) · concurrency 5/5 · join 스모크 전체 · duration 스모크 확장분 ·
+air_drift/semantic_core_shape 게이트 · 전체 compare corpus. **다음 관문 = docs/182 §3 BDFL 판정 3건**(시작 의미론/취소
+표면/단일 lane 규약) — 판정 전 착수 금지가 명령이므로 반응형 R2
+실행은 판정 대기. §6은 교리-게이트(측정-선행/claim gate) 유지.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
