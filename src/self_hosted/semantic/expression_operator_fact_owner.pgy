@@ -1,0 +1,135 @@
+// One semantic owner for top-level expression operator positions.
+
+import "text_scan_owner.pgy";
+
+struct SemanticTopLevelOperatorFacts {
+    logical_index: Int;
+    comparison_index: Int;
+    comparison_length: Int;
+    additive_index: Int;
+    multiplicative_index: Int;
+    arithmetic_marker_index: Int;
+}
+
+func SemanticTopLevelOperatorFactsFromExpression(
+    expression: String
+) -> SemanticTopLevelOperatorFacts {
+    let n: Int = StringLength(expression);
+    let quote: Int = SourceByteOf("\"");
+    let escape: Int = SourceByteOf("\\");
+    let open_paren: Int = SourceByteOf("(");
+    let close_paren: Int = SourceByteOf(")");
+    let open_bracket: Int = SourceByteOf("[");
+    let close_bracket: Int = SourceByteOf("]");
+    let ampersand: Int = SourceByteOf("&");
+    let pipe: Int = SourceByteOf("|");
+    let equal: Int = SourceByteOf("=");
+    let bang: Int = SourceByteOf("!");
+    let less: Int = SourceByteOf("<");
+    let greater: Int = SourceByteOf(">");
+    let plus: Int = SourceByteOf("+");
+    let minus: Int = SourceByteOf("-");
+    let star: Int = SourceByteOf("*");
+    let slash: Int = SourceByteOf("/");
+    let i: Int = 0;
+    let depth: Int = 0;
+    let logical_index: Int = -1;
+    let comparison_index: Int = -1;
+    let comparison_length: Int = 0;
+    let additive_index: Int = -1;
+    let multiplicative_index: Int = -1;
+    let arithmetic_marker_index: Int = -1;
+    while i < n {
+        let c: Int = SourceByteAt(expression, n, i);
+        if c == quote {
+            i = i + 1;
+            while i < n && SourceByteAt(expression, n, i) != quote {
+                if SourceByteAt(expression, n, i) == escape {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == open_paren || c == open_bracket {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == close_paren || c == close_bracket {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth != 0 {
+            i = i + 1;
+            continue;
+        }
+        let c2: Int = SourceByteAt(expression, n, i + 1);
+        if (c == ampersand && c2 == ampersand) ||
+            (c == pipe && c2 == pipe) {
+            if logical_index < 0 {
+                logical_index = i;
+            }
+            i = i + 2;
+            continue;
+        }
+        if (c == equal && c2 == equal) || (c == bang && c2 == equal) ||
+            ((c == less || c == greater) && c2 == equal) {
+            if comparison_index < 0 {
+                comparison_index = i;
+                comparison_length = 2;
+            }
+            i = i + 2;
+            continue;
+        }
+        if c == less || c == greater {
+            if comparison_index < 0 {
+                comparison_index = i;
+                comparison_length = 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == plus || c == star || c == slash {
+            if arithmetic_marker_index < 0 {
+                arithmetic_marker_index = i;
+            }
+            if c == plus && additive_index < 0 {
+                additive_index = i;
+            }
+            if c != plus && multiplicative_index < 0 {
+                multiplicative_index = i;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == minus && c2 != greater {
+            if arithmetic_marker_index < 0 {
+                arithmetic_marker_index = i;
+            }
+            let previous: Int = i - 1;
+            while previous >= 0 &&
+                SourceByteIsWhitespace(SourceByteAt(expression, n, previous)) {
+                previous = previous - 1;
+            }
+            let previous_code: Int = -1;
+            if previous >= 0 {
+                previous_code = SourceByteAt(expression, n, previous);
+            }
+            if previous >= 0 && additive_index < 0 &&
+                (previous_code == close_paren || previous_code == close_bracket ||
+                 previous_code == quote || SourceByteIsAlphaNum(previous_code)) {
+                additive_index = i;
+            }
+        }
+        i = i + 1;
+    }
+    return SemanticTopLevelOperatorFacts(
+        logical_index, comparison_index, comparison_length,
+        additive_index, multiplicative_index, arithmetic_marker_index
+    );
+}

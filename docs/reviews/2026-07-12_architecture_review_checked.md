@@ -1,7 +1,7 @@
 # Architecture Review Check, 2026-07-12
 
 Source review: external 2026-07-11 review of repository head `2259a622`.
-Checked through current main `2772f054` plus the active worktree. This document
+Checked through current main `299091c6` plus the active worktree. This document
 records routing, not a production-readiness claim.
 
 ## Accepted Current Findings
@@ -69,6 +69,14 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   semantic 110/110, and integrated-driver C/LLVM artifact parity are green;
   the same-input runtime moved from 37.915-38.071 seconds to
   36.891-37.131 seconds. Unmigrated text consumers remain active debt.
+- Top-level expression operator discovery now has one semantic fact owner shared
+  by expression typing and logical/binary validation. On the same integrated
+  driver input, allocating `CharAt` calls fell from 2,851,682 to 1,128,849
+  (60.4 percent). Runtime remained neutral at 37.002-37.273 seconds versus the
+  preceding 36.891-37.131-second rung, so this is recorded as SoT and allocation
+  surface closure, not as a CPU speedup. C- and LLVM-built drivers emitted the
+  same 151,762-byte artifact with SHA-256
+  `A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F`.
 
 ## Remaining Work Order
 

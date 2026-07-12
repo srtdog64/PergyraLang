@@ -8,17 +8,22 @@ import "text_scan_owner.pgy";
 import "diagnostic_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
+import "expression_operator_fact_owner.pgy";
 
 func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);
+    let quote: Int = SourceByteOf("\"");
+    let escape: Int = SourceByteOf("\\");
+    let dot: Int = SourceByteOf(".");
+    let open_paren: Int = SourceByteOf("(");
     let i: Int = 0;
     while i < n {
-        let c: String = CharAt(text, i);
-        if c == "\"" {
+        let c: Int = SourceByteAt(text, n, i);
+        if c == quote {
             i = i + 1;
-            while i < n && CharAt(text, i) != "\"" {
-                if CharAt(text, i) == "\\" {
+            while i < n && SourceByteAt(text, n, i) != quote {
+                if SourceByteAt(text, n, i) == escape {
                     i = i + 1;
                 }
                 i = i + 1;
@@ -26,24 +31,24 @@ func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
             i = i + 1;
             continue;
         }
-        if IsAlpha(c) {
+        if SourceByteIsAlpha(c) {
             let start: Int = i;
             i = i + 1;
-            while i < n && IsAlphaNum(CharAt(text, i)) {
+            while i < n && SourceByteIsAlphaNum(SourceByteAt(text, n, i)) {
                 i = i + 1;
             }
             let name: String = Substring(text, start, i - start);
             if name == "true" || name == "false" || name == "None" {
                 continue;
             }
-            if start > 0 && CharAt(text, start - 1) == "." {
+            if start > 0 && SourceByteAt(text, n, start - 1) == dot {
                 continue;
             }
             let after: Int = SkipWhitespaceAndComments(text, i);
-            if after < n && CharAt(text, after) == "(" {
+            if after < n && SourceByteAt(text, n, after) == open_paren {
                 continue;
             }
-            if after < n && CharAt(text, after) == "." {
+            if after < n && SourceByteAt(text, n, after) == dot {
                 continue;
             }
             if !EnvContainsName(names, name) {
@@ -79,50 +84,26 @@ func CheckTryOperand(expr: String, names: Array<String>, types: Array<String>, f
 func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);
-    let i: Int = 0;
-    let depth: Int = 0;
-    while i < n {
-        let c: String = CharAt(text, i);
-        if c == "\"" {
-            i = i + 1;
-            while i < n && CharAt(text, i) != "\"" {
-                if CharAt(text, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "(" || c == "[" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" || c == "]" {
-            if depth > 0 {
-                depth = depth - 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if depth == 0 {
-            let c2: String = CharAt(text, i + 1);
-            if (c == "&" && c2 == "&") || (c == "|" && c2 == "|") {
-                let left: String = Substring(text, 0, i);
-                let right: String = Substring(text, i + 2, n - i - 2);
-                let lt: String = ExprType(left, names, types, func_names, func_rets);
-                let rt: String = ExprType(right, names, types, func_names, func_rets);
-                if lt != "Bool" && lt != "Unknown" {
-                    return SemanticError2("logical_operand_not_bool", "side", "left", "actual", lt);
-                }
-                if rt != "Bool" && rt != "Unknown" {
-                    return SemanticError2("logical_operand_not_bool", "side", "right", "actual", rt);
-                }
-                return "";
-            }
-        }
-        i = i + 1;
+    let facts: SemanticTopLevelOperatorFacts =
+        SemanticTopLevelOperatorFactsFromExpression(text);
+    if facts.logical_index < 0 {
+        return "";
+    }
+    let left: String = Substring(text, 0, facts.logical_index);
+    let right: String = Substring(
+        text, facts.logical_index + 2, n - facts.logical_index - 2
+    );
+    let lt: String = ExprType(left, names, types, func_names, func_rets);
+    let rt: String = ExprType(right, names, types, func_names, func_rets);
+    if lt != "Bool" && lt != "Unknown" {
+        return SemanticError2(
+            "logical_operand_not_bool", "side", "left", "actual", lt
+        );
+    }
+    if rt != "Bool" && rt != "Unknown" {
+        return SemanticError2(
+            "logical_operand_not_bool", "side", "right", "actual", rt
+        );
     }
     return "";
 }
@@ -133,7 +114,8 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
     // A leading unary `!` (not `!=`) requires a Bool operand; the C oracle
     // rejects `!` on a non-Bool value. Checked only when the operand expression
     // resolves to a known non-Bool type; Unknown operands are skipped.
-    if n >= 2 && CharAt(text, 0) == "!" && CharAt(text, 1) != "=" {
+    if n >= 2 && SourceByteAt(text, n, 0) == SourceByteOf("!") &&
+        SourceByteAt(text, n, 1) != SourceByteOf("=") {
         let not_operand: String = Trim(Substring(text, 1, n - 1));
         if StringLength(not_operand) > 0 {
             let not_type: String = ExprType(not_operand, names, types, func_names, func_rets);
@@ -142,120 +124,24 @@ func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String
             }
         }
     }
-    let i: Int = 0;
-    let depth: Int = 0;
-    let has_logical: Bool = false;
-    let cmp_idx: Int = -1;
-    let cmp_len: Int = 0;
-    let add_idx: Int = -1;
-    let mul_idx: Int = -1;
-    while i < n {
-        let c: String = CharAt(text, i);
-        if c == "\"" {
-            i = i + 1;
-            while i < n && CharAt(text, i) != "\"" {
-                if CharAt(text, i) == "\\" {
-                    i = i + 1;
-                }
-                i = i + 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "(" || c == "[" {
-            depth = depth + 1;
-            i = i + 1;
-            continue;
-        }
-        if c == ")" || c == "]" {
-            if depth > 0 {
-                depth = depth - 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if depth != 0 {
-            i = i + 1;
-            continue;
-        }
-        let c2: String = CharAt(text, i + 1);
-        if (c == "&" && c2 == "&") || (c == "|" && c2 == "|") {
-            has_logical = true;
-            i = i + 2;
-            continue;
-        }
-        if (c == "=" && c2 == "=") || (c == "!" && c2 == "=") {
-            if cmp_idx < 0 {
-                cmp_idx = i;
-                cmp_len = 2;
-            }
-            i = i + 2;
-            continue;
-        }
-        if (c == "<" || c == ">") && c2 == "=" {
-            if cmp_idx < 0 {
-                cmp_idx = i;
-                cmp_len = 2;
-            }
-            i = i + 2;
-            continue;
-        }
-        if c == "<" || c == ">" {
-            if cmp_idx < 0 {
-                cmp_idx = i;
-                cmp_len = 1;
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "+" || c == "*" || c == "/" {
-            if c == "+" {
-                if add_idx < 0 {
-                    add_idx = i;
-                }
-            } else {
-                if mul_idx < 0 {
-                    mul_idx = i;
-                }
-            }
-            i = i + 1;
-            continue;
-        }
-        if c == "-" && c2 != ">" {
-            let j: Int = i - 1;
-            while j >= 0 && (CharAt(text, j) == " " || CharAt(text, j) == "\t") {
-                j = j - 1;
-            }
-            let prevc: String = "";
-            if j >= 0 {
-                prevc = CharAt(text, j);
-            }
-            if j >= 0 && (prevc == ")" || prevc == "]" || prevc == "\"" || IsAlphaNum(prevc)) {
-                if add_idx < 0 {
-                    add_idx = i;
-                }
-            }
-            i = i + 1;
-            continue;
-        }
-        i = i + 1;
-    }
-    if has_logical {
+    let facts: SemanticTopLevelOperatorFacts =
+        SemanticTopLevelOperatorFactsFromExpression(text);
+    if facts.logical_index >= 0 {
         return "";
     }
     let split_idx: Int = -1;
     let split_len: Int = 1;
     let kind: String = "";
-    if cmp_idx >= 0 {
-        split_idx = cmp_idx;
-        split_len = cmp_len;
+    if facts.comparison_index >= 0 {
+        split_idx = facts.comparison_index;
+        split_len = facts.comparison_length;
         kind = "compare";
-    } else if add_idx >= 0 {
-        split_idx = add_idx;
+    } else if facts.additive_index >= 0 {
+        split_idx = facts.additive_index;
         split_len = 1;
         kind = "arith";
-    } else if mul_idx >= 0 {
-        split_idx = mul_idx;
+    } else if facts.multiplicative_index >= 0 {
+        split_idx = facts.multiplicative_index;
         split_len = 1;
         kind = "arith";
     }

@@ -135,6 +135,9 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/semantic/env_owner.pgy` -- scoped local environment.
 - `src/self_hosted/semantic/expression_normalization_owner.pgy` -- semantic
   expression wrapper normalization shared before type and validation facts.
+- `src/self_hosted/semantic/expression_operator_fact_owner.pgy` -- one
+  string/parenthesis-aware top-level operator-position fact consumed by typing
+  and logical/binary diagnostics.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function signature checks.

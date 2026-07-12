@@ -683,6 +683,7 @@ require_file "src/self_hosted/semantic/diagnostic_owner.pgy"
 require_file "src/self_hosted/semantic/env_owner.pgy"
 require_file "src/self_hosted/semantic/expr_type_owner.pgy"
 require_file "src/self_hosted/semantic/expr_validation_owner.pgy"
+require_file "src/self_hosted/semantic/expression_operator_fact_owner.pgy"
 require_file "src/self_hosted/semantic/call_check_owner.pgy"
 require_file "src/self_hosted/semantic/body_check_owner.pgy"
 require_file "src/self_hosted/semantic/program_check_owner.pgy"
@@ -745,6 +746,10 @@ require_text "src/self_hosted/semantic/call_check_owner.pgy" 'import "expr_type_
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expr_type_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "env_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_normalization_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
+require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
 require_file "src/self_hosted/semantic/expression_normalization_owner.pgy"
 require_max_lines "src/self_hosted/semantic/expression_normalization_owner.pgy" 600
 require_text "src/self_hosted/semantic/expression_normalization_owner.pgy" "func SemanticExpressionNormalizationContractReady"

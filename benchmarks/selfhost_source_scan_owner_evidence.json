@@ -24,6 +24,20 @@
     "peak_private_mb": [188.8, 114.2],
     "required_max_elapsed_ms": 37500
   },
+  "semantic_operator_fact_owner": {
+    "source_commit": "b0a81826",
+    "owner_set_sha256": "0957E01EAAB463371374FAF28D0435F3945D453134DFA2DD0F6DF70979500EDA",
+    "elapsed_ms": [37273, 37002],
+    "peak_private_mb": [170.4, 88.1],
+    "required_max_elapsed_ms": 38000,
+    "char_at_calls_before": 2851682,
+    "char_at_calls_after": 1128849,
+    "char_at_reduction_percent": 60.4,
+    "source_byte_at_calls_before": 857391,
+    "source_byte_at_calls_after": 2318599,
+    "operator_fact_rows_consumed": 49630,
+    "performance_verdict": "cpu-neutral-allocation-surface-reduction"
+  },
   "parity": {
     "parser_fixtures": 188,
     "semantic_fixtures": 110,
