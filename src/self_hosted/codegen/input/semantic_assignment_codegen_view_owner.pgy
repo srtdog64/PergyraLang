@@ -2,6 +2,13 @@
 
 import "../../semantic/ast_assignment_fact_owner.pgy";
 
+func CodegenSemanticAssignmentIs(
+    facts: SemanticAstAssignmentFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstAssignmentIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticAssignmentIndexOrDie(
     facts: SemanticAstAssignmentFacts,
     node_id: Int

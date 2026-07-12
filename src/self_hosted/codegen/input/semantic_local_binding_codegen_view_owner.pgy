@@ -3,6 +3,13 @@
 import "../../semantic/ast_local_binding_fact_owner.pgy";
 import "../text/text_owner.pgy";
 
+func CodegenSemanticLocalBindingIs(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(SemanticAstLocalBindingIndexForNode(facts, node_id));
+}
+
 func CodegenSemanticLocalBindingIndexOrDie(
     facts: SemanticAstLocalBindingFacts,
     node_id: Int

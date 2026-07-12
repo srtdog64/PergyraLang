@@ -35,13 +35,21 @@ func SemanticAstStatementKindTracked(kind: Int) -> Bool {
         kind == TypedAstKindForStmtTag() ||
         kind == TypedAstKindWhileStmtTag() ||
         kind == TypedAstKindIfStmtTag() ||
+        kind == TypedAstKindDeferStmtTag() ||
+        kind == TypedAstKindBreakStmtTag() ||
+        kind == TypedAstKindContinueStmtTag() ||
         kind == TypedAstKindMatchStmtTag() ||
         kind == TypedAstKindMatchCaseStmtTag() ||
+        kind == TypedAstKindMatchDefaultStmtTag() ||
         kind == TypedAstKindBareCallStmtTag();
 }
 
 func SemanticAstStatementKindCarriesPayload(kind: Int) -> Bool {
-    return kind != TypedAstKindBareReturnStmtTag();
+    return kind != TypedAstKindBareReturnStmtTag() &&
+        kind != TypedAstKindDeferStmtTag() &&
+        kind != TypedAstKindBreakStmtTag() &&
+        kind != TypedAstKindContinueStmtTag() &&
+        kind != TypedAstKindMatchDefaultStmtTag();
 }
 
 func SemanticAstStatementStructuralError(

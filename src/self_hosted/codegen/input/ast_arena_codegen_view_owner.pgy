@@ -111,72 +111,8 @@ func CodegenAstArenaExpectThen(arena: AstArena, count: Int, inout cur: Array<Int
     CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindThenTag(), "Then:");
 }
 
-func CodegenAstArenaIsLogStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindLogStmtTag());
-}
-
-func CodegenAstArenaIsBareReturnStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBareReturnStmtTag());
-}
-
-func CodegenAstArenaIsValueReturnStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindValueReturnStmtTag());
-}
-
-func CodegenAstArenaIsArrayPopStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArrayPopStmtTag());
-}
-
-func CodegenAstArenaIsExitStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindExitStmtTag());
-}
-
-func CodegenAstArenaIsArraySetStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArraySetStmtTag());
-}
-
-func CodegenAstArenaIsArrayPushStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindArrayPushStmtTag());
-}
-
-func CodegenAstArenaIsLetStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindLetStmtTag());
-}
-
-func CodegenAstArenaIsAssignStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindAssignStmtTag());
-}
-
-func CodegenAstArenaIsForStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindForStmtTag());
-}
-
-func CodegenAstArenaIsWhileStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindWhileStmtTag());
-}
-
-func CodegenAstArenaIsIfStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindIfStmtTag());
-}
-
 func CodegenAstArenaIsElseStmt(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindElseStmtTag());
-}
-
-func CodegenAstArenaIsDeferStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindDeferStmtTag());
-}
-
-func CodegenAstArenaIsBreakStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBreakStmtTag());
-}
-
-func CodegenAstArenaIsContinueStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindContinueStmtTag());
-}
-
-func CodegenAstArenaIsBareCallStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindBareCallStmtTag());
 }
 
 func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
@@ -203,25 +139,9 @@ func CodegenAstArenaIsAbilityDecl(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindAbilityDeclTag());
 }
 
-func CodegenAstArenaIsMatchStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchStmtTag());
-}
-
-func CodegenAstArenaIsMatchCaseStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchCaseStmtTag());
-}
-
-func CodegenAstArenaIsMatchDefaultStmt(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindMatchDefaultStmtTag());
-}
-
 func CodegenAstArenaHasElseAt(arena: AstArena, count: Int, index: Int, if_indent: Int) -> Bool {
     return index < count && CodegenAstArenaIsElseStmt(arena, index)
         && CodegenAstArenaIndentOrDie(arena, index) == if_indent + 2;
-}
-
-func CodegenAstArenaIsElseIfAt(arena: AstArena, count: Int, index: Int) -> Bool {
-    return index < count && CodegenAstArenaIsIfStmt(arena, index);
 }
 
 func CodegenAstArenaModeOrDie(arena: AstArena, node_id: Int) -> Int {

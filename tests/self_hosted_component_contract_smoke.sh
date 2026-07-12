@@ -2739,27 +2739,35 @@ require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "f
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsNominalDecl"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsEnumDecl"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsRoleDecl"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsLetStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsAssignStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsLogStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsBareReturnStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsValueReturnStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsDeferStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsArrayPopStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsArraySetStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsArrayPushStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsExitStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsBreakStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsContinueStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsForStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsWhileStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsIfStmt"
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaHasElseAt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsElseIfAt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsMatchStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsMatchCaseStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsMatchDefaultStmt"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsBareCallStmt"
+for retired_statement_predicate in \
+    CodegenAstArenaIsLetStmt \
+    CodegenAstArenaIsAssignStmt \
+    CodegenAstArenaIsLogStmt \
+    CodegenAstArenaIsBareReturnStmt \
+    CodegenAstArenaIsValueReturnStmt \
+    CodegenAstArenaIsDeferStmt \
+    CodegenAstArenaIsArrayPopStmt \
+    CodegenAstArenaIsArraySetStmt \
+    CodegenAstArenaIsArrayPushStmt \
+    CodegenAstArenaIsExitStmt \
+    CodegenAstArenaIsBreakStmt \
+    CodegenAstArenaIsContinueStmt \
+    CodegenAstArenaIsForStmt \
+    CodegenAstArenaIsWhileStmt \
+    CodegenAstArenaIsIfStmt \
+    CodegenAstArenaIsElseIfAt \
+    CodegenAstArenaIsMatchStmt \
+    CodegenAstArenaIsMatchCaseStmt \
+    CodegenAstArenaIsMatchDefaultStmt \
+    CodegenAstArenaIsBareCallStmt; do
+    reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" \
+        "func $retired_statement_predicate"
+    reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+        "$retired_statement_predicate("
+    reject_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+        "$retired_statement_predicate("
+done
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "return CodegenAstTextTypedArenaProjectionReady(nodes, count)"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAstArenaNodeKind(arena, i)"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "TypedAstArenaAtomText(arena, i)"
@@ -3260,8 +3268,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaEx
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitTryLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign(assignments: SemanticAstAssignmentFacts, idx: Int"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLetStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsAssignStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentIs(assignments, idx)"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetTypeNameOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetInitializerOrDie"
@@ -3372,6 +3380,10 @@ require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "struct Sem
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindArrayPushStmtTag()"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindArraySetStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindDeferStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindBreakStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindContinueStmtTag()"
+require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindMatchDefaultStmtTag()"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticArrayElementType(target_type)"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let value_projection_type: Option<String> ="
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let index_projection_type: Option<String> ="
@@ -3397,6 +3409,7 @@ require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owne
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchSubjectOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticBareCallExprOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticStatementIs"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_statement_codegen_view_owner.pgy";'
 if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" ]]; then
     fail "retired codegen-owned statement payload owner returned"
@@ -3417,42 +3430,41 @@ reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBareReturnStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsValueReturnStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareReturnStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindValueReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsDeferStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPopStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindDeferStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindArrayPopStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArraySetStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindArraySetStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenSemanticArraySetTargetOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPushStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindArrayPushStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsExitStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindExitStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenSemanticExitArgumentOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsContinueStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsForStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBreakStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindContinueStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindForStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "if CodegenSemanticForIsRange(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let start_v: String = CodegenSemanticForRangeStartOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let end_v: String = CodegenSemanticForRangeEndOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String = CodegenSemanticForEachCollectionOrDie(statements, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstArenaAuxValueText(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsWhileStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindWhileStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCond(CodegenSemanticWhileConditionOrDie(statements, idx), env)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsIfStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindIfStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond2: String = WrapCond(CodegenSemanticIfConditionOrDie(statements, idx), env)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsElseIfAt(arena, count, cur[0])"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchCaseStmt(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsMatchDefaultStmt(arena, cur[0])"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBareCallStmt(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchCaseStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchDefaultStmtTag()"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0])"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_expr: String = CodegenSemanticBareCallExprOrDie(statements, idx)"

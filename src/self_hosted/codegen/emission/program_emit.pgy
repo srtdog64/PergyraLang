@@ -7,6 +7,9 @@ import "../../hir/ast_text_inventory_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_usage_owner.pgy";
+import "../input/semantic_local_binding_codegen_view_owner.pgy";
+import "../input/semantic_assignment_codegen_view_owner.pgy";
+import "../input/semantic_statement_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -16,6 +19,9 @@ import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "function_emit.pgy";
 
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
+                  local_bindings: SemanticAstLocalBindingFacts,
+                  assignments: SemanticAstAssignmentFacts,
+                  statements: SemanticAstStatementFacts,
                   stmt_indent: Int, inout cur: Array<Int>) -> Bool {
     while cur[0] < count {
         let idx: Int = cur[0];
@@ -26,55 +32,92 @@ func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         if ind > stmt_indent {
             Die(Concat("unexpected over-indented AST line: ", CodegenAstTextProvenance(nodes[idx])));
         }
-        if CodegenAstArenaIsLetStmt(arena, idx) ||
-            CodegenAstArenaIsAssignStmt(arena, idx) ||
-            CodegenAstArenaIsLogStmt(arena, idx) ||
-            CodegenAstArenaIsBareReturnStmt(arena, idx) ||
-            CodegenAstArenaIsValueReturnStmt(arena, idx) ||
-            CodegenAstArenaIsArraySetStmt(arena, idx) ||
-            CodegenAstArenaIsArrayPushStmt(arena, idx) ||
-            CodegenAstArenaIsArrayPopStmt(arena, idx) ||
-            CodegenAstArenaIsExitStmt(arena, idx) ||
-            CodegenAstArenaIsBreakStmt(arena, idx) ||
-            CodegenAstArenaIsContinueStmt(arena, idx) ||
-            CodegenAstArenaIsBareCallStmt(arena, idx) {
+        if CodegenSemanticLocalBindingIs(local_bindings, idx) ||
+            CodegenSemanticAssignmentIs(assignments, idx) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindContinueStmtTag()) ||
+            CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
             ArraySet(cur, 0, idx + 1);
-        } else if CodegenAstArenaIsDeferStmt(arena, idx) {
-            ArraySet(cur, 0, idx + 1);
-            CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
-        } else if CodegenAstArenaIsForStmt(arena, idx) {
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindDeferStmtTag()
+        ) {
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
-        } else if CodegenAstArenaIsWhileStmt(arena, idx) {
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindForStmtTag()
+        ) {
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(nodes, count, arena, stmt_indent + 4, cur);
-        } else if CodegenAstArenaIsIfStmt(arena, idx) {
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindWhileStmtTag()
+        ) {
+            ArraySet(cur, 0, idx + 1);
+            CodegenAstArenaExpectBlock(arena, count, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 4, cur
+            );
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindIfStmtTag()
+        ) {
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectThen(arena, count, cur);
             CodegenAstArenaExpectBlock(arena, count, cur);
-            CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+            CheckStmtList(
+                nodes, count, arena, local_bindings, assignments, statements,
+                stmt_indent + 6, cur
+            );
             if CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent) {
                 ArraySet(cur, 0, cur[0] + 1);
-                if CodegenAstArenaIsElseIfAt(arena, count, cur[0]) {
-                    CheckStmtList(nodes, count, arena, CodegenAstArenaIndentOrDie(arena, cur[0]), cur);
+                if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindIfStmtTag()
+                ) {
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, CodegenAstArenaIndentOrDie(arena, cur[0]), cur
+                    );
                 } else {
                     CodegenAstArenaExpectBlock(arena, count, cur);
-                    CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, stmt_indent + 6, cur
+                    );
                 }
             }
-        } else if CodegenAstArenaIsMatchStmt(arena, idx) {
+        } else if CodegenSemanticStatementIs(
+            statements, idx, TypedAstKindMatchStmtTag()
+        ) {
             ArraySet(cur, 0, idx + 1);
             let match_case_count: Int = 0;
             while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == stmt_indent + 2 {
-                if CodegenAstArenaIsMatchCaseStmt(arena, cur[0]) {
+                if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindMatchCaseStmtTag()
+                ) {
                     ArraySet(cur, 0, cur[0] + 1);
                     CodegenAstArenaExpectBlock(arena, count, cur);
-                    CheckStmtList(nodes, count, arena, stmt_indent + 6, cur);
+                    CheckStmtList(
+                        nodes, count, arena, local_bindings, assignments,
+                        statements, stmt_indent + 6, cur
+                    );
                     match_case_count = match_case_count + 1;
-                } else if CodegenAstArenaIsMatchDefaultStmt(arena, cur[0]) {
+                } else if CodegenSemanticStatementIs(
+                    statements, cur[0], TypedAstKindMatchDefaultStmtTag()
+                ) {
                     Die("match default is not supported in self-host codegen subset");
                 } else {
                     Die(Concat("expected match case in self-host codegen subset: ", CodegenAstTextProvenance(nodes[cur[0]])));
@@ -92,6 +135,9 @@ func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
 
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
+                   local_bindings: SemanticAstLocalBindingFacts,
+                   assignments: SemanticAstAssignmentFacts,
+                   statements: SemanticAstStatementFacts,
                    inout cur: Array<Int>, f_indent: Int) -> Bool {
     let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
         signatures, cur[0]
@@ -121,7 +167,10 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
     ArraySet(cur, 0, cur[0] + 1);
     CodegenAstArenaExpectBody(arena, count, cur);
     CodegenAstArenaExpectBlock(arena, count, cur);
-    return CheckStmtList(nodes, count, arena, f_indent + 6, cur);
+    return CheckStmtList(
+        nodes, count, arena, local_bindings, assignments, statements,
+        f_indent + 6, cur
+    );
 }
 
 func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
@@ -171,6 +220,9 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
                         nodes, count, arena, semantic_analysis.signatures,
+                        semantic_analysis.local_bindings,
+                        semantic_analysis.assignments,
+                        semantic_analysis.statements,
                         cur, method_indent
                     );
                     saw_function = true;
@@ -186,6 +238,9 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     CheckFunction(
                         nodes, count, arena, semantic_analysis.signatures,
+                        semantic_analysis.local_bindings,
+                        semantic_analysis.assignments,
+                        semantic_analysis.statements,
                         cur, role_method_indent
                     );
                     saw_function = true;
@@ -200,6 +255,9 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         } else if CodegenAstArenaIsFunction(arena, cur[0]) {
             CheckFunction(
                 nodes, count, arena, semantic_analysis.signatures,
+                semantic_analysis.local_bindings,
+                semantic_analysis.assignments,
+                semantic_analysis.statements,
                 cur, cur_indent
             );
             saw_function = true;

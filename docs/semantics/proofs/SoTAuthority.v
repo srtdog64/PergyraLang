@@ -21,6 +21,9 @@ Inductive Fact : Type :=
   | FTypeRuntimeUsageSurface
   | FKindRuntimeUsageSurface
   | FEntrypointSelection
+  | FLocalBindingStatementRouting
+  | FAssignmentStatementRouting
+  | FStatementKindRouting
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -37,6 +40,7 @@ Inductive Owner : Type :=
   | OSemanticTypeSurfaceFacts
   | OSemanticKindSurfaceFacts
   | OSemanticSignatureFacts
+  | OSemanticAssignmentFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -48,7 +52,8 @@ Inductive Consumer : Type :=
   | CNominalEmitter
   | CRoleOperatorEmitter
   | CRuntimeUsageProjection
-  | CProgramEntrypointProjection.
+  | CProgramEntrypointProjection
+  | CStatementRoutingEmitter.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -138,6 +143,9 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FTypeRuntimeUsageSurface => SemanticFact
   | FKindRuntimeUsageSurface => SemanticFact
   | FEntrypointSelection => SemanticFact
+  | FLocalBindingStatementRouting => SemanticFact
+  | FAssignmentStatementRouting => SemanticFact
+  | FStatementKindRouting => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -153,6 +161,9 @@ Definition current_authority (f : Fact) : Owner :=
   | FTypeRuntimeUsageSurface => OSemanticTypeSurfaceFacts
   | FKindRuntimeUsageSurface => OSemanticKindSurfaceFacts
   | FEntrypointSelection => OSemanticSignatureFacts
+  | FLocalBindingStatementRouting => OSemanticLocalBindingFacts
+  | FAssignmentStatementRouting => OSemanticAssignmentFacts
+  | FStatementKindRouting => OSemanticStatementFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -178,6 +189,12 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticKindSurfaceFacts FKindRuntimeUsageSurface
   | CurrentEntrypointSelectionProducer :
       current_produces OSemanticSignatureFacts FEntrypointSelection
+  | CurrentLocalBindingStatementRoutingProducer :
+      current_produces OSemanticLocalBindingFacts FLocalBindingStatementRouting
+  | CurrentAssignmentStatementRoutingProducer :
+      current_produces OSemanticAssignmentFacts FAssignmentStatementRouting
+  | CurrentStatementKindRoutingProducer :
+      current_produces OSemanticStatementFacts FStatementKindRouting
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -740,6 +757,85 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive statement_routing_requires : Consumer -> Fact -> Prop :=
+  | StatementEmitterRequiresLocalBindingRouting :
+      statement_routing_requires CStatementRoutingEmitter
+        FLocalBindingStatementRouting
+  | StatementEmitterRequiresAssignmentRouting :
+      statement_routing_requires CStatementRoutingEmitter
+        FAssignmentStatementRouting
+  | StatementEmitterRequiresStatementKindRouting :
+      statement_routing_requires CStatementRoutingEmitter FStatementKindRouting.
+
+Inductive statement_routing_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | StatementEmitterReadsLocalBindingRouting :
+      statement_routing_reads CStatementRoutingEmitter
+        OSemanticLocalBindingFacts FLocalBindingStatementRouting OwnedRead
+  | StatementEmitterReadsAssignmentRouting :
+      statement_routing_reads CStatementRoutingEmitter
+        OSemanticAssignmentFacts FAssignmentStatementRouting OwnedRead
+  | StatementEmitterReadsStatementKindRouting :
+      statement_routing_reads CStatementRoutingEmitter
+        OSemanticStatementFacts FStatementKindRouting OwnedRead.
+
+Definition statement_routing_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := statement_routing_requires;
+     reads := statement_routing_reads |}.
+
+Theorem current_statement_routing_rung_closed :
+  RungClosed statement_routing_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired; constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired;
+          exists OwnedRead; constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread;
+          split; reflexivity.
+Qed.
+
+Inductive statement_routing_bridge_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | StatementRoutingBridgeLocalBindingRead :
+      statement_routing_bridge_reads CStatementRoutingEmitter
+        OSemanticLocalBindingFacts FLocalBindingStatementRouting OwnedRead
+  | StatementRoutingBridgeAssignmentRead :
+      statement_routing_bridge_reads CStatementRoutingEmitter
+        OSemanticAssignmentFacts FAssignmentStatementRouting OwnedRead
+  | StatementRoutingBridgeStatementKindRead :
+      statement_routing_bridge_reads CStatementRoutingEmitter
+        OSemanticStatementFacts FStatementKindRouting OwnedRead
+  | StatementRoutingBridgeAstFallbackRead :
+      statement_routing_bridge_reads CStatementRoutingEmitter
+        OCodegenTextRecovery FStatementKindRouting FallbackRead.
+
+Definition statement_routing_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := statement_routing_requires;
+     reads := statement_routing_bridge_reads |}.
+
+Theorem statement_routing_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed statement_routing_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CStatementRoutingEmitter OCodegenTextRecovery
+    FStatementKindRouting FallbackRead
+    StatementRoutingBridgeAstFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -834,7 +930,10 @@ Inductive SpineFact : Type :=
   | SFExpressionRuntimeUsageSurface
   | SFTypeRuntimeUsageSurface
   | SFKindRuntimeUsageSurface
-  | SFEntrypointSelection.
+  | SFEntrypointSelection
+  | SFLocalBindingStatementRouting
+  | SFAssignmentStatementRouting
+  | SFStatementKindRouting.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -860,7 +959,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticExpressionSurface
   | SOSemanticTypeSurface
   | SOSemanticKindSurface
-  | SOSemanticSignature.
+  | SOSemanticSignature
+  | SOSemanticAssignment.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -888,6 +988,9 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
   | SFKindRuntimeUsageSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature
+  | SFLocalBindingStatementRouting => SOSemanticLocalBinding
+  | SFAssignmentStatementRouting => SOSemanticAssignment
+  | SFStatementKindRouting => SOSemanticStatement
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -924,7 +1027,8 @@ Theorem current_model_does_not_claim_future_consumer_coverage :
   forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
     c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
     c = CNominalEmitter \/ c = CRoleOperatorEmitter \/
-    c = CRuntimeUsageProjection \/ c = CProgramEntrypointProjection.
+    c = CRuntimeUsageProjection \/ c = CProgramEntrypointProjection \/
+    c = CStatementRoutingEmitter.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
@@ -934,5 +1038,6 @@ Proof.
   - right. right. right. right. left. reflexivity.
   - right. right. right. right. right. left. reflexivity.
   - right. right. right. right. right. right. left. reflexivity.
-  - right. right. right. right. right. right. right. reflexivity.
+  - right. right. right. right. right. right. right. left. reflexivity.
+  - right. right. right. right. right. right. right. right. reflexivity.
 Qed.

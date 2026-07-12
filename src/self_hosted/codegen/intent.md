@@ -263,3 +263,8 @@ expression, type, and kind facts.
 Executable entrypoint cardinality and function-node selection consume ordered
 semantic signature facts. Codegen must not rescan arena function names or use
 an integer sentinel to recover the selected function.
+
+Statement dispatch consumes three semantic authorities: local-binding rows for
+`Let`, assignment rows for `Assign`, and statement-kind rows for all other
+emitted statements. Arena predicates may retain `Else`/`Block`/`Then` structure
+and provenance, but may not decide semantic statement kinds.

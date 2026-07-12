@@ -219,6 +219,14 @@ counts signature names, and codegen consumes an `Option<Int>` projection rather
 than rescanning arena function/name rows or using `-1` as hidden control flow.
 The helper-before-Main `func_call` fixture and `hello` pass C/LLVM parity.
 
+The eleventh executable delta moved statement dispatch to three semantic
+authorities: local-binding identity for `Let`, assignment identity for
+`Assign`, and statement kind rows for all remaining emitted statements.
+`Defer`, `Break`, `Continue`, and `MatchDefault` were added to the statement
+inventory; twenty codegen arena predicates were deleted. Twelve representative
+fixtures pass C/LLVM parity while `Else`/`Block`/`Then` remain syntax-structure
+traversal rather than semantic fallback.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
@@ -230,9 +238,9 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 24-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus nine
-bounded self-host closure rows, with nine `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 27-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus twelve
+bounded self-host closure rows, with twelve `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings

@@ -182,7 +182,9 @@ SENTINEL_MAX=0
 # surface facts and removes the final arena parameters from usage projection.
 # 1265 -> 1270 (2026-07-13): entrypoint selection consumes semantic signature
 # facts through Option instead of an integer sentinel and arena name scan.
-RESULT_USE_MIN=1270
+# 1270 -> 1271 (2026-07-13): statement routing queries local, assignment, and
+# statement semantic identities through Option-backed indexes.
+RESULT_USE_MIN=1271
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

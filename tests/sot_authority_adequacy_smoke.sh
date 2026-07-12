@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROOF="docs/semantics/proofs/SoTAuthority.v"
 OWNER="src/self_hosted/semantic/ast_local_binding_fact_owner.pgy"
 STATEMENT_OWNER="src/self_hosted/semantic/ast_statement_fact_owner.pgy"
+ASSIGNMENT_OWNER="src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 ENUM_OWNER="src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 NOMINAL_OWNER="src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 ROLE_OWNER="src/self_hosted/semantic/ast_role_fact_owner.pgy"
@@ -28,6 +29,10 @@ KIND_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_kind_usage_owner.pgy"
 ENTRYPOINT_VERDICT_CONSUMER="src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 ENTRYPOINT_PROJECTION_CONSUMER="src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy"
 PROGRAM_EMITTER="src/self_hosted/codegen/emission/program_emit.pgy"
+LOCAL_ROUTING_CONSUMER="src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy"
+ASSIGNMENT_ROUTING_CONSUMER="src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy"
+STATEMENT_ROUTING_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
+STATEMENT_EMITTER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 
 fail() {
     echo "[sot-authority] $*" >&2
@@ -80,6 +85,29 @@ check_statement_owner_copy() {
         grep -Eq -- '^    auxiliary_texts: Array<String>;$' "$path" &&
         grep -Fq -- "TypedAstKindArraySetStmtTag()" "$path" &&
         grep -Fq -- "TypedAstKindArrayPushStmtTag()" "$path"
+}
+
+check_local_routing_owner_copy() {
+    local path="$1"
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstLocalBindingIndexForNode(" "$path"
+}
+
+check_assignment_routing_owner_copy() {
+    local path="$1"
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstAssignmentIndexForNode(" "$path"
+}
+
+check_statement_routing_owner_copy() {
+    local path="$1"
+    grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
+        grep -Eq -- '^    kind_tags: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstStatementIndexForNode(" "$path" &&
+        grep -Fq -- "TypedAstKindDeferStmtTag()" "$path" &&
+        grep -Fq -- "TypedAstKindBreakStmtTag()" "$path" &&
+        grep -Fq -- "TypedAstKindContinueStmtTag()" "$path" &&
+        grep -Fq -- "TypedAstKindMatchDefaultStmtTag()" "$path"
 }
 
 check_enum_owner_copy() {
@@ -154,6 +182,7 @@ require_file "$PROOF"
 require_file "docs/semantics/proofs/SoTAuthority.md"
 require_file "$OWNER"
 require_file "$STATEMENT_OWNER"
+require_file "$ASSIGNMENT_OWNER"
 require_file "$ENUM_OWNER"
 require_file "$NOMINAL_OWNER"
 require_file "$ROLE_OWNER"
@@ -174,6 +203,10 @@ require_file "$KIND_USAGE_CONSUMER"
 require_file "$ENTRYPOINT_VERDICT_CONSUMER"
 require_file "$ENTRYPOINT_PROJECTION_CONSUMER"
 require_file "$PROGRAM_EMITTER"
+require_file "$LOCAL_ROUTING_CONSUMER"
+require_file "$ASSIGNMENT_ROUTING_CONSUMER"
+require_file "$STATEMENT_ROUTING_CONSUMER"
+require_file "$STATEMENT_EMITTER"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" ]] ||
     fail "retired AST-text array-literal owner returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" ]] ||
@@ -205,6 +238,7 @@ for term in \
     "Theorem current_type_runtime_usage_rung_closed" \
     "Theorem current_kind_runtime_usage_rung_closed" \
     "Theorem current_entrypoint_selection_rung_closed" \
+    "Theorem current_statement_routing_rung_closed" \
     "Theorem owned_plus_fallback_bridge_is_not_closed" \
     "Theorem try_owner_plus_text_fallback_is_not_closed" \
     "Theorem collection_owner_plus_text_fallback_is_not_closed" \
@@ -215,6 +249,7 @@ for term in \
     "Theorem type_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem kind_usage_owner_plus_ast_fallback_is_not_closed" \
     "Theorem entrypoint_owner_plus_ast_fallback_is_not_closed" \
+    "Theorem statement_routing_owner_plus_ast_fallback_is_not_closed" \
     "Theorem duplicate_semantic_producer_is_not_closed" \
     "Theorem missing_required_fact_is_not_closed"; do
     require_text "$PROOF" "$term"
@@ -230,6 +265,9 @@ require_text "$PROOF" "FExpressionRuntimeUsageSurface"
 require_text "$PROOF" "FTypeRuntimeUsageSurface"
 require_text "$PROOF" "FKindRuntimeUsageSurface"
 require_text "$PROOF" "FEntrypointSelection"
+require_text "$PROOF" "FLocalBindingStatementRouting"
+require_text "$PROOF" "FAssignmentStatementRouting"
+require_text "$PROOF" "FStatementKindRouting"
 require_text "$PROOF" "OSemanticLocalBindingFacts"
 require_text "$PROOF" "OSemanticStatementFacts"
 require_text "$PROOF" "OSemanticEnumFacts"
@@ -239,6 +277,7 @@ require_text "$PROOF" "OSemanticExpressionSurfaceFacts"
 require_text "$PROOF" "OSemanticTypeSurfaceFacts"
 require_text "$PROOF" "OSemanticKindSurfaceFacts"
 require_text "$PROOF" "OSemanticSignatureFacts"
+require_text "$PROOF" "OSemanticAssignmentFacts"
 require_text "$PROOF" "CArrayLiteralEmitter"
 require_text "$PROOF" "CTryLetEmitter"
 require_text "$PROOF" "CCollectionMutationEmitter"
@@ -247,12 +286,19 @@ require_text "$PROOF" "CNominalEmitter"
 require_text "$PROOF" "CRoleOperatorEmitter"
 require_text "$PROOF" "CRuntimeUsageProjection"
 require_text "$PROOF" "CProgramEntrypointProjection"
+require_text "$PROOF" "CStatementRoutingEmitter"
 require_text "$PROOF" "OCodegenTextRecovery"
 
 check_owner_copy "$ROOT_DIR/$OWNER" ||
     fail "live semantic owner does not provide the modeled array body fact"
 check_statement_owner_copy "$ROOT_DIR/$STATEMENT_OWNER" ||
     fail "live semantic statement owner does not provide collection facts"
+check_local_routing_owner_copy "$ROOT_DIR/$OWNER" ||
+    fail "live semantic local-binding owner does not provide routing identity"
+check_assignment_routing_owner_copy "$ROOT_DIR/$ASSIGNMENT_OWNER" ||
+    fail "live semantic assignment owner does not provide routing identity"
+check_statement_routing_owner_copy "$ROOT_DIR/$STATEMENT_OWNER" ||
+    fail "live semantic statement owner does not provide complete routing kinds"
 check_enum_owner_copy "$ROOT_DIR/$ENUM_OWNER" ||
     fail "live semantic enum owner does not provide declaration rows"
 check_nominal_owner_copy "$ROOT_DIR/$NOMINAL_OWNER" ||
@@ -312,6 +358,12 @@ require_text "$ENTRYPOINT_PROJECTION_CONSUMER" \
     "func CodegenSemanticSelectedFunctionNode("
 require_text "$PROGRAM_EMITTER" "CodegenSemanticSelectedFunctionNode("
 reject_text "$PROGRAM_EMITTER" "CodegenAstArenaIsMainFunction"
+require_text "$LOCAL_ROUTING_CONSUMER" "func CodegenSemanticLocalBindingIs("
+require_text "$ASSIGNMENT_ROUTING_CONSUMER" "func CodegenSemanticAssignmentIs("
+require_text "$STATEMENT_ROUTING_CONSUMER" "func CodegenSemanticStatementIs("
+require_text "$STATEMENT_EMITTER" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
+require_text "$STATEMENT_EMITTER" "CodegenSemanticAssignmentIs(assignments, idx)"
+require_text "$STATEMENT_EMITTER" "CodegenSemanticStatementIs("
 
 for consumer in "$ARRAY_CONSUMER" "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_CONSUMER"; do
     reject_text "$consumer" "StringTrim("
@@ -349,6 +401,32 @@ for fallback in \
     "SemanticAstArtifactIsMainFunction" \
     "CodegenAstArenaIsMainFunction"; do
     reject_text "$ENTRYPOINT_VERDICT_CONSUMER" "$fallback"
+    reject_text "$PROGRAM_EMITTER" "$fallback"
+done
+for fallback in \
+    "CodegenAstArenaIsLetStmt" \
+    "CodegenAstArenaIsAssignStmt" \
+    "CodegenAstArenaIsLogStmt" \
+    "CodegenAstArenaIsBareReturnStmt" \
+    "CodegenAstArenaIsValueReturnStmt" \
+    "CodegenAstArenaIsDeferStmt" \
+    "CodegenAstArenaIsArrayPopStmt" \
+    "CodegenAstArenaIsArraySetStmt" \
+    "CodegenAstArenaIsArrayPushStmt" \
+    "CodegenAstArenaIsExitStmt" \
+    "CodegenAstArenaIsBreakStmt" \
+    "CodegenAstArenaIsContinueStmt" \
+    "CodegenAstArenaIsForStmt" \
+    "CodegenAstArenaIsWhileStmt" \
+    "CodegenAstArenaIsIfStmt" \
+    "CodegenAstArenaIsElseIfAt" \
+    "CodegenAstArenaIsMatchStmt" \
+    "CodegenAstArenaIsMatchCaseStmt" \
+    "CodegenAstArenaIsMatchDefaultStmt" \
+    "CodegenAstArenaIsBareCallStmt"; do
+    reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" \
+        "$fallback"
+    reject_text "$STATEMENT_EMITTER" "$fallback"
     reject_text "$PROGRAM_EMITTER" "$fallback"
 done
 for fallback in \
@@ -399,6 +477,34 @@ mv "$tmp_dir/statement_owner_missing.next" \
     "$tmp_dir/statement_owner_missing.pgy"
 if check_statement_owner_copy "$tmp_dir/statement_owner_missing.pgy"; then
     fail "missing statement-owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$OWNER" "$tmp_dir/local_routing_owner_missing.pgy"
+sed 's/^    node_ids: Array<Int>;/    removed_node_ids: Array<Int>;/' \
+    "$tmp_dir/local_routing_owner_missing.pgy" >"$tmp_dir/local_routing_owner_missing.next"
+mv "$tmp_dir/local_routing_owner_missing.next" "$tmp_dir/local_routing_owner_missing.pgy"
+if check_local_routing_owner_copy "$tmp_dir/local_routing_owner_missing.pgy"; then
+    fail "missing local-routing owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$ASSIGNMENT_OWNER" "$tmp_dir/assignment_routing_owner_missing.pgy"
+sed 's/^    node_ids: Array<Int>;/    removed_node_ids: Array<Int>;/' \
+    "$tmp_dir/assignment_routing_owner_missing.pgy" \
+    >"$tmp_dir/assignment_routing_owner_missing.next"
+mv "$tmp_dir/assignment_routing_owner_missing.next" \
+    "$tmp_dir/assignment_routing_owner_missing.pgy"
+if check_assignment_routing_owner_copy "$tmp_dir/assignment_routing_owner_missing.pgy"; then
+    fail "missing assignment-routing owner mutation was not rejected"
+fi
+
+cp "$ROOT_DIR/$STATEMENT_OWNER" "$tmp_dir/statement_routing_owner_missing.pgy"
+sed 's/^    kind_tags: Array<Int>;/    removed_kind_tags: Array<Int>;/' \
+    "$tmp_dir/statement_routing_owner_missing.pgy" \
+    >"$tmp_dir/statement_routing_owner_missing.next"
+mv "$tmp_dir/statement_routing_owner_missing.next" \
+    "$tmp_dir/statement_routing_owner_missing.pgy"
+if check_statement_routing_owner_copy "$tmp_dir/statement_routing_owner_missing.pgy"; then
+    fail "missing statement-routing owner mutation was not rejected"
 fi
 
 cp "$ROOT_DIR/$ENUM_OWNER" "$tmp_dir/enum_owner_missing.pgy"

@@ -228,10 +228,10 @@ Mechanized artifacts:
   first concrete instances to semantic-owned array-literal body, try-let
   operand, collection-mutation statement, enum declaration, nominal/field,
   role declaration, expression/type/kind runtime-usage, and entrypoint
-  selection facts and their
+  selection plus three statement-routing facts and their
   codegen consumers; it is not a whole-compiler SoT proof.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
-  24-row declaration of 15 architectural fact families plus nine bounded
+  27-row declaration of 15 architectural fact families plus twelve bounded
   self-host closure facts, stable handles, unique owners,
   last legitimate consumers, forbidden fallbacks, enforcement gates, and
   honest `ACTIVE` / `BRIDGE` / `CLOSED` status.

@@ -64,17 +64,20 @@ selfhost.expression_runtime_usage_surface | semantic | SyntaxNodeId | SFExpressi
 selfhost.type_runtime_usage_surface | semantic | SyntaxNodeId | SFTypeRuntimeUsageSurface | SOSemanticTypeSurface | src/self_hosted/semantic/ast_type_surface_fact_owner.pgy | SemanticAstTypeSurfaceFacts | src/self_hosted/codegen/input/ast_type_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy | TypedAstArenaTypeName,CodegenAstArenaTypeFactPresent,CodegenTypeUsageFactsFromArena | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.kind_runtime_usage_surface | semantic | SyntaxNodeId | SFKindRuntimeUsageSurface | SOSemanticKindSurface | src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy | SemanticAstKindSurfaceFacts | src/self_hosted/codegen/input/ast_kind_usage_owner.pgy,src/self_hosted/codegen/input/ast_usage_owner.pgy | TypedAstArenaNodeKindIs,CodegenAstArenaKindPresent,CodegenKindUsageFactsFromArena,CodegenAstKindArrayLiteral | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 selfhost.entrypoint_selection | semantic | SyntaxNodeId | SFEntrypointSelection | SOSemanticSignature | src/self_hosted/semantic/ast_signature_fact_owner.pgy | SemanticAstFunctionSignatureFacts | src/self_hosted/semantic/ast_artifact_verdict_owner.pgy,src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy,src/self_hosted/codegen/emission/program_emit.pgy | SemanticAstArtifactIsMainFunction,CodegenAstArenaIsMainFunction | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
+selfhost.local_binding_statement_routing | semantic | SyntaxNodeId | SFLocalBindingStatementRouting | SOSemanticLocalBinding | src/self_hosted/semantic/ast_local_binding_fact_owner.pgy | SemanticAstLocalBindingFacts | src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsLetStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
+selfhost.assignment_statement_routing | semantic | SyntaxNodeId | SFAssignmentStatementRouting | SOSemanticAssignment | src/self_hosted/semantic/ast_assignment_fact_owner.pgy | SemanticAstAssignmentFacts | src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsAssignStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
+selfhost.statement_kind_routing | semantic | SyntaxNodeId | SFStatementKindRouting | SOSemanticStatement | src/self_hosted/semantic/ast_statement_fact_owner.pgy | SemanticAstStatementFacts | src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy,src/self_hosted/codegen/emission/stmt_emit.pgy,src/self_hosted/codegen/emission/program_emit.pgy | CodegenAstArenaIsLogStmt,CodegenAstArenaIsBareReturnStmt,CodegenAstArenaIsValueReturnStmt,CodegenAstArenaIsDeferStmt,CodegenAstArenaIsArrayPopStmt,CodegenAstArenaIsArraySetStmt,CodegenAstArenaIsArrayPushStmt,CodegenAstArenaIsExitStmt,CodegenAstArenaIsBreakStmt,CodegenAstArenaIsContinueStmt,CodegenAstArenaIsForStmt,CodegenAstArenaIsWhileStmt,CodegenAstArenaIsIfStmt,CodegenAstArenaIsElseIfAt,CodegenAstArenaIsMatchStmt,CodegenAstArenaIsMatchCaseStmt,CodegenAstArenaIsMatchDefaultStmt,CodegenAstArenaIsBareCallStmt | tests/sot_authority_adequacy_smoke.sh#live owner/consumer binding and negative mutations ok | CLOSED | none
 ```
 <!-- END sot-owner-spine-registry -->
 
 ## Current Judgment
 
 The owner outline is complete for the listed compiler spine, but implementation
-closure is not. There are nine `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
+closure is not. There are twelve `CLOSED` rows, six `BRIDGE` rows, and nine `ACTIVE`
 rows. The exact counts are gate-owned and must change only when a row gains or
 loses the evidence required by its status.
 
-Current status counts: `CLOSED=9 BRIDGE=6 ACTIVE=9`.
+Current status counts: `CLOSED=12 BRIDGE=6 ACTIVE=9`.
 
 The registry does not replace the detailed pass contract or migration ledger.
 It answers a narrower question: who is allowed to decide each top-level fact

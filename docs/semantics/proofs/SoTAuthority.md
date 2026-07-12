@@ -24,12 +24,16 @@ first live bounded bindings for semantic-to-codegen facts:
 - facts: `FExpressionRuntimeUsageSurface`, `FTypeRuntimeUsageSurface`, and
   `FKindRuntimeUsageSurface`;
 - fact: `FEntrypointSelection`;
+- facts: `FLocalBindingStatementRouting`, `FAssignmentStatementRouting`, and
+  `FStatementKindRouting`;
 - authorities: `OSemanticLocalBindingFacts`, `OSemanticStatementFacts`;
 - authority: `OSemanticEnumFacts`;
 - authorities: `OSemanticNominalConstructorFacts`, `OSemanticRoleFacts`,
   `OSemanticExpressionSurfaceFacts`, `OSemanticTypeSurfaceFacts`, and
   `OSemanticKindSurfaceFacts`;
 - authority: `OSemanticSignatureFacts`;
+- authorities: `OSemanticLocalBindingFacts`, `OSemanticAssignmentFacts`, and
+  `OSemanticStatementFacts` for their distinct statement-routing rows;
 - consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`,
   `CCollectionMutationEmitter`, `CEnumEmitter`;
 - read kind: `OwnedRead`.
@@ -40,7 +44,7 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares 15 architectural compiler-spine fact families plus nine
+The file also declares 15 architectural compiler-spine fact families plus twelve
 bounded self-host closure facts and a total `spine_authority` mapping.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
@@ -78,6 +82,9 @@ fallback consumers are gone.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` owns ordered function
   node/name rows used for entrypoint cardinality and codegen selection; semantic
   verdict and codegen may not rescan arena function names;
+- local-binding, assignment, and statement semantic owners separately own
+  statement dispatch identity; emitters may retain syntax structure traversal
+  but cannot recover statement kinds from the arena;
 - the retired AST-text array, try-let, collection, enum, and mixed declaration
   codegen owners must
   not exist; and

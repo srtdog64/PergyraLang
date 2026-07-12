@@ -2,6 +2,18 @@
 
 import "../../semantic/ast_statement_fact_owner.pgy";
 
+func CodegenSemanticStatementIs(
+    facts: SemanticAstStatementFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> Bool {
+    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+        facts, node_id
+    );
+    return IsSome(index_opt) &&
+        facts.kind_tags[UnwrapOption(index_opt)] == expected_kind;
+}
+
 func CodegenSemanticStatementIndexOrDie(
     facts: SemanticAstStatementFacts,
     node_id: Int,

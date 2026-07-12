@@ -97,7 +97,8 @@ inventory must not become a second fact-family owner registry.
   rows consumed by expression typing; source constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
-  payload facts, including array-literal body and try-operand shape rows.
+  payload facts, including array-literal body, try-operand shape, and `Let`
+  statement-routing identity.
 - `src/self_hosted/semantic/try_expression_fact_owner.pgy` -- canonical prefix,
   wrapped, and postfix try-expression shape and operand bounds.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
@@ -107,15 +108,16 @@ inventory must not become a second fact-family owner registry.
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
 - `src/self_hosted/semantic/ast_assignment_fact_owner.pgy` -- artifact-bound
-  assignment node, function, scope, target/base/index, and RHS payload facts.
+  assignment node, function, scope, target/base/index, and RHS payload facts;
+  assignment node identity also owns `Assign` statement routing.
 - `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` -- fail-closed
   assignment type verdicts joined from assignment, initializer, signature,
   and lexical environment facts.
 - `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy` -- fail-closed
   range/foreach header verdicts and lexical loop-binding type facts.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound
-  return, condition, loop, log, exit, match, array-pop, and bare-call payload
-  rows.
+  return, condition, loop, defer, break/continue, log, exit, match/default,
+  array mutation, and bare-call kind/payload rows used for statement routing.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
   undefined-use, try, logical, binary, and inferred-type expression verdicts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
@@ -251,9 +253,9 @@ inventory must not become a second fact-family owner registry.
   fail-closed codegen projection of semantic nominal names and ordered field
   name/type rows.
 - `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned try-let operand facts.
-- `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
-- `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.
-- `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement payload rows, including `For` loop and `ArrayPush` / `ArraySet` projections.
+- `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
+- `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
+- `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- backend
   builtin-group vocabulary projected from semantic expression-surface facts.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- backend runtime

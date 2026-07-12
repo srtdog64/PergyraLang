@@ -742,6 +742,15 @@ rewrite history.
 - Locked the boundary as the ninth bounded `CLOSED` registry row and verified
   helper-before-Main plus simple Main fixtures under C/LLVM-built tools.
 
+## 2026-07-13 - Statement routing consumes three semantic authorities
+
+- Routed `Let`, `Assign`, and all other emitted statement kinds through their
+  local-binding, assignment, and statement fact owners respectively.
+- Added `Defer`, `Break`, `Continue`, and `MatchDefault` to semantic statement
+  inventory, then removed twenty dead codegen arena predicates.
+- Kept `Else`/`Block`/`Then` as syntax-structure traversal and verified twelve
+  representative statement fixtures under C/LLVM-built tools.
+
 ## 2026-07-09 - Type usage facts enter codegen input ownership
 
 - Added `ast_type_usage_owner.pgy` as the named owner for codegen type-surface
