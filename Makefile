@@ -601,6 +601,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_text_builder_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_async_parallel_emit.c \
                    $(CODEGEN_DIR)/transpiler_parallel_join_emit.c \
+                   $(CODEGEN_DIR)/transpiler_parallel_join_reduce_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_constructor_result_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_subject_arg_policy.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
