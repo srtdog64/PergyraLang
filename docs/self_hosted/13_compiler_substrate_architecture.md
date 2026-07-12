@@ -406,9 +406,10 @@ The current transitional bridge has explicit fact owners:
   then consumed from `CodegenAstTextNode` fields.
 - `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed and
   routing predicates over the shared arena; it may not construct the arena.
-- `ast_text_array_literal_owner.pgy` owns transitional array literal shape and
-  top-level element facts for `Let` initializers while expression payloads are
-  still string-backed.
+- `semantic/ast_local_binding_fact_owner.pgy` owns array-literal recognition
+  and body rows for `Let` initializers. Codegen consumes those rows through
+  `input/semantic_array_literal_codegen_view_owner.pgy`; it may partition the
+  owner-supplied body into elements but may not rediscover bracket shape.
 - `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
   for call arguments and match cases so emission participants consume the env
   row rather than rebuilding enum keys or emitted symbols locally.

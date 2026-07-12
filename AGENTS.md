@@ -55,3 +55,17 @@ cosmetic reshuffling.
 2. Make the smallest code change that moves the decision behind that owner.
 3. Add or tighten a smoke gate so the old path cannot reappear.
 4. Run the narrow gate first; run broader tests only after the slice is stable.
+
+## Hard Self-Host Progress Guard
+
+- SoT is a hard-substitution rung condition, not an independent cleanup track.
+  Close only the semantic seam reached by the one active executable rung.
+- Do not make more than two consecutive SoT-only commits. Before a third, land
+  an executable replacement delta or record the exact missing fact, owner,
+  last consumer, and falsifying fixture as BLOCKED.
+- Count progress only when a Pergyra implementation replaces a real C-owned
+  compiler path. Owner files, tests, documents, and LOC are supporting evidence,
+  not substitution progress by themselves.
+- Budget the edit loop: 60 seconds for static owner gates, 5 minutes for focused
+  parity, and 30 minutes for an integration shard. Full matrices belong at
+  scheduled or merge boundaries.

@@ -221,7 +221,7 @@ compiler-stage `.pgy` source to be listed here.
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
-- `src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy` -- AST text array-literal initializer shape and top-level element facts.
+- `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned array-literal body facts into top-level emission items.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
 - `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.

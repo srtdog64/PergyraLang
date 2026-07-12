@@ -186,3 +186,6 @@ its own ecosystem.
 - `15_pre_self_host_expansion_ledger.md` - pre-self-host expansion ledger:
   READY/ACTIVE/HOLD substrate classification, active blockers, held surfaces,
   and the no-hidden-fallback rejection rule.
+- `16_hard_substitution_velocity_process.md` - finite SoT closure per active
+  rung, executable-progress definition, WIP limit, effort split, and validation
+  budgets that prevent owner/gate work from indefinitely delaying replacement.

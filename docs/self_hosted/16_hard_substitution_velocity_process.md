@@ -1,0 +1,114 @@
+# Hard Substitution Velocity Process
+
+Status: ACCEPTED / ROUTED  
+Date: 2026-07-12
+
+## 1. Current Snapshot
+
+The self-host track has nine ACTIVE blockers in the pre-self-host expansion
+ledger. Five are direct substitution blockers and four are process/evidence
+blockers.
+
+- Direct substitution blockers: mixed AST-like typed expression rows, stable
+  JSON/MIR fact transport, target capability consumption, shared symbol/mangle
+  rows, and cross-backend ABI/layout rows.
+- Process/evidence blockers: subprocess execution, the Pergyra-owned test
+  harness, compatibility evolution consumption, and live AIR evidence
+  consumption.
+- Implementation inventory is 8.94 percent of the C reference inventory.
+- Released/default replacement is 0 percent. The default `pgy` driver remains
+  C-owned.
+
+These numbers have different meanings and must not be collapsed into one
+percentage.
+
+## 2. Decision
+
+SoT is a hard-substitution rung condition, not a separate project that must be
+globally completed before self-hosting can advance. Actual execution is
+expected to expose additional SoT seams. A rung closes only the seam that its
+real compiler path reaches; unrelated debt remains in the ledger.
+
+A valid progress unit must do all of the following:
+
+1. Put a Pergyra-written owner on a real compiler path previously owned by C.
+2. Consume one owner fact without reconstructing it from text, AST, AIR, or a
+   backend-local convention.
+3. Fail closed when the required fact is missing.
+4. Prove C/LLVM oracle parity for the bounded path.
+5. Add a negative ratchet that rejects the removed fallback.
+
+Owner files, gates, documents, and LOC do not increase substitution progress
+unless a real compiler path is replaced.
+
+## 3. Work-In-Progress Limit
+
+Only one hard-substitution rung may be ACTIVE at a time. The repository must
+not accept more than two consecutive SoT-only commits without either:
+
+- an executable substitution delta on the active rung, or
+- an explicit BLOCKED record naming the missing fact, owner, last consumer,
+  and falsifying fixture.
+
+The default effort split for this track is:
+
+- 70 percent executable hard substitution;
+- 20 percent build and test feedback reduction;
+- 10 percent SoT, process, and documentation maintenance.
+
+This ratio is a scheduling guard, not a code-size target.
+
+## 4. Validation Budget
+
+The edit loop uses bounded validation:
+
+| Gate class | Default budget | Action when exceeded |
+|---|---:|---|
+| Static owner/ratchet gate | 60 seconds | Split the scan or remove redundant work. |
+| Focused executable parity | 5 minutes | Reduce the fixture to the active owner seam. |
+| Integration shard | 30 minutes | Add impact selection, caching, or bounded parallelism. |
+| Full platform/matrix suite | Scheduled or merge gate | Never run after every local edit. |
+
+Raising a timeout is not the first response to a budget violation. The test
+must first show why its scope cannot be narrowed or cached.
+
+## 5. Finite SoT Closure
+
+For an active rung, SoT is closed when:
+
+- one named owner supplies every semantic fact consumed by that rung;
+- missing facts fail closed;
+- semantic fallback reads are zero;
+- provenance-only source reads are explicitly named as provenance; and
+- the negative gate prevents the old read path from returning.
+
+This definition is local to the executable rung. It does not claim that every
+future compiler feature has already exposed all of its SoT seams.
+
+## 6. Active Rung
+
+The next executable rung is the mixed AST-like expression bridge. Remaining
+string-backed expression payloads must move to dedicated typed expression rows
+one consumer at a time under C/LLVM oracle parity. The implementation must not
+create a second parser, recover expression facts from emitted JSON/text, or
+leave `typed ? text` dual-read authority.
+
+The first slice must replace a live expression consumer, fail closed on a
+missing typed row, and reject reintroduction of the removed text recovery.
+
+First executable delta, 2026-07-12: array-literal bracket recognition and body
+extraction moved from codegen into `SemanticAstLocalBindingFacts`. Codegen now
+consumes `SemanticAstLocalBindingArrayLiteralBodyAt`, the old AST-text codegen
+owner is deleted, and the negative ratchet forbids text/bracket recovery in the
+new view. C-built and LLVM-built codegen tools emitted byte-identical C for the
+focused array fixture. The active rung remains open for the other expression
+shapes.
+
+## 7. Fifteen-Day Correction
+
+The previous roughly fifteen-day interval delivered substantial owner, gate,
+and bounded-rung work, but released/default replacement remained at 0 percent.
+That work is useful infrastructure, but it is not sufficient progress by
+itself. From this decision onward, progress reports lead with executable
+replacement evidence and report SoT work only as the condition that enabled or
+blocked that replacement.

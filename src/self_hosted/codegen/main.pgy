@@ -17,7 +17,7 @@ import "runtime_abi/string_runtime_owner.pgy";
 import "../hir/ast_text_inventory_owner.pgy";
 import "input/ast_arena_codegen_view_owner.pgy";
 import "../hir/ast_text_row_fact_owner.pgy";
-import "input/ast_text_array_literal_owner.pgy";
+import "input/semantic_array_literal_codegen_view_owner.pgy";
 import "input/ast_text_enum_variant_owner.pgy";
 import "input/semantic_signature_codegen_view_owner.pgy";
 import "input/ast_text_declaration_owner.pgy";

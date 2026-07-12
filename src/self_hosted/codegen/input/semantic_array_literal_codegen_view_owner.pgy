@@ -1,0 +1,64 @@
+// Fail-closed codegen view over semantic array-literal initializer facts.
+//
+// The semantic local-binding owner owns bracket recognition and the literal
+// body. This view only partitions the owner-supplied body into emission items.
+
+import "semantic_local_binding_codegen_view_owner.pgy";
+import "../text/expr_sequence_owner.pgy";
+
+func CodegenSemanticLetArrayLiteralBody(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Option<String> {
+    let index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) {
+        return None;
+    }
+    return SemanticAstLocalBindingArrayLiteralBodyAt(
+        facts, UnwrapOption(index)
+    );
+}
+
+func CodegenSemanticLetInitializerStartsArrayLiteral(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Bool {
+    return IsSome(CodegenSemanticLetArrayLiteralBody(facts, node_id));
+}
+
+func CodegenSemanticLetArrayLiteralBodyOrDie(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> String {
+    let body: Option<String> = CodegenSemanticLetArrayLiteralBody(
+        facts, node_id
+    );
+    if !IsSome(body) {
+        Die(Concat(
+            "semantic array-literal body missing at node: ",
+            ToString(node_id)
+        ));
+    }
+    return UnwrapOption(body);
+}
+
+func CodegenSemanticLetArrayLiteralElementCount(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> Int {
+    return ExprSequenceItemCount(
+        CodegenSemanticLetArrayLiteralBodyOrDie(facts, node_id)
+    );
+}
+
+func CodegenSemanticLetArrayLiteralElementAt(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int,
+    index: Int
+) -> Option<String> {
+    return ExprSequenceItemAt(
+        CodegenSemanticLetArrayLiteralBodyOrDie(facts, node_id), index
+    );
+}

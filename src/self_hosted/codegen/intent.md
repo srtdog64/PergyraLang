@@ -159,7 +159,7 @@ signature/header facts, and cursor expectation checks.
 construction and parent/indent/child projection into the typed `AstArena`.
 `input/ast_arena_codegen_view_owner.pgy` owns the
 `CodegenTypedAstBridgeReady` fail-closed view consumed before emission.
-`input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
+`input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
 shape and top-level element facts while expression payloads remain string-backed.
 `input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum
 variant-list facts. The typed arena stores the declaration aux payload, but enum

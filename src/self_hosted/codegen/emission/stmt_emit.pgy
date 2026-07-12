@@ -6,7 +6,7 @@ import "../text/text_owner.pgy";
 import "../text/enum_literal_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
-import "../input/ast_text_array_literal_owner.pgy";
+import "../input/semantic_array_literal_codegen_view_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_text_try_let_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";

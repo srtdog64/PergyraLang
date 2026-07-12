@@ -131,6 +131,27 @@ fails closed before codegen. DRV-0/DRV-1 remain the lightweight breadth path.
 Wiring the current source scanner into the driver would create a second parser
 and does not count.
 
+**Velocity correction (2026-07-12):** the expansion ledger currently has nine
+ACTIVE blockers: five direct executable-substitution blockers and four
+process/evidence blockers. Despite substantial bounded owner and gate work over
+roughly fifteen days, released/default replacement remains 0%. SoT is therefore
+enforced as a condition of one active hard-substitution rung, not pursued as an
+independent globally complete project. The track uses a 70/20/10 effort split
+for executable replacement, build/test feedback, and SoT/process maintenance,
+and permits at most two consecutive SoT-only commits before an executable
+delta or an explicit blocked record. The accepted process is
+`docs/self_hosted/16_hard_substitution_velocity_process.md`.
+
+The first post-correction executable delta moved array-literal body ownership
+into `SemanticAstLocalBindingFacts`. The codegen view consumes the typed row,
+the old AST-text array-literal owner is deleted, and the component gate forbids
+`StringTrim` / `CharAt` structure recovery in the replacement view. The focused
+`array_index_assign` fixture produced byte-identical generated C from C-built
+and LLVM-built codegen tools (SHA-256
+`DD203935F1F28983577975D65F4C3C0E8E679DF3FB45115F5AF9446A9A138756`) and the
+generated program matched the committed output. This is one mixed-tree
+consumer closure; released/default replacement remains 0%.
+
 ## Headline Number
 
 ### Three-axis scorecard

@@ -88,6 +88,16 @@ ACTIVE Stable JSON blocker without claiming a complete shared DOM.
 These are the surfaces to bring in before claiming broader hard self-hosting.
 They are not optional polish; each one prevents a common fallback shape.
 
+Finite-scope judgment, 2026-07-12: this table has exactly nine ACTIVE rows.
+Five directly block executable substitution: mixed AST-like typed expression
+rows, stable JSON/MIR fact transport, target capability consumption, shared
+symbol/mangle rows, and cross-backend ABI/layout rows. Four are process or
+evidence blockers: subprocess execution, test-harness ownership, compatibility
+evolution consumption, and live AIR evidence consumption. These nine rows are
+not global prerequisites for every rung. Under
+`16_hard_substitution_velocity_process.md`, the active rung closes only the
+fact seam that its real execution path reaches.
+
 Parser/codegen artifact delta, 2026-07-10: parser now produces one
 `AstTreeArtifact` containing compact text provenance, the shared `AstArena`, and
 node count. Codegen consumes that artifact directly and does not rebuild the
@@ -97,6 +107,16 @@ declaration/name/type/scope rows now consume artifact-native semantic fact
 tables. The mixed-tree blocker remains ACTIVE because initializer expression
 body/use verdicts still consume transitional HIR payloads, and
 expression facts remain compact-text backed.
+
+Typed-expression delta, 2026-07-12: semantic local-binding facts now capture
+array-literal body rows beside initializer provenance. The codegen projection
+consumes that row and no longer recognizes or strips `[` / `]` from initializer
+text; the old `ast_text_array_literal_owner.pgy` is deleted and the component
+ratchet rejects bracket/text recovery in its replacement view. A focused
+`array_index_assign` fixture produced byte-identical C from C-built and
+LLVM-built codegen tools and ran equal to the committed oracle. This closes one
+live expression consumer, not the full mixed-tree blocker; try, operator,
+member, call, and statement expression payloads remain compact-text backed.
 
 | Blocker | Required owner | Why it matters |
 |---|---|---|
@@ -372,13 +392,12 @@ single codegen shape seam. `ast_text_try_let_owner.pgy` builds
 it no longer reads the arena value lane. Try-presence and inner-expression
 extraction consume that one fact. Expression typing remains open.
 
-TypedAst delta, superseded 2026-07-10: array-literal initializer recognition
-has a single codegen shape seam. `ast_text_array_literal_owner.pgy` builds
-`CodegenLetArrayLiteralFact` from the semantic local-binding initializer row,
-and starts-with-array plus literal-body extraction consume that fact instead
-of reopening the initializer through the generic arena value accessor. The
-component contract fixes the fact owner and rejects repeated direct initializer
-payload reads.
+TypedAst delta, superseded 2026-07-12: the intermediate
+`ast_text_array_literal_owner.pgy` codegen shape seam is deleted. Array-literal
+recognition and body extraction now belong to semantic local-binding facts;
+`semantic_array_literal_codegen_view_owner.pgy` only partitions the supplied
+body into emission items. The component contract rejects bracket/text recovery
+in that view.
 
 TypedAst delta, 2026-07-09: payload-free enum variant payload recognition now
 has a single fact seam. `ast_text_enum_variant_owner.pgy` builds

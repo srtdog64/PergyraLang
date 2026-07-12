@@ -193,7 +193,7 @@ the final typed/tagged AST owner.
 `../semantic/ast_artifact_verdict_owner.pgy` owns executable `Main`
 cardinality. Program emission accepts that verdict as evidence and is forbidden
 from recounting the entrypoint locally.
-`input/ast_text_array_literal_owner.pgy` owns transitional `Let` array literal
+`input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
 shape and top-level element facts so statement emission does not split array
 initializer text locally.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts

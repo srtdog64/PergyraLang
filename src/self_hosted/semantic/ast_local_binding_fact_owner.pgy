@@ -19,6 +19,20 @@ struct SemanticAstLocalBindingFacts {
     declared_type_names: Array<String>;
     has_declared_types: Array<Int>;
     initializer_texts: Array<String>;
+    initializer_array_bodies: Array<String>;
+    has_initializer_array_bodies: Array<Int>;
+}
+
+// The semantic local-binding owner captures array-literal structure once.
+// Codegen may consume the body, but must not rediscover the bracket shape.
+func SemanticAstInitializerArrayBody(text: String) -> Option<String> {
+    let expression: String = StringTrim(text);
+    let n: Int = StringLength(expression);
+    if n < 2 || CharAt(expression, 0) != "[" ||
+        CharAt(expression, n - 1) != "]" {
+        return None;
+    }
+    return Some(StringTrim(Substring(expression, 1, n - 2)));
 }
 
 func SemanticAstEnclosingFunctionNode(
@@ -70,6 +84,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let declared_type_names: Array<String> = [];
     let has_declared_types: Array<Int> = [];
     let initializer_texts: Array<String> = [];
+    let initializer_array_bodies: Array<String> = [];
+    let has_initializer_array_bodies: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact) &&
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
@@ -162,6 +178,16 @@ func SemanticAstLocalBindingFactsFromArtifact(
         ArrayPush(declared_type_names, declared_type_name);
         ArrayPush(has_declared_types, has_declared_type);
         ArrayPush(initializer_texts, UnwrapOption(initializer));
+        let array_body: Option<String> = SemanticAstInitializerArrayBody(
+            UnwrapOption(initializer)
+        );
+        if IsSome(array_body) {
+            ArrayPush(initializer_array_bodies, UnwrapOption(array_body));
+            ArrayPush(has_initializer_array_bodies, 1);
+        } else {
+            ArrayPush(initializer_array_bodies, "");
+            ArrayPush(has_initializer_array_bodies, 0);
+        }
         node_id = node_id + 1;
     }
     return SemanticAstLocalBindingFacts(
@@ -169,7 +195,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count,
         node_ids, function_node_ids, scope_node_ids, names,
-        declared_type_names, has_declared_types, initializer_texts
+        declared_type_names, has_declared_types, initializer_texts,
+        initializer_array_bodies, has_initializer_array_bodies
     );
 }
 
@@ -191,7 +218,9 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         ArrayLength(facts.names) != n ||
         ArrayLength(facts.declared_type_names) != n ||
         ArrayLength(facts.has_declared_types) != n ||
-        ArrayLength(facts.initializer_texts) != n {
+        ArrayLength(facts.initializer_texts) != n ||
+        ArrayLength(facts.initializer_array_bodies) != n ||
+        ArrayLength(facts.has_initializer_array_bodies) != n {
         return false;
     }
     let i: Int = 0;
@@ -207,6 +236,9 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         );
         let declared_type: Option<String> = TypedAstArenaTypeName(
             artifact.arena, node_id
+        );
+        let array_body: Option<String> = SemanticAstInitializerArrayBody(
+            UnwrapOption(initializer)
         );
         if node_id < 0 || node_id >= artifact.count ||
             (i > 0 && node_id <= facts.node_ids[i - 1]) ||
@@ -234,6 +266,16 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         } else if facts.has_declared_types[i] != 0 ||
             IsSome(declared_type) ||
             StringLength(facts.declared_type_names[i]) != 0 {
+            return false;
+        }
+        if facts.has_initializer_array_bodies[i] == 1 {
+            if !IsSome(array_body) || UnwrapOption(array_body) !=
+                facts.initializer_array_bodies[i] {
+                return false;
+            }
+        } else if facts.has_initializer_array_bodies[i] != 0 ||
+            IsSome(array_body) ||
+            StringLength(facts.initializer_array_bodies[i]) != 0 {
             return false;
         }
         i = i + 1;
@@ -296,9 +338,20 @@ func SemanticAstLocalBindingInitializerAt(
     return Some(facts.initializer_texts[index]);
 }
 
+func SemanticAstLocalBindingArrayLiteralBodyAt(
+    facts: SemanticAstLocalBindingFacts,
+    index: Int
+) -> Option<String> {
+    if index < 0 || index >= SemanticAstLocalBindingCount(facts) ||
+        facts.has_initializer_array_bodies[index] == 0 {
+        return None;
+    }
+    return Some(facts.initializer_array_bodies[index]);
+}
+
 func SemanticAstLocalBindingFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y = x\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Let: xs : Array<Int> = [1, x]\n        If: true\n          Then:\n            Block:\n              Let: y = x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -306,13 +359,23 @@ func SemanticAstLocalBindingFactsContractReady() -> Bool {
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     if !SemanticAstLocalBindingFactsMatchArtifact(
         artifact, signatures, facts
-    ) || SemanticAstLocalBindingCount(facts) != 2 ||
+    ) || SemanticAstLocalBindingCount(facts) != 3 ||
         facts.names[0] != "x" || facts.declared_type_names[0] != "Int" ||
         facts.has_declared_types[0] != 1 || facts.initializer_texts[0] != "1" ||
-        facts.names[1] != "y" || facts.initializer_texts[1] != "x" ||
-        facts.has_declared_types[1] != 0 ||
+        facts.names[1] != "xs" ||
+        facts.declared_type_names[1] != "Array<Int>" ||
+        facts.initializer_texts[1] != "[1, x]" ||
+        facts.has_declared_types[1] != 1 ||
+        facts.names[2] != "y" || facts.initializer_texts[2] != "x" ||
+        facts.has_declared_types[2] != 0 ||
+        facts.has_initializer_array_bodies[0] != 0 ||
+        facts.has_initializer_array_bodies[1] != 1 ||
+        facts.initializer_array_bodies[1] != "1, x" ||
+        facts.has_initializer_array_bodies[2] != 0 ||
         facts.function_node_ids[0] != facts.function_node_ids[1] ||
-        facts.scope_node_ids[0] == facts.scope_node_ids[1] {
+        facts.function_node_ids[0] != facts.function_node_ids[2] ||
+        facts.scope_node_ids[0] != facts.scope_node_ids[1] ||
+        facts.scope_node_ids[0] == facts.scope_node_ids[2] {
         return false;
     }
     let stale: AstTreeArtifact = AstTreeArtifactFromText(

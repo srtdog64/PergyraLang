@@ -876,7 +876,7 @@ require_file "src/self_hosted/hir/ast_text_arena_projection_owner.pgy"
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_arena_codegen_view_owner.pgy" \
-    "input/ast_text_array_literal_owner.pgy" \
+    "input/semantic_array_literal_codegen_view_owner.pgy" \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
     "input/ast_text_declaration_owner.pgy" \
@@ -3239,16 +3239,18 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLet
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetTypeNameOrDie"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerOrDie"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);'
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenSemanticLetInitializerStartsArrayLiteral"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenSemanticLetArrayLiteralElementCount"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenSemanticLetArrayLiteralElementAt"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "struct CodegenLetArrayLiteralFact"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenSemanticLetArrayLiteralFactAt"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "func CodegenLetArrayLiteralInitializerText"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "let initializer: Option<String> = CodegenLetArrayLiteralInitializerText(fact)"
-reject_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "TypedAstArenaValueText"
-reject_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" "CodegenAstArenaValueOrDie"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_array_literal_owner.pgy";'
+reject_file "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy"
+require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetInitializerStartsArrayLiteral"
+require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetArrayLiteralElementCount"
+require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetArrayLiteralElementAt"
+require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "SemanticAstLocalBindingArrayLiteralBodyAt("
+reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "StringTrim("
+reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "CharAt("
+reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "TypedAstArenaValueText"
+reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "CodegenAstArenaValueOrDie"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_array_bodies: Array<String>;"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingArrayLiteralBodyAt("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_array_literal_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetInitializerStartsArrayLiteral("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetArrayLiteralElementCount("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetArrayLiteralElementAt("
@@ -3546,7 +3548,7 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "UnwrapOption(en
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "UnwrapOption(enum_fact_opt).c_value"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemCount"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemAt"
-require_text "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
+require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "struct StructLiteralCallFact"
