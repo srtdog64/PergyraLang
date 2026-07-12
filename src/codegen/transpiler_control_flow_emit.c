@@ -26,6 +26,23 @@ transpiler_loop_label_name(char *out, size_t out_size,
     return written >= 0 && (size_t)written < out_size;
 }
 
+/* docs/181 SS2.4 loop back-edge safe point: inside an any-join wrapper a
+ * losing task in a pure compute loop never reaches a give and never parks
+ * on a cancellable wait, so without this check the join's await-all
+ * stalls forever. Every loop iteration observes the shared decision cell
+ * (load-acquire through the wrapper's _pctx) and retires once a winner
+ * exists. The LLVM twin emits the same shape in its loop lowerings. */
+static void
+transpiler_emit_pjoin_any_backedge(TranspilerCtx *ctx)
+{
+    if (!ctx->in_pjoin_any)
+        return;
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "if (__atomic_load_n(_pctx->__join_any, __ATOMIC_ACQUIRE) != 0)"
+        " return NULL;\n");
+}
+
 static char *
 transpiler_control_flow_emit_expr(TranspilerCtx *ctx,
                                   ASTNode *expr,
@@ -273,6 +290,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
+        transpiler_emit_pjoin_any_backedge(ctx);
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = %s.data[_pgy_idx_%d];\n",
             elem_type, var, coll, idx_id);
@@ -335,6 +353,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
+    transpiler_emit_pjoin_any_backedge(ctx);
     if (body != NULL)
         emit_block(body, ctx);
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
@@ -409,6 +428,7 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
+    transpiler_emit_pjoin_any_backedge(ctx);
     if (ast_while_body(node) != NULL)
         emit_block(ast_while_body(node), ctx);
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH

@@ -289,9 +289,18 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
     if (body != NULL && body->type == AST_BLOCK) {
         CodeBuf *saved_out = ctx->out;
         int saved_indent = ctx->indent;
+        /* The hoisted body must not inherit an enclosing join wrapper's
+         * give/any state: it has no _pctx and its loops are not join
+         * back-edges. */
+        bool saved_pjoin_give = ctx->in_pjoin_give;
+        bool saved_pjoin_any = ctx->in_pjoin_any;
         ctx->out = ctx->wrappers;
         ctx->indent = 1;
+        ctx->in_pjoin_give = false;
+        ctx->in_pjoin_any = false;
         emit_block(body, ctx);
+        ctx->in_pjoin_give = saved_pjoin_give;
+        ctx->in_pjoin_any = saved_pjoin_any;
         ctx->indent = saved_indent;
         ctx->out = saved_out;
     } else if (body != NULL) {
@@ -466,9 +475,16 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
         CodeBuf *saved_out = ctx->out;
         int saved_indent = ctx->indent;
+        /* Same isolation as the captured-lambda path: no _pctx here. */
+        bool saved_pjoin_give = ctx->in_pjoin_give;
+        bool saved_pjoin_any = ctx->in_pjoin_any;
         ctx->out = ctx->wrappers;
         ctx->indent = 1;
+        ctx->in_pjoin_give = false;
+        ctx->in_pjoin_any = false;
         emit_block(lambda_body, ctx);
+        ctx->in_pjoin_give = saved_pjoin_give;
+        ctx->in_pjoin_any = saved_pjoin_any;
         ctx->indent = saved_indent;
         ctx->out = saved_out;
     } else if (lambda_body != NULL) {

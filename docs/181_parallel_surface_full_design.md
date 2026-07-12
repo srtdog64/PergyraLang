@@ -201,6 +201,22 @@ docs/182 §5가 경고한 filename-pin 함정의 실사례를 게이트 RED로 �
 채널 파킹과 달리 give 도달이 없어 여전히 hang 노출; docs/182 §2.3),
 true waitany.
 
+**R3 슬라이스 3 착지 (2026-07-12, docs/182 §2.3)**: §2.4 선언의 마지막
+안전점 — **루프 백엣지**. any-wrapper 안 모든 루프(while/for-range/
+for-in, LLVM은 forin.list 포함 4경로)의 매 반복 진입에 결정 셀
+load-acquire → 결정 시 은퇴(C `return NULL;` / LLVM
+`pj.any.backedge.retire` ret null — give-any의 기존 은퇴 모양 재사용,
+새 심볼 0). C는 wrapper 스코프의 `_pctx`가 균일해 join-id 불요, LLVM은
+`pjoin_any_state_ptr` 비-NULL로 게이트. **부수 봉인**: wrapper 밖으로
+호이스트되는 람다 본문이 give/any 상태를 상속하면 잘못된 함수에서
+은퇴(`return NULL`이 int-반환 람다에서 무음 0으로 컴파일될 수 있는
+무음 경로) — 양 백엔드 람다 이미터에 save/clear/restore 절연 추가.
+목격자: `parallel_join_any_spinloop`(compare 등록 + 스모크) — 순수
+계산 무한루프 패자(채널 파킹 없음, give 도달 없음), 유한 복귀 자체가
+단언(백엣지 없으면 hang). 42 양 백엔드. 이로써 §2.4 선언(진입+채널
++백엣지) 완성, any의 관절이 다 붙었다. 잔여: true waitany(성능
+최적화 — 정확성 아님).
+
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 
 ### 2.1 정체 (확정)

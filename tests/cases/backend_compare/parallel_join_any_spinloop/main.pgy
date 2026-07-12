@@ -1,0 +1,25 @@
+// R3 slice-3 witness (docs/182 SS2.3): a loser stuck in a PURE COMPUTE
+// loop. It never reaches a give and never parks on a cancellable wait,
+// so the entry safe point and the cancellable channel waits cannot
+// retire it -- only the loop back-edge safe point can. Element 0 skips
+// the loop and gives immediately; every other element spins in a
+// bounded-value infinite loop until the back-edge check observes the
+// decision. The only reachable give is the winner's, so the output is
+// deterministic and byte-equal on both backends.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..4 { ArrayPush(xs, k); }
+    let w: Int = parallel (x in xs) join with any {
+        if (x != 0) {
+            let mut i: Int = 0;
+            while (i >= 0) {
+                i = i + 1;
+                if (i > 1000000) {
+                    i = 0;
+                }
+            }
+        }
+        give 42;
+    };
+    Log(w);
+}

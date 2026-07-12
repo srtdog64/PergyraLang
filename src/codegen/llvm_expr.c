@@ -70,12 +70,23 @@ llvm_emit_captured_lambda(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
     const char *saved_return_type_name = ctx->current_return_type_name;
     ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
+    /* A lambda hoisted out of a parallel-join wrapper body must not
+     * inherit the wrapper's give/any cells: its loops are not join
+     * back-edges and a retire ret would target the wrong function. */
+    LLVMValueRef saved_pjoin_give_ptr = ctx->pjoin_give_ptr;
+    LLVMTypeRef saved_pjoin_give_type = ctx->pjoin_give_type;
+    LLVMValueRef saved_pjoin_any_state = ctx->pjoin_any_state_ptr;
+    LLVMValueRef saved_pjoin_any_res = ctx->pjoin_any_res_ptr;
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
 
     ctx->current_function = lfn;
     ctx->current_ret_type = ret_type;
     ctx->current_function_ret_type = ret_type;
+    ctx->pjoin_give_ptr = NULL;
+    ctx->pjoin_give_type = NULL;
+    ctx->pjoin_any_state_ptr = NULL;
+    ctx->pjoin_any_res_ptr = NULL;
     {
         ASTNode *lambda_return_type = ast_lambda_return_type(node);
         ctx->current_return_type_name = lambda_return_type != NULL
@@ -162,6 +173,10 @@ llvm_emit_captured_lambda(ASTNode *node, LLVMGenCtx *ctx)
     ctx->current_function_ret_type = saved_function_ret;
     ctx->current_return_type_name = saved_return_type_name;
     ctx->current_return_callable_type = saved_return_callable_type;
+    ctx->pjoin_give_ptr = saved_pjoin_give_ptr;
+    ctx->pjoin_give_type = saved_pjoin_give_type;
+    ctx->pjoin_any_state_ptr = saved_pjoin_any_state;
+    ctx->pjoin_any_res_ptr = saved_pjoin_any_res;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
@@ -396,12 +411,23 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         const char *saved_return_type_name = ctx->current_return_type_name;
         ASTNode *saved_return_callable_type =
             ctx->current_return_callable_type;
+        /* Same isolation as the captured-lambda path: a hoisted lambda
+         * body must not inherit the enclosing join wrapper's give/any
+         * cells (its loops would retire the wrong function). */
+        LLVMValueRef saved_pjoin_give_ptr = ctx->pjoin_give_ptr;
+        LLVMTypeRef saved_pjoin_give_type = ctx->pjoin_give_type;
+        LLVMValueRef saved_pjoin_any_state = ctx->pjoin_any_state_ptr;
+        LLVMValueRef saved_pjoin_any_res = ctx->pjoin_any_res_ptr;
         LLVMLexicalRegistrySnapshot lexical_snapshot =
             llvm_lexical_registry_snapshot(ctx);
 
         ctx->current_function = lfn;
         ctx->current_ret_type = ret_type;
         ctx->current_function_ret_type = ret_type;
+        ctx->pjoin_give_ptr = NULL;
+        ctx->pjoin_give_type = NULL;
+        ctx->pjoin_any_state_ptr = NULL;
+        ctx->pjoin_any_res_ptr = NULL;
         {
             ASTNode *lambda_return_type = ast_lambda_return_type(node);
             ctx->current_return_type_name =
@@ -478,6 +504,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         ctx->current_function_ret_type = saved_function_ret;
         ctx->current_return_type_name = saved_return_type_name;
         ctx->current_return_callable_type = saved_return_callable_type;
+        ctx->pjoin_give_ptr = saved_pjoin_give_ptr;
+        ctx->pjoin_give_type = saved_pjoin_give_type;
+        ctx->pjoin_any_state_ptr = saved_pjoin_any_state;
+        ctx->pjoin_any_res_ptr = saved_pjoin_any_res;
         if (saved_bb != NULL)
             LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 

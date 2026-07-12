@@ -72,6 +72,7 @@ REDUCE_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_reduce/main.pgy"
 STENCIL_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.pgy"
 ANY_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any/main.pgy"
 ANY_BLOCKED_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any_blocked/main.pgy"
+ANY_SPINLOOP_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any_spinloop/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -176,6 +177,11 @@ for backend in $BACKENDS; do
     # Slice 1's order-await hung here; the spin-decided + cancel-all +
     # cancellable channel waits bring the join home with the winner.
     expect_runs "$backend" "$ANY_BLOCKED_SRC" "join_any_blocked" "42"
+    # R3 slice 3 (docs/182 SS2.3): a loser in a PURE COMPUTE loop never
+    # reaches a give and never parks on a cancellable wait; only the
+    # loop back-edge safe point can retire it. Finite return IS the
+    # assertion -- without the back-edge check this case hangs.
+    expect_runs "$backend" "$ANY_SPINLOOP_SRC" "join_any_spinloop" "42"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"
@@ -197,4 +203,4 @@ expect_reject reject_stencil_inplace.pgy        "outside the index-disjoint form
 expect_reject reject_any_statement_form.pgy     "produces a value; bind it"
 expect_reject reject_any_index_mode.pgy         "element mode only"
 
-echo "[parallel-join] rungs 0+1+2+R3+R4+R5 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + stencil 33x3/0/0/100/103 + any 7/30 + 3 runtime panic witnesses on: $BACKENDS); 17 reject shapes fail closed"
+echo "[parallel-join] rungs 0+1+2+R3+R4+R5 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + stencil 33x3/0/0/100/103 + any 7/30 + blocked/spinloop losers retire + 3 runtime panic witnesses on: $BACKENDS); 17 reject shapes fail closed"

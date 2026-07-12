@@ -77,6 +77,33 @@ llvm_for_in_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
     }
 }
 
+/* docs/181 SS2.4 loop back-edge safe point: inside an any-join wrapper a
+ * losing task in a pure compute loop never reaches a give and never parks
+ * on a cancellable wait, so without this check the join's await-all
+ * stalls forever. Every loop iteration observes the shared decision cell
+ * (load-acquire) and retires the task once a winner exists. */
+static void
+llvm_pjoin_any_backedge_check(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL || ctx->pjoin_any_state_ptr == NULL
+        || ctx->has_error || ctx->current_function == NULL)
+        return;
+
+    LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+        ctx->pjoin_any_state_ptr, llvm_tmp_name(ctx));
+    LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+    LLVMValueRef decided = LLVMBuildICmp(ctx->builder, LLVMIntNE, st_val,
+        LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+    LLVMBasicBlockRef retire_bb = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.any.backedge.retire");
+    LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.any.backedge.cont");
+    LLVMBuildCondBr(ctx->builder, decided, retire_bb, cont_bb);
+    LLVMPositionBuilderAtEnd(ctx->builder, retire_bb);
+    LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
+    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+}
+
 void
 llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -138,6 +165,7 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
+    llvm_pjoin_any_backedge_check(ctx);
     if (ast_while_body(node) != NULL)
         llvm_emit_statement(ast_while_body(node), ctx);
     if (ctx->loop_depth > 0) {
@@ -287,6 +315,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                     ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
                     ctx->loop_depth++;
                 }
+                llvm_pjoin_any_backedge_check(ctx);
                 if (body_node != NULL)
                     llvm_emit_statement(body_node, ctx);
                 if (ctx->loop_depth > 0) {
@@ -421,6 +450,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
             ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
             ctx->loop_depth++;
         }
+        llvm_pjoin_any_backedge_check(ctx);
         if (body_node != NULL)
             llvm_emit_statement(body_node, ctx);
         if (ctx->loop_depth > 0) {
@@ -514,6 +544,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
+    llvm_pjoin_any_backedge_check(ctx);
     if (body_node != NULL)
         llvm_emit_statement(body_node, ctx);
     if (ctx->loop_depth > 0) {
