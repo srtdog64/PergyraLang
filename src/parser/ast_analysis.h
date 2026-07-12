@@ -22,5 +22,9 @@ bool ast_statement_assigns_identifier(const ASTNode *node, const char *name);
  * occurrence of `name` in `node` is exactly `name[index_name]`. */
 bool ast_identifier_only_indexed_by(const ASTNode *node, const char *name,
                                     const char *index_name);
+/* docs/181 R5 read relaxation: every occurrence is `name[<any expr>]`;
+ * pair with a no-writes precondition for snapshot-read admission. */
+bool ast_identifier_only_indexed_reads(const ASTNode *node,
+                                       const char *name);
 
 #endif /* PERGYRA_AST_ANALYSIS_H */

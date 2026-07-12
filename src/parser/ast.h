@@ -156,6 +156,14 @@ struct ASTNode
              * this list only. */
             char**    join_index_arrays;
             size_t    join_index_array_count;
+            /* Snapshot-read facts (docs/181 R5): checker-sealed names of
+             * arrays the body never writes and only ever uses as
+             * `name[<any expr>]` reads. Free-index reads are safe
+             * against a written array only if the backings are
+             * disjoint; the emitters close that residual with a
+             * fail-closed alias check at fan-out entry. */
+            char**    join_readonly_arrays;
+            size_t    join_readonly_array_count;
             /* Expression form (docs/181 R2): checker-sealed primitive
              * result type name of the final `give` (NULL = statement
              * form). Emitters derive Array<R> from this fact instead of

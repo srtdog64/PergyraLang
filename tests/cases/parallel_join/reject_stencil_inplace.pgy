@@ -1,0 +1,10 @@
+// R5 reject: an in-place neighbor stencil (read i-1 while writing i on
+// the SAME array) races with the neighbor task by construction; only
+// the Jacobi double-buffer shape is admitted. Fail closed.
+func Main() -> Void {
+    let mut a: Array<Int> = [];
+    for k in 0..4 { ArrayPush(a, k); }
+    parallel (i in 1..4) {
+        a[i] = a[i - 1];
+    }
+}

@@ -32,7 +32,11 @@ ast_identifier_only_indexed_by(const ASTNode *node, const char *name,
 {
     if (node == NULL)
         return true;
-    if (name == NULL || index_name == NULL)
+    /* index_name == NULL is the R5 read-relaxed mode: any index
+     * expression is admitted (`name[<expr>]`), but every OTHER kind of
+     * occurrence (bare ref, call argument, member access) still breaks
+     * the discipline. Callers pair it with a no-writes precondition. */
+    if (name == NULL)
         return false;
 
     switch (node->type) {
@@ -43,8 +47,11 @@ ast_identifier_only_indexed_by(const ASTNode *node, const char *name,
         const ASTNode *arr = node->data.array_access.array;
         const ASTNode *idx = node->data.array_access.index;
 
-        if (index_walk_identifier_named(arr, name))
+        if (index_walk_identifier_named(arr, name)) {
+            if (index_name == NULL)
+                return ast_identifier_only_indexed_by(idx, name, NULL);
             return index_walk_identifier_named(idx, index_name);
+        }
         return ast_identifier_only_indexed_by(arr, name, index_name)
             && ast_identifier_only_indexed_by(idx, name, index_name);
     }
@@ -127,4 +134,15 @@ ast_identifier_only_indexed_by(const ASTNode *node, const char *name,
     default:
         return !ast_contains_free_identifier_ref(node, name);
     }
+}
+
+/* R5 (docs/181): every use of `name` is an indexed access `name[<any
+ * expr>]`. Combined with the checker's no-writes precondition this
+ * means "arbitrary-index reads only" -- the shape a snapshot-read
+ * stencil source is allowed to have. Whole-array uses (ArrayPush,
+ * bare refs, member calls) still fail closed through the strict walk. */
+bool
+ast_identifier_only_indexed_reads(const ASTNode *node, const char *name)
+{
+    return ast_identifier_only_indexed_by(node, name, NULL);
 }

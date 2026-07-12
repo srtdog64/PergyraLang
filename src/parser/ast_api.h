@@ -278,6 +278,11 @@ void ast_parallel_reset_join_index_arrays(ASTNode* node);
 bool ast_parallel_add_join_index_array(ASTNode* node, const char* name);
 bool ast_parallel_join_index_array_admitted(const ASTNode* node,
                                             const char* name);
+/* Snapshot-read fact rows (docs/181 R5): unwritten, indexed-reads-only. */
+void ast_parallel_reset_join_readonly_arrays(ASTNode* node);
+bool ast_parallel_add_join_readonly_array(ASTNode* node, const char* name);
+bool ast_parallel_join_readonly_array_admitted(const ASTNode* node,
+                                               const char* name);
 /* Expression form (docs/181 R2): checker-sealed give result type name. */
 bool ast_parallel_set_join_give_type(ASTNode* node, const char* type_name);
 const char* ast_parallel_join_give_type(const ASTNode* node);

@@ -1,0 +1,30 @@
+// Stencil witness (docs/181 R5): Jacobi-form double buffering. A
+// captured array the body never writes may be read at ANY index
+// (snapshot-read fact); writes keep the R1 [i]-discipline on a
+// DIFFERENT array. Reading the previous tick and writing the next one
+// is the correct game shape anyway (consistent frame reads).
+//   cur  = [0,0,0,100,0,0,0,0]
+//   next[i] = (cur[i-1] + cur[i] + cur[i+1]) / 3   for i in 1..7
+//   -> next = [0,0,33,33,33,0,0,0] (probes 33/33/33/0/0)
+//   flat[i] = cur[3] + i  pins the arbitrary fixed-index read (100/103)
+func Main() -> Void {
+    let mut cur: Array<Int> = [];
+    let mut next: Array<Int> = [];
+    for k in 0..8 { ArrayPush(cur, 0); ArrayPush(next, 0); }
+    ArraySet(cur, 3, 100);
+    parallel (i in 1..7) {
+        next[i] = (cur[i - 1] + cur[i] + cur[i + 1]) / 3;
+    }
+    Log(next[2]);
+    Log(next[3]);
+    Log(next[4]);
+    Log(next[1]);
+    Log(next[7]);
+    let mut flat: Array<Int> = [];
+    for k2 in 0..4 { ArrayPush(flat, 0); }
+    parallel (j in 0..4) {
+        flat[j] = cur[3] + j;
+    }
+    Log(flat[0]);
+    Log(flat[3]);
+}

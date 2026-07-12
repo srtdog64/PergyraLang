@@ -180,9 +180,10 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
                 capture_typed_names[i]);
             return;
         }
-        /* Array captures cross the boundary only with the checker-sealed
-         * index-disjointness fact (docs/181 R1); anything else is the
-         * shared-mutable-collection hazard the arms form rejects too. */
+        /* Array captures cross the boundary only with a checker-sealed
+         * fact row: R1 index-disjointness or R5 snapshot-read. Anything
+         * else is the shared-mutable-collection hazard the arms form
+         * rejects too. */
         {
             TypedVarEntry *entry =
                 lookup_typed_entry(ctx, capture_typed_names[i]);
@@ -190,6 +191,8 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
 
             if (tn != NULL && transpiler_type_name_is_array(tn)
                 && !ast_parallel_join_index_array_admitted(node,
+                        capture_typed_names[i])
+                && !ast_parallel_join_readonly_array_admitted(node,
                         capture_typed_names[i])) {
                 join_set_error(ctx,
                     "parallel join capture '%s' shares a mutable array without index-disjointness evidence; the checker fact is missing",
@@ -327,6 +330,37 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             "                      PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);\n");
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
+
+        /* R5 alias fail-close (docs/181): a snapshot-read capture whose
+         * backing IS an index-written array would let free-index reads
+         * race the per-index writes (`let b = a;` copies the handle,
+         * not the buffer). One pointer compare per (written, read) pair
+         * at fan-out entry; the LLVM twin emits the same check into the
+         * same panic export pair, so class and reason match across
+         * backends. */
+        for (int wi = 0; wi < capture_typed_count; wi++) {
+            if (!ast_parallel_join_index_array_admitted(node,
+                    capture_typed_names[wi]))
+                continue;
+            for (int ri = 0; ri < capture_typed_count; ri++) {
+                if (!ast_parallel_join_readonly_array_admitted(node,
+                        capture_typed_names[ri]))
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "if ((");
+                transpiler_write_capture_address(ctx,
+                    capture_typed_names[wi]);
+                codebuf_write(ctx->out, ")->data != NULL && (");
+                transpiler_write_capture_address(ctx,
+                    capture_typed_names[wi]);
+                codebuf_write(ctx->out, ")->data == (void *)(");
+                transpiler_write_capture_address(ctx,
+                    capture_typed_names[ri]);
+                codebuf_write(ctx->out,
+                    ")->data) pgy_runtime_panic_authority_mismatch_export("
+                    "\"parallel join read-only capture aliases an index-written array\");\n");
+            }
+        }
 
         write_indent(ctx);
         codebuf_write(ctx->out,

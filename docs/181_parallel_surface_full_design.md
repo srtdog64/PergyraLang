@@ -64,6 +64,7 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 | R2 ✅ | 식 형태 `let rs = parallel ... { give e; };` (결과 Array<R>, 인덱스 순서) | 목격자 `parallel_join_expr`(compare, 204/182/2/72 — 원소 프로브가 인덱스 순서를 고정) + 거절 3종(give 없음/give 비-최종/문장형 give). 청킹 측정은 잔여(게임 소음 없는 시점) |
 | R3 | `join with any` | §2.4 취소 프로토콜 선행 |
 | R4 ✅ | reduce 조합자 `join with sum\|product\|min\|max` (결과 스칼라, 인덱스-순서 고정 left fold) | 목격자 `parallel_join_reduce`(compare, 204/24/3/-2/0/1 — Float 행이 fold 순서를 고정) + empty-min 런타임 panic 목격자(양 백엔드 class=out-of-bounds) + 거절 3종(미지 조합자/Bool give/문장형 reduce) |
+| R5 ✅ | stencil 이웃 읽기 — 야코비 이중버퍼형(비-쓰기 배열 = 임의 인덱스 읽기 허용, 쓰기 배열 = [i]-정칙 유지) | 목격자 `parallel_join_stencil`(compare, 33×3/0/0/100/103) + alias 런타임 panic 목격자(`let b = a;` handle-copy, 양 백엔드 class=authority-mismatch) + in-place 스텐실 거절(기존 [i]-정칙 needle) |
 
 **R0 착지 (2026-07-11, WO-PARSURF-2)**: 파서(`parser_parallel.c`, 원소
 바인딩 필수·all 기본·any는 R3 fail-close) → semantic
@@ -129,6 +130,29 @@ empty fan-out의 min/max는 런타임 fail-closed panic**(양 백엔드가 같�
 거절 14종 스모크 · concurrency 전부 · semantic 2794/0. 잔여:
 non-primitive/사용자-정의 모노이드(ability/witness 필요 — 별개 rung),
 `join with reduce(op, id)` 일반형은 필요 실증 전 보류.
+
+**R5 착지 (2026-07-12, WO-PARSURF-2 R5)**: R1이 읽기까지 [i]로 묶은
+이유는 alias(두 이름, 한 backing — `let b = a;`는 handle 복사임을 실측)
+였다. R5는 그 매듭을 **증거 2겹**으로 푼다: **① 정적 admission** —
+body가 한 번도 쓰지 않고(`ast_statement_assigns_identifier` 부정) 모든
+사용이 `name[<임의 식>]`인(신설 `ast_identifier_only_indexed_reads`,
+[i]-walker의 NULL-인덱스 일반화 — ArrayPush 등 whole-array 사용은 여전히
+fail-close) 배열은 snapshot-read fact(`join_readonly_arrays`, checker
+단일 생산)로 임의-인덱스 읽기 admit. 쓰기 배열은 [i]-정칙 그대로 —
+**in-place 스텐실은 계속 거절**(이웃 태스크의 쓰기와 구조적 race), 야코비
+이중버퍼형만 허용(게임의 올바른 틱 모양이기도 함: 이전 프레임 읽기 →
+다음 프레임 쓰기). **② 런타임 backstop** — 남는 유일 구멍인 "읽기
+배열이 쓰기 배열을 alias"를 fan-out 진입에서 (쓰기×읽기) 쌍당 base-포인터
+비교 1회로 fail-close, 신설 `pgy_runtime_panic_authority_mismatch_export`
+(twin 쌍: 생성-C static-inline / bc extern — 형제 export들과 동일 패턴,
+`.bc` 재생성 포함)를 양 백엔드가 호출해 class+reason 동일 관측.
+슬롯 안전검사 always-on과 같은 defense-in-depth 구조. LLVM은 admitted
+배열(쓰기+읽기 모두)의 elem 메타를 wrapper 재등록에 스태시
+(`is_admitted_array`로 필드 의미 확장). 검증: 33×3/0/0/100/103 양 백엔드
+byte-equal(compare 등록) · alias panic 양 백엔드 · 거절 15종 스모크 ·
+concurrency/memory-concurrency/semantic 2794/0. 잔여: 원소 모드 배열
+캡처는 여전히 전면 거절(인덱스 없음 — 필요 실증 시 별도 rung), 2D/타일
+stencil, 함수 경계 넘는 alias 증거.
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 

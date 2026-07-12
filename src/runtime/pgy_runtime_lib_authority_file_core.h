@@ -249,6 +249,14 @@ pgy_runtime_panic_out_of_bounds_export(const char *reason)
                           : PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);
 }
 
+void
+pgy_runtime_panic_authority_mismatch_export(const char *reason)
+{
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH,
+                      reason != NULL ? reason
+                          : PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH);
+}
+
 #include "pgy_runtime_lib_checked_arith_core.h"
 
 /* Domain-lifecycle runtime state tag -- external (non-inline) twins of the

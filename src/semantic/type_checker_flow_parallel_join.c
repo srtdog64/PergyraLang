@@ -120,6 +120,25 @@ parallel_join_admit_index_arrays(ASTNode *node, ASTNode *body,
                     "parallel join index form carries Array<Int/Long/Float/Double/Bool> captures only; wider element kinds are a later rung (docs/181 SS1.4)");
                 return false;
             }
+            /* R5 snapshot-read relaxation (docs/181): an array the body
+             * never writes and only ever uses as `name[<expr>]` may be
+             * read at ANY index -- there is no write set of its own to
+             * collide with. The one residual hazard is its backing
+             * aliasing an index-WRITTEN array (`let b = a;` is a handle
+             * copy); the emitters close that with a fail-closed alias
+             * check at fan-out entry, so admission here plus that check
+             * is sound. Jacobi-style double buffering is the intended
+             * shape; in-place neighbor access stays rejected below. */
+            if (!ast_statement_assigns_identifier(body, sym->name)
+                && ast_identifier_only_indexed_reads(body, sym->name)) {
+                if (!ast_parallel_add_join_readonly_array(node,
+                                                          sym->name)) {
+                    semantic_error(ctx, node,
+                        "Snapshot-read fact allocation failed while admitting parallel join array");
+                    return false;
+                }
+                continue;
+            }
             if (!ast_identifier_only_indexed_by(body, sym->name,
                                                 elem_name)) {
                 semantic_error_with_hints(ctx,
@@ -173,10 +192,12 @@ type_check_parallel_join_admit(ASTNode *node, SemanticContext *ctx,
     elem_name = ast_parallel_join_element(node);
     body = ast_parallel_task(node, 0);
 
-    /* This checker is the single producer of the index-disjointness fact
-     * family (docs/180 SS6); the reset keeps re-checks idempotent. The
-     * scalar-race checker owns (and resets) the snapshot-row family. */
+    /* This checker is the single producer of the index-disjointness and
+     * snapshot-read fact families (docs/180 SS6); the resets keep
+     * re-checks idempotent. The scalar-race checker owns (and resets)
+     * the snapshot-row family. */
     ast_parallel_reset_join_index_arrays(node);
+    ast_parallel_reset_join_readonly_arrays(node);
 
     if (index_mode) {
         if (coll == NULL || !parallel_join_admit_range(coll, range_end, ctx))

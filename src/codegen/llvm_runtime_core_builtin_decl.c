@@ -215,6 +215,11 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i32, ctx->type_i32 }, 2 },
             { "pgy_checked_mul_i64_export", ctx->type_i64,
               { ctx->type_i64, ctx->type_i64 }, 2 },
+            /* R5 alias fail-close entrypoint: same class/reason line as
+             * the C twin's static-inline copy (file:line names each
+             * twin's definition site, like every panic export pair). */
+            { "pgy_runtime_panic_authority_mismatch_export",
+              ctx->type_void, { ctx->type_i8ptr }, 1 },
             { "ToInt", ctx->type_i32,
               { ctx->type_i8ptr }, 1 },
             { "ToFloat", ctx->type_f32,

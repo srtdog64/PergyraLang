@@ -239,6 +239,60 @@ ast_parallel_join_index_array_admitted(const ASTNode* node, const char* name)
     return false;
 }
 
+/* Snapshot-read fact rows (docs/181 R5): same producer/consumer split as
+ * the index-disjointness family -- the join admission checker is the
+ * single producer, both backend emitters consume. */
+void
+ast_parallel_reset_join_readonly_arrays(ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return;
+    for (size_t i = 0;
+         i < node->data.parallel.join_readonly_array_count; i++)
+        free(node->data.parallel.join_readonly_arrays[i]);
+    free(node->data.parallel.join_readonly_arrays);
+    node->data.parallel.join_readonly_arrays = NULL;
+    node->data.parallel.join_readonly_array_count = 0;
+}
+
+bool
+ast_parallel_add_join_readonly_array(ASTNode* node, const char* name)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK || name == NULL)
+        return false;
+    if (ast_parallel_join_readonly_array_admitted(node, name))
+        return true;
+    {
+        size_t count = node->data.parallel.join_readonly_array_count;
+        char** grown = realloc(node->data.parallel.join_readonly_arrays,
+                               (count + 1) * sizeof(*grown));
+        if (grown == NULL)
+            return false;
+        node->data.parallel.join_readonly_arrays = grown;
+        grown[count] = pergyra_strdup(name);
+        if (grown[count] == NULL)
+            return false;
+        node->data.parallel.join_readonly_array_count = count + 1;
+    }
+    return true;
+}
+
+bool
+ast_parallel_join_readonly_array_admitted(const ASTNode* node,
+                                          const char* name)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK || name == NULL)
+        return false;
+    for (size_t i = 0;
+         i < node->data.parallel.join_readonly_array_count; i++) {
+        if (node->data.parallel.join_readonly_arrays[i] != NULL
+            && strcmp(node->data.parallel.join_readonly_arrays[i],
+                      name) == 0)
+            return true;
+    }
+    return false;
+}
+
 /* --- Expression form (docs/181 R2): checker-sealed give result type --- */
 
 bool

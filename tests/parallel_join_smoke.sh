@@ -33,6 +33,15 @@
 #   - reject_reduce_unknown_op        combinator set is closed    -> reject
 #   - reject_reduce_bool_give         reduce folds numbers only   -> reject
 #   - reject_reduce_statement_form    scalar result must be bound -> reject
+#   - parallel_join_stencil (compare corpus, R5) prints
+#     33/33/33/0/0/100/103: Jacobi double buffering -- an unwritten
+#     captured array may be read at ANY index (snapshot-read fact);
+#     writes keep the [i] discipline on a different array
+#   - panic_stencil_alias             `let b = a;` handle copy makes the
+#     read snapshot alias the written array -> fan-out entry panic
+#     (class=authority-mismatch, same reason on both backends)
+#   - reject_stencil_inplace          in-place neighbor stencil    -> reject
+#     (only the Jacobi shape is admitted)
 
 set -euo pipefail
 
@@ -52,6 +61,7 @@ ACCEPT_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_collection/main.
 INDEX_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_index/main.pgy"
 EXPR_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_expr/main.pgy"
 REDUCE_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_reduce/main.pgy"
+STENCIL_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -117,6 +127,11 @@ for backend in $BACKENDS; do
     expect_panics "$backend" "$FIXTURES/panic_reduce_empty_min.pgy" \
         "reduce_empty_min" \
         "min/max reduce over an empty parallel join range"
+    expect_runs "$backend" "$STENCIL_SRC" "join_stencil" \
+        "$(printf '33\n33\n33\n0\n0\n100\n103')"
+    expect_panics "$backend" "$FIXTURES/panic_stencil_alias.pgy" \
+        "stencil_alias" \
+        "read-only capture aliases an index-written array"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"
@@ -134,5 +149,6 @@ expect_reject reject_reduce_unknown_op.pgy \
     "Expected join mode 'all', 'sum', 'product', 'min', or 'max'"
 expect_reject reject_reduce_bool_give.pgy       "folds numeric gives only"
 expect_reject reject_reduce_statement_form.pgy  "produces a value; bind it"
+expect_reject reject_stencil_inplace.pgy        "outside the index-disjoint form"
 
-echo "[parallel-join] rungs 0+1+2+R4 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + empty-min panic on: $BACKENDS); 14 reject shapes fail closed"
+echo "[parallel-join] rungs 0+1+2+R4+R5 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + stencil 33x3/0/0/100/103 + 2 runtime panic witnesses on: $BACKENDS); 15 reject shapes fail closed"

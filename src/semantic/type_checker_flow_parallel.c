@@ -142,6 +142,13 @@ parallel_reject_shared_collection_capture(ASTNode *parallel_node,
                 && ast_parallel_join_index_array_admitted(parallel_node,
                                                           sym->name))
                 continue;
+            /* Snapshot-read evidence (docs/181 R5): never written and
+             * only ever `name[<expr>]` reads; the emitters' fan-out
+             * entry alias check closes the written-backing residual. */
+            if (ast_parallel_is_index_join(parallel_node)
+                && ast_parallel_join_readonly_array_admitted(parallel_node,
+                                                             sym->name))
+                continue;
 
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BORROW_ESCAPE,

@@ -37,9 +37,10 @@ typedef struct {
     const char *slot_inner;
     bool future_is_remote;
     bool slot_is_secure;
-    /* Index-disjointness-admitted array (docs/181 R1): element metadata
-     * stashed by value so the wrapper can re-register the binding. */
-    bool is_index_array;
+    /* Fact-admitted array (docs/181 R1 index-disjointness or R5
+     * snapshot-read): element metadata stashed by value so the wrapper
+     * can re-register the binding. */
+    bool is_admitted_array;
     LLVMTypeRef array_elem_type;
     const char *array_elem_name;
 } JoinCapturedVar;
@@ -178,16 +179,21 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                     frame->entries[j].name);
                 return;
             }
-            /* Index-disjointness-admitted arrays (docs/181 R1) cross the
-             * boundary; every other collection keeps the shared-mutable
-             * reject. The element metadata is stashed by value for the
-             * wrapper-side registry re-bind. */
+            /* Fact-admitted arrays cross the boundary: R1
+             * index-disjointness rows and R5 snapshot-read rows. Every
+             * other collection keeps the shared-mutable reject. The
+             * element metadata is stashed by value for the wrapper-side
+             * registry re-bind. */
             LLVMArrayVarEntry *arr_entry =
                 llvm_lookup_array_var(ctx, frame->entries[j].name);
             bool index_admitted = arr_entry != NULL
                 && ast_parallel_join_index_array_admitted(node,
                        frame->entries[j].name);
-            if (!index_admitted
+            bool readonly_admitted = arr_entry != NULL
+                && ast_parallel_join_readonly_array_admitted(node,
+                       frame->entries[j].name);
+            bool array_admitted = index_admitted || readonly_admitted;
+            if (!array_admitted
                 && llvm_capture_reject_shared_collection(ctx, node,
                     "parallel join", frame->entries[j].name, true)) {
                 return;
@@ -201,9 +207,9 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                 llvm_lookup_slot_inner(ctx, frame->entries[j].name),
                 llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
                 llvm_lookup_slot_is_secure(ctx, frame->entries[j].name),
-                index_admitted,
-                index_admitted ? arr_entry->elem_type : NULL,
-                index_admitted ? arr_entry->elem_name : NULL
+                array_admitted,
+                array_admitted ? arr_entry->elem_type : NULL,
+                array_admitted ? arr_entry->elem_name : NULL
             };
             if (captured[n_captured].slot_inner != NULL) {
                 /* Parity with the C emitter's rung-0 edge. */
@@ -288,7 +294,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                 llvm_register_future_var_binding(ctx, captured[c].name,
                     var_ptr, captured[c].future_inner,
                     captured[c].future_is_remote);
-            if (captured[c].is_index_array)
+            if (captured[c].is_admitted_array)
                 /* The array registry is keyed by the scope alloca, which
                  * is the loaded pointer inside the wrapper -- re-register
                  * so indexed get/set resolve element metadata. */
@@ -347,6 +353,75 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
     if (ctx->has_error)
         return;
+
+    /* R5 alias fail-close (docs/181): a snapshot-read capture whose
+     * backing IS an index-written array would let free-index reads race
+     * the per-index writes (`let b = a;` copies the handle, not the
+     * buffer). One pointer compare per (written, read) pair at fan-out
+     * entry; the C twin emits the same check into the same panic export
+     * pair, so class and reason match across backends. */
+    for (size_t wi = 0; wi < n_captured; wi++) {
+        if (!captured[wi].is_admitted_array
+            || !ast_parallel_join_index_array_admitted(node,
+                   captured[wi].name))
+            continue;
+        for (size_t ri = 0; ri < n_captured; ri++) {
+            if (!captured[ri].is_admitted_array
+                || !ast_parallel_join_readonly_array_admitted(node,
+                       captured[ri].name))
+                continue;
+            LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+                "pgy_runtime_panic_authority_mismatch_export");
+            if (panic_fn == NULL) {
+                llvm_join_set_error(ctx, node,
+                    "parallel join alias check requires the registered panic runtime%s",
+                    "");
+                return;
+            }
+            LLVMTypeRef w_data_ty = LLVMStructGetTypeAtIndex(
+                captured[wi].type, 0);
+            LLVMTypeRef r_data_ty = LLVMStructGetTypeAtIndex(
+                captured[ri].type, 0);
+            LLVMValueRef w_gep = LLVMBuildStructGEP2(ctx->builder,
+                captured[wi].type, captured[wi].alloca, 0,
+                llvm_tmp_name(ctx));
+            LLVMValueRef w_data = LLVMBuildLoad2(ctx->builder, w_data_ty,
+                w_gep, llvm_tmp_name(ctx));
+            LLVMValueRef r_gep = LLVMBuildStructGEP2(ctx->builder,
+                captured[ri].type, captured[ri].alloca, 0,
+                llvm_tmp_name(ctx));
+            LLVMValueRef r_data = LLVMBuildLoad2(ctx->builder, r_data_ty,
+                r_gep, llvm_tmp_name(ctx));
+            LLVMValueRef w8 = LLVMBuildBitCast(ctx->builder, w_data,
+                ctx->type_i8ptr, llvm_tmp_name(ctx));
+            LLVMValueRef r8 = LLVMBuildBitCast(ctx->builder, r_data,
+                ctx->type_i8ptr, llvm_tmp_name(ctx));
+            LLVMValueRef same = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+                w8, r8, llvm_tmp_name(ctx));
+            LLVMValueRef nonnull = LLVMBuildICmp(ctx->builder, LLVMIntNE,
+                w8, LLVMConstPointerNull(ctx->type_i8ptr),
+                llvm_tmp_name(ctx));
+            LLVMValueRef aliased = LLVMBuildAnd(ctx->builder, same,
+                nonnull, llvm_tmp_name(ctx));
+            LLVMBasicBlockRef alias_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.alias.panic");
+            LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, ctx->current_function, "pj.alias.cont");
+            LLVMBuildCondBr(ctx->builder, aliased, alias_bb, cont_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, alias_bb);
+            {
+                LLVMValueRef panic_args[] = {
+                    LLVMBuildGlobalStringPtr(ctx->builder,
+                        "parallel join read-only capture aliases an index-written array",
+                        llvm_tmp_name(ctx))
+                };
+                LLVMBuildCall2(ctx->builder, panic_fn->fn_type,
+                    panic_fn->fn, panic_args, 1, "");
+                LLVMBuildUnreachable(ctx->builder);
+            }
+            LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+        }
+    }
 
     /* ---------------------------------------------------------------
      * Call site: fan-out length, fan-out loop, all-join loop.
