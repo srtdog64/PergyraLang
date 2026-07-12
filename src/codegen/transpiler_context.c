@@ -308,10 +308,13 @@ transpiler_ctx_create(void)
     ctx->out   = codebuf_create();
     ctx->decls = codebuf_create();
     ctx->helpers = codebuf_create();
-    if (ctx->out == NULL || ctx->decls == NULL || ctx->helpers == NULL) {
+    ctx->wrappers = codebuf_create();
+    if (ctx->out == NULL || ctx->decls == NULL || ctx->helpers == NULL
+        || ctx->wrappers == NULL) {
         codebuf_destroy(ctx->out);
         codebuf_destroy(ctx->decls);
         codebuf_destroy(ctx->helpers);
+        codebuf_destroy(ctx->wrappers);
         pgy_arena_destroy(&ctx->arena);
         free(ctx);
         return NULL;
@@ -380,6 +383,7 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
     codebuf_destroy(ctx->out);
     codebuf_destroy(ctx->decls);
     codebuf_destroy(ctx->helpers);
+    codebuf_destroy(ctx->wrappers);
     free(ctx->backend_error);
     pgy_arena_destroy(&ctx->arena);
     free(ctx);

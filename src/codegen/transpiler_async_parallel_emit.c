@@ -161,7 +161,7 @@ transpiler_parallel_wrapper_state_enter(
     memcpy(state->typed_snapshot, ctx->par_capture_typed_snapshot,
            sizeof(state->typed_snapshot));
 
-    ctx->out = ctx->helpers;
+    ctx->out = ctx->wrappers;
     ctx->indent = 1;
     ctx->in_parallel_wrapper = true;
     memcpy(ctx->par_capture_slot_names, capture_slot_names,
@@ -269,7 +269,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (has_captures) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "typedef struct {\n");
         for (int i = 0; i < capture_slot_count; i++) {
             const char *name = capture_slot_names[i];
@@ -289,7 +289,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                     name);
                 return;
             }
-            codebuf_write(ctx->helpers,
+            codebuf_write(ctx->wrappers,
                 secure ? "    PgySecureSlot_%s *%s;\n" : "    PgySlot_%s *%s;\n",
                 inner, name);
         }
@@ -326,7 +326,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                     capture_typed_callables[i].param_type_names,
                     ptr_name);
                 if (decl != NULL) {
-                    codebuf_write(ctx->helpers, "    %s;\n", decl);
+                    codebuf_write(ctx->wrappers, "    %s;\n", decl);
                     free(decl);
                     continue;
                 }
@@ -343,16 +343,16 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             }
             if (c_type == NULL)
                 return;
-            codebuf_write(ctx->helpers,
+            codebuf_write(ctx->wrappers,
                 "    %s *%s;\n", c_type,
                 capture_typed_names[i]);
             if (capture_typed_snap_needed[i]) {
-                codebuf_write(ctx->helpers,
+                codebuf_write(ctx->wrappers,
                     "    %s %s__snap;\n", c_type,
                     capture_typed_names[i]);
             }
         }
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "} _pgy_par_ctx_%u;\n\n", pid);
     }
 
@@ -361,16 +361,16 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
      *    Variable references inside the wrapper go through _pctx->.
      * --------------------------------------------------------------- */
     for (size_t i = 0; i < count; i++) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "static void *_pgy_par_%zu_%u(void *_arg) {\n",
             i, pid);
         if (has_captures) {
-            codebuf_write(ctx->helpers,
+            codebuf_write(ctx->wrappers,
                 "    _pgy_par_ctx_%u *_pctx = "
                 "(_pgy_par_ctx_%u *)_arg;\n",
                 pid, pid);
         } else {
-            codebuf_write(ctx->helpers, "    (void)_arg;\n");
+            codebuf_write(ctx->wrappers, "    (void)_arg;\n");
         }
 
         TranspilerParallelWrapperState wrapper_state;
@@ -387,7 +387,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 
         transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    return NULL;\n"
             "}\n\n");
     }
@@ -496,8 +496,8 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    codebuf_write(ctx->helpers, "static void *_pgy_async_%u(void *_arg) {\n", pid);
-    codebuf_write(ctx->helpers, "    (void)_arg;\n");
+    codebuf_write(ctx->wrappers, "static void *_pgy_async_%u(void *_arg) {\n", pid);
+    codebuf_write(ctx->wrappers, "    (void)_arg;\n");
 
     TranspilerParallelWrapperState wrapper_state;
     transpiler_parallel_wrapper_state_enter(
@@ -509,7 +509,7 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
 
     transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
-    codebuf_write(ctx->helpers, "    return NULL;\n}\n\n");
+    codebuf_write(ctx->wrappers, "    return NULL;\n}\n\n");
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");

@@ -407,7 +407,17 @@ emit_program(TranspilerCtx *ctx)
             codebuf_write_raw(ctx->out, ctx->decls->data, ctx->decls->len);
         }
 
-        /* Emit helpers (parallel context structs + wrappers) first */
+        /* Parallel/async wrappers precede the helpers: helper-resident
+         * functions (generic specializations) reference the wrappers by
+         * name, and the wrappers' own callees are already covered by the
+         * forward declarations above. */
+        if (ctx->wrappers->len > 0) {
+            codebuf_write(ctx->out, "\n");
+            codebuf_write_raw(ctx->out, ctx->wrappers->data,
+                              ctx->wrappers->len);
+        }
+
+        /* Emit helpers (generic specializations and other late defs) */
         if (ctx->helpers->len > 0) {
             codebuf_write(ctx->out, "\n");
             codebuf_write_raw(ctx->out, ctx->helpers->data, ctx->helpers->len);

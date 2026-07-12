@@ -211,7 +211,7 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
     /* ---------------------------------------------------------------
      * 1) Per-element context struct.
      * --------------------------------------------------------------- */
-    codebuf_write(ctx->helpers, "typedef struct {\n");
+    codebuf_write(ctx->wrappers, "typedef struct {\n");
     for (int i = 0; i < capture_typed_count; i++) {
         char surface_desc[256];
         char c_type_buf[128];
@@ -224,28 +224,28 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
                     : NULL,
                 surface_desc, c_type_buf, sizeof(c_type_buf)))
             return;
-        codebuf_write(ctx->helpers, "    %s *%s;\n", c_type_buf,
+        codebuf_write(ctx->wrappers, "    %s *%s;\n", c_type_buf,
                       capture_typed_names[i]);
     }
-    codebuf_write(ctx->helpers,
+    codebuf_write(ctx->wrappers,
         "    %s __join_elem;\n", elem_c_type);
     if (give_suffix != NULL && ast_parallel_join_is_any(node)) {
         /* R3 any-join: shared decision cell + shared winner-result cell
          * (both call-site locals), instead of a per-task slot. */
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    int32_t *__join_any;\n"
             "    %s *__join_any_res;\n", give_c_type);
     } else if (give_suffix != NULL) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    %s __join_result;\n", give_c_type);
     }
-    codebuf_write(ctx->helpers,
+    codebuf_write(ctx->wrappers,
         "} _pgy_pjoin_ctx_%u;\n\n", pid);
 
     /* ---------------------------------------------------------------
      * 2) The one replicated wrapper.
      * --------------------------------------------------------------- */
-    codebuf_write(ctx->helpers,
+    codebuf_write(ctx->wrappers,
         "static void *_pgy_pjoin_%u(void *_arg) {\n"
         "    _pgy_pjoin_ctx_%u *_pctx = (_pgy_pjoin_ctx_%u *)_arg;\n",
         pid, pid, pid);
@@ -253,11 +253,11 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         /* Entry safe point (docs/181 SS2.4): a task that starts after
          * the decision retires immediately; queued tasks are also
          * skipped by the pool's own pre-run cancel check. */
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    if (__atomic_load_n(_pctx->__join_any, __ATOMIC_ACQUIRE)"
             " != 0) return NULL;\n");
     }
-    codebuf_write(ctx->helpers,
+    codebuf_write(ctx->wrappers,
         "    %s %s = _pctx->__join_elem;\n"
         "    (void)%s;\n",
         elem_c_type, elem_name, elem_name);
@@ -279,7 +279,7 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
     }
 
-    codebuf_write(ctx->helpers,
+    codebuf_write(ctx->wrappers,
         "    return NULL;\n"
         "}\n\n");
 

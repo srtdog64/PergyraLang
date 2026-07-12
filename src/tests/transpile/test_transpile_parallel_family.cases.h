@@ -35,7 +35,7 @@ test_parallel_family_emit(void)
         EXPECT(ctx->out->data != NULL);
         EXPECT(strstr(ctx->out->data, "spawn") != NULL);
         EXPECT(strstr(ctx->out->data, "pgy_spawn_wrapper") != NULL);
-        EXPECT(strstr(ctx->helpers->data, "DoWork") != NULL);
+        EXPECT(strstr(ctx->wrappers->data, "DoWork") != NULL);
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -97,7 +97,7 @@ test_parallel_family_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_spawn_dispatch");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_lane_detach");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "return 1;");
+        EXPECT_STR_CONTAINS(ctx->wrappers->data, "return 1;");
 
         ast_destroy(ret_stmt);
         transpiler_ctx_destroy(ctx);

@@ -263,7 +263,7 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
     /* hoisted body: declaration + definition with the env as leading param */
     codebuf_write(ctx->decls, "static %s %s(%s* __pgy_env%s);\n",
         return_type, lambda_name, env_type, sig_params->data);
-    codebuf_write(ctx->helpers, "\nstatic %s %s(%s* __pgy_env%s)\n{\n",
+    codebuf_write(ctx->wrappers, "\nstatic %s %s(%s* __pgy_env%s)\n{\n",
         return_type, lambda_name, env_type, sig_params->data);
     for (size_t i = 0; i < cap_count; i++) {
         char cap_c_type[256];
@@ -280,7 +280,7 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
             free(cap_rendered_owned);
             goto done;
         }
-        codebuf_write(ctx->helpers, "    %s %s = __pgy_env->%s;\n",
+        codebuf_write(ctx->wrappers, "    %s %s = __pgy_env->%s;\n",
             cap_c_type, cap_ref, cap_name);
         free(cap_rendered_owned);
     }
@@ -289,7 +289,7 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
     if (body != NULL && body->type == AST_BLOCK) {
         CodeBuf *saved_out = ctx->out;
         int saved_indent = ctx->indent;
-        ctx->out = ctx->helpers;
+        ctx->out = ctx->wrappers;
         ctx->indent = 1;
         emit_block(body, ctx);
         ctx->indent = saved_indent;
@@ -303,11 +303,11 @@ transpiler_emit_captured_lambda(ASTNode *node, TranspilerCtx *ctx,
                 "captured lambda expression could not lower body expression");
             goto done;
         }
-        write_indent_to(ctx->helpers, 1);
-        codebuf_write(ctx->helpers, "return %s;\n", expr);
+        write_indent_to(ctx->wrappers, 1);
+        codebuf_write(ctx->wrappers, "return %s;\n", expr);
         free(expr);
     }
-    codebuf_write(ctx->helpers, "}\n");
+    codebuf_write(ctx->wrappers, "}\n");
 
     /* closure-literal value */
     lit = codebuf_create();
@@ -453,7 +453,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 
     if (!transpiler_emit_lambda_signature(node, ctx, ctx->decls,
             return_type, lambda_name, true)
-        || !transpiler_emit_lambda_signature(node, ctx, ctx->helpers,
+        || !transpiler_emit_lambda_signature(node, ctx, ctx->wrappers,
             return_type, lambda_name, false)) {
         free(lambda_name);
         free(return_type_owned);
@@ -466,7 +466,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
         CodeBuf *saved_out = ctx->out;
         int saved_indent = ctx->indent;
-        ctx->out = ctx->helpers;
+        ctx->out = ctx->wrappers;
         ctx->indent = 1;
         emit_block(lambda_body, ctx);
         ctx->indent = saved_indent;
@@ -486,12 +486,12 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 saved_alias_var_count);
             return NULL;
         }
-        write_indent_to(ctx->helpers, 1);
-        codebuf_write(ctx->helpers, "return %s;\n", expr);
+        write_indent_to(ctx->wrappers, 1);
+        codebuf_write(ctx->wrappers, "return %s;\n", expr);
         free(expr);
     }
 
-    codebuf_write(ctx->helpers, "}\n");
+    codebuf_write(ctx->wrappers, "}\n");
     free(return_type_owned);
     transpiler_restore_local_binding_counts_local(
         ctx, saved_slot_var_count, saved_typed_var_count,

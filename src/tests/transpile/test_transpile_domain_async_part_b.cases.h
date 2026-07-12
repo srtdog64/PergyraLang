@@ -572,7 +572,7 @@ test_parallel_execution_emit(void)
 
         EXPECT_STR_CONTAINS(result, "pgy_lambda_");
         EXPECT_STR_CONTAINS(ctx->decls->data, "static int32_t pgy_lambda_");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "return x;");
+        EXPECT_STR_CONTAINS(ctx->wrappers->data, "return x;");
 
         free(result);
         ast_destroy(body);

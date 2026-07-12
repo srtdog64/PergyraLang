@@ -1,0 +1,16 @@
+// Emission-audit witness (docs/182 SS7): a join expr inside a GENERIC
+// function. Generic specializations are emitted into the C backend's
+// helpers buffer; before the dedicated wrappers buffer existed, the
+// parallel wrapper interleaved into the specialized body as a nested
+// function ("invalid storage class"). Two instantiations pin that each
+// specialization gets its own file-scope wrapper.
+func FoldSum<T>(seed: T, n: Int) -> Int {
+    let mut xs: Array<Int> = [];
+    for k in 0..n { ArrayPush(xs, k + 1); }
+    let total: Int = parallel (x in xs) join with sum { give x; };
+    return total;
+}
+func Main() -> Void {
+    Log(FoldSum<Int>(0, 4));
+    Log(FoldSum<Bool>(true, 3));
+}

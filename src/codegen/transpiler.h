@@ -137,6 +137,15 @@ typedef struct
     CodeBuf *out;          /* main output buffer            */
     CodeBuf *decls;        /* prototypes and forward decls  */
     CodeBuf          *helpers;      /* late helper definitions       */
+    /* Parallel/async task wrappers and their context structs. A
+     * DEDICATED buffer, not ctx->helpers: generic specializations are
+     * themselves emitted INTO ctx->helpers, so a wrapper written there
+     * mid-function lands nested inside the specialized body (invalid C,
+     * "invalid storage class"). Wrappers are position-independent --
+     * their callees are forward-declared in ctx->decls -- and the final
+     * assembly places this buffer before ctx->helpers so helper-resident
+     * functions see the wrapper definitions. */
+    CodeBuf          *wrappers;
     int               indent;       /* current indent level          */
     bool              in_parallel;  /* inside a Parallel block       */
     const MIRProgram *mir;          /* MIR program (required)        */

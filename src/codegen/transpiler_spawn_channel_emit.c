@@ -337,21 +337,21 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     codebuf_write(ctx->decls, "static void *%s(void *raw);\n", wrapper_name);
-    codebuf_write(ctx->helpers, "\nstatic void *%s(void *raw)\n{\n", wrapper_name);
+    codebuf_write(ctx->wrappers, "\nstatic void *%s(void *raw)\n{\n", wrapper_name);
     if (args_type_name != NULL) {
-        codebuf_write(ctx->helpers, "    %s *args = (%s *)raw;\n",
+        codebuf_write(ctx->wrappers, "    %s *args = (%s *)raw;\n",
             args_type_name, args_type_name);
     } else {
-        codebuf_write(ctx->helpers, "    (void)raw;\n");
+        codebuf_write(ctx->wrappers, "    (void)raw;\n");
     }
 
     if (strcmp(return_type_name, "Void") == 0) {
-        codebuf_write(ctx->helpers, "    %s(", emitted_function_name);
+        codebuf_write(ctx->wrappers, "    %s(", emitted_function_name);
     } else {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    %s *result = (%s *)malloc(sizeof(%s));\n",
             return_c_type, return_c_type, return_c_type);
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->wrappers,
             "    if (result == NULL) {\n"
             "        PGY_PANIC(\"spawn result allocation failed\");\n"
             "    }\n"
@@ -361,19 +361,19 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < arg_count; i++) {
         if (i > 0)
-            codebuf_write(ctx->helpers, ", ");
-        codebuf_write(ctx->helpers, "args->arg%zu", i);
+            codebuf_write(ctx->wrappers, ", ");
+        codebuf_write(ctx->wrappers, "args->arg%zu", i);
     }
-    codebuf_write(ctx->helpers, ");\n");
+    codebuf_write(ctx->wrappers, ");\n");
 
     if (args_type_name != NULL)
-        codebuf_write(ctx->helpers, "    free(args);\n");
+        codebuf_write(ctx->wrappers, "    free(args);\n");
 
     if (strcmp(return_type_name, "Void") == 0)
-        codebuf_write(ctx->helpers, "    return NULL;\n");
+        codebuf_write(ctx->wrappers, "    return NULL;\n");
     else
-        codebuf_write(ctx->helpers, "    return result;\n");
-    codebuf_write(ctx->helpers, "}\n");
+        codebuf_write(ctx->wrappers, "    return result;\n");
+    codebuf_write(ctx->wrappers, "}\n");
 
     CodeBuf *expr = codebuf_create();
     if (expr == NULL) {

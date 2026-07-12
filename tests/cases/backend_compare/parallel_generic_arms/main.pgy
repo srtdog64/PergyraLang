@@ -1,0 +1,17 @@
+// Emission-audit witness (docs/182 SS7): the arms form inside a
+// GENERIC function -- the same wrapper-nesting class as the join form,
+// present since the original arms emitter. The channel drain keeps the
+// output deterministic (1+2 in either completion order).
+func Fan<T>(seed: T) -> Int {
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- 1;
+        ch <- 2;
+    }
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    return a + b;
+}
+func Main() -> Void {
+    Log(Fan<Int>(0));
+}
