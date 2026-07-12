@@ -393,6 +393,12 @@ Serialization/version policy:
 If the owner, handle, last consumer, and negative gate cannot be named, the
 boundary is not ready to become architecture.
 
+The accepted whole-spine instances of this template are registered in
+`docs/semantics/sot_owner_spine_registry.md`. New top-level fact families must
+extend that registry and `SoTAuthority.v` in the same change. Moving an existing
+owner uses `boundary_migration_manifest.md`; it must not create a second owner
+row or a second handwritten self-host registry.
+
 ## 10. Execution Order
 
 Do not implement all handles at once.

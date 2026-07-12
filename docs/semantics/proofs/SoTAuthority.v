@@ -10,8 +10,6 @@
   adequacy gate binds the concrete array-literal instance below to source.
 *)
 
-From Stdlib Require Import Logic.Classical_Prop.
-
 Inductive Fact : Type :=
   | FInitializerArrayBody
   | FInitializerTextProvenance.
@@ -218,6 +216,97 @@ Proof.
   specialize (Hcomplete CArrayLiteralEmitter FInitializerArrayBody
     CurrentEmitterRequiresArrayBody).
   inversion Hcomplete.
+Qed.
+
+(* ================================================================ *)
+(* Whole compiler-spine owner declaration.                           *)
+(* This fixes owner identity; it does not assert implementation      *)
+(* closure for every row. Closure remains a per-rung predicate above. *)
+(* ================================================================ *)
+
+Inductive SpineFact : Type :=
+  | SFSourceModuleGraph
+  | SFTokenStream
+  | SFSyntaxProvenanceTree
+  | SFSemanticSymbolTypeGraph
+  | SFHirTypedControlFlow
+  | SFDirDomainGraph
+  | SFRirResourceTransitionGraph
+  | SFMirExecutionGraph
+  | SFAirEvidenceGraph
+  | SFAbiLayoutRows
+  | SFTargetCapabilityProfile
+  | SFProjectionPlan
+  | SFDiagnosticCatalog
+  | SFBackendArtifact
+  | SFCompatibilityEvolution
+  | SFInitializerArrayBody.
+
+Inductive SpineOwner : Type :=
+  | SOModuleLoader
+  | SOLexer
+  | SOParserAst
+  | SOSemanticAnalyzer
+  | SOHir
+  | SODir
+  | SORir
+  | SOMir
+  | SOAir
+  | SOMirAbi
+  | SOTargetCapability
+  | SOProjectionPlanner
+  | SODiagnosticCatalog
+  | SOArtifactZone
+  | SOCompatibilityEvolution
+  | SOSemanticLocalBinding.
+
+Definition spine_authority (fact : SpineFact) : SpineOwner :=
+  match fact with
+  | SFSourceModuleGraph => SOModuleLoader
+  | SFTokenStream => SOLexer
+  | SFSyntaxProvenanceTree => SOParserAst
+  | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer
+  | SFHirTypedControlFlow => SOHir
+  | SFDirDomainGraph => SODir
+  | SFRirResourceTransitionGraph => SORir
+  | SFMirExecutionGraph => SOMir
+  | SFAirEvidenceGraph => SOAir
+  | SFAbiLayoutRows => SOMirAbi
+  | SFTargetCapabilityProfile => SOTargetCapability
+  | SFProjectionPlan => SOProjectionPlanner
+  | SFDiagnosticCatalog => SODiagnosticCatalog
+  | SFBackendArtifact => SOArtifactZone
+  | SFCompatibilityEvolution => SOCompatibilityEvolution
+  | SFInitializerArrayBody => SOSemanticLocalBinding
+  end.
+
+Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
+  | DeclaredAuthority : forall fact,
+      DeclaredSpineAuthority (spine_authority fact) fact.
+
+Theorem every_spine_fact_has_declared_authority :
+  forall fact, exists owner, DeclaredSpineAuthority owner fact.
+Proof.
+  intros fact. exists (spine_authority fact). constructor.
+Qed.
+
+Theorem declared_spine_authority_unique :
+  forall fact left right,
+    DeclaredSpineAuthority left fact ->
+    DeclaredSpineAuthority right fact ->
+    left = right.
+Proof.
+  intros fact left right Hleft Hright.
+  inversion Hleft. inversion Hright. reflexivity.
+Qed.
+
+Theorem declared_owner_does_not_imply_rung_closed :
+  (exists owner, DeclaredSpineAuthority owner SFMirExecutionGraph) /\
+  ~ RungClosed bridge_model.
+Proof.
+  split.
+  - apply every_spine_fact_has_declared_authority.
+  - apply owned_plus_fallback_bridge_is_not_closed.
 Qed.
 
 (* Claim limit: future facts and consumers require new concrete bindings. *)

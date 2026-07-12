@@ -161,6 +161,15 @@ reintroduction. This is mechanized evidence for the array-literal rung only;
 it does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
+The whole compiler skeleton now has a machine-gated 16-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: one `CLOSED`, six `BRIDGE`, and
+nine `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
+authority implementation, last consumers, forbidden fallbacks, gate, and open
+reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings
+and mutation-rejects missing rows, duplicate ids, missing owners, Coq drift,
+invalid status, and dishonest `CLOSED` promotion. This defines the owner
+outline; it does not raise the released/default replacement percentage.
+
 ## Headline Number
 
 ### Three-axis scorecard

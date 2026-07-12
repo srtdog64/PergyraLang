@@ -1609,6 +1609,13 @@ Every consumer of a cross-layer fact must be classified as one of:
 When adding or moving code, classify the file/function before editing it. If the
 classification is unclear, do not refactor yet.
 
+The top-level fact-family classification is fixed in
+`docs/semantics/sot_owner_spine_registry.md`. Its 16 rows bind each compiler
+spine fact to a stable handle, Coq fact/owner constructor, authority path, last
+legitimate consumers, forbidden fallback family, enforcement gate, and honest
+closure status. This registry declares authority identity; detailed ownership
+moves remain in `boundary_migration_manifest.md`.
+
 ## 4. Beta Blocker Order
 
 The beta closure order is:

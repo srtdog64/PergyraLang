@@ -26,6 +26,13 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
+The file also declares the 16 top-level compiler-spine fact families and a
+total `spine_authority` mapping. `every_spine_fact_has_declared_authority` and
+`declared_spine_authority_unique` prove that this architectural mapping is
+total and functional. `declared_owner_does_not_imply_rung_closed` keeps the
+critical distinction explicit: assigning an owner does not prove that live
+fallback consumers are gone.
+
 ## Implementation Binding
 
 `tests/sot_authority_adequacy_smoke.sh` binds the model to the current source:
@@ -49,3 +56,8 @@ Pergyra source and does not prove whole-compiler SoT closure. The adequacy gate
 is source-consistency evidence for the named live slice. Each later expression,
 MIR, ABI, or AIR consumer needs another explicit model binding before it may
 claim the same closure.
+
+The machine-readable implementation/status binding is
+`docs/semantics/sot_owner_spine_registry.md`. It is the canonical registry;
+self-hosted owner projections must eventually consume or be generated from it,
+not copy its rows into another handwritten authority list.

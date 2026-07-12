@@ -45,6 +45,7 @@ for rel in \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/VerificationMethodology.v \
     docs/semantics/proofs/SoTAuthority.v \
+    docs/semantics/sot_owner_spine_registry.md \
     docs/semantics/proofs/ProofSpine.v \
     docs/semantics/proofs/ProofSpine.md \
     docs/semantics/README.md \
@@ -91,6 +92,10 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem current_array_liter
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem owned_plus_fallback_bridge_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem duplicate_semantic_producer_is_not_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fact_is_not_closed"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem every_spine_fact_has_declared_authority"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_authority_unique"
+require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=1 BRIDGE=6 ACTIVE=9"
 
 for term in \
     "Inductive ProofNode" \

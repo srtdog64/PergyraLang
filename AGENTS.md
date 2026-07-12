@@ -19,6 +19,10 @@ cosmetic reshuffling.
   `docs/180_compiler_logical_spine_handles_gates.md`: keep identity stable,
   migrate consumers, fail closed, delete the old owner, and ratchet the old
   read path. Do not leave dual-read or `new ? old` compatibility authority.
+- Top-level compiler fact families must be declared in
+  `docs/semantics/sot_owner_spine_registry.md`. A registry row fixes owner
+  identity; it may be marked `CLOSED` only after consumer migration, missing-
+  fact failure, old-path deletion, and a negative gate all exist.
 
 ## Do Not Add These Anti-Patterns
 

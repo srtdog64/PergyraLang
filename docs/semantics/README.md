@@ -227,6 +227,10 @@ Mechanized artifacts:
   producers, and owner-plus-fallback bridges. The adequacy smoke binds the
   first concrete instance to semantic-owned array-literal body facts and their
   codegen consumer; it is not a whole-compiler SoT proof.
+- [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
+  16-row declaration of top-level fact families, stable handles, unique owners,
+  last legitimate consumers, forbidden fallbacks, enforcement gates, and
+  honest `ACTIVE` / `BRIDGE` / `CLOSED` status.
 - [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that
   names every mechanized artifact as a proof-pack node and connects the runtime
   safety, axis ownership, intent core, unified machine, formal-kernel,

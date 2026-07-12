@@ -145,6 +145,7 @@ proofs/SlotCalculus.v
 proofs/VerificationMethodology.v
 proofs/ProofSpine.v
 proofs/SoTAuthority.v
+sot_owner_spine_registry.md
 mechanized evidence for those modeled invariants only
 Generic contracts
 Ownership: anchored slot-handle boundary subset only.
@@ -710,6 +711,12 @@ Theorem current_array_literal_rung_closed
 Theorem owned_plus_fallback_bridge_is_not_closed
 Theorem duplicate_semantic_producer_is_not_closed
 Theorem missing_required_fact_is_not_closed
+Inductive SpineFact
+Inductive SpineOwner
+Definition spine_authority
+Theorem every_spine_fact_has_declared_authority
+Theorem declared_spine_authority_unique
+Theorem declared_owner_does_not_imply_rung_closed
 TERMS
 
 for stale_doc in \

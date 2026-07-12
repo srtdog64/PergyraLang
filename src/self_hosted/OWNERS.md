@@ -9,6 +9,10 @@ orchestration, and no semantic decisions.
 `tests/self_hosted_component_contract_smoke.sh` requires every active
 compiler-stage `.pgy` source to be listed here.
 
+This file inventories physical Pergyra modules. Top-level semantic authority is
+defined separately by `docs/semantics/sot_owner_spine_registry.md`; this module
+inventory must not become a second fact-family owner registry.
+
 ## Shared Lib
 
 - `src/self_hosted/lib/diagnostic.pgy` -- stable diagnostic-block rendering.

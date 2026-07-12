@@ -112,6 +112,13 @@ owner-plus-fallback bridges are not closed. The source adequacy gate binds only
 that modeled row to live files; future consumers require new bindings rather
 than inheriting a global proof claim.
 
+Whole-spine owner declaration, 2026-07-12: the 16 top-level fact families now
+have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`
+and matching `SpineFact` / `SpineOwner` constructors in Coq. The declaration is
+honestly split into `CLOSED=1 BRIDGE=6 ACTIVE=9`; only executable rung closure
+may promote a row. The registry replaces ad hoc top-level owner lists, while
+`src/self_hosted/OWNERS.md` remains only a physical module inventory.
+
 ## 7. Fifteen-Day Correction
 
 The previous roughly fifteen-day interval delivered substantial owner, gate,
