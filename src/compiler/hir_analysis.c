@@ -245,7 +245,6 @@ hir_ast_contains_control_flow(ASTNode *node)
         case AST_WITH_STMT:
         case AST_AWAIT_EXPR:
         case AST_SPAWN_EXPR:
-        case AST_TASK_GROUP:
             return true;
         default:
             break;
@@ -296,12 +295,6 @@ hir_ast_contains_control_flow(ASTNode *node)
         case AST_ASYNC_BLOCK:
             for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
                 if (hir_ast_contains_control_flow(ast_async_block_statement(node, i)))
-                    return true;
-            }
-            return false;
-        case AST_TASK_GROUP:
-            for (size_t i = 0; i < ast_task_group_task_count(node); i++) {
-                if (hir_ast_contains_control_flow(ast_task_group_task(node, i)))
                     return true;
             }
             return false;
@@ -409,12 +402,6 @@ hir_collect_direct_calls(ASTNode *node, HIRRoutine *routine)
                 return false;
             for (size_t i = 0; i < ast_spawn_arg_count(node); i++) {
                 if (!hir_collect_direct_calls(ast_spawn_argument(node, i), routine))
-                    return false;
-            }
-            return true;
-        case AST_TASK_GROUP:
-            for (size_t i = 0; i < ast_task_group_task_count(node); i++) {
-                if (!hir_collect_direct_calls(ast_task_group_task(node, i), routine))
                     return false;
             }
             return true;

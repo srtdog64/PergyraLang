@@ -382,13 +382,6 @@ void ast_print(ASTNode* node, int indent) {
             }
             break;
 
-        case AST_TASK_GROUP:
-            printf("TaskGroup (%s):\n", node->data.task_group.wait_all ? "all" : "any");
-            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-                ast_print(node->data.task_group.tasks[i], indent + 1);
-            }
-            break;
-
         case AST_LAMBDA_EXPR:
             printf("%slambda(", node->data.lambda_expr.is_async ? "async " : "");
             for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {

@@ -1644,10 +1644,6 @@ if grep -R "data\.for_loop\." src/semantic src/compiler src/codegen >/dev/null; 
     fail "non-parser for-loop payload consumers must use AST for-loop accessors"
 fi
 
-if grep -R "data\.task_group\." src/semantic src/compiler src/codegen >/dev/null; then
-    fail "non-parser task-group payload consumers must use AST task-group accessors"
-fi
-
 if grep -R "data\.spawn_expr\." src/semantic src/compiler src/codegen >/dev/null; then
     fail "non-parser spawn-expression payload consumers must use AST spawn accessors"
 fi

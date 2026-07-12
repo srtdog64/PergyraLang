@@ -334,10 +334,6 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
         ast_assign_array(node->data.spawn_expr.arguments,
                          node->data.spawn_expr.arg_count, next_id);
         break;
-    case AST_TASK_GROUP:
-        ast_assign_array(node->data.task_group.tasks,
-                         node->data.task_group.task_count, next_id);
-        break;
     case AST_ABILITY_DECL:
         ast_assign_array(node->data.ability_decl.require_fields,
                          node->data.ability_decl.require_count, next_id);

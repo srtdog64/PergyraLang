@@ -113,9 +113,6 @@ air_rir_parallel_op_matches_boundary(const RIROp *op,
     if (air_name_matches(boundary->source_name, "async"))
         return op->kind == RIR_OP_ASYNC
             && air_rir_op_matches_boundary_ast(op, boundary);
-    if (air_name_matches(boundary->source_name, "task-group"))
-        return op->kind == RIR_OP_TASK_GROUP
-            && air_rir_op_matches_boundary_ast(op, boundary);
     if (air_name_matches(boundary->source_name, "parallel"))
         return op->kind == RIR_OP_PARALLEL
             && air_rir_op_matches_boundary_ast(op, boundary);

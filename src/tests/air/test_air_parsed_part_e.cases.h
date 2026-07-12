@@ -6,7 +6,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     ASTNode *parallel = ast_create_parallel_block();
     ASTNode *async_block = ast_create_async_block();
     ASTNode *await_expr = ast_create_await_expression(ast_create_identifier("task"));
-    ASTNode *task_group = ast_create_task_group(true);
     ASTNode *send = ast_create_channel_send(ast_create_identifier("ch"),
                                             ast_create_number("1"));
     ASTNode *recv = ast_create_channel_recv(ast_create_identifier("ch"));
@@ -38,7 +37,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     bool found_parallel = false;
     bool found_async = false;
     bool found_await = false;
-    bool found_task_group = false;
     bool found_send = false;
     bool found_recv = false;
     bool found_select = false;
@@ -52,7 +50,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     bool ok;
 
     if (step_ast == NULL || parallel == NULL || async_block == NULL || await_expr == NULL
-        || task_group == NULL
         || send == NULL || recv == NULL || select_stmt == NULL
         || with_stmt == NULL || unsafe_block == NULL || defer_stmt == NULL
         || pin_block == NULL || event_subscribe == NULL
@@ -61,7 +58,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(parallel);
         ast_destroy(async_block);
         ast_destroy(await_expr);
-        ast_destroy(task_group);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -77,7 +73,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     parallel->line = 51;
     async_block->line = 52;
     await_expr->line = 53;
-    task_group->line = 54;
     send->line = 55;
     recv->line = 56;
     select_stmt->line = 57;
@@ -101,7 +96,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         ast_destroy(parallel);
         ast_destroy(async_block);
         ast_destroy(await_expr);
-        ast_destroy(task_group);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -116,13 +110,12 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     }
     ast_add_statement(with_stmt->data.with_stmt.body, nested_read);
     nested_read = NULL;
-    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(13, sizeof(ASTNode *));
+    step_ast->data.intent_step.on_exprs = (ASTNode **)calloc(12, sizeof(ASTNode *));
     if (step_ast->data.intent_step.on_exprs == NULL) {
         ast_destroy(step_ast);
         ast_destroy(parallel);
         ast_destroy(async_block);
         ast_destroy(await_expr);
-        ast_destroy(task_group);
         ast_destroy(send);
         ast_destroy(recv);
         ast_destroy(select_stmt);
@@ -138,17 +131,16 @@ test_air_synthesizes_stable_execution_boundary_set(void)
     step_ast->data.intent_step.on_exprs[0] = parallel;
     step_ast->data.intent_step.on_exprs[1] = async_block;
     step_ast->data.intent_step.on_exprs[2] = await_expr;
-    step_ast->data.intent_step.on_exprs[3] = task_group;
-    step_ast->data.intent_step.on_exprs[4] = send;
-    step_ast->data.intent_step.on_exprs[5] = recv;
-    step_ast->data.intent_step.on_exprs[6] = select_stmt;
-    step_ast->data.intent_step.on_exprs[7] = with_stmt;
-    step_ast->data.intent_step.on_exprs[8] = unsafe_block;
-    step_ast->data.intent_step.on_exprs[9] = defer_stmt;
-    step_ast->data.intent_step.on_exprs[10] = pin_block;
-    step_ast->data.intent_step.on_exprs[11] = event_subscribe;
-    step_ast->data.intent_step.on_exprs[12] = event_unsubscribe;
-    step_ast->data.intent_step.on_expr_count = 13;
+    step_ast->data.intent_step.on_exprs[3] = send;
+    step_ast->data.intent_step.on_exprs[4] = recv;
+    step_ast->data.intent_step.on_exprs[5] = select_stmt;
+    step_ast->data.intent_step.on_exprs[6] = with_stmt;
+    step_ast->data.intent_step.on_exprs[7] = unsafe_block;
+    step_ast->data.intent_step.on_exprs[8] = defer_stmt;
+    step_ast->data.intent_step.on_exprs[9] = pin_block;
+    step_ast->data.intent_step.on_exprs[10] = event_subscribe;
+    step_ast->data.intent_step.on_exprs[11] = event_unsubscribe;
+    step_ast->data.intent_step.on_expr_count = 12;
 
     air = air_synthesize(NULL, &dir, NULL, &error);
     if (air != NULL) {
@@ -163,9 +155,6 @@ test_air_synthesizes_stable_execution_boundary_set(void)
             if (boundary->kind == AIR_BOUNDARY_PARALLEL
                 && strcmp(boundary->source_name, "await") == 0)
                 found_await = true;
-            if (boundary->kind == AIR_BOUNDARY_PARALLEL
-                && strcmp(boundary->source_name, "task-group") == 0)
-                found_task_group = true;
             if (boundary->kind == AIR_BOUNDARY_CHANNEL
                 && strcmp(boundary->source_name, "channel-send") == 0)
                 found_send = true;
@@ -201,11 +190,10 @@ test_air_synthesizes_stable_execution_boundary_set(void)
         }
     }
     ok = air != NULL
-        && air->boundary_count == 14
+        && air->boundary_count == 13
         && found_parallel
         && found_async
         && found_await
-        && found_task_group
         && found_send
         && found_recv
         && found_select

@@ -250,12 +250,6 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
             ASTNode **tasks = ast_parallel_tasks(node, &task_count);
             return reject_list(tasks, task_count, ctx, state);
         }
-    case AST_TASK_GROUP:
-        {
-            size_t task_count = 0;
-            ASTNode **tasks = ast_task_group_tasks(node, &task_count);
-            return reject_list(tasks, task_count, ctx, state);
-        }
     case AST_WITH_STMT:
         return reject_lambda_captures(ast_with_slot_type(node), ctx, state)
             || reject_lambda_captures(ast_with_body(node), ctx, state);

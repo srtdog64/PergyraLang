@@ -257,7 +257,6 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_IDENTIFIER:
         case AST_ASYNC_BLOCK:
         case AST_SPAWN_EXPR:
-        case AST_TASK_GROUP:
         case AST_EVENT_SUBSCRIBE:
         case AST_EVENT_UNSUBSCRIBE:
         case AST_EVENT_INVOKE:

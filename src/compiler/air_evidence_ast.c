@@ -114,12 +114,6 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
                 return true;
         }
         return false;
-    case AST_TASK_GROUP:
-        for (size_t i = 0; i < ast_task_group_task_count(container); i++) {
-            if (air_ast_contains_node(ast_task_group_task(container, i), needle))
-                return true;
-        }
-        return false;
     case AST_UNSAFE_BLOCK:
         return air_ast_contains_node(ast_unsafe_block_body(container), needle);
     case AST_TRANSACTION_BLOCK:

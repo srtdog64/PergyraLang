@@ -103,8 +103,6 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             return runtime_none_record(scan, node, "spawn");
         case AST_AWAIT_EXPR:
             return runtime_none_record(scan, node, "await");
-        case AST_TASK_GROUP:
-            return runtime_none_record(scan, node, "task-group");
         case AST_CHANNEL_SEND:
         case AST_CHANNEL_RECV:
         case AST_CHANNEL_TYPE:

@@ -289,10 +289,6 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             alloca, llvm_tmp_name(ctx));
     }
 
-    case AST_TASK_GROUP:
-        return llvm_expression_error(ctx, node,
-            "LLVM TaskGroup expression must lower through AIR/RIR/MIR task-group boundary, not expression fallback");
-
     case AST_CHANNEL_SEND:
         return llvm_emit_channel_send_expr(node, ctx);
 

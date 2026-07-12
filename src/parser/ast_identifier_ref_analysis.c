@@ -269,9 +269,6 @@ ast_contains_identifier_ref(const ASTNode *node,
         return ast_contains_identifier_ref(node->data.spawn_expr.function, predicate, userdata)
             || ast_array_contains_identifier_ref(
                 node->data.spawn_expr.arguments, node->data.spawn_expr.arg_count, predicate, userdata);
-    case AST_TASK_GROUP:
-        return ast_array_contains_identifier_ref(
-            node->data.task_group.tasks, node->data.task_group.task_count, predicate, userdata);
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
         return ast_contains_identifier_ref(node->data.event_op.event, predicate, userdata)
@@ -393,9 +390,6 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
         return ast_contains_free_identifier_ref(node->data.spawn_expr.function, name)
             || ast_array_contains_free_identifier_ref(
                 node->data.spawn_expr.arguments, node->data.spawn_expr.arg_count, name);
-    case AST_TASK_GROUP:
-        return ast_array_contains_free_identifier_ref(
-            node->data.task_group.tasks, node->data.task_group.task_count, name);
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
         return ast_contains_free_identifier_ref(node->data.event_op.event, name)

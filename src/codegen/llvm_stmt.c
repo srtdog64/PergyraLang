@@ -564,7 +564,6 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ARRAY_ACCESS:
     case AST_PARTY_INSTANCE:
     case AST_CONTEXT_ACCESS:
-    case AST_TASK_GROUP:
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
     case AST_EVENT_INVOKE:

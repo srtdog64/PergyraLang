@@ -393,13 +393,6 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.future_type.value_type);
             break;
 
-        case AST_TASK_GROUP:
-            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-                ast_destroy(node->data.task_group.tasks[i]);
-            }
-            free(node->data.task_group.tasks);
-            break;
-
         case AST_LAMBDA_EXPR:
             for (size_t i = 0; i < node->data.lambda_expr.param_count; i++)
                 ast_destroy(node->data.lambda_expr.params[i]);

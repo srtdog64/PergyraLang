@@ -97,8 +97,6 @@ intent_forbidden_control_construct(ASTNode *node, SemanticContext *ctx)
             return "channel send";
         case AST_CHANNEL_RECV:
             return "channel recv";
-        case AST_TASK_GROUP:
-            return "task-group";
         case AST_LAMBDA_EXPR:
             if (ast_lambda_is_async(node))
                 return "async lambda";

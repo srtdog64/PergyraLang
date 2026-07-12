@@ -296,13 +296,6 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
         }
         return;
 
-    case AST_TASK_GROUP:
-        for (size_t i = 0; i < ast_task_group_task_count(stmt); i++) {
-            semantic_type_resolution_precollect_body_type_refs(
-                ast_task_group_task(stmt, i), ctx, owner, owner_name);
-        }
-        return;
-
     case AST_MATCH_STMT:
         semantic_type_resolution_precollect_expr_type_refs(
             ast_match_subject(stmt), ctx, owner, owner_name);

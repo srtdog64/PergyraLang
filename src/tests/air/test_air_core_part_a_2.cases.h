@@ -23,7 +23,7 @@ test_air_has_evidence_ignores_summary_flags_with_real_input(void)
 }
 
 static bool
-test_air_task_group_boundary_requires_rir_and_hir_evidence(void)
+test_air_parallel_boundary_requires_rir_and_hir_evidence(void)
 {
     AIRIntentNode intents[] = {
         {
@@ -38,7 +38,7 @@ test_air_task_group_boundary_requires_rir_and_hir_evidence(void)
         {
             .kind = AIR_BOUNDARY_PARALLEL,
             .owner_name = "CoordinateWork",
-            .source_name = "task-group",
+            .source_name = "spawn",
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_ASYNC,
@@ -61,7 +61,7 @@ test_air_task_group_boundary_requires_rir_and_hir_evidence(void)
         if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
             && air.drifts[i].message != NULL
             && strstr(air.drifts[i].message, "no matching RIR boundary evidence") != NULL
-            && strstr(air.drifts[i].message, "task-group") != NULL) {
+            && strstr(air.drifts[i].message, "spawn") != NULL) {
             found_rir_evidence_drift = true;
             break;
         }

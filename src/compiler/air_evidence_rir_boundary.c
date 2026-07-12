@@ -153,10 +153,8 @@ air_collect_rir_scope_capture_evidence(AIRBoundaryNode *boundary,
                 boundary->has_rir_await_local_evidence = true;
             if (op->kind == RIR_OP_SPAWN)
                 boundary->has_rir_movability_requirement_evidence = true;
-            if (op->kind == RIR_OP_PARALLEL
-                || op->kind == RIR_OP_TASK_GROUP) {
+            if (op->kind == RIR_OP_PARALLEL)
                 boundary->has_rir_deterministic_fork_join_evidence = true;
-            }
         }
 
         if ((op->kind == RIR_OP_CHANNEL_SEND

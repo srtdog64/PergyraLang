@@ -27,7 +27,6 @@ ast_uses_thread_pool_surface(const ASTNode *node)
     case AST_ASYNC_BLOCK:
     case AST_SPAWN_EXPR:
     case AST_AWAIT_EXPR:
-    case AST_TASK_GROUP:
         return true;
     case AST_BLOCK:
         return ast_array_uses_thread_pool_surface(

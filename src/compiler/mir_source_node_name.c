@@ -48,7 +48,6 @@ mir_source_node_type_name(ASTNodeType type)
     case AST_FUTURE_TYPE: return "AST_FUTURE_TYPE";
     case AST_ASYNC_BLOCK: return "AST_ASYNC_BLOCK";
     case AST_SPAWN_EXPR: return "AST_SPAWN_EXPR";
-    case AST_TASK_GROUP: return "AST_TASK_GROUP";
     case AST_ABILITY_DECL: return "AST_ABILITY_DECL";
     case AST_ROLE_DECL: return "AST_ROLE_DECL";
     case AST_INCLUDE_STMT: return "AST_INCLUDE_STMT";

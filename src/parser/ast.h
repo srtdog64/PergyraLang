@@ -434,13 +434,6 @@ struct ASTNode
             ASTNode* value_type;
         } future_type;
         
-        /* Task group */
-        struct {
-            ASTNode** tasks;
-            size_t task_count;
-            bool wait_all;  /* true for all, false for any */
-        } task_group;
-        
         /* Ability declaration */
         struct {
             char* name;

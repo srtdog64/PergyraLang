@@ -227,12 +227,6 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
             && air_walk_child(ctx, ast_if_else_branch(node));
     case AST_RETURN:
         return air_walk_child(ctx, ast_return_value(node));
-    case AST_TASK_GROUP:
-        {
-            size_t task_count = 0;
-            ASTNode **tasks = ast_task_group_tasks(node, &task_count);
-            return air_walk_child_array(ctx, tasks, task_count);
-        }
     case AST_EVENT_INVOKE:
         if (!air_walk_child(ctx, ast_event_invoke_event(node)))
             return false;

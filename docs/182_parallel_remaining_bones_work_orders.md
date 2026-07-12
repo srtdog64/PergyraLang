@@ -104,7 +104,18 @@ pin을 새 owner로 이주해 GREEN 복원. 잔여는 true waitany(성능)뿐.
 
 ## §4. WO-PARSURF-4 — task_group 삭제
 
-**잠금**: ast.h + walker 파일들. census 완료(29파일, AIR 테스트
+**상태 (2026-07-12 당일 갱신)**: **착지 완료** — 실측 census는 30소스
++테스트 2+게이트 2(=92참조). AST kind/union/API/walker 8지점, HIR 4,
+RIR op/name/walk, AIR 테이블·워크·증거 5지점, semantic 3, codegen 3
+전부 제거. AIR 테스트 2개는 삭제가 아니라 **표본 교체**(part_e:
+on_exprs 13→12·boundary 14→13, part_a_2: task-group→spawn — strict
+증거 커버리지 보존). 게이트 2개가 §5 filename-pin 함정의 재실증:
+air_drift의 required-term pin 5곳 갱신, semantic_core_shape의
+negative grep 스탠자는 **공허 통과가 되므로 삭제**. 죽은
+`ast.h.fresh`(참조 0, 옛 리팩터 잔재)도 함께 제거. AIR 141/0 ·
+semantic 2794/0 · transpile 918/0.
+
+**잠금(원문)**: ast.h + walker 파일들. census 완료(29파일, AIR 테스트
 .cases.h 2 포함). 파서 생산 0 확인됨 — 구현이 아니라 제거(§8 cosmetic
 abstraction 금지). ast.h 해제 직후 기계적 단일 커밋.
 

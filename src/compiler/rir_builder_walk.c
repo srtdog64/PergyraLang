@@ -380,15 +380,6 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
             }
             return true;
 
-        case AST_TASK_GROUP:
-            if (!add_op(scope, RIR_OP_TASK_GROUP, "task-group", NULL, NULL, node))
-                return false;
-            for (size_t i = 0; i < ast_task_group_task_count(node); i++) {
-                if (!rir_walk_node(scope, ast_task_group_task(node, i)))
-                    return false;
-            }
-            return true;
-
         default:
             return true;
     }

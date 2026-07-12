@@ -216,8 +216,8 @@ main(void)
     TEST("AIR verify rejects boundary summary without inventory");
     EXPECT(test_air_verify_rejects_summary_without_inventory());
 
-    TEST("AIR task group boundary requires RIR and HIR evidence");
-    EXPECT(test_air_task_group_boundary_requires_rir_and_hir_evidence());
+    TEST("AIR parallel boundary requires RIR and HIR evidence");
+    EXPECT(test_air_parallel_boundary_requires_rir_and_hir_evidence());
 
     TEST("AIR recheck clears owned drift messages");
     EXPECT(test_air_recheck_clears_owned_drift_messages());

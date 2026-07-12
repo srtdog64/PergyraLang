@@ -40,46 +40,6 @@ ast_event_handler_param_type(const ASTNode* node, size_t index)
         : NULL;
 }
 
-ASTNode**
-ast_task_group_tasks(const ASTNode* node, size_t* count_out)
-{
-    if (node == NULL || node->type != AST_TASK_GROUP) {
-        if (count_out != NULL)
-            *count_out = 0;
-        return NULL;
-    }
-    if (count_out != NULL)
-        *count_out = node->data.task_group.task_count;
-    return node->data.task_group.tasks;
-}
-
-size_t
-ast_task_group_task_count(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_TASK_GROUP)
-        return 0;
-    return node->data.task_group.task_count;
-}
-
-ASTNode*
-ast_task_group_task(const ASTNode* node, size_t index)
-{
-    if (node == NULL || node->type != AST_TASK_GROUP)
-        return NULL;
-    if (index >= node->data.task_group.task_count)
-        return NULL;
-    return node->data.task_group.tasks != NULL
-        ? node->data.task_group.tasks[index]
-        : NULL;
-}
-
-bool
-ast_task_group_wait_all(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_TASK_GROUP
-        && node->data.task_group.wait_all;
-}
-
 ASTNode*
 ast_spawn_function(const ASTNode* node)
 {

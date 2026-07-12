@@ -110,11 +110,3 @@ ASTNode* ast_create_future_type(ASTNode* value_type) {
     return node;
 }
 
-ASTNode* ast_create_task_group(bool wait_all) {
-    ASTNode* node = ast_create_node(AST_TASK_GROUP);
-    if (!node) return NULL;
-    node->data.task_group.tasks = NULL;
-    node->data.task_group.task_count = 0;
-    node->data.task_group.wait_all = wait_all;
-    return node;
-}

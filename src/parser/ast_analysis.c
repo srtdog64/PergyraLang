@@ -265,9 +265,6 @@ ast_contains_identifier_call(const ASTNode *node,
         return ast_contains_identifier_call(node->data.spawn_expr.function, predicate, userdata)
             || ast_array_contains_identifier_call(
                 node->data.spawn_expr.arguments, node->data.spawn_expr.arg_count, predicate, userdata);
-    case AST_TASK_GROUP:
-        return ast_array_contains_identifier_call(
-            node->data.task_group.tasks, node->data.task_group.task_count, predicate, userdata);
     case AST_ABILITY_DECL:
         return ast_array_contains_identifier_call(
                 node->data.ability_decl.require_fields, node->data.ability_decl.require_count,

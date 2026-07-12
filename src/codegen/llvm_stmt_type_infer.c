@@ -538,8 +538,6 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_stmt_infer_await_expr_type(ctx, expr);
     case AST_ASYNC_BLOCK:
         return ctx->type_task_handle;
-    case AST_TASK_GROUP:
-        return ctx->type_void;
     case AST_SELECT_STMT:
     case AST_CHANNEL_SEND:
     case AST_RETURN:

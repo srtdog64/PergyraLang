@@ -105,7 +105,6 @@ rir_op_kind_name(RIROpKind kind)
         case RIR_OP_SPAWN: return "Spawn";
         case RIR_OP_ASYNC: return "Async";
         case RIR_OP_PARALLEL: return "Parallel";
-        case RIR_OP_TASK_GROUP: return "TaskGroup";
         case RIR_OP_IO: return "IO";
         case RIR_OP_CHANNEL_SEND: return "ChannelSend";
         case RIR_OP_CHANNEL_RECV: return "ChannelRecv";

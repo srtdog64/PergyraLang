@@ -14,7 +14,6 @@ static const AIRAstBoundaryRule kAstBoundaryRules[] = {
     {AST_ASYNC_BLOCK, AIR_BOUNDARY_PARALLEL, "async"},
     {AST_SPAWN_EXPR, AIR_BOUNDARY_PARALLEL, "spawn"},
     {AST_AWAIT_EXPR, AIR_BOUNDARY_PARALLEL, "await"},
-    {AST_TASK_GROUP, AIR_BOUNDARY_PARALLEL, "task-group"},
     {AST_CHANNEL_SEND, AIR_BOUNDARY_CHANNEL, "channel-send"},
     {AST_CHANNEL_RECV, AIR_BOUNDARY_CHANNEL, "channel-recv"},
     {AST_SELECT_STMT, AIR_BOUNDARY_CHANNEL, "select"},

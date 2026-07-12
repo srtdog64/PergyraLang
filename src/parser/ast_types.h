@@ -171,7 +171,6 @@ typedef enum
     /* Async operations */
     AST_ASYNC_BLOCK,
     AST_SPAWN_EXPR,
-    AST_TASK_GROUP,
     
     /* Role and Ability system */
     AST_ABILITY_DECL,
