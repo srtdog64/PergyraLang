@@ -14,6 +14,7 @@ import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
+import "../input/semantic_kind_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
@@ -197,7 +198,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     let main_scan: Int = 0;
     while main_scan < count {
-        if CodegenAstArenaIsEventDecl(arena, main_scan) {
+        if CodegenSemanticKindIs(
+            semantic_analysis.kind_surfaces, main_scan,
+            TypedAstKindEventDeclTag()
+        ) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[main_scan])));
         }
         main_scan = main_scan + 1;
@@ -210,7 +214,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
         if CodegenAstArenaIsProgramRoot(arena, cur[0]) {
             ArraySet(cur, 0, cur[0] + 1);
-        } else if CodegenAstArenaIsAbilityDecl(arena, cur[0]) {
+        } else if CodegenSemanticKindIs(
+            semantic_analysis.kind_surfaces, cur[0],
+            TypedAstKindAbilityDeclTag()
+        ) {
             let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {
@@ -260,7 +267,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
             }
         } else if CodegenSemanticEnumIs(semantic_analysis.enums, cur[0]) {
             ArraySet(cur, 0, cur[0] + 1);
-        } else if CodegenAstArenaIsEventDecl(arena, cur[0]) {
+        } else if CodegenSemanticKindIs(
+            semantic_analysis.kind_surfaces, cur[0],
+            TypedAstKindEventDeclTag()
+        ) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstTextProvenance(nodes[cur[0]])));
         } else if CodegenSemanticFunctionIs(
             semantic_analysis.signatures, cur[0]
@@ -317,7 +327,10 @@ func GenerateCUnitFromSemanticArtifact(
         // dropping the declaration and emitting a call to an undefined symbol
         // (which would be unobservable broken C -- a no-op fake would be worse,
         // masking real event dispatch in programs that register handlers).
-        if CodegenAstArenaIsEventDecl(arena, main_scan) {
+        if CodegenSemanticKindIs(
+            semantic_analysis.kind_surfaces, main_scan,
+            TypedAstKindEventDeclTag()
+        ) {
             Die(Concat("event declarations are not supported (no handler/dispatch model): ", CodegenAstArenaProvenanceOrDie(arena, main_scan)));
         }
         main_scan = main_scan + 1;
@@ -353,7 +366,10 @@ func GenerateCUnitFromSemanticArtifact(
     while cur[0] < count {
         let cur_node: Int = cur[0];
         let cur_indent: Int = CodegenAstArenaIndentOrDie(arena, cur_node);
-        if CodegenAstArenaIsAbilityDecl(arena, cur[0]) {
+        if CodegenSemanticKindIs(
+            semantic_analysis.kind_surfaces, cur[0],
+            TypedAstKindAbilityDeclTag()
+        ) {
             let decl_node: Int = cur_node;
             ArraySet(cur, 0, cur[0] + 1);
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], decl_node) {

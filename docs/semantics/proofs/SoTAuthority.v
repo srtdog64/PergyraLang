@@ -19,7 +19,7 @@ Inductive Fact : Type :=
   | FRoleDeclarationRows
   | FExpressionRuntimeUsageSurface
   | FTypeRuntimeUsageSurface
-  | FKindRuntimeUsageSurface
+  | FNodeKindSurface
   | FEntrypointSelection
   | FFunctionDeclarationRows
   | FLocalBindingStatementRouting
@@ -143,7 +143,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FRoleDeclarationRows => SemanticFact
   | FExpressionRuntimeUsageSurface => SemanticFact
   | FTypeRuntimeUsageSurface => SemanticFact
-  | FKindRuntimeUsageSurface => SemanticFact
+  | FNodeKindSurface => SemanticFact
   | FEntrypointSelection => SemanticFact
   | FFunctionDeclarationRows => SemanticFact
   | FLocalBindingStatementRouting => SemanticFact
@@ -162,7 +162,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FRoleDeclarationRows => OSemanticRoleFacts
   | FExpressionRuntimeUsageSurface => OSemanticExpressionSurfaceFacts
   | FTypeRuntimeUsageSurface => OSemanticTypeSurfaceFacts
-  | FKindRuntimeUsageSurface => OSemanticKindSurfaceFacts
+  | FNodeKindSurface => OSemanticKindSurfaceFacts
   | FEntrypointSelection => OSemanticSignatureFacts
   | FFunctionDeclarationRows => OSemanticSignatureFacts
   | FLocalBindingStatementRouting => OSemanticLocalBindingFacts
@@ -189,8 +189,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
         FExpressionRuntimeUsageSurface
   | CurrentTypeRuntimeUsageProducer :
       current_produces OSemanticTypeSurfaceFacts FTypeRuntimeUsageSurface
-  | CurrentKindRuntimeUsageProducer :
-      current_produces OSemanticKindSurfaceFacts FKindRuntimeUsageSurface
+  | CurrentNodeKindSurfaceProducer :
+      current_produces OSemanticKindSurfaceFacts FNodeKindSurface
   | CurrentEntrypointSelectionProducer :
       current_produces OSemanticSignatureFacts FEntrypointSelection
   | CurrentFunctionDeclarationProducer :
@@ -651,12 +651,12 @@ Qed.
 
 Inductive kind_usage_requires : Consumer -> Fact -> Prop :=
   | RuntimeProjectionRequiresKindSurface :
-      kind_usage_requires CRuntimeUsageProjection FKindRuntimeUsageSurface.
+      kind_usage_requires CRuntimeUsageProjection FNodeKindSurface.
 
 Inductive kind_usage_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | RuntimeProjectionReadsKindSurface :
       kind_usage_reads CRuntimeUsageProjection OSemanticKindSurfaceFacts
-        FKindRuntimeUsageSurface OwnedRead.
+        FNodeKindSurface OwnedRead.
 
 Definition kind_usage_model : AuthorityModel :=
   {| fact_class := current_fact_class;
@@ -685,10 +685,10 @@ Qed.
 Inductive kind_usage_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | KindUsageBridgeOwnedRead :
       kind_usage_bridge_reads CRuntimeUsageProjection OSemanticKindSurfaceFacts
-        FKindRuntimeUsageSurface OwnedRead
+        FNodeKindSurface OwnedRead
   | KindUsageBridgeFallbackRead :
       kind_usage_bridge_reads CRuntimeUsageProjection OCodegenTextRecovery
-        FKindRuntimeUsageSurface FallbackRead.
+        FNodeKindSurface FallbackRead.
 
 Definition kind_usage_bridge_model : AuthorityModel :=
   {| fact_class := current_fact_class;
@@ -702,7 +702,7 @@ Theorem kind_usage_owner_plus_ast_fallback_is_not_closed :
 Proof.
   intros [_ [_ [_ Hno_fallback]]].
   specialize (Hno_fallback CRuntimeUsageProjection OCodegenTextRecovery
-    FKindRuntimeUsageSurface FallbackRead KindUsageBridgeFallbackRead eq_refl).
+    FNodeKindSurface FallbackRead KindUsageBridgeFallbackRead eq_refl).
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
@@ -775,7 +775,10 @@ Inductive declaration_routing_requires : Consumer -> Fact -> Prop :=
         FRoleDeclarationRows
   | DeclarationRoutingRequiresEnum :
       declaration_routing_requires CDeclarationRoutingEmitter
-        FEnumDeclarationRows.
+        FEnumDeclarationRows
+  | DeclarationRoutingRequiresNodeKind :
+      declaration_routing_requires CDeclarationRoutingEmitter
+        FNodeKindSurface.
 
 Inductive declaration_routing_reads :
   Consumer -> Owner -> Fact -> ReadKind -> Prop :=
@@ -790,7 +793,10 @@ Inductive declaration_routing_reads :
         OSemanticRoleFacts FRoleDeclarationRows OwnedRead
   | DeclarationRoutingEnumRead :
       declaration_routing_reads CDeclarationRoutingEmitter
-        OSemanticEnumFacts FEnumDeclarationRows OwnedRead.
+        OSemanticEnumFacts FEnumDeclarationRows OwnedRead
+  | DeclarationRoutingNodeKindRead :
+      declaration_routing_reads CDeclarationRoutingEmitter
+        OSemanticKindSurfaceFacts FNodeKindSurface OwnedRead.
 
 Definition declaration_routing_model : AuthorityModel :=
   {| fact_class := current_fact_class;
@@ -831,6 +837,9 @@ Inductive declaration_routing_bridge_reads :
   | DeclarationRoutingBridgeEnumRead :
       declaration_routing_bridge_reads CDeclarationRoutingEmitter
         OSemanticEnumFacts FEnumDeclarationRows OwnedRead
+  | DeclarationRoutingBridgeNodeKindRead :
+      declaration_routing_bridge_reads CDeclarationRoutingEmitter
+        OSemanticKindSurfaceFacts FNodeKindSurface OwnedRead
   | DeclarationRoutingBridgeAstFallbackRead :
       declaration_routing_bridge_reads CDeclarationRoutingEmitter
         OCodegenTextRecovery FFunctionDeclarationRows FallbackRead.
@@ -1024,7 +1033,7 @@ Inductive SpineFact : Type :=
   | SFRoleDeclarationRows
   | SFExpressionRuntimeUsageSurface
   | SFTypeRuntimeUsageSurface
-  | SFKindRuntimeUsageSurface
+  | SFNodeKindSurface
   | SFEntrypointSelection
   | SFFunctionDeclarationRows
   | SFLocalBindingStatementRouting
@@ -1082,7 +1091,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFRoleDeclarationRows => SOSemanticRole
   | SFExpressionRuntimeUsageSurface => SOSemanticExpressionSurface
   | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
-  | SFKindRuntimeUsageSurface => SOSemanticKindSurface
+  | SFNodeKindSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature
   | SFFunctionDeclarationRows => SOSemanticSignature
   | SFLocalBindingStatementRouting => SOSemanticLocalBinding

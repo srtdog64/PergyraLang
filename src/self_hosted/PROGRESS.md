@@ -234,6 +234,12 @@ four declarations through codegen arena predicates. Seven focused declaration
 fixtures plus payload-enum rejection and role-operator parity pass under both
 C-built and LLVM-built self-host codegen tools.
 
+The thirteenth executable delta completed top-level declaration classification:
+ability and event nodes now consume canonical `SemanticAstKindSurfaceFacts`.
+The earlier runtime-consumer-specific owner label was generalized to node-kind
+surface ownership rather than duplicated. Event rejection is now a committed
+TestHarness negative leg, and no codegen arena declaration predicate remains.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while

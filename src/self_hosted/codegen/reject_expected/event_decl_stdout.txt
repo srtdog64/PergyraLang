@@ -1,0 +1,1 @@
+CODEGEN ERROR: event declarations are not supported (no handler/dispatch model): Event: OnHit

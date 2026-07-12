@@ -259,6 +259,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
+- `src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy` --
+  fail-closed node-kind identity projection for ability/event declaration
+  routing.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- backend
   builtin-group vocabulary projected from semantic expression-surface facts.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- backend runtime
@@ -460,6 +463,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/reject_fixture/enum_payload.pgy` -- TestHarness-owned
   negative codegen artifact paired with the committed payload-enum diagnostic;
   it proves unsupported payload arity fails closed under C/LLVM tool parity.
+- `src/self_hosted/codegen/reject_fixture/event_decl.pgy` -- TestHarness-owned
+  negative codegen artifact proving unsupported event declarations reject
+  through semantic node-kind identity under C/LLVM tool parity.
 - `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
   positive role operator artifact proving role target and method identity rows
   through C/LLVM codegen parity.

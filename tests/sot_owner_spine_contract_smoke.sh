@@ -58,7 +58,7 @@ expected_pairs = {
     "selfhost.role_declaration_rows": ("SFRoleDeclarationRows", "SOSemanticRole"),
     "selfhost.expression_runtime_usage_surface": ("SFExpressionRuntimeUsageSurface", "SOSemanticExpressionSurface"),
     "selfhost.type_runtime_usage_surface": ("SFTypeRuntimeUsageSurface", "SOSemanticTypeSurface"),
-    "selfhost.kind_runtime_usage_surface": ("SFKindRuntimeUsageSurface", "SOSemanticKindSurface"),
+    "selfhost.node_kind_surface": ("SFNodeKindSurface", "SOSemanticKindSurface"),
     "selfhost.entrypoint_selection": ("SFEntrypointSelection", "SOSemanticSignature"),
     "selfhost.function_declaration_rows": ("SFFunctionDeclarationRows", "SOSemanticSignature"),
     "selfhost.local_binding_statement_routing": ("SFLocalBindingStatementRouting", "SOSemanticLocalBinding"),

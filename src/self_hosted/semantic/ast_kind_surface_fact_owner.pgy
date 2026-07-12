@@ -1,4 +1,4 @@
-// Canonical artifact node-kind rows used by runtime projection.
+// Canonical artifact node-kind rows used by semantic consumers.
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
@@ -34,6 +34,28 @@ func SemanticAstKindSurfaceFactsFromArtifact(
 
 func SemanticAstKindSurfaceCount(facts: SemanticAstKindSurfaceFacts) -> Int {
     return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstKindSurfaceIndexForNode(
+    facts: SemanticAstKindSurfaceFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok { return None; }
+    let i: Int = 0;
+    while i < SemanticAstKindSurfaceCount(facts) {
+        if facts.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstKindSurfaceIs(
+    facts: SemanticAstKindSurfaceFacts,
+    node_id: Int,
+    kind_tag: Int
+) -> Bool {
+    let index: Option<Int> = SemanticAstKindSurfaceIndexForNode(facts, node_id);
+    return IsSome(index) && facts.kind_tags[UnwrapOption(index)] == kind_tag;
 }
 
 func SemanticAstKindSurfaceContains(
@@ -73,12 +95,14 @@ func SemanticAstKindSurfaceFactsMatchArtifact(
 
 func SemanticAstKindSurfaceFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Log(1)\n        Exit(0)\n"
+        "Program:\n  Ability: Ready\n  Event: OnHit\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Log(1)\n        Exit(0)\n"
     );
     let facts: SemanticAstKindSurfaceFacts =
         SemanticAstKindSurfaceFactsFromArtifact(artifact);
     return SemanticAstKindSurfaceFactsMatchArtifact(artifact, facts) &&
         SemanticAstKindSurfaceContains(facts, TypedAstKindLogStmtTag()) &&
         SemanticAstKindSurfaceContains(facts, TypedAstKindExitStmtTag()) &&
+        SemanticAstKindSurfaceIs(facts, 1, TypedAstKindAbilityDeclTag()) &&
+        SemanticAstKindSurfaceIs(facts, 2, TypedAstKindEventDeclTag()) &&
         !SemanticAstKindSurfaceContains(facts, TypedAstKindArrayPopStmtTag());
 }

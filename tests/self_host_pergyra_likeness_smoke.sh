@@ -186,7 +186,9 @@ SENTINEL_MAX=0
 # statement semantic identities through Option-backed indexes.
 # 1271 -> 1283 (2026-07-13): top-level declaration routing queries function,
 # nominal, role, and enum semantic identity through Option-backed indexes.
-RESULT_USE_MIN=1283
+# 1283 -> 1288 (2026-07-13): ability/event routing consumes the canonical
+# semantic node-kind identity instead of direct arena predicates.
+RESULT_USE_MIN=1288
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

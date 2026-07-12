@@ -26,6 +26,7 @@ ROLE_CONSUMER="src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pg
 EXPRESSION_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_expression_usage_owner.pgy"
 TYPE_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_type_usage_owner.pgy"
 KIND_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_kind_usage_owner.pgy"
+KIND_ROUTING_CONSUMER="src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy"
 ENTRYPOINT_VERDICT_CONSUMER="src/self_hosted/semantic/ast_artifact_verdict_owner.pgy"
 ENTRYPOINT_PROJECTION_CONSUMER="src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy"
 PROGRAM_EMITTER="src/self_hosted/codegen/emission/program_emit.pgy"
@@ -170,6 +171,8 @@ check_kind_surface_owner_copy() {
     local path="$1"
     grep -Eq -- '^    node_ids: Array<Int>;$' "$path" &&
         grep -Eq -- '^    kind_tags: Array<Int>;$' "$path" &&
+        grep -Fq -- "func SemanticAstKindSurfaceIndexForNode(" "$path" &&
+        grep -Fq -- "func SemanticAstKindSurfaceIs(" "$path" &&
         grep -Fq -- "func SemanticAstKindSurfaceContains(" "$path" &&
         grep -Fq -- "func SemanticAstKindSurfaceFactsMatchArtifact(" "$path"
 }
@@ -205,6 +208,7 @@ require_file "$ROLE_CONSUMER"
 require_file "$EXPRESSION_USAGE_CONSUMER"
 require_file "$TYPE_USAGE_CONSUMER"
 require_file "$KIND_USAGE_CONSUMER"
+require_file "$KIND_ROUTING_CONSUMER"
 require_file "$ENTRYPOINT_VERDICT_CONSUMER"
 require_file "$ENTRYPOINT_PROJECTION_CONSUMER"
 require_file "$PROGRAM_EMITTER"
@@ -270,7 +274,7 @@ require_text "$PROOF" "FNominalDeclarationRows"
 require_text "$PROOF" "FRoleDeclarationRows"
 require_text "$PROOF" "FExpressionRuntimeUsageSurface"
 require_text "$PROOF" "FTypeRuntimeUsageSurface"
-require_text "$PROOF" "FKindRuntimeUsageSurface"
+require_text "$PROOF" "FNodeKindSurface"
 require_text "$PROOF" "FEntrypointSelection"
 require_text "$PROOF" "FFunctionDeclarationRows"
 require_text "$PROOF" "FLocalBindingStatementRouting"
@@ -359,6 +363,11 @@ check_consumer_copy "$ROOT_DIR/$TYPE_USAGE_CONSUMER" \
 check_consumer_copy "$ROOT_DIR/$KIND_USAGE_CONSUMER" \
     "CodegenKindUsageFactsFromSemantic(" ||
     fail "runtime usage projection reopened AST kind recovery"
+require_text "$KIND_ROUTING_CONSUMER" "func CodegenSemanticKindIs("
+require_text "$KIND_ROUTING_CONSUMER" "SemanticAstKindSurfaceIs("
+require_text "$PROGRAM_EMITTER" "CodegenSemanticKindIs("
+require_text "$PROGRAM_EMITTER" "TypedAstKindAbilityDeclTag()"
+require_text "$PROGRAM_EMITTER" "TypedAstKindEventDeclTag()"
 require_text "$ENTRYPOINT_VERDICT_CONSUMER" \
     "SemanticAstFunctionNameAt(signatures, i)"
 reject_text "$ENTRYPOINT_VERDICT_CONSUMER" \
@@ -414,6 +423,13 @@ for fallback in \
     "CodegenKindUsageFactsFromArena" \
     "CodegenAstKindArrayLiteral"; do
     reject_text "$KIND_USAGE_CONSUMER" "$fallback"
+done
+for fallback in \
+    "CodegenAstArenaIsAbilityDecl" \
+    "CodegenAstArenaIsEventDecl"; do
+    reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" \
+        "$fallback"
+    reject_text "$PROGRAM_EMITTER" "$fallback"
 done
 for fallback in \
     "SemanticAstArtifactIsMainFunction" \

@@ -169,6 +169,12 @@ codegen arena declaration predicates are deleted; seven declaration fixtures,
 the payload-enum rejection leg, and the role-operator leg pass under C/LLVM-
 built tools.
 
+Thirteenth executable delta, 2026-07-13: ability and event declaration
+classification now consumes the canonical semantic node-kind surface. This
+widens the existing owner instead of creating routing aliases. The final two
+codegen arena declaration predicates are deleted, and event rejection is a
+TestHarness-owned negative C/LLVM parity leg.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

@@ -22,7 +22,7 @@ first live bounded bindings for semantic-to-codegen facts:
 - fact: `FNominalDeclarationRows`;
 - fact: `FRoleDeclarationRows`;
 - facts: `FExpressionRuntimeUsageSurface`, `FTypeRuntimeUsageSurface`, and
-  `FKindRuntimeUsageSurface`;
+  `FNodeKindSurface`;
 - fact: `FEntrypointSelection`;
 - fact: `FFunctionDeclarationRows`;
 - facts: `FLocalBindingStatementRouting`, `FAssignmentStatementRouting`, and
@@ -87,6 +87,8 @@ fallback consumers are gone.
 - function signature, nominal, role, and enum facts also own top-level
   declaration identity consumed by `program_emit.pgy`; the four codegen arena
   declaration predicates are forbidden;
+- `FNodeKindSurface` owns ability/event declaration classification as well as
+  runtime kind usage; consumer-specific kind aliases are forbidden;
 - local-binding, assignment, and statement semantic owners separately own
   statement dispatch identity; emitters may retain syntax structure traversal
   but cannot recover statement kinds from the arena;

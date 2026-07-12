@@ -37,6 +37,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/codegen_reject_parity_leg.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -90,8 +91,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 9 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 9 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 11 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 11 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -104,8 +105,12 @@ REJECT_SOURCE="$ROOT_DIR/${harness_paths[5]}"
 REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"
 ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"
 ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"
+EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"
+EVENT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[10]}"
 
-for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" "$REJECT_SOURCE" "$REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED"; do
+for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
+    "$REJECT_SOURCE" "$REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED" \
+    "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -543,52 +548,6 @@ run_tool_backend() {
     echo "[self-host-parity:codegen] backend=$backend run-stdout equal (${#FIXTURES[@]} fixtures)"
 }
 
-run_payload_enum_reject() {
-    local backend="$1"
-    local tool_bin="$2"
-    local base="enum_payload_reject"
-    local ast_rel="$REL_BUILD/${base}.ast"
-    local ast_file="$ROOT_DIR/$ast_rel"
-    local ast_raw="$ast_file.raw"
-    local ast_err="$ast_file.err"
-    local reject_raw="$ABS_BUILD/${base}_${backend}.out.raw"
-    local reject_norm="$ABS_BUILD/${base}_${backend}.out"
-    local reject_err="$ABS_BUILD/${base}_${backend}.err"
-    local reject_source_rel
-    local reject_rc
-
-    reject_source_rel="$(path_relative_to_root "$REJECT_SOURCE")"
-    if ! run_native_capture "$ROOT_DIR" "$ast_raw" "$ast_err" "$PARSER_BIN" "$reject_source_rel"; then
-        echo "[self-host-parity:codegen] backend=$backend payload enum: self-parser AST failed" >&2
-        cat "$ast_err" >&2
-        exit 1
-    fi
-    tr -d '\r' < "$ast_raw" > "$ast_file"
-    if [[ ! -s "$ast_file" ]]; then
-        echo "[self-host-parity:codegen] backend=$backend payload enum: empty self-parser AST output" >&2
-        exit 1
-    fi
-
-    set +e
-    run_native_capture "$ROOT_DIR" "$reject_raw" "$reject_err" "$tool_bin" "$ast_rel"
-    reject_rc="$?"
-    set -e
-    tr -d '\r' < "$reject_raw" > "$reject_norm"
-    if [[ "$reject_rc" -eq 0 ]]; then
-        echo "[self-host-parity:codegen] backend=$backend payload enum: codegen accepted unsupported payload" >&2
-        cat "$reject_norm" "$reject_err" >&2
-        exit 1
-    fi
-
-    compare_run_output_with_owner "$backend" "$base" "$REJECT_EXPECTED" "$reject_norm" 2
-    if [[ -s "$reject_err" ]]; then
-        echo "[self-host-parity:codegen] backend=$backend payload enum: diagnostic leaked to stderr" >&2
-        cat "$reject_err" >&2
-        exit 1
-    fi
-    echo "[self-host-parity:codegen] backend=$backend payload enum fail-closed"
-}
-
 run_oracle_drift_checks() {
     local pids=()
     local base
@@ -627,7 +586,12 @@ for backend in $BACKENDS; do
         exit "$compile_rc"
     fi
     run_tool_backend "$backend" "$tool_bin"
-    run_payload_enum_reject "$backend" "$tool_bin"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" "enum_payload_reject" \
+        "$REJECT_SOURCE" "$REJECT_EXPECTED" "payload enum"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" "event_decl_reject" \
+        "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" "event declaration"
     run_role_operator_parity "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done

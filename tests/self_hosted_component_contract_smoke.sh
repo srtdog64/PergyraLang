@@ -889,6 +889,7 @@ require_owner_surface codegen \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
+    "input/semantic_kind_codegen_view_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_kind_usage_owner.pgy" \
     "input/ast_type_usage_owner.pgy" \
@@ -2734,8 +2735,8 @@ require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "f
 require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaExpectThen"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsFunction"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsMainFunction"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsEventDecl"
-require_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsAbilityDecl"
+reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsEventDecl"
+reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsAbilityDecl"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsNominalDecl"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsEnumDecl"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaIsRoleDecl"
@@ -2915,7 +2916,10 @@ require_file "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "struct SemanticAstKindSurfaceFacts"
 require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceContains"
+require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceIndexForNode"
+require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceIs"
 require_text "src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy" "func SemanticAstKindSurfaceFactsMatchArtifact"
+require_text "src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy" "func CodegenSemanticKindIs"
 require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "func CodegenKindUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "TypedAstKindArrayPopStmtTag()"
 reject_text "src/self_hosted/codegen/input/ast_kind_usage_owner.pgy" "CodegenAstKindArrayLiteral"
@@ -3008,11 +3012,14 @@ reject_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "GenerateCUnit(c
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenRuntimeUsageFactsFromSemantic("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let uses_args: Bool = usage.uses_args"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenRuntimeUsageFactsFromNodes(nodes, count)"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsEventDecl(arena, main_scan)"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticKindIs("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "TypedAstKindEventDeclTag()"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticSelectedFunctionNode("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticNominalIs("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticRoleIs("
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsAbilityDecl(arena, cur[0])"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "TypedAstKindAbilityDeclTag()"
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsEventDecl("
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsAbilityDecl("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticEnumIs("
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenSemanticFunctionIs("
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstArenaIsNominalDecl("
@@ -4900,9 +4907,15 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRejectExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 9;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 11;"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParityReady"
+require_file "tests/self_hosted/parity/codegen_reject_parity_leg.sh"
+require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" "run_codegen_reject_case()"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "event_decl_reject"
+require_text "tests/self_hosted/parity/codegen_parity.sh" "EVENT_REJECT_SOURCE"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserParitySuiteName"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserToolSourcePath"
 require_text "src/self_hosted/compiler/test_harness_parser_paths_owner.pgy" "func CompilerHarnessParserComparatorSourcePath"
@@ -6206,13 +6219,22 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_SOURCE="$ROOT_
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'REJECT_EXPECTED="$ROOT_DIR/${harness_paths[6]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'EVENT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[10]}"'
 require_file "src/self_hosted/codegen/reject_fixture/enum_payload.pgy"
 require_file "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt"
+require_file "src/self_hosted/codegen/reject_fixture/event_decl.pgy"
+require_file "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt"
 require_text "src/self_hosted/codegen/reject_fixture/enum_payload.pgy" "Number(Int, String)"
 require_text "src/self_hosted/codegen/reject_expected/enum_payload_stdout.txt" "payload enum variants are not supported"
-require_text "tests/self_hosted/parity/codegen_parity.sh" "run_payload_enum_reject"
-require_text "tests/self_hosted/parity/codegen_parity.sh" 'if [[ "$reject_rc" -eq 0 ]]'
-require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$REJECT_EXPECTED" "$reject_norm" 2'
+require_text "src/self_hosted/codegen/reject_fixture/event_decl.pgy" "event OnHit(damage: Int);"
+require_text "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt" "event declarations are not supported"
+require_file "tests/self_hosted/parity/codegen_reject_parity_leg.sh"
+require_max_lines "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 600
+require_text "tests/self_hosted/parity/codegen_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/codegen_reject_parity_leg.sh"'
+require_text "tests/self_hosted/parity/codegen_parity.sh" "run_codegen_reject_case"
+require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 'if [[ "$reject_rc" -eq 0 ]]'
+require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 'compare_run_output_with_owner'
 require_file "tests/self_hosted/parity/codegen_role_parity_leg.sh"
 require_max_lines "tests/self_hosted/parity/codegen_role_parity_leg.sh" 600
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"'

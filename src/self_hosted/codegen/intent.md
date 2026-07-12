@@ -255,8 +255,9 @@ presence by reading arena atom/value/auxiliary rows.
 Runtime type-family materialization consumes canonical semantic type-surface
 facts; direct arena type-name scans are forbidden.
 
-Runtime statement-kind materialization consumes canonical semantic kind-surface
-facts. Direct arena kind scans and backend-local kind tag aliases are
+Canonical semantic node-kind facts own both runtime statement-kind
+materialization and declaration classification where no richer declaration row
+is required. Direct arena kind scans and backend-local kind tag aliases are
 forbidden. The aggregate runtime usage projection accepts only semantic
 expression, type, and kind facts.
 
@@ -271,6 +272,6 @@ and provenance, but may not decide semantic statement kinds.
 
 Top-level declaration dispatch consumes semantic node identity: signature rows
 for functions, nominal-constructor rows for nominal declarations, role rows for
-roles, and enum rows for enums. Codegen arena predicates may not reclassify
-those declaration kinds. Ability and event routing remain named active seams
-until equivalent semantic owners land.
+roles, enum rows for enums, and canonical node-kind rows for ability/event
+classification. Codegen arena predicates may not reclassify those declaration
+kinds.

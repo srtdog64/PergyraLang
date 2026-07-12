@@ -115,14 +115,6 @@ func CodegenAstArenaIsElseStmt(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindElseStmtTag());
 }
 
-func CodegenAstArenaIsEventDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindEventDeclTag());
-}
-
-func CodegenAstArenaIsAbilityDecl(arena: AstArena, node_id: Int) -> Bool {
-    return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindAbilityDeclTag());
-}
-
 func CodegenAstArenaHasElseAt(arena: AstArena, count: Int, index: Int, if_indent: Int) -> Bool {
     return index < count && CodegenAstArenaIsElseStmt(arena, index)
         && CodegenAstArenaIndentOrDie(arena, index) == if_indent + 2;

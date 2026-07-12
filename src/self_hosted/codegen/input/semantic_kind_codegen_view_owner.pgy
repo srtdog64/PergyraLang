@@ -1,0 +1,11 @@
+// Codegen view over semantic-owned node-kind identity.
+
+import "../../semantic/ast_kind_surface_fact_owner.pgy";
+
+func CodegenSemanticKindIs(
+    facts: SemanticAstKindSurfaceFacts,
+    node_id: Int,
+    kind_tag: Int
+) -> Bool {
+    return SemanticAstKindSurfaceIs(facts, node_id, kind_tag);
+}
