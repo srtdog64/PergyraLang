@@ -733,6 +733,15 @@ rewrite history.
 - Locked the cutover with Coq owner/fallback theorems, source mutations, the
   23-row owner registry, and five-fixture C/LLVM parity.
 
+## 2026-07-13 - Entrypoint selection consumes semantic signatures
+
+- Replaced semantic and codegen arena rescans for `Main` with ordered function
+  node/name rows from `SemanticAstFunctionSignatureFacts`.
+- Added an `Option<Int>` codegen selection projection, removing the local `-1`
+  sentinel and `CodegenAstArenaIsMainFunction` predicate.
+- Locked the boundary as the ninth bounded `CLOSED` registry row and verified
+  helper-before-Main plus simple Main fixtures under C/LLVM-built tools.
+
 ## 2026-07-09 - Type usage facts enter codegen input ownership
 
 - Added `ast_type_usage_owner.pgy` as the named owner for codegen type-surface

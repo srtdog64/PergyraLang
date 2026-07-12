@@ -1,7 +1,6 @@
 // Semantic verdicts derived from the shared parser-owned AST artifact.
 
 import "../hir/ast_text_arena_projection_owner.pgy";
-import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
@@ -52,23 +51,18 @@ func SemanticAstArtifactVerdictError(code: String, message: String,
     );
 }
 
-func SemanticAstArtifactIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
-    if !TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag()) {
-        return false;
-    }
-    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    return IsSome(atom) && UnwrapOption(atom) == "Main";
-}
-
-func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
-                                          requires_entrypoint: Bool) -> SemanticAstArtifactVerdict {
-    if !TypedAstKindOwnerReady() || !AstTreeArtifactReady(artifact) {
+func SemanticAstArtifactEntrypointVerdict(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    requires_entrypoint: Bool
+) -> SemanticAstArtifactVerdict {
+    if !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) {
         return SemanticAstArtifactVerdictError(
             "ast_artifact_invalid",
             SemanticError2(
                 "ast_artifact_invalid",
                 "node_count", ToString(artifact.count),
-                "owner", "AstTreeArtifact"
+                "owner", "SemanticAstFunctionSignatureFacts"
             ),
             artifact.count,
             0,
@@ -77,8 +71,9 @@ func SemanticAstArtifactEntrypointVerdict(artifact: AstTreeArtifact,
     }
     let main_count: Int = 0;
     let i: Int = 0;
-    while i < artifact.count {
-        if SemanticAstArtifactIsMainFunction(artifact.arena, i) {
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
+        if IsSome(name) && UnwrapOption(name) == "Main" {
             main_count = main_count + 1;
         }
         i = i + 1;
@@ -322,7 +317,9 @@ func SemanticAstArtifactAnalyze(
         );
     }
     let verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(artifact, requires_entrypoint);
+        SemanticAstArtifactEntrypointVerdict(
+            artifact, signatures, requires_entrypoint
+        );
     return SemanticAstArtifactAnalysis(
         verdict, signatures, constructors, local_bindings, assignments,
         statements, enums, roles, expression_surfaces, type_surfaces,
@@ -379,16 +376,22 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         return false;
     }
     let missing: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let missing_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(missing);
     let missing_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(missing, true);
+        SemanticAstArtifactEntrypointVerdict(missing, missing_signatures, true);
     if missing_verdict.ok || missing_verdict.diagnostic_code != "entrypoint_cardinality" {
         return false;
     }
     let duplicate: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
+    let duplicate_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(duplicate);
     let duplicate_verdict: SemanticAstArtifactVerdict =
-        SemanticAstArtifactEntrypointVerdict(duplicate, true);
+        SemanticAstArtifactEntrypointVerdict(
+            duplicate, duplicate_signatures, true
+        );
     return !duplicate_verdict.ok && duplicate_verdict.main_count == 2 &&
         duplicate_verdict.diagnostic_code == "entrypoint_cardinality";
 }

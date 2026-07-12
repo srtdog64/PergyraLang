@@ -183,17 +183,6 @@ func CodegenAstArenaIsFunction(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindFuncDeclTag());
 }
 
-func CodegenAstArenaIsMainFunction(arena: AstArena, node_id: Int) -> Bool {
-    if !CodegenAstArenaIsFunction(arena, node_id) {
-        return false;
-    }
-    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
-    if !IsSome(atom) {
-        return false;
-    }
-    return UnwrapOption(atom) == "Main";
-}
-
 func CodegenAstArenaIsRoleDecl(arena: AstArena, node_id: Int) -> Bool {
     return TypedAstArenaNodeKindIs(arena, node_id, TypedAstKindRoleDeclTag());
 }

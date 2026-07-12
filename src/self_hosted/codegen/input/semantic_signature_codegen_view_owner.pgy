@@ -66,6 +66,27 @@ func CodegenSemanticFunctionNameOrDie(
     return UnwrapOption(name);
 }
 
+func CodegenSemanticSelectedFunctionNode(
+    facts: SemanticAstFunctionSignatureFacts,
+    require_entrypoint: Bool
+) -> Option<Int> {
+    let fallback: Option<Int> = None;
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(facts) {
+        let node_id: Int = CodegenSemanticFunctionNodeOrDie(
+            facts, signature_index
+        );
+        if CodegenSemanticFunctionNameOrDie(facts, signature_index) == "Main" {
+            return Some(node_id);
+        }
+        if !require_entrypoint && !IsSome(fallback) {
+            fallback = Some(node_id);
+        }
+        signature_index = signature_index + 1;
+    }
+    return fallback;
+}
+
 func CodegenSemanticFunctionReturnTypeOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int

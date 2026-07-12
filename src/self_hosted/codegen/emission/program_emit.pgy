@@ -253,25 +253,15 @@ func GenerateCUnitFromSemanticArtifact(
         main_scan = main_scan + 1;
     }
 
-    let first_fn: Int = -1;
-    let scan: Int = 0;
-    while scan < count {
-        if CodegenAstArenaIsMainFunction(arena, scan) {
-            first_fn = scan;
-            scan = count;
-        } else if !require_entrypoint && first_fn < 0 && CodegenAstArenaIsFunction(arena, scan) {
-            first_fn = scan;
-            scan = scan + 1;
-        } else {
-            scan = scan + 1;
-        }
-    }
-    if require_entrypoint && first_fn < 0 {
+    let first_fn: Option<Int> = CodegenSemanticSelectedFunctionNode(
+        signatures, require_entrypoint
+    );
+    if require_entrypoint && !IsSome(first_fn) {
         Die("no function found in AST");
     }
     let f_indent: Int = 2;
-    if first_fn >= 0 {
-        f_indent = CodegenAstArenaIndentOrDie(arena, first_fn);
+    if IsSome(first_fn) {
+        f_indent = CodegenAstArenaIndentOrDie(arena, UnwrapOption(first_fn));
     }
     let env_acc: Array<String> = [BuildFunctionEnv(signatures)];
     let enum_block: String = CollectEnums(semantic_analysis.enums, env_acc);

@@ -23,11 +23,13 @@ first live bounded bindings for semantic-to-codegen facts:
 - fact: `FRoleDeclarationRows`;
 - facts: `FExpressionRuntimeUsageSurface`, `FTypeRuntimeUsageSurface`, and
   `FKindRuntimeUsageSurface`;
+- fact: `FEntrypointSelection`;
 - authorities: `OSemanticLocalBindingFacts`, `OSemanticStatementFacts`;
 - authority: `OSemanticEnumFacts`;
 - authorities: `OSemanticNominalConstructorFacts`, `OSemanticRoleFacts`,
   `OSemanticExpressionSurfaceFacts`, `OSemanticTypeSurfaceFacts`, and
   `OSemanticKindSurfaceFacts`;
+- authority: `OSemanticSignatureFacts`;
 - consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`,
   `CCollectionMutationEmitter`, `CEnumEmitter`;
 - read kind: `OwnedRead`.
@@ -38,7 +40,7 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares 15 architectural compiler-spine fact families plus eight
+The file also declares 15 architectural compiler-spine fact families plus nine
 bounded self-host closure facts and a total `spine_authority` mapping.
 `every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
@@ -73,6 +75,9 @@ fallback consumers are gone.
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` owns canonical
   node-kind rows consumed by runtime usage projection; direct arena kind scans
   and backend-local kind tags are forbidden;
+- `src/self_hosted/semantic/ast_signature_fact_owner.pgy` owns ordered function
+  node/name rows used for entrypoint cardinality and codegen selection; semantic
+  verdict and codegen may not rescan arena function names;
 - the retired AST-text array, try-let, collection, enum, and mixed declaration
   codegen owners must
   not exist; and

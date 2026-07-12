@@ -20,6 +20,7 @@ Inductive Fact : Type :=
   | FExpressionRuntimeUsageSurface
   | FTypeRuntimeUsageSurface
   | FKindRuntimeUsageSurface
+  | FEntrypointSelection
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -35,6 +36,7 @@ Inductive Owner : Type :=
   | OSemanticExpressionSurfaceFacts
   | OSemanticTypeSurfaceFacts
   | OSemanticKindSurfaceFacts
+  | OSemanticSignatureFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -45,7 +47,8 @@ Inductive Consumer : Type :=
   | CEnumEmitter
   | CNominalEmitter
   | CRoleOperatorEmitter
-  | CRuntimeUsageProjection.
+  | CRuntimeUsageProjection
+  | CProgramEntrypointProjection.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -134,6 +137,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FExpressionRuntimeUsageSurface => SemanticFact
   | FTypeRuntimeUsageSurface => SemanticFact
   | FKindRuntimeUsageSurface => SemanticFact
+  | FEntrypointSelection => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -148,6 +152,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FExpressionRuntimeUsageSurface => OSemanticExpressionSurfaceFacts
   | FTypeRuntimeUsageSurface => OSemanticTypeSurfaceFacts
   | FKindRuntimeUsageSurface => OSemanticKindSurfaceFacts
+  | FEntrypointSelection => OSemanticSignatureFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -171,6 +176,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticTypeSurfaceFacts FTypeRuntimeUsageSurface
   | CurrentKindRuntimeUsageProducer :
       current_produces OSemanticKindSurfaceFacts FKindRuntimeUsageSurface
+  | CurrentEntrypointSelectionProducer :
+      current_produces OSemanticSignatureFacts FEntrypointSelection
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -676,6 +683,63 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive entrypoint_requires : Consumer -> Fact -> Prop :=
+  | ProgramProjectionRequiresEntrypoint :
+      entrypoint_requires CProgramEntrypointProjection FEntrypointSelection.
+
+Inductive entrypoint_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | ProgramProjectionReadsEntrypoint :
+      entrypoint_reads CProgramEntrypointProjection OSemanticSignatureFacts
+        FEntrypointSelection OwnedRead.
+
+Definition entrypoint_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := entrypoint_requires;
+     reads := entrypoint_reads |}.
+
+Theorem current_entrypoint_selection_rung_closed : RungClosed entrypoint_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive entrypoint_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | EntrypointBridgeOwnedRead :
+      entrypoint_bridge_reads CProgramEntrypointProjection
+        OSemanticSignatureFacts FEntrypointSelection OwnedRead
+  | EntrypointBridgeFallbackRead :
+      entrypoint_bridge_reads CProgramEntrypointProjection OCodegenTextRecovery
+        FEntrypointSelection FallbackRead.
+
+Definition entrypoint_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := entrypoint_requires;
+     reads := entrypoint_bridge_reads |}.
+
+Theorem entrypoint_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed entrypoint_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CProgramEntrypointProjection OCodegenTextRecovery
+    FEntrypointSelection FallbackRead EntrypointBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -769,7 +833,8 @@ Inductive SpineFact : Type :=
   | SFRoleDeclarationRows
   | SFExpressionRuntimeUsageSurface
   | SFTypeRuntimeUsageSurface
-  | SFKindRuntimeUsageSurface.
+  | SFKindRuntimeUsageSurface
+  | SFEntrypointSelection.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -794,7 +859,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticRole
   | SOSemanticExpressionSurface
   | SOSemanticTypeSurface
-  | SOSemanticKindSurface.
+  | SOSemanticKindSurface
+  | SOSemanticSignature.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -821,6 +887,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFExpressionRuntimeUsageSurface => SOSemanticExpressionSurface
   | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
   | SFKindRuntimeUsageSurface => SOSemanticKindSurface
+  | SFEntrypointSelection => SOSemanticSignature
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -857,7 +924,7 @@ Theorem current_model_does_not_claim_future_consumer_coverage :
   forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
     c = CCollectionMutationEmitter \/ c = CEnumEmitter \/
     c = CNominalEmitter \/ c = CRoleOperatorEmitter \/
-    c = CRuntimeUsageProjection.
+    c = CRuntimeUsageProjection \/ c = CProgramEntrypointProjection.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
@@ -866,5 +933,6 @@ Proof.
   - right. right. right. left. reflexivity.
   - right. right. right. right. left. reflexivity.
   - right. right. right. right. right. left. reflexivity.
-  - right. right. right. right. right. right. reflexivity.
+  - right. right. right. right. right. right. left. reflexivity.
+  - right. right. right. right. right. right. right. reflexivity.
 Qed.

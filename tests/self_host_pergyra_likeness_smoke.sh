@@ -180,7 +180,9 @@ SENTINEL_MAX=0
 # canonical semantic type-surface rows instead of arena type-name scans.
 # 1264 -> 1265 (2026-07-13): runtime kind usage consumes semantic-owned kind
 # surface facts and removes the final arena parameters from usage projection.
-RESULT_USE_MIN=1265
+# 1265 -> 1270 (2026-07-13): entrypoint selection consumes semantic signature
+# facts through Option instead of an integer sentinel and arena name scan.
+RESULT_USE_MIN=1270
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

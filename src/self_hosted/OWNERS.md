@@ -87,7 +87,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
-  function owner, name, parameter, mode, and return signature facts.
+  function owner, name, parameter, mode, and return signature facts, including
+  ordered function node/name identity for entrypoint cardinality and selection.
 - `src/self_hosted/semantic/ast_signature_contract_owner.pgy` -- executable
   freshness, duplicate-row, owner, and runtime-callability contract for those
   signature facts.
@@ -239,7 +240,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned array-literal body facts into top-level emission items.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
-- `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
+- `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` --
+  fail-closed codegen view over semantic function signature facts, including
+  selected entrypoint or library function-node projection without an arena
+  name scan.
 - `src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy` --
   fail-closed role name, target-type, and method-identity projection from
   semantic role facts.

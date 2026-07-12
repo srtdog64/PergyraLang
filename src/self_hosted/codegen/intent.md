@@ -259,3 +259,7 @@ Runtime statement-kind materialization consumes canonical semantic kind-surface
 facts. Direct arena kind scans and backend-local kind tag aliases are
 forbidden. The aggregate runtime usage projection accepts only semantic
 expression, type, and kind facts.
+
+Executable entrypoint cardinality and function-node selection consume ordered
+semantic signature facts. Codegen must not rescan arena function names or use
+an integer sentinel to recover the selected function.
