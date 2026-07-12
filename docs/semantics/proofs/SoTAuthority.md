@@ -75,7 +75,9 @@ fallback consumers are gone.
   types, and method `NodeId` rows consumed by operator binding and receiver ABI;
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` owns
   expression atom/value/auxiliary rows and call/token queries consumed by
-  runtime usage projection;
+  runtime usage projection; its condition subset also owns stable normalized
+  expression handles and child edges consumed by `if`/`while` codegen, while
+  compact parser payload to graph production remains explicitly `BRIDGE`;
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` owns canonical
   type-name rows consumed by runtime usage projection;
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` owns canonical

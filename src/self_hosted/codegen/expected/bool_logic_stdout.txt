@@ -2,6 +2,7 @@ flag-on
 other-off
 and
 logic
+grouped
 0
 2
 4

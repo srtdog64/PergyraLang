@@ -1,0 +1,85 @@
+// Recursive boolean emission from semantic-owned expression node handles.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "expr_rewrite.pgy";
+
+func RewriteBoolFromSemanticGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> String {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) || !IsSome(text_opt) {
+        Die("semantic expression graph node is missing");
+    }
+    let kind: Int = UnwrapOption(kind_opt);
+    let text: String = UnwrapOption(text_opt);
+    if kind == SemanticExpressionNodeLeaf() {
+        return RewriteTokens(text, env);
+    }
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(left_opt) || !IsSome(right_opt) {
+        Die("semantic expression graph edge is missing");
+    }
+    let left_id: Int = UnwrapOption(left_opt);
+    let right_id: Int = UnwrapOption(right_opt);
+    if kind == SemanticExpressionNodeEquality() ||
+        kind == SemanticExpressionNodeInequality() {
+        let left_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, left_id
+        );
+        let right_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, right_id
+        );
+        if !IsSome(left_text) || !IsSome(right_text) {
+            Die("semantic equality operand is missing");
+        }
+        let projected: Option<String> = RewriteEqualityProjection(
+            UnwrapOption(left_text), UnwrapOption(right_text),
+            kind == SemanticExpressionNodeEquality(), env
+        );
+        if IsSome(projected) { return UnwrapOption(projected); }
+    }
+    let left: String = RewriteBoolFromSemanticGraph(graph, left_id, env);
+    let right: String = RewriteBoolFromSemanticGraph(graph, right_id, env);
+    let operator: String = " || ";
+    if kind == SemanticExpressionNodeLogicalAnd() {
+        operator = " && ";
+    } else if kind == SemanticExpressionNodeEquality() {
+        operator = " == ";
+    } else if kind == SemanticExpressionNodeInequality() {
+        operator = " != ";
+    } else if kind != SemanticExpressionNodeLogicalOr() {
+        Die("unsupported semantic expression graph node kind");
+    }
+    return Concat("(", Concat(
+        left, Concat(operator, Concat(right, ")"))
+    ));
+}
+
+func WrapCondWithSemanticGraph(
+    cond: String,
+    env: CodegenTypeEnv,
+    view: SemanticExpressionGraphView
+) -> String {
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(
+        view.graph, view.root_id
+    );
+    if !view.ok || !IsSome(root_text) ||
+        UnwrapOption(root_text) != SemanticStripOuterParens(cond) {
+        Die("semantic condition graph does not match codegen expression");
+    }
+    return Concat("(", Concat(
+        RewriteBoolFromSemanticGraph(view.graph, view.root_id, env), ")"
+    ));
+}

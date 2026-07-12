@@ -199,7 +199,10 @@ SENTINEL_MAX=0
 # 1286 -> 1293 (2026-07-13): condition-root shape consumption extracted one
 # Option-returning String/enum equality projection shared by legacy children
 # and semantic-root emission. No sentinel or hidden failure replaced it.
-RESULT_USE_MIN=1293
+# 1293 -> 1323 (2026-07-13): condition graphs expose root and child presence
+# through Option/explicit presence rows; no numeric sentinel or hidden edge
+# fallback is accepted by recursive codegen consumption.
+RESULT_USE_MIN=1323
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

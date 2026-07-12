@@ -205,6 +205,16 @@ enum behavior identical. `bool_logic`, `string_equality`, and
 `string_equality_concat` pass C/LLVM oracle parity, including precedence and
 String equality cases. Recursive child conditions remain bridge consumers.
 
+Seventeenth executable delta, 2026-07-13: the semantic expression owner now
+materializes stable node handles and child edges for `if`/`while` condition
+atoms. `WrapCondWithSemanticGraph` recursively consumes those rows, and its
+emitter is ratcheted against `RewriteBool`, `FindTopLevelOp2`, and `Substring`.
+The grouped-precedence fixture `(flag || other) && !other` prevents a flattened
+graph projection from changing semantics. C-built and LLVM-built codegen tools
+emit byte-identical C and run-equal on logical and String-equality fixtures.
+This does not close the owner: compact-text-to-graph production must still move
+into the parser arena, and non-condition recursive expressions remain bridge.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

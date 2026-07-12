@@ -6757,4 +6757,24 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   each prove 19 semantic body fixtures and 10 MIR source/consumer/run fixtures.
   The filtered MIR JSON gate also proves range/foreach execution plus valid,
   unknown-kind, and invalid-writer parallel-capture input contracts.
-  Released/default replacement remains 0%.
+Released/default replacement remains 0%.
+
+### 2026-07-13 -- Recursive conditions consume semantic expression handles
+
+- Added `SemanticExpressionGraphFacts` under the existing expression-surface
+  authority. The graph uses stable node indexes and explicit left/right edges;
+  it is not a second codegen expression owner.
+- Repointed self-host `if` and `while` condition emission to recurse over graph
+  handles. The migrated emitter cannot call `RewriteBool`,
+  `FindTopLevelOp2`, or `Substring` to recover precedence from text.
+- Added a grouped-precedence negative-space case, `(flag || other) && !other`,
+  so flattening the graph would change expected output and fail the gate.
+- Limited graph materialization to live condition atoms instead of eagerly
+  duplicating every expression lane. This keeps the current compiler-scale
+  memory surface proportional to the migrated consumer set.
+- C-built and LLVM-built self-host codegen tools emitted byte-identical C and
+  ran equal for `bool_logic`, `string_equality`, and
+  `string_equality_concat`.
+- The expression owner remains `BRIDGE`: the graph producer still lowers the
+  compact parser payload. Parser-arena production and non-condition recursive
+  expressions are the next owner/consumer seam.

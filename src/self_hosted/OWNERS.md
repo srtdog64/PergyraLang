@@ -148,6 +148,10 @@ inventory must not become a second fact-family owner registry.
   artifact-bound atom/value/auxiliary expression surfaces, normalized
   top-level operator rows, and string-safe call/token queries consumed by
   semantic and runtime projection.
+- `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` -- normalized
+  expression node handles and child edges consumed by recursive semantic and
+  codegen projections; compact-text production remains an explicit bridge
+  until the parser emits the same graph rows directly.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
   artifact type-name rows consumed by runtime projection.
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` -- canonical
@@ -261,8 +265,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
 - `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
-  -- fail-closed codegen view over semantic-owned expression shape rows keyed
-  by artifact node and payload lane.
+  -- fail-closed codegen view over semantic-owned expression shape and graph
+  rows keyed by artifact node and payload lane.
 - `src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy` --
   fail-closed node-kind identity projection for ability/event declaration
   routing.
@@ -293,6 +297,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy` --
   top-level expression emission that consumes semantic shape rows instead of
   rescanning the source payload.
+- `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
+  recursive condition emission from semantic node handles and child edges;
+  codegen does not split the condition payload to rediscover precedence.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --

@@ -29,3 +29,28 @@ func CodegenSemanticValueExpressionShapeOrDie(
     }
     return shape;
 }
+
+func CodegenSemanticAtomExpressionGraphOrDie(
+    facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int
+) -> SemanticExpressionGraphView {
+    let graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            facts, node_id, SemanticAstExpressionAtomLane()
+        );
+    if !graph.ok {
+        Die("self-host codegen requires a semantic atom-expression graph");
+    }
+    let graph_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph.graph, graph.root_id
+    );
+    let shape: SemanticAstExpressionShapeFact =
+        SemanticAstExpressionShapeForNode(
+            facts, node_id, SemanticAstExpressionAtomLane()
+        );
+    if !IsSome(graph_text) || !shape.ok ||
+        UnwrapOption(graph_text) != shape.normalized_text {
+        Die("semantic expression graph root does not match its surface row");
+    }
+    return graph;
+}

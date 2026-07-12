@@ -16,6 +16,9 @@ func Main() -> Void {
     if flag && !other || other {
         Log("logic");
     }
+    if (flag || other) && !other {
+        Log("grouped");
+    }
     let i: Int = 0;
     while i < 5 {
         if IsEven(i) {

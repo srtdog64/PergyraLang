@@ -265,6 +265,15 @@ separate `||`, `&&`, equality position, and equality-kind rows now drive
 Logical precedence and String equality fixtures pass C/LLVM parity. Recursive
 child conditions remain the next expression-tree seam.
 
+The seventeenth executable delta added stable semantic expression node handles
+and child edges for `if`/`while` condition atoms. Recursive condition emission
+now traverses those edges and cannot call `RewriteBool`, `FindTopLevelOp2`, or
+`Substring` to rediscover precedence. The grouped `(a || b) && c` fixture
+prevents flattening from changing meaning; C-built and LLVM-built codegen tools
+emit byte-identical C and remain run-equal on logical and String-equality
+fixtures. The owner remains a bridge because graph production still lowers the
+compact parser payload instead of consuming parser-arena expression nodes.
+
 The follow-up ratchet deleted the final dead codegen arena payload views:
 atom, type, value, auxiliary value, parameter type, and parameter mode. The
 remaining mixed-expression blocker is therefore exact: semantic owner rows

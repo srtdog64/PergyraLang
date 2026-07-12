@@ -206,13 +206,16 @@ atom-expression path consumes that row through
 additive position. Scalar/String returns reuse the atom lane. Ordinary
 scalar/String local initializers and assignments consume the value lane.
 Root `if`/`while` conditions consume distinct semantic `||`, `&&`, `==`, and
-`!=` facts. Child conditions still recurse through the compact-text bridge.
+`!=` facts. They now consume stable semantic expression node handles and child
+edges for recursive logical/equality structure; codegen cannot split condition
+text or call the legacy recursive boolean scanner. Graph production is still
+a compact-text bridge until the parser emits those same rows directly.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. The remaining blocker is indexed collection value/auxiliary payloads,
-Option/Result/struct wrapper internals, and recursive child expression text
-carried inside semantic owner rows and parsed by expression lowering, not a
-codegen reread of the arena.
+Option/Result/struct wrapper internals, non-condition recursive expression
+text, and parser-to-semantic graph production. Those bridges remain inside
+named owners rather than reopening a codegen arena read.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired

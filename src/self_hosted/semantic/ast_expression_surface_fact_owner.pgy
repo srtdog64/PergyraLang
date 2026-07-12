@@ -4,6 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
+import "ast_expression_graph_fact_owner.pgy";
 
 struct SemanticAstExpressionShapeFact {
     ok: Bool;
@@ -35,6 +36,7 @@ struct SemanticAstExpressionSurfaceFacts {
     normalized_values: Array<String>;
     normalized_auxiliary_values: Array<String>;
     operator_rows: Array<Int>;
+    expression_graph: SemanticExpressionGraphFacts;
 }
 
 func SemanticAstExpressionAtomLane() -> Int { return 0; }
@@ -91,6 +93,8 @@ func SemanticAstExpressionSurfaceFactsFromArtifact(
     let normalized_values: Array<String> = [];
     let normalized_auxiliary_values: Array<String> = [];
     let operator_rows: Array<Int> = [];
+    let expression_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsEmpty();
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -137,13 +141,29 @@ func SemanticAstExpressionSurfaceFactsFromArtifact(
                 ),
                 normalized_auxiliary
             );
+            let condition_atom: Bool = IsSome(atom) &&
+                (TypedAstArenaNodeKindIs(
+                    artifact.arena, node_id, TypedAstKindIfStmtTag()
+                ) || TypedAstArenaNodeKindIs(
+                    artifact.arena, node_id, TypedAstKindWhileStmtTag()
+                ));
+            expression_graph = SemanticExpressionGraphFactsAppendLane(
+                expression_graph, condition_atom, normalized_atom
+            );
+            expression_graph = SemanticExpressionGraphFactsAppendLane(
+                expression_graph, false, normalized_value
+            );
+            expression_graph = SemanticExpressionGraphFactsAppendLane(
+                expression_graph, false, normalized_auxiliary
+            );
         }
         node_id = node_id + 1;
     }
     return SemanticAstExpressionSurfaceFacts(
         ok, artifact.count, node_ids, has_atoms, atoms, has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
-        normalized_values, normalized_auxiliary_values, operator_rows
+        normalized_values, normalized_auxiliary_values, operator_rows,
+        expression_graph
     );
 }
 
@@ -239,6 +259,22 @@ func SemanticAstExpressionShapeForNode(
     );
     if !IsSome(index) { return SemanticAstExpressionInvalidShape(); }
     return SemanticAstExpressionShapeAt(facts, UnwrapOption(index), lane);
+}
+
+func SemanticAstExpressionGraphForNode(
+    facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int,
+    lane: Int
+) -> SemanticExpressionGraphView {
+    let index: Option<Int> = SemanticAstExpressionSurfaceIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) {
+        return SemanticExpressionGraphView(false, 0, facts.expression_graph);
+    }
+    return SemanticExpressionGraphViewAt(
+        facts.expression_graph, UnwrapOption(index), lane
+    );
 }
 
 func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
@@ -341,7 +377,12 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
         SemanticAstExpressionSurfaceCount(rebuilt) != count ||
         ArrayLength(facts.operator_rows) !=
             count * SemanticAstExpressionShapeWidth() ||
-        ArrayLength(rebuilt.operator_rows) != ArrayLength(facts.operator_rows) {
+        ArrayLength(rebuilt.operator_rows) != ArrayLength(facts.operator_rows) ||
+        !SemanticExpressionGraphFactsReady(
+            facts.expression_graph, count * 3
+        ) || !SemanticExpressionGraphFactsReady(
+            rebuilt.expression_graph, count * 3
+        ) {
         return false;
     }
     let i: Int = 0;
@@ -369,12 +410,14 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
         }
         operator_index = operator_index + 1;
     }
-    return true;
+    return SemanticExpressionGraphFactsEqual(
+        facts.expression_graph, rebuilt.expression_graph
+    );
 }
 
 func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n        Log(ready && enabled || fallback != denied)\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n        If: (ready && enabled || fallback != denied)\n          Then:\n            Block:\n              Log(\"ok\")\n"
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
@@ -382,6 +425,10 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         SemanticAstExpressionInvalidShape();
     let logical_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
+    let logical_graph: SemanticExpressionGraphView =
+        SemanticExpressionGraphView(false, 0, facts.expression_graph);
+    let non_condition_graph: SemanticExpressionGraphView =
+        SemanticExpressionGraphView(false, 0, facts.expression_graph);
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
@@ -394,9 +441,22 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
             logical_shape = SemanticAstExpressionShapeAt(
                 facts, i, SemanticAstExpressionAtomLane()
             );
+            logical_graph = SemanticExpressionGraphViewAt(
+                facts.expression_graph, i, SemanticAstExpressionAtomLane()
+            );
+        }
+        if facts.has_values[i] && StartsWith(
+            facts.normalized_values[i], "Concat("
+        ) {
+            non_condition_graph = SemanticExpressionGraphViewAt(
+                facts.expression_graph, i, SemanticAstExpressionValueLane()
+            );
         }
         i = i + 1;
     }
+    let logical_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        logical_graph.graph, logical_graph.root_id
+    );
     return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
         SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
         SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
@@ -406,5 +466,8 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         additive_shape.additive_operator_code == SourceByteOf("+") &&
         logical_shape.ok && logical_shape.logical_and_index == 6 &&
         logical_shape.logical_or_index == 17 &&
-        logical_shape.equality_index == 29 && logical_shape.equality_is_not;
+        logical_shape.equality_index == 29 && logical_shape.equality_is_not &&
+        logical_graph.ok && IsSome(logical_root_kind) &&
+        UnwrapOption(logical_root_kind) == SemanticExpressionNodeLogicalOr() &&
+        !non_condition_graph.ok;
 }

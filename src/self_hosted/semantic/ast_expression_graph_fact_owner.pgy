@@ -1,0 +1,321 @@
+// Normalized semantic expression graph rows.
+//
+// Consumers use stable node handles and child edges. The current producer
+// still lowers the compact parser payload into these rows; parser-owned arena
+// production can replace that bridge without changing semantic/codegen views.
+
+import "expression_normalization_owner.pgy";
+import "expression_operator_fact_owner.pgy";
+
+struct SemanticExpressionGraphArena {
+    node_kinds: Array<Int>;
+    node_texts: Array<String>;
+    left_children: Array<Int>;
+    right_children: Array<Int>;
+}
+
+struct SemanticExpressionGraphFacts {
+    ok: Bool;
+    roots: Array<Int>;
+    has_roots: Array<Bool>;
+    arena: SemanticExpressionGraphArena;
+}
+
+struct SemanticExpressionGraphBuild {
+    ok: Bool;
+    root_id: Int;
+    arena: SemanticExpressionGraphArena;
+}
+
+struct SemanticExpressionGraphView {
+    ok: Bool;
+    root_id: Int;
+    graph: SemanticExpressionGraphFacts;
+}
+
+func SemanticExpressionNodeLeaf() -> Int { return 0; }
+func SemanticExpressionNodeLogicalOr() -> Int { return 1; }
+func SemanticExpressionNodeLogicalAnd() -> Int { return 2; }
+func SemanticExpressionNodeEquality() -> Int { return 3; }
+func SemanticExpressionNodeInequality() -> Int { return 4; }
+
+func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
+    let node_kinds: Array<Int> = [];
+    let node_texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    return SemanticExpressionGraphArena(
+        node_kinds, node_texts, left_children, right_children
+    );
+}
+
+func SemanticExpressionGraphFactsEmpty() -> SemanticExpressionGraphFacts {
+    let roots: Array<Int> = [];
+    let has_roots: Array<Bool> = [];
+    return SemanticExpressionGraphFacts(
+        true, roots, has_roots, SemanticExpressionGraphArenaEmpty()
+    );
+}
+
+func SemanticExpressionGraphArenaNodeCount(
+    ref arena: SemanticExpressionGraphArena
+) -> Int {
+    return ArrayLength(arena.node_kinds);
+}
+
+func SemanticExpressionGraphArenaReady(
+    ref arena: SemanticExpressionGraphArena
+) -> Bool {
+    let count: Int = SemanticExpressionGraphArenaNodeCount(arena);
+    if ArrayLength(arena.node_texts) != count ||
+        ArrayLength(arena.left_children) != count ||
+        ArrayLength(arena.right_children) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        let kind: Int = arena.node_kinds[i];
+        let left: Int = arena.left_children[i];
+        let right: Int = arena.right_children[i];
+        if arena.node_texts[i] == "" || kind < SemanticExpressionNodeLeaf() ||
+            kind > SemanticExpressionNodeInequality() {
+            return false;
+        }
+        if kind == SemanticExpressionNodeLeaf() {
+            if left != 0 || right != 0 { return false; }
+        } else if left < 0 || right < 0 || left >= i || right >= i {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphAppendNode(
+    arena: SemanticExpressionGraphArena,
+    kind: Int,
+    text: String,
+    left: Int,
+    right: Int
+) -> SemanticExpressionGraphBuild {
+    let kinds: Array<Int> = arena.node_kinds;
+    let texts: Array<String> = arena.node_texts;
+    let left_children: Array<Int> = arena.left_children;
+    let right_children: Array<Int> = arena.right_children;
+    let root_id: Int = ArrayLength(kinds);
+    ArrayPush(kinds, kind);
+    ArrayPush(texts, text);
+    ArrayPush(left_children, left);
+    ArrayPush(right_children, right);
+    let next: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        kinds, texts, left_children, right_children
+    );
+    return SemanticExpressionGraphBuild(
+        SemanticExpressionGraphArenaReady(next), root_id, next
+    );
+}
+
+func SemanticExpressionGraphInvalidBuild(
+    arena: SemanticExpressionGraphArena
+) -> SemanticExpressionGraphBuild {
+    return SemanticExpressionGraphBuild(false, 0, arena);
+}
+
+// Transitional producer: operator discovery still consumes compact parser
+// payload text. The resulting graph, not that text scan, is the consumer API.
+func SemanticExpressionGraphBuildFromText(
+    arena: SemanticExpressionGraphArena,
+    expression: String
+) -> SemanticExpressionGraphBuild {
+    let text: String = SemanticStripOuterParens(expression);
+    if text == "" {
+        return SemanticExpressionGraphInvalidBuild(arena);
+    }
+    let operators: SemanticTopLevelOperatorFacts =
+        SemanticTopLevelOperatorFactsFromExpression(text);
+    let kind: Int = SemanticExpressionNodeLeaf();
+    let operator_index: Option<Int> = None;
+    if operators.logical_or_index >= 0 {
+        kind = SemanticExpressionNodeLogicalOr();
+        operator_index = Some(operators.logical_or_index);
+    } else if operators.logical_and_index >= 0 {
+        kind = SemanticExpressionNodeLogicalAnd();
+        operator_index = Some(operators.logical_and_index);
+    } else if operators.equality_index >= 0 {
+        kind = SemanticExpressionNodeEquality();
+        if operators.equality_is_not {
+            kind = SemanticExpressionNodeInequality();
+        }
+        operator_index = Some(operators.equality_index);
+    }
+    if kind == SemanticExpressionNodeLeaf() {
+        return SemanticExpressionGraphAppendNode(arena, kind, text, 0, 0);
+    }
+    if !IsSome(operator_index) {
+        return SemanticExpressionGraphInvalidBuild(arena);
+    }
+    let operator_offset: Int = UnwrapOption(operator_index);
+    let lhs: String = Trim(Substring(text, 0, operator_offset));
+    let rhs: String = Trim(Substring(
+        text, operator_offset + 2,
+        StringLength(text) - (operator_offset + 2)
+    ));
+    if lhs == "" || rhs == "" {
+        return SemanticExpressionGraphInvalidBuild(arena);
+    }
+    let left_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildFromText(arena, lhs);
+    if !left_build.ok {
+        return left_build;
+    }
+    let right_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildFromText(left_build.arena, rhs);
+    if !right_build.ok {
+        return right_build;
+    }
+    return SemanticExpressionGraphAppendNode(
+        right_build.arena, kind, text,
+        left_build.root_id, right_build.root_id
+    );
+}
+
+func SemanticExpressionGraphFactsAppendLane(
+    facts: SemanticExpressionGraphFacts,
+    present: Bool,
+    expression: String
+) -> SemanticExpressionGraphFacts {
+    let roots: Array<Int> = facts.roots;
+    let has_roots: Array<Bool> = facts.has_roots;
+    if !facts.ok {
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        return SemanticExpressionGraphFacts(
+            false, roots, has_roots, facts.arena
+        );
+    }
+    if !present {
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        return SemanticExpressionGraphFacts(
+            true, roots, has_roots, facts.arena
+        );
+    }
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildFromText(facts.arena, expression);
+    ArrayPush(roots, build.root_id);
+    ArrayPush(has_roots, build.ok);
+    return SemanticExpressionGraphFacts(
+        build.ok, roots, has_roots, build.arena
+    );
+}
+
+func SemanticExpressionGraphFactsReady(
+    ref facts: SemanticExpressionGraphFacts,
+    expected_root_count: Int
+) -> Bool {
+    if !facts.ok || ArrayLength(facts.roots) != expected_root_count ||
+        ArrayLength(facts.has_roots) != expected_root_count ||
+        !SemanticExpressionGraphArenaReady(facts.arena) {
+        return false;
+    }
+    let node_count: Int = SemanticExpressionGraphArenaNodeCount(facts.arena);
+    let i: Int = 0;
+    while i < expected_root_count {
+        let root: Int = facts.roots[i];
+        if facts.has_roots[i] && (root < 0 || root >= node_count) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphViewAt(
+    facts: SemanticExpressionGraphFacts,
+    surface_index: Int,
+    lane: Int
+) -> SemanticExpressionGraphView {
+    let root_index: Int = surface_index * 3 + lane;
+    if !facts.ok || surface_index < 0 || lane < 0 || lane > 2 ||
+        root_index < 0 || root_index >= ArrayLength(facts.roots) ||
+        root_index >= ArrayLength(facts.has_roots) ||
+        !facts.has_roots[root_index] {
+        return SemanticExpressionGraphView(false, 0, facts);
+    }
+    return SemanticExpressionGraphView(
+        true, facts.roots[root_index], facts
+    );
+}
+
+func SemanticExpressionGraphNodeText(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.node_texts[node_id]);
+}
+
+func SemanticExpressionGraphNodeKind(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    return Some(facts.arena.node_kinds[node_id]);
+}
+
+func SemanticExpressionGraphLeftChild(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) == SemanticExpressionNodeLeaf() {
+        return None;
+    }
+    return Some(facts.arena.left_children[node_id]);
+}
+
+func SemanticExpressionGraphRightChild(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
+    if !IsSome(kind) || UnwrapOption(kind) == SemanticExpressionNodeLeaf() {
+        return None;
+    }
+    return Some(facts.arena.right_children[node_id]);
+}
+
+func SemanticExpressionGraphFactsEqual(
+    ref left: SemanticExpressionGraphFacts,
+    ref right: SemanticExpressionGraphFacts
+) -> Bool {
+    if left.ok != right.ok || ArrayLength(left.roots) != ArrayLength(right.roots) ||
+        ArrayLength(left.has_roots) != ArrayLength(right.has_roots) ||
+        SemanticExpressionGraphArenaNodeCount(left.arena) !=
+            SemanticExpressionGraphArenaNodeCount(right.arena) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(left.roots) {
+        if left.roots[i] != right.roots[i] ||
+            left.has_roots[i] != right.has_roots[i] { return false; }
+        i = i + 1;
+    }
+    i = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(left.arena) {
+        if left.arena.node_kinds[i] != right.arena.node_kinds[i] ||
+            left.arena.node_texts[i] != right.arena.node_texts[i] ||
+            left.arena.left_children[i] != right.arena.left_children[i] ||
+            left.arena.right_children[i] != right.arena.right_children[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

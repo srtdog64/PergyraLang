@@ -76,20 +76,6 @@ func RewriteExprWithSemanticShape(
     return RewriteBoolWithSemanticShape(e, env, shape);
 }
 
-func WrapCondWithSemanticShape(
-    cond: String,
-    env: CodegenTypeEnv,
-    shape: SemanticAstExpressionShapeFact
-) -> String {
-    let c: String = StringTrim(cond);
-    if !shape.ok || shape.normalized_text != StripOuterParens(c) {
-        Die("semantic condition shape does not match codegen expression");
-    }
-    return Concat("(", Concat(
-        RewriteExprWithSemanticShape(c, env, shape), ")"
-    ));
-}
-
 func IntEvalWithSemanticShape(
     expr: String,
     env: CodegenTypeEnv,

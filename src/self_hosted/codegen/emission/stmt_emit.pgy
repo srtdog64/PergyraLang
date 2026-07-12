@@ -21,6 +21,7 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_shape_emit_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
 import "log_emit_owner.pgy";
 import "struct_value_emit.pgy";
 import "value_return_emit_owner.pgy";
@@ -488,12 +489,12 @@ func EmitStmtList(count: Int, arena: AstArena,
             let while_expr: String = CodegenSemanticWhileConditionOrDie(
                 statements, idx
             );
-            let while_shape: SemanticAstExpressionShapeFact =
-                CodegenSemanticAtomExpressionShapeOrDie(
+            let while_graph: SemanticExpressionGraphView =
+                CodegenSemanticAtomExpressionGraphOrDie(
                     expression_surfaces, idx
                 );
-            let cond: String = WrapCondWithSemanticShape(
-                while_expr, env, while_shape
+            let cond: String = WrapCondWithSemanticGraph(
+                while_expr, env, while_graph
             );
             ArrayPush(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
@@ -504,12 +505,12 @@ func EmitStmtList(count: Int, arena: AstArena,
             let if_expr: String = CodegenSemanticIfConditionOrDie(
                 statements, idx
             );
-            let if_shape: SemanticAstExpressionShapeFact =
-                CodegenSemanticAtomExpressionShapeOrDie(
+            let if_graph: SemanticExpressionGraphView =
+                CodegenSemanticAtomExpressionGraphOrDie(
                     expression_surfaces, idx
                 );
-            let cond2: String = WrapCondWithSemanticShape(
-                if_expr, env, if_shape
+            let cond2: String = WrapCondWithSemanticGraph(
+                if_expr, env, if_graph
             );
             ArrayPush(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
