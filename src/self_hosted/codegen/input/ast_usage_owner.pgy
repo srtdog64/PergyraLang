@@ -40,13 +40,15 @@ struct CodegenRuntimeUsageFacts {
 
 func CodegenRuntimeUsageFactsFromSemanticAndArena(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    type_surfaces: SemanticAstTypeSurfaceFacts,
     arena: AstArena,
     count: Int
 ) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts =
         CodegenExpressionUsageFactsFromSemantic(expression_surfaces);
     let kind_usage: CodegenKindUsageFacts = CodegenKindUsageFactsFromArena(arena, count);
-    let type_usage: CodegenTypeUsageFacts = CodegenTypeUsageFactsFromArena(arena, count);
+    let type_usage: CodegenTypeUsageFacts =
+        CodegenTypeUsageFactsFromSemantic(type_surfaces);
     let uses_args: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArgs());
     let uses_str: Bool = type_usage.has_string
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupString());

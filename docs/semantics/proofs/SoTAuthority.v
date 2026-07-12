@@ -18,6 +18,7 @@ Inductive Fact : Type :=
   | FNominalDeclarationRows
   | FRoleDeclarationRows
   | FExpressionRuntimeUsageSurface
+  | FTypeRuntimeUsageSurface
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -31,6 +32,7 @@ Inductive Owner : Type :=
   | OSemanticNominalConstructorFacts
   | OSemanticRoleFacts
   | OSemanticExpressionSurfaceFacts
+  | OSemanticTypeSurfaceFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -128,6 +130,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   | FNominalDeclarationRows => SemanticFact
   | FRoleDeclarationRows => SemanticFact
   | FExpressionRuntimeUsageSurface => SemanticFact
+  | FTypeRuntimeUsageSurface => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -140,6 +143,7 @@ Definition current_authority (f : Fact) : Owner :=
   | FNominalDeclarationRows => OSemanticNominalConstructorFacts
   | FRoleDeclarationRows => OSemanticRoleFacts
   | FExpressionRuntimeUsageSurface => OSemanticExpressionSurfaceFacts
+  | FTypeRuntimeUsageSurface => OSemanticTypeSurfaceFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -159,6 +163,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
   | CurrentExpressionRuntimeUsageProducer :
       current_produces OSemanticExpressionSurfaceFacts
         FExpressionRuntimeUsageSurface
+  | CurrentTypeRuntimeUsageProducer :
+      current_produces OSemanticTypeSurfaceFacts FTypeRuntimeUsageSurface
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -550,6 +556,63 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive type_usage_requires : Consumer -> Fact -> Prop :=
+  | RuntimeProjectionRequiresTypeSurface :
+      type_usage_requires CRuntimeUsageProjection FTypeRuntimeUsageSurface.
+
+Inductive type_usage_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | RuntimeProjectionReadsTypeSurface :
+      type_usage_reads CRuntimeUsageProjection OSemanticTypeSurfaceFacts
+        FTypeRuntimeUsageSurface OwnedRead.
+
+Definition type_usage_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := type_usage_requires;
+     reads := type_usage_reads |}.
+
+Theorem current_type_runtime_usage_rung_closed : RungClosed type_usage_model.
+Proof.
+  unfold RungClosed. split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive type_usage_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | TypeUsageBridgeOwnedRead :
+      type_usage_bridge_reads CRuntimeUsageProjection OSemanticTypeSurfaceFacts
+        FTypeRuntimeUsageSurface OwnedRead
+  | TypeUsageBridgeFallbackRead :
+      type_usage_bridge_reads CRuntimeUsageProjection OCodegenTextRecovery
+        FTypeRuntimeUsageSurface FallbackRead.
+
+Definition type_usage_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := type_usage_requires;
+     reads := type_usage_bridge_reads |}.
+
+Theorem type_usage_owner_plus_ast_fallback_is_not_closed :
+  ~ RungClosed type_usage_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CRuntimeUsageProjection OCodegenTextRecovery
+    FTypeRuntimeUsageSurface FallbackRead TypeUsageBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -641,7 +704,8 @@ Inductive SpineFact : Type :=
   | SFEnumDeclarationRows
   | SFNominalDeclarationRows
   | SFRoleDeclarationRows
-  | SFExpressionRuntimeUsageSurface.
+  | SFExpressionRuntimeUsageSurface
+  | SFTypeRuntimeUsageSurface.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -664,7 +728,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticEnum
   | SOSemanticNominalConstructor
   | SOSemanticRole
-  | SOSemanticExpressionSurface.
+  | SOSemanticExpressionSurface
+  | SOSemanticTypeSurface.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -689,6 +754,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFNominalDeclarationRows => SOSemanticNominalConstructor
   | SFRoleDeclarationRows => SOSemanticRole
   | SFExpressionRuntimeUsageSurface => SOSemanticExpressionSurface
+  | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=

@@ -251,3 +251,6 @@ receiver ABI, and match the native C oracle output.
 Runtime/header materialization consumes semantic expression-surface facts.
 Backend builtin groups remain codegen policy, but codegen may not recover their
 presence by reading arena atom/value/auxiliary rows.
+
+Runtime type-family materialization consumes canonical semantic type-surface
+facts; direct arena type-name scans are forbidden.

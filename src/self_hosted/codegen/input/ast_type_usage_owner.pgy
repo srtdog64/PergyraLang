@@ -3,7 +3,7 @@
 // Runtime/header usage decisions need type-surface facts, but the aggregate
 // runtime usage owner should not scan typed arena type-name rows itself.
 
-import "ast_arena_codegen_view_owner.pgy";
+import "../../semantic/ast_type_surface_fact_owner.pgy";
 
 struct CodegenTypeUsageFacts {
     let has_string: Bool;
@@ -17,34 +17,16 @@ struct CodegenTypeUsageFacts {
     let has_text_builder: Bool;
 }
 
-func CodegenAstArenaTypePartContains(part: Option<String>, needle: String) -> Bool {
-    if !IsSome(part) {
-        return false;
-    }
-    return StringIndexOf(UnwrapOption(part), needle) >= 0;
-}
-
-func CodegenAstArenaTypeFactPresent(arena: AstArena, count: Int, needle: String) -> Bool {
-    let i: Int = 0;
-    while i < count {
-        if CodegenAstArenaTypePartContains(TypedAstArenaTypeName(arena, i), needle) {
-            return true;
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func CodegenTypeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenTypeUsageFacts {
+func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> CodegenTypeUsageFacts {
     return CodegenTypeUsageFacts(
-        CodegenAstArenaTypeFactPresent(arena, count, "String"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Result<"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Option<"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Bool"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Array<"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Array<CodegenAstTextNode"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Float"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Allocator"),
-        CodegenAstArenaTypeFactPresent(arena, count, "TextBuilder")
+        SemanticAstTypeSurfaceContains(facts, "String"),
+        SemanticAstTypeSurfaceContains(facts, "Result<"),
+        SemanticAstTypeSurfaceContains(facts, "Option<"),
+        SemanticAstTypeSurfaceContains(facts, "Bool"),
+        SemanticAstTypeSurfaceContains(facts, "Array<"),
+        SemanticAstTypeSurfaceContains(facts, "Array<CodegenAstTextNode"),
+        SemanticAstTypeSurfaceContains(facts, "Float"),
+        SemanticAstTypeSurfaceContains(facts, "Allocator"),
+        SemanticAstTypeSurfaceContains(facts, "TextBuilder")
     );
 }

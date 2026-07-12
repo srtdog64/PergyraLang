@@ -141,6 +141,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
   artifact-bound atom/value/auxiliary expression surfaces and string-safe
   call/token queries consumed by runtime projection.
+- `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
+  artifact type-name rows consumed by runtime projection.
 - `src/self_hosted/semantic/projection_type_owner.pgy` -- nominal member,
   array-index, and contextual array-literal types from owner facts.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
@@ -249,7 +251,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/ast_expression_usage_owner.pgy` -- backend
   builtin-group vocabulary projected from semantic expression-surface facts.
 - `src/self_hosted/codegen/input/ast_kind_usage_owner.pgy` -- statement-shape usage facts derived from typed arena kind rows.
-- `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- type-surface usage facts derived from typed arena type-name rows.
+- `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- backend runtime
+  type-family projection from semantic type-surface facts.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.

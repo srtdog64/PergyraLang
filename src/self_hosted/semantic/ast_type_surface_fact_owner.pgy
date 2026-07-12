@@ -1,0 +1,102 @@
+// Canonical artifact type-surface rows used by runtime projection.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+
+struct SemanticAstTypeSurfaceFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    type_names: Array<String>;
+}
+
+func SemanticAstTypeSurfaceFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstTypeSurfaceFacts {
+    let node_ids: Array<Int> = [];
+    let type_names: Array<String> = [];
+    let ok: Bool = AstTreeArtifactReady(artifact);
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        let type_name: Option<String> = TypedAstArenaTypeName(
+            artifact.arena, node_id
+        );
+        if IsSome(type_name) && StringLength(UnwrapOption(type_name)) > 0 {
+            ArrayPush(node_ids, node_id);
+            ArrayPush(
+                type_names, SemanticCanonicalTypeName(UnwrapOption(type_name))
+            );
+        }
+        node_id = node_id + 1;
+    }
+    return SemanticAstTypeSurfaceFacts(
+        ok, artifact.count, node_ids, type_names
+    );
+}
+
+func SemanticAstTypeSurfaceCount(facts: SemanticAstTypeSurfaceFacts) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstTypeSurfaceNameAt(
+    facts: SemanticAstTypeSurfaceFacts,
+    index: Int
+) -> Option<String> {
+    if !facts.ok || index < 0 || index >= SemanticAstTypeSurfaceCount(facts) {
+        return None;
+    }
+    return Some(facts.type_names[index]);
+}
+
+func SemanticAstTypeSurfaceContains(
+    facts: SemanticAstTypeSurfaceFacts,
+    needle: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let type_name: Option<String> = SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(type_name) {
+            let resolved_type_name: String = UnwrapOption(type_name);
+            if StringIndexOf(resolved_type_name, needle) >= 0 {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstTypeSurfaceFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstTypeSurfaceFacts
+) -> Bool {
+    let rebuilt: SemanticAstTypeSurfaceFacts =
+        SemanticAstTypeSurfaceFactsFromArtifact(artifact);
+    let count: Int = SemanticAstTypeSurfaceCount(facts);
+    if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
+        SemanticAstTypeSurfaceCount(rebuilt) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.type_names[i] != rebuilt.type_names[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstTypeSurfaceFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Build\n    Parameters:\n      xs: Array<String>\n    Returns: Option<String>\n"
+    );
+    let facts: SemanticAstTypeSurfaceFacts =
+        SemanticAstTypeSurfaceFactsFromArtifact(artifact);
+    return SemanticAstTypeSurfaceFactsMatchArtifact(artifact, facts) &&
+        SemanticAstTypeSurfaceContains(facts, "Array<") &&
+        SemanticAstTypeSurfaceContains(facts, "String") &&
+        SemanticAstTypeSurfaceContains(facts, "Option<") &&
+        !SemanticAstTypeSurfaceContains(facts, "Float");
+}

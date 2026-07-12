@@ -141,6 +141,10 @@ remains backend-owned, while atom/value/auxiliary capture and string-safe
 call/token queries are semantic-owned. Nine runtime-family fixtures pass under
 C/LLVM-built tools.
 
+Eighth executable delta, 2026-07-13: runtime/header type usage now consumes
+canonical `SemanticAstTypeSurfaceFacts`; codegen no longer scans arena
+type-name rows. C/LLVM parity also locks the explicit LLVM `String` unwrap fact.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
@@ -152,9 +156,9 @@ than inheriting a global proof claim.
 
 Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
 have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
-The registry now carries 15 architectural rows plus six bounded self-host
+The registry now carries 15 architectural rows plus seven bounded self-host
 closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
-honestly split into `CLOSED=6 BRIDGE=6 ACTIVE=9`; only executable rung closure
+honestly split into `CLOSED=7 BRIDGE=6 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 

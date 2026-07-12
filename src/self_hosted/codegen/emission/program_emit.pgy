@@ -282,7 +282,9 @@ func GenerateCUnitFromSemanticArtifact(
     let base_env: CodegenTypeEnv = CodegenTypeEnv(env_acc[0], "");
     let usage: CodegenRuntimeUsageFacts =
         CodegenRuntimeUsageFactsFromSemanticAndArena(
-            semantic_analysis.expression_surfaces, arena, count
+            semantic_analysis.expression_surfaces,
+            semantic_analysis.type_surfaces,
+            arena, count
         );
     let uses_args: Bool = usage.uses_args;
 

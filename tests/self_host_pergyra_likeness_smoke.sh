@@ -176,7 +176,9 @@ SENTINEL_MAX=0
 # Option-returning semantic owner accessors instead of AST descendant scans.
 # 1243 -> 1258 (2026-07-13): runtime usage consumes Option-returning semantic
 # expression surfaces instead of direct arena atom/value/auxiliary rows.
-RESULT_USE_MIN=1258
+# 1258 -> 1264 (2026-07-13): runtime type usage consumes Option-returning
+# canonical semantic type-surface rows instead of arena type-name scans.
+RESULT_USE_MIN=1264
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

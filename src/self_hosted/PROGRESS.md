@@ -200,6 +200,11 @@ longer reads arena atom/value/auxiliary rows or parses calls locally. Nine
 runtime-family fixtures plus the role/enum hard legs are run-equal under
 C-built and LLVM-built tools.
 
+The eighth executable delta moved canonical runtime type usage to
+`SemanticAstTypeSurfaceFacts`. Codegen no longer scans arena type-name rows.
+The LLVM leg exposed and then closed one missing concrete `String` unwrap fact;
+the same nine runtime-family fixtures now pass C/LLVM parity.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
@@ -211,9 +216,9 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 21-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus six
-bounded self-host closure rows, with six `CLOSED`, six `BRIDGE`, and nine
+The whole compiler skeleton now has a machine-gated 22-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus seven
+bounded self-host closure rows, with seven `CLOSED`, six `BRIDGE`, and nine
 `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings
