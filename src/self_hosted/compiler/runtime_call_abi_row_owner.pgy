@@ -10,6 +10,7 @@ import "../codegen/runtime_abi/host_io_runtime_owner.pgy";
 import "../codegen/runtime_abi/math_runtime_owner.pgy";
 import "../codegen/runtime_abi/option_result_runtime_owner.pgy";
 import "../codegen/runtime_abi/string_runtime_owner.pgy";
+import "../codegen/runtime_abi/text_builder_runtime_owner.pgy";
 
 func CompilerRuntimeCallAbiRowSchema() -> String {
     return "pgy.selfhost.runtime-call-abi-row.v2";
@@ -50,6 +51,16 @@ func CompilerRuntimeCallAbiMaterialTargetLibrary() -> String {
 
 func CompilerRuntimeCallAbiMaterialMirResourceRow() -> String {
     return "mir_abi_resource_row";
+}
+
+func CompilerRuntimeCallAbiTextBuilderCallShape(operation: String) -> String {
+    if operation == "allocator.result" { return "returns_allocator"; }
+    if operation == "allocator.destroy" { return "allocator_ptr_to_void"; }
+    if operation == "new" { return "capacity_to_builder"; }
+    if operation == "append" { return "builder_ptr_string_to_void"; }
+    if operation == "finish" { return "builder_ptr_allocator_ptr_to_string"; }
+    if operation == "drop" { return "builder_ptr_to_void"; }
+    return "text_builder_runtime_call";
 }
 
 struct CompilerRuntimeCallAbiRowInput {
@@ -198,6 +209,9 @@ func CompilerRuntimeCallAbiCallShape(domain: String, operation: String, material
     if domain == "host-io" {
         return CompilerRuntimeCallAbiHostIoCallShape(operation);
     }
+    if domain == "selfhost-c-text-builder" {
+        return CompilerRuntimeCallAbiTextBuilderCallShape(operation);
+    }
     if materialization == CompilerRuntimeCallAbiMaterialTargetLibrary() {
         return "target_library_call";
     }
@@ -214,7 +228,7 @@ func CompilerRuntimeCallAbiRow(input: CompilerRuntimeCallAbiRowInput) -> String 
 }
 
 func CompilerRuntimeCallAbiConcreteRowCount() -> Int {
-    return 237;
+    return 243;
 }
 
 func CompilerRuntimeCallAbiNativeScalarTypeAt(index: Int) -> String {
@@ -440,6 +454,16 @@ func CompilerRuntimeCallAbiHostIoRowAt(index: Int) -> String {
     return "";
 }
 
+func CompilerRuntimeCallAbiTextBuilderRowAt(index: Int) -> String {
+    if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "allocator.result", TextBuilderRuntimeCAllocatorResultFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "allocator.destroy", TextBuilderRuntimeCAllocatorDestroyFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 2 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "new", TextBuilderRuntimeCNewFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 3 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "append", TextBuilderRuntimeCAppendFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 4 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "finish", TextBuilderRuntimeCFinishFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    if index == 5 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "drop", TextBuilderRuntimeCDropFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
+    return "";
+}
+
 func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 0 && index < 22 { return CompilerRuntimeCallAbiCollectionRowAt(index); }
     if index >= 22 && index < 38 { return CompilerRuntimeCallAbiOptionResultRowAt(index - 22); }
@@ -450,6 +474,7 @@ func CompilerRuntimeCallAbiRowAt(index: Int) -> String {
     if index >= 135 && index < 207 { return CompilerRuntimeCallAbiNativePinRowAt(index - 135); }
     if index >= 207 && index < 231 { return CompilerRuntimeCallAbiNativeSlotResourceRowAt(index - 159); }
     if index >= 231 && index < 237 { return CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index - 231); }
+    if index >= 237 && index < 243 { return CompilerRuntimeCallAbiTextBuilderRowAt(index - 237); }
     return "";
 }
 
@@ -495,5 +520,7 @@ func CompilerRuntimeCallAbiRowsReady() -> Bool {
         CompilerRuntimeCallAbiRowFor("native-resource", "SecureSlot<String>.UnpinCleanup") == "native-resource|SecureSlot<String>.UnpinCleanup|pgy_secure_unpin_cleanup_String|function|mir_abi_resource_row|pinned_view_ptr_to_void" &&
         CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<Int>.Claim") == "native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container" &&
         CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.Write") == "native-resource|DeviceSlot<String>.Write|pgy_device_write_String|function|mir_abi_resource_row|container_ptr_value_to_void" &&
-        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.SubmitRead") == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle";
+        CompilerRuntimeCallAbiRowFor("native-resource", "DeviceSlot<String>.SubmitRead") == "native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle" &&
+        CompilerRuntimeCallAbiRowFor("selfhost-c-text-builder", "new") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "new", TextBuilderRuntimeCNewFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper())) &&
+        CompilerRuntimeCallAbiRowFor("selfhost-c-text-builder", "finish") == CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("selfhost-c-text-builder", "finish", TextBuilderRuntimeCFinishFn(), CompilerRuntimeCallAbiMaterialGeneratedHelper()));
 }

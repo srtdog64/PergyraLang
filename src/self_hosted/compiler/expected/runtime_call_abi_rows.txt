@@ -1,5 +1,5 @@
 schema=pgy.selfhost.runtime-call-abi-row.v2
-count=237
+count=243
 0|collection|array-int.new|pgy_ai_new|function|generated_runtime_helper|returns_collection
 1|collection|array-int.push|pgy_ai_push|function|generated_runtime_helper|collection_value_to_void
 2|collection|array-int.set|pgy_ai_set|function|generated_runtime_helper|collection_index_value_to_void
@@ -237,3 +237,9 @@ count=237
 234|native-resource|DeviceSlot<Double>.SubmitRead|pgy_submit_device_read_Double|function|mir_abi_resource_row|container_ptr_to_task_handle
 235|native-resource|DeviceSlot<Bool>.SubmitRead|pgy_submit_device_read_Bool|function|mir_abi_resource_row|container_ptr_to_task_handle
 236|native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle
+237|selfhost-c-text-builder|allocator.result|pgy_allocator_result|function|generated_runtime_helper|returns_allocator
+238|selfhost-c-text-builder|allocator.destroy|pgy_allocator_destroy|function|generated_runtime_helper|allocator_ptr_to_void
+239|selfhost-c-text-builder|new|pgy_text_builder_new|function|generated_runtime_helper|capacity_to_builder
+240|selfhost-c-text-builder|append|pgy_text_builder_append|function|generated_runtime_helper|builder_ptr_string_to_void
+241|selfhost-c-text-builder|finish|pgy_text_builder_finish|function|generated_runtime_helper|builder_ptr_allocator_ptr_to_string
+242|selfhost-c-text-builder|drop|pgy_text_builder_drop|function|generated_runtime_helper|builder_ptr_to_void

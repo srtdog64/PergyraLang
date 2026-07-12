@@ -34,6 +34,8 @@ struct CodegenRuntimeUsageFacts {
     let uses_random_value: Bool;
     let uses_seed_random: Bool;
     let uses_random: Bool;
+    let uses_allocator: Bool;
+    let uses_text_builder: Bool;
 }
 
 func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRuntimeUsageFacts {
@@ -53,7 +55,8 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
     let uses_option: Bool = type_usage.has_option
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
         || CodegenExpressionUsageHasNone(expr_usage);
-    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option;
+    let uses_bool: Bool = type_usage.has_bool || uses_array_filter || uses_result || uses_option
+        || type_usage.has_allocator || type_usage.has_text_builder;
     let uses_exit: Bool = kind_usage.has_exit_stmt
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupExit());
     let uses_array: Bool = type_usage.has_array
@@ -80,6 +83,8 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
     let uses_random_value: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupRandomValue());
     let uses_seed_random: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSeedRandom());
     let uses_random: Bool = uses_random_value || uses_seed_random;
+    let uses_allocator: Bool = type_usage.has_allocator;
+    let uses_text_builder: Bool = type_usage.has_text_builder;
     return CodegenRuntimeUsageFacts(
         uses_args,
         uses_str,
@@ -104,6 +109,8 @@ func CodegenRuntimeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenRu
         uses_float,
         uses_random_value,
         uses_seed_random,
-        uses_random
+        uses_random,
+        uses_allocator,
+        uses_text_builder
     );
 }

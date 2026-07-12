@@ -47,6 +47,10 @@ struct SelfMirDeclarationRows {
     method_counts: Array<Int>;
     method_names: Array<String>;
     method_returns: Array<String>;
+    variant_starts: Array<Int>;
+    variant_counts: Array<Int>;
+    variant_names: Array<String>;
+    variant_param_counts: Array<Int>;
 }
 
 struct SelfMirRoutineRows {
@@ -59,6 +63,7 @@ struct SelfMirRoutineRows {
     param_counts: Array<Int>;
     param_names: Array<String>;
     param_types: Array<String>;
+    param_abi_kinds: Array<Int>;
     block_starts: Array<Int>;
     block_counts: Array<Int>;
     local_starts: Array<Int>;
@@ -75,6 +80,18 @@ struct SelfMirProgramFacts {
     declarations: SelfMirDeclarationRows;
     routines: SelfMirRoutineRows;
     cfg: SelfMirCfgRows;
+}
+
+func SelfMirParamCarriageName(abi_kind: Int) -> String {
+    if abi_kind == 1 { return "value-result"; }
+    if abi_kind == 2 { return "owner-handle"; }
+    if abi_kind == 3 || abi_kind == 4 { return "readonly-ref"; }
+    return "value";
+}
+
+func SelfMirParamPassName(abi_kind: Int) -> String {
+    if abi_kind == 4 { return "indirect"; }
+    return "direct";
 }
 
 func SelfMirInstructionRowsEmpty() -> SelfMirInstructionRows {
@@ -102,7 +119,7 @@ func SelfMirDeclarationRowsEmpty() -> SelfMirDeclarationRows {
     let strings: Array<String> = [];
     return SelfMirDeclarationRows(
         strings, strings, strings, ints, ints, strings, strings,
-        ints, ints, strings, strings
+        ints, ints, strings, strings, ints, ints, strings, ints
     );
 }
 
@@ -111,7 +128,7 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     let strings: Array<String> = [];
     return SelfMirRoutineRows(
         ints, strings, strings, strings, strings, ints, ints, strings,
-        strings, ints, ints, ints, ints, strings, strings
+        strings, ints, ints, ints, ints, ints, strings, strings
     );
 }
 

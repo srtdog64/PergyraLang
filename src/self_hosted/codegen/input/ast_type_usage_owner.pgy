@@ -13,6 +13,8 @@ struct CodegenTypeUsageFacts {
     let has_array: Bool;
     let has_ast_text_node_array: Bool;
     let has_float: Bool;
+    let has_allocator: Bool;
+    let has_text_builder: Bool;
 }
 
 func CodegenAstArenaTypePartContains(part: Option<String>, needle: String) -> Bool {
@@ -41,6 +43,8 @@ func CodegenTypeUsageFactsFromArena(arena: AstArena, count: Int) -> CodegenTypeU
         CodegenAstArenaTypeFactPresent(arena, count, "Bool"),
         CodegenAstArenaTypeFactPresent(arena, count, "Array<"),
         CodegenAstArenaTypeFactPresent(arena, count, "Array<CodegenAstTextNode"),
-        CodegenAstArenaTypeFactPresent(arena, count, "Float")
+        CodegenAstArenaTypeFactPresent(arena, count, "Float"),
+        CodegenAstArenaTypeFactPresent(arena, count, "Allocator"),
+        CodegenAstArenaTypeFactPresent(arena, count, "TextBuilder")
     );
 }

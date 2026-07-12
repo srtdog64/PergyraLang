@@ -28,16 +28,58 @@ if (Test-Path $stderrPath) {
     Remove-Item -LiteralPath $stderrPath -Force
 }
 
-$startInfo = @{
-    FilePath = $Command
-    ArgumentList = $Arguments
-    PassThru = $true
-    NoNewWindow = $true
-    RedirectStandardOutput = $stdoutPath
-    RedirectStandardError = $stderrPath
+function ConvertTo-NativeArgument {
+    param([string]$Value)
+
+    if ($Value.Length -gt 0 -and $Value -notmatch '[\s"]') {
+        return $Value
+    }
+    $builder = New-Object System.Text.StringBuilder
+    [void]$builder.Append('"')
+    $slashes = 0
+    foreach ($ch in $Value.ToCharArray()) {
+        if ($ch -eq '\') {
+            $slashes++
+        }
+        elseif ($ch -eq '"') {
+            [void]$builder.Append(('\' * (($slashes * 2) + 1)))
+            [void]$builder.Append('"')
+            $slashes = 0
+        }
+        else {
+            [void]$builder.Append(('\' * $slashes))
+            [void]$builder.Append($ch)
+            $slashes = 0
+        }
+    }
+    [void]$builder.Append(('\' * ($slashes * 2)))
+    [void]$builder.Append('"')
+    return $builder.ToString()
 }
 
-$process = Start-Process @startInfo
+# A probe invoked from a Make target must start a fresh build owner. Inheriting
+# GNU make's jobserver handles/level through PowerShell can detach or misreport
+# the measured child on Windows.
+$env:MAKEFLAGS = $null
+$env:MFLAGS = $null
+$env:MAKELEVEL = $null
+
+$processInfo = New-Object System.Diagnostics.ProcessStartInfo
+$processInfo.FileName = $Command
+$processInfo.Arguments = (($Arguments | ForEach-Object {
+    ConvertTo-NativeArgument -Value $_
+}) -join ' ')
+$processInfo.UseShellExecute = $false
+$processInfo.CreateNoWindow = $true
+$processInfo.RedirectStandardOutput = $true
+$processInfo.RedirectStandardError = $true
+$process = New-Object System.Diagnostics.Process
+$process.StartInfo = $processInfo
+if (-not $process.Start()) {
+    throw "failed to start measured build"
+}
+$stdoutTask = $process.StandardOutput.ReadToEndAsync()
+$stderrTask = $process.StandardError.ReadToEndAsync()
 $started = Get-Date
 $peakWorkingSet = 0.0
 $peakPrivate = 0.0
@@ -97,11 +139,12 @@ while (-not $process.HasExited) {
         }
         $commandLine = [string]$row.CommandLine
         $processName = [string]$row.Name
-        if ($commandLine -match '(^|\s)-c(\s|$)') {
+        $isCompiler = $processName -match `
+            '^(cc|gcc|g\+\+|clang|clang\+\+|clang-cl)(\.exe)?$'
+        if ($isCompiler -and $commandLine -match '(^|\s)-c(\s|$)') {
             $compileProcCount++
         }
-        elseif ($processName -match '^(cc|gcc|g\+\+|clang|clang\+\+)(\.exe)?$' `
-            -and $commandLine -match '(^|\s)-o(\s|$)') {
+        elseif ($isCompiler -and $commandLine -match '(^|\s)-o(\s|$)') {
             $linkProcCount++
         }
     }
@@ -167,11 +210,18 @@ while (-not $process.HasExited) {
 }
 
 $process.WaitForExit()
-$process.Refresh()
-$exitCode = $process.ExitCode
-if ($null -eq $exitCode) {
-    $exitCode = 0
-}
+$exitCode = [int]$process.ExitCode
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText(
+    [System.IO.Path]::GetFullPath($stdoutPath),
+    $stdoutTask.Result,
+    $utf8NoBom
+)
+[System.IO.File]::WriteAllText(
+    [System.IO.Path]::GetFullPath($stderrPath),
+    $stderrTask.Result,
+    $utf8NoBom
+)
 if ($timedOut) {
     $exitCode = 124
 }

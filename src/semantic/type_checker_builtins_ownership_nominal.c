@@ -313,16 +313,34 @@ type_check_text_builder_builtin(ASTNode *call, SemanticContext *ctx,
             "%s requires a live TextBuilder owner", operation);
         return TYPE_UNKNOWN;
     }
+    bool owner_in_current_function = false;
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        if (scope_lookup_current(scope, builder_symbol->name)
+            == builder_symbol) {
+            owner_in_current_function = true;
+            break;
+        }
+        if (scope->kind == SCOPE_FUNCTION)
+            break;
+    }
+    bool requires_declaration_scope =
+        kind == BUILTIN_TEXT_BUILDER_FINISH
+        || kind == BUILTIN_TEXT_BUILDER_DROP;
     if (builder_symbol->is_parameter
-        || scope_lookup_current(ctx->scope, builder_symbol->name)
-            != builder_symbol) {
+        || !owner_in_current_function
+        || (requires_declaration_scope
+            && scope_lookup_current(ctx->scope, builder_symbol->name)
+                != builder_symbol)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             ast_call_argument(call, 0),
-            "%s requires a TextBuilder local in its declaration scope; parameter and nested-scope access is not yet ownership-safe",
-            operation);
+            "%s requires a TextBuilder local owned by the current function%s",
+            operation,
+            requires_declaration_scope
+                ? " and consumed in its declaration scope"
+                : "");
         return TYPE_UNKNOWN;
     }
 

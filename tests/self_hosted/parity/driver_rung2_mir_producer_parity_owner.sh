@@ -68,6 +68,40 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
+        if [[ "$base" == "indexed_assignment" ]]; then
+            grep -Fq '"expr1":"values[i]"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend indexed target fact was lost" >&2
+                exit 1
+            }
+            grep -Fq '"uses":["values.1","i.1","j.1"]' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend indexed target/RHS use facts drifted" >&2
+                exit 1
+            }
+        fi
+        if [[ "$base" == "if_else_assign" ]]; then
+            grep -Fq '"kind":"phi"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend branch phi fact was lost" >&2
+                exit 1
+            }
+            grep -Fq '"uses":["value.3","value.4"]' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend branch incoming versions drifted" >&2
+                exit 1
+            }
+        fi
+        if [[ "$base" == "param_carriage" ]]; then
+            grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","pass":"indirect"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend readonly-ref aggregate ABI fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"name":"value","type":"Int","carriage":"value-result","pass":"direct"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend value-result ABI fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"name":"values","type":"Array<Int>","carriage":"owner-handle","pass":"direct"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend owner-handle ABI fact drifted" >&2
+                exit 1
+            }
+        fi
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \

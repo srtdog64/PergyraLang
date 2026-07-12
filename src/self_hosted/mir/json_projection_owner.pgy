@@ -133,6 +133,12 @@ func SelfMirJsonRoutine(
                 SelfMirJsonOptionalString(
                     SelfMirOptionalString(rows.param_types[row])
                 )
+            ),
+            JsonEmitFieldString(
+                "carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])
+            ),
+            JsonEmitFieldString(
+                "pass", SelfMirParamPassName(rows.param_abi_kinds[row])
             )
         ];
         ArrayPush(params, JsonEmitObject(fields));
@@ -201,6 +207,21 @@ func SelfMirJsonDeclaration(
         ArrayPush(methods, JsonEmitObject(method));
         method_i = method_i + 1;
     }
+    let variants: Array<String> = [];
+    let variant_i: Int = 0;
+    while variant_i < rows.variant_counts[declaration_index] {
+        let variant_row: Int =
+            rows.variant_starts[declaration_index] + variant_i;
+        let variant: Array<String> = [
+            JsonEmitFieldString("name", rows.variant_names[variant_row]),
+            JsonEmitFieldNumber(
+                "param_count",
+                ToString(rows.variant_param_counts[variant_row])
+            )
+        ];
+        ArrayPush(variants, JsonEmitObject(variant));
+        variant_i = variant_i + 1;
+    }
     let fields: Array<String> = [
         JsonEmitFieldString("kind", rows.kinds[declaration_index]),
         JsonEmitFieldString(
@@ -210,6 +231,9 @@ func SelfMirJsonDeclaration(
         JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
         JsonEmitFieldRaw("methods", JsonEmitArray(methods))
     ];
+    if rows.kinds[declaration_index] == "enum" {
+        ArrayPush(fields, JsonEmitFieldRaw("variants", JsonEmitArray(variants)));
+    }
     return JsonEmitObject(fields);
 }
 

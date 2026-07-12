@@ -14,11 +14,17 @@ require() {
 require 'schema = "pgy.build-pressure.v2"'
 require 'compile_proc_count'
 require 'link_proc_count'
+require '$isCompiler -and $commandLine'
 require '$phaseStats'
 require 'peak_working_set_mb'
 require 'peak_private_mb'
 require 'ConvertTo-Json -Depth 4'
 require '$summaryPath'
+require '$env:MAKEFLAGS = $null'
+require '$env:MAKELEVEL = $null'
+require 'New-Object System.Diagnostics.ProcessStartInfo'
+require '$exitCode = [int]$process.ExitCode'
+require 'New-Object System.Text.UTF8Encoding($false)'
 
 grep -Fq 'PGY_BUILD_PRESSURE_LIMIT_MB ?= 3072' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] missing 3 GiB build ceiling" >&2; exit 1; }

@@ -542,5 +542,5 @@ if [[ "${#SKIPPED_BACKENDS[@]}" -gt 0 ]]; then
     BACKENDS_LABEL="$BACKENDS_LABEL; ${SKIPPED_BACKENDS[*]} skipped"
 fi
 
-printf '[self-host-parity:codegen] rung-0..20 parity ok: fixtures=%s backends=%s\n' \
+printf '[self-host-parity:codegen] rung-0..21 parity ok: fixtures=%s backends=%s\n' \
     "${#FIXTURES[@]}" "$BACKENDS_LABEL"

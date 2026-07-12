@@ -53,6 +53,24 @@ func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {
     return None;
 }
 
+func SelfMirIfElseLoweringRoot(arena: AstArena, if_node_id: Int) -> Option<Int> {
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        arena, if_node_id, child_index
+    );
+    while IsSome(child_opt) {
+        let child_id: Int = UnwrapOption(child_opt);
+        if TypedAstArenaNodeKindIs(arena, child_id, TypedAstKindElseStmtTag()) {
+            let body_opt: Option<Int> = SelfMirControlBodyBlock(arena, child_id);
+            if IsSome(body_opt) { return body_opt; }
+            return Some(child_id);
+        }
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(arena, if_node_id, child_index);
+    }
+    return None;
+}
+
 func SelfMirFunctionBodyBlock(
     arena: AstArena, function_node_id: Int
 ) -> Option<Int> {

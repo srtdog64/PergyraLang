@@ -15,7 +15,7 @@ that writes through the emission boundary. The current self-host C subset uses
 for supported self-host C runtime helper symbol spelling. The files under
 `emission/` are action participants, not separate zones.
 
-## Rung-0..20 (2026-06-24) - active
+## Rung-0..21 (2026-07-12) - active
 
 `main.pgy` is the thin CLI entrypoint. It imports owner modules through
 resource-shaped subdirectories:
@@ -82,6 +82,8 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
 - `Result<Int>` param/return -> value-passed `pgy_result_int`
 - `Option<Int>` param/return -> value-passed `pgy_option_int`
 - `Option<String>` param/return -> value-passed `pgy_option_string`
+- `Allocator` local -> value-passed `PgyAllocator`; `TextBuilder` local ->
+  move-only `PgyTextBuilder` consumed by `Finish` or `Drop`
 - `inout` parameters are preserved by the parser AST text, recorded as per-function
   `pm` facts, lowered as C pointer parameters with local copy-in/copy-out, and
   call arguments are rewritten to `&name` only from that recorded mode fact.
@@ -137,6 +139,11 @@ including the argv-capable entrypoint when the fixture uses `Args()`.
 - `Defer:` -> local block-exit emission in reverse registration order. Return
   paths emit the currently active defer stack before returning; broader
   resource/defer semantics remain owned by the native backend path.
+- `TextBuilderNew` / `Append` / `Finish` / `Drop` plus `AllocatorResult` /
+  `AllocatorDestroy` lower through owner-projected ABI rows. Program C-unit
+  assembly, binding-reference rewriting, and repeated token replacement use
+  this path in the emitter itself, so gen2 and gen3 exercise it rather than
+  treating it as a fixture-only builtin.
 
 `<intexpr>` / `<cond>` is the C-compatible parenthesized infix the AST printer
 produces (`+ - * / %`, comparisons, `&& ||`, `!`, identifiers, `Name(args)`
@@ -221,6 +228,10 @@ return, local, struct/class field, nominal struct type, and empty
 parameter-list declarations in the supported subset; emitters must consume that
 owner instead of locally mapping `Int` / `String` / aggregate or
 empty-signature facts to C spellings.
+`runtime_abi/text_builder_runtime_owner.pgy` owns the standalone C projection
+for Allocator/TextBuilder layout and call spelling. The compiler runtime-call
+artifact carries the same operations and call shapes; emitters do not invent
+the helper names locally.
 `runtime_abi/collection_runtime_owner.pgy` owns C collection runtime helper
 symbol spelling for the supported `Array<Int>` / `Array<String>` subset and the
 bootstrap-only `Array<CodegenAstTextNode>` typed AST-line bridge. It also

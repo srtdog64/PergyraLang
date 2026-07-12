@@ -61,6 +61,14 @@ func EmitLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx:
         ArraySet(env_box, 0, TypeEnvAppendValueBinding(env_box[0], name, "String", c_name));
         return Concat(AbiLayoutCLocalType(type_name, env_box[0]), Concat(" ", Concat(c_name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";")))));
     }
+    if type_name == "Allocator" || type_name == "TextBuilder" {
+        ArraySet(env_box, 0, TypeEnvAppendValueBinding(
+            env_box[0], name, type_name, c_name
+        ));
+        return Concat(AbiLayoutCLocalType(type_name, env_box[0]),
+            Concat(" ", Concat(c_name, Concat(" = ",
+                Concat(RewriteExpr(expr, env_box[0]), ";")))));
+    }
     if StartsWith(type_name, "Array<") {
         // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
         // `[a, b, c]` literal lowers to `new()` plus one `push` per element;

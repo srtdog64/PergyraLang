@@ -13,18 +13,21 @@ func ReplaceAll(s: String, from: String, to: String) -> String {
         return s;
     }
     let n: Int = StringLength(s);
-    let out: String = "";
+    let result_allocator: Allocator = AllocatorResult();
+    let out: TextBuilder = TextBuilderNew(n + 1);
     let i: Int = 0;
     while i < n {
-        if i + fl <= n && Substring(s, i, fl) == from {
-            out = Concat(out, to);
+        if i + fl <= n && SubEqualsWithLen(s, n, i, fl, from) {
+            TextBuilderAppend(out, to);
             i = i + fl;
         } else {
-            out = Concat(out, CodegenCharAt(s, i));
+            TextBuilderAppend(out, CodegenCharAt(s, i));
             i = i + 1;
         }
     }
-    return out;
+    let replaced: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return replaced;
 }
 
 // Like ReplaceAll, but never matches inside a C string literal -- so a builtin
@@ -37,15 +40,16 @@ func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
         return s;
     }
     let n: Int = StringLength(s);
-    let out: String = "";
+    let result_allocator: Allocator = AllocatorResult();
+    let out: TextBuilder = TextBuilderNew(n + 1);
     let i: Int = 0;
     let in_str: Bool = false;
     while i < n {
         let c: String = CodegenCharAt(s, i);
         if in_str {
-            out = Concat(out, c);
+            TextBuilderAppend(out, c);
             if c == "\\" && i + 1 < n {
-                out = Concat(out, CodegenCharAt(s, i + 1));
+                TextBuilderAppend(out, CodegenCharAt(s, i + 1));
                 i = i + 2;
                 continue;
             }
@@ -57,24 +61,25 @@ func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
         }
         if c == "\"" {
             in_str = true;
-            out = Concat(out, c);
+            TextBuilderAppend(out, c);
             i = i + 1;
             continue;
         }
         // Word-boundary check: only replace `Name(` when it is not the suffix
         // of a longer identifier (e.g. don't rewrite `Args(` inside
         // `CompareCallArgs(`). The previous output char must not be ident-ish.
-        let ol: Int = StringLength(out);
-        let boundary_ok: Bool = ol == 0 || !IsIdentChar(CodegenCharAt(out, ol - 1));
-        if boundary_ok && i + fl <= n && Substring(s, i, fl) == from {
-            out = Concat(out, to);
+        let boundary_ok: Bool = i == 0 || !IsIdentChar(CodegenCharAt(s, i - 1));
+        if boundary_ok && i + fl <= n && SubEqualsWithLen(s, n, i, fl, from) {
+            TextBuilderAppend(out, to);
             i = i + fl;
             continue;
         }
-        out = Concat(out, c);
+        TextBuilderAppend(out, c);
         i = i + 1;
     }
-    return out;
+    let replaced: String = TextBuilderFinish(out, result_allocator);
+    AllocatorDestroy(result_allocator);
+    return replaced;
 }
 
 // Rewrite `ArrayLength(<arr>)` through the collection runtime symbol owner per

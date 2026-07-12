@@ -14,6 +14,10 @@ struct SelfMirRoutineBuild {
     local_versions: Array<Int>;
 }
 
+func SelfMirSsaName(name: String, version: Int) -> String {
+    return Concat(name, Concat(".", ToString(version)));
+}
+
 func SelfMirRoutineBuildEmpty() -> SelfMirRoutineBuild {
     let cfg: SelfMirCfgRows = SelfMirCfgAddBlock(SelfMirCfgRowsEmpty());
     let empty_strings: Array<String> = [];
@@ -163,5 +167,44 @@ func SelfMirRoutineSetLocalVersion(
         build.ok, build.diagnostic_message, build.cfg, build.current_block,
         build.next_instruction_id, build.terminated,
         build.local_names, build.local_types, versions
+    );
+}
+
+func SelfMirRoutineAdvanceLocalVersion(
+    build: SelfMirRoutineBuild,
+    local_index: Int
+) -> SelfMirRoutineBuild {
+    return SelfMirRoutineSetLocalVersion(
+        build, local_index, build.next_instruction_id + 1
+    );
+}
+
+func SelfMirLocalVersionsSnapshot(versions: Array<Int>) -> Array<Int> {
+    let snapshot: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(versions) {
+        ArrayPush(snapshot, versions[i]);
+        i = i + 1;
+    }
+    return snapshot;
+}
+
+func SelfMirRoutineAtLocalVersions(
+    build: SelfMirRoutineBuild,
+    versions: Array<Int>
+) -> SelfMirRoutineBuild {
+    let restored: Array<Int> = SelfMirLocalVersionsSnapshot(versions);
+    if ArrayLength(restored) > ArrayLength(build.local_names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR restored local versions exceed local inventory"
+        );
+    }
+    while ArrayLength(restored) < ArrayLength(build.local_names) {
+        ArrayPush(restored, 0);
+    }
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, build.cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, restored
     );
 }

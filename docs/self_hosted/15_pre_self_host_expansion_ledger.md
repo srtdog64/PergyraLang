@@ -756,8 +756,9 @@ type owner, its DRV-2 owner/entrypoint, and the shared source-scan owner replace
 the deleted payload alias and parser/semantic duplicate scanner definitions.
 The builtin signature table is also a single owner consumed by both the legacy
 source checker and DRV-2; the old per-consumer push block no longer exists.
-The canonical table has 77 rows, including the fail-closed `Die` builtin used
-by independent codegen-view source checks.
+The canonical table has 83 rows, including the fail-closed `Die` builtin used
+by independent codegen-view source checks and the six Allocator/TextBuilder
+signatures consumed by the self-host emission owner.
 Expression payload validation now has one artifact consumer order: call,
 undefined-use, try, logical, binary, then inferred type. Initializer,
 assignment, return, condition, log/exit/match, and bare-call rows consume that

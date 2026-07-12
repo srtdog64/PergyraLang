@@ -46,13 +46,15 @@ records routing, not a production-readiness claim.
   the blocked-send witness repeatedly with a per-run timeout. The current local
   result is C 64/64 and LLVM 64/64. Linux CI runs 32 iterations per backend;
   repeated CI evidence is required before closing the intermittent finding.
-- TextBuilder rung 1 closes one compiler text-owner slice. The language surface
+- TextBuilder rung 2 closes the first measured compiler text-owner slice. The language surface
   is move-only and fail-closed, each MIR call instruction carries a typed
   target-specific runtime-call ABI row, and C/LLVM consume that row. ABI/MIR
   mutation, C/LLVM differential, negative owner-exit, runtime-bitcode export,
-  and memory-lifetime witnesses are present. This is not yet a self-host memory
-  win: no measured emission owner consumes TextBuilder and the 3.7 GiB probe has
-  not been rerun.
+and memory-lifetime witnesses are present. Program assembly and repeated token
+rewrites now consume the owner. Same-input two-run sampling lowers peak
+private memory from 3,347.3-3,394.5 MB to 1,989.5-1,990.4 MB while emitted C
+  remains byte-identical. The remaining roughly 2.0 GiB is still active
+  ordinary-String lifetime debt.
 
 ## Remaining Work Order
 
@@ -60,11 +62,23 @@ records routing, not a production-readiness claim.
    it fails, preserve the exact backend, iteration, timeout, stdout, and stderr.
 2. Continue hard self-host replacement through typed owner facts and verifier
    parity. Do not replace missing MIR facts with source-text or AST recovery.
-3. Repoint one measured self-host emission owner to the bounded TextBuilder
-   surface, then remeasure the full emission peak before increasing memory
-   limits or broadening the owner into parameters, fields, and containers.
+3. Continue repointing the remaining per-character expression/literal/statement
+   owners and add scope reclamation for ordinary String temporaries. Do not
+   increase memory limits or broaden owner transfer without CFG/MIR evidence.
 4. Move remaining executable capture/call-ABI facts into MIR-owned rows, with C,
    LLVM, and self-hosted consumers reading the same records.
+
+## Integrated Bootstrap Refresh
+
+The MIR-producing integrated driver now builds its full-source gen2 artifact.
+Before the expensive full-source gen3 emit, the bootstrap runner consumes the
+TestHarness-owned `mir_lower` source path and requires seed/gen2 emitted C to be
+byte-identical. The current measured preflight completed in 34.5 seconds with
+matching SHA-256 output. The full-source gen3 comparison was intentionally not
+rerun after its cold gen2 phase took about 52 minutes, so the integrated
+MIR-producing fixed point remains open. This is a CPU/algorithmic build-cost
+blocker, not a memory-exhaustion result; working/private memory stayed near
+1.1-1.2 GB during that run.
 
 Current rule:
 

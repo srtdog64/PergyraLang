@@ -60,7 +60,8 @@ fi
 
 DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"
 SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"
-for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
+MIR_LOWER_SOURCE="$ROOT_DIR/${paths[4]}"
+for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$MIR_LOWER_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-driver-bootstrap] missing bootstrap input: $path" >&2
         exit 1
@@ -144,6 +145,19 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
 
 run_driver_to_file "gen2_emit" "$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"
 compile_c "driver_gen2" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen2.exe"
+
+# The full driver fixed point is intentionally expensive. Prove the MIR-lower
+# owner boundary first so carriage/CFG drift fails before another full emit.
+run_driver_to_file "mir_lower_seed" "$BUILD_DIR/driver_seed.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_seed.c"
+run_driver_to_file "mir_lower_gen2" "$BUILD_DIR/driver_gen2.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_gen2.c"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-driver-bootstrap:mir-lower-preflight" \
+    "$BUILD_DIR" \
+    "$BUILD_DIR/mir_lower_seed.c" \
+    "$BUILD_DIR/mir_lower_gen2.c" \
+    "emitted_c"
+echo "[self-host-driver-bootstrap] MIR-lower preflight fixed point ok"
+
 run_driver_to_file "gen3_emit" "$BUILD_DIR/driver_gen2.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen3.c"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "self-host-driver-bootstrap:fixpoint" \

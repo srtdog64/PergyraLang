@@ -4,7 +4,8 @@ import "program_fact_owner.pgy";
 import "routine_lower_owner.pgy";
 
 func SelfMirDeclarationsFromAnalysis(
-    analysis: SemanticAstArtifactAnalysis
+    analysis: SemanticAstArtifactAnalysis,
+    enum_facts: SemanticAstEnumFacts
 ) -> SelfMirDeclarationRows {
     let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
     let kinds: Array<String> = rows.kinds;
@@ -18,6 +19,10 @@ func SelfMirDeclarationsFromAnalysis(
     let method_counts: Array<Int> = rows.method_counts;
     let method_names: Array<String> = rows.method_names;
     let method_returns: Array<String> = rows.method_returns;
+    let variant_starts: Array<Int> = rows.variant_starts;
+    let variant_counts: Array<Int> = rows.variant_counts;
+    let variant_names: Array<String> = rows.variant_names;
+    let variant_param_counts: Array<Int> = rows.variant_param_counts;
     let i: Int = 0;
     while i < SemanticAstNominalConstructorCount(analysis.constructors) {
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
@@ -61,12 +66,42 @@ func SelfMirDeclarationsFromAnalysis(
             signature_i = signature_i + 1;
         }
         ArrayPush(method_counts, method_count);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        ArrayPush(variant_counts, 0);
         i = i + 1;
+    }
+    let enum_i: Int = 0;
+    while enum_i < ArrayLength(enum_facts.enum_names) {
+        let enum_name: String = enum_facts.enum_names[enum_i];
+        ArrayPush(kinds, "enum");
+        ArrayPush(nominal_kinds, "enum");
+        ArrayPush(names, enum_name);
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, 0);
+        ArrayPush(method_starts, ArrayLength(method_names));
+        ArrayPush(method_counts, 0);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        let enum_variant_count: Int = 0;
+        let variant_i: Int = 0;
+        while variant_i < ArrayLength(enum_facts.variant_names) {
+            if enum_facts.variant_enum_names[variant_i] == enum_name {
+                ArrayPush(variant_names, enum_facts.variant_names[variant_i]);
+                ArrayPush(
+                    variant_param_counts,
+                    enum_facts.variant_param_counts[variant_i]
+                );
+                enum_variant_count = enum_variant_count + 1;
+            }
+            variant_i = variant_i + 1;
+        }
+        ArrayPush(variant_counts, enum_variant_count);
+        enum_i = enum_i + 1;
     }
     return SelfMirDeclarationRows(
         kinds, nominal_kinds, names, field_starts, field_counts,
         field_names, field_types, method_starts, method_counts,
-        method_names, method_returns
+        method_names, method_returns, variant_starts, variant_counts,
+        variant_names, variant_param_counts
     );
 }
 
@@ -169,6 +204,7 @@ func SelfMirAppendRoutine(
     let param_counts: Array<Int> = rows.param_counts;
     let param_names: Array<String> = rows.param_names;
     let param_types: Array<String> = rows.param_types;
+    let param_abi_kinds: Array<Int> = rows.param_abi_kinds;
     let block_starts: Array<Int> = rows.block_starts;
     let block_counts: Array<Int> = rows.block_counts;
     let local_starts: Array<Int> = rows.local_starts;
@@ -192,11 +228,29 @@ func SelfMirAppendRoutine(
     while param_i < analysis.signatures.param_counts[signature_index] {
         let row: Int = param_start + param_i;
         ArrayPush(param_names, analysis.signatures.param_names[row]);
+        let param_type: String = analysis.signatures.param_types[row];
         if owner != "" && analysis.signatures.param_names[row] == "self" {
             ArrayPush(param_types, "");
         } else {
-            ArrayPush(param_types, analysis.signatures.param_types[row]);
+            ArrayPush(param_types, param_type);
         }
+        let abi_kind: Int = 0;
+        let mode: Int = analysis.signatures.param_modes[row];
+        if mode == 1 {
+            abi_kind = 1;
+        } else if mode == 2 {
+            abi_kind = 2;
+        } else if mode == 3 {
+            abi_kind = 3;
+            let constructor_i: Int = 0;
+            while constructor_i < ArrayLength(analysis.constructors.names) {
+                if analysis.constructors.names[constructor_i] == param_type {
+                    abi_kind = 4;
+                }
+                constructor_i = constructor_i + 1;
+            }
+        }
+        ArrayPush(param_abi_kinds, abi_kind);
         param_i = param_i + 1;
     }
     ArrayPush(block_starts, ArrayLength(facts.cfg.blocks.ids));
@@ -215,6 +269,7 @@ func SelfMirAppendRoutine(
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, return_types,
             param_starts, param_counts, param_names, param_types,
+            param_abi_kinds,
             block_starts, block_counts, local_starts, local_counts,
             local_names, local_types
         ),
@@ -293,9 +348,18 @@ func SelfMirProgramFactsFromArtifact(
             "MIR producer requires matching semantic artifact facts"
         );
     }
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enum_facts.ok {
+        return SelfMirProgramFactsError(
+            facts, "mir_artifact_invalid",
+            "MIR producer requires complete enum variant facts"
+        );
+    }
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count,
-        SelfMirDeclarationsFromAnalysis(analysis), facts.routines, facts.cfg
+        SelfMirDeclarationsFromAnalysis(analysis, enum_facts),
+        facts.routines, facts.cfg
     );
     let input: SelfMirRoutineInput = SelfMirRoutineInput(artifact, analysis);
     let i: Int = 0;

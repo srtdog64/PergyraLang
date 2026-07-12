@@ -101,9 +101,15 @@ pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)
         PGY_PANIC("TextBuilder result length overflow");
 
     result_size = builder->length + 1;
-    result = (char *)pgy_alloc(result_allocator, result_size, _Alignof(char));
-    memcpy(result, builder->data, result_size);
-    pgy_free(NULL, builder->data, builder->capacity);
+    if (result_allocator == NULL || result_allocator->pool == NULL) {
+        result = builder->data;
+        pgy_allocator_record_alloc(result_allocator, result_size);
+    } else {
+        result = (char *)pgy_alloc(result_allocator, result_size,
+                                  _Alignof(char));
+        memcpy(result, builder->data, result_size);
+        pgy_free(NULL, builder->data, builder->capacity);
+    }
     builder->data = NULL;
     builder->length = 0;
     builder->capacity = 0;

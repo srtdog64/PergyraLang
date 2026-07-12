@@ -8,9 +8,11 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_mir_ssa_names.h"
 #include "transpiler_type_require.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 void
 transpiler_defer_scope_push(TranspilerCtx *ctx)
@@ -135,9 +137,21 @@ transpiler_emit_mut_ref_writebacks(TranspilerCtx *ctx)
     if (ctx == NULL)
         return;
     for (int i = 0; i < ctx->mut_ref_param_count; i++) {
+        const char *writeback_value = transpiler_resolve_active_ssa_name(
+            ctx, ctx->mut_ref_param_names[i]);
+        char *owned_writeback_value = NULL;
+        if (writeback_value != NULL) {
+            owned_writeback_value = transpiler_make_c_ssa_name(
+                ctx, writeback_value);
+            writeback_value = owned_writeback_value;
+        }
+        if (writeback_value == NULL) {
+            writeback_value = ctx->mut_ref_param_names[i];
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "*%s__mutref = %s;\n",
-            ctx->mut_ref_param_names[i], ctx->mut_ref_param_names[i]);
+            ctx->mut_ref_param_names[i], writeback_value);
+        free(owned_writeback_value);
     }
 }
 

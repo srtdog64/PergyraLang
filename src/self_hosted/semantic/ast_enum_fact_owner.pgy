@@ -9,6 +9,7 @@ struct SemanticAstEnumFacts {
     enum_names: Array<String>;
     variant_enum_names: Array<String>;
     variant_names: Array<String>;
+    variant_param_counts: Array<Int>;
 }
 
 func SemanticAstEnumFactsFromArtifact(
@@ -17,6 +18,7 @@ func SemanticAstEnumFactsFromArtifact(
     let enum_names: Array<String> = [];
     let variant_enum_names: Array<String> = [];
     let variant_names: Array<String> = [];
+    let variant_param_counts: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -45,14 +47,24 @@ func SemanticAstEnumFactsFromArtifact(
                         let variant: String = StringTrim(variants[variant_index]);
                         let paren: Int = StringIndexOf(variant, "(");
                         let variant_name: String = variant;
+                        let param_count: Int = 0;
                         if paren >= 0 {
                             variant_name = StringTrim(Substring(variant, 0, paren));
+                            let close: Int = StringIndexOf(variant, ")");
+                            if close <= paren {
+                                ok = false;
+                            } else if StringLength(StringTrim(Substring(
+                                variant, paren + 1, close - paren - 1
+                            ))) > 0 {
+                                param_count = 1;
+                            }
                         }
                         if StringLength(variant_name) == 0 {
                             ok = false;
                         } else {
                             ArrayPush(variant_enum_names, enum_name);
                             ArrayPush(variant_names, variant_name);
+                            ArrayPush(variant_param_counts, param_count);
                         }
                         variant_index = variant_index + 1;
                     }
@@ -62,7 +74,8 @@ func SemanticAstEnumFactsFromArtifact(
         node_id = node_id + 1;
     }
     return SemanticAstEnumFacts(
-        ok, artifact.count, enum_names, variant_enum_names, variant_names
+        ok, artifact.count, enum_names, variant_enum_names, variant_names,
+        variant_param_counts
     );
 }
 
@@ -71,7 +84,8 @@ func SemanticAstEnumExpressionType(
     expression: String
 ) -> Option<String> {
     if !facts.ok ||
-        ArrayLength(facts.variant_enum_names) != ArrayLength(facts.variant_names) {
+        ArrayLength(facts.variant_enum_names) != ArrayLength(facts.variant_names) ||
+        ArrayLength(facts.variant_param_counts) != ArrayLength(facts.variant_names) {
         return None;
     }
     let dot: Int = StringIndexOf(expression, ".");

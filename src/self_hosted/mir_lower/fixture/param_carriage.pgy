@@ -1,0 +1,26 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func ReadAggregate(ref pair: Pair) -> Int {
+    return pair.left + pair.right;
+}
+
+func Mutate(inout value: Int) -> Void {
+    value = value + 1;
+}
+
+func Consume(own values: Array<Int>) -> Int {
+    return ArrayLength(values);
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair(20, 22);
+    let value: Int = 1;
+    let values: Array<Int> = [1, 2];
+    Mutate(value);
+    Log(ToString(value));
+    Log(ToString(Consume(values)));
+    Log(ToString(ReadAggregate(pair)));
+}

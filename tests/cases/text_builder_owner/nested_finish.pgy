@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let result: Allocator = AllocatorResult();
+    let text: TextBuilder = TextBuilderNew(8);
+    if true {
+        let finished: String = TextBuilderFinish(text, result);
+        Print(finished);
+    }
+    AllocatorDestroy(result);
+}

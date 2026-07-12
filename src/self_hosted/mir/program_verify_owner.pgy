@@ -10,6 +10,47 @@ func SelfMirParallelStringCount(count: Int, rows: Array<String>) -> Bool {
     return ArrayLength(rows) == count;
 }
 
+func SelfMirInstructionUsesLocalVersion(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int,
+    local_name: String
+) -> Bool {
+    let prefix: String = Concat(local_name, ".");
+    let i: Int = 0;
+    while i < rows.use_counts[instruction_index] {
+        let use_name: String = rows.uses[
+            rows.use_starts[instruction_index] + i
+        ];
+        if StringLength(use_name) > StringLength(prefix) &&
+            Substring(use_name, 0, StringLength(prefix)) == prefix {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SelfMirIndexedAssignmentUseReady(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> Bool {
+    if rows.source_types[instruction_index] != "AST_ASSIGNMENT" {
+        return true;
+    }
+    let target: String = rows.expr1s[instruction_index];
+    if target == "" {
+        return false;
+    }
+    let index_open: Int = StringIndexOf(target, "[");
+    if index_open < 0 {
+        return true;
+    }
+    let base_name: String = StringTrim(Substring(target, 0, index_open));
+    return base_name != "" && SelfMirInstructionUsesLocalVersion(
+        rows, instruction_index, base_name
+    );
+}
+
 func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
     let count: Int = ArrayLength(rows.names);
     if !SelfMirParallelStringCount(count, rows.kinds) ||
@@ -18,27 +59,47 @@ func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
         !SelfMirParallelCount(count, rows.field_counts) ||
         !SelfMirParallelCount(count, rows.method_starts) ||
         !SelfMirParallelCount(count, rows.method_counts) ||
+        !SelfMirParallelCount(count, rows.variant_starts) ||
+        !SelfMirParallelCount(count, rows.variant_counts) ||
         ArrayLength(rows.field_names) != ArrayLength(rows.field_types) ||
-        ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) {
+        ArrayLength(rows.method_names) != ArrayLength(rows.method_returns) ||
+        ArrayLength(rows.variant_names) !=
+            ArrayLength(rows.variant_param_counts) {
         return false;
     }
     let field_cursor: Int = 0;
     let method_cursor: Int = 0;
+    let variant_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
         if rows.names[i] == "" || rows.kinds[i] == "" ||
             rows.nominal_kinds[i] == "" ||
             rows.field_starts[i] != field_cursor || rows.field_counts[i] < 0 ||
             rows.method_starts[i] != method_cursor ||
-            rows.method_counts[i] < 0 {
+            rows.method_counts[i] < 0 ||
+            rows.variant_starts[i] != variant_cursor ||
+            rows.variant_counts[i] < 0 {
             return false;
         }
         field_cursor = field_cursor + rows.field_counts[i];
         method_cursor = method_cursor + rows.method_counts[i];
+        variant_cursor = variant_cursor + rows.variant_counts[i];
         i = i + 1;
     }
-    return field_cursor == ArrayLength(rows.field_names) &&
-        method_cursor == ArrayLength(rows.method_names);
+    if field_cursor != ArrayLength(rows.field_names) ||
+        method_cursor != ArrayLength(rows.method_names) ||
+        variant_cursor != ArrayLength(rows.variant_names) {
+        return false;
+    }
+    let variant_i: Int = 0;
+    while variant_i < ArrayLength(rows.variant_names) {
+        if rows.variant_names[variant_i] == "" ||
+            rows.variant_param_counts[variant_i] < 0 {
+            return false;
+        }
+        variant_i = variant_i + 1;
+    }
+    return true;
 }
 
 func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
@@ -80,10 +141,28 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
               rows.expr1s[i] == "")) {
             return false;
         }
+        if !SelfMirIndexedAssignmentUseReady(rows, i) {
+            return false;
+        }
         use_cursor = use_cursor + rows.use_counts[i];
         i = i + 1;
     }
     return use_cursor == ArrayLength(rows.uses);
+}
+
+func SelfMirIndexedAssignmentUseContractReady() -> Bool {
+    let valid: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
+        ["values.1", "i.1", "j.1"]
+    );
+    let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [2],
+        ["i.1", "j.1"]
+    );
+    return SelfMirInstructionRowsReady(valid) &&
+        !SelfMirInstructionRowsReady(missing_base_use);
 }
 
 func SelfMirBlockRowsValidationError(
@@ -201,6 +280,7 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelCount(count, rows.local_starts) ||
         !SelfMirParallelCount(count, rows.local_counts) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
+        ArrayLength(rows.param_names) != ArrayLength(rows.param_abi_kinds) ||
         ArrayLength(rows.local_names) != ArrayLength(rows.local_types) {
         return false;
     }
@@ -235,6 +315,14 @@ func SelfMirRoutineRowsReady(
         block_cursor = block_cursor + rows.block_counts[i];
         local_cursor = local_cursor + rows.local_counts[i];
         i = i + 1;
+    }
+    let param_i: Int = 0;
+    while param_i < ArrayLength(rows.param_abi_kinds) {
+        if rows.param_abi_kinds[param_i] < 0 ||
+            rows.param_abi_kinds[param_i] > 4 {
+            return false;
+        }
+        param_i = param_i + 1;
     }
     return param_cursor == ArrayLength(rows.param_names) &&
         block_cursor == ArrayLength(blocks.ids) &&

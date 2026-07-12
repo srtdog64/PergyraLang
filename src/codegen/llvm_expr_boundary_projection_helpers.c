@@ -227,7 +227,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         if (ctx->has_error)
             return NULL;
 
-        if (p != NULL && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
+        if (carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT
             && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             LLVMVarEntry mr_var;
             if (llvm_scope_lookup_snapshot(ctx,

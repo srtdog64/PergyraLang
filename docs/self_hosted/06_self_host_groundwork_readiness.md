@@ -84,8 +84,10 @@ That groundwork condition is now satisfied: the bounded DRV-2 path constructs
 typed AST and semantic artifacts, produces `pgy.mir.v1` with Pergyra-owned MIR
 fact owners, verifies the result, consumes it through the Pergyra MIR reader,
 and emits C. The native C compiler produces MIR only as comparison evidence for
-the four intersection fixtures; it is no longer the DRV-2 source path's MIR
-producer.
+the nine intersection fixtures, including indexed-assignment target retention,
+payload-free enum declaration/variant retention, branch-phi construction, and
+parameter-carriage round trips;
+it is no longer the DRV-2 source path's MIR producer.
 
 ## Sequence
 

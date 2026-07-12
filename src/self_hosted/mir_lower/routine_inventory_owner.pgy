@@ -75,6 +75,26 @@ func RoutineParamTypeAt(json: String, rpos: Int, header_end: Int, row: Int) -> S
     return MirObjectStringFact(json, bounds[0], bounds[1], "type");
 }
 
+func RoutineParamCarriageAt(
+    json: String, rpos: Int, header_end: Int, row: Int
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayObjectBoundsAt(
+        json, rpos, header_end, "params", row, bounds
+    ) { return ""; }
+    return MirObjectStringFact(json, bounds[0], bounds[1], "carriage");
+}
+
+func RoutineParamPassAt(
+    json: String, rpos: Int, header_end: Int, row: Int
+) -> String {
+    let bounds: Array<Int> = [0, 0];
+    if !MirObjectArrayObjectBoundsAt(
+        json, rpos, header_end, "params", row, bounds
+    ) { return ""; }
+    return MirObjectStringFact(json, bounds[0], bounds[1], "pass");
+}
+
 func RoutineReturnType(json: String, rpos: Int, header_end: Int) -> String {
     let rtype: String = MirObjectStringFact(json, rpos, header_end, "return");
     if StringLength(rtype) == 0 {

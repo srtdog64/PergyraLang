@@ -591,9 +591,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             && transpiler_resolve_ssa_name(&block_ssa_map, "self") == NULL) {
             transpiler_ssa_name_map_set(&block_ssa_map, "self", "self");
         }
+        const void *saved_terminator_ssa_map = ctx->active_ssa_map;
+        ctx->active_ssa_map = &block_ssa_map;
         if (!transpiler_emit_mir_explicit_terminator(
                 mir_routine, block, i, name, ctx, &block_ssa_map,
                 &terminator_emitted, block_reason, sizeof(block_reason))) {
+            ctx->active_ssa_map = saved_terminator_ssa_map;
             transpiler_ssa_map_clear(&block_ssa_map);
             transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
@@ -603,12 +606,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (!transpiler_emit_mir_fallthrough_terminator(
                     mir_routine, block, i, name, ctx,
                     block_reason, sizeof(block_reason))) {
+                ctx->active_ssa_map = saved_terminator_ssa_map;
                 transpiler_ssa_map_clear(&block_ssa_map);
                 transpiler_defer_scope_pop(ctx);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
                 return;
             }
         }
+        ctx->active_ssa_map = saved_terminator_ssa_map;
     }
 
     /* Emit cleanup blocks if present (for intent compensation) */

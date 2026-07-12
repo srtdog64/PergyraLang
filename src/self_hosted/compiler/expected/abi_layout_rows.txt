@@ -1,5 +1,5 @@
 schema=pgy.selfhost.abi-layout-row.v3
-count=18
+count=20
 0|Int|long long|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 1|Bool|bool|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0
 2|Float|double|value|none|none|plain_value|selfhost-c|target-c-default|field_allowed|0.0
@@ -18,5 +18,7 @@ count=18
 15|Option<Double>|pgy_option_double|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
 16|Array<Bool>|pgy_ab|data,len,cap|none|none|shared_buffer_value|selfhost-c|target-c-default|field_allowed|unsupported
 17|Option<Bool>|pgy_option_bool|is_some,value|bool_presence|none|tagged_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+18|Allocator|PgyAllocator|kind,trace_enabled,debug_enabled,allocations,deallocations,bytes_in_use,peak_bytes,pool|none|none|allocator_lane_value|selfhost-c|target-c-default|runtime_value_only|unsupported
+19|TextBuilder|PgyTextBuilder|data,length,capacity,finished|none|none|single_owner_linear|selfhost-c|target-c-default|runtime_value_only|unsupported
 target_policy_count=1
 target_policy|0|selfhost-c|cpu-c,self-hosted|layout_shape,materialization_reason|unsupported_shape,forbidden_loss_budget

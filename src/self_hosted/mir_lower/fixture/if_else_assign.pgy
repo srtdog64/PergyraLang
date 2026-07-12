@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let value: Int = 0;
+    if false {
+        value = 1;
+    } else {
+        value = 2;
+    }
+    Log(ToString(value));
+}

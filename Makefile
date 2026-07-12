@@ -2223,6 +2223,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_substrate_contract_smoke.sh
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
+	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_host_compiler_world_contract_smoke.sh
 	PGY_FILESYSTEM_WALK_BACKENDS="$${PGY_FILESYSTEM_WALK_BACKENDS:-$(FILESYSTEM_WALK_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/filesystem_directory_walk_smoke.sh
@@ -2374,6 +2375,11 @@ self-host-codegen-parity-test-smoke: $(PGY)
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
+
+self-host-text-builder-emission-test-smoke:
+	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
+
+.PHONY: self-host-text-builder-emission-test-smoke
 
 self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh

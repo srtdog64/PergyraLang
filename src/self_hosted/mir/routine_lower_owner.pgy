@@ -5,34 +5,11 @@ import "expression_fact_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
 
 struct SelfMirRoutineState {
     input: SelfMirRoutineInput;
     build: SelfMirRoutineBuild;
-}
-
-func SelfMirSsaName(name: String, version: Int) -> String {
-    return Concat(name, Concat(".", ToString(version)));
-}
-
-func SelfMirExpressionUses(
-    build: SelfMirRoutineBuild,
-    expression: String
-) -> Array<String> {
-    let uses: Array<String> = [];
-    let i: Int = 0;
-    while i < ArrayLength(build.local_names) {
-        if build.local_versions[i] > 0 && SelfMirTextContainsIdentifier(
-            expression, build.local_names[i]
-        ) {
-            ArrayPush(
-                uses,
-                SelfMirSsaName(build.local_names[i], build.local_versions[i])
-            );
-        }
-        i = i + 1;
-    }
-    return uses;
 }
 
 func SelfMirLowerBlockFromArtifact(
@@ -128,6 +105,8 @@ func SelfMirLowerBlockFromArtifact(
             let assignment_index: Int = UnwrapOption(assignment_index_opt);
             let target: String =
                 state.input.analysis.assignments.target_base_names[assignment_index];
+            let target_text: String =
+                state.input.analysis.assignments.target_texts[assignment_index];
             let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
             if !IsSome(local_opt) {
                 return SelfMirRoutineState(
@@ -140,12 +119,40 @@ func SelfMirLowerBlockFromArtifact(
             let local_index: Int = UnwrapOption(local_opt);
             let expression: String =
                 state.input.analysis.assignments.value_texts[assignment_index];
-            let uses: Array<String> = SelfMirExpressionUses(build, expression);
-            let version: Int = build.local_versions[local_index] + 1;
-            build = SelfMirRoutineSetLocalVersion(build, local_index, version);
+            let uses: Array<String> = [];
+            if state.input.analysis.assignments.target_is_indexed[
+                assignment_index
+            ] == 1 {
+                let target_uses: Array<String> =
+                    SelfMirExpressionUses(build, target_text);
+                let target_use_i: Int = 0;
+                while target_use_i < ArrayLength(target_uses) {
+                    ArrayPush(uses, target_uses[target_use_i]);
+                    target_use_i = target_use_i + 1;
+                }
+            }
+            let value_uses: Array<String> =
+                SelfMirExpressionUses(build, expression);
+            let value_use_i: Int = 0;
+            while value_use_i < ArrayLength(value_uses) {
+                let already_present: Bool = false;
+                let use_i: Int = 0;
+                while use_i < ArrayLength(uses) {
+                    if uses[use_i] == value_uses[value_use_i] {
+                        already_present = true;
+                    }
+                    use_i = use_i + 1;
+                }
+                if !already_present {
+                    ArrayPush(uses, value_uses[value_use_i]);
+                }
+                value_use_i = value_use_i + 1;
+            }
+            build = SelfMirRoutineAdvanceLocalVersion(build, local_index);
+            let version: Int = build.local_versions[local_index];
             build = SelfMirRoutineAddInstruction(
                 build, "def", "ssa-def", SelfMirSsaName(target, version),
-                target, "", expression, target, "AST_ASSIGNMENT", uses
+                target, "", expression, target_text, "AST_ASSIGNMENT", uses
             );
         } else if kind == TypedAstKindBreakStmtTag() ||
             kind == TypedAstKindContinueStmtTag() {
@@ -270,6 +277,10 @@ func SelfMirLowerBlockFromArtifact(
                         )
                     );
                 }
+                let else_body_opt: Option<Int> = SelfMirIfElseLoweringRoot(
+                    state.input.artifact.arena, node_id
+                );
+                let entry_versions: Array<Int> = SelfMirLocalVersionsSnapshot(build.local_versions);
                 build = SelfMirRoutineAddBlock(build);
                 let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
                 build = SelfMirRoutineAtBlock(build, then_block);
@@ -280,16 +291,81 @@ func SelfMirLowerBlockFromArtifact(
                     );
                 build = then_state.build;
                 let then_exit: Int = build.current_block;
+                let then_versions: Array<Int> = SelfMirLocalVersionsSnapshot(build.local_versions);
+                let else_block: Int = -1;
+                let else_exit: Int = -1;
+                let else_versions: Array<Int> = SelfMirLocalVersionsSnapshot(entry_versions);
+                if IsSome(else_body_opt) {
+                    build = SelfMirRoutineAddBlock(build);
+                    else_block = SelfMirCfgBlockCount(build.cfg) - 1;
+                    build = SelfMirRoutineAtBlock(build, else_block);
+                    build = SelfMirRoutineAtLocalVersions(build,
+                        SelfMirLocalVersionsSnapshot(entry_versions));
+                    let else_state: SelfMirRoutineState =
+                        SelfMirLowerBlockFromArtifact(
+                            SelfMirRoutineState(state.input, build),
+                            UnwrapOption(else_body_opt), break_blocks,
+                            continue_target
+                        );
+                    build = else_state.build;
+                    else_exit = build.current_block;
+                    else_versions = SelfMirLocalVersionsSnapshot(build.local_versions);
+                }
                 build = SelfMirRoutineAddBlock(build);
                 let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineAtBlock(build, merge_block);
                 if build.terminated[then_exit] == 0 {
                     build = SelfMirRoutineSetSuccessors(
                         build, then_exit, merge_block, -1
                     );
                 }
-                build = SelfMirRoutineSetSuccessors(
-                    build, branch_block, then_block, merge_block
-                );
+                if else_exit >= 0 && build.terminated[else_exit] == 0 {
+                    build = SelfMirRoutineSetSuccessors(
+                        build, else_exit, merge_block, -1);
+                }
+                let false_block: Int = merge_block;
+                if else_block >= 0 {
+                    false_block = else_block;
+                }
+                build = SelfMirRoutineSetSuccessors(build, branch_block, then_block, false_block);
+                let then_live: Bool = build.terminated[then_exit] == 0;
+                let else_live: Bool = else_exit < 0 || build.terminated[else_exit] == 0;
+                if ArrayLength(then_versions) < ArrayLength(entry_versions) ||
+                    ArrayLength(else_versions) < ArrayLength(entry_versions) {
+                    let error_build: SelfMirRoutineBuild = SelfMirRoutineBuildError(build, "MIR branch local-version cardinality drifted");
+                    return SelfMirRoutineState(state.input, error_build);
+                }
+                let merge_local_i: Int = 0;
+                while merge_local_i < ArrayLength(entry_versions) {
+                    let then_version: Int = then_versions[merge_local_i];
+                    let else_version: Int = else_versions[merge_local_i];
+                    if then_live && else_live && then_version != else_version {
+                        let phi_uses2: Array<String> = [
+                            SelfMirSsaName(build.local_names[merge_local_i], then_version),
+                            SelfMirSsaName(build.local_names[merge_local_i], else_version)
+                        ];
+                        build = SelfMirRoutineAdvanceLocalVersion(build, merge_local_i);
+                        build = SelfMirRoutineAddInstruction(
+                            build, "phi", build.local_names[merge_local_i],
+                            SelfMirSsaName(
+                                build.local_names[merge_local_i],
+                                build.local_versions[merge_local_i]
+                            ), "phi", "", "", "", "", phi_uses2
+                        );
+                    } else if then_live {
+                        build = SelfMirRoutineSetLocalVersion(build, merge_local_i, then_version);
+                    } else if else_live {
+                        build = SelfMirRoutineSetLocalVersion(build, merge_local_i, else_version);
+                    } else {
+                        build = SelfMirRoutineSetLocalVersion(build, merge_local_i,
+                            entry_versions[merge_local_i]);
+                    }
+                    merge_local_i = merge_local_i + 1;
+                }
+                while merge_local_i < ArrayLength(build.local_names) {
+                    build = SelfMirRoutineSetLocalVersion(build, merge_local_i, 0);
+                    merge_local_i = merge_local_i + 1;
+                }
             } else if kind == TypedAstKindWhileStmtTag() {
                 let body_opt2: Option<Int> = SelfMirControlBodyBlock(
                     state.input.artifact.arena, node_id
@@ -315,8 +391,8 @@ func SelfMirLowerBlockFromArtifact(
                         build.local_names[local_i]
                     ) {
                         let old_version: Int = build.local_versions[local_i];
-                        let phi_version: Int = old_version + 1;
-                        let future_version: Int = phi_version + 1;
+                        let phi_version: Int = build.next_instruction_id + 1;
+                        let future_version: Int = phi_version + 2;
                         let phi_uses: Array<String> = [
                             SelfMirSsaName(
                                 build.local_names[local_i], old_version
@@ -332,9 +408,7 @@ func SelfMirLowerBlockFromArtifact(
                             ),
                             "phi", "", "", "", "", phi_uses
                         );
-                        build = SelfMirRoutineSetLocalVersion(
-                            build, local_i, phi_version
-                        );
+                        build = SelfMirRoutineAdvanceLocalVersion(build, local_i);
                     }
                     local_i = local_i + 1;
                 }

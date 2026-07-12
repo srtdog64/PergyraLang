@@ -400,8 +400,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         free(param_type_for_ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
-        if (!handled && param != NULL
-            && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
+        if (!handled && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT) {
             codebuf_write(args_buf, "&%s", arg);
         } else if (!handled) {
             if (pass_indirect

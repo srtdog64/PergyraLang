@@ -260,7 +260,7 @@ the default proof for an isolated owner change.
   `main.pgy` is only the CLI/orchestration entrypoint; source-of-truth
   decisions live in named owner modules such as `type_env`, `expr_rewrite`,
   `stmt_emit`, `function_emit`, and `program_emit`. It currently stands at
-  rung-0..20 with 69 fixtures, including `StringTrim`, `FileExists` /
+  rung-0..21 with 69 fixtures, including `StringTrim`, `FileExists` /
   `ReadFile` file I/O, `Args()` user-argument snapshots, value-passed
   `Int` / `Bool` / `Float` / `String` field structs plus nested struct-valued
   fields, Array<Int> parameter/return flow, `Result<Int>` `?` early-return

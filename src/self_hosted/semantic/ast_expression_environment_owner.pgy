@@ -300,7 +300,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
         ArrayLength(modes) == 3 && modes[0] == "default_param" &&
         modes[1] == "local" && modes[2] == "local" &&
-        ArrayLength(function_names) == 78 &&
-        function_names[77] == "F" && function_returns[77] == "Void" &&
-        function_params[77] == "Int";
+        ArrayLength(function_names) == 84 &&
+        function_names[83] == "F" && function_returns[83] == "Void" &&
+        function_params[83] == "Int";
 }

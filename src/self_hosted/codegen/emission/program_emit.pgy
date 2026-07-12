@@ -13,6 +13,7 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
+import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "function_emit.pgy";
 
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
@@ -109,9 +110,6 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         CodegenSemanticFunctionParamNameForNodeOrDie(
             signatures, signature_index, param_index, cur[0]
         );
-        if p_mode == 2 {
-            Die(Concat("unsupported self-host codegen parameter mode: ", CodegenAstTextProvenance(nodes[cur[0]])));
-        }
         param_index = param_index + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
@@ -371,53 +369,63 @@ func GenerateCUnitFromSemanticArtifact(
     let uses_random_value: Bool = usage.uses_random_value;
     let uses_seed_random: Bool = usage.uses_seed_random;
     let uses_random: Bool = usage.uses_random;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option;
-    let header: String = "#include <stdio.h>\n";
+    let uses_allocator: Bool = usage.uses_allocator;
+    let uses_text_builder: Bool = usage.uses_text_builder;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random || uses_float || uses_result || uses_option || uses_allocator || uses_text_builder;
+    let output_allocator: Allocator = AllocatorResult();
+    let output: TextBuilder = TextBuilderNew(4096);
+    TextBuilderAppend(output, "#include <stdio.h>\n");
     if uses_bool {
-        header = Concat(header, "#include <stdbool.h>\n");
+        TextBuilderAppend(output, "#include <stdbool.h>\n");
     }
     if need_stdlib {
-        header = Concat(header, "#include <stdlib.h>\n");
+        TextBuilderAppend(output, "#include <stdlib.h>\n");
     }
-    if uses_str || uses_io || uses_fhandle {
-        header = Concat(header, "#include <string.h>\n");
+    if uses_str || uses_io || uses_fhandle || uses_text_builder {
+        TextBuilderAppend(output, "#include <string.h>\n");
+    }
+    if uses_allocator || uses_text_builder {
+        TextBuilderAppend(output, "#include <stdint.h>\n#include <stddef.h>\n");
     }
     if uses_io || uses_fhandle {
-        header = Concat(header, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
+        TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
     if uses_float {
-        header = Concat(header, "#include <math.h>\n");
+        TextBuilderAppend(output, "#include <math.h>\n");
     }
     if uses_dirwalk {
-        header = Concat(header, "#include <dirent.h>\n#include <sys/stat.h>\n");
+        TextBuilderAppend(output, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
-    header = Concat(header, "\n");
+    TextBuilderAppend(output, "\n");
+    if uses_allocator || uses_text_builder {
+        TextBuilderAppend(output, TextBuilderRuntimeCBlock());
+    }
     if uses_log {
-        header = Concat(header, StringRuntimeCLogBlock());
+        TextBuilderAppend(output, StringRuntimeCLogBlock());
     }
     if uses_print {
-        header = Concat(header, StringRuntimeCPrintBlock());
+        TextBuilderAppend(output, StringRuntimeCPrintBlock());
     }
     if uses_random_value {
-        header = Concat(header, MathRuntimeCRandomValueBlock());
+        TextBuilderAppend(output, MathRuntimeCRandomValueBlock());
     }
     if uses_seed_random {
-        header = Concat(header, MathRuntimeCSeedRandomBlock());
+        TextBuilderAppend(output, MathRuntimeCSeedRandomBlock());
     }
     if uses_result {
-        header = Concat(header, OptionResultRuntimeCResultIntBlock());
+        TextBuilderAppend(output, OptionResultRuntimeCResultIntBlock());
     }
     if uses_option {
-        header = Concat(header, OptionResultRuntimeCOptionScalarBlock());
+        TextBuilderAppend(output, OptionResultRuntimeCOptionScalarBlock());
     }
     if uses_io || uses_fhandle {
-        header = Concat(header, HostIORuntimeCPathAndSecureOpenBlock());
+        TextBuilderAppend(output, HostIORuntimeCPathAndSecureOpenBlock());
     }
     if uses_fhandle {
-        header = Concat(header, HostIORuntimeCFileHandleBlock());
+        TextBuilderAppend(output, HostIORuntimeCFileHandleBlock());
     }
     if uses_array {
-        header = Concat(header, CollectionRuntimeCArrayBlock(
+        TextBuilderAppend(output, CollectionRuntimeCArrayBlock(
             uses_array_sort,
             uses_array_reverse,
             uses_array_map,
@@ -429,28 +437,39 @@ func GenerateCUnitFromSemanticArtifact(
         record_array_block = CollectionRuntimeCodegenAstTextNodeArrayBlock();
     }
     if uses_args2 {
-        header = Concat(header, HostIORuntimeCArgsBlock());
+        TextBuilderAppend(output, HostIORuntimeCArgsBlock());
     }
     if uses_str {
-        header = Concat(header, StringRuntimeCStringCoreBlock());
+        TextBuilderAppend(output, StringRuntimeCStringCoreBlock());
     }
     if uses_math {
-        header = Concat(header, MathRuntimeCIntUtilityBlock());
+        TextBuilderAppend(output, MathRuntimeCIntUtilityBlock());
     }
     if uses_split {
-        header = Concat(header, StringRuntimeCSplitBlock());
+        TextBuilderAppend(output, StringRuntimeCSplitBlock());
     }
     if uses_join {
-        header = Concat(header, StringRuntimeCStringJoinBlock());
+        TextBuilderAppend(output, StringRuntimeCStringJoinBlock());
     }
     if uses_io {
-        header = Concat(header, HostIORuntimeCFileIOBlock());
+        TextBuilderAppend(output, HostIORuntimeCFileIOBlock());
     }
     if uses_dirwalk {
-        header = Concat(header, HostIORuntimeCDirWalkBlock());
+        TextBuilderAppend(output, HostIORuntimeCDirWalkBlock());
     }
-    let definition_block: String = StringJoin(defs, "");
-    return Concat(header, Concat(enum_block, Concat(typedef_block, Concat(option_struct_block, Concat(record_array_block, Concat(proto_block, definition_block))))));
+    TextBuilderAppend(output, enum_block);
+    TextBuilderAppend(output, typedef_block);
+    TextBuilderAppend(output, option_struct_block);
+    TextBuilderAppend(output, record_array_block);
+    TextBuilderAppend(output, proto_block);
+    let definition_index: Int = 0;
+    while definition_index < ArrayLength(defs) {
+        TextBuilderAppend(output, defs[definition_index]);
+        definition_index = definition_index + 1;
+    }
+    let generated_c: String = TextBuilderFinish(output, output_allocator);
+    AllocatorDestroy(output_allocator);
+    return generated_c;
 }
 
 func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {

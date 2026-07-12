@@ -12,7 +12,9 @@ fi
 [[ -x "$PGY" ]] || { echo "[text-builder-owner] missing compiler: $PGY" >&2; exit 1; }
 
 FIXTURES="$ROOT_DIR/tests/cases/text_builder_owner"
-OUT_DIR="$(mktemp -d)"
+WORK_ROOT="$ROOT_DIR/.tmp/tests"
+mkdir -p "$WORK_ROOT"
+OUT_DIR="$(mktemp -d "$WORK_ROOT/text-builder-owner.XXXXXX")"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
 expect_reject() {
@@ -34,10 +36,30 @@ expect_reject() {
     }
 }
 
+expect_nested_append() {
+    local backend="$1" output_native="$OUT_DIR/${backend}_nested_append.exe" log="$OUT_DIR/${backend}_nested_append.log"
+    local source output
+    source="$(pgy_path_for_compiler "$PGY" "$FIXTURES/nested_append.pgy")"
+    output="$(pgy_path_for_compiler "$PGY" "$output_native")"
+    (cd "$ROOT_DIR" && "$PGY" "$source" --backend="$backend" -o "$output") >"$log" 2>&1 || {
+        echo "[text-builder-owner] $backend/nested_append failed to compile" >&2
+        tail -20 "$log" >&2
+        exit 1
+    }
+    local actual
+    actual="$("$output_native" | tr -d '\r')"
+    [[ "$actual" == "nested" ]] || {
+        echo "[text-builder-owner] $backend/nested_append output drift: $actual" >&2
+        exit 1
+    }
+}
+
 for backend in c llvm; do
+    expect_nested_append "$backend"
     expect_reject "$backend" copy PGY_SEM_ANCHORED_HANDLE_COPY
     expect_reject "$backend" missing_finish PGY_SEM_OWNER_NOT_CONSUMED
+    expect_reject "$backend" nested_finish PGY_SEM_BUILTIN_ARGS_INVALID
     expect_reject "$backend" parameter PGY_SEM_TYPE_MISMATCH
 done
 
-echo "[text-builder-owner] copy, parameter, and live-exit boundaries fail closed"
+echo "[text-builder-owner] nested append passes; copy, nested consume, parameter, and live-exit boundaries fail closed"

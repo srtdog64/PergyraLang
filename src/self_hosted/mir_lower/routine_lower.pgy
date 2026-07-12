@@ -324,13 +324,36 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
             MirLowerFailClosed(Concat("routine parameter is missing name fact: ", routine));
         }
         let ptype: String = RoutineParamTypeAt(json, rpos, header_end, param_row);
+        let carriage: String = RoutineParamCarriageAt(
+            json, rpos, header_end, param_row
+        );
+        let pass_shape: String = RoutineParamPassAt(
+            json, rpos, header_end, param_row
+        );
+        if (carriage != "value" && carriage != "value-result" &&
+            carriage != "owner-handle" && carriage != "readonly-ref") ||
+            (pass_shape != "direct" && pass_shape != "indirect") ||
+            (pass_shape == "indirect" && carriage != "readonly-ref") {
+            MirLowerFailClosed(Concat(
+                "routine parameter ABI fact is invalid: ", pname
+            ));
+        }
+        let param_prefix: String = "";
+        if carriage == "value-result" {
+            param_prefix = "inout ";
+        } else if carriage == "owner-handle" {
+            param_prefix = "own ";
+        } else if carriage == "readonly-ref" {
+            param_prefix = "ref ";
+        }
+        let rendered_name: String = Concat(param_prefix, pname);
         if StringLength(ptype) == 0 && pname == "self" && StringLength(self_type) > 0 {
             ptype = self_type;
         }
         if StringLength(ptype) > 0 {
-            ArrayPush(chunks, Concat(item_pad, Concat(pname, Concat(": ", Concat(ptype, "\n")))));
+            ArrayPush(chunks, Concat(item_pad, Concat(rendered_name, Concat(": ", Concat(ptype, "\n")))));
         } else {
-            ArrayPush(chunks, Concat(item_pad, Concat(pname, "\n")));
+            ArrayPush(chunks, Concat(item_pad, Concat(rendered_name, "\n")));
         }
         param_row = param_row + 1;
     }

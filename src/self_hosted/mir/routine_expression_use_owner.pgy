@@ -1,0 +1,23 @@
+// SSA use edges derived from the routine's current local-version facts.
+
+import "routine_build_owner.pgy";
+
+func SelfMirExpressionUses(
+    build: SelfMirRoutineBuild,
+    expression: String
+) -> Array<String> {
+    let uses: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(build.local_names) {
+        if build.local_versions[i] > 0 && SelfMirTextContainsIdentifier(
+            expression, build.local_names[i]
+        ) {
+            ArrayPush(
+                uses,
+                SelfMirSsaName(build.local_names[i], build.local_versions[i])
+            );
+        }
+        i = i + 1;
+    }
+    return uses;
+}

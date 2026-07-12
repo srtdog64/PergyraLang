@@ -185,36 +185,66 @@ memory cap:
 | pre-emission facts/runtime usage | 717,696 KiB, 2.00 s | 51,968 KiB, 0.34 s |
 | full codegen attempt on the measured artifact | 4,192,000 KiB, signal 11 | 3,719,552 KiB, deterministic diagnostic exit |
 
-The remaining 3.7 GiB is not a branchless-code opportunity. It is lifetime
+At that pre-rung-2 checkpoint, the remaining 3.7 GiB was not a branchless-code
+opportunity. It was lifetime
 debt: compiler `String` transforms allocate outside an owned text-assembly
 boundary and are not reclaimed per emitted function. The allocator names alone
 do not close this: `AllocatorScratch()` is currently a system-backed lane label,
 not a bulk-reset arena, and `AllocatorDestroy()` only releases pool backing
 storage.
 
-Text-builder rung 1 landed on 2026-07-12. `TextBuilder` is a typed, move-only
+Text-builder rung 2 landed on 2026-07-12. `TextBuilder` is a typed, move-only
 builtin owner with `New`, `Append`, `Finish`, and `Drop` operations. A
 `MIRTextBuilderRuntimeRow` owns the C and LLVM runtime symbols and their distinct
 call shapes; both backends consume the row attached to each MIR instruction.
 The runtime owner checks length/capacity overflow, keeps intermediate storage in
 the system lane, and requires exactly one explicit `Finish` promotion or
-`Drop`. `Finish` copies the result into the caller-provided result allocator and
-releases the intermediate buffer. The ABI, MIR mutation, C/LLVM differential,
+`Drop`. `Finish` transfers the system-backed buffer into a system/result lane
+without copying and copies only when the destination is a distinct pool domain.
+The bounded self-host emitted-C helper currently admits `AllocatorResult` only
+and aborts on other allocator domains; pool promotion remains native-runtime
+coverage rather than a self-host codegen claim. Its runtime-call manifest uses
+the distinct `selfhost-c-text-builder` domain; it does not alias or replace the
+native MIR row's LLVM `_export` symbol and out-parameter `New` call shape.
+The ABI, MIR mutation, C/LLVM differential,
 negative ownership, runtime-bitcode symbol, and memory-layout gates cover this
 bounded contract.
 
 This is deliberately not a general linear-owner claim. The accepted surface is
-an immutable function local initialized directly by `TextBuilderNew`; it must
-be finished or dropped in its declaration scope. Parameters, returns, fields,
-containers, generic moves, mutable rebinding, nested-scope lifecycle, and
-branch-sensitive consumption remain fail-closed. The first self-host emission
-owner has not been repointed, so the measured 3.7 GiB peak has not changed and
-must not be presented as closed. The next rung is one typed self-host consumer
-plus a repeat of that same full-emission measurement. Do not hide the remaining
-debt behind `Array<String>`, a higher CI memory limit, or documentation that
-calls the current scratch lane a checkpoint arena.
+an immutable function local initialized directly by `TextBuilderNew`.
+Non-consuming `Append` may occur in nested blocks of the same function;
+`Finish` or `Drop` must consume the owner in its declaration scope. Parameters,
+returns, fields, containers, generic moves, mutable rebinding, and
+branch-sensitive consumption remain fail-closed.
+
+The first compiler-internal consumers are now live. Program-level C-unit
+assembly, binding-reference rewriting, and the repeated
+`ReplaceAll[OutsideStrings]` token passes use the typed builder. The latter also
+uses `SubEqualsWithLen` instead of allocating a `Substring` for each candidate.
+The Pergyra-built emitter still reaches a 14,561-line gen2==gen3 fixed point and
+matches both native backend oracles on all 69 codegen fixtures.
+
+An apples-to-apples Windows process-tree measurement used the same
+1,289,598-byte AST artifact, 100 ms sampling, a 4 GiB ceiling, and two runs per
+binary. The pre-rung-2 binary was built from commit `1b1b4208`; the new binary
+was built from the active rung-2 source.
+
+| Metric | Before range | Rung 2 range | Conservative change |
+| --- | ---: | ---: | ---: |
+| peak private memory | 3,347.3-3,394.5 MB | 1,987.7-2,004.3 MB | at least 40.1% lower |
+| elapsed | 20,263-21,091 ms | 18,654-19,458 ms | at least 4.0% lower |
+| emitted C | 1,191,490 bytes | 1,191,490 bytes | byte-identical |
+
+All four emitted artifacts have SHA-256
+`CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC`.
+This closes the first measured assembly owner, not compiler text lifetime as a
+whole: roughly 2.0 GiB remains because many expression and statement transforms
+still allocate ordinary `String` temporaries without scope reclamation. Do not
+hide that remainder behind `Array<String>`, a higher CI memory limit, or claims
+that the current scratch lane is a checkpoint arena.
 
 The measured artifact was stale enough to omit `SelfMirExpressionKind`; a
 regenerated 6,338,740-byte MIR artifact contains that enum and closes that
-specific diagnostic explanation. It does not close the 3.7 GiB text-lifetime
-debt or constitute a completed current-artifact bootstrap run.
+specific diagnostic explanation. It did not close text-lifetime debt or
+constitute a completed current-artifact bootstrap run; the later rung-2
+measurement above is the current roughly 2.0 GiB result.

@@ -90,7 +90,14 @@ First landed leaf (2026-07-12):
 - `measure_build_pressure.ps1` schema `pgy.build-pressure.v2` records
   orchestration/compile/link samples, phase peaks, total wall time, and a JSON
   summary under `.tmp/build-pressure`. `build-pressure-contract-smoke` prevents
-  the probe from regressing to one opaque process peak.
+  the probe from regressing to one opaque process peak. The measured child is
+  a standalone make owner: inherited `MAKEFLAGS`/jobserver state is cleared,
+  and an unavailable child exit code fails closed instead of becoming success.
+- The first Windows no-op incremental baseline after the leaf move is
+  16.6-17.8 seconds with no compiler/linker command and 40-48 MB peak working
+  set. This proves the
+  immediate cost is Make/dependency orchestration across the large object
+  inventory, not RAM pressure; it does not replace a clean-build baseline.
 
 Recently closed:
 - `semantic/type_checker_ownership_return.inc`, `semantic/type_checker_ownership_assign.inc`,

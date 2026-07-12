@@ -78,7 +78,13 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "IsOk^Bool^Unknown",
         "IsErr^Bool^Unknown",
         "Unwrap^Unknown^Unknown",
-        "UnwrapOr^Unknown^Unknown|Unknown"
+        "UnwrapOr^Unknown^Unknown|Unknown",
+        "AllocatorResult^Allocator^none",
+        "AllocatorDestroy^Void^Allocator",
+        "TextBuilderNew^TextBuilder^Int",
+        "TextBuilderAppend^Void^TextBuilder|String",
+        "TextBuilderFinish^String^TextBuilder|Allocator",
+        "TextBuilderDrop^Void^TextBuilder"
     ];
     return rows;
 }
@@ -112,10 +118,12 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let returns: Array<String> = [];
     let params: Array<String> = [];
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 77 && ArrayLength(returns) == 77 &&
-        ArrayLength(params) == 77 && names[0] == "StringLength" &&
+        ArrayLength(names) == 83 && ArrayLength(returns) == 83 &&
+        ArrayLength(params) == 83 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[48] == "Args" && params[48] == "" &&
         names[52] == "Die" && returns[52] == "Void" &&
-        params[52] == "String";
+        params[52] == "String" &&
+        names[77] == "AllocatorResult" && returns[77] == "Allocator" &&
+        names[82] == "TextBuilderDrop" && params[82] == "TextBuilder";
 }

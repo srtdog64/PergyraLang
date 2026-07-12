@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+require_text() {
+    local file="$1" text="$2"
+    grep -Fq "$text" "$file" || {
+        echo "[self-host-text-builder] missing '$text' in $file" >&2
+        exit 1
+    }
+}
+
+reject_region_text() {
+    local file="$1" start="$2" text="$3"
+    local region
+    region="$(sed -n "/$start/,/^}/p" "$file")"
+    if grep -Fq "$text" <<<"$region"; then
+        echo "[self-host-text-builder] forbidden '$text' returned in $file::$start" >&2
+        exit 1
+    fi
+}
+
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    'let output: TextBuilder = TextBuilderNew(4096);'
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    'TextBuilderAppend(output, defs[definition_index]);'
+require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" \
+    'let out: TextBuilder = TextBuilderNew(n + 1);'
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'SubEqualsWithLen(s, n, i, fl, from)'
+
+reject_region_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" \
+    'func RewriteBindingRefs' 'out = Concat(out'
+reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'func ReplaceAll(' 'out = Concat(out'
+reject_region_text "src/self_hosted/codegen/text/expr_scan.pgy" \
+    'func ReplaceAllOutsideStrings' 'out = Concat(out'
+
+require_text "src/self_hosted/compiler/expected/abi_layout_rows.txt" \
+    '19|TextBuilder|PgyTextBuilder|data,length,capacity,finished|none|none|single_owner_linear'
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" \
+    '241|selfhost-c-text-builder|finish|pgy_text_builder_finish|function|generated_runtime_helper|builder_ptr_allocator_ptr_to_string'
+require_text "src/compiler/mir_text_builder_abi.c" \
+    '"pgy_text_builder_new_export"'
+require_text "src/compiler/mir_text_builder_abi.c" \
+    'MIR_TEXT_BUILDER_CALL_OUT_CAPACITY_TO_VOID'
+require_text "tests/cases/text_builder_owner/nested_append.pgy" \
+    'TextBuilderAppend(text, "nested");'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"required_max_peak_private_mb": 2500.0'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"all_four_runs_byte_identical": true'
+
+EVIDENCE="benchmarks/selfhost_codegen_text_builder_evidence.json"
+owner_hash="$({
+    for file in \
+        src/self_hosted/codegen/emission/program_emit.pgy \
+        src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy \
+        src/self_hosted/codegen/text/expr_scan.pgy \
+        src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy \
+        src/runtime/pgy_runtime_text_builder_inline.h; do
+        printf '%s:' "$file"
+        git hash-object "$file"
+    done
+} | sha256sum | awk '{ print toupper($1) }')"
+require_text "$EVIDENCE" "\"owner_set_sha256\": \"$owner_hash\""
+
+baseline_max="$(sed -n '/"baseline"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
+    tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"
+candidate_max="$(sed -n '/"text_builder_rung_2"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
+    tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"
+declared_max="$(sed -n 's/.*"max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+required_max="$(sed -n 's/.*"required_max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+awk -v baseline="$baseline_max" -v sample="$candidate_max" \
+    -v declared="$declared_max" -v required="$required_max" \
+    'BEGIN { exit !(sample == declared && declared <= required && declared < baseline) }' || {
+    echo "[self-host-text-builder] benchmark evidence relationships drifted" >&2
+    exit 1
+}
+grep -Eq '"sha256": "[A-F0-9]{64}"' "$EVIDENCE" || {
+    echo "[self-host-text-builder] benchmark evidence is missing a canonical SHA-256" >&2
+    exit 1
+}
+
+echo "[self-host-text-builder] emission owner, linear scan, ABI rows, and nested-mutation contract ok"

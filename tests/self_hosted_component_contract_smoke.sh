@@ -1619,7 +1619,7 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=237"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=243"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "24|option-result|option-float.some|pgy_option_some_float|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "25|option-result|option-double.some|pgy_option_some_double|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "68|string|substring|pgy_substr|function|generated_runtime_helper|string_int_int_to_string"
@@ -1628,6 +1628,8 @@ require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "87|n
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "134|native-resource|SecureSlot<String>.Write|pgy_secure_write_String|function|mir_abi_resource_row|container_ptr_value_token_ptr_to_void"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "207|native-resource|DeviceSlot<Int>.Claim|pgy_claim_device_Int|function|mir_abi_resource_row|returns_container"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "236|native-resource|DeviceSlot<String>.SubmitRead|pgy_submit_device_read_String|function|mir_abi_resource_row|container_ptr_to_task_handle"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "239|selfhost-c-text-builder|new|pgy_text_builder_new|function|generated_runtime_helper|capacity_to_builder"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "241|selfhost-c-text-builder|finish|pgy_text_builder_finish|function|generated_runtime_helper|builder_ptr_allocator_ptr_to_string"
 require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsSuiteName"
 require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathAt"
 require_text "src/self_hosted/compiler/test_harness_abi_paths_owner.pgy" "func CompilerHarnessRuntimeCallAbiRowsPathKnown"
@@ -2542,7 +2544,48 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "let json: String
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 5;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/indexed_assignment.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/param_carriage.pgy"'
+require_text "src/self_hosted/mir/routine_input_owner.pgy" 'func SelfMirIfElseLoweringRoot('
+require_text "src/self_hosted/mir/routine_input_owner.pgy" 'return Some(child_id);'
+require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirRoutineAdvanceLocalVersion('
+require_text "src/self_hosted/mir/routine_build_owner.pgy" 'build.next_instruction_id + 1'
+require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVersionsSnapshot('
+require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
+require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionUses('
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineAtLocalVersions('
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineMergeBranchVersions('
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'while merge_local_i < ArrayLength(entry_versions)'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, merge_local_i, 0'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let false_block: Int = merge_block;'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, branch_block, then_block, false_block'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldRaw("variants", JsonEmitArray(variants))'
+require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"pass", SelfMirParamPassName(rows.param_abi_kinds[row])'
+require_text "src/self_hosted/mir_lower/routine_inventory_owner.pgy" 'func RoutineParamCarriageAt('
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'param_prefix = "ref ";'
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'if p_mode == 2 {'
+reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'if p_mode == 2 {'
+require_text "src/codegen/transpiler_expr_call_user_emit.c" 'if (!handled && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT)'
+reject_text "src/codegen/transpiler_expr_call_user_emit.c" 'param != NULL
+            && carriage == MIR_PARAM_CARRIAGE_VALUE_RESULT'
+require_text "src/codegen/transpiler_defer_emit.c" 'transpiler_resolve_active_ssa_name('
+require_text "src/codegen/transpiler_defer_emit.c" 'transpiler_make_c_ssa_name('
+require_text "src/codegen/transpiler_defer_emit.c" 'free(owned_writeback_value);'
+require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = &block_ssa_map;'
+require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = saved_terminator_ssa_map;'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'state.input.analysis.assignments.target_texts[assignment_index]'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexedAssignmentUseReady('
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
+require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
+require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 9;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
@@ -6049,10 +6092,14 @@ require_make_target_text \
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'MIR_LOWER_SOURCE="$ROOT_DIR/${paths[4]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_to_file"
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_seed.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_gen2.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:mir-lower-preflight"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen3.c"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:fixpoint"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"emitted_c"'

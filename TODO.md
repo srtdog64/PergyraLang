@@ -319,19 +319,18 @@ English anchor for tooling/doc gates:
   branch versus C ternary versus LLVM `select` across Clang/GCC,
   x86-64/AArch64, and skewed/random distributions. No backend may infer this
   from source AST spelling. See docs/127.
-  Self-host compiler text lifetime is also open: the allocation-free
-  `CharCode`/`SubEqualsWithLen` usage scan reduced the measured pre-emission
-  peak from 717,696 KiB to 51,968 KiB, but full emission still peaks at
-  3,719,552 KiB. TextBuilder rung 1 now has a typed move-only builtin, a
-  MIR-owned target-specific runtime-call ABI row, C/LLVM lowering, explicit
-  finish/drop, and ABI/MIR/differential/negative/memory gates (`test-memory`
-  81/0). The bounded surface admits only a directly constructed immutable local
-  consumed in its declaration scope; general moves, parameters, returns,
-  fields, containers, and branch-sensitive lifecycle remain fail-closed.
-  Repoint one measured self-host emission owner and repeat the 3.7 GiB probe
-  before claiming a memory reduction. `AllocatorScratch` is still not a
-  bulk-reset arena; do not substitute `Array<String>` or a higher CI memory cap.
-  See docs/127 section 8.
+  Self-host compiler text lifetime remains open, but the first measured owner
+  is closed. TextBuilder rung 2 now covers program C-unit assembly,
+  binding-reference rewriting, and repeated token replacement. On the same
+  1,289,598-byte AST artifact, two-run Windows process-tree sampling reduced
+  peak private memory from 3,347.3-3,394.5 MB to 1,987.7-2,004.3 MB with
+  byte-identical 1,191,490-byte output; gen2==gen3 and 69-fixture C/LLVM codegen
+  parity remain green. Keep general moves, parameters, returns, fields,
+  containers, and branch-sensitive consume fail-closed. Next repoint the
+  remaining per-character expression/literal/statement transforms and add
+  scope reclamation for ordinary temporary `String` values. `AllocatorScratch`
+  is still not a bulk-reset arena; do not raise the CI memory cap. See docs/127
+  section 8.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a

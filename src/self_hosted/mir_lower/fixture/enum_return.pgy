@@ -1,0 +1,14 @@
+enum Choice {
+    A,
+    B
+}
+
+func Pick() -> Choice {
+    return Choice.B;
+}
+
+func Main() -> Void {
+    if Pick() == Choice.B {
+        Log("B");
+    }
+}
