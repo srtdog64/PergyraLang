@@ -220,6 +220,12 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
              * twin's definition site, like every panic export pair). */
             { "pgy_runtime_panic_authority_mismatch_export",
               ctx->type_void, { ctx->type_i8ptr }, 1 },
+            /* Clock substrate (docs/181 SS2.3): single-instance state
+             * lives export-side; the reactive rungs consume these. */
+            { "pgy_clock_now_ns_export", ctx->type_i64, { 0 }, 0 },
+            { "pgy_clock_advance_ns_export", ctx->type_void,
+              { ctx->type_i64 }, 1 },
+            { "pgy_clock_is_virtual_export", ctx->type_i32, { 0 }, 0 },
             { "ToInt", ctx->type_i32,
               { ctx->type_i8ptr }, 1 },
             { "ToFloat", ctx->type_f32,

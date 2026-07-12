@@ -16,6 +16,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <time.h>
+#include <stdatomic.h>
 #include <pthread.h>
 #ifndef _WIN32
 #include <unistd.h>
@@ -255,6 +256,81 @@ pgy_runtime_panic_authority_mismatch_export(const char *reason)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_AUTHORITY_MISMATCH,
                       reason != NULL ? reason
                           : PGY_RUNTIME_PANIC_REASON_AUTHORITY_MISMATCH);
+}
+
+/* =================================================================
+ * Clock substrate (docs/181 SS2.3): the reactive surface's time axis.
+ * Real mode reads the host monotonic clock. PGY_VIRTUAL_CLOCK=1
+ * (latched on first use) switches every reader to a process-wide
+ * virtual counter that only pgy_clock_advance_ns_export moves --
+ * deterministic time is the only mode the byte-equal compare gate is
+ * allowed to bite (SS2.3), so the virtual lane lands before any
+ * `every`/`continuous` execution does. State lives in this export-side
+ * TU only: one instance shared by generated C and the runtime bitcode,
+ * the same single-instance rule as g_pgy_budget/g_pgy_cap_granted.
+ * Advancing the clock outside virtual mode (or backwards) is a
+ * lifecycle violation and fails closed -- a test hook that silently
+ * no-ops would hide exactly the drift it exists to pin.
+ * ================================================================= */
+
+static atomic_llong g_pgy_clock_virtual_ns;
+static atomic_int   g_pgy_clock_mode; /* 0 unlatched, 1 real, 2 virtual */
+
+static int
+pgy_clock_latched_mode(void)
+{
+    int mode = atomic_load_explicit(&g_pgy_clock_mode,
+                                    memory_order_acquire);
+    if (mode == 0) {
+        const char *v = getenv("PGY_VIRTUAL_CLOCK");
+        mode = (v != NULL && v[0] == '1') ? 2 : 1;
+        /* A racing latch computes the same value; last store wins. */
+        atomic_store_explicit(&g_pgy_clock_mode, mode,
+                              memory_order_release);
+    }
+    return mode;
+}
+
+int64_t
+pgy_clock_now_ns_export(void)
+{
+    if (pgy_clock_latched_mode() == 2)
+        return (int64_t)atomic_load_explicit(&g_pgy_clock_virtual_ns,
+                                             memory_order_acquire);
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return (int64_t)ts.tv_sec * 1000000000LL + (int64_t)ts.tv_nsec;
+    }
+}
+
+void
+pgy_clock_advance_ns_export(int64_t ns)
+{
+    if (pgy_clock_latched_mode() != 2) {
+        fprintf(stderr,
+            "%s clock lifecycle violation: op=advance on the real clock"
+            " (PGY_VIRTUAL_CLOCK=1 is required)\n",
+            PGY_RUNTIME_PANIC_PREFIX);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
+                          PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE);
+    }
+    if (ns < 0) {
+        fprintf(stderr,
+            "%s clock lifecycle violation: op=advance by a negative"
+            " duration\n",
+            PGY_RUNTIME_PANIC_PREFIX);
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE,
+                          PGY_RUNTIME_PANIC_REASON_INVALID_LIFECYCLE_STATE);
+    }
+    atomic_fetch_add_explicit(&g_pgy_clock_virtual_ns, (long long)ns,
+                              memory_order_acq_rel);
+}
+
+int32_t
+pgy_clock_is_virtual_export(void)
+{
+    return pgy_clock_latched_mode() == 2 ? 1 : 0;
 }
 
 #include "pgy_runtime_lib_checked_arith_core.h"
