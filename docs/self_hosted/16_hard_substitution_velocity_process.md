@@ -110,18 +110,26 @@ only that row. The old `ast_text_try_let_owner.pgy` was deleted. Existing
 `option_try` and `result_try` fixtures are byte-identical across C-built and
 LLVM-built codegen tools and remain run-equal.
 
+Third executable delta, 2026-07-12: `ArrayPush` and `ArraySet` payloads now
+flow from `SemanticAstStatementFacts` through the semantic statement codegen
+view. The transitional collection AST-text owner was deleted. Four focused
+Int/String mutation fixtures are run-equal under C-built and LLVM-built tools,
+and their emitted C artifacts are byte-identical.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
-and zero semantic fallback. It proves that the current array-literal and
-try-operand rows are closed in the bounded model and that missing facts,
-duplicate producers, and owner-plus-fallback bridges are not closed. The
-source adequacy gate binds only those modeled rows to live files; future
-consumers require new bindings rather than inheriting a global proof claim.
+and zero semantic fallback. It proves that the current array-literal,
+try-operand, and collection-mutation rows are closed in the bounded model and
+that missing facts, duplicate producers, and owner-plus-fallback bridges are
+not closed. The source adequacy gate binds only those modeled rows to live
+files; future consumers require new bindings rather than inheriting a global
+proof claim.
 
-Whole-spine owner declaration, 2026-07-12: the 16 top-level fact families now
-have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`
-and matching `SpineFact` / `SpineOwner` constructors in Coq. The declaration is
-honestly split into `CLOSED=1 BRIDGE=6 ACTIVE=9`; only executable rung closure
+Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
+have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
+The registry now carries 15 architectural rows plus two bounded self-host
+closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. It is
+honestly split into `CLOSED=2 BRIDGE=6 ACTIVE=9`; only executable rung closure
 may promote a row. The registry replaces ad hoc top-level owner lists, while
 `src/self_hosted/OWNERS.md` remains only a physical module inventory.
 

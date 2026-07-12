@@ -13,6 +13,7 @@
 Inductive Fact : Type :=
   | FInitializerArrayBody
   | FInitializerTryOperand
+  | FCollectionMutationParts
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -21,12 +22,14 @@ Inductive FactClass : Type :=
 
 Inductive Owner : Type :=
   | OSemanticLocalBindingFacts
+  | OSemanticStatementFacts
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
 Inductive Consumer : Type :=
   | CArrayLiteralEmitter
-  | CTryLetEmitter.
+  | CTryLetEmitter
+  | CCollectionMutationEmitter.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -108,6 +111,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
   match f with
   | FInitializerArrayBody => SemanticFact
   | FInitializerTryOperand => SemanticFact
+  | FCollectionMutationParts => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
@@ -115,6 +119,7 @@ Definition current_authority (f : Fact) : Owner :=
   match f with
   | FInitializerArrayBody => OSemanticLocalBindingFacts
   | FInitializerTryOperand => OSemanticLocalBindingFacts
+  | FCollectionMutationParts => OSemanticStatementFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
@@ -123,6 +128,8 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OSemanticLocalBindingFacts FInitializerArrayBody
   | CurrentTryOperandProducer :
       current_produces OSemanticLocalBindingFacts FInitializerTryOperand
+  | CurrentCollectionMutationProducer :
+      current_produces OSemanticStatementFacts FCollectionMutationParts
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -218,6 +225,68 @@ Proof.
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
+Inductive collection_requires : Consumer -> Fact -> Prop :=
+  | CurrentEmitterRequiresCollectionMutationParts :
+      collection_requires CCollectionMutationEmitter
+        FCollectionMutationParts.
+
+Inductive collection_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | CurrentEmitterReadsCollectionMutationParts :
+      collection_reads CCollectionMutationEmitter OSemanticStatementFacts
+        FCollectionMutationParts OwnedRead.
+
+Definition collection_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := collection_requires;
+     reads := collection_reads |}.
+
+Theorem current_collection_mutation_rung_closed :
+  RungClosed collection_model.
+Proof.
+  unfold RungClosed.
+  split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive collection_bridge_reads :
+  Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | CollectionBridgeOwnedRead :
+      collection_bridge_reads CCollectionMutationEmitter
+        OSemanticStatementFacts FCollectionMutationParts OwnedRead
+  | CollectionBridgeFallbackRead :
+      collection_bridge_reads CCollectionMutationEmitter
+        OCodegenTextRecovery FCollectionMutationParts FallbackRead.
+
+Definition collection_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := collection_requires;
+     reads := collection_bridge_reads |}.
+
+Theorem collection_owner_plus_text_fallback_is_not_closed :
+  ~ RungClosed collection_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CCollectionMutationEmitter OCodegenTextRecovery
+    FCollectionMutationParts FallbackRead CollectionBridgeFallbackRead
+    eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
+Qed.
+
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
       bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
@@ -304,7 +373,8 @@ Inductive SpineFact : Type :=
   | SFDiagnosticCatalog
   | SFBackendArtifact
   | SFCompatibilityEvolution
-  | SFInitializerExpressionShape.
+  | SFInitializerExpressionShape
+  | SFCollectionMutationStatement.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -322,7 +392,8 @@ Inductive SpineOwner : Type :=
   | SODiagnosticCatalog
   | SOArtifactZone
   | SOCompatibilityEvolution
-  | SOSemanticLocalBinding.
+  | SOSemanticLocalBinding
+  | SOSemanticStatement.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -342,6 +413,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFBackendArtifact => SOArtifactZone
   | SFCompatibilityEvolution => SOCompatibilityEvolution
   | SFInitializerExpressionShape => SOSemanticLocalBinding
+  | SFCollectionMutationStatement => SOSemanticStatement
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -375,9 +447,11 @@ Qed.
 
 (* Claim limit: future facts and consumers require new concrete bindings. *)
 Theorem current_model_does_not_claim_future_consumer_coverage :
-  forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter.
+  forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter \/
+    c = CCollectionMutationEmitter.
 Proof.
   intros c. destruct c.
   - left. reflexivity.
-  - right. reflexivity.
+  - right. left. reflexivity.
+  - right. right. reflexivity.
 Qed.

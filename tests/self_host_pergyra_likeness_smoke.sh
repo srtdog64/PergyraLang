@@ -163,7 +163,10 @@ SENTINEL_MAX=0
 # presence explicit before LLVM-safe typed unwrapping.
 # 1174 -> 1176 (2026-07-12): semantic try-operand capture and its codegen view
 # keep missing shape as Option instead of empty text or a sentinel.
-RESULT_USE_MIN=1176
+# 1176 -> 1175 (2026-07-12): statement-view index validation was deduplicated
+# behind one fail-closed Option owner. This is one fewer token, not one fewer
+# errors-as-data boundary; re-base the lexical metric to the measured form.
+RESULT_USE_MIN=1175
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

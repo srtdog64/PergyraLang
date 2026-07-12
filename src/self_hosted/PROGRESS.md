@@ -161,18 +161,28 @@ C-built and LLVM-built codegen tools emitted byte-identical C for the existing
 their committed outputs. No fixture-count expansion or compatibility fallback
 was needed.
 
+The third executable delta deleted
+`codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
+was already captured by `SemanticAstStatementFacts`; `ArrayPush` target/value
+and `ArraySet` target/index/value now flow through the fail-closed semantic
+statement codegen view. The focused `array_push`, `array_sum`,
+`str_array_push`, and `str_array` fixtures were run-equal under C-built and
+LLVM-built codegen tools, and all four emitted C artifacts were byte-identical.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
 `tests/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
 owner and codegen consumer and mutation-tests missing-owner and fallback
-reintroduction. The bounded model now covers the array-literal body and try-let
-operand consumers; it does not increase released/default replacement or close
-the remaining mixed-expression consumers.
+reintroduction. The bounded model now covers the array-literal body, try-let
+operand, and collection-mutation statement consumers; it does not increase
+released/default replacement or close the remaining mixed-expression
+consumers.
 
-The whole compiler skeleton now has a machine-gated 16-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: one `CLOSED`, six `BRIDGE`, and
-nine `ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
+The whole compiler skeleton now has a machine-gated 17-row owner declaration in
+`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus two
+bounded self-host closure rows, with two `CLOSED`, six `BRIDGE`, and nine
+`ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings
 and mutation-rejects missing rows, duplicate ids, missing owners, Coq drift,

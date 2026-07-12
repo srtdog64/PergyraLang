@@ -421,11 +421,12 @@ node/function/scope/payload rows. `semantic_statement_codegen_view_owner.pgy`
 is the fail-closed consumer; the earlier codegen owner is deleted and
 ratcheted against return.
 
-TypedAst delta, 2026-07-09: collection mutation statement facts now have a
-dedicated owner. `ast_text_collection_stmt_owner.pgy` owns `ArraySet`
-target/index/value and `ArrayPush` target/value facts. `stmt_emit.pgy` consumes
-those accessors and is ratcheted against reopening direct arena atom/value/aux
-payload reads for those statement forms.
+TypedAst delta, superseded 2026-07-12: the intermediate
+`ast_text_collection_stmt_owner.pgy` is deleted. `SemanticAstStatementFacts`
+already owns `ArraySet` target/index/value and `ArrayPush` target/value rows;
+the semantic statement codegen view now supplies them directly. The component
+gate rejects the retired file and direct arena atom/value/aux reads in the
+view.
 
 TestHarness delta, 2026-07-05: `test_harness_air_graph_paths_owner.pgy`
 now owns the five AIR graph consumer path suites separately from the generic

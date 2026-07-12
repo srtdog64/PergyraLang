@@ -13,12 +13,14 @@ substitution rung requires:
 4. no semantic read is a fallback read.
 
 The model proves the generic consequences of `RungClosed` and instantiates the
-first live bindings for initializer expression shape:
+first live bounded bindings for semantic-to-codegen facts:
 
 - fact: `FInitializerArrayBody`;
 - fact: `FInitializerTryOperand`;
-- authority: `OSemanticLocalBindingFacts`;
-- consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`;
+- fact: `FCollectionMutationParts`;
+- authorities: `OSemanticLocalBindingFacts`, `OSemanticStatementFacts`;
+- consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`,
+  `CCollectionMutationEmitter`;
 - read kind: `OwnedRead`.
 
 It also proves three rejection cases:
@@ -27,8 +29,9 @@ It also proves three rejection cases:
 - two semantic producers are not closed; and
 - a required fact with no producer is not closed.
 
-The file also declares the 16 top-level compiler-spine fact families and a
-total `spine_authority` mapping. `every_spine_fact_has_declared_authority` and
+The file also declares 15 architectural compiler-spine fact families plus two
+bounded self-host closure facts and a total `spine_authority` mapping.
+`every_spine_fact_has_declared_authority` and
 `declared_spine_authority_unique` prove that this architectural mapping is
 total and functional. `declared_owner_does_not_imply_rung_closed` keeps the
 critical distinction explicit: assigning an owner does not prove that live
@@ -44,7 +47,10 @@ fallback consumers are gone.
   consumes that accessor;
 - `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy`
   consumes the semantic try-operand accessor;
-- the retired AST-text array and try-let codegen owners must not exist; and
+- `src/self_hosted/semantic/ast_statement_fact_owner.pgy` owns collection
+  mutation payload rows consumed by the semantic statement codegen view;
+- the retired AST-text array, try-let, and collection codegen owners must not
+  exist; and
 - the codegen views must not contain string-shape recovery or direct AST value
   reads.
 

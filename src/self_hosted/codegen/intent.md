@@ -172,6 +172,9 @@ from initializer text.
 index, and RHS rows. `input/semantic_assignment_codegen_view_owner.pgy`
 projects those rows fail-closed; codegen does not reinterpret assignment arena
 payloads.
+`../semantic/ast_statement_fact_owner.pgy` also owns `ArrayPush` target/value
+and `ArraySet` target/index/value rows. The semantic statement codegen view
+projects them fail-closed; no collection mutation AST-text owner exists.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.

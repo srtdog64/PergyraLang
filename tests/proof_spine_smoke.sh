@@ -95,7 +95,7 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fa
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem every_spine_fact_has_declared_authority"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_authority_unique"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=1 BRIDGE=6 ACTIVE=9"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=2 BRIDGE=6 ACTIVE=9"
 
 for term in \
     "Inductive ProofNode" \

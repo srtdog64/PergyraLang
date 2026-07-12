@@ -2,11 +2,11 @@
 
 import "../../semantic/ast_statement_fact_owner.pgy";
 
-func CodegenSemanticStatementPayloadOrDie(
+func CodegenSemanticStatementIndexOrDie(
     facts: SemanticAstStatementFacts,
     node_id: Int,
     expected_kind: Int
-) -> String {
+) -> Int {
     let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
         facts, node_id
     );
@@ -17,6 +17,17 @@ func CodegenSemanticStatementPayloadOrDie(
     if facts.kind_tags[index] != expected_kind {
         Die(Concat("semantic statement kind mismatch: ", ToString(node_id)));
     }
+    return index;
+}
+
+func CodegenSemanticStatementPayloadOrDie(
+    facts: SemanticAstStatementFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, expected_kind
+    );
     return facts.payload_texts[index];
 }
 
@@ -30,6 +41,49 @@ func CodegenSemanticReturnValueOrDie(facts: SemanticAstStatementFacts, node_id: 
 
 func CodegenSemanticArrayPopTargetOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindArrayPopStmtTag());
+}
+
+func CodegenSemanticArraySetTargetOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    return CodegenSemanticStatementPayloadOrDie(
+        facts, node_id, TypedAstKindArraySetStmtTag()
+    );
+}
+
+func CodegenSemanticArraySetIndexOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindArraySetStmtTag()
+    );
+    return facts.value_texts[index];
+}
+
+func CodegenSemanticArraySetValueOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindArraySetStmtTag()
+    );
+    return facts.auxiliary_texts[index];
+}
+
+func CodegenSemanticArrayPushTargetOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    return CodegenSemanticStatementPayloadOrDie(
+        facts, node_id, TypedAstKindArrayPushStmtTag()
+    );
+}
+
+func CodegenSemanticArrayPushValueOrDie(
+    facts: SemanticAstStatementFacts, node_id: Int
+) -> String {
+    let index: Int = CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindArrayPushStmtTag()
+    );
+    return facts.value_texts[index];
 }
 
 func CodegenSemanticExitArgumentOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
@@ -67,17 +121,9 @@ func CodegenSemanticForLoopVarOrDie(
 func CodegenSemanticForIndexOrDie(
     facts: SemanticAstStatementFacts, node_id: Int
 ) -> Int {
-    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
-        facts, node_id
+    return CodegenSemanticStatementIndexOrDie(
+        facts, node_id, TypedAstKindForStmtTag()
     );
-    if !IsSome(index_opt) {
-        Die(Concat("missing semantic for statement fact: ", ToString(node_id)));
-    }
-    let index: Int = UnwrapOption(index_opt);
-    if facts.kind_tags[index] != TypedAstKindForStmtTag() {
-        Die(Concat("semantic for statement kind mismatch: ", ToString(node_id)));
-    }
-    return index;
 }
 
 func CodegenSemanticForIsRange(

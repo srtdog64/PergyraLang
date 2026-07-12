@@ -235,7 +235,7 @@ func SemanticAstStatementFactsMatchArtifact(
 
 func SemanticAstStatementFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        For: i in 0..3\n          Block:\n            Log(i)\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        For: i in 0..3\n          Block:\n            Log(i)\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        ArrayPush(xs, x)\n        ArraySet(xs, 0, x)\n        Return: x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -243,7 +243,7 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
     return SemanticAstStatementFactsMatchArtifact(
         artifact, signatures, facts
-    ) && SemanticAstStatementCount(facts) == 5 &&
+    ) && SemanticAstStatementCount(facts) == 7 &&
         facts.kind_tags[0] == TypedAstKindForStmtTag() &&
         facts.payload_texts[0] == "i" && facts.value_texts[0] == "0" &&
         facts.auxiliary_texts[0] == "3" && facts.body_scope_node_ids[0] >= 0 &&
@@ -253,6 +253,11 @@ func SemanticAstStatementFactsContractReady() -> Bool {
         facts.payload_texts[2] == "x > 0" &&
         facts.kind_tags[3] == TypedAstKindLogStmtTag() &&
         facts.payload_texts[3] == "x" &&
-        facts.kind_tags[4] == TypedAstKindValueReturnStmtTag() &&
-        facts.payload_texts[4] == "x";
+        facts.kind_tags[4] == TypedAstKindArrayPushStmtTag() &&
+        facts.payload_texts[4] == "xs" && facts.value_texts[4] == "x" &&
+        facts.kind_tags[5] == TypedAstKindArraySetStmtTag() &&
+        facts.payload_texts[5] == "xs" && facts.value_texts[5] == "0" &&
+        facts.auxiliary_texts[5] == "x" &&
+        facts.kind_tags[6] == TypedAstKindValueReturnStmtTag() &&
+        facts.payload_texts[6] == "x";
 }

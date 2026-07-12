@@ -225,11 +225,12 @@ Mechanized artifacts:
   single semantic authority. It proves required-owner existence and uniqueness,
   authority-only consumption, and rejection of missing facts, duplicate
   producers, and owner-plus-fallback bridges. The adequacy smoke binds the
-  first concrete instances to semantic-owned array-literal body and try-let
-  operand facts and their codegen consumers; it is not a whole-compiler SoT
-  proof.
+  first concrete instances to semantic-owned array-literal body, try-let
+  operand, and collection-mutation statement facts and their codegen
+  consumers; it is not a whole-compiler SoT proof.
 - [sot_owner_spine_registry.md](sot_owner_spine_registry.md): machine-gated
-  16-row declaration of top-level fact families, stable handles, unique owners,
+  17-row declaration of 15 architectural fact families plus two bounded
+  self-host closure facts, stable handles, unique owners,
   last legitimate consumers, forbidden fallbacks, enforcement gates, and
   honest `ACTIVE` / `BRIDGE` / `CLOSED` status.
 - [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that

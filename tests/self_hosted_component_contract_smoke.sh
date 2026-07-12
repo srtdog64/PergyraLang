@@ -888,7 +888,6 @@ require_owner_surface codegen \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
-    "input/ast_text_collection_stmt_owner.pgy" \
     "input/ast_expression_usage_owner.pgy" \
     "input/ast_kind_usage_owner.pgy" \
     "input/ast_type_usage_owner.pgy" \
@@ -3357,12 +3356,15 @@ reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "fu
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArraySetValueOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArrayPushTargetOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaArrayPushValueOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetTargetOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetIndexOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArraySetValueOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArrayPushTargetOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" "func CodegenAstArenaArrayPushValueOrDie"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_collection_stmt_owner.pgy";'
+reject_file "src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArraySetTargetOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArraySetIndexOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArraySetValueOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArrayPushTargetOrDie"
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArrayPushValueOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAtomText"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaValueText"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsLogStmt(arena, idx)"
@@ -3374,12 +3376,12 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIs
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPopStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArraySetStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenAstArenaArraySetTargetOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenAstArenaArraySetIndexOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenAstArenaArraySetValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_arr: String = CodegenSemanticArraySetTargetOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsArrayPushStmt(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenAstArenaArrayPushTargetOrDie(arena, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenAstArenaArrayPushValueOrDie(arena, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsExitStmt(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenSemanticExitArgumentOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIsBreakStmt(arena, idx)"
