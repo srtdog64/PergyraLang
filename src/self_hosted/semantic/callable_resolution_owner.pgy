@@ -2,13 +2,19 @@
 
 import "text_scan_owner.pgy";
 
-func SemanticCallableNameSegmentValid(segment: String) -> Bool {
-    if StringLength(segment) == 0 || !IsAlpha(CharAt(segment, 0)) {
+func SemanticCallableNameRangeValid(
+    source_name: String,
+    start: Int,
+    end: Int
+) -> Bool {
+    let n: Int = StringLength(source_name);
+    if start < 0 || end <= start || end > n ||
+        !SourceByteIsAlpha(SourceByteAt(source_name, n, start)) {
         return false;
     }
-    let i: Int = 1;
-    while i < StringLength(segment) {
-        if !IsAlphaNum(CharAt(segment, i)) {
+    let i: Int = start + 1;
+    while i < end {
+        if !SourceByteIsAlphaNum(SourceByteAt(source_name, n, i)) {
             return false;
         }
         i = i + 1;
@@ -16,23 +22,28 @@ func SemanticCallableNameSegmentValid(segment: String) -> Bool {
     return true;
 }
 
+func SemanticCallableNameSegmentValid(segment: String) -> Bool {
+    return SemanticCallableNameRangeValid(
+        segment, 0, StringLength(segment)
+    );
+}
+
 func SemanticCallableSourceNameValid(source_name: String) -> Bool {
+    let n: Int = StringLength(source_name);
     let dot: Int = StringIndexOf(source_name, ".");
     if dot < 0 {
         return SemanticCallableNameSegmentValid(source_name);
     }
-    if dot == 0 || !StringContains(
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ", CharAt(source_name, 0)
-    ) {
+    let first: Int = SourceByteAt(source_name, n, 0);
+    if dot == 0 || first < 65 || first > 90 {
         return false;
     }
     let start: Int = 0;
     let i: Int = 0;
-    while i <= StringLength(source_name) {
-        if i == StringLength(source_name) || CharAt(source_name, i) == "." {
-            if !SemanticCallableNameSegmentValid(
-                Substring(source_name, start, i - start)
-            ) {
+    let separator: Int = SourceByteOf(".");
+    while i <= n {
+        if i == n || SourceByteAt(source_name, n, i) == separator {
+            if !SemanticCallableNameRangeValid(source_name, start, i) {
                 return false;
             }
             start = i + 1;
@@ -43,18 +54,7 @@ func SemanticCallableSourceNameValid(source_name: String) -> Bool {
 }
 
 func SemanticCallableCanonicalLookupName(source_name: String) -> String {
-    let result: String = "";
-    let i: Int = 0;
-    while i < StringLength(source_name) {
-        let c: String = CharAt(source_name, i);
-        if c == "." {
-            result = Concat(result, "_");
-        } else {
-            result = Concat(result, c);
-        }
-        i = i + 1;
-    }
-    return result;
+    return StringReplace(source_name, ".", "_");
 }
 
 func SemanticCallableHasLocalSuffix(
@@ -67,8 +67,11 @@ func SemanticCallableHasLocalSuffix(
         return false;
     }
     let start: Int = declared_len - local_len;
-    return CharAt(declared_name, start - 1) == "_" &&
-        Substring(declared_name, start, local_len) == local_name;
+    return SourceByteAt(declared_name, declared_len, start - 1) ==
+        SourceByteOf("_") &&
+        SubEqualsWithLen(
+            declared_name, declared_len, start, local_len, local_name
+        );
 }
 
 func SemanticCallableIndex(

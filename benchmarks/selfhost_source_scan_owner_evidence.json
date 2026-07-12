@@ -38,6 +38,18 @@
     "operator_fact_rows_consumed": 49630,
     "performance_verdict": "cpu-neutral-allocation-surface-reduction"
   },
+  "semantic_callable_byte_range": {
+    "source_commit": "abb71511",
+    "owner_set_sha256": "E1C67E82EAECE93A9ABD2C6D97CC976A767FD5618A76CB8A4FC8AFBD3FA0FED4",
+    "elapsed_ms": [40236, 39823],
+    "same_window_control_elapsed_ms": 40686,
+    "peak_private_mb": [141.6, 83.6],
+    "char_at_calls_before": 1128849,
+    "char_at_calls_after": 776073,
+    "char_at_reduction_percent": 31.2,
+    "cumulative_char_at_reduction_percent": 72.8,
+    "performance_verdict": "cpu-inconclusive-allocation-surface-reduction"
+  },
   "parity": {
     "parser_fixtures": 188,
     "semantic_fixtures": 110,

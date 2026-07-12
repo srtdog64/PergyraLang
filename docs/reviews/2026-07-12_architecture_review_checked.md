@@ -77,6 +77,14 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   surface closure, not as a CPU speedup. C- and LLVM-built drivers emitted the
   same 151,762-byte artifact with SHA-256
   `A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F`.
+- Qualified callable resolution now validates source-name byte ranges directly,
+  replaces namespace separators in one runtime operation, and compares local
+  suffixes without temporary segment Strings. This lowered integrated-driver
+  `CharAt` calls again from 1,128,849 to 776,073 (31.2 percent for the rung,
+  72.8 percent cumulative from the original 2,851,682). A same-window control
+  ran in 40.686 seconds and candidates in 39.823-40.236 seconds, which is not
+  enough evidence for a CPU-speed claim. The emitted artifact remained
+  byte-identical.
 
 ## Remaining Work Order
 

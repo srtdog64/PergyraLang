@@ -29,6 +29,7 @@ SEMANTIC_SCAN="src/self_hosted/semantic/text_scan_owner.pgy"
 OPERATOR_FACTS="src/self_hosted/semantic/expression_operator_fact_owner.pgy"
 EXPR_TYPES="src/self_hosted/semantic/expr_type_owner.pgy"
 EXPR_VALIDATION="src/self_hosted/semantic/expr_validation_owner.pgy"
+CALLABLE_RESOLUTION="src/self_hosted/semantic/callable_resolution_owner.pgy"
 
 for term in \
     "func SourceByteAt" \
@@ -80,6 +81,16 @@ require_text "$EXPR_TYPES" \
     "SemanticTopLevelOperatorFactsFromExpression(expr)"
 require_text "$EXPR_VALIDATION" \
     "SemanticTopLevelOperatorFactsFromExpression(text)"
+require_text "$CALLABLE_RESOLUTION" \
+    "func SemanticCallableNameRangeValid"
+require_text "$CALLABLE_RESOLUTION" \
+    'return StringReplace(source_name, ".", "_");'
+if grep -Fq "CharAt(" "$CALLABLE_RESOLUTION"; then
+    fail "callable resolution reopened allocating character reads"
+fi
+if grep -Fq "Substring(" "$CALLABLE_RESOLUTION"; then
+    fail "callable resolution reopened segment copies"
+fi
 
 EVIDENCE="benchmarks/selfhost_source_scan_owner_evidence.json"
 owner_hash="$({
@@ -109,6 +120,16 @@ require_text "$EVIDENCE" "\"owner_set_sha256\": \"$operator_owner_hash\""
 require_text "$EVIDENCE" '"char_at_reduction_percent": 60.4'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-neutral-allocation-surface-reduction"'
+
+callable_owner_hash="$({
+    printf '%s:' "$CALLABLE_RESOLUTION"
+    git hash-object "$CALLABLE_RESOLUTION"
+} | sha256sum | awk '{ print toupper($1) }')"
+require_text "$EVIDENCE" "\"owner_set_sha256\": \"$callable_owner_hash\""
+require_text "$EVIDENCE" '"char_at_calls_after": 776073'
+require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 72.8'
+require_text "$EVIDENCE" \
+    '"performance_verdict": "cpu-inconclusive-allocation-surface-reduction"'
 
 baseline_min="$(sed -n '/"baseline"/,/}/s/.*"elapsed_ms": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
     tr ',' '\n' | awk 'BEGIN { min = 999999999 } { gsub(/ /, ""); if ($1 + 0 < min) min = $1 + 0 } END { print min }')"
