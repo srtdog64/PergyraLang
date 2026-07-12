@@ -1,0 +1,7 @@
+// R4 runtime witness: min/max over an empty fan-out has no answer.
+// Returning an identity extreme (INT_MAX-style) would leak a fake value
+// into domain logic, so the fold panics fail-closed on both backends.
+func Main() -> Void {
+    let lo: Int = parallel (i in 3..3) join with min { give i; };
+    Log(lo);
+}

@@ -259,3 +259,23 @@ ast_parallel_join_give_type(const ASTNode* node)
         return NULL;
     return node->data.parallel.join_give_type_name;
 }
+
+/* --- Reduce combinator (docs/181 R4): parse-time closed set --- */
+
+bool
+ast_parallel_set_join_reduce_op(ASTNode* node, const char* op)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK || op == NULL)
+        return false;
+    free(node->data.parallel.join_reduce_op);
+    node->data.parallel.join_reduce_op = pergyra_strdup(op);
+    return node->data.parallel.join_reduce_op != NULL;
+}
+
+const char*
+ast_parallel_join_reduce_op(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return NULL;
+    return node->data.parallel.join_reduce_op;
+}

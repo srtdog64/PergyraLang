@@ -522,11 +522,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return ctx->type_task_handle;
     case AST_PARALLEL_BLOCK: {
         /* Expression-form parallel join (docs/181 R2): Array<R> from the
-         * checker-sealed give-result fact. The statement form stays a
-         * void statement node, exactly as before. */
+         * checker-sealed give-result fact -- or the scalar give type
+         * itself under an R4 reduce combinator. The statement form stays
+         * a void statement node, exactly as before. */
         const char *give = ast_parallel_join_give_type(expr);
-        if (give != NULL && give[0] != '\0')
+        if (give != NULL && give[0] != '\0') {
+            if (ast_parallel_join_reduce_op(expr) != NULL)
+                return pgy_kind_to_llvm(ctx, pgy_classify_type(give));
             return llvm_array_struct_type(ctx, give);
+        }
         return ctx->type_void;
     }
     case AST_AWAIT_EXPR:

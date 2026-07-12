@@ -1,0 +1,7 @@
+// R4 reject: the combinator set is closed (all/sum/product/min/max;
+// any is the declared R3 surface). Unknown words fail at parse.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    ArrayPush(xs, 1);
+    let n = parallel (x in xs) join with median { give x; };
+}

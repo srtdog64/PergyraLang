@@ -557,10 +557,13 @@ mir_source_local_expr_type_name(const MIRProgram *program,
     }
     case AST_PARALLEL_BLOCK: {
         /* Expression-form parallel join (docs/181 R2): the result type is
-         * the checker-sealed give fact -- never re-derived from the body. */
+         * the checker-sealed give fact -- never re-derived from the body.
+         * An R4 reduce combinator folds to the scalar give type itself. */
         const char *give = ast_parallel_join_give_type(expr);
         if (give == NULL || give[0] == '\0')
             return NULL;
+        if (ast_parallel_join_reduce_op(expr) != NULL)
+            return give;
         return mir_source_local_type_scratch_format(scratch, "Array", give);
     }
     case AST_UNARY:

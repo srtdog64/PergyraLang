@@ -52,6 +52,14 @@ void llvm_pjoin_materialize_result(LLVMGenCtx *ctx, ASTNode *node,
                                    LLVMValueRef ctxs, size_t n_captured,
                                    LLVMValueRef n_val, LLVMValueRef i_slot,
                                    LLVMValueRef *result_out);
+/* R4 reduce materialization: index-order fold into one scalar. */
+void llvm_pjoin_materialize_reduce(LLVMGenCtx *ctx, ASTNode *node,
+                                   const char *give_name,
+                                   LLVMTypeRef give_type,
+                                   LLVMTypeRef ctx_struct_type,
+                                   LLVMValueRef ctxs, size_t n_captured,
+                                   LLVMValueRef n_val, LLVMValueRef i_slot,
+                                   LLVMValueRef *result_out);
 /* Shared with the join emitter (defined in llvm_stmt_parallel_async.c). */
 bool llvm_capture_entry_is_required(LLVMGenCtx *ctx, const ASTNode *body,
                                     LLVMScopeFrame *frame, int index);

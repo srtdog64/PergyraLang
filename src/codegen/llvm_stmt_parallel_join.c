@@ -525,11 +525,19 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
 
     LLVMPositionBuilderAtEnd(ctx->builder, join_done);
 
-    /* Expression mode: materialize Array<R> from the per-task result
-     * slots (llvm_stmt_parallel_join_result.c). */
-    if (expr_mode)
-        llvm_pjoin_materialize_result(ctx, node, give_name, give_type,
-            ctx_struct_type, ctxs, n_captured, n_val, i_slot, result_out);
+    /* Expression mode: materialize the result from the per-task give
+     * slots (llvm_stmt_parallel_join_result.c) -- Array<R> for the
+     * all-join, one folded scalar for the R4 reduce combinators. */
+    if (expr_mode) {
+        if (ast_parallel_join_reduce_op(node) != NULL)
+            llvm_pjoin_materialize_reduce(ctx, node, give_name, give_type,
+                ctx_struct_type, ctxs, n_captured, n_val, i_slot,
+                result_out);
+        else
+            llvm_pjoin_materialize_result(ctx, node, give_name, give_type,
+                ctx_struct_type, ctxs, n_captured, n_val, i_slot,
+                result_out);
+    }
 }
 
 void

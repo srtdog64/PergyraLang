@@ -1,0 +1,7 @@
+// R4 reject: a reduce join produces a value; discarding it in statement
+// position is a lost result, so the shape fails closed.
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    ArrayPush(xs, 1);
+    parallel (x in xs) join with sum { give x; }
+}

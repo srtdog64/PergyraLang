@@ -23,6 +23,16 @@
 #   - reject_expr_missing_give        expression form, no give   -> reject
 #   - reject_give_in_statement_form   give without a result sink -> reject
 #   - reject_give_not_last            give before other stmts    -> reject
+#   - parallel_join_reduce (compare corpus, R4) prints
+#     204/24/3/-2/0/1: `join with sum|product|min|max` folds gives in
+#     index order (Int lanes on the checked-arith exports; the Float row
+#     pins the fixed left fold)
+#   - panic_reduce_empty_min          min over empty fan-out -> runtime
+#     fail-closed panic (class=out-of-bounds, shared reason string on
+#     both backends; identity extremes must never leak)
+#   - reject_reduce_unknown_op        combinator set is closed    -> reject
+#   - reject_reduce_bool_give         reduce folds numbers only   -> reject
+#   - reject_reduce_statement_form    scalar result must be bound -> reject
 
 set -euo pipefail
 
@@ -41,6 +51,7 @@ FIXTURES="$ROOT_DIR/tests/cases/parallel_join"
 ACCEPT_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_collection/main.pgy"
 INDEX_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_index/main.pgy"
 EXPR_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_expr/main.pgy"
+REDUCE_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_reduce/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -79,12 +90,33 @@ expect_runs() {
     [ "$got" = "$want" ] || fail "$backend/$name printed '$got', expected '$want'"
 }
 
+# R4 runtime fail-closed witness: the binary must die with the shared
+# panic reason, never print a fake min, never exit clean.
+expect_panics() {
+    local backend="$1" src="$2" name="$3" needle="$4"
+    local exe="pan_${backend}_${name}.exe"
+    compile "$backend" "$src" "$exe" ||
+        fail "$backend/$name must compile: $(tail -2 "$OUT_DIR/$exe.log")"
+    set +e
+    "$OUT_DIR/$exe" >"$OUT_DIR/$exe.out" 2>&1
+    local rc=$?
+    set -e
+    [ "$rc" -ne 0 ] || fail "$backend/$name exited clean but must panic"
+    grep -Fq "$needle" "$OUT_DIR/$exe.out" ||
+        fail "$backend/$name died without the shared panic reason: $needle"
+}
+
 # C-only platforms (macOS CI, Windows C-only) narrow the voice set via env.
 BACKENDS="${PGY_PARALLEL_JOIN_BACKENDS:-c llvm}"
 for backend in $BACKENDS; do
     expect_runs "$backend" "$ACCEPT_SRC" "join" "204"
     expect_runs "$backend" "$INDEX_SRC" "join_index" "$(printf '164\n328')"
     expect_runs "$backend" "$EXPR_SRC" "join_expr" "$(printf '204\n182\n2\n72')"
+    expect_runs "$backend" "$REDUCE_SRC" "join_reduce" \
+        "$(printf '204\n24\n3\n-2\n0\n1')"
+    expect_panics "$backend" "$FIXTURES/panic_reduce_empty_min.pgy" \
+        "reduce_empty_min" \
+        "min/max reduce over an empty parallel join range"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"
@@ -98,5 +130,9 @@ expect_reject reject_collection_array_read.pgy  "cannot capture mutable collecti
 expect_reject reject_expr_missing_give.pgy      "requires a final 'give'"
 expect_reject reject_give_in_statement_form.pgy "give names a per-task result"
 expect_reject reject_give_not_last.pgy          "must be the final statement"
+expect_reject reject_reduce_unknown_op.pgy \
+    "Expected join mode 'all', 'sum', 'product', 'min', or 'max'"
+expect_reject reject_reduce_bool_give.pgy       "folds numeric gives only"
+expect_reject reject_reduce_statement_form.pgy  "produces a value; bind it"
 
-echo "[parallel-join] rungs 0+1+2 admitted (204 + 164/328 + 204/182/2/72 on: $BACKENDS); 11 reject shapes fail closed"
+echo "[parallel-join] rungs 0+1+2+R4 admitted (204 + 164/328 + 204/182/2/72 + reduce 204/24/3/-2/0/1 + empty-min panic on: $BACKENDS); 14 reject shapes fail closed"

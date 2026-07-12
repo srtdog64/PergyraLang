@@ -12,9 +12,15 @@ row-major; column-major stays a per-target layout fact (see "What Not To
 Import"). Progress record: the `parallel (i in lo..hi)` join form
 (docs/181 R0-R2) landed a *declared* instance of DP-3-shaped evidence --
 construction-guaranteed index-disjoint writes on the join surface --
-ahead of the general derived ladder below. The claim gate stands: no
-Fortran-class optimization claim before general DP-3, no reduction claim
-before DP-4.
+ahead of the general derived ladder below. The join-surface reduce
+combinators (docs/181 R4, 2026-07-12: `join with sum|product|min|max`,
+index-order fold, checked-arith lanes, empty-min/max fail-closed) are
+likewise a *declared* instance of DP-4-shaped evidence: the operator,
+identity, accumulator type, and result owner are all explicit on the
+surface. The claim gate stands: no Fortran-class optimization claim
+before general DP-3, and no *general* reduction claim (ReductionFact on
+arbitrary loops) before DP-4 -- the join-surface combinators cover the
+declared form only.
 
 This document records the part of Fortran worth importing into Pergyra's
 parallel model. The target is not Fortran syntax, column-major defaults, or

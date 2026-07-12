@@ -63,6 +63,7 @@ let rs = parallel (x in xs) join with all { .. } // R2: 식 형태 (결과 수�
 | R1 ✅ | 인덱스형 `(i in lo..hi)` + `arr[i]` in-place 쓰기 | 목격자 `parallel_join_index`(compare, 164/328) + 거절 4종(비-바인딩 인덱스/whole-array/원소모드 배열 쓰기/읽기) |
 | R2 ✅ | 식 형태 `let rs = parallel ... { give e; };` (결과 Array<R>, 인덱스 순서) | 목격자 `parallel_join_expr`(compare, 204/182/2/72 — 원소 프로브가 인덱스 순서를 고정) + 거절 3종(give 없음/give 비-최종/문장형 give). 청킹 측정은 잔여(게임 소음 없는 시점) |
 | R3 | `join with any` | §2.4 취소 프로토콜 선행 |
+| R4 ✅ | reduce 조합자 `join with sum\|product\|min\|max` (결과 스칼라, 인덱스-순서 고정 left fold) | 목격자 `parallel_join_reduce`(compare, 204/24/3/-2/0/1 — Float 행이 fold 순서를 고정) + empty-min 런타임 panic 목격자(양 백엔드 class=out-of-bounds) + 거절 3종(미지 조합자/Bool give/문장형 reduce) |
 
 **R0 착지 (2026-07-11, WO-PARSURF-2)**: 파서(`parser_parallel.c`, 원소
 바인딩 필수·all 기본·any는 R3 fail-close) → semantic
@@ -106,6 +107,28 @@ LLVM은 `pgy_array_new_R(n)` + per-task 결과 슬롯 push 루프로 물질화.
 착지 위치는 let-초기화가 유일 검증 지점이나 admission은 표현식 일반
 (parse는 이미 primary). 잔여: 청킹/그레인 측정(게임 소음 없는 시점),
 non-primitive give, give-in-branch.
+
+**R4 착지 (2026-07-12, WO-PARSURF-2 R4)**: `join with` 슬롯의 조합자
+어휘를 닫힌 집합으로 확장 — `all`(수집)에 `sum`/`product`/`min`/`max`
+(fold) 추가, `any`는 R3 유지. 결과는 Array<R>가 아니라 **스칼라 give
+타입**(수치 전용 — Bool give는 semantic 거절), 문장형 reduce는 "결과를
+버리는 모양"이라 fail-close. fold 의미론 3결정: **① 인덱스-순서 고정
+left fold**(완료 순서 무관 → Float까지 양 백엔드 byte-equal; 미래 청킹은
+이 fold 모양을 (n, 선언된 정책)의 함수로 보존해야 하며 스케줄-적응형
+금지), **② Int/Long 합·곱은 surface `+`/`*`와 동일한 checked-arith
+export**(`pgy_checked_add/mul_i32/i64_export`)를 fold 스텝으로 호출 —
+reduce가 unchecked overflow를 몰래 재도입하는 것을 구조로 차단, **③
+empty fan-out의 min/max는 런타임 fail-closed panic**(양 백엔드가 같은
+`pgy_runtime_panic_out_of_bounds_export`에 같은 reason 문자열 —
+"identity 극값 반환"은 가짜 도메인 값 누출이라 기각; sum/product는
+항등원 0/1 반환). min/max의 NaN은 ordered-compare로 accumulator 유지
+(C 삼항 ↔ LLVM fcmp-olt/select 쌍둥이). fact 규율은 R2 재사용:
+`join_reduce_op`은 parse-time 표면 fact로 노드 봉인, give 타입 fact와
+함께 3 infer 지점(transpiler/LLVM/MIR)이 스칼라로 소비. 검증:
+204/24/3/-2/0/1 양 백엔드 byte-equal · empty-min panic 양 백엔드 ·
+거절 14종 스모크 · concurrency 전부 · semantic 2794/0. 잔여:
+non-primitive/사용자-정의 모노이드(ability/witness 필요 — 별개 rung),
+`join with reduce(op, id)` 일반형은 필요 실증 전 보류.
 
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 

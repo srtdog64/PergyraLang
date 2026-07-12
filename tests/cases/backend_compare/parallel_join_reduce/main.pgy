@@ -1,0 +1,30 @@
+// Reduce-join witness (docs/181 R4): `join with sum|product|min|max`
+// folds per-task give values into ONE scalar, always in INDEX order (a
+// fixed left fold -- what keeps Float folds byte-equal across backends
+// and completion orders). Int/Long lanes ride the same checked-arith
+// exports as surface '+' so reduce cannot silently reintroduce
+// unchecked overflow.
+//   sum of squares 1..8      = 204
+//   product over 1..5 range  = 24
+//   min of 3x                = 3
+//   max of x-10              = -2
+//   sum over empty range     = 0   (identity; empty min/max panics)
+//   0.5 folded 8 times       = 4.0 (exact in binary floating point)
+func Main() -> Void {
+    let mut xs: Array<Int> = [];
+    for k in 0..8 { ArrayPush(xs, k + 1); }
+    let total: Int = parallel (x in xs) join with sum { give x * x; };
+    Log(total);
+    let prod: Int = parallel (i in 1..5) join with product { give i; };
+    Log(prod);
+    let lo: Int = parallel (x in xs) join with min { give x * 3; };
+    Log(lo);
+    let hi: Int = parallel (x in xs) join with max { give x - 10; };
+    Log(hi);
+    let none: Int = parallel (i in 5..5) join with sum { give i; };
+    Log(none);
+    let mut fs: Array<Float> = [];
+    for k2 in 0..8 { ArrayPush(fs, 0.5); }
+    let fsum: Float = parallel (f in fs) join with sum { give f; };
+    if (fsum == 4.0) { Log(1); } else { Log(0); }
+}

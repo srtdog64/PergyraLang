@@ -161,6 +161,13 @@ struct ASTNode
              * form). Emitters derive Array<R> from this fact instead of
              * re-inferring the body. */
             char*     join_give_type_name;
+            /* Reduce combinator (docs/181 R4): parse-time closed set
+             * ("sum"/"product"/"min"/"max"; NULL = all-join collect).
+             * The expression form folds per-task give values in INDEX
+             * order (a fixed left fold, so Float results are
+             * deterministic and byte-equal across backends); Int/Long
+             * lanes ride the checked-arith exports. */
+            char*     join_reduce_op;
         } parallel;
         
         /* For loop */

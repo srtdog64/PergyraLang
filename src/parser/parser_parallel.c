@@ -61,9 +61,22 @@ parser_parse_parallel_join_form(Parser* parser, ASTNode* parallel)
         } else if (parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "all") == 0) {
             parser_advance(parser);  /* all (the rung-0 default) */
+        } else if (parser->current_token.text != NULL
+            && (strcmp(parser->current_token.text, "sum") == 0
+                || strcmp(parser->current_token.text, "product") == 0
+                || strcmp(parser->current_token.text, "min") == 0
+                || strcmp(parser->current_token.text, "max") == 0)) {
+            /* R4 reduce combinators (docs/181 R4): a closed contextual
+             * set, sealed on the node for checker and both emitters. */
+            if (!ast_parallel_set_join_reduce_op(parallel,
+                    parser->current_token.text)) {
+                parser_error(parser,
+                    "Out of memory while recording parallel join reduce combinator");
+            }
+            parser_advance(parser);
         } else {
             parser_error(parser,
-                "Expected join mode 'all' after 'join with'");
+                "Expected join mode 'all', 'sum', 'product', 'min', or 'max' after 'join with'");
         }
     }
 

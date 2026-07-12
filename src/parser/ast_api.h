@@ -281,6 +281,9 @@ bool ast_parallel_join_index_array_admitted(const ASTNode* node,
 /* Expression form (docs/181 R2): checker-sealed give result type name. */
 bool ast_parallel_set_join_give_type(ASTNode* node, const char* type_name);
 const char* ast_parallel_join_give_type(const ASTNode* node);
+/* Reduce combinator (docs/181 R4): parse-time "sum"/"product"/"min"/"max". */
+bool ast_parallel_set_join_reduce_op(ASTNode* node, const char* op);
+const char* ast_parallel_join_reduce_op(const ASTNode* node);
 ASTNode* ast_with_slot_type(const ASTNode* node);
 const char* ast_with_alias(const ASTNode* node);
 ASTNode* ast_with_body(const ASTNode* node);

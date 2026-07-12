@@ -386,11 +386,24 @@ type_check_parallel_join_expr_type(ASTNode *node, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
     /* Seal the result type as a node fact: both backend emitters derive
-     * Array<R> from it instead of re-inferring the body (docs/180 SS6). */
+     * the result shape from it instead of re-inferring the body
+     * (docs/180 SS6). */
     if (!ast_parallel_set_join_give_type(node, give_type->name)) {
         semantic_error(ctx, node,
             "Give-result fact allocation failed while admitting parallel join expression");
         return TYPE_UNKNOWN;
+    }
+    /* R4 reduce combinators (docs/181 R4): the fold is numeric-only
+     * (Bool has no sum/product/min/max meaning) and yields the scalar
+     * give type instead of Array<R>. */
+    if (ast_parallel_join_reduce_op(node) != NULL) {
+        if (give_type->name != NULL
+            && strcmp(give_type->name, "Bool") == 0) {
+            semantic_error(ctx, last,
+                "parallel join reduce ('sum'/'product'/'min'/'max') folds numeric gives only (Int/Long/Float/Double) (docs/181 R4)");
+            return TYPE_UNKNOWN;
+        }
+        return give_type;
     }
     return wrap_constructed(TYPE_ARRAY, give_type);
 }

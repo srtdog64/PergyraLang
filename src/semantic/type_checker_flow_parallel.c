@@ -348,6 +348,16 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    /* R4 (docs/181): a reduce join produces one scalar; the statement
+     * form would compute and silently drop it, so the shape fails
+     * closed instead of becoming a lost result. */
+    if (ast_parallel_join_reduce_op(node) != NULL
+        && !ctx->in_parallel_join_expr) {
+        semantic_error(ctx, node,
+            "parallel join with sum/product/min/max produces a value; bind it: let x = parallel (...) join with sum { give <expr>; }; (docs/181 R4)");
+        return false;
+    }
+
     /* Join form (docs/181 SS1 rung 0): admission first -- its replicated
      * arms reject every outer write, so the scalar race check below can
      * never record rows for it. */

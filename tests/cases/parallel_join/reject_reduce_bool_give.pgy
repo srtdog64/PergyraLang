@@ -1,0 +1,7 @@
+// R4 reject: reduce combinators fold numbers; a Bool give has no
+// sum/product/min/max meaning and must fail closed, never coerce.
+func Main() -> Void {
+    let mut xs: Array<Bool> = [];
+    ArrayPush(xs, true);
+    let n = parallel (x in xs) join with sum { give x; };
+}

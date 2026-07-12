@@ -30,6 +30,45 @@
 #include "transpiler_parallel_capture.h"
 #include "transpiler_type_require.h"
 
+/* R4 fold-step spelling per (combinator, give type). Int/Long ride the
+ * same checked-arith exports as surface '+'/'*', so the fold cannot
+ * reintroduce unchecked overflow; Float/Double are plain IEEE ops; and
+ * min/max keep the accumulator on NaN (ordered compare), matching the
+ * LLVM fcmp-olt/select twin exactly. */
+static void
+join_reduce_write_step(TranspilerCtx *ctx, const char *rop,
+                       const char *give_name, const char *res_name,
+                       unsigned int pid)
+{
+    bool int_lane = strcmp(give_name, "Int") == 0;
+    bool long_lane = strcmp(give_name, "Long") == 0;
+
+    write_indent(ctx);
+    if (strcmp(rop, "sum") == 0 && (int_lane || long_lane)) {
+        codebuf_write(ctx->out,
+            "    %s = pgy_checked_add_%s_export(%s, _pj_v_%u);\n",
+            res_name, int_lane ? "i32" : "i64", res_name, pid);
+    } else if (strcmp(rop, "product") == 0 && (int_lane || long_lane)) {
+        codebuf_write(ctx->out,
+            "    %s = pgy_checked_mul_%s_export(%s, _pj_v_%u);\n",
+            res_name, int_lane ? "i32" : "i64", res_name, pid);
+    } else if (strcmp(rop, "sum") == 0) {
+        codebuf_write(ctx->out, "    %s = %s + _pj_v_%u;\n",
+            res_name, res_name, pid);
+    } else if (strcmp(rop, "product") == 0) {
+        codebuf_write(ctx->out, "    %s = %s * _pj_v_%u;\n",
+            res_name, res_name, pid);
+    } else if (strcmp(rop, "min") == 0) {
+        codebuf_write(ctx->out,
+            "    %s = _pj_v_%u < %s ? _pj_v_%u : %s;\n",
+            res_name, pid, res_name, pid, res_name);
+    } else {
+        codebuf_write(ctx->out,
+            "    %s = _pj_v_%u > %s ? _pj_v_%u : %s;\n",
+            res_name, pid, res_name, pid, res_name);
+    }
+}
+
 /* "Array<Int>" -> "Int" (the checker already guaranteed this shape). */
 static bool
 join_collection_inner_suffix(const char *type_name, char *out,
@@ -322,13 +361,54 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
             "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
         if (give_suffix != NULL) {
-            /* Index order, never completion order: the collection walk is
-             * the loop below, not the workers' finish sequence. */
-            write_indent(ctx);
-            codebuf_write(ctx->out,
-                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
-                "pgy_array_push_%s(&%s, _pj_ctxs_%u[_pj_i].__join_result);\n",
-                pid, give_suffix, res_name, pid);
+            const char *rop = ast_parallel_join_reduce_op(node);
+
+            if (rop == NULL) {
+                /* Index order, never completion order: the collection walk
+                 * is the loop below, not the workers' finish sequence. */
+                write_indent(ctx);
+                codebuf_write(ctx->out,
+                    "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+                    "pgy_array_push_%s(&%s, _pj_ctxs_%u[_pj_i].__join_result);\n",
+                    pid, give_suffix, res_name, pid);
+            } else {
+                /* R4 fold, same index-order rule: a fixed left fold over
+                 * the per-task slots keeps Float results deterministic
+                 * and byte-equal with the LLVM twin. */
+                bool seeded = strcmp(rop, "min") == 0
+                           || strcmp(rop, "max") == 0;
+
+                if (seeded) {
+                    /* min/max over nothing has no answer; an identity
+                     * extreme would leak a fake domain value, so the
+                     * empty fan-out fails closed through the same panic
+                     * export the LLVM twin calls (docs/181 R4). */
+                    write_indent(ctx);
+                    codebuf_write(ctx->out,
+                        "extern void pgy_runtime_panic_out_of_bounds_export(const char *);\n");
+                    write_indent(ctx);
+                    codebuf_write(ctx->out,
+                        "if (_pj_n_%u == 0) pgy_runtime_panic_out_of_bounds_export("
+                        "\"min/max reduce over an empty parallel join range\");\n",
+                        pid);
+                    write_indent(ctx);
+                    codebuf_write(ctx->out,
+                        "%s = _pj_ctxs_%u[0].__join_result;\n",
+                        res_name, pid);
+                }
+                write_indent(ctx);
+                codebuf_write(ctx->out,
+                    "for (size_t _pj_i = %s; _pj_i < _pj_n_%u; _pj_i++) {\n",
+                    seeded ? "1" : "0", pid);
+                write_indent(ctx);
+                codebuf_write(ctx->out,
+                    "    %s _pj_v_%u = _pj_ctxs_%u[_pj_i].__join_result;\n",
+                    give_c_type, pid, pid);
+                join_reduce_write_step(ctx, rop, give_suffix, res_name,
+                                       pid);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "}\n");
+            }
         }
         write_indent(ctx);
         codebuf_write(ctx->out,
@@ -389,8 +469,23 @@ transpiler_emit_parallel_join_expr_parts(ASTNode *node, TranspilerCtx *ctx)
         codebuf_destroy(tmp);
         return NULL;
     }
-    result = strdup_fmt("({ PgyArray_%s %s = {0};\n%s    %s; })",
-        give, res_name, tmp->data != NULL ? tmp->data : "", res_name);
+    {
+        const char *rop = ast_parallel_join_reduce_op(node);
+
+        if (rop != NULL) {
+            /* R4: one scalar. sum/product start from the identity;
+             * min/max are seeded from slot 0 after the empty check (the
+             * zero init only quiets may-be-uninitialized). */
+            result = strdup_fmt("({ %s %s = %s;\n%s    %s; })",
+                give_c_type, res_name,
+                strcmp(rop, "product") == 0 ? "1" : "0",
+                tmp->data != NULL ? tmp->data : "", res_name);
+        } else {
+            result = strdup_fmt("({ PgyArray_%s %s = {0};\n%s    %s; })",
+                give, res_name, tmp->data != NULL ? tmp->data : "",
+                res_name);
+        }
+    }
     codebuf_destroy(tmp);
     return result;
 }
