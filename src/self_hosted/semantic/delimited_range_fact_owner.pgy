@@ -38,7 +38,7 @@ func SemanticDelimitedTrimmedEnd(
     return result;
 }
 
-func SemanticCallArgumentRangeFactsFromSource(
+func SemanticNestedCommaRangeFactsFromSource(
     source: String
 ) -> SemanticDelimitedRangeFacts {
     let n: Int = StringLength(source);
@@ -163,7 +163,7 @@ func SemanticDelimitedRangeText(
 func SemanticDelimitedRangeFactContractReady() -> Bool {
     let arguments: String = "1, F(2, 3), \"a,b\"";
     let argument_facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(arguments);
+        SemanticNestedCommaRangeFactsFromSource(arguments);
     let signature: String = "Int|Option<String>";
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature);

@@ -119,7 +119,7 @@ func ParamTypeOf(part: String) -> String {
 }
 func ParamTypes(param_src: String) -> String {
     let facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(param_src);
+        SemanticNestedCommaRangeFactsFromSource(param_src);
     let result: String = "";
     let i: Int = 0;
     while i < SemanticDelimitedRangeCount(facts) {
@@ -156,7 +156,7 @@ func CallArgAtFromFacts(
 }
 func CallArgAt(args_src: String, target: Int) -> String {
     let facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(args_src);
+        SemanticNestedCommaRangeFactsFromSource(args_src);
     return CallArgAtFromFacts(facts, args_src, target);
 }
 func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {

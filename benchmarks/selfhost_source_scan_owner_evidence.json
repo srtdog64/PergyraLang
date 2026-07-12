@@ -52,7 +52,7 @@
   },
   "semantic_delimited_range_facts": {
     "source_commit": "0f4938e0",
-    "owner_set_sha256": "C7F88E85F260DF4B9D6CB0D559661050B16976DA32E399812657B7568FCD5F30",
+    "owner_set_sha256": "86256F587AF26293A42920AB2EF71A611D0252D701C78995F226628B7653DE84",
     "elapsed_ms": [36854, 36927],
     "same_window_control_elapsed_ms": 37029,
     "peak_private_mb": [165.7, 104.1],
@@ -64,9 +64,23 @@
     "signature_fact_rows": 3177,
     "performance_verdict": "cpu-neutral-shared-range-facts"
   },
+  "semantic_type_canonical_ranges": {
+    "source_commit": "3a6cb537",
+    "owner_set_sha256": "0EFD19EA493120993102AFD77A9BF2F7E040180A25BE9C5409154CCD076DC3F4",
+    "elapsed_ms": [36743, 36432],
+    "same_window_control_elapsed_ms": 36528,
+    "peak_private_mb": [88.3, 95.4],
+    "char_at_calls_before": 424152,
+    "char_at_calls_after": 337974,
+    "char_at_reduction_percent": 20.3,
+    "cumulative_char_at_reduction_percent": 88.1,
+    "canonical_type_calls": 62282,
+    "type_nested_range_fact_rows": 7188,
+    "performance_verdict": "cpu-neutral-type-range-facts"
+  },
   "parity": {
     "parser_fixtures": 188,
-    "semantic_fixtures": 110,
+    "semantic_fixtures": 111,
     "backends": ["c", "llvm"],
     "integrated_driver_c_llvm_byte_identical": true
   },

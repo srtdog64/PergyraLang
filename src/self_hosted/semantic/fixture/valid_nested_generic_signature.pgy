@@ -1,0 +1,9 @@
+func IdentityNested(
+    value: Array<Option<Int>>
+) -> Array<Option<Int>> {
+    return value;
+}
+
+func Main() -> Void {
+    return;
+}

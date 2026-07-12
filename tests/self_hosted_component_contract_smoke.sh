@@ -752,12 +752,15 @@ require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expre
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "struct SemanticDelimitedRangeFacts"
-require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticCallArgumentRangeFactsFromSource"
+require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticNestedCommaRangeFactsFromSource"
+reject_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "SemanticCallArgumentRangeFactsFromSource"
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticSignatureRangeFactsFromSource"
 require_text "src/self_hosted/semantic/delimited_range_fact_owner.pgy" "func SemanticDelimitedRangeFactContractReady"
 require_max_lines "src/self_hosted/semantic/delimited_range_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "delimited_range_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/call_check_owner.pgy" 'import "delimited_range_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" 'import "delimited_range_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_type_name_canonical_owner.pgy" "SemanticNestedCommaRangeFactsFromSource(inner)"
 require_file "src/self_hosted/semantic/expression_normalization_owner.pgy"
 require_max_lines "src/self_hosted/semantic/expression_normalization_owner.pgy" 600
 require_text "src/self_hosted/semantic/expression_normalization_owner.pgy" "func SemanticExpressionNormalizationContractReady"
@@ -5954,11 +5957,13 @@ reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"
 
 semantic_fixture_count="$(find "$SELF_HOST_DIR/semantic/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 semantic_expected_count="$(find "$SELF_HOST_DIR/semantic/expected" -maxdepth 1 -type f -name '*.diag' | wc -l | tr -d ' ')"
-[[ "$semantic_fixture_count" -eq 110 ]] ||
-    fail "semantic fixture count drifted: $semantic_fixture_count != 110"
-[[ "$semantic_expected_count" -eq 110 ]] ||
-    fail "semantic expected count drifted: $semantic_expected_count != 110"
-require_text "src/self_hosted/PROGRESS.md" "across 110 fixtures"
+[[ "$semantic_fixture_count" -eq 111 ]] ||
+    fail "semantic fixture count drifted: $semantic_fixture_count != 111"
+[[ "$semantic_expected_count" -eq 111 ]] ||
+    fail "semantic expected count drifted: $semantic_expected_count != 111"
+require_text "src/self_hosted/PROGRESS.md" "across 111 fixtures"
+require_file "src/self_hosted/semantic/fixture/valid_nested_generic_signature.pgy"
+require_file "src/self_hosted/semantic/expected/valid_nested_generic_signature.diag"
 require_file "src/self_hosted/semantic/fixture/valid_scalar_math_builtins.pgy"
 require_file "src/self_hosted/semantic/fixture/valid_string_plus.pgy"
 require_file "src/self_hosted/semantic/fixture/valid_string_scalar_plus.pgy"

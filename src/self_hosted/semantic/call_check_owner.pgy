@@ -112,7 +112,7 @@ func ArgCountFromFacts(
 }
 func ArgCount(args_src: String) -> Int {
     let facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(args_src);
+        SemanticNestedCommaRangeFactsFromSource(args_src);
     return ArgCountFromFacts(facts);
 }
 func FirstArgFromFacts(
@@ -123,7 +123,7 @@ func FirstArgFromFacts(
 }
 func FirstArg(args_src: String) -> String {
     let facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(args_src);
+        SemanticNestedCommaRangeFactsFromSource(args_src);
     return FirstArgFromFacts(facts, args_src);
 }
 func IsCollectionMutator(callee: String) -> Bool {
@@ -228,7 +228,7 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
         SemanticSignatureRangeFactsFromSource(sig);
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
     let argument_facts: SemanticDelimitedRangeFacts =
-        SemanticCallArgumentRangeFactsFromSource(args_src);
+        SemanticNestedCommaRangeFactsFromSource(args_src);
     let receiver_error: String = CheckCollectionMutatorReceiver(
         argument_facts, callee, args_src, names, types, modes
     );

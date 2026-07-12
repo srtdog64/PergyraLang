@@ -67,7 +67,7 @@ byte-identical. Integrated-driver text lifetime remains active debt.
 - Shared parser/semantic source scanning now has an allocation-free byte/code
   owner. The converted trivia, parser-cursor, and semantic-text regions no
   longer materialize one-character or keyword-window Strings. Parser 188/188,
-  semantic 110/110, and integrated-driver C/LLVM artifact parity are green;
+  semantic 111/111, and integrated-driver C/LLVM artifact parity are green;
   the same-input runtime moved from 37.915-38.071 seconds to
   36.891-37.131 seconds. Unmigrated text consumers remain active debt.
 - Top-level expression operator discovery now has one semantic fact owner shared
@@ -94,6 +94,13 @@ byte-identical. Integrated-driver text lifetime remains active debt.
   for this rung, 85.1 percent cumulative). A same-window control ran in 37.029
   seconds and candidates in 36.854-36.927 seconds, so CPU remains neutral. C
   and LLVM emitted the same artifact.
+- Canonical generic type names now consume the same nested-comma range owner;
+  top-level label detection and closing-delimiter checks use byte facts. The
+  call-only producer name was removed rather than retained as an alias.
+  Integrated-driver `CharAt` calls fell from 424,152 to 337,974 (20.3 percent
+  for this rung, 88.1 percent cumulative). A same-window control ran in 36.528
+  seconds and candidates in 36.432-36.743 seconds, so CPU remains neutral. C
+  and LLVM emitted the same artifact.
 
 ## Remaining Work Order
 
@@ -101,7 +108,7 @@ byte-identical. Integrated-driver text lifetime remains active debt.
    it fails, preserve the exact backend, iteration, timeout, stdout, and stderr.
 2. Continue hard self-host replacement through typed owner facts and verifier
    parity. Do not replace missing MIR facts with source-text or AST recovery.
-3. Continue repointing the remaining type-name and expression/literal owners
+3. Continue repointing the remaining expression/literal and normalization owners
    and add scope reclamation for ordinary String temporaries. Prefer
    `CharCode`, `StrView`, `TextSpan`, or another explicit non-owning fact over
    changing `String` lifetime semantics to make `CharAtN` appear cheap. Do not

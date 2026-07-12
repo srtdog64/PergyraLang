@@ -59,12 +59,20 @@ consumed rows. That reduced peak private memory from 223.4 MB to
 the current CPU boundary; these measurements do not close the expensive
 full-source gen3 fixed point.
 
+Generic type canonicalization now consumes the same nested-comma range owner as
+call and parameter facts. The call-only producer name was removed instead of
+kept as an alias. Top-level label and closing-delimiter checks use byte facts;
+integrated `CharAt` calls fell again from 424,152 to 337,974 (88.1 percent
+cumulative from the original profile). Runtime remained neutral at
+36.432-36.743 seconds against a 36.528-second same-window control, and C/LLVM
+drivers retained the byte-identical artifact.
+
 The first shared source-scan slice now consumes `CharCode` and
 `SubEqualsWithLen` facts rather than allocating one-character and keyword
 `String` values in trivia, parser-cursor, and semantic-text hot loops. On the
 same integrated-driver `mir_lower` input, the measured runtime moved from
 37.915-38.071 seconds to 36.891-37.131 seconds with byte-identical output.
-Parser 188/188 and semantic 110/110 manifests remain expected-artifact equal
+Parser 188/188 and semantic 111/111 manifests remain expected-artifact equal
 under C and LLVM, and the C/LLVM integrated drivers emit the same 151,762-byte
 artifact. This is one source-scan owner closure, not whole parser/semantic text
 lifetime closure.
@@ -75,7 +83,7 @@ argument/signature partitions as `SemanticDelimitedRangeFacts`. Arity,
 builtin, receiver, and type checks now share those ranges by `ref`. Integrated
 `CharAt` calls fell from 2,851,682 to 424,152 (85.1 percent), while same-window
 runtime remained neutral at 36.854-36.927 seconds against a 37.029-second
-control. C/LLVM semantic parity remains 110/110 and both integrated drivers
+control. C/LLVM semantic parity remains 111/111 and both integrated drivers
 emit the same 151,762-byte artifact. This closes duplicated semantic text
 ownership; it does not close remaining type-name/expression scans or the
 full-source gen3 fixed point.
@@ -514,7 +522,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 |-----------------|---------|----------------------------|---------------------|-------------------|
 | `src/lexer/`    |     921 |         825 | measured corpus parity | **993 of 993 sources byte-equal** (examples + backend_compare). `main.pgy` is entrypoint-only; run-boundary, fixture manifest, source input, character/codepoint handling, token classification/output formatting, and scan-loop state are separate SoT owner modules. `scan_owner.pgy` declares its real owner dependencies (`char_owner.pgy`, `token_owner.pgy`), and the lexer run/fixture-manifest owners are part of the real-source semantic selfcheck set. Escaped strings, interpolation, and doc/block comments are covered by the measured corpus. 7 representative sources are committed as parity fixtures. |
 | `src/parser/`   |   20579 |        8355 | ~52%     | `src/self_hosted/parser/` parses 188 source/fixture rows byte-equal `pgy --ast` on both C and LLVM parser binaries, and **120 of 121** `examples/*.pgy` byte-equal at scale (2026-06-22; zero byte-drift, zero self-host parser exits, 1 C-skip). Parser ownership is now split into declaration, expression, statement, import/source, cursor, type-name, diagnostic, tree-text, run-boundary, and fixture-manifest owners; `main.pgy` is parser-tool entrypoint only. |
-| `src/semantic/` |   46203 |        7792 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 110 fixtures, including Option `?` payload propagation and Result core consumption. Artifact-native DRV-2 additionally owns signatures, nominal constructors, locals, assignments, iteration, statement typing, and ordered body verdicts without source rescanning. |
+| `src/semantic/` |   46203 |        7792 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries across 111 fixtures, including nested generic signature canonicalization, Option `?` payload propagation, and Result core consumption. Artifact-native DRV-2 additionally owns signatures, nominal constructors, locals, assignments, iteration, statement typing, and ordered body verdicts without source rescanning. |
 | `src/codegen/`  |  107123 |        7220 | rung-0..21 | **C-emit rung-0..21 (2026-07-12).** The Pergyra emitter covers the committed scalar/string/array/result/option/struct/defer/file/stdin/argv/random/float/long subset across 69 run-equal fixtures. HIR owns the compact AST inventory, row facts, `AstTreeArtifact`, and shared `AstArena`; parser produces that artifact and codegen consumes it without rebuilding the arena. Codegen owns only its arena view, type/symbol/ABI/runtime-call facts, and emission participants. The standalone codegen and integrated parser/codegen driver have separate byte-identical `gen2 == gen3` fixed points. TextBuilder now owns program assembly and hot token rewrites. Out-of-subset input is an observable `Exit(1)`; the released default path remains C-owned. |
 | `src/runtime/`  |   29627 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   43304 |        9389 | bounded producer-first DRV-2; released 0% | `driver_pipeline_owner.pgy` owns the shared source->AST spine. DRV-2 composes artifact-native semantics, Pergyra MIR production, MIR consumption, and codegen; C MIR is oracle evidence only. The default native driver remains C-owned. |
@@ -612,7 +620,7 @@ The realistic incremental path toward genuine self-host:
   math-runtime, host-I/O-runtime, Option/Result-runtime, and string-runtime owners, semantic run/program/body/call/expression owner files, and audit-tool
    slices inside the current
    subset. The oracle parity runs on C and LLVM
-   binaries across 110 fixtures. The same gate now validates the 17-code
+   binaries across 111 fixtures. The same gate now validates the 17-code
    self-hosted semantic diagnostic vocabulary plus its C oracle JSON root-code
    mapping: committed expected `Code:` fields and literal
    `SemanticError...("code")` call sites must be registered in

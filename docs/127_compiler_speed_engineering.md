@@ -282,7 +282,7 @@ Windows runs moved from 37.915-38.071 seconds to 36.891-37.131 seconds. All
 outputs were 151,762 bytes with SHA-256
 `A7760C88DCAD10D7EEA87195800ABE642C506640AFAE4147E8A5A2DEEF12044F`.
 Peak private memory varied between runs, so it is recorded but not claimed as
-a closed improvement. Parser 188/188 and semantic 110/110 expected artifacts
+a closed improvement. Parser 188/188 and semantic 111/111 expected artifacts
 match under both C and LLVM; C- and LLVM-built integrated drivers emit the same
 MIR-lower C artifact. `self-host-source-scan-owner-test-smoke` hashes the owner
 set and rejects allocation-returning reads in these hot regions.
