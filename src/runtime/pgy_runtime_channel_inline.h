@@ -19,6 +19,16 @@
 #include "pgy_runtime_channel_status.h"
 #include "pgy_runtime_channel_lane_inline.h"
 #include "pgy_runtime_channel_lifecycle_inline.h"
+#include "pgy_runtime_cancel_probe.h"
+
+/* Cancellable parked waits (docs/182 SS2.2): the unbounded blocking
+ * ops sleep in short quanta and re-check the cancellation probe, so a
+ * cancelled task parked on a channel retires promptly instead of
+ * deadlocking its join. A cancelled exit is a contract OUTCOME (plain
+ * false, like closed), never a violation: any-join losers then reach
+ * their give, lose the CAS, and retire. Timeout variants already
+ * self-unblock by deadline and keep their exact shape. */
+#define PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS 10000000ULL
 
 /* Lifecycle guard (docs/179 3a; V1 bug class #8-R): an operation on a
  * NULL or uninitialized channel is a contract VIOLATION, never a contract
@@ -136,19 +146,29 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
         ch != NULL && (ch->buf == NULL || ch->cap == 0), false, \
         "send_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
-    while (ch->count >= ch->cap && !ch->closed) { \
+    while (ch->count >= ch->cap && !ch->closed \
+           && !pgy_cancel_probe_cancelled()) { \
         if (pgy_async_in_coroutine()) { \
             pthread_mutex_unlock(&ch->mutex); \
             pgy_async_yield(); \
             pthread_mutex_lock(&ch->mutex); \
         } else { \
-            if (pthread_cond_wait(&ch->cond_not_full, &ch->mutex) != 0) { \
+            struct timespec _pgy_q = \
+                pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS); \
+            int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full, \
+                                                 &ch->mutex, &_pgy_q); \
+            if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) { \
                 pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
                     "not-full condition wait failed"); \
                 pthread_mutex_unlock(&ch->mutex); \
                 return false; \
             } \
         } \
+    } \
+    if (ch->count >= ch->cap && !ch->closed) { \
+        /* cancelled while still full: contract outcome, no warn */ \
+        pthread_mutex_unlock(&ch->mutex); \
+        return false; \
     } \
     if (ch->closed) { \
         pgy_runtime_warn_invalid_channel("send_" #SuffixName, "channel is closed"); \
@@ -294,7 +314,8 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
         ch != NULL && (ch->buf == NULL || ch->cap == 0), out == NULL, \
         "recv_" #SuffixName); \
     pthread_mutex_lock(&ch->mutex); \
-    while (ch->count == 0 && !ch->closed) { \
+    while (ch->count == 0 && !ch->closed \
+           && !pgy_cancel_probe_cancelled()) { \
         if (pgy_async_in_coroutine()) { \
             pthread_mutex_unlock(&ch->mutex); \
             pgy_async_yield(); \
@@ -303,7 +324,11 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
             pthread_mutex_unlock(&ch->mutex); \
             if (!pgy_async_progress_one()) { \
                 pthread_mutex_lock(&ch->mutex); \
-                if (pthread_cond_wait(&ch->cond_not_empty, &ch->mutex) != 0) { \
+                struct timespec _pgy_q = \
+                    pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS); \
+                int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_empty, \
+                                                     &ch->mutex, &_pgy_q); \
+                if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) { \
                     pgy_runtime_warn_invalid_channel("recv_" #SuffixName, \
                         "not-empty condition wait failed"); \
                     pthread_mutex_unlock(&ch->mutex); \
@@ -314,8 +339,11 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
             } \
         } \
     } \
-    if (ch->count == 0 && ch->closed) { \
-        pgy_runtime_warn_invalid_channel("recv_" #SuffixName, "channel is closed and empty"); \
+    if (ch->count == 0) { \
+        if (ch->closed) \
+            pgy_runtime_warn_invalid_channel("recv_" #SuffixName, \
+                "channel is closed and empty"); \
+        /* cancelled while still empty: contract outcome, no warn */ \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \

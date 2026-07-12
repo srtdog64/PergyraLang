@@ -497,6 +497,98 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMPositionBuilderAtEnd(ctx->builder, spawn_done);
     LLVMBuildStore(ctx->builder, zero, i_slot);
 
+    if (expr_mode && is_any) {
+        /* R3 slice 2 (docs/182 SS2.1): the slice-1 order-await had a
+         * hole -- a loser parked on a channel at an index BEFORE the
+         * winner stalled the walk forever even though a decision
+         * existed. Repair, twin of the C emitter: wait for the decision
+         * first (bounded by the first give; n==0 falls through to the
+         * empty panic), then cancel every handle (queued tasks skip at
+         * the pool's pre-run safe point, parked tasks wake through the
+         * cancellable channel waits), then the loop below awaits each
+         * exactly once. */
+        LLVMFuncEntry *cancel_fn = llvm_lookup_function(ctx,
+            "pgy_task_cancel_export");
+        if (cancel_fn == NULL) {
+            llvm_parallel_join_set_error(ctx, node,
+                "LLVM any-join requires the registered task-cancel runtime%s",
+                "");
+            return;
+        }
+        LLVMTypeRef yield_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
+        LLVMValueRef yield_fn = LLVMGetNamedFunction(ctx->module,
+            "sched_yield");
+        if (yield_fn == NULL)
+            yield_fn = LLVMAddFunction(ctx->module, "sched_yield",
+                yield_type);
+
+        LLVMBasicBlockRef spin_cond = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.cond");
+        LLVMBasicBlockRef spin_body = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.body");
+        LLVMBasicBlockRef spin_done = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.spin.done");
+        LLVMBuildBr(ctx->builder, spin_cond);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_cond);
+        {
+            LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i32, any_state, llvm_tmp_name(ctx));
+            LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
+            LLVMValueRef undecided = LLVMBuildICmp(ctx->builder,
+                LLVMIntEQ, st_val, LLVMConstInt(ctx->type_i32, 0, 0),
+                llvm_tmp_name(ctx));
+            LLVMValueRef nonempty = LLVMBuildICmp(ctx->builder,
+                LLVMIntNE, n_val, zero, llvm_tmp_name(ctx));
+            LLVMValueRef keep_spinning = LLVMBuildAnd(ctx->builder,
+                undecided, nonempty, llvm_tmp_name(ctx));
+            LLVMBuildCondBr(ctx->builder, keep_spinning, spin_body,
+                spin_done);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_body);
+        {
+            LLVMBuildCall2(ctx->builder, yield_type, yield_fn, NULL, 0,
+                "");
+            LLVMBuildBr(ctx->builder, spin_cond);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, spin_done);
+
+        LLVMBasicBlockRef can_cond = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.cond");
+        LLVMBasicBlockRef can_body = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.body");
+        LLVMBasicBlockRef can_done = LLVMAppendBasicBlockInContext(
+            ctx->context, ctx->current_function, "pj.any.cancel.done");
+        LLVMBuildBr(ctx->builder, can_cond);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, can_cond);
+        {
+            LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT,
+                i_val, n_val, llvm_tmp_name(ctx));
+            LLVMBuildCondBr(ctx->builder, cont, can_body, can_done);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, can_body);
+        {
+            LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder,
+                ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            LLVMValueRef h_ptr = LLVMBuildGEP2(ctx->builder, handle_type,
+                handles, &i_val, 1, llvm_tmp_name(ctx));
+            LLVMValueRef handle = LLVMBuildLoad2(ctx->builder,
+                handle_type, h_ptr, llvm_tmp_name(ctx));
+            LLVMValueRef cancel_args[] = { handle };
+            LLVMBuildCall2(ctx->builder, cancel_fn->fn_type,
+                cancel_fn->fn, cancel_args, 1, "");
+            LLVMValueRef next = LLVMBuildAdd(ctx->builder, i_val, one,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, next, i_slot);
+            LLVMBuildBr(ctx->builder, can_cond);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, can_done);
+        LLVMBuildStore(ctx->builder, zero, i_slot);
+    }
+
     LLVMBasicBlockRef join_cond = LLVMAppendBasicBlockInContext(
         ctx->context, ctx->current_function, "pj.join.cond");
     LLVMBasicBlockRef join_body = LLVMAppendBasicBlockInContext(
@@ -522,40 +614,8 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
             handles, &i_val, 1, llvm_tmp_name(ctx));
         LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, handle_type,
             h_ptr, llvm_tmp_name(ctx));
-        if (expr_mode && is_any) {
-            /* R3 cancel hint: once decided, still-queued tasks are
-             * skipped by the pool's pre-run safe point. Every handle is
-             * still awaited exactly once (context lifetimes stay
-             * join-bounded); first-give-wins is decided by the CAS,
-             * never by this index-order await walk. */
-            LLVMFuncEntry *cancel_fn = llvm_lookup_function(ctx,
-                "pgy_task_cancel_export");
-            if (cancel_fn == NULL) {
-                llvm_parallel_join_set_error(ctx, node,
-                    "LLVM any-join requires the registered task-cancel runtime%s",
-                    "");
-                return;
-            }
-            LLVMValueRef st_val = LLVMBuildLoad2(ctx->builder,
-                ctx->type_i32, any_state, llvm_tmp_name(ctx));
-            LLVMSetOrdering(st_val, LLVMAtomicOrderingAcquire);
-            LLVMValueRef decided = LLVMBuildICmp(ctx->builder, LLVMIntNE,
-                st_val, LLVMConstInt(ctx->type_i32, 0, 0),
-                llvm_tmp_name(ctx));
-            LLVMBasicBlockRef hint_bb = LLVMAppendBasicBlockInContext(
-                ctx->context, ctx->current_function, "pj.any.hint");
-            LLVMBasicBlockRef await_bb = LLVMAppendBasicBlockInContext(
-                ctx->context, ctx->current_function, "pj.any.await");
-            LLVMBuildCondBr(ctx->builder, decided, hint_bb, await_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, hint_bb);
-            {
-                LLVMValueRef cancel_args[] = { handle };
-                LLVMBuildCall2(ctx->builder, cancel_fn->fn_type,
-                    cancel_fn->fn, cancel_args, 1, "");
-                LLVMBuildBr(ctx->builder, await_bb);
-            }
-            LLVMPositionBuilderAtEnd(ctx->builder, await_bb);
-        }
+        /* any-mode: cancellation already happened in the pre-join
+         * spin/cancel blocks above; this walk only awaits. */
         LLVMValueRef await_args[] = { handle };
         LLVMBuildCall2(ctx->builder, await_fn->fn_type, await_fn->fn,
             await_args, 1, "");

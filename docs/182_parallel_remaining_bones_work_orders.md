@@ -45,8 +45,17 @@ staged 상태로 진행 중이라(ast.h/채널 런타임/join 이미터/Makefile
 
 ## §2. WO-RT-2 — 취소 슬라이스 2 (any의 관절 완성 + §2.4 선언 잔여)
 
-**잠금**: 채널 런타임(신설 `pgy_runtime_channel_lifecycle_inline.h`에
-맞춰 착지 — wait 루프의 새 주소에 종속), join 이미터.
+**상태 (2026-07-12 당일 갱신)**: 잠금이 당일 해제되어 **①·② 착지
+완료**(아래 원문 유지 — docs/181 R3 슬라이스 2 착지 노트가 canonical).
+목격자 `parallel_join_any_blocked` 양 백엔드 GREEN. **③ 루프 백엣지만
+잔여** — 순수 계산 무한루프 패자는 give에 도달하지 않아 여전히 hang
+노출. 부수 수확: memory-concurrency 게이트의 panic-class pin이 guard
+이주를 따라가지 못해 RED — §5가 경고한 filename-pin 함정의 실사례,
+pin을 새 owner로 이주해 GREEN 복원.
+
+**잠금(원문)**: 채널 런타임(신설
+`pgy_runtime_channel_lifecycle_inline.h`에 맞춰 착지 — wait 루프의 새
+주소에 종속), join 이미터.
 
 1. **any await-구멍 수리 (설계 결함, 정직 기록)**: 슬라이스 1의
    순서-await는 승자보다 **앞 인덱스의 블로킹 패자**가 join을 영구

@@ -1,0 +1,19 @@
+// R3 slice-2 witness (docs/182 SS2.1+2.2): a loser parked on a channel
+// at an index BEFORE the winner. Slice 1's order-await stalled on it
+// forever even though a decision existed. Slice 2 spin-waits the
+// decision, cancels every handle, and the cancellable channel wait
+// wakes the parked loser (recv returns the contract outcome); its give
+// then loses the CAS and the task retires. Every task gives the same
+// value, so the winner's identity cannot leak into the output.
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+    let mut xs: Array<Int> = [];
+    for k in 0..4 { ArrayPush(xs, k); }
+    let w: Int = parallel (x in xs) join with any {
+        if (x == 0) {
+            let parked: Int = <- ch;
+        }
+        give 42;
+    };
+    Log(w);
+}

@@ -161,19 +161,29 @@ pgy_channel_send_String(PgyChannel_String *ch, char *value)
         ch != NULL && !pgy_channel_string_inline_is_initialized(ch), false,
         "send_String");
     pthread_mutex_lock(&ch->mutex);
-    while (ch->count >= ch->cap && !ch->closed) {
+    while (ch->count >= ch->cap && !ch->closed
+           && !pgy_cancel_probe_cancelled()) {
         if (pgy_async_in_coroutine()) {
             pthread_mutex_unlock(&ch->mutex);
             pgy_async_yield();
             pthread_mutex_lock(&ch->mutex);
         } else {
-            if (pthread_cond_wait(&ch->cond_not_full, &ch->mutex) != 0) {
+            struct timespec _pgy_q =
+                pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS);
+            int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full,
+                                                 &ch->mutex, &_pgy_q);
+            if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) {
                 pgy_runtime_warn_invalid_channel("send_String",
                     "not-full condition wait failed");
                 pthread_mutex_unlock(&ch->mutex);
                 return false;
             }
         }
+    }
+    if (ch->count >= ch->cap && !ch->closed) {
+        /* cancelled while still full: contract outcome, no warn */
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
     }
     if (ch->closed) {
         pgy_runtime_warn_invalid_channel("send_String", "channel is closed");
@@ -339,7 +349,8 @@ pgy_channel_recv_String(PgyChannel_String *ch, char **out)
         "recv_String");
     *out = NULL;
     pthread_mutex_lock(&ch->mutex);
-    while (ch->count == 0 && !ch->closed) {
+    while (ch->count == 0 && !ch->closed
+           && !pgy_cancel_probe_cancelled()) {
         if (pgy_async_in_coroutine()) {
             pthread_mutex_unlock(&ch->mutex);
             pgy_async_yield();
@@ -348,7 +359,11 @@ pgy_channel_recv_String(PgyChannel_String *ch, char **out)
             pthread_mutex_unlock(&ch->mutex);
             if (!pgy_async_progress_one()) {
                 pthread_mutex_lock(&ch->mutex);
-                if (pthread_cond_wait(&ch->cond_not_empty, &ch->mutex) != 0) {
+                struct timespec _pgy_q =
+                    pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS);
+                int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_empty,
+                                                     &ch->mutex, &_pgy_q);
+                if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) {
                     pgy_runtime_warn_invalid_channel("recv_String",
                         "not-empty condition wait failed");
                     pthread_mutex_unlock(&ch->mutex);
@@ -359,8 +374,11 @@ pgy_channel_recv_String(PgyChannel_String *ch, char **out)
             }
         }
     }
-    if (ch->count == 0 && ch->closed) {
-        pgy_runtime_warn_invalid_channel("recv_String", "channel is closed and empty");
+    if (ch->count == 0) {
+        if (ch->closed)
+            pgy_runtime_warn_invalid_channel("recv_String",
+                "channel is closed and empty");
+        /* cancelled while still empty: contract outcome, no warn */
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }

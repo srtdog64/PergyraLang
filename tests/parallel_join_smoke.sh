@@ -71,6 +71,7 @@ EXPR_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_expr/main.pgy"
 REDUCE_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_reduce/main.pgy"
 STENCIL_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_stencil/main.pgy"
 ANY_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any/main.pgy"
+ANY_BLOCKED_SRC="$ROOT_DIR/tests/cases/backend_compare/parallel_join_any_blocked/main.pgy"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
 
@@ -171,6 +172,10 @@ for backend in $BACKENDS; do
     expect_panics "$backend" "$FIXTURES/panic_any_empty.pgy" \
         "any_empty" \
         "any-join over an empty parallel fan-out"
+    # R3 slice 2: a loser parked on a channel BEFORE the winner's index.
+    # Slice 1's order-await hung here; the spin-decided + cancel-all +
+    # cancellable channel waits bring the join home with the winner.
+    expect_runs "$backend" "$ANY_BLOCKED_SRC" "join_any_blocked" "42"
 done
 
 expect_reject reject_no_binding.pgy   "requires an element binding"

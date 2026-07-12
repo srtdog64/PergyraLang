@@ -179,6 +179,28 @@ concurrency/semantic 2794/0 · transpile 918/0. **잔여(슬라이스 2+)**:
 중도 은퇴), true waitany(현재 await 걷기는 인덱스 순서라 지연이 승자
 prefix에 바운드), 원소 외 give 종류.
 
+**R3 슬라이스 2 착지 (2026-07-12, WO-RT-2 = docs/182 §2)**: 슬라이스
+1의 정직성 구멍을 닫았다 — **승자보다 앞 인덱스에서 채널에 파킹된
+패자가 순서-await를 영구 정지**시키던 결함(결정이 존재해도 관측 불가).
+수리 2겹: **① call-site 재구성** — n>0이면 결정 셀을 yield-스핀으로
+대기(최초 give에 바운드) → 전 핸들 cancel → 전 핸들 정확히 1회 await
+(수명 join-경계 유지), n==0은 스핀 생략 후 기존 empty panic. **②
+취소가능 채널 대기** — §2.4의 "채널 블로킹 진입" 안전점: 무한 블로킹
+send/recv(Int 매크로/String/spsc 3-twin)가 10ms quantum timedwait로
+파킹하며 취소 프로브를 재확인, 취소 탈출은 closed와 같은 **계약 결과**
+(무경고 false — 패자는 give 도달 → CAS 패배 → 은퇴로 자연 수렴).
+프로브는 결합-차단 hook(`pgy_runtime_cancel_probe.h`) — bc TU는 채널이
+task-ops보다 먼저, 생성-C는 반대 순서라 직접 호출이 양쪽에서 성립
+불가; parallel 런타임이 모든 태스크 생성 경로에서 설치하고 NULL이면
+기존 동작 그대로. timeout 변형은 데드라인 자체-해제라 원형 유지.
+목격자: `parallel_join_any_blocked`(compare 등록, 양 백엔드 42 유한
+복귀 — 슬라이스 1이면 hang) + 기존 전 목격자 무회귀 + memory-
+concurrency 게이트(panic-class pin을 guard의 새 owner 파일로 이주 —
+docs/182 §5가 경고한 filename-pin 함정의 실사례를 게이트 RED로 발견).
+잔여: **루프 백엣지 안전점**(순수 계산 무한루프 패자의 중도 은퇴 —
+채널 파킹과 달리 give 도달이 없어 여전히 hang 노출; docs/182 §2.3),
+true waitany.
+
 ## §2. 형 B — role reactive block (`parallel on (lane) { every/continuous }`)
 
 ### 2.1 정체 (확정)

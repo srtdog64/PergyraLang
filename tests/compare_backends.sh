@@ -561,6 +561,7 @@ main() {
         "tests/cases/backend_compare/parallel_join_expr"
         "tests/cases/backend_compare/parallel_join_index"
         "tests/cases/backend_compare/parallel_join_any"
+        "tests/cases/backend_compare/parallel_join_any_blocked"
         "tests/cases/backend_compare/parallel_join_reduce"
         "tests/cases/backend_compare/parallel_join_stencil"
         "tests/cases/backend_compare/parallel_pingpong_witness"

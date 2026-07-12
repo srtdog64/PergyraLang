@@ -97,6 +97,8 @@ pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
             return true; \
         if (atomic_load_explicit(&ch->closed, memory_order_acquire)) \
             return false; \
+        if (pgy_cancel_probe_cancelled()) \
+            return false; /* cancelled: contract outcome, like closed */ \
         if (pgy_async_in_coroutine()) \
             pgy_async_yield(); \
         else \
@@ -130,6 +132,8 @@ pgy_spsc_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
         if (atomic_load_explicit(&ch->closed, memory_order_acquire)) { \
             return pgy_spsc_try_recv_##SuffixName(ch, out); \
         } \
+        if (pgy_cancel_probe_cancelled()) \
+            return false; /* cancelled: contract outcome, like closed */ \
         if (pgy_async_in_coroutine()) \
             pgy_async_yield(); \
         else \

@@ -424,24 +424,28 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         codebuf_write(ctx->out, "}\n");
 
         if (give_suffix != NULL && ast_parallel_join_is_any(node)) {
-            /* R3: once decided, later handles get a cancel hint (the
-             * pool skips still-queued tasks at its pre-run safe point);
-             * every handle is still awaited exactly once, so context
-             * lifetimes stay join-bounded. First-give-wins is decided
-             * by the CAS, never by this index-order await walk. */
+            /* R3 slice 2 (docs/182 SS2.1): the slice-1 order-await had a
+             * hole -- a loser parked on a channel at an index BEFORE the
+             * winner stalled the walk forever even though a decision
+             * existed. Repair: wait for the decision first (bounded by
+             * the first give; n==0 skips straight to the empty panic),
+             * then cancel every handle (queued tasks skip at the pool's
+             * pre-run safe point, parked tasks wake through the
+             * cancellable channel waits), then await them all exactly
+             * once so context lifetimes stay join-bounded. First-give-
+             * wins is decided by the CAS, never by this walk. */
             write_indent(ctx);
             codebuf_write(ctx->out,
-                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) {\n"
-                , pid);
+                "if (_pj_n_%u != 0) while (__atomic_load_n(&_pj_any_%u,"
+                " __ATOMIC_ACQUIRE) == 0) sched_yield();\n", pid, pid);
             write_indent(ctx);
             codebuf_write(ctx->out,
-                "    if (__atomic_load_n(&_pj_any_%u, __ATOMIC_ACQUIRE)"
-                " != 0) pgy_lane_cancel(_pj_hs_%u[_pj_i]);\n", pid, pid);
+                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+                "pgy_lane_cancel(_pj_hs_%u[_pj_i]);\n", pid, pid);
             write_indent(ctx);
             codebuf_write(ctx->out,
-                "    pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid);
-            write_indent(ctx);
-            codebuf_write(ctx->out, "}\n");
+                "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+                "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
             /* Nothing decided after a full join <=> the fan-out was
              * empty. "First of nothing" is a domain violation, same
              * fail-closed rationale as empty min/max (docs/181 R4). */

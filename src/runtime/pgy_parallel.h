@@ -18,6 +18,7 @@
 
 #include "../common/execution_lane_kind.h"
 #include "pgy_runtime_panic_contract.h"
+#include "pgy_runtime_cancel_probe.h"
 
 #ifndef PGY_COROUTINES_AVAILABLE
 #ifdef _WIN32
@@ -137,6 +138,16 @@ pgy_cancel_is_requested(PgyCancelNode *node)
     return false;
 }
 
+/* Probe for the channel-wait cancellation hook (docs/182 SS2.2): reads
+ * the current task's cancel-node chain. Installed at every task
+ * creation path, so a channel wait can only ever observe a probe once
+ * a task that could be cancelled exists. */
+static bool
+pgy_parallel_cancel_probe(void)
+{
+    return pgy_cancel_is_requested(pgy_current_cancel_node());
+}
+
 typedef struct PgyTask {
     PgyTaskModel    model;
     PgyExecutionLane lane;
@@ -215,6 +226,7 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
         free(task);
         return handle;
     }
+    pgy_cancel_probe_install(pgy_parallel_cancel_probe);
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
     task->result = pgy_cancel_is_requested(task->cancel_node)
         ? NULL
@@ -480,6 +492,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
+    pgy_cancel_probe_install(pgy_parallel_cancel_probe);
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
     if (!pgy_task_sync_init(task, "spawn")) {
         pgy_cancel_release(task->cancel_node);

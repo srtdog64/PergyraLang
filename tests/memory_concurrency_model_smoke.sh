@@ -253,8 +253,10 @@ for channel_lifecycle_contract_file in \
         exit 1
     fi
 done
+# The guard body moved to its own lifecycle owner header (parallel
+# capture SoT landing); the panic-class pin follows the owner.
 if ! grep -Fq "PGY_RUNTIME_PANIC_CLASS_INVALID_LIFECYCLE_STATE" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h"; then
+    "$ROOT_DIR/src/runtime/pgy_runtime_channel_lifecycle_inline.h"; then
     echo "[memory-concurrency] channel lifecycle violation must panic with the invalid-lifecycle-state class" >&2
     exit 1
 fi
