@@ -18595,9 +18595,29 @@ reduce lane) "Duration=Long lane"으로, 연산 적법성 설계는 §1 잔여
 docs/182 §1 후속 노트(새 primitive는 C 이름-키 lane 전수 grep 필수).
 검증: AIR 141/0 · semantic 2794/0 · transpile 918/0(수리 후 재실행
 포함) · concurrency 5/5 · join 스모크 전체 · duration 스모크 확장분 ·
-air_drift/semantic_core_shape 게이트 · 전체 compare corpus. **다음 관문 = docs/182 §3 BDFL 판정 3건**(시작 의미론/취소
-표면/단일 lane 규약) — 판정 전 착수 금지가 명령이므로 반응형 R2
-실행은 판정 대기. §6은 교리-게이트(측정-선행/claim gate) 유지.
+air_drift/semantic_core_shape 게이트 · **표적 compare 11/11**(전체
+corpus 아님 — 908케이스 전체는 당시 직렬 다-시간 규모라 비현실,
+아래 후속 항목이 그 상수 자체를 수술). **다음 관문 = docs/182 §3
+BDFL 판정 3건**(시작 의미론/취소 표면/단일 lane 규약) — 판정 전 착수
+금지가 명령이므로 반응형 R2 실행은 판정 대기. §6은
+교리-게이트(측정-선행/claim gate) 유지.
+
+**compare 게이트 수술 (2026-07-12 심야, BDFL "1시간짜리 출력이면
+잘못된 거 아닌가")**: 908케이스 전체 compare가 무음-직렬-다시간 —
+게이트 wallclock=beta-health 지표 원칙 위반을 BDFL이 적발. 측정
+분해(케이스 본질 ~9s vs 오버헤드 ~11s + byte-비교마다 Python 기동
+1.6s×2) 후 4수술: ① 8워커 풀(`PGY_BACKEND_COMPARE_JOBS`, 기본
+auto=min(nproc,8), bash<4.3 직렬 폴백, registry basename 유일성
+검증, 실패 diff는 registry 순서 replay로 비-교차) ② `[k/N]` 생존
+티커(무음 사망과 진행을 즉시 구별 — exit0+0바이트 이상사례의 재발
+방지 계기판) ③ files_equal cmp-우선(0.08s vs 1.6s, Python은
+no-coreutils 폴백+실패 diff 렌더러로 잔류) ④ fork 다이어트(UNAME_S
+1회 호이스트×8지점, launch-path 케이스당 2회→전역 1회). 실측: 1케이스
+29.2→6.5s · 혼합 8케이스 10.5s(직렬 추정 172s) · 동시성-무거운
+11케이스 8워커 초과가입 17.5s 무플레이크 · 병렬 실패경로 exit1/집계
+검증. summary/exit 계약 불변(CI 샤드·make 타깃 무수정). 교훈: sed
+전역치환이 자기 할당문까지 먹은 것을 set -u가 즉발 적발 — 관측성
+수술 중에도 fail-fast가 일함.
 
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
