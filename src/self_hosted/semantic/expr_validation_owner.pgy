@@ -9,6 +9,7 @@ import "diagnostic_owner.pgy";
 import "env_owner.pgy";
 import "expr_type_owner.pgy";
 import "expression_operator_fact_owner.pgy";
+import "try_expression_fact_owner.pgy";
 
 func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     let text: String = Trim(expr);

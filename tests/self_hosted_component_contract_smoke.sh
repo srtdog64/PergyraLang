@@ -697,6 +697,7 @@ require_file "src/self_hosted/semantic/diagnostic_owner.pgy"
 require_file "src/self_hosted/semantic/env_owner.pgy"
 require_file "src/self_hosted/semantic/expr_type_owner.pgy"
 require_file "src/self_hosted/semantic/expr_validation_owner.pgy"
+require_file "src/self_hosted/semantic/try_expression_fact_owner.pgy"
 require_file "src/self_hosted/semantic/expression_operator_fact_owner.pgy"
 require_file "src/self_hosted/semantic/delimited_range_fact_owner.pgy"
 require_file "src/self_hosted/semantic/call_check_owner.pgy"
@@ -762,6 +763,9 @@ require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expr_
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "env_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_normalization_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "try_expression_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "try_expression_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" 'import "try_expression_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
@@ -880,7 +884,7 @@ require_owner_surface codegen \
     "input/ast_text_enum_variant_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
     "input/ast_text_declaration_owner.pgy" \
-    "input/ast_text_try_let_owner.pgy" \
+    "input/semantic_try_let_codegen_view_owner.pgy" \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
@@ -2531,7 +2535,7 @@ require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
     "params[existing] != param_row"
 require_text "src/self_hosted/semantic/call_check_owner.pgy" "SemanticCallableIndex(func_names, callee)"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "SemanticCallableIndex(func_names, callee)"
-require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" \
     'CharAt(text, 0) == "?"'
 require_file "src/self_hosted/semantic/array_type_owner.pgy"
 require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
@@ -3258,20 +3262,20 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "FindTopLevelComma(
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCharAt(ex"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetTryInner"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenSemanticLetInitializerHasTry"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenSemanticLetTryInner"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "struct CodegenLetTryInitializerFact"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenSemanticLetTryInitializerFactAt"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "func CodegenLetTryInitializerText"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "CodegenSemanticLetTryInitializerFactAt(facts, node_id)"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "let initializer: Option<String> = CodegenLetTryInitializerText(fact)"
-reject_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "TypedAstArenaValueText"
-reject_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "CodegenAstArenaValueOrDie"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "ContainsOutsideStrings(UnwrapOption(initializer), \"(?\")"
-require_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "FindMatchingParen(e, 0)"
-reject_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "ContainsOutsideStrings(UnwrapOption(value), \"(?\")"
-reject_text "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" "StringTrim(UnwrapOption(value))"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/ast_text_try_let_owner.pgy";'
+reject_file "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_try_operands: Array<String>;"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "has_initializer_try_operands: Array<Int>;"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingTryOperandAt("
+require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "func CodegenSemanticLetInitializerHasTry"
+require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "func CodegenSemanticLetTryInner"
+require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "SemanticAstLocalBindingTryOperandAt("
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "TypedAstArenaValueText"
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "CodegenAstArenaValueOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "ContainsOutsideStrings("
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "FindMatchingParen("
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "StringTrim("
+reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "CharAt("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_try_let_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetInitializerHasTry(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetTryInner("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerHasTry"
@@ -6026,7 +6030,9 @@ require_file "src/self_hosted/semantic/fixture/bad_issome_none_call.pgy"
 require_file "src/self_hosted/semantic/fixture/bad_unwrap_none_literal.pgy"
 require_file "src/self_hosted/semantic/fixture/bad_unwrap_none_call.pgy"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func OptionCallReturnType"
-require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func TryOperandBounds"
+require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" "func TryOperandBounds"
+require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" "func SemanticTryOperand"
+reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func TryOperandBounds"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "TryOperandBounds(text, try_bounds)"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckTryOperand"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "TryOperandBounds(text, bounds)"

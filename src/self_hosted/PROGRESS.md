@@ -152,14 +152,23 @@ and LLVM-built codegen tools (SHA-256
 generated program matched the committed output. This is one mixed-tree
 consumer closure; released/default replacement remains 0%.
 
+The next executable delta moved try-expression shape to
+`semantic/try_expression_fact_owner.pgy` and try operands into
+`SemanticAstLocalBindingFacts`. The transitional codegen text owner is deleted;
+the replacement view only consumes `SemanticAstLocalBindingTryOperandAt`.
+C-built and LLVM-built codegen tools emitted byte-identical C for the existing
+`option_try` and `result_try` fixtures, and both generated executables matched
+their committed outputs. No fixture-count expansion or compatibility fallback
+was needed.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while
 `tests/sot_authority_adequacy_smoke.sh` binds those names to the live semantic
 owner and codegen consumer and mutation-tests missing-owner and fallback
-reintroduction. This is mechanized evidence for the array-literal rung only;
-it does not increase released/default replacement or close the remaining
-mixed-expression consumers.
+reintroduction. The bounded model now covers the array-literal body and try-let
+operand consumers; it does not increase released/default replacement or close
+the remaining mixed-expression consumers.
 
 The whole compiler skeleton now has a machine-gated 16-row owner declaration in
 `docs/semantics/sot_owner_spine_registry.md`: one `CLOSED`, six `BRIDGE`, and

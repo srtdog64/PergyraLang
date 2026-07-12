@@ -18,7 +18,9 @@ must import only the run owner.
 `program_check_owner.pgy` and directly imports `../lib/path.pgy` plus
 `text_scan_owner.pgy` because import expansion consumes path and lexical-scan
 facts. `main.pgy` must not import those source-bundle internals directly.
-`expr_type_owner.pgy` owns expression type queries;
+`try_expression_fact_owner.pgy` owns canonical try-expression shape and
+operand bounds. `expr_type_owner.pgy` owns expression type queries and consumes
+that shape owner;
 `expr_validation_owner.pgy` owns expression diagnostics that consume those type
 facts, including undefined identifiers and operator operand checks.
 `diagnostic_code_owner.pgy` owns the stable lower-case diagnostic code

@@ -386,11 +386,12 @@ rejects the old `TypedAstArena*Text(arena, i)` scan shape. This still does not
 close the blocker because `CodegenExpressionParts` is backed by transitional
 arena text until typed/tagged expression rows replace the bridge.
 
-TypedAst delta, superseded 2026-07-10: try-let initializer recognition has a
-single codegen shape seam. `ast_text_try_let_owner.pgy` builds
-`CodegenLetTryInitializerFact` from the semantic local-binding initializer row;
-it no longer reads the arena value lane. Try-presence and inner-expression
-extraction consume that one fact. Expression typing remains open.
+TypedAst delta, superseded 2026-07-12: the intermediate
+`ast_text_try_let_owner.pgy` codegen shape seam is deleted. Canonical prefix,
+wrapped, and postfix try shape belongs to
+`semantic/try_expression_fact_owner.pgy`; semantic local-binding facts capture
+the operand once, and `semantic_try_let_codegen_view_owner.pgy` only projects
+that row. The gate rejects codegen text recovery and direct AST value reads.
 
 TypedAst delta, superseded 2026-07-12: the intermediate
 `ast_text_array_literal_owner.pgy` codegen shape seam is deleted. Array-literal

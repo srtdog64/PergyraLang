@@ -5,6 +5,7 @@ import "env_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "try_expression_fact_owner.pgy";
 
 func IsIdentText(text: String) -> Bool {
     if StringLength(text) == 0 {
@@ -275,25 +276,6 @@ func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
         return Some(Substring(type_name, 7, StringLength(type_name) - 8));
     }
     return None;
-}
-func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
-    let n: Int = StringLength(text);
-    if n > 1 && CharAt(text, 0) == "?" {
-        ArraySet(bounds, 0, 1);
-        ArraySet(bounds, 1, n - 1);
-        return true;
-    }
-    if n >= 4 && CharAt(text, 0) == "(" && CharAt(text, 1) == "?" && CharAt(text, n - 1) == ")" {
-        ArraySet(bounds, 0, 2);
-        ArraySet(bounds, 1, n - 3);
-        return true;
-    }
-    if n > 1 && CharAt(text, n - 1) == "?" {
-        ArraySet(bounds, 0, 0);
-        ArraySet(bounds, 1, n - 1);
-        return true;
-    }
-    return false;
 }
 func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);

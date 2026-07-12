@@ -37,6 +37,9 @@ source-bundle, diagnostic, and program-check owners directly.
 Expression type answers are owned by `expr_type_owner.pgy`; expression
 diagnostics are owned by `expr_validation_owner.pgy` and must consume those type
 answers rather than re-owning the type rules.
+Try-expression syntax shape is owned by `try_expression_fact_owner.pgy`.
+Artifact local-binding capture stores the resolved try operand once; codegen
+must consume that row and may not parse `(?expr)` from initializer text.
 Literal-token position checks are owned by `text_scan_owner.pgy` as
 `Option<Int>` facts. Consumers must use `IsSome` / `UnwrapOption` instead of
 `-1` sentinel control flow when a literal is absent.

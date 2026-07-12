@@ -164,9 +164,10 @@ shape and top-level element facts while expression payloads remain string-backed
 `input/ast_text_enum_variant_owner.pgy` owns transitional payload-free enum
 variant-list facts. The typed arena stores the declaration aux payload, but enum
 variant splitting is not a projection responsibility.
-`input/ast_text_try_let_owner.pgy` owns transitional `(?expr)` let-initializer
-facts and inner-expression extraction. The typed arena stores the initializer
-value row; it does not interpret try propagation syntax.
+`input/semantic_try_let_codegen_view_owner.pgy` consumes semantic-owned
+try-operand rows. Try syntax recognition belongs to
+`../semantic/try_expression_fact_owner.pgy`; codegen cannot recover that fact
+from initializer text.
 `../semantic/ast_assignment_fact_owner.pgy` owns assignment target, receiver,
 index, and RHS rows. `input/semantic_assignment_codegen_view_owner.pgy`
 projects those rows fail-closed; codegen does not reinterpret assignment arena

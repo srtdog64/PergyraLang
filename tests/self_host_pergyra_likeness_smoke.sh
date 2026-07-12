@@ -71,7 +71,10 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # ABI-layout row, and SEA lane executor contract-row owners are explicit
 # fact-resource owners, not compiler-core AST/IR string bridges. Exclude them
 # by name and tighten to the measured core.
-CORE_STRING_MUNGE_SIG_MAX=107
+# 107 -> 83 (2026-07-12): lock the measured compiler-core surface after the
+# typed owner-spine wave and try-expression fact cutover. New codegen text
+# recovery cannot consume the unratcheted margin.
+CORE_STRING_MUNGE_SIG_MAX=83
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -158,7 +161,9 @@ SENTINEL_MAX=0
 # keep errors and absence as typed data.
 # 1172 -> 1174 (2026-07-12): parallel capture JSON facts keep optional scalar
 # presence explicit before LLVM-safe typed unwrapping.
-RESULT_USE_MIN=1174
+# 1174 -> 1176 (2026-07-12): semantic try-operand capture and its codegen view
+# keep missing shape as Option instead of empty text or a sentinel.
+RESULT_USE_MIN=1176
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

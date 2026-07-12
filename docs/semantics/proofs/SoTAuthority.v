@@ -12,6 +12,7 @@
 
 Inductive Fact : Type :=
   | FInitializerArrayBody
+  | FInitializerTryOperand
   | FInitializerTextProvenance.
 
 Inductive FactClass : Type :=
@@ -24,7 +25,8 @@ Inductive Owner : Type :=
   | OCodegenTextRecovery.
 
 Inductive Consumer : Type :=
-  | CArrayLiteralEmitter.
+  | CArrayLiteralEmitter
+  | CTryLetEmitter.
 
 Inductive ReadKind : Type :=
   | OwnedRead
@@ -105,18 +107,22 @@ Qed.
 Definition current_fact_class (f : Fact) : FactClass :=
   match f with
   | FInitializerArrayBody => SemanticFact
+  | FInitializerTryOperand => SemanticFact
   | FInitializerTextProvenance => ProvenanceFact
   end.
 
 Definition current_authority (f : Fact) : Owner :=
   match f with
   | FInitializerArrayBody => OSemanticLocalBindingFacts
+  | FInitializerTryOperand => OSemanticLocalBindingFacts
   | FInitializerTextProvenance => OAstArenaProvenance
   end.
 
 Inductive current_produces : Owner -> Fact -> Prop :=
   | CurrentArrayBodyProducer :
       current_produces OSemanticLocalBindingFacts FInitializerArrayBody
+  | CurrentTryOperandProducer :
+      current_produces OSemanticLocalBindingFacts FInitializerTryOperand
   | CurrentProvenanceProducer :
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -152,6 +158,64 @@ Proof.
       * unfold NoSemanticFallback. simpl.
         intros consumer owner fact kind Hread Hsemantic. destruct Hread.
         split; reflexivity.
+Qed.
+
+Inductive try_requires : Consumer -> Fact -> Prop :=
+  | CurrentEmitterRequiresTryOperand :
+      try_requires CTryLetEmitter FInitializerTryOperand.
+
+Inductive try_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | CurrentEmitterReadsTryOperand :
+      try_reads CTryLetEmitter OSemanticLocalBindingFacts
+        FInitializerTryOperand OwnedRead.
+
+Definition try_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := try_requires;
+     reads := try_reads |}.
+
+Theorem current_try_let_rung_closed : RungClosed try_model.
+Proof.
+  unfold RungClosed.
+  split.
+  - unfold AuthorityComplete. simpl.
+    intros consumer fact Hrequired. destruct Hrequired. constructor.
+  - split.
+    + unfold AuthorityUnique. simpl.
+      intros owner fact Hproduces. destruct Hproduces; reflexivity.
+    + split.
+      * unfold RequiredFactsConsumed. simpl.
+        intros consumer fact Hrequired. destruct Hrequired.
+        exists OwnedRead. constructor.
+      * unfold NoSemanticFallback. simpl.
+        intros consumer owner fact kind Hread Hsemantic. destruct Hread.
+        split; reflexivity.
+Qed.
+
+Inductive try_bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
+  | TryBridgeOwnedRead :
+      try_bridge_reads CTryLetEmitter OSemanticLocalBindingFacts
+        FInitializerTryOperand OwnedRead
+  | TryBridgeFallbackRead :
+      try_bridge_reads CTryLetEmitter OCodegenTextRecovery
+        FInitializerTryOperand FallbackRead.
+
+Definition try_bridge_model : AuthorityModel :=
+  {| fact_class := current_fact_class;
+     authority := current_authority;
+     produces := current_produces;
+     requires_fact := try_requires;
+     reads := try_bridge_reads |}.
+
+Theorem try_owner_plus_text_fallback_is_not_closed :
+  ~ RungClosed try_bridge_model.
+Proof.
+  intros [_ [_ [_ Hno_fallback]]].
+  specialize (Hno_fallback CTryLetEmitter OCodegenTextRecovery
+    FInitializerTryOperand FallbackRead TryBridgeFallbackRead eq_refl).
+  destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
@@ -240,7 +304,7 @@ Inductive SpineFact : Type :=
   | SFDiagnosticCatalog
   | SFBackendArtifact
   | SFCompatibilityEvolution
-  | SFInitializerArrayBody.
+  | SFInitializerExpressionShape.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -277,7 +341,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFDiagnosticCatalog => SODiagnosticCatalog
   | SFBackendArtifact => SOArtifactZone
   | SFCompatibilityEvolution => SOCompatibilityEvolution
-  | SFInitializerArrayBody => SOSemanticLocalBinding
+  | SFInitializerExpressionShape => SOSemanticLocalBinding
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=
@@ -311,7 +375,9 @@ Qed.
 
 (* Claim limit: future facts and consumers require new concrete bindings. *)
 Theorem current_model_does_not_claim_future_consumer_coverage :
-  forall c, c = CArrayLiteralEmitter.
+  forall c, c = CArrayLiteralEmitter \/ c = CTryLetEmitter.
 Proof.
-  intros c. destruct c. reflexivity.
+  intros c. destruct c.
+  - left. reflexivity.
+  - right. reflexivity.
 Qed.

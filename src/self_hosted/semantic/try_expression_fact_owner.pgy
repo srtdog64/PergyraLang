@@ -1,0 +1,37 @@
+// Canonical semantic shape owner for try-propagation expressions.
+
+func TryOperandBounds(text: String, inout bounds: Array<Int>) -> Bool {
+    let n: Int = StringLength(text);
+    if n > 1 && CharAt(text, 0) == "?" {
+        ArraySet(bounds, 0, 1);
+        ArraySet(bounds, 1, n - 1);
+        return true;
+    }
+    if n >= 4 && CharAt(text, 0) == "(" && CharAt(text, 1) == "?" &&
+        CharAt(text, n - 1) == ")" {
+        ArraySet(bounds, 0, 2);
+        ArraySet(bounds, 1, n - 3);
+        return true;
+    }
+    if n > 1 && CharAt(text, n - 1) == "?" {
+        ArraySet(bounds, 0, 0);
+        ArraySet(bounds, 1, n - 1);
+        return true;
+    }
+    return false;
+}
+
+func SemanticTryOperand(text: String) -> Option<String> {
+    let expression: String = StringTrim(text);
+    let bounds: Array<Int> = [0, 0];
+    if !TryOperandBounds(expression, bounds) || bounds[1] <= 0 {
+        return None;
+    }
+    let operand: String = StringTrim(Substring(
+        expression, bounds[0], bounds[1]
+    ));
+    if StringLength(operand) == 0 {
+        return None;
+    }
+    return Some(operand);
+}

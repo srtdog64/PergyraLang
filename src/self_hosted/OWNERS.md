@@ -95,7 +95,9 @@ inventory must not become a second fact-family owner registry.
   rows consumed by expression typing; source constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
-  payload facts.
+  payload facts, including array-literal body and try-operand shape rows.
+- `src/self_hosted/semantic/try_expression_fact_owner.pgy` -- canonical prefix,
+  wrapped, and postfix try-expression shape and operand bounds.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and initializer payload facts without source re-scanning.
@@ -229,7 +231,7 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/ast_text_enum_variant_owner.pgy` -- AST text enum declaration variant-list facts for the supported payload-free enum subset.
 - `src/self_hosted/codegen/input/semantic_signature_codegen_view_owner.pgy` -- fail-closed codegen view over semantic function signature facts.
 - `src/self_hosted/codegen/input/ast_text_declaration_owner.pgy` -- AST text nominal, role, enum, and field declaration facts.
-- `src/self_hosted/codegen/input/ast_text_try_let_owner.pgy` -- AST text try-let initializer shape and inner-expression facts.
+- `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned try-let operand facts.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding name/type facts.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment target/base/index/RHS facts.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement payload rows, including `For` loop variable/range/foreach projection.

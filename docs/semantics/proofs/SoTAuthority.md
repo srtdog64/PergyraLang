@@ -13,11 +13,12 @@ substitution rung requires:
 4. no semantic read is a fallback read.
 
 The model proves the generic consequences of `RungClosed` and instantiates the
-first live binding for the array-literal initializer body:
+first live bindings for initializer expression shape:
 
 - fact: `FInitializerArrayBody`;
+- fact: `FInitializerTryOperand`;
 - authority: `OSemanticLocalBindingFacts`;
-- consumer: `CArrayLiteralEmitter`;
+- consumers: `CArrayLiteralEmitter`, `CTryLetEmitter`;
 - read kind: `OwnedRead`.
 
 It also proves three rejection cases:
@@ -41,8 +42,10 @@ fallback consumers are gone.
   exposes the array-literal body row;
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy`
   consumes that accessor;
-- the retired AST-text array-literal codegen owner must not exist; and
-- the codegen view must not contain `StringTrim`, `CharAt`, or direct AST value
+- `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy`
+  consumes the semantic try-operand accessor;
+- the retired AST-text array and try-let codegen owners must not exist; and
+- the codegen views must not contain string-shape recovery or direct AST value
   reads.
 
 The smoke mutates temporary owner and consumer copies to prove that missing

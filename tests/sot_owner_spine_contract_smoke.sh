@@ -51,7 +51,7 @@ expected_pairs = {
     "diagnostic.catalog": ("SFDiagnosticCatalog", "SODiagnosticCatalog"),
     "artifact.zone": ("SFBackendArtifact", "SOArtifactZone"),
     "compatibility.evolution": ("SFCompatibilityEvolution", "SOCompatibilityEvolution"),
-    "selfhost.initializer_array_body": ("SFInitializerArrayBody", "SOSemanticLocalBinding"),
+    "selfhost.initializer_expression_shape": ("SFInitializerExpressionShape", "SOSemanticLocalBinding"),
 }
 
 
