@@ -387,8 +387,11 @@ require_dir "src/self_hosted/mir_lower"
 require_dir "src/self_hosted/mir"
 for mir_producer_owner in \
     program_fact_owner.pgy \
+    parallel_capture_fact_owner.pgy \
     expression_fact_owner.pgy \
     routine_input_owner.pgy \
+    routine_iteration_owner.pgy \
+    routine_statement_owner.pgy \
     routine_build_owner.pgy \
     routine_lower_owner.pgy \
     artifact_lower_owner.pgy \
@@ -398,10 +401,20 @@ for mir_producer_owner in \
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
 done
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirProgramFacts"
+require_text "src/self_hosted/mir/parallel_capture_fact_owner.pgy" "struct SelfMirParallelCaptureRows"
+require_text "src/self_hosted/mir/parallel_capture_fact_owner.pgy" "func SelfMirParallelCaptureRowsReady"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirCfgRows"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'ArrayLength(ids) - cfg.blocks.instruction_starts[block_index]'
 reject_text "src/self_hosted/mir/program_fact_owner.pgy" 'counts[block_index] + 1'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirRoutineInput"
+require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirIterationRows"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "struct SelfMirIterationLoweringFact"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationLoweringFactForNode"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" "iteration.binding_type_name"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationBranchUses"
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "return SelfMirExpressionUses(build, fact.start_expression);"
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" "func SelfMirLowerSimpleStatement"
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineAddLocal(build, binding, "Int"'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "struct SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "func SelfMirRoutineSetSuccessors"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "struct SelfMirRoutineState"
@@ -425,6 +438,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgr
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR producer emitted invalid fact rows"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "func SelfMirProgramJson"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldString("schema", "pgy.mir.v1")'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"parallel_capture_boundaries", JsonEmitArray(parallel_captures)'
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "TypedAstArenaProvenanceText"
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" ".tree_text"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "TypedAstArenaProvenanceText"
@@ -2569,6 +2583,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/param_carriage.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/codegen/fixture/for_each.pgy"'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'func SelfMirIfElseLoweringRoot('
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'return Some(child_id);'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirRoutineAdvanceLocalVersion('
@@ -2606,7 +2621,10 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 9;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 10;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
@@ -3282,10 +3300,10 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "Seman
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let value_projection_type: Option<String> ="
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let index_projection_type: Option<String> ="
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "FindTopLevelComma(target)"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" '"ArrayPush(", Concat(payload'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" '"ArraySet(", Concat(payload'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression = Concat("Exit("'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'if kind == TypedAstKindExitStmtTag() { build = SelfMirRoutineTerminate(build); }'
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArrayPush(", Concat('
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArraySet(", Concat(payload'
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'expression = Concat("Exit("'
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'build = SelfMirRoutineTerminate(build);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'kind == TypedAstKindBreakStmtTag() ||'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let while_break_blocks: Array<Int> = [];'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let for_break_blocks: Array<Int> = [];'

@@ -6661,3 +6661,23 @@ non-colliding with the BDFL's capability-5 MIR files (emitter file was clean;
   40,192 LOC. The first ratio does not use the compiler-core inventory as its
   denominator. Bounded DRV-2 replacement is live; released/default native
   replacement remains honestly 0%.
+
+### 2026-07-12 -- DRV-2 consumes iteration facts and restores MIR JSON fixed point
+
+- Added `DriverRung2VerifiedFacts` so initializer and iteration facts computed
+  by the hard semantic verifier reach the MIR producer instead of being
+  discarded at the driver boundary.
+- Added MIR-owned iteration projection rows. Range loops retain `Int` binding
+  facts, while array foreach loops consume the semantic element type and carry
+  collection SSA uses; no source or AST-text fallback was added.
+- Promoted `for_each.pgy` into the DRV-2 MIR producer/consumer inventory,
+  moving that bounded intersection from 9 to **10 fixtures**. The gate directly
+  checks `Int` and `String` binding rows and both collection-use rows.
+- Added `SelfMirParallelCaptureRows` and emitted the required
+  `parallel_capture_boundaries` MIR JSON field. This repairs the self-produced
+  JSON fixed point after the native schema made capture facts mandatory.
+- Focused evidence: component contract green; C-built and LLVM-built DRV-2
+  each prove 19 semantic body fixtures and 10 MIR source/consumer/run fixtures.
+  The filtered MIR JSON gate also proves range/foreach execution plus valid,
+  unknown-kind, and invalid-writer parallel-capture input contracts.
+  Released/default replacement remains 0%.

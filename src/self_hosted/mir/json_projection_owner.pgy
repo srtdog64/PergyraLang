@@ -237,6 +237,36 @@ func SelfMirJsonDeclaration(
     return JsonEmitObject(fields);
 }
 
+func SelfMirJsonParallelCaptureBoundary(
+    rows: SelfMirParallelCaptureRows,
+    boundary_index: Int
+) -> String {
+    let captures: Array<String> = [];
+    let i: Int = 0;
+    while i < rows.row_counts[boundary_index] {
+        let row: Int = rows.row_starts[boundary_index] + i;
+        ArrayPush(captures, JsonEmitObject([
+            JsonEmitFieldString("name", rows.names[row]),
+            JsonEmitFieldString("kind", rows.kinds[row]),
+            JsonEmitFieldNumber(
+                "writer_task", ToString(rows.writer_tasks[row])
+            )
+        ]));
+        i = i + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "source_stable_id",
+            ToString(rows.source_stable_ids[boundary_index])
+        ),
+        JsonEmitFieldNumber(
+            "task_count", ToString(rows.task_counts[boundary_index])
+        ),
+        JsonEmitFieldBool("sealed", rows.sealed[boundary_index] == 1),
+        JsonEmitFieldRaw("rows", JsonEmitArray(captures))
+    ]);
+}
+
 func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
     if !SelfMirProgramFactsReady(facts) {
         return "";
@@ -253,9 +283,23 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
         ArrayPush(routines, SelfMirJsonRoutine(facts, r));
         r = r + 1;
     }
+    let parallel_captures: Array<String> = [];
+    let capture_i: Int = 0;
+    while capture_i < ArrayLength(facts.parallel_captures.source_stable_ids) {
+        ArrayPush(
+            parallel_captures,
+            SelfMirJsonParallelCaptureBoundary(
+                facts.parallel_captures, capture_i
+            )
+        );
+        capture_i = capture_i + 1;
+    }
     return JsonEmitObject([
         JsonEmitFieldString("schema", "pgy.mir.v1"),
         JsonEmitFieldRaw("decls", JsonEmitArray(declarations)),
+        JsonEmitFieldRaw(
+            "parallel_capture_boundaries", JsonEmitArray(parallel_captures)
+        ),
         JsonEmitFieldRaw("routines", JsonEmitArray(routines))
     ]);
 }

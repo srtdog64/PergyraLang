@@ -265,7 +265,7 @@ func SelfMirAppendRoutine(
     }
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.declarations,
+        facts.artifact_node_count, facts.declarations, facts.parallel_captures,
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, return_types,
             param_starts, param_counts, param_names, param_types,
@@ -323,7 +323,8 @@ func SelfMirCanonicalInstructionIds(
     let instructions: SelfMirInstructionRows = facts.cfg.instructions;
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.declarations, facts.routines,
+        facts.artifact_node_count, facts.declarations, facts.parallel_captures,
+        facts.routines,
         SelfMirCfgRows(
             facts.cfg.blocks,
             SelfMirInstructionRows(
@@ -339,7 +340,9 @@ func SelfMirCanonicalInstructionIds(
 
 func SelfMirProgramFactsFromArtifact(
     artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    iteration_types: SemanticAstIterationTypeFacts
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
     if !SemanticAstArtifactAnalysisMatches(artifact, analysis, true) {
@@ -347,6 +350,31 @@ func SelfMirProgramFactsFromArtifact(
             facts, "mir_artifact_invalid",
             "MIR producer requires matching semantic artifact facts"
         );
+    }
+    if !SemanticAstInitializerTypeFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, initializer_types
+    ) || !SemanticAstIterationTypeFactsMatchArtifact(
+        artifact, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, initializer_types, analysis.statements,
+        iteration_types
+    ) {
+        return SelfMirProgramFactsError(
+            facts, "mir_artifact_invalid",
+            "MIR producer requires matching iteration type facts"
+        );
+    }
+    let iteration_i: Int = 0;
+    while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
+        if iteration_types.verified[iteration_i] != 1 ||
+            iteration_types.binding_type_names[iteration_i] == "" ||
+            iteration_types.binding_type_names[iteration_i] == "Unknown" {
+            return SelfMirProgramFactsError(
+                facts, "mir_artifact_invalid",
+                "MIR producer requires verified iteration type rows"
+            );
+        }
+        iteration_i = iteration_i + 1;
     }
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
@@ -359,9 +387,12 @@ func SelfMirProgramFactsFromArtifact(
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count,
         SelfMirDeclarationsFromAnalysis(analysis, enum_facts),
-        facts.routines, facts.cfg
+        facts.parallel_captures, facts.routines, facts.cfg
     );
-    let input: SelfMirRoutineInput = SelfMirRoutineInput(artifact, analysis);
+    let input: SelfMirRoutineInput = SelfMirRoutineInput(
+        artifact, analysis,
+        SelfMirIterationRowsFromSemantic(iteration_types)
+    );
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
         let build: SelfMirRoutineBuild = SelfMirRoutineFromInput(

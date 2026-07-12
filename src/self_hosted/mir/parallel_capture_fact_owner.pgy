@@ -1,0 +1,87 @@
+// MIR-owned parallel capture boundary rows shared by verifiers and JSON.
+
+struct SelfMirParallelCaptureRows {
+    source_stable_ids: Array<Int>;
+    task_counts: Array<Int>;
+    sealed: Array<Int>;
+    row_starts: Array<Int>;
+    row_counts: Array<Int>;
+    names: Array<String>;
+    kinds: Array<String>;
+    writer_tasks: Array<Int>;
+}
+
+func SelfMirParallelCaptureRowsEmpty() -> SelfMirParallelCaptureRows {
+    let source_ids: Array<Int> = [];
+    let task_counts: Array<Int> = [];
+    let sealed: Array<Int> = [];
+    let row_starts: Array<Int> = [];
+    let row_counts: Array<Int> = [];
+    let names: Array<String> = [];
+    let kinds: Array<String> = [];
+    let writer_tasks: Array<Int> = [];
+    return SelfMirParallelCaptureRows(
+        source_ids, task_counts, sealed, row_starts, row_counts,
+        names, kinds, writer_tasks
+    );
+}
+
+func SelfMirParallelCaptureRowsReady(
+    rows: SelfMirParallelCaptureRows
+) -> Bool {
+    let boundary_count: Int = ArrayLength(rows.source_stable_ids);
+    if ArrayLength(rows.task_counts) != boundary_count ||
+        ArrayLength(rows.sealed) != boundary_count ||
+        ArrayLength(rows.row_starts) != boundary_count ||
+        ArrayLength(rows.row_counts) != boundary_count ||
+        ArrayLength(rows.names) != ArrayLength(rows.kinds) ||
+        ArrayLength(rows.names) != ArrayLength(rows.writer_tasks) {
+        return false;
+    }
+    let row_cursor: Int = 0;
+    let i: Int = 0;
+    while i < boundary_count {
+        if rows.source_stable_ids[i] <= 0 || rows.task_counts[i] < 0 ||
+            rows.sealed[i] != 1 || rows.row_starts[i] != row_cursor ||
+            rows.row_counts[i] < 0 {
+            return false;
+        }
+        let prior_i: Int = 0;
+        while prior_i < i {
+            if rows.source_stable_ids[prior_i] == rows.source_stable_ids[i] {
+                return false;
+            }
+            prior_i = prior_i + 1;
+        }
+        let j: Int = 0;
+        while j < rows.row_counts[i] {
+            let row: Int = row_cursor + j;
+            if row < 0 || row >= ArrayLength(rows.names) ||
+                rows.names[row] == "" {
+                return false;
+            }
+            let kind: String = rows.kinds[row];
+            let writer: Int = rows.writer_tasks[row];
+            if (kind == "snapshot_copy" &&
+                (writer < 0 || writer >= rows.task_counts[i])) ||
+                ((kind == "join_index_disjoint" ||
+                  kind == "join_readonly") && writer != 0) ||
+                (kind != "snapshot_copy" &&
+                 kind != "join_index_disjoint" &&
+                 kind != "join_readonly") {
+                return false;
+            }
+            let prior_j: Int = 0;
+            while prior_j < j {
+                if rows.names[row_cursor + prior_j] == rows.names[row] {
+                    return false;
+                }
+                prior_j = prior_j + 1;
+            }
+            j = j + 1;
+        }
+        row_cursor = row_cursor + rows.row_counts[i];
+        i = i + 1;
+    }
+    return row_cursor == ArrayLength(rows.names);
+}

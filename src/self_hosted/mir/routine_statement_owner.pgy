@@ -1,0 +1,57 @@
+// MIR lowering owner for payload-only call-shaped statements.
+
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "../semantic/ast_statement_fact_owner.pgy";
+
+func SelfMirSimpleStatementKind(kind: Int) -> Bool {
+    return kind == TypedAstKindLogStmtTag() ||
+        kind == TypedAstKindBareCallStmtTag() ||
+        kind == TypedAstKindArrayPopStmtTag() ||
+        kind == TypedAstKindArraySetStmtTag() ||
+        kind == TypedAstKindArrayPushStmtTag() ||
+        kind == TypedAstKindExitStmtTag();
+}
+
+func SelfMirLowerSimpleStatement(
+    build: SelfMirRoutineBuild,
+    kind: Int,
+    payload: String,
+    value_payload: String,
+    auxiliary_payload: String
+) -> SelfMirRoutineBuild {
+    let expression: String = payload;
+    let arg0: String = "";
+    if kind == TypedAstKindLogStmtTag() {
+        expression = Concat("Log(", Concat(payload, ")"));
+        arg0 = "Log";
+    } else if kind == TypedAstKindArrayPopStmtTag() {
+        expression = Concat("ArrayPop(", Concat(payload, ")"));
+        arg0 = "ArrayPop";
+    } else if kind == TypedAstKindArraySetStmtTag() {
+        expression = Concat(
+            "ArraySet(", Concat(payload, Concat(", ", Concat(
+                value_payload, Concat(", ", Concat(auxiliary_payload, ")"))
+            )))
+        );
+        arg0 = "ArraySet";
+    } else if kind == TypedAstKindArrayPushStmtTag() {
+        expression = Concat(
+            "ArrayPush(", Concat(
+                payload, Concat(", ", Concat(value_payload, ")"))
+            )
+        );
+        arg0 = "ArrayPush";
+    } else if kind == TypedAstKindExitStmtTag() {
+        expression = Concat("Exit(", Concat(payload, ")"));
+        arg0 = "Exit";
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "stmt", "stmt", "", arg0, "", expression, "",
+        "AST_CALL", SelfMirExpressionUses(build, expression)
+    );
+    if kind == TypedAstKindExitStmtTag() {
+        build = SelfMirRoutineTerminate(build);
+    }
+    return build;
+}

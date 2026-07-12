@@ -1,10 +1,39 @@
 // Immutable typed-artifact and semantic-fact bundle for MIR routine lowering.
 
 import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../semantic/ast_iteration_type_fact_owner.pgy";
+
+struct SelfMirIterationRows {
+    node_ids: Array<Int>;
+    binding_type_names: Array<String>;
+}
 
 struct SelfMirRoutineInput {
     artifact: AstTreeArtifact;
     analysis: SemanticAstArtifactAnalysis;
+    iterations: SelfMirIterationRows;
+}
+
+func SelfMirIterationRowsFromSemantic(
+    facts: SemanticAstIterationTypeFacts
+) -> SelfMirIterationRows {
+    return SelfMirIterationRows(facts.node_ids, facts.binding_type_names);
+}
+
+func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
+    let n: Int = ArrayLength(rows.node_ids);
+    if ArrayLength(rows.binding_type_names) != n {
+        return false;
+    }
+    let i: Int = 0;
+    while i < n {
+        if rows.node_ids[i] < 0 || rows.binding_type_names[i] == "" ||
+            rows.binding_type_names[i] == "Unknown" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
 }
 
 func SelfMirNodeDescendsFrom(

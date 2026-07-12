@@ -4,8 +4,15 @@ This directory owns the bounded Pergyra-written `AstTreeArtifact -> MIR fact
 graph -> pgy.mir.v1` producer used by DRV-2.
 
 - `program_fact_owner.pgy`: flat declaration/routine/CFG/instruction rows.
+- `parallel_capture_fact_owner.pgy`: MIR-owned parallel capture boundary and
+  disposition rows; the bounded non-parallel producer emits an explicit empty
+  inventory instead of omitting the schema fact.
 - `routine_input_owner.pgy`: one immutable typed-artifact plus semantic-fact
   input bundle for routine lowering.
+- `routine_iteration_owner.pgy`: verified range/foreach binding, type, bound,
+  and collection-use projection for routine lowering.
+- `routine_statement_owner.pgy`: payload-only call-shaped statement lowering;
+  control-flow ownership remains in `routine_lower_owner.pgy`.
 - `routine_lower_owner.pgy`: `SelfMirRoutineState -> SelfMirRoutineState`
   body lowering; unsupported shapes fail closed without multi-aggregate call
   state.

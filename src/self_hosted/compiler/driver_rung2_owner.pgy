@@ -74,12 +74,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/if_else_assign.pgy",
         "src/self_hosted/mir_lower/fixture/param_carriage.pgy",
         "src/self_hosted/codegen/fixture/func_recursive.pgy",
-        "src/self_hosted/mir_lower/fixture/class_method.pgy"
+        "src/self_hosted/mir_lower/fixture/class_method.pgy",
+        "src/self_hosted/codegen/fixture/for_each.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 9;
+    return 10;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -106,9 +107,15 @@ func EmitDriverRung2MirFixtureManifest() -> Void {
     }
 }
 
+struct DriverRung2VerifiedFacts {
+    analysis: SemanticAstArtifactAnalysis;
+    initializer_types: SemanticAstInitializerTypeFacts;
+    iteration_types: SemanticAstIterationTypeFacts;
+}
+
 func VerifyArtifactForDriverRung2(
     artifact: AstTreeArtifact
-) -> SemanticAstArtifactAnalysis {
+) -> DriverRung2VerifiedFacts {
     if !CompilerDriverRung2Ready() {
         Die("driver rung-2 semantic facts are not ready");
     }
@@ -180,24 +187,27 @@ func VerifyArtifactForDriverRung2(
         Log(body_verdict.diagnostic_message);
         Exit(1);
     }
-    return semantic_analysis;
+    return DriverRung2VerifiedFacts(
+        semantic_analysis, initializer_types, iteration_types
+    );
 }
 
 func CompileArtifactToCVerified(
     artifact: AstTreeArtifact
 ) -> String {
-    let semantic_analysis: SemanticAstArtifactAnalysis =
+    let verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2(artifact);
-    return GenerateCFromSemanticArtifact(artifact, semantic_analysis);
+    return GenerateCFromSemanticArtifact(artifact, verified.analysis);
 }
 
 func CompileArtifactToMirJsonVerified(
     artifact: AstTreeArtifact
 ) -> String {
-    let semantic_analysis: SemanticAstArtifactAnalysis =
+    let verified: DriverRung2VerifiedFacts =
         VerifyArtifactForDriverRung2(artifact);
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
-        artifact, semantic_analysis
+        artifact, verified.analysis, verified.initializer_types,
+        verified.iteration_types
     );
     if !SelfMirProgramFactsReady(mir_facts) {
         Log(SelfMirProgramFactsValidationError(mir_facts));

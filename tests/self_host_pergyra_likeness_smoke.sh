@@ -156,7 +156,9 @@ SENTINEL_MAX=0
 # 1024 -> 1172 (2026-07-12): current tracked self-host owners, including MIR
 # parallel-capture verification and Option-backed block-row mismatch evidence,
 # keep errors and absence as typed data.
-RESULT_USE_MIN=1172
+# 1172 -> 1174 (2026-07-12): parallel capture JSON facts keep optional scalar
+# presence explicit before LLVM-safe typed unwrapping.
+RESULT_USE_MIN=1174
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

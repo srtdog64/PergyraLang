@@ -128,8 +128,8 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 25,389 frontend/backend LOC / 283,326 C-reference LOC = 8.96%; broader Pergyra compiler-core inventory = 40,192 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 19 producer-first source semantic fixtures, 9 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Implementation inventory | 25,649 frontend/backend LOC / 286,750 C-reference LOC = 8.94%; broader Pergyra compiler-core inventory = 41,491 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Bounded executable replacement | DRV-2 has 19 producer-first source semantic fixtures, 10 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -266,10 +266,10 @@ the integrated driver may not recover these facts from source text.
 The same executable owns a bounded typed-artifact MIR producer and accepts
 `--mir-json <file>` through the existing MIR fact consumer. Source mode now
 follows `artifact -> verified MIR rows -> pgy.mir.v1 -> MIR consumer -> artifact
-verifier -> codegen`; it no longer calls the C MIR producer. Nine intersection
+verifier -> codegen`; it no longer calls the C MIR producer. Ten intersection
 fixtures (linear local/log, range loop, nested CFG with phi, indexed assignment,
 payload-free enum return, explicit if/else phi, parameter carriage, recursive
-calls, and nominal method construction)
+calls, nominal method construction, and typed array foreach)
 require C/LLVM-built drivers
 to produce stable canonical reconstructions, emit identical C, and run-equal.
 This is not a raw native-MIR byte-equality claim: the indexed fixture therefore
@@ -277,6 +277,14 @@ also gates its pre-canonical self-MIR target and use rows directly. Indexed
 assignment keeps its full semantic target text in the MIR emission payload
 while SSA identity continues to use the base local name. The default native
 compiler path remains unreplaced.
+
+The foreach producer no longer assumes every loop binding is `Int`. DRV-2
+carries the semantic iteration owner rows through `DriverRung2VerifiedFacts`,
+projects the verified node/type rows into `SelfMirRoutineInput`, and emits
+range or foreach MIR from that owner. The gate directly pins `Int` and `String`
+foreach binding types plus collection SSA uses. Self-produced MIR also owns
+the `parallel_capture_boundaries` inventory, including the empty bounded-subset
+case, so `pgy.mir.v1` output remains consumable by the same self-host path.
 
 The same slice removed two compiler-scale quadratic scans. Typed AST parent and
 child rows now use an indentation stack plus CSR-style child offsets, and AST

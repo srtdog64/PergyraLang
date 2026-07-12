@@ -2,10 +2,11 @@
 
 import "program_fact_owner.pgy";
 import "expression_fact_owner.pgy";
-import "../semantic/ast_artifact_verdict_owner.pgy";
 import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
+import "routine_iteration_owner.pgy";
+import "routine_statement_owner.pgy";
 
 struct SelfMirRoutineState {
     input: SelfMirRoutineInput;
@@ -208,41 +209,10 @@ func SelfMirLowerBlockFromArtifact(
                 state.input.analysis.statements.payload_texts[statement_index];
             let value_payload: String = state.input.analysis.statements.value_texts[statement_index];
             let auxiliary_payload: String = state.input.analysis.statements.auxiliary_texts[statement_index];
-            if kind == TypedAstKindLogStmtTag() ||
-                kind == TypedAstKindBareCallStmtTag() ||
-                kind == TypedAstKindArrayPopStmtTag() ||
-                kind == TypedAstKindArraySetStmtTag() ||
-                kind == TypedAstKindArrayPushStmtTag() ||
-                kind == TypedAstKindExitStmtTag() {
-                let expression: String = payload;
-                let arg0: String = "";
-                if kind == TypedAstKindLogStmtTag() {
-                    expression = Concat("Log(", Concat(payload, ")"));
-                    arg0 = "Log";
-                } else if kind == TypedAstKindArrayPopStmtTag() {
-                    expression = Concat("ArrayPop(", Concat(payload, ")"));
-                    arg0 = "ArrayPop";
-                } else if kind == TypedAstKindArraySetStmtTag() {
-                    expression = Concat(
-                        "ArraySet(", Concat(payload, Concat(", ", Concat(
-                            value_payload, Concat(", ", Concat(auxiliary_payload, ")"))
-                        )))
-                    );
-                    arg0 = "ArraySet";
-                } else if kind == TypedAstKindArrayPushStmtTag() {
-                    expression = Concat(
-                        "ArrayPush(", Concat(payload, Concat(", ", Concat(value_payload, ")")))
-                    );
-                    arg0 = "ArrayPush";
-                } else if kind == TypedAstKindExitStmtTag() {
-                    expression = Concat("Exit(", Concat(payload, ")"));
-                    arg0 = "Exit";
-                }
-                build = SelfMirRoutineAddInstruction(
-                    build, "stmt", "stmt", "", arg0, "", expression, "",
-                    "AST_CALL", SelfMirExpressionUses(build, expression)
+            if SelfMirSimpleStatementKind(kind) {
+                build = SelfMirLowerSimpleStatement(
+                    build, kind, payload, value_payload, auxiliary_payload
                 );
-                if kind == TypedAstKindExitStmtTag() { build = SelfMirRoutineTerminate(build); }
             } else if kind == TypedAstKindBareReturnStmtTag() ||
                 kind == TypedAstKindValueReturnStmtTag() {
                 let return_source_type: String = "AST_RETURN_VOID";
@@ -449,6 +419,16 @@ func SelfMirLowerBlockFromArtifact(
                     build, header, loop_body, loop_exit
                 );
             } else if kind == TypedAstKindForStmtTag() {
+                let iteration: SelfMirIterationLoweringFact =
+                    SelfMirIterationLoweringFactForNode(state.input, node_id,
+                        statement_index);
+                if !iteration.ok {
+                    return SelfMirRoutineState(
+                        state.input, SelfMirRoutineBuildError(
+                            build, iteration.diagnostic_message
+                        )
+                    );
+                }
                 let body_opt3: Option<Int> = SelfMirControlBodyBlock(
                     state.input.artifact.arena, node_id
                 );
@@ -459,14 +439,12 @@ func SelfMirLowerBlockFromArtifact(
                         )
                     );
                 }
-                let binding: String = payload;
-                let start: String = state.input.analysis.statements.value_texts[
-                    statement_index
-                ];
-                let stop: String = state.input.analysis.statements.auxiliary_texts[
-                    statement_index
-                ];
-                build = SelfMirRoutineAddLocal(build, binding, "Int", 0);
+                let binding: String = iteration.binding_name;
+                let start: String = iteration.start_expression;
+                let stop: String = iteration.stop_expression;
+                build = SelfMirRoutineAddLocal(
+                    build, binding, iteration.binding_type_name, 0
+                );
                 let for_preheader: Int = build.current_block;
                 build = SelfMirRoutineAddInstruction(
                     build, "loop-init", "loop-init", "", binding, "",
@@ -478,9 +456,11 @@ func SelfMirLowerBlockFromArtifact(
                     build, for_preheader, for_header, -1
                 );
                 build = SelfMirRoutineAtBlock(build, for_header);
+                let for_branch_uses: Array<String> =
+                    SelfMirIterationBranchUses(build, iteration);
                 build = SelfMirRoutineAddInstruction(
                     build, "branch", "branch", "", binding, "", start,
-                    stop, "AST_FOR_LOOP", SelfMirNoUses()
+                    stop, "AST_FOR_LOOP", for_branch_uses
                 );
                 build = SelfMirRoutineAddBlock(build);
                 let for_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;

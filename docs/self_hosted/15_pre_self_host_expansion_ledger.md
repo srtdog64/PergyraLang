@@ -766,8 +766,11 @@ verdict. `SemanticAstBodyVerdict` selects the first failing artifact node across
 all three row owners, so DRV-2 no longer groups diagnostics by owner order.
 Artifact generic binding spellings are canonicalized once at signature/local
 capture (`Option<Int: Int>` becomes `Option<Int>`). DRV-2 exposes the body
-verdict as `--emit-c-verified`; for-loop binding/iterator rows and CFG/MIR
-lowering remain the next boundary.
+verdict as `--emit-c-verified`. Range and array-foreach MIR lowering now
+consume the verified iteration node/type rows carried by the driver bundle;
+the lowerer no longer hardcodes every loop binding to `Int`, and its direct
+gate pins collection SSA-use rows. Broader CFG/MIR statement inclusion remains
+the next boundary.
 
 Completeness cache delta, 2026-07-09: `completeness_ledger_owner.pgy` now owns
 the rung0 incremental cache schema and fingerprint vocabulary for the

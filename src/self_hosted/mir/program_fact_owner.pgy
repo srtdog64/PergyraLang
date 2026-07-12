@@ -4,6 +4,8 @@
 // JSON and backend projections consume these rows; neither projection may
 // recover semantic facts from source or AST provenance text.
 
+import "parallel_capture_fact_owner.pgy";
+
 struct SelfMirInstructionRows {
     ids: Array<Int>;
     kinds: Array<String>;
@@ -78,6 +80,7 @@ struct SelfMirProgramFacts {
     diagnostic_message: String;
     artifact_node_count: Int;
     declarations: SelfMirDeclarationRows;
+    parallel_captures: SelfMirParallelCaptureRows;
     routines: SelfMirRoutineRows;
     cfg: SelfMirCfgRows;
 }
@@ -135,7 +138,8 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
 func SelfMirProgramFactsEmpty(artifact_node_count: Int) -> SelfMirProgramFacts {
     return SelfMirProgramFacts(
         true, "", "", artifact_node_count,
-        SelfMirDeclarationRowsEmpty(), SelfMirRoutineRowsEmpty(),
+        SelfMirDeclarationRowsEmpty(), SelfMirParallelCaptureRowsEmpty(),
+        SelfMirRoutineRowsEmpty(),
         SelfMirCfgRowsEmpty()
     );
 }
@@ -147,7 +151,7 @@ func SelfMirProgramFactsError(
 ) -> SelfMirProgramFacts {
     return SelfMirProgramFacts(
         false, code, message, facts.artifact_node_count,
-        facts.declarations, facts.routines, facts.cfg
+        facts.declarations, facts.parallel_captures, facts.routines, facts.cfg
     );
 }
 

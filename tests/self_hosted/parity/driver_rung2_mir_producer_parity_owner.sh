@@ -102,6 +102,32 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
+        if [[ "$base" == "for_each" ]]; then
+            grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr1":"nums"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Int foreach fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"arg0":"name","arg1":null,"expr0":"names","expr1":"names"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend String foreach fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"name":"n","type":"Int"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Int foreach binding type drifted" >&2
+                exit 1
+            }
+            grep -Fq '"name":"name","type":"String"' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend String foreach binding type drifted" >&2
+                exit 1
+            }
+            grep -Fq '"uses":["nums.1"]' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend Int foreach use fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"uses":["names.1"]' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend String foreach use fact drifted" >&2
+                exit 1
+            }
+        fi
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \

@@ -340,6 +340,9 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     if !SelfMirDeclarationRowsReady(facts.declarations) {
         return "MIR declaration rows are invalid";
     }
+    if !SelfMirParallelCaptureRowsReady(facts.parallel_captures) {
+        return "MIR parallel capture rows are invalid";
+    }
     if !SelfMirInstructionRowsReady(facts.cfg.instructions) {
         return "MIR instruction rows are invalid";
     }

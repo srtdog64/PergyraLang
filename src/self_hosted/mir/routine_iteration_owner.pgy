@@ -1,0 +1,91 @@
+// MIR-owned projection of verified semantic iteration rows.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+
+struct SelfMirIterationLoweringFact {
+    ok: Bool;
+    diagnostic_message: String;
+    binding_name: String;
+    binding_type_name: String;
+    start_expression: String;
+    stop_expression: String;
+    is_foreach: Bool;
+}
+
+func SelfMirIterationLoweringError(
+    message: String
+) -> SelfMirIterationLoweringFact {
+    return SelfMirIterationLoweringFact(
+        false, message, "", "", "", "", false
+    );
+}
+
+func SelfMirIterationLoweringFactForNode(
+    ref input: SelfMirRoutineInput,
+    node_id: Int,
+    statement_index: Int
+) -> SelfMirIterationLoweringFact {
+    if !SelfMirIterationRowsReady(input.iterations) ||
+        statement_index < 0 ||
+        statement_index >= SemanticAstStatementCount(input.analysis.statements) ||
+        input.analysis.statements.node_ids[statement_index] != node_id ||
+        input.analysis.statements.kind_tags[statement_index] !=
+            TypedAstKindForStmtTag() {
+        return SelfMirIterationLoweringError(
+            "MIR for-loop statement fact is invalid"
+        );
+    }
+    let binding_type: String = "";
+    let found_iteration: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(input.iterations.node_ids) {
+        if input.iterations.node_ids[i] == node_id {
+            binding_type = input.iterations.binding_type_names[i];
+            found_iteration = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !found_iteration {
+        return SelfMirIterationLoweringError(
+            "MIR for-loop iteration type fact is missing"
+        );
+    }
+    let binding: String = input.analysis.statements.payload_texts[
+        statement_index
+    ];
+    let start: String = input.analysis.statements.value_texts[statement_index];
+    let auxiliary: String = input.analysis.statements.auxiliary_texts[
+        statement_index
+    ];
+    if binding == "" || start == "" || binding_type == "" ||
+        binding_type == "Unknown" {
+        return SelfMirIterationLoweringError(
+            "MIR for-loop iteration fact is incomplete"
+        );
+    }
+    let is_foreach: Bool = auxiliary == "";
+    let stop: String = auxiliary;
+    if is_foreach {
+        stop = start;
+    } else if binding_type != "Int" {
+        return SelfMirIterationLoweringError(
+            "MIR range loop binding type must be Int"
+        );
+    }
+    return SelfMirIterationLoweringFact(
+        true, "", binding, binding_type, start, stop, is_foreach
+    );
+}
+
+func SelfMirIterationBranchUses(
+    build: SelfMirRoutineBuild,
+    fact: SelfMirIterationLoweringFact
+) -> Array<String> {
+    if !fact.is_foreach {
+        return SelfMirNoUses();
+    }
+    return SelfMirExpressionUses(build, fact.start_expression);
+}
