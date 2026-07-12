@@ -52,7 +52,7 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
-            *mir_out = mir_lower(*hir_out, *rir_out, &mir_error);
+            *mir_out = mir_lower(*hir_out, *rir_out, sem, &mir_error);
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);

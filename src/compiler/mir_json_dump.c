@@ -556,6 +556,43 @@ mir_json_emit_routines(FILE *out, const MIRProgram *mir)
     }
 }
 
+static const char *
+mir_parallel_capture_kind_name(MIRParallelCaptureDispositionKind kind)
+{
+    return kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
+        ? "snapshot_copy" : "unknown";
+}
+
+static void
+mir_json_emit_parallel_capture_boundaries(FILE *out, const MIRProgram *mir)
+{
+    size_t count = mir_parallel_capture_boundary_count(mir);
+
+    for (size_t i = 0; i < count; i++) {
+        const MIRParallelCaptureBoundaryFact *boundary =
+            mir_parallel_capture_boundary_at(mir, i);
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+            "{\"source_stable_id\":%u,\"task_count\":%zu,\"sealed\":%s,\"rows\":[",
+            boundary->source_stable_id,
+            boundary->task_count,
+            boundary->sealed ? "true" : "false");
+        for (size_t j = 0; j < boundary->row_count; j++) {
+            const MIRParallelCaptureDispositionRow *row = &boundary->rows[j];
+            if (j > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(out, row->name);
+            fputs(",\"kind\":", out);
+            mir_json_emit_str(out,
+                mir_parallel_capture_kind_name(row->kind));
+            fprintf(out, ",\"writer_task\":%zu}", row->writer_task);
+        }
+        fputs("]}", out);
+    }
+}
+
 void
 mir_dump_json(const MIRProgram *mir, FILE *out)
 {
@@ -563,6 +600,8 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
         out = stdout;
     fputs("{\"schema\":\"pgy.mir.v1\",\"decls\":[", out);
     mir_json_emit_decls(out, mir);
+    fputs("],\"parallel_capture_boundaries\":[", out);
+    mir_json_emit_parallel_capture_boundaries(out, mir);
     fputs("],\"routines\":[", out);
     mir_json_emit_routines(out, mir);
     fputs("]}\n", out);

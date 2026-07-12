@@ -139,27 +139,27 @@ row**(binding × arm → PTR/SNAPSHOT/VALUE + 증거 종류)를 생산하고, �
 그 시점까지의 정합성은 단일 도출 함수 + 판별 목격자(`parallel_snapshot_read`
 — 처분이 갈라지면 42/42 or 발산으로 즉시 RED)가 지킨다.
 
-**✅ 이주 완료 (2026-07-11, WO-PAR-1).** 착지 형태:
+**✅ MIR 소유 이주 완료 (2026-07-12, WO-PAR-1).** 착지 형태:
 
-- **fact row**: `ASTParallelSnapshotRow{name, writer_task}` — 검사기가
-  admitted snapshot마다 parallel 노드에 기록(`ast_parallel_add_snapshot_row`),
-  검사 종료 시 **봉인**(`ast_parallel_seal_dispositions`). LambdaCapture
-  (docs/141, semantic이 AST 노드에 capture fact 저장)와 같은 house 패턴.
-- **소비**: C·LLVM 캡처 이미터는 row 조회만 한다 — 자체 writer/자격 분석
-  삭제(`ast_statement_assigns_identifier`의 백엔드 호출 0, 자격 술어는
-  검사기 단일 소유로 복귀; C 쪽 `transpiler_parallel_snapshot_eligible_type`
-  제거). reader/writer arm 판별은 `writer_task` 인덱스 비교.
-- **fail-closed 2중**: 봉인 없는 노드가 이미터에 도달 → 양 백엔드 hard
-  error("without checker-sealed capture dispositions"); row는 있는데 LLVM이
-  스칼라로 lower 못 함 → 기존 hard error 유지. 손조립 AST 유닛테스트는
-  봉인 의무를 명시적으로 인수.
-- **검증**: transpile 918/0 · semantic 2794/0 · parallel-snapshot/disjoint
-  스모크 양 모드 green · 동시성 계열 backend-compare 38/38(판별 목격자
-  `parallel_snapshot_read` 42/1 포함).
-- **잔여**: boundary_migration_manifest 정식 row 등록만 남음(2026-07-11
-  현재 manifest 파일이 동시 세션 dirty — clean 복귀 시 protocol대로 등록).
-  Disjointness(Slice 허용)는 "semantic 거절 통과 = 허용" 구조라 백엔드
-  재도출이 원래 없어 이주 대상 아님.
+- **semantic owner**: 검사기는 stable parallel-boundary ID별
+  `SemanticParallelCaptureBoundaryFact`를 만들고 admitted snapshot마다
+  `{name, kind, writer_task}`를 기록한 뒤 봉인한다. AST에는 처분 행이나
+  봉인 비트를 저장하지 않는다.
+- **MIR projection**: `mir_lower`가 봉인·stable ID·task 수·행 종류·writer
+  범위·중복을 fail-closed 검증하고 `MIRParallelCaptureBoundaryFact`로
+  복사한다. MIR verifier와 MIR JSON이 같은 테이블을 소유한다.
+- **소비**: C·LLVM 캡처 이미터는 AST node의 stable ID를 provenance key로만
+  사용해 `mir_parallel_capture_boundary_find`를 호출한다. reader/writer arm
+  판별은 MIR row의 `writer_task`만 소비하며 AST나 source text에서 처분을
+  재도출하지 않는다.
+- **fail-closed**: MIR row 부재, 미봉인, task 수 불일치, 잘못된 writer,
+  중복 boundary/row는 lowering 또는 emission을 중단한다. LLVM이 admitted
+  snapshot을 스칼라로 lower하지 못하는 기존 hard error도 유지한다.
+- **검증**: MIR owner/mutation test, AST 호환 저장 재도입 금지 ratchet,
+  MIR JSON 표면 확인, C·LLVM positive snapshot과 write-write/read-write
+  negative fixtures를 `parallel-snapshot-test-smoke`가 함께 잠근다.
+  Disjointness(Slice 허용)는 semantic 판정 소유이므로 별도 backend
+  재도출 대상이 아니다.
 
 ## Related
 

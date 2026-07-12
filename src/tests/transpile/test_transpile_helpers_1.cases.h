@@ -286,7 +286,7 @@ lower_program_to_mir_ex(ASTNode *program,
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
         if (hir_out != NULL && rir_out != NULL
             && *hir_out != NULL && *rir_out != NULL)
-            mir = mir_lower(*hir_out, *rir_out, &mir_error);
+            mir = mir_lower(*hir_out, *rir_out, sem, &mir_error);
     }
 
     if (mir == NULL && allow_synthetic_fallback) {

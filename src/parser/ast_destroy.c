@@ -190,11 +190,6 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.parallel.tasks[i]);
             }
             free(node->data.parallel.tasks);
-            for (size_t i = 0;
-                 i < node->data.parallel.snapshot_row_count; i++) {
-                free(node->data.parallel.snapshot_rows[i].name);
-            }
-            free(node->data.parallel.snapshot_rows);
             free(node->data.parallel.join_element);
             ast_destroy(node->data.parallel.join_collection);
             ast_destroy(node->data.parallel.join_range_end);

@@ -159,10 +159,6 @@ test_program_emit_head(void)
         par->type = AST_PARALLEL_BLOCK;
         par->data.parallel.tasks      = tasks;
         par->data.parallel.task_count = 2;
-        /* Hand-built AST bypasses the checker; take on its obligation
-         * explicitly (zero snapshot rows, sealed). */
-        ast_parallel_seal_dispositions(par);
-
         ASTNode *fnA = calloc(1, sizeof(ASTNode));
         fnA->type = AST_FUNC_DECL;
         fnA->data.func_decl.name = pergyra_strdup("A");

@@ -268,4 +268,53 @@ test_mir_lowering_part_i(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR owns and validates parallel snapshot capture facts");
+    {
+        const char *src =
+            "func Main() -> Void {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
+            "    let mut x: Int = 1;\n"
+            "    let mut seen: Int = -1;\n"
+            "    parallel {\n"
+            "        { x = x + 41; ch <- 1; }\n"
+            "        { let go: Int = <- ch; seen = x + go - go; }\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRParallelCaptureBoundaryFact *boundary = NULL;
+        const MIRParallelCaptureDispositionRow *row = NULL;
+        char *mir_error = NULL;
+        bool rejected_unsealed = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok && mir_parallel_capture_boundary_count(mir) == 1) {
+            boundary = &mir->parallel_capture_boundaries[0];
+            row = mir_parallel_capture_snapshot_find(boundary, "x");
+            boundary->sealed = false;
+            rejected_unsealed = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "MIR parallel capture boundary[0] has invalid shape")
+                    != NULL;
+            boundary->sealed = true;
+        }
+        EXPECT(ok
+               && boundary != NULL
+               && boundary->source_stable_id != 0
+               && boundary->task_count == 2
+               && boundary->row_count == 1
+               && row != NULL
+               && row->kind == MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
+               && row->writer_task == 0
+               && mir_parallel_capture_snapshot_find(boundary, "seen") == NULL
+               && rejected_unsealed
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
 }

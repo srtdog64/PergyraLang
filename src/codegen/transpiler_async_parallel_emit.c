@@ -203,8 +203,21 @@ void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
     size_t count = ast_parallel_task_count(node);
+    const MIRParallelCaptureBoundaryFact *capture_boundary;
     if (count == 0)
         return;
+
+    capture_boundary = mir_parallel_capture_boundary_find(
+        ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+    if (capture_boundary == NULL || !capture_boundary->sealed
+        || capture_boundary->task_count != count) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "parallel block reached the C emitter without a matching sealed MIR capture boundary");
+        return;
+    }
 
     /* Join form (docs/181 SS1): one replicated wrapper, N runtime tasks. */
     if (ast_parallel_is_join_form(node)) {
@@ -212,18 +225,9 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
-     * unsealed node never ran the checker, and re-deriving the analysis
-     * here is exactly the C/LLVM drift surface the migration removed. */
-    if (!ast_parallel_dispositions_sealed(node)) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "parallel block reached the C emitter without checker-sealed capture dispositions");
-        return;
-    }
-
+    /* Capture dispositions are MIR facts projected from semantic analysis
+     * (docs/178, docs/180 §6). Re-deriving them here would restore the
+     * C/LLVM drift surface the migration removed. */
     unsigned int pid = ctx->parallel_id++;
 
     /* ---------------------------------------------------------------
@@ -245,16 +249,17 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
-    /* docs/178 Copy evidence, consumed as checker facts: a `<name>__snap`
-     * value member is materialized for every snapshot row the checker
-     * sealed on this node. Reader arms consume the pre-parallel value; the
+    /* docs/178 Copy evidence, consumed as MIR facts: a `<name>__snap`
+     * value member is materialized for every snapshot row in the sealed
+     * MIR boundary fact. Reader arms consume the pre-parallel value; the
      * writer arm keeps the shared pointer (exclusive live location). This
      * emitter performs no writer or eligibility analysis of its own. */
     bool capture_typed_snap_needed[MAX_SLOT_VARS] = {0};
     size_t capture_typed_snap_writer[MAX_SLOT_VARS] = {0};
     for (int ci = 0; ci < capture_typed_count; ci++) {
-        const ASTParallelSnapshotRow *row =
-            ast_parallel_snapshot_row_find(node, capture_typed_names[ci]);
+        const MIRParallelCaptureDispositionRow *row =
+            mir_parallel_capture_snapshot_find(capture_boundary,
+                                                capture_typed_names[ci]);
         if (row == NULL)
             continue;
         capture_typed_snap_needed[ci] = true;

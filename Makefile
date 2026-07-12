@@ -580,6 +580,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loop_snapshot.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
+                   $(SEMANTIC_DIR)/parallel_capture_facts.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel_join.c \
                    $(SEMANTIC_DIR)/type_checker_flow_statement_kinds.c \
@@ -872,6 +873,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_routine_cfg.c \
                    $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_parallel_capture_facts.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
@@ -1416,6 +1418,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_verify.o \
                    $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_parallel_capture_facts.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \

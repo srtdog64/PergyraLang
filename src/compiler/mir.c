@@ -12,6 +12,7 @@
 #include "../parser/ast_api.h"
 #include "mir_branch_source_facts.h"
 #include "mir_lower_population.h"
+#include "mir_parallel_capture_facts.h"
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_inventory_build.h"
@@ -221,15 +222,17 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
 #include "mir_abi_layout.h"
 
 MIRProgram *
-mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
+mir_lower(const HIRProgram *hir, const RIRProgram *rir,
+          const SemanticResult *semantic, char **error_message)
 {
     const char *debug_mir_lower;
     MIRProgram *mir;
     if (error_message != NULL)
         *error_message = NULL;
-    if (hir == NULL) {
+    if (hir == NULL || semantic == NULL) {
         if (error_message != NULL)
-            *error_message = pergyra_strdup("MIR lowering requires HIR");
+            *error_message = pergyra_strdup(
+                "MIR lowering requires HIR and semantic facts");
         return NULL;
     }
 
@@ -241,6 +244,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     if (mir == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("out of memory");
+        return NULL;
+    }
+    if (!mir_import_parallel_capture_facts(mir, semantic, error_message)) {
+        mir_destroy(mir);
         return NULL;
     }
 

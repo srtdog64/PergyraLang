@@ -22,6 +22,7 @@ test_mir_select_dispatch_emit(void)
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
+        SemanticResult *sem = NULL;
         char *hir_error = NULL;
         char *rir_error = NULL;
         char *mir_error = NULL;
@@ -35,13 +36,17 @@ test_mir_select_dispatch_emit(void)
         program = parser_parse_program(parser);
         ok = !parser_has_error(parser) && program != NULL;
         if (ok)
-            hir = hir_lower(program, &hir_error);
+            sem = semantic_analyze(program);
+        if (ok)
+            ok = sem != NULL && sem->success;
+        if (ok)
+            hir = hir_lower(sem->annotated_ast, &hir_error);
         if (ok && hir != NULL)
-            rir = rir_lower(program, &rir_error);
+            rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
         if (ok && hir != NULL && rir != NULL)
-            mir = mir_lower(hir, rir, &mir_error);
+            mir = mir_lower(hir, rir, sem, &mir_error);
         ok = (ok && hir != NULL && rir != NULL && mir != NULL);
         if (ok)
             mir_emit_ok = check_function_mir_emitability(hir, mir, "SelectEdges");
@@ -73,6 +78,7 @@ test_mir_select_dispatch_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        semantic_result_destroy(sem);
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
@@ -97,6 +103,7 @@ test_mir_select_dispatch_emit(void)
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
+        SemanticResult *sem = NULL;
         char *hir_error = NULL;
         char *rir_error = NULL;
         char *mir_error = NULL;
@@ -110,13 +117,17 @@ test_mir_select_dispatch_emit(void)
         program = parser_parse_program(parser);
         ok = !parser_has_error(parser) && program != NULL;
         if (ok)
-            hir = hir_lower(program, &hir_error);
+            sem = semantic_analyze(program);
+        if (ok)
+            ok = sem != NULL && sem->success;
+        if (ok)
+            hir = hir_lower(sem->annotated_ast, &hir_error);
         if (ok && hir != NULL)
-            rir = rir_lower(program, &rir_error);
+            rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
         if (ok && hir != NULL && rir != NULL)
-            mir = mir_lower(hir, rir, &mir_error);
+            mir = mir_lower(hir, rir, sem, &mir_error);
         ok = (ok && hir != NULL && rir != NULL && mir != NULL);
         if (ok)
             mir_emit_ok = check_function_mir_emitability(hir, mir, "SelectBound");
@@ -152,6 +163,7 @@ test_mir_select_dispatch_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        semantic_result_destroy(sem);
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
@@ -180,6 +192,7 @@ test_mir_select_dispatch_emit(void)
         MIRProgram *mir = NULL;
         Lexer *lexer = NULL;
         Parser *parser = NULL;
+        SemanticResult *sem = NULL;
         char *hir_error = NULL;
         char *rir_error = NULL;
         char *mir_error = NULL;
@@ -193,13 +206,17 @@ test_mir_select_dispatch_emit(void)
         program = parser_parse_program(parser);
         ok = !parser_has_error(parser) && program != NULL;
         if (ok)
-            hir = hir_lower(program, &hir_error);
+            sem = semantic_analyze(program);
+        if (ok)
+            ok = sem != NULL && sem->success;
+        if (ok)
+            hir = hir_lower(sem->annotated_ast, &hir_error);
         if (ok && hir != NULL)
-            rir = rir_lower(program, &rir_error);
+            rir = rir_lower(sem->annotated_ast, &rir_error);
         if (ok && hir != NULL && rir != NULL)
             (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
         if (ok && hir != NULL && rir != NULL)
-            mir = mir_lower(hir, rir, &mir_error);
+            mir = mir_lower(hir, rir, sem, &mir_error);
         ok = (ok && hir != NULL && rir != NULL && mir != NULL);
         if (ok)
             mir_emit_ok = find_mir_routine_by_name(mir, "Pull") != NULL;
@@ -232,6 +249,7 @@ test_mir_select_dispatch_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        semantic_result_destroy(sem);
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);

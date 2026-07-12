@@ -18,6 +18,7 @@
 #include "symbol_table.h"
 #include "builtin_kind.h"
 #include "boundary_witness.h"
+#include "parallel_capture_facts.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -187,6 +188,10 @@ struct SemanticContext
     size_t type_resolution_metadata_unresolved_named_missing_symbol;
 
     PgyBoundaryWitnessSummary boundary_witness_summary;
+
+    SemanticParallelCaptureBoundaryFact *parallel_capture_boundaries;
+    size_t parallel_capture_boundary_count;
+    size_t parallel_capture_boundary_capacity;
 
     bool         has_error;
 };

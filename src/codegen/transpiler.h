@@ -326,7 +326,7 @@ void           transpiler_ctx_destroy(TranspilerCtx *ctx);
  *
  * Usage:
  *   SemanticResult *sem = semantic_analyze(ast);
- *   MIRProgram *mir = mir_lower(sem->annotated_ast, rir, NULL);
+ *   MIRProgram *mir = mir_lower(hir, rir, sem, NULL);
  *   TranspileResult *res = transpile_from_mir(mir, "out.c");
  * ----------------------------------------------------------------- */
 

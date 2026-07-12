@@ -21,6 +21,25 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
+fail() { echo "[parallel-snapshot] FAIL: $*" >&2; exit 1; }
+
+# Capture disposition is executable truth: semantic owns the verdict, MIR
+# owns the backend contract, and AST has no compatibility storage.
+if grep -R -E -q \
+    'ASTParallelSnapshotRow|ast_parallel_(reset_dispositions|add_snapshot_row|seal_dispositions|dispositions_sealed|snapshot_row_find)|snapshot_rows|dispositions_sealed' \
+    "$ROOT_DIR/src/parser" "$ROOT_DIR/src/codegen"; then
+    fail "parallel snapshot disposition leaked back into AST/backend storage"
+fi
+grep -Fq 'mir_parallel_capture_boundary_find' \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c" \
+    || fail "C parallel emitter does not consume the MIR boundary fact"
+grep -Fq 'mir_parallel_capture_boundary_find' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
+    || fail "LLVM parallel emitter does not consume the MIR boundary fact"
+grep -Fq 'parallel_capture_boundaries' \
+    "$ROOT_DIR/src/compiler/mir_json_dump.c" \
+    || fail "MIR JSON omits parallel capture boundary facts"
+
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
@@ -30,8 +49,6 @@ fi
 FIXTURES="$ROOT_DIR/tests/cases/parallel_snapshot"
 OUT_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUT_DIR"' EXIT
-
-fail() { echo "[parallel-snapshot] FAIL: $*" >&2; exit 1; }
 
 compile() {
     local backend="$1" fixture="$2" out_name="$3"

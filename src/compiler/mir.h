@@ -9,6 +9,28 @@
 #include "mir_abi.h"
 #include "rir.h"
 typedef struct MIRProgram MIRProgram;
+typedef struct SemanticResult SemanticResult;
+
+typedef enum
+{
+    MIR_PARALLEL_CAPTURE_SNAPSHOT_COPY
+} MIRParallelCaptureDispositionKind;
+
+typedef struct
+{
+    char *name;
+    MIRParallelCaptureDispositionKind kind;
+    size_t writer_task;
+} MIRParallelCaptureDispositionRow;
+
+typedef struct
+{
+    uint32_t source_stable_id;
+    size_t task_count;
+    bool sealed;
+    MIRParallelCaptureDispositionRow *rows;
+    size_t row_count;
+} MIRParallelCaptureBoundaryFact;
 
 typedef struct
 {
@@ -333,6 +355,8 @@ struct MIRProgram
     MIRDeclHeader *decl_headers;
     size_t      decl_header_count;
     size_t      decl_header_capacity;
+    MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
+    size_t      parallel_capture_boundary_count;
     ASTNode   **externs;
     size_t      extern_count;
     ASTNode   **types;
@@ -370,7 +394,19 @@ struct MIRProgram
     const char *main_function_name;
     const char *source_path;  /* non-owning; NULL disables debug-line output */
 };
-MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
+MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir,
+                      const SemanticResult *semantic, char **error_message);
+size_t      mir_parallel_capture_boundary_count(const MIRProgram *mir);
+const MIRParallelCaptureBoundaryFact *
+            mir_parallel_capture_boundary_at(const MIRProgram *mir,
+                                              size_t index);
+const MIRParallelCaptureBoundaryFact *
+            mir_parallel_capture_boundary_find(const MIRProgram *mir,
+                                                uint32_t source_stable_id);
+const MIRParallelCaptureDispositionRow *
+            mir_parallel_capture_snapshot_find(
+                const MIRParallelCaptureBoundaryFact *boundary,
+                const char *name);
 void        mir_instruction_capture_source_provenance(
                 MIRInstruction *inst,
                 const ASTNode *source);

@@ -16,6 +16,7 @@
 #include "diagnostic_types.h"
 #include "boundary_witness.h"
 #include "lifecycle_state.h"
+#include "parallel_capture_facts.h"
 
 /*
  * Result of semantic analysis
@@ -45,6 +46,10 @@ typedef struct SemanticResult
      * AST source text. */
     LcSpec      *lifecycle_state_spaces;
     size_t       lifecycle_state_space_count;
+    /* Stable boundary-ID concurrency facts. Backends consume the MIR
+     * projection of this table, never checker annotations on AST nodes. */
+    SemanticParallelCaptureBoundaryFact *parallel_capture_boundaries;
+    size_t       parallel_capture_boundary_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------
@@ -84,6 +89,12 @@ size_t          semantic_result_lifecycle_state_space_count(
                     const SemanticResult* result);
 const LcSpec*   semantic_result_lifecycle_state_space_at(
                     const SemanticResult* result,
+                    size_t index);
+size_t          semantic_result_parallel_capture_boundary_count(
+                    const SemanticResult *result);
+const SemanticParallelCaptureBoundaryFact *
+                semantic_result_parallel_capture_boundary_at(
+                    const SemanticResult *result,
                     size_t index);
 
 /*

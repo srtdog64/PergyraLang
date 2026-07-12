@@ -270,6 +270,10 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     result->type_resolution_dag_ability_consumer_evidence_count =
         ctx->type_resolution_dag_ability_consumer_evidence_count;
     result->boundary_witness_summary = ctx->boundary_witness_summary;
+    result->parallel_capture_boundaries =
+        ctx->parallel_capture_boundaries;
+    result->parallel_capture_boundary_count =
+        ctx->parallel_capture_boundary_count;
     result->program_capabilities = ctx->program_capabilities;
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         DiagnosticLevel lvl = ctx->diagnostics[i]->level;
@@ -288,6 +292,9 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->diagnostics      = NULL;
     ctx->diagnostic_count = 0;
     ctx->diagnostic_capacity = 0;
+    ctx->parallel_capture_boundaries = NULL;
+    ctx->parallel_capture_boundary_count = 0;
+    ctx->parallel_capture_boundary_capacity = 0;
 
     semantic_context_destroy(ctx);
     return result;
@@ -306,6 +313,9 @@ semantic_result_destroy(SemanticResult *result)
     }
     free(result->diagnostics);
     free(result->lifecycle_state_spaces);
+    semantic_parallel_capture_facts_clear(
+        result->parallel_capture_boundaries,
+        result->parallel_capture_boundary_count);
     free(result);
 }
 
@@ -361,6 +371,21 @@ semantic_result_lifecycle_state_space_at(const SemanticResult *result,
     if (result == NULL || index >= result->lifecycle_state_space_count)
         return NULL;
     return &result->lifecycle_state_spaces[index];
+}
+
+size_t
+semantic_result_parallel_capture_boundary_count(const SemanticResult *result)
+{
+    return result != NULL ? result->parallel_capture_boundary_count : 0;
+}
+
+const SemanticParallelCaptureBoundaryFact *
+semantic_result_parallel_capture_boundary_at(const SemanticResult *result,
+                                             size_t index)
+{
+    if (result == NULL || index >= result->parallel_capture_boundary_count)
+        return NULL;
+    return &result->parallel_capture_boundaries[index];
 }
 
 void

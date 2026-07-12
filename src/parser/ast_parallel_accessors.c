@@ -1,9 +1,8 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * Parallel-node accessor owner: tasks, checker-sealed capture
- * dispositions (docs/178), and the join form (docs/181 SS1). Split out
- * of ast_async_lambda_accessors.c under the 550-line responsibility
- * rule.
+ * Parallel-node accessor owner: tasks and the join form (docs/181 SS1).
+ * Split out of ast_async_lambda_accessors.c under the 550-line
+ * responsibility rule.
  */
 
 #include "ast_constructors_internal.h"
@@ -43,84 +42,6 @@ ast_parallel_task(const ASTNode* node, size_t index)
     return node->data.parallel.tasks != NULL
         ? node->data.parallel.tasks[index]
         : NULL;
-}
-
-void
-ast_parallel_reset_dispositions(ASTNode* node)
-{
-    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
-        return;
-    for (size_t i = 0; i < node->data.parallel.snapshot_row_count; i++)
-        free(node->data.parallel.snapshot_rows[i].name);
-    free(node->data.parallel.snapshot_rows);
-    node->data.parallel.snapshot_rows = NULL;
-    node->data.parallel.snapshot_row_count = 0;
-    node->data.parallel.snapshot_row_capacity = 0;
-    node->data.parallel.dispositions_sealed = false;
-}
-
-bool
-ast_parallel_add_snapshot_row(ASTNode* node, const char* name,
-                              size_t writer_task)
-{
-    if (node == NULL || node->type != AST_PARALLEL_BLOCK || name == NULL)
-        return false;
-    /* The checker's scope walk may revisit a shadowed name; the verdict is
-     * identical, so the first row wins. */
-    if (ast_parallel_snapshot_row_find(node, name) != NULL)
-        return true;
-    if (node->data.parallel.snapshot_row_count
-            == node->data.parallel.snapshot_row_capacity) {
-        size_t new_cap = node->data.parallel.snapshot_row_capacity == 0
-            ? 4 : node->data.parallel.snapshot_row_capacity * 2;
-        ASTParallelSnapshotRow* grown = realloc(
-            node->data.parallel.snapshot_rows,
-            new_cap * sizeof(*grown));
-        if (grown == NULL)
-            return false;
-        node->data.parallel.snapshot_rows = grown;
-        node->data.parallel.snapshot_row_capacity = new_cap;
-    }
-    {
-        ASTParallelSnapshotRow* row = &node->data.parallel.snapshot_rows[
-            node->data.parallel.snapshot_row_count];
-        row->name = pergyra_strdup(name);
-        if (row->name == NULL)
-            return false;
-        row->writer_task = writer_task;
-        node->data.parallel.snapshot_row_count++;
-    }
-    return true;
-}
-
-void
-ast_parallel_seal_dispositions(ASTNode* node)
-{
-    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
-        return;
-    node->data.parallel.dispositions_sealed = true;
-}
-
-bool
-ast_parallel_dispositions_sealed(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
-        return false;
-    return node->data.parallel.dispositions_sealed;
-}
-
-const ASTParallelSnapshotRow*
-ast_parallel_snapshot_row_find(const ASTNode* node, const char* name)
-{
-    if (node == NULL || node->type != AST_PARALLEL_BLOCK || name == NULL)
-        return NULL;
-    for (size_t i = 0; i < node->data.parallel.snapshot_row_count; i++) {
-        const ASTParallelSnapshotRow* row =
-            &node->data.parallel.snapshot_rows[i];
-        if (row->name != NULL && strcmp(row->name, name) == 0)
-            return row;
-    }
-    return NULL;
 }
 
 bool
@@ -188,10 +109,7 @@ ast_parallel_is_index_join(const ASTNode* node)
 }
 
 /* Index-disjointness fact rows: produced by the join admission checker
- * (single producer), consumed by both backend emitters. Reset lives here
- * and NOT in ast_parallel_reset_dispositions -- that reset belongs to the
- * scalar-race checker, which runs after the join admission and must not
- * wipe this family's rows. */
+ * (single producer) and consumed by both backend emitters. */
 void
 ast_parallel_reset_join_index_arrays(ASTNode* node)
 {

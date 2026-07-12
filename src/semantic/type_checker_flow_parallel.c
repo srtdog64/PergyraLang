@@ -188,11 +188,13 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
         return false;
     task_count = ast_parallel_task_count(node);
     /* This checker is the single producer of capture-disposition facts
-     * (docs/178, docs/180 §6): every admission below is recorded as a row
-     * on the node, and both backend emitters consume rows instead of
-     * re-deriving writer/eligibility analysis. Reset keeps re-checks
-     * idempotent. */
-    ast_parallel_reset_dispositions(node);
+     * (docs/178, docs/180 §6). Rows are keyed by stable boundary ID and
+     * projected into MIR for both backends. Reset keeps re-checks idempotent. */
+    if (!semantic_parallel_capture_facts_reset(ctx, node)) {
+        semantic_error(ctx, node,
+            "Capture-disposition fact boundary allocation failed");
+        return true;
+    }
 
     for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
         for (size_t i = 0; i < scope->symbol_count; i++) {
@@ -269,8 +271,8 @@ parallel_reject_scalar_write_race(ASTNode *node, SemanticContext *ctx)
              * (Exclusivity). Both backends materialize the snapshot from
              * the fact row recorded here. docs/178. */
             if (writers == 1 && refs >= 2
-                && !ast_parallel_add_snapshot_row(node, sym->name,
-                                                  writer_task)) {
+                && !semantic_parallel_capture_facts_add_snapshot(
+                    ctx, node, sym->name, writer_task)) {
                 semantic_error(ctx, node,
                     "Capture-disposition fact allocation failed while admitting parallel snapshot");
                 return true;
@@ -376,10 +378,13 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
 
     if (parallel_reject_scalar_write_race(node, ctx))
         return false;
-    /* Every capture disposition is now recorded; the seal is what the
-     * backend emitters check before consuming (missing seal = the node
-     * bypassed this checker = hard error, never a silent re-derivation). */
-    ast_parallel_seal_dispositions(node);
+    /* Every capture disposition is now recorded. MIR imports only a sealed
+     * table; a missing seal is a hard error, never backend re-derivation. */
+    if (!semantic_parallel_capture_facts_seal(ctx, node)) {
+        semantic_error(ctx, node,
+            "Capture-disposition fact seal failed");
+        return false;
+    }
 
     prev_parallel = ctx->in_parallel;
     ctx->in_parallel = true;

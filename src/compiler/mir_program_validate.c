@@ -7,6 +7,7 @@
 #include "mir_cfg_contract_validate.h"
 #include "mir_fact_validate.h"
 #include "mir_public_surface.h"
+#include "mir_parallel_capture_facts.h"
 #include "mir_validation.h"
 
 static bool
@@ -239,6 +240,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
     if (!mir_validate_program_inventory_shape(mir, error_message))
         return false;
     if (!mir_validate_inventory_surface_usage(mir, error_message))
+        return false;
+    if (!mir_validate_parallel_capture_facts(mir, error_message))
         return false;
 
     mir_routine_inventory_from_program(mir, &inventory);

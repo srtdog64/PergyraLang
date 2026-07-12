@@ -115,10 +115,14 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
     char inner_suffix[64];
     char elem_c_type[128];
     unsigned int pid;
+    const MIRParallelCaptureBoundaryFact *capture_boundary =
+        mir_parallel_capture_boundary_find(
+            ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
 
-    if (!ast_parallel_dispositions_sealed(node)) {
+    if (capture_boundary == NULL || !capture_boundary->sealed
+        || capture_boundary->task_count != ast_parallel_task_count(node)) {
         join_set_error(ctx,
-            "parallel join block reached the C emitter without checker-sealed capture dispositions%s",
+            "parallel join block reached the C emitter without a matching sealed MIR capture boundary%s",
             "");
         return;
     }

@@ -134,12 +134,6 @@ struct ASTNode
             ASTNode** tasks;
             size_t    task_count;
             size_t    task_capacity;
-            /* Capture-disposition facts (docs/178): checker-sealed;
-             * emitters consume rows only and fail closed without the seal. */
-            ASTParallelSnapshotRow* snapshot_rows;
-            size_t    snapshot_row_count;
-            size_t    snapshot_row_capacity;
-            bool      dispositions_sealed;
             /* Join form (docs/181 SS1, rung 0): `parallel (x in xs)`.
              * tasks[0] is the replicated body; the runtime fans out one
              * task per element. */

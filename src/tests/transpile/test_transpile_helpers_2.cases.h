@@ -26,7 +26,7 @@ lower_pipeline_from_source_ex(const char *source,
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
-            *mir_out = mir_lower(*hir_out, *rir_out, &mir_error);
+            *mir_out = mir_lower(*hir_out, *rir_out, sem, &mir_error);
     }
 
     ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);

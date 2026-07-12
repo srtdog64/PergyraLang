@@ -150,8 +150,21 @@ void
 llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 {
     size_t count = ast_parallel_task_count(node);
+    const MIRParallelCaptureBoundaryFact *capture_boundary;
     if (count == 0)
         return;
+
+    capture_boundary = mir_parallel_capture_boundary_find(
+        ctx != NULL ? ctx->mir : NULL, ast_node_stable_id(node));
+    if (capture_boundary == NULL || !capture_boundary->sealed
+        || capture_boundary->task_count != count) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM parallel block reached the emitter without a matching sealed MIR capture boundary");
+        return;
+    }
 
     /* Join form (docs/181 SS1): one replicated wrapper, N runtime tasks. */
     if (ast_parallel_is_join_form(node)) {
@@ -159,18 +172,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         return;
     }
 
-    /* Capture dispositions are checker facts (docs/178, docs/180 §6): an
-     * unsealed node never ran the checker, and re-deriving the analysis
-     * here is exactly the C/LLVM drift surface the migration removed. */
-    if (!ast_parallel_dispositions_sealed(node)) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM parallel block reached the emitter without checker-sealed capture dispositions");
-        return;
-    }
-
+    /* Capture dispositions are MIR facts projected from semantic analysis
+     * (docs/178, docs/180 §6). Re-deriving them here would restore the
+     * C/LLVM drift surface the migration removed. */
     LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
         "pgy_lane_spawn_dispatch_export");
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
@@ -194,8 +198,8 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         bool slot_is_secure;
         /* docs/178 Copy evidence: single-writer primitive scalar read by
          * other arms -- reader arms load the pre-parallel snapshot field
-         * instead of the shared pointer. Filled from the checker-sealed
-         * fact row, never derived here. */
+         * instead of the shared pointer. Filled from the MIR boundary fact,
+         * never derived here. */
         bool has_snapshot;
         unsigned snap_field;
         size_t snap_writer_task;
@@ -273,8 +277,8 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    /* docs/178 Copy evidence, consumed as checker facts: every snapshot
-     * row sealed on this node gets a snapshot field appended after the
+    /* docs/178 Copy evidence, consumed as MIR facts: every snapshot row
+     * gets a snapshot field appended after the
      * pointer fields. Reader arms consume the pre-parallel value; the
      * writer arm keeps the shared pointer. This emitter performs no writer
      * or eligibility analysis of its own; a row it cannot lower as a
@@ -283,7 +287,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     size_t n_snapshots = 0;
     for (size_t i = 0; i < n_captured; i++) {
         LLVMTypeRef vt = captured[i].type;
-        const ASTParallelSnapshotRow *row;
+        const MIRParallelCaptureDispositionRow *row;
 
         /* Runtime-synchronized transports share safely by design and
          * never carry snapshot rows. */
@@ -291,7 +295,8 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             || captured[i].future_inner != NULL
             || captured[i].slot_inner != NULL)
             continue;
-        row = ast_parallel_snapshot_row_find(node, captured[i].name);
+        row = mir_parallel_capture_snapshot_find(capture_boundary,
+                                                  captured[i].name);
         if (row == NULL)
             continue;
         if (!(vt == ctx->type_i32 || vt == ctx->type_i64

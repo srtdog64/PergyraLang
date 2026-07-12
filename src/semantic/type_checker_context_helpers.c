@@ -227,6 +227,9 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->host_decl_index.decls);
     free(ctx->host_decl_index.names);
     free(ctx->host_decl_index.types);
+    semantic_parallel_capture_facts_clear(
+        ctx->parallel_capture_boundaries,
+        ctx->parallel_capture_boundary_count);
     free(ctx->diagnostics);
     pgy_arena_destroy(&ctx->scratch_arena);
     free(ctx);
