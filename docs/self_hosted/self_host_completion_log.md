@@ -7025,3 +7025,22 @@ Released/default replacement remains 0%.
   failed closed under both drivers.
 - The full 20-source/15-MIR matrix was not refreshed in this focused slice.
   Released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 nested field reads consume recursive member graphs
+
+- The parser already owned `line.end.x` as nested `member_access` rows. The
+  remaining gap was the hard C emitter's leaf-only receiver check.
+- Added recursive receiver-type projection over expression node handles. Each
+  edge consumes the current receiver type and `LookupFieldType` row; the hard
+  consumer does not split or scan the rendered dotted path.
+- Added `nested_member_access.pgy` as the sixteenth DRV-2 MIR fixture. C-built
+  and LLVM-built drivers emitted byte-identical MIR and C, source-first and
+  MIR-first output matched, and the generated executable matched the native
+  oracle output `3`.
+- Removing `expr0_graph` or replacing its root with an invalid node failed
+  closed with `MIR instruction expression graph is missing or invalid` under
+  both drivers. The full 20-source/16-MIR producer-first gate passed for C and
+  LLVM driver builds.
+- Scope remains bounded: nested-receiver method calls, namespace-qualified
+  calls, object-init internals, and auxiliary type classification remain
+  `BRIDGE`; released/default replacement remains 0%.

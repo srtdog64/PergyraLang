@@ -114,7 +114,7 @@ spine is rejected. Typed source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 13 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 16 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -127,10 +127,12 @@ call spine without the legacy argument-list scanner. The `class_method` MIR
 fixture also emits simple `self.field` access and `v.Method(arg)` dispatch from
 the receiver/member handles, method signature rows, and explicit receiver
 argument; those consumers cannot call the legacy member, qualified-call,
-field-access, or parenthesis scanners. Nested/namespace-qualified member calls,
-try/object-init internals, literal-only argument bridges,
-borrow/receive/spawn/await unary forms, collection/auxiliary lanes, and the
-transitional compact-tree-to-arena construction remain `BRIDGE` work.
+field-access, or parenthesis scanners. The `nested_member_access` fixture
+projects `line.end.x` and `line.start.x` recursively from receiver/member edges
+and field/type rows rather than scanning a dotted path. Nested-receiver or
+namespace-qualified member calls, object-init internals, literal-only argument
+bridges, borrow/receive/spawn/await unary forms, collection/auxiliary lanes, and
+the transitional compact-tree-to-arena construction remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -233,6 +235,17 @@ made C-built and LLVM-built DRV-2 raw MIR byte-identical, made native/self
 canonical MIR byte-identical, and made every source/MIR route emit the same C
 and committed runtime output. Removing `expr0_graph` fails closed on both
 drivers. The full 20-source/15-MIR matrix was not refreshed in this slice, and
+released/default replacement remains 0%.
+
+The next executable delta completed recursively nested field reads. The parser
+already emitted `MemberAccess(MemberAccess(line, end), x)`; hard codegen now
+derives each receiver type recursively from that graph and `LookupFieldType`
+rows. It cannot call the text-backed `ExprMemberFieldType` dotted-path scanner.
+The `nested_member_access` fixture made C-built and LLVM-built drivers emit
+byte-identical MIR and C, executed equal to the native oracle (`3`), and rejected
+both a missing graph and an invalid root. The full producer-first gate is green
+at 20 source fixtures and 16 MIR fixtures across both driver backends.
+Nested-receiver method calls and namespace-qualified calls remain `BRIDGE`;
 released/default replacement remains 0%.
 
 The third executable delta deleted
@@ -384,7 +397,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 29,833 frontend/backend LOC / 287,395 C-reference LOC = 10.38%; broader Pergyra compiler-core inventory = 46,911 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 14 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 16 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

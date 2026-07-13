@@ -2717,6 +2717,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "let json: String
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/indexed_assignment.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
@@ -2761,7 +2762,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 15;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 16;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -3747,6 +3748,8 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func SemanticMemberReceiverTypeFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCall("
@@ -3769,6 +3772,8 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess(" "FindMatchingParen("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func SemanticMemberReceiverTypeFromGraph(" "ExprMemberFieldType("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" "RewriteMemberCalls("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" "RewriteQualifiedCalls("
@@ -3778,6 +3783,10 @@ require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \
     "func LengthPlus(self, extra: Int) -> Int"
 require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \
     "return v.LengthPlus(5) - 15;"
+require_text "src/self_hosted/mir_lower/fixture/nested_member_access.pgy" \
+    "return line.end.x - line.start.x;"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    '"kind":"member_access","text":"line.end.x"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"valid_array_builtins|ok"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

@@ -1,0 +1,18 @@
+struct Vec2 {
+    x: Int;
+    y: Int;
+}
+
+struct Line {
+    start: Vec2;
+    end: Vec2;
+}
+
+func Width(line: Line) -> Int {
+    return line.end.x - line.start.x;
+}
+
+func Main() -> Void {
+    let line: Line = Line(Vec2(1, 2), Vec2(4, 6));
+    Log(ToString(Width(line)));
+}
