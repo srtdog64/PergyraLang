@@ -2530,10 +2530,33 @@ require_file "src/self_hosted/compiler/driver_rung2_owner.pgy"
 require_file "src/self_hosted/compiler/driver_rung2_main.pgy"
 require_max_lines "src/self_hosted/compiler/driver_rung2_owner.pgy" 600
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompilerDriverRung2Ready"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileArtifactToCVerified"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func VerifyArtifactForMirProduction("
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func CompileArtifactToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
+require_file "src/self_hosted/mir/expression_graph_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir/expression_graph_fact_owner.pgy" 600
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "struct SelfMirExpressionGraphRows"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "func SelfMirExpressionGraphSubtreeStart("
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "while source_node <= view.root_id"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "func SelfMirExpressionGraphRangeReachable("
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "func SelfMirExpressionGraphRowsContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SelfMirExpressionGraphRowsContractReady()"
+reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    "struct SelfMirExpressionGraphCopy"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "expression_graphs: SelfMirExpressionGraphRows;"
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"expr0_graph", SelfMirJsonExpressionGraph('
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "MIR shadowed local type changed"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
@@ -2612,6 +2635,26 @@ reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'diff -u'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileMirJsonToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput(mir_json_path)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
+require_file "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 600
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphFactsForArtifact("
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'JsonObjectFactObjectTable('
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'instruction, "expr0_graph"'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "SemanticAstExpressionSurfaceRowsFromArtifact(artifact)"
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "func MirExpressionGraphRangeReachable("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "func CompileMirJsonTextToCVerified("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyzeWithExpressionGraph("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "return CompileMirJsonTextToCVerified(json);"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirFactGraphPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
@@ -2665,6 +2708,8 @@ require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'state.input.analysis
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    '"expr0":"nums","expr0_graph":null,"expr1":"nums"'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexedAssignmentUseReady('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
@@ -2722,6 +2767,12 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhos
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "--emit-mir-json-verified"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "--canonicalize-mir-json"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "self MIR reopened AST compatibility text"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    '"expr0_graph":{'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "missing expression graph was accepted"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "invalid expression graph was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "producer-first source/MIR parity ok"
 require_text "tests/self_host_progress_metric_smoke.sh" '"$ROOT_DIR/src/self_hosted/mir"'
 require_text "tests/self_host_live_replacement_smoke.sh" "missing self driver silently fell back"

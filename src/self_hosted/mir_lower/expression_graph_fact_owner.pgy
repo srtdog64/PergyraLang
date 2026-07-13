@@ -1,0 +1,279 @@
+// MIR JSON expression graph facts bound to reconstructed artifact NodeIds.
+
+import "../lib/json_fact_table.pgy";
+import "../semantic/ast_expression_surface_fact_owner.pgy";
+import "program_routine_index_owner.pgy";
+import "routine_fact_index_owner.pgy";
+
+struct MirExpressionGraphSequence {
+    ok: Bool;
+    roots: Array<Int>;
+    arena: SemanticExpressionGraphArena;
+}
+
+func MirExpressionGraphSequenceEmpty() -> MirExpressionGraphSequence {
+    let roots: Array<Int> = [];
+    return MirExpressionGraphSequence(
+        true, roots, SemanticExpressionGraphArenaEmpty()
+    );
+}
+
+func MirExpressionGraphSequenceError(
+    sequence: MirExpressionGraphSequence
+) -> MirExpressionGraphSequence {
+    return MirExpressionGraphSequence(false, sequence.roots, sequence.arena);
+}
+
+func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
+    if kind == "leaf" { return Some(SemanticExpressionNodeLeaf()); }
+    if kind == "logical_or" {
+        return Some(SemanticExpressionNodeLogicalOr());
+    }
+    if kind == "logical_and" {
+        return Some(SemanticExpressionNodeLogicalAnd());
+    }
+    if kind == "equality" {
+        return Some(SemanticExpressionNodeEquality());
+    }
+    if kind == "inequality" {
+        return Some(SemanticExpressionNodeInequality());
+    }
+    return None;
+}
+
+func MirExpressionGraphRangeReachable(
+    ref arena: SemanticExpressionGraphArena,
+    start: Int,
+    count: Int,
+    root: Int
+) -> Bool {
+    let seen: Array<Bool> = [];
+    let i: Int = 0;
+    while i < count {
+        ArrayPush(seen, false);
+        i = i + 1;
+    }
+    let pending: Array<Int> = [root];
+    let visited: Int = 0;
+    while ArrayLength(pending) > 0 {
+        let last: Int = ArrayLength(pending) - 1;
+        let node: Int = pending[last];
+        ArrayPop(pending);
+        if node < start || node >= start + count { return false; }
+        let local_index: Int = node - start;
+        if seen[local_index] { continue; }
+        ArraySet(seen, local_index, true);
+        visited = visited + 1;
+        if arena.node_kinds[node] != SemanticExpressionNodeLeaf() {
+            ArrayPush(pending, arena.left_children[node]);
+            ArrayPush(pending, arena.right_children[node]);
+        }
+    }
+    return visited == count;
+}
+
+func MirExpressionGraphSequenceAppend(
+    sequence: MirExpressionGraphSequence,
+    graph: JsonObjectFactTable
+) -> MirExpressionGraphSequence {
+    if !sequence.ok || !JsonObjectFactTableReady(graph) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let root_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+        graph, "root"
+    );
+    let nodes: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(graph, "nodes");
+    if !IsSome(root_opt) || !JsonArrayObjectFactTableReady(nodes) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let count: Int = JsonArrayObjectFactCount(nodes);
+    let local_root: Int = ToInt(UnwrapOption(root_opt));
+    if count == 0 || local_root < 0 || local_root >= count {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let kinds: Array<Int> = sequence.arena.node_kinds;
+    let texts: Array<String> = sequence.arena.node_texts;
+    let left_children: Array<Int> = sequence.arena.left_children;
+    let right_children: Array<Int> = sequence.arena.right_children;
+    let offset: Int = ArrayLength(kinds);
+    let i: Int = 0;
+    while i < count {
+        let node: JsonObjectFactTable = JsonArrayObjectFactAt(nodes, i);
+        let kind_text: Option<String> = JsonObjectFactStringFieldOpt(
+            node, "kind"
+        );
+        let text: Option<String> = JsonObjectFactStringFieldOpt(node, "text");
+        if !IsSome(kind_text) || !IsSome(text) || UnwrapOption(text) == "" {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        let kind_opt: Option<Int> = MirExpressionGraphKindCode(
+            UnwrapOption(kind_text)
+        );
+        if !IsSome(kind_opt) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        let left: Int = 0;
+        let right: Int = 0;
+        let left_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            node, "left"
+        );
+        let right_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            node, "right"
+        );
+        if kind == SemanticExpressionNodeLeaf() {
+            if IsSome(left_opt) || IsSome(right_opt) {
+                return MirExpressionGraphSequenceError(sequence);
+            }
+        } else {
+            if !IsSome(left_opt) || !IsSome(right_opt) {
+                return MirExpressionGraphSequenceError(sequence);
+            }
+            let local_left: Int = ToInt(UnwrapOption(left_opt));
+            let local_right: Int = ToInt(UnwrapOption(right_opt));
+            if local_left < 0 || local_right < 0 ||
+                local_left >= i || local_right >= i {
+                return MirExpressionGraphSequenceError(sequence);
+            }
+            left = offset + local_left;
+            right = offset + local_right;
+        }
+        ArrayPush(kinds, kind);
+        ArrayPush(texts, UnwrapOption(text));
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        i = i + 1;
+    }
+    let roots: Array<Int> = sequence.roots;
+    ArrayPush(roots, offset + local_root);
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        kinds, texts, left_children, right_children
+    );
+    if !SemanticExpressionGraphArenaReady(arena) ||
+        !MirExpressionGraphRangeReachable(
+            arena, offset, count, offset + local_root
+        ) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    return MirExpressionGraphSequence(true, roots, arena);
+}
+
+func MirInstructionRequiresExpressionGraph(
+    instruction: JsonObjectFactTable
+) -> Bool {
+    let kind: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "kind"
+    );
+    let name: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "name"
+    );
+    let arg0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "arg0"
+    );
+    let source_type: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "source_type"
+    );
+    return IsSome(kind) && UnwrapOption(kind) == "branch" &&
+        IsSome(name) && UnwrapOption(name) == "branch" &&
+        !IsSome(arg0) &&
+        (!IsSome(source_type) ||
+         UnwrapOption(source_type) != "AST_MATCH_CASE");
+}
+
+func MirExpressionGraphSequenceFromJson(
+    json: String
+) -> MirExpressionGraphSequence {
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceEmpty();
+    let routines: MirProgramRoutineIndex = BuildMirProgramRoutineIndex(json);
+    if !routines.valid {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let routine_i: Int = 0;
+    while routine_i < MirProgramRoutineIndexCount(routines) {
+        let index: MirRoutineFactIndex = BuildMirRoutineFactIndex(
+            json, routines.starts[routine_i], routines.ends[routine_i]
+        );
+        if !index.valid {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        let instruction_i: Int = 0;
+        while instruction_i < ArrayLength(index.instruction_starts) {
+            let instruction: JsonObjectFactTable =
+                JsonObjectFactTableFromBounds(
+                    json, index.instruction_starts[instruction_i],
+                    index.instruction_ends[instruction_i]
+                );
+            let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+                instruction, "expr0_graph"
+            );
+            if MirInstructionRequiresExpressionGraph(instruction) {
+                if !JsonObjectFactTableReady(graph) {
+                    return MirExpressionGraphSequenceError(sequence);
+                }
+                sequence = MirExpressionGraphSequenceAppend(sequence, graph);
+            }
+            instruction_i = instruction_i + 1;
+        }
+        routine_i = routine_i + 1;
+    }
+    return sequence;
+}
+
+func MirExpressionGraphFactsForArtifact(
+    json: String,
+    artifact: AstTreeArtifact
+) -> SemanticExpressionGraphFacts {
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceFromJson(json);
+    let roots: Array<Int> = [];
+    let has_roots: Array<Bool> = [];
+    let sequence_i: Int = 0;
+    let valid: Bool = sequence.ok;
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(surfaces) {
+        let node_id: Int = surfaces.node_ids[i];
+        let condition_atom: Bool = surfaces.has_atoms[i] &&
+            (TypedAstArenaNodeKindIs(
+                artifact.arena, node_id, TypedAstKindIfStmtTag()
+            ) || TypedAstArenaNodeKindIs(
+                artifact.arena, node_id, TypedAstKindWhileStmtTag()
+            ));
+        if condition_atom {
+            if sequence_i >= ArrayLength(sequence.roots) {
+                valid = false;
+                ArrayPush(roots, 0);
+                ArrayPush(has_roots, false);
+            } else {
+                let root: Int = sequence.roots[sequence_i];
+                if root < 0 ||
+                    root >= SemanticExpressionGraphArenaNodeCount(
+                        sequence.arena
+                    ) || sequence.arena.node_texts[root] !=
+                        surfaces.normalized_atoms[i] {
+                    valid = false;
+                }
+                ArrayPush(roots, root);
+                ArrayPush(has_roots, true);
+                sequence_i = sequence_i + 1;
+            }
+        } else {
+            ArrayPush(roots, 0);
+            ArrayPush(has_roots, false);
+        }
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        i = i + 1;
+    }
+    if sequence_i != ArrayLength(sequence.roots) {
+        valid = false;
+    }
+    return SemanticExpressionGraphFacts(
+        valid, roots, has_roots, sequence.arena
+    );
+}

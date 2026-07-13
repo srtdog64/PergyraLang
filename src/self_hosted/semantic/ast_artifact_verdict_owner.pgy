@@ -119,9 +119,10 @@ func SemanticAstArtifactVerdictMatches(
         verdict.requires_entrypoint == requires_entrypoint;
 }
 
-func SemanticAstArtifactAnalyze(
+func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     artifact: AstTreeArtifact,
-    requires_entrypoint: Bool
+    requires_entrypoint: Bool,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstArtifactAnalysis {
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -129,8 +130,6 @@ func SemanticAstArtifactAnalyze(
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
     let roles: SemanticAstRoleFacts = SemanticAstRoleFactsFromArtifact(artifact);
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
     let type_surfaces: SemanticAstTypeSurfaceFacts =
         SemanticAstTypeSurfaceFactsFromArtifact(artifact);
     let kind_surfaces: SemanticAstKindSurfaceFacts =
@@ -324,6 +323,32 @@ func SemanticAstArtifactAnalyze(
         verdict, signatures, constructors, local_bindings, assignments,
         statements, enums, roles, expression_surfaces, type_surfaces,
         kind_surfaces
+    );
+}
+
+func SemanticAstArtifactAnalyze(
+    artifact: AstTreeArtifact,
+    requires_entrypoint: Bool
+) -> SemanticAstArtifactAnalysis {
+    return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+        artifact, requires_entrypoint,
+        SemanticAstExpressionSurfaceFactsFromArtifact(artifact)
+    );
+}
+
+func SemanticAstArtifactAnalyzeWithExpressionGraph(
+    artifact: AstTreeArtifact,
+    requires_entrypoint: Bool,
+    graph: SemanticExpressionGraphFacts
+) -> SemanticAstArtifactAnalysis {
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact,
+            SemanticAstExpressionSurfaceRowsFromArtifact(artifact),
+            graph
+        );
+    return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+        artifact, requires_entrypoint, expression_surfaces
     );
 }
 

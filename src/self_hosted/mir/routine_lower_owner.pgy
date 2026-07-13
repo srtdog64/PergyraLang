@@ -237,6 +237,12 @@ func SelfMirLowerBlockFromArtifact(
                     ),
                     SelfMirExpressionUses(build, condition)
                 );
+                build = SelfMirRoutineAttachLastExpressionGraph(
+                    build, SemanticAstExpressionGraphForNode(
+                        state.input.analysis.expression_surfaces,
+                        node_id, SemanticAstExpressionAtomLane()
+                    )
+                );
                 let body_opt: Option<Int> = SelfMirControlBodyBlock(
                     state.input.artifact.arena, node_id
                 );
@@ -389,6 +395,12 @@ func SelfMirLowerBlockFromArtifact(
                         SelfMirExpressionKindFromText(condition2)
                     ),
                     SelfMirExpressionUses(build, condition2)
+                );
+                build = SelfMirRoutineAttachLastExpressionGraph(
+                    build, SemanticAstExpressionGraphForNode(
+                        state.input.analysis.expression_surfaces,
+                        node_id, SemanticAstExpressionAtomLane()
+                    )
                 );
                 build = SelfMirRoutineAddBlock(build);
                 let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;

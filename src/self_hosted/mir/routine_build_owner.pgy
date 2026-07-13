@@ -109,6 +109,32 @@ func SelfMirRoutineAddInstruction(
     );
 }
 
+func SelfMirRoutineAttachLastExpressionGraph(
+    build: SelfMirRoutineBuild,
+    view: SemanticExpressionGraphView
+) -> SelfMirRoutineBuild {
+    if !view.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR condition is missing its semantic expression graph"
+        );
+    }
+    let cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpressionGraph(
+        build.cfg, view
+    );
+    let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
+    if instruction_index < 0 ||
+        cfg.instructions.expression_graphs.has_roots[instruction_index] != 1 {
+        return SelfMirRoutineBuildError(
+            build, "MIR condition graph attachment failed"
+        );
+    }
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
 func SelfMirRoutineLocalIndex(
     build: SelfMirRoutineBuild,
     name: String

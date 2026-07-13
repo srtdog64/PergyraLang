@@ -5,6 +5,7 @@
 // recover semantic facts from source or AST provenance text.
 
 import "parallel_capture_fact_owner.pgy";
+import "expression_graph_fact_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -19,6 +20,7 @@ struct SelfMirInstructionRows {
     use_starts: Array<Int>;
     use_counts: Array<Int>;
     uses: Array<String>;
+    expression_graphs: SelfMirExpressionGraphRows;
 }
 
 struct SelfMirBlockRows {
@@ -102,7 +104,7 @@ func SelfMirInstructionRowsEmpty() -> SelfMirInstructionRows {
     let strings: Array<String> = [];
     return SelfMirInstructionRows(
         ints, strings, strings, strings, strings, strings, strings, strings,
-        strings, ints, ints, strings
+        strings, ints, ints, strings, SelfMirExpressionGraphRowsEmpty()
     );
 }
 
@@ -238,6 +240,10 @@ func SelfMirCfgAddInstruction(
     let use_starts: Array<Int> = instructions.use_starts;
     let use_counts: Array<Int> = instructions.use_counts;
     let uses: Array<String> = instructions.uses;
+    let expression_graphs: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphAppendInstruction(
+            instructions.expression_graphs
+        );
     ArrayPush(ids, id);
     ArrayPush(kinds, kind);
     ArrayPush(names, name);
@@ -268,7 +274,28 @@ func SelfMirCfgAddInstruction(
         ),
         SelfMirInstructionRows(
             ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
-            source_types, use_starts, use_counts, uses
+            source_types, use_starts, use_counts, uses, expression_graphs
+        )
+    );
+}
+
+func SelfMirCfgAttachLastExpressionGraph(
+    cfg: SelfMirCfgRows,
+    view: SemanticExpressionGraphView
+) -> SelfMirCfgRows {
+    let instructions: SelfMirInstructionRows = cfg.instructions;
+    let graphs: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphAttachLast(
+            instructions.expression_graphs, view
+        );
+    return SelfMirCfgRows(
+        cfg.blocks,
+        SelfMirInstructionRows(
+            instructions.ids, instructions.kinds, instructions.names,
+            instructions.results, instructions.arg0s, instructions.arg1s,
+            instructions.expr0s, instructions.expr1s,
+            instructions.source_types, instructions.use_starts,
+            instructions.use_counts, instructions.uses, graphs
         )
     );
 }

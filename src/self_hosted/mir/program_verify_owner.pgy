@@ -113,7 +113,8 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         !SelfMirParallelStringCount(count, rows.expr1s) ||
         !SelfMirParallelStringCount(count, rows.source_types) ||
         !SelfMirParallelCount(count, rows.use_starts) ||
-        !SelfMirParallelCount(count, rows.use_counts) {
+        !SelfMirParallelCount(count, rows.use_counts) ||
+        !SelfMirExpressionGraphRowsReady(rows.expression_graphs, count) {
         return false;
     }
     let use_cursor: Int = 0;
@@ -123,6 +124,12 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         if rows.use_starts[i] != use_cursor || rows.use_counts[i] < 0 ||
             (kind != "def" && kind != "stmt" && kind != "return" &&
              kind != "branch" && kind != "phi" && kind != "loop-init") {
+            return false;
+        }
+        if kind == "branch" && rows.names[i] == "branch" &&
+            rows.arg0s[i] == "" &&
+            rows.source_types[i] != "AST_MATCH_CASE" &&
+            rows.expression_graphs.has_roots[i] != 1 {
             return false;
         }
         if (kind == "def" &&
@@ -154,12 +161,13 @@ func SelfMirIndexedAssignmentUseContractReady() -> Bool {
     let valid: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
-        ["values.1", "i.1", "j.1"]
+        ["values.1", "i.1", "j.1"],
+        SelfMirExpressionGraphRowsForInstructionCount(1)
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [2],
-        ["i.1", "j.1"]
+        ["i.1", "j.1"], SelfMirExpressionGraphRowsForInstructionCount(1)
     );
     return SelfMirInstructionRowsReady(valid) &&
         !SelfMirInstructionRowsReady(missing_base_use);

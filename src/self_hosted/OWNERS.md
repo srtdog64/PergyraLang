@@ -203,6 +203,8 @@ inventory must not become a second fact-family owner registry.
   block, instruction, source-local, and use-row ownership.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
   and source-shape classification for MIR facts.
+- `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
+  normalized condition graph rows and postorder subtree carriage.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
@@ -222,6 +224,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/decl_lower.pgy` -- declaration reconstruction.
 - `src/self_hosted/mir_lower/error_owner.pgy` -- MIR-lower-specific
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
+- `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
+  MIR instruction graph decoding and reconstructed-artifact NodeId binding.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.

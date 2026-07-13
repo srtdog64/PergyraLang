@@ -37,6 +37,13 @@ signatures, source-local type facts, bounded CFG statement facts, nominal
 declaration inventory facts, and explicitly listed declaration facts. Missing
 or unsupported MIR facts are hard errors.
 
+`expression_graph_fact_owner.pgy` owns `expr0_graph` decoding for condition
+branch instructions. It validates node kinds, postorder child edges, root
+bounds, and reconstructed-artifact condition binding before semantic/codegen
+consumption. The direct DRV-2 `--mir-json` path requires this fact and never
+rebuilds it from `expr0`; `--canonicalize-mir-json` is the named C-oracle bridge
+that upgrades older native MIR JSON before comparison.
+
 `parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
 task count, unique row names, and the closed `snapshot_copy` /
 `join_index_disjoint` / `join_readonly` kind set. `--verify-input` exposes this

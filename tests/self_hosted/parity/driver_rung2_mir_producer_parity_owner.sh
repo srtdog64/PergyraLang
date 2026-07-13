@@ -38,7 +38,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local backend="$1"
     local driver_bin="$2"
     local fixture_rel base mir_json mir_json_arg self_mir_json
-    local self_mir_json_arg oracle_canonical self_canonical actual err
+    local self_mir_json_arg oracle_canonical oracle_canonical_arg
+    local self_canonical actual err missing_graph invalid_graph
     local self_actual source_actual mir_baseline
 
     for fixture_rel in "${mir_fixture_rows[@]}"; do
@@ -48,6 +49,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         self_mir_json="$BUILD_DIR/${base}_${backend}.self.mir.json"
         self_mir_json_arg="$(pgy_selfhost_path_relative_to_root "$self_mir_json")"
         oracle_canonical="$BUILD_DIR/${base}_${backend}.oracle.canonical.mir.json"
+        oracle_canonical_arg="$(pgy_selfhost_path_relative_to_root "$oracle_canonical")"
         self_canonical="$BUILD_DIR/${base}_${backend}.self.canonical.mir.json"
         actual="$BUILD_DIR/${base}_${backend}.mir.c"
         err="$BUILD_DIR/${base}_${backend}.mir.err"
@@ -103,11 +105,11 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             }
         fi
         if [[ "$base" == "for_each" ]]; then
-            grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr1":"nums"' "$self_mir_json" || {
+            grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr0_graph":null,"expr1":"nums"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Int foreach fact drifted" >&2
                 exit 1
             }
-            grep -Fq '"arg0":"name","arg1":null,"expr0":"names","expr1":"names"' "$self_mir_json" || {
+            grep -Fq '"arg0":"name","arg1":null,"expr0":"names","expr0_graph":null,"expr1":"names"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend String foreach fact drifted" >&2
                 exit 1
             }
@@ -135,7 +137,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
             "$oracle_canonical" "$self_canonical" "mir_json"
-        if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json "$mir_json_arg" \
+        if ! (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$oracle_canonical_arg" \
             >"$actual.raw" 2>"$err"); then
             echo "[self-host-parity:driver-rung2] $backend MIR integration failed: $base" >&2
             cat "$actual.raw" "$err" >&2
@@ -152,6 +155,38 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         fi
         tr -d '\r' <"$self_actual.raw" >"$self_actual"
         rm -f "$self_actual.raw"
+        if grep -Fq '"expr0_graph":{' "$self_mir_json"; then
+            missing_graph="$BUILD_DIR/${base}_${backend}.missing-graph.mir.json"
+            sed 's/"expr0_graph"/"expr0_graph_removed"/g' \
+                "$self_mir_json" >"$missing_graph"
+            if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+                "$(pgy_selfhost_path_relative_to_root "$missing_graph")" \
+                >"$missing_graph.out" 2>"$missing_graph.err"); then
+                echo "[self-host-parity:driver-rung2] $backend missing expression graph was accepted: $base" >&2
+                exit 1
+            fi
+            grep -Fq "MIR instruction expression graph is missing or invalid" \
+                "$missing_graph.err" "$missing_graph.out" || {
+                echo "[self-host-parity:driver-rung2] $backend missing expression graph diagnostic drifted: $base" >&2
+                cat "$missing_graph.out" "$missing_graph.err" >&2
+                exit 1
+            }
+            invalid_graph="$BUILD_DIR/${base}_${backend}.invalid-graph.mir.json"
+            sed 's/"root":[0-9][0-9]*/"root":999/g' \
+                "$self_mir_json" >"$invalid_graph"
+            if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+                "$(pgy_selfhost_path_relative_to_root "$invalid_graph")" \
+                >"$invalid_graph.out" 2>"$invalid_graph.err"); then
+                echo "[self-host-parity:driver-rung2] $backend invalid expression graph was accepted: $base" >&2
+                exit 1
+            fi
+            grep -Fq "MIR instruction expression graph is missing or invalid" \
+                "$invalid_graph.err" "$invalid_graph.out" || {
+                echo "[self-host-parity:driver-rung2] $backend invalid expression graph diagnostic drifted: $base" >&2
+                cat "$invalid_graph.out" "$invalid_graph.err" >&2
+                exit 1
+            }
+        fi
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:self-mir-c" "$BUILD_DIR" \
             "$actual" "$self_actual" "emitted_c"

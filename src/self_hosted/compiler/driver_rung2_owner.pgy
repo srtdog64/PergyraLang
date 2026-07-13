@@ -14,6 +14,7 @@ import "../semantic/ast_body_verdict_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
+import "../mir_lower/expression_graph_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 
@@ -31,6 +32,7 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstExpressionVerdictContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
+        SelfMirExpressionGraphRowsContractReady() &&
         SelfMirIndexedAssignmentUseContractReady() &&
         MirFactGraphPayloadContractReady() &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class";
@@ -113,14 +115,13 @@ struct DriverRung2VerifiedFacts {
     iteration_types: SemanticAstIterationTypeFacts;
 }
 
-func VerifyArtifactForDriverRung2(
-    artifact: AstTreeArtifact
+func VerifyArtifactAnalysisForDriverRung2(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis
 ) -> DriverRung2VerifiedFacts {
     if !CompilerDriverRung2Ready() {
         Die("driver rung-2 semantic facts are not ready");
     }
-    let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(artifact, true);
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
@@ -192,19 +193,19 @@ func VerifyArtifactForDriverRung2(
     );
 }
 
-func CompileArtifactToCVerified(
+func VerifyArtifactForMirProduction(
     artifact: AstTreeArtifact
-) -> String {
-    let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForDriverRung2(artifact);
-    return GenerateCFromSemanticArtifact(artifact, verified.analysis);
+) -> DriverRung2VerifiedFacts {
+    return VerifyArtifactAnalysisForDriverRung2(
+        artifact, SemanticAstArtifactAnalyze(artifact, true)
+    );
 }
 
 func CompileArtifactToMirJsonVerified(
     artifact: AstTreeArtifact
 ) -> String {
     let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForDriverRung2(artifact);
+        VerifyArtifactForMirProduction(artifact);
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, verified.analysis, verified.initializer_types,
         verified.iteration_types
@@ -238,28 +239,41 @@ func CanonicalizeMirJsonVerified(
     );
 }
 
+func CompileMirJsonTextToCVerified(
+    json: String
+) -> CompilerEmissionArtifact {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        EmitMirProgramTree(json)
+    );
+    let graph: SemanticExpressionGraphFacts =
+        MirExpressionGraphFactsForArtifact(json, artifact);
+    if !graph.ok {
+        Die("MIR instruction expression graph is missing or invalid");
+    }
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeWithExpressionGraph(
+            artifact, true, graph
+        );
+    let verified: DriverRung2VerifiedFacts =
+        VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+    return CompilerEmissionArtifact(
+        "emitted-c",
+        GenerateCFromSemanticArtifact(artifact, verified.analysis)
+    );
+}
+
 func CompileSourceToCVerified(
     source_path: String
 ) -> CompilerEmissionArtifact with caps io_read {
     let json: String = CompileSourceToMirJsonVerified(source_path);
-    return CompilerEmissionArtifact(
-        "emitted-c",
-        CompileArtifactToCVerified(
-            AstTreeArtifactFromText(EmitMirProgramTree(json))
-        )
-    );
+    return CompileMirJsonTextToCVerified(json);
 }
 
 func CompileMirJsonToCVerified(
     mir_json_path: String
 ) -> CompilerEmissionArtifact with caps io_read {
     let json: String = MirJsonReadInput(mir_json_path);
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        EmitMirProgramTree(json)
-    );
-    return CompilerEmissionArtifact(
-        "emitted-c", CompileArtifactToCVerified(artifact)
-    );
+    return CompileMirJsonTextToCVerified(json);
 }
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {

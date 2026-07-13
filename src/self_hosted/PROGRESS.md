@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -98,6 +98,19 @@ control. C/LLVM semantic parity remains 111/111 and both integrated drivers
 emit the same 151,762-byte artifact. This closes duplicated semantic text
 ownership; it does not close remaining type-name/expression scans or the
 full-source gen3 fixed point.
+
+The latest DRV-2 slice carries normalized condition expression graphs in each
+MIR branch instruction as `expr0_graph`. Both source compilation and direct
+`--mir-json` compilation now converge on a graph-required consumer; removing
+the field fails closed instead of reparsing `expr0`. C-built and LLVM-built
+drivers emitted byte-identical MIR JSON and C for all 10 DRV-2 MIR fixtures,
+and every emitted program ran equal to the native C oracle. An LLVM access
+violation exposed by nested equality graphs was traced to recursive return of
+an eight-array graph-copy aggregate. The producer now consumes the graph's
+postorder contiguous-subtree invariant and copies one validated interval, so
+the C/LLVM fixture matrix completes 10/10. This closes condition-graph MIR
+carriage and hard consumption only. Parser payload to semantic graph production
+and non-condition recursive expression graphs remain `BRIDGE` work.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns

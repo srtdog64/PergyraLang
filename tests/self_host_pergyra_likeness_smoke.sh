@@ -202,7 +202,9 @@ SENTINEL_MAX=0
 # 1293 -> 1323 (2026-07-13): condition graphs expose root and child presence
 # through Option/explicit presence rows; no numeric sentinel or hidden edge
 # fallback is accepted by recursive codegen consumption.
-RESULT_USE_MIN=1323
+# 1323 -> 1353 (2026-07-13): MIR JSON graph decoding keeps kind, text, edge,
+# root, and subtree-boundary absence explicit through Option facts.
+RESULT_USE_MIN=1353
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

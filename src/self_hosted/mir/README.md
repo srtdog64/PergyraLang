@@ -4,6 +4,9 @@ This directory owns the bounded Pergyra-written `AstTreeArtifact -> MIR fact
 graph -> pgy.mir.v1` producer used by DRV-2.
 
 - `program_fact_owner.pgy`: flat declaration/routine/CFG/instruction rows.
+- `expression_graph_fact_owner.pgy`: instruction-owned normalized condition
+  graph rows. A reachable semantic subtree is carried as one verified
+  postorder interval; recursive large-aggregate copy returns are forbidden.
 - `parallel_capture_fact_owner.pgy`: MIR-owned parallel capture boundary and
   disposition rows; the bounded non-parallel producer emits an explicit empty
   inventory instead of omitting the schema fact.
@@ -23,4 +26,8 @@ graph -> pgy.mir.v1` producer used by DRV-2.
 
 The C compiler remains the whole-language oracle and default native producer.
 For the bounded DRV-2 source frontier, however, C MIR is comparison evidence
-only: the live replacement path produces and consumes MIR in Pergyra.
+only: the live replacement path produces and consumes MIR in Pergyra. DRV-2
+source and `--mir-json` compilation require `expr0_graph` on condition branch
+instructions and fail closed when it is absent. Compact expression text is
+still retained for reconstructed source shape, but it is not reparsed to
+recover the recursive condition graph in the hard consumer.

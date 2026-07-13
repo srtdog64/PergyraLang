@@ -6778,3 +6778,28 @@ Released/default replacement remains 0%.
 - The expression owner remains `BRIDGE`: the graph producer still lowers the
   compact parser payload. Parser-arena production and non-condition recursive
   expressions are the next owner/consumer seam.
+
+### 2026-07-13 -- DRV-2 condition graphs survive MIR JSON without reparse
+
+- Added instruction-owned `SelfMirExpressionGraphRows` and projected
+  `expr0_graph` objects into self-produced `pgy.mir.v1`.
+- Added the MIR JSON graph reader and bound graph roots to reconstructed
+  artifact condition NodeIds before semantic verification and codegen.
+- Rewired both DRV-2 source compilation and direct `--mir-json` compilation
+  through `CompileMirJsonTextToCVerified`. The hard consumer fails closed when
+  a condition graph is missing; only the named `--canonicalize-mir-json`
+  C-oracle bridge may derive the graph from legacy compact expression text.
+- Split expression-surface row capture from graph production. Hard MIR
+  consumption builds structural rows and injects MIR-owned graph facts, so
+  semantic artifact matching no longer rebuilds a comparison graph from text.
+- Removed recursive return of the eight-array graph-copy aggregate after it
+  caused an LLVM-built driver access violation on nested equality conditions.
+  The replacement validates and copies the semantic graph's postorder
+  contiguous subtree interval.
+- Focused evidence: C-built and LLVM-built DRV-2 drivers produced
+  byte-identical MIR JSON and emitted C across all 10 MIR fixtures; source and
+  MIR paths were byte-identical, and all 10 programs ran equal to the native C
+  oracle. Removing `expr0_graph` from a condition fixture was rejected.
+- Scope remains bounded: parser payload to semantic graph production and
+  non-condition recursive expression graphs are still `BRIDGE`; released and
+  default replacement remain 0%.

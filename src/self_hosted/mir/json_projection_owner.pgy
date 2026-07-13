@@ -17,6 +17,50 @@ func SelfMirJsonOptionalString(value: Option<String>) -> String {
     return JsonStringLiteral(UnwrapOption(value));
 }
 
+func SelfMirJsonExpressionGraph(
+    rows: SelfMirExpressionGraphRows,
+    instruction_index: Int
+) -> String {
+    if instruction_index < 0 ||
+        instruction_index >= ArrayLength(rows.has_roots) ||
+        rows.has_roots[instruction_index] != 1 {
+        return "null";
+    }
+    let start: Int = rows.node_starts[instruction_index];
+    let count: Int = rows.node_counts[instruction_index];
+    let nodes: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        let node: Int = start + i;
+        let kind: Int = rows.node_kinds[node];
+        let fields: Array<String> = [
+            JsonEmitFieldString(
+                "kind", SelfMirExpressionGraphKindName(kind)
+            ),
+            JsonEmitFieldString("text", rows.node_texts[node])
+        ];
+        if kind == SemanticExpressionNodeLeaf() {
+            ArrayPush(fields, JsonEmitFieldRaw("left", "null"));
+            ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
+        } else {
+            ArrayPush(fields, JsonEmitFieldNumber(
+                "left", ToString(rows.left_children[node] - start)
+            ));
+            ArrayPush(fields, JsonEmitFieldNumber(
+                "right", ToString(rows.right_children[node] - start)
+            ));
+        }
+        ArrayPush(nodes, JsonEmitObject(fields));
+        i = i + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "root", ToString(rows.roots[instruction_index] - start)
+        ),
+        JsonEmitFieldRaw("nodes", JsonEmitArray(nodes))
+    ]);
+}
+
 func SelfMirJsonInstruction(
     facts: SelfMirProgramFacts,
     instruction_index: Int
@@ -55,6 +99,11 @@ func SelfMirJsonInstruction(
         JsonEmitFieldRaw(
             "expr0", SelfMirJsonOptionalString(
                 SelfMirOptionalString(rows.expr0s[instruction_index])
+            )
+        ),
+        JsonEmitFieldRaw(
+            "expr0_graph", SelfMirJsonExpressionGraph(
+                rows.expression_graphs, instruction_index
             )
         ),
         JsonEmitFieldRaw(
