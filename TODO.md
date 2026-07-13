@@ -18619,6 +18619,24 @@ no-coreutils 폴백+실패 diff 렌더러로 잔류) ④ fork 다이어트(UNAME
 전역치환이 자기 할당문까지 먹은 것을 set -u가 즉발 적발 — 관측성
 수술 중에도 fail-fast가 일함.
 
+**WO-SEMPERF-1 1라운드 (2026-07-13, BDFL "네트워크 이론으로 줄일 것
+체크"→"문서화하고 작업시작해")**: 체크의 실측이 과녁을 옮겼다 —
+파서 사다리 축소(sort3 유사물)는 가능하나 전체의 1~2%라 보류, AST
+DAG-커널화는 메모리용(노드 56% 제거 가능하나 보일러플레이트), 진짜
+병목은 **mir_lower 7.6s = `ast_capture_inline`이 명령마다 디스크
+tmpfile() + stdout dup2 왕복**(Windows ~1ms/호출). 수술 =
+프린터를 파일-정적 싱크로(stdout 경로 byte-동일, 캡처는 malloc 버퍼),
+새는 타-파일 프린터 2종을 8.2MB mir-json byte-비교가 적발해 동반
+이주(ast_print_generics.c 소멸). 결과: build_blocks+stmt_instructions
+7.8s→**0.043s(~150×)**, driver_rung2 --mir 11.7→7.7s. 격리 중 시도한
+recompute-once 가드가 MIR 테스트 2건을 깨 철회(stmt population의
+최종-재기록 계약을 함수 주석으로 명문화 — pathspec-stash 이분으로 내
+회귀 확정). +영구 관측성 `PGY_DEBUG_MIR_TIMING`(13 하위슬롯+루틴
+티커). 검증: MIR 132/0 · semantic 2794/0 · transpile 918/0 · AIR
+141/0 · parser · compare 3/3 · 파리티 3종 byte-동일. **2라운드 잔여 =
+semantic 3.1s**(별개 기전, docs/183 §2.5). 커밋 7c88c709, canonical =
+docs/183.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
