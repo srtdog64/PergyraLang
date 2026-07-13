@@ -18637,6 +18637,25 @@ recompute-once 가드가 MIR 테스트 2건을 깨 철회(stmt population의
 semantic 3.1s**(별개 기전, docs/183 §2.5). 커밋 7c88c709, canonical =
 docs/183.
 
+**WO-SEMPERF-1 2라운드 (2026-07-13, "전부 작업해")**: semantic 3.1s의
+범인 = **분기-스냅샷 O(분기×심볼)** — if/match/loop flow가 분기마다
+`snapshot_resource_states` 최대 3회, 각 스냅샷이 scope 체인 전체(프로그램
+스코프 ~1천+ 심볼)를 심볼마다 ownership-classify cascade(host-decl 조회)로
+재분류. IF 4,707방문이 그걸 밟아 pass2가 2.4s. 격리는 관측성 3층 신설로
+하강: `PGY_DEBUG_PIPELINE_TIMING`(고아 phase_start 2건 배선 + **NUL
+리다이렉트가 덤프 벤치를 3배 부풀리는 아티팩트 적발** — 벤치는 파일로만)
+→ `PGY_DEBUG_SEMANTIC_TIMING`(패스 하위슬롯 + >100ms 티커 + 식/문장
+kind census; 리프 inclusive==self로 재귀 시간귀속 우회, 방문 97k≈노드수로
+재보행 기각) → skip-프로브 확정. 수술 = **Symbol에 type-포인터-키
+분류 memo** + 검증 모드(`PGY_SEMPERF_VERIFY_CLASSIFY_MEMO`: 히트마다
+재계산 대조, 불일치 abort)로 무음-drift 공포를 게이트화 — 검증 모드
+켠 채 semantic 2794/0 통과(divergence 0). 결과: pass2 2.38→**0.30s(~8×)**,
+semantic 3.2→**0.77s**, driver_rung2 `--mir` 4.3~4.8→**1.76s**(원계측
+21s 대비 ~12×, §2 "한 자릿수 초" 목표 초과). 파리티 mir 11.5MB +
+mir-json 8.26MB byte-동일 · MIR 132/0 · transpile 918/0 · AIR 141/0 ·
+parser · compare 3/3. 잔여 최대 슬롯 = precollect ~0.3s — 측정-먼저
+교리상 중단. canonical = docs/183 §2.6.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
