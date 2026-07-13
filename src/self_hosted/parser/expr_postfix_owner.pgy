@@ -1,9 +1,15 @@
 // Self-host parser postfix expression owner.
 
 import "cursor_owner.pgy";
+import "expression_graph_owner.pgy";
 
-func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inout cursor_out: Array<Int>) -> String {
-    let base: String = base_start;
+func ApplyPostfixFact(
+    content: String,
+    base_start: ParserExpressionFact,
+    after_base: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let base: ParserExpressionFact = base_start;
     let i: Int = after_base;
 
     // Postfix loop: call, indexing, try, member access, object init, and a
@@ -87,7 +93,9 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             if i < 0 {
                 Exit(1);
             }
-            base = Concat(base, Concat("(", Concat(init_args, ")")));
+            base = ParserExpressionLeaf(Concat(
+                base.text, Concat("(", Concat(init_args, ")"))
+            ));
             continue;
         }
         if nc == "(" {
@@ -116,24 +124,37 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             if i < 0 {
                 Exit(1);
             }
-            base = Concat(base, Concat("(", Concat(arg_text, ")")));
+            base = ParserExpressionLeaf(Concat(
+                base.text, Concat("(", Concat(arg_text, ")"))
+            ));
             continue;
         }
         if nc == "[" {
             i = after_ws + 1;
             ArraySet(cursor_out, 0, i);
-            let idx: String = ParseExpr(content, i, cursor_out);
+            let idx: ParserExpressionFact = ParseExprFact(
+                content, i, cursor_out
+            );
+            if !idx.ok { Exit(1); }
             i = cursor_out[0];
             i = Expect(content, i, "]");
             if i < 0 {
                 Exit(1);
             }
-            base = Concat(base, Concat("[", Concat(idx, "]")));
+            let rendered: String = Concat(
+                base.text, Concat("[", Concat(idx.text, "]"))
+            );
+            base = ParserExpressionBinary(
+                AstExpressionNodeIndex(), rendered, base, idx
+            );
+            if !base.ok { Exit(1); }
             continue;
         }
         if nc == "?" {
             i = after_ws + 1;
-            base = Concat("(?", Concat(base, ")"));
+            base = ParserExpressionLeaf(Concat(
+                "(?", Concat(base.text, ")")
+            ));
             continue;
         }
         if nc == "." && ParserCharAt(content, after_ws + 1) != "." {
@@ -145,7 +166,9 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
             if StringLength(member) == 0 {
                 Exit(1);
             }
-            base = Concat(base, Concat(".", member));
+            base = ParserExpressionLeaf(Concat(
+                base.text, Concat(".", member)
+            ));
             continue;
         }
         break;
@@ -153,4 +176,19 @@ func ApplyPostfixExpr(content: String, base_start: String, after_base: Int, inou
 
     ArraySet(cursor_out, 0, i);
     return base;
+}
+
+func ParserExpressionPostfixGraphContractReady() -> Bool {
+    let source: String = "values[1 + 2]";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] != AstExpressionNodeIndex() {
+        return false;
+    }
+    let base: Int = fact.arena.left_children[fact.root];
+    let index: Int = fact.arena.right_children[fact.root];
+    return fact.arena.node_kinds[base] == AstExpressionNodeLeaf() &&
+        fact.arena.node_texts[base] == "values" &&
+        fact.arena.node_kinds[index] == AstExpressionNodeAdd();
 }

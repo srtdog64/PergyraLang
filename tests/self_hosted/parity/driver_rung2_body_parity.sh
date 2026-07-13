@@ -94,8 +94,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && fixture_rows+=("$line")
 done <"$FIXTURE_ROWS"
-if [[ "${#fixture_rows[@]}" -ne 19 ]]; then
-    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 19" >&2
+if [[ "${#fixture_rows[@]}" -ne 20 ]]; then
+    echo "[self-host-parity:driver-rung2] fixture count drifted: ${#fixture_rows[@]} != 20" >&2
     exit 1
 fi
 if ! (cd "$ROOT_DIR" && "$C_DRIVER" --mir-fixture-manifest \
@@ -108,8 +108,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 10 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 10" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 11 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 11" >&2
     exit 1
 fi
 

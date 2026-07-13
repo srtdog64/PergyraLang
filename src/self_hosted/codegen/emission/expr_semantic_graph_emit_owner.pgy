@@ -52,6 +52,29 @@ func RewriteExprFromSemanticGraph(
     }
     let left: String = RewriteExprFromSemanticGraph(graph, left_id, env);
     let right: String = RewriteExprFromSemanticGraph(graph, right_id, env);
+    if kind == AstExpressionNodeIndex() {
+        let left_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, left_id
+        );
+        if !IsSome(left_text) {
+            Die("semantic index receiver is missing");
+        }
+        let receiver_text: String = UnwrapOption(left_text);
+        let receiver_type: String = LookupKindType(env, receiver_text, "v");
+        if receiver_type == "" {
+            receiver_type = ExprMemberFieldType(receiver_text, env);
+        }
+        let runtime_kind: String = receiver_type;
+        if StartsWith(runtime_kind, "Array<") {
+            runtime_kind = CollectionRuntimeKindFromTypeName(runtime_kind);
+        }
+        let get_fn: String = CollectionRuntimeCGetFn(
+            CollectionRuntimeKindCode(runtime_kind)
+        );
+        return Concat(get_fn, Concat(
+            "(", Concat(left, Concat(", ", Concat(right, ")")))
+        ));
+    }
     if kind == AstExpressionNodeAdd() {
         let left_text: Option<String> = SemanticExpressionGraphNodeText(
             graph, left_id
@@ -103,6 +126,8 @@ func RewriteExprFromSemanticGraph(
         operator = " / ";
     } else if kind == AstExpressionNodeModulo() {
         operator = " % ";
+    } else if kind == AstExpressionNodeIndex() {
+        Die("semantic index expression did not project through its ABI row");
     } else if kind != AstExpressionNodeLogicalOr() {
         Die("unsupported semantic expression graph node kind");
     }

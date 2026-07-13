@@ -386,9 +386,7 @@ func ParsePrimaryFact(
         Exit(1);
     }
 
-    let rendered: String = ApplyPostfixExpr(content, base, i, cursor_out);
-    if preserves_grouped_graph && rendered == base {
-        return grouped;
-    }
-    return ParserExpressionLeaf(rendered);
+    let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
+    if preserves_grouped_graph { base_fact = grouped; }
+    return ApplyPostfixFact(content, base_fact, i, cursor_out);
 }

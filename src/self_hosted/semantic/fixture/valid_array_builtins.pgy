@@ -2,6 +2,7 @@ func Main() -> Int {
     let xs: Array<Int> = [];
     ArrayPush(xs, 1);
     ArraySet(xs, 0, 2);
+    let value: Int = xs[0];
     ArrayPop(xs);
-    return ArrayLength(xs);
+    return value - 2;
 }

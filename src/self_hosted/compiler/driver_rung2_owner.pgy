@@ -36,6 +36,7 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstBodyVerdictContractReady() &&
         ParserExpressionGraphContractReady() &&
         ParserExpressionPrecedenceGraphContractReady() &&
+        ParserExpressionPostfixGraphContractReady() &&
         SelfMirExpressionGraphRowsContractReady() &&
         SelfMirIndexedAssignmentUseContractReady() &&
         MirFactGraphPayloadContractReady() &&
@@ -47,6 +48,7 @@ func DriverRung2FixtureRows() -> Array<String> {
         "valid_compound_local|ok",
         "valid_call_int|ok",
         "valid_option_none_literal|ok",
+        "valid_array_builtins|ok",
         "valid_let_mut_reassign|ok",
         "valid_outer_block_assign|ok",
         "bad_let_type|error",
@@ -67,7 +69,7 @@ func DriverRung2FixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedFixtureCount() -> Int {
-    return 19;
+    return 20;
 }
 
 func DriverRung2MirFixtureRows() -> Array<String> {
@@ -81,12 +83,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/param_carriage.pgy",
         "src/self_hosted/codegen/fixture/func_recursive.pgy",
         "src/self_hosted/mir_lower/fixture/class_method.pgy",
-        "src/self_hosted/codegen/fixture/for_each.pgy"
+        "src/self_hosted/codegen/fixture/for_each.pgy",
+        "src/self_hosted/semantic/fixture/valid_array_builtins.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 10;
+    return 11;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

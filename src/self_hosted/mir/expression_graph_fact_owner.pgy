@@ -312,6 +312,7 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeMultiply() { return "multiply"; }
     if kind == AstExpressionNodeDivide() { return "divide"; }
     if kind == AstExpressionNodeModulo() { return "modulo"; }
+    if kind == AstExpressionNodeIndex() { return "index"; }
     return "";
 }
 

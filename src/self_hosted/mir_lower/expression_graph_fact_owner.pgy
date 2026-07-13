@@ -51,6 +51,7 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "multiply" { return Some(AstExpressionNodeMultiply()); }
     if kind == "divide" { return Some(AstExpressionNodeDivide()); }
     if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
+    if kind == "index" { return Some(AstExpressionNodeIndex()); }
     return None;
 }
 

@@ -6859,3 +6859,24 @@ Released/default replacement remains 0%.
 - Scope remains bounded: call/index/wrapper/unary internals,
   log/collection/auxiliary lanes, and compact-tree arena construction remain
   `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 index reads consume parser-owned topology
+
+- Added `AstExpressionNodeIndex` and changed postfix parsing to preserve the
+  receiver and index expression as child handles in the parser-owned graph.
+  `ApplyPostfixExpr` was removed; unsupported postfix forms remain explicit
+  leaf bridges instead of creating a second index parser.
+- Added MIR JSON `kind: index` projection/consumption and repointed graph
+  codegen to select the collection runtime get ABI from the receiver type fact.
+  `RewriteExprFromSemanticGraph` is gate-forbidden from calling
+  `RewriteIndexing`.
+- Strengthened `valid_array_builtins` with a real `xs[0]` read and promoted it
+  into both DRV-2 manifests. The bounded replacement frontier is now 20 source
+  fixtures and 11 source/MIR producer-consumer fixtures.
+- Focused evidence: component contract and owner-size gates are green. C-built
+  and LLVM-built DRV-2 drivers pass the 20-source/11-MIR producer-first gate;
+  the array program runs equal to the native C oracle, source/MIR C is equal,
+  and missing or invalid graph mutations fail closed.
+- Scope remains bounded: call/wrapper/unary internals,
+  log/collection/auxiliary lanes, and compact-tree arena construction remain
+  `BRIDGE`; released/default replacement remains 0%.

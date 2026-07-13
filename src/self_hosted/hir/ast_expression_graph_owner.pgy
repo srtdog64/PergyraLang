@@ -35,10 +35,11 @@ func AstExpressionNodeSubtract() -> Int { return 10; }
 func AstExpressionNodeMultiply() -> Int { return 11; }
 func AstExpressionNodeDivide() -> Int { return 12; }
 func AstExpressionNodeModulo() -> Int { return 13; }
+func AstExpressionNodeIndex() -> Int { return 14; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeModulo();
+        kind <= AstExpressionNodeIndex();
 }
 
 func AstExpressionArenaEmpty() -> AstExpressionArena {
