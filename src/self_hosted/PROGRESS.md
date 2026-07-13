@@ -128,7 +128,7 @@ fixture also emits simple `self.field` access and `v.Method(arg)` dispatch from
 the receiver/member handles, method signature rows, and explicit receiver
 argument; those consumers cannot call the legacy member, qualified-call,
 field-access, or parenthesis scanners. Nested/namespace-qualified member calls,
-try/pipe/object-init internals, literal-only argument bridges,
+try/object-init internals, literal-only argument bridges,
 borrow/receive/spawn/await unary forms, collection/auxiliary lanes, and the
 transitional compact-tree-to-arena construction remain `BRIDGE` work.
 
@@ -155,6 +155,19 @@ both driver builds. The component contract is green. The broader 20-source /
 13-MIR corpus was started but exceeded the five-minute focused-gate budget, so
 this entry claims only the pinned falsifying fixture and does not present a new
 full-corpus refresh or a released/default replacement increase.
+
+Pipe syntax now canonicalizes in `ParsePipeFact` to the existing direct-call
+and call-argument graph instead of collapsing the rendered call to a leaf. The
+new `pipe_carriage` fixture proves `5 |> Double |> Add(3)` as a nine-node nested
+call spine with root text `Add(Double(5), 3)`. C-built and LLVM-built DRV-2
+drivers emitted byte-identical MIR JSON and generated C; the native-oracle and
+self-produced canonical MIR JSON were byte-identical, and both executables
+printed `13`. Removing the initializer graph failed closed with the same
+diagnostic under both driver builds. The DRV-2 manifest therefore contains 14
+canonical MIR producer/consumer fixtures. This closes pipe graph production,
+carriage, and consumption; `?`/object-init/special-unary and structured leaf
+bridges remain open, and the full 20-source/14-MIR matrix is not claimed
+refreshed by this focused run.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
@@ -367,7 +380,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 29,833 frontend/backend LOC / 287,395 C-reference LOC = 10.38%; broader Pergyra compiler-core inventory = 46,911 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 13 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 14 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

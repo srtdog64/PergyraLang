@@ -123,6 +123,18 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
+        if [[ "$base" == "pipe_carriage" ]]; then
+            grep -Fq '"expr0":"Add(Double(5), 3)","expr0_graph":{"root":8' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend pipe expression collapsed out of the call graph" >&2
+                exit 1
+            }
+            grep -Fq '"kind":"call_argument","text":"Double(5)"' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend inner pipe call spine was lost" >&2
+                exit 1
+            }
+        fi
         if [[ "$base" == "for_each" ]]; then
             grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr0_graph":null,"expr1":"nums"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Int foreach fact drifted" >&2

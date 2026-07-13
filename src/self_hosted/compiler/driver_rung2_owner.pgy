@@ -37,6 +37,7 @@ func CompilerDriverRung2Ready() -> Bool {
         ParserExpressionGraphContractReady() &&
         ParserExpressionPrecedenceGraphContractReady() &&
         ParserExpressionUnaryGraphContractReady() &&
+        ParserExpressionPipeGraphContractReady() &&
         ParserExpressionPostfixGraphContractReady() &&
         ParserExpressionCallGraphContractReady() &&
         ParserExpressionNamedSingleCallArgumentContractReady() &&
@@ -85,6 +86,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/enum_return.pgy",
         "src/self_hosted/mir_lower/fixture/if_else_assign.pgy",
         "src/self_hosted/mir_lower/fixture/param_carriage.pgy",
+        "src/self_hosted/mir_lower/fixture/pipe_carriage.pgy",
         "src/self_hosted/codegen/fixture/func_recursive.pgy",
         "src/self_hosted/mir_lower/fixture/class_method.pgy",
         "src/self_hosted/codegen/fixture/for_each.pgy",
@@ -95,7 +97,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 13;
+    return 14;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

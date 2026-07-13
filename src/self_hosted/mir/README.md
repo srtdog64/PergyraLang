@@ -32,3 +32,6 @@ definition, value-return, Log, and bare-call instructions and fail closed when
 it is absent.
 Compact expression text is still retained for reconstructed source shape, but
 it is not reparsed to recover a migrated expression graph in the hard consumer.
+Pipe syntax is normalized by the parser into the same direct-call and
+call-argument graph consumed by ordinary calls; no pipe-specific codegen parser
+or graph node kind exists.

@@ -1,0 +1,12 @@
+func Double(x: Int) -> Int {
+    return x * 2;
+}
+
+func Add(x: Int, y: Int) -> Int {
+    return x + y;
+}
+
+func Main() -> Void {
+    let value: Int = 5 |> Double |> Add(3);
+    Log(ToString(value));
+}

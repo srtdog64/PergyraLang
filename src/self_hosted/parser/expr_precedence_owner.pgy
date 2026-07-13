@@ -132,16 +132,35 @@ func ParsePipeFact(
         if fn_name == "" { Exit(1); }
         let after_fn: Int = SkipWhitespaceAndComments(content, i);
         let combined_args: String = left.text;
+        let call: ParserExpressionFact = ParserExpressionCall(
+            Concat(fn_name, "()"), ParserExpressionLeaf(fn_name)
+        );
+        if !call.ok { Exit(1); }
+        call = ParserExpressionCallArgument(
+            Concat(fn_name, Concat("(", Concat(combined_args, ")"))),
+            call, left
+        );
+        if !call.ok { Exit(1); }
         if ParserCharAt(content, after_fn) == "(" {
             i = SkipWhitespaceAndComments(content, after_fn + 1);
-            let extra_args: String = "";
             if ParserCharAt(content, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
-                    let argument: String = ParseExpr(content, i, cursor_out);
+                    let argument: ParserExpressionFact = ParseExprFact(
+                        content, i, cursor_out
+                    );
+                    if !argument.ok { Exit(1); }
                     i = cursor_out[0];
-                    if extra_args == "" { extra_args = argument; }
-                    else { extra_args = Concat(extra_args, Concat(", ", argument)); }
+                    combined_args = Concat(
+                        combined_args, Concat(", ", argument.text)
+                    );
+                    call = ParserExpressionCallArgument(
+                        Concat(fn_name, Concat(
+                            "(", Concat(combined_args, ")")
+                        )),
+                        call, argument
+                    );
+                    if !call.ok { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," { i = i + 1; continue; }
                     break;
@@ -149,13 +168,8 @@ func ParsePipeFact(
             }
             i = Expect(content, i, ")");
             if i < 0 { Exit(1); }
-            if extra_args != "" {
-                combined_args = Concat(left.text, Concat(", ", extra_args));
-            }
         }
-        left = ParserExpressionLeaf(Concat(
-            fn_name, Concat("(", Concat(combined_args, ")"))
-        ));
+        left = call;
     }
     return left;
 }
@@ -333,6 +347,38 @@ func ParserExpressionUnaryGraphContractReady() -> Bool {
             AstExpressionNodeLogicalNot() &&
         numeric.arena.node_kinds[numeric_operand] ==
             AstExpressionNodeNegate();
+}
+
+func ParserExpressionPipeGraphContractReady() -> Bool {
+    let source: String = "5 |> Double |> Add(3)";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.text != "Add(Double(5), 3)" ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let add_with_left: Int = fact.arena.left_children[fact.root];
+    let add_extra: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[add_with_left] !=
+            AstExpressionNodeCallArgument() ||
+        fact.arena.node_texts[add_extra] != "3" {
+        return false;
+    }
+    let add_call: Int = fact.arena.left_children[add_with_left];
+    let doubled: Int = fact.arena.right_children[add_with_left];
+    let add_name: Int = fact.arena.left_children[add_call];
+    if fact.arena.node_texts[add_name] != "Add" ||
+        fact.arena.node_kinds[doubled] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let double_call: Int = fact.arena.left_children[doubled];
+    let double_arg: Int = fact.arena.right_children[doubled];
+    let double_name: Int = fact.arena.left_children[double_call];
+    return fact.arena.node_texts[double_name] == "Double" &&
+        fact.arena.node_texts[double_arg] == "5";
 }
 
 // Compatibility text is a projection of the canonical parser fact, never a

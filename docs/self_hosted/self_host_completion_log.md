@@ -6985,3 +6985,21 @@ Released/default replacement remains 0%.
 - The full 20-source/13-MIR corpus was not refreshed in this slice: it exceeded
   the five-minute focused-gate budget after making progress without an
   implementation error. Released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 pipe syntax canonicalizes to call graphs
+
+- Replaced `ParsePipeFact`'s rendered-call leaf collapse with the existing
+  parser-owned `call` / `call_argument` graph. The left pipeline value becomes
+  argument zero and explicit pipe-call arguments retain source order.
+- Added a readiness witness for `5 |> Double |> Add(3)` and a component ratchet
+  that rejects returning to `ParserExpressionLeaf` inside the pipe owner.
+- Added `pipe_carriage.pgy` as the fourteenth DRV-2 MIR fixture. Its initializer
+  is a nine-node nested call spine rooted at `Add(Double(5), 3)`.
+- Focused evidence: C-built and LLVM-built drivers emitted identical MIR JSON
+  and C; native-oracle and self-produced canonical MIR JSON were identical;
+  both executables printed `13`. Removing only the initializer graph failed
+  closed with the same diagnostic under both drivers.
+- This closes pipe graph production/carriage/consumption, not the adjacent
+  try (`?`), object-init, special-unary, or structured-leaf bridges. The full
+  20-source/14-MIR matrix was not refreshed and released/default replacement
+  remains 0%.

@@ -2761,7 +2761,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 13;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 14;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -3091,6 +3091,12 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParserExpressionPipeGraphContractReady("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPipeGraphContractReady()"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "call = ParserExpressionCallArgument("
+reject_function_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "func ParsePipeFact(" 'left = ParserExpressionLeaf(Concat('
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
