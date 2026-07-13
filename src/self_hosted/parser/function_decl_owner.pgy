@@ -26,7 +26,7 @@ func ParseFunction(
     fn_label: String,
     is_signature: Bool,
     within_zone_arg: String,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let kw: String = fn_keyword;
     if StringLength(kw) == 0 {
@@ -312,7 +312,7 @@ func ParseFunction(
     } else {
         ArraySet(cursor_out, 0, i);
         body_text = ParseBlock(
-            content, i, cursor_out, base_indent + 6, condition_graphs
+            content, i, cursor_out, base_indent + 6, expression_graphs
         );
         i = cursor_out[0];
     }

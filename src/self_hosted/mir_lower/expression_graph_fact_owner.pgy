@@ -38,6 +38,19 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "inequality" {
         return Some(AstExpressionNodeInequality());
     }
+    if kind == "less" { return Some(AstExpressionNodeLess()); }
+    if kind == "less_equal" {
+        return Some(AstExpressionNodeLessEqual());
+    }
+    if kind == "greater" { return Some(AstExpressionNodeGreater()); }
+    if kind == "greater_equal" {
+        return Some(AstExpressionNodeGreaterEqual());
+    }
+    if kind == "add" { return Some(AstExpressionNodeAdd()); }
+    if kind == "subtract" { return Some(AstExpressionNodeSubtract()); }
+    if kind == "multiply" { return Some(AstExpressionNodeMultiply()); }
+    if kind == "divide" { return Some(AstExpressionNodeDivide()); }
+    if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
     return None;
 }
 
@@ -174,11 +187,25 @@ func MirInstructionRequiresExpressionGraph(
     let source_type: Option<String> = JsonObjectFactStringFieldOpt(
         instruction, "source_type"
     );
-    return IsSome(kind) && UnwrapOption(kind) == "branch" &&
-        IsSome(name) && UnwrapOption(name) == "branch" &&
-        !IsSome(arg0) &&
-        (!IsSome(source_type) ||
-         UnwrapOption(source_type) != "AST_MATCH_CASE");
+    let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr0"
+    );
+    if !IsSome(kind) || !IsSome(name) || !IsSome(source_type) ||
+        !IsSome(expr0) {
+        return false;
+    }
+    let instruction_kind: String = UnwrapOption(kind);
+    let instruction_name: String = UnwrapOption(name);
+    let source: String = UnwrapOption(source_type);
+    if instruction_kind == "branch" && instruction_name == "branch" &&
+        !IsSome(arg0) && source != "AST_MATCH_CASE" {
+        return true;
+    }
+    if instruction_kind == "def" &&
+        (source == "AST_LET_DECL" || source == "AST_ASSIGNMENT") {
+        return true;
+    }
+    return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }
 
 func MirExpressionGraphSequenceFromJson(
@@ -236,38 +263,46 @@ func MirExpressionGraphFactsForArtifact(
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[i];
-        let condition_atom: Bool = surfaces.has_atoms[i] &&
-            (TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindIfStmtTag()
-            ) || TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindWhileStmtTag()
-            ));
-        if condition_atom {
-            if sequence_i >= ArrayLength(sequence.roots) {
-                valid = false;
+        let lane: Int = AstExpressionLaneAtom();
+        while lane <= AstExpressionLaneAuxiliary() {
+            let required: Bool = false;
+            let expected_text: String = "";
+            if lane == AstExpressionLaneAtom() {
+                required = surfaces.has_atoms[i] &&
+                    SemanticAstExpressionGraphAtomLaneRequired(
+                        artifact, node_id
+                    );
+                expected_text = surfaces.normalized_atoms[i];
+            } else if lane == AstExpressionLaneValue() {
+                required = surfaces.has_values[i] &&
+                    SemanticAstExpressionGraphValueLaneRequired(
+                        artifact, node_id
+                    );
+                expected_text = surfaces.normalized_values[i];
+            }
+            if required {
+                if sequence_i >= ArrayLength(sequence.roots) {
+                    valid = false;
+                    ArrayPush(roots, 0);
+                    ArrayPush(has_roots, false);
+                } else {
+                    let root: Int = sequence.roots[sequence_i];
+                    if root < 0 ||
+                        root >= SemanticExpressionGraphArenaNodeCount(
+                            sequence.arena
+                        ) || sequence.arena.node_texts[root] != expected_text {
+                        valid = false;
+                    }
+                    ArrayPush(roots, root);
+                    ArrayPush(has_roots, true);
+                    sequence_i = sequence_i + 1;
+                }
+            } else {
                 ArrayPush(roots, 0);
                 ArrayPush(has_roots, false);
-            } else {
-                let root: Int = sequence.roots[sequence_i];
-                if root < 0 ||
-                    root >= SemanticExpressionGraphArenaNodeCount(
-                        sequence.arena
-                    ) || sequence.arena.node_texts[root] !=
-                        surfaces.normalized_atoms[i] {
-                    valid = false;
-                }
-                ArrayPush(roots, root);
-                ArrayPush(has_roots, true);
-                sequence_i = sequence_i + 1;
             }
-        } else {
-            ArrayPush(roots, 0);
-            ArrayPush(has_roots, false);
+            lane = lane + 1;
         }
-        ArrayPush(roots, 0);
-        ArrayPush(has_roots, false);
-        ArrayPush(roots, 0);
-        ArrayPush(has_roots, false);
         i = i + 1;
     }
     if sequence_i != ArrayLength(sequence.roots) {

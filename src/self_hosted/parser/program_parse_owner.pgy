@@ -10,7 +10,7 @@ import "decl_dispatch_owner.pgy";
 
 struct ParserProgramBuild {
     tree_text: String;
-    condition_graphs: AstExpressionGraphRows;
+    expression_graphs: AstExpressionGraphRows;
 }
 
 func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
@@ -26,14 +26,14 @@ func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
     let src_dir: String = SelfHostPath.Dirname(source_path);
     let involve_types: Array<String> = [];
     let import_paths: Array<String> = [source_path];
-    let condition_graphs: Array<AstExpressionGraphRows> = [
+    let expression_graphs: Array<AstExpressionGraphRows> = [
         AstExpressionGraphRowsEmpty()
     ];
     let decls: String = ParseDecls(
         content, i, cursor, "", false, src_dir, false, "", involve_types,
-        import_paths, condition_graphs
+        import_paths, expression_graphs
     );
-    let graph_rows: AstExpressionGraphRows = condition_graphs[0];
+    let graph_rows: AstExpressionGraphRows = expression_graphs[0];
     if !AstExpressionGraphRowsReady(graph_rows) { Exit(1); }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
@@ -54,6 +54,6 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
     return AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.condition_graphs
+        build.expression_graphs
     );
 }

@@ -1,7 +1,7 @@
 // Shared AstTreeArtifact -> self-host MIR fact graph producer.
 
 import "program_fact_owner.pgy";
-import "routine_lower_owner.pgy";
+import "routine_entry_owner.pgy";
 
 func SelfMirDeclarationsFromAnalysis(
     analysis: SemanticAstArtifactAnalysis,

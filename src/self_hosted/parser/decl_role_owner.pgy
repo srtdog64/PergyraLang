@@ -12,7 +12,7 @@ func ParseRoleDecl(
     inout cursor_out: Array<Int>,
     decl_prefix: String,
     within_zone: String,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -73,7 +73,7 @@ func ParseRoleDecl(
         if MatchKeyword(content, i, "parallel") {
             ArraySet(cursor_out, 0, i);
             let role_parallel: String = ParseOneStmt(
-                content, i, cursor_out, 4, condition_graphs
+                content, i, cursor_out, 4, expression_graphs
             );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, role_parallel);
@@ -83,7 +83,7 @@ func ParseRoleDecl(
             ArraySet(cursor_out, 0, i);
             let compact_m: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
-                false, within_zone, condition_graphs
+                false, within_zone, expression_graphs
             );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, "    Impl ability: (null)");
@@ -125,7 +125,7 @@ func ParseRoleDecl(
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 6, "func", "Function: ",
-                false, within_zone, condition_graphs
+                false, within_zone, expression_graphs
             );
             i = cursor_out[0];
             impl_methods = AppendLine(impl_methods, m_block);

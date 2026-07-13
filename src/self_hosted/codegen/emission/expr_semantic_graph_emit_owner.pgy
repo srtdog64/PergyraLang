@@ -1,9 +1,9 @@
-// Recursive boolean emission from semantic-owned expression node handles.
+// Recursive expression emission from semantic-owned node handles.
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "expr_rewrite.pgy";
 
-func RewriteBoolFromSemanticGraph(
+func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
     env: CodegenTypeEnv
@@ -50,8 +50,34 @@ func RewriteBoolFromSemanticGraph(
         );
         if IsSome(projected) { return UnwrapOption(projected); }
     }
-    let left: String = RewriteBoolFromSemanticGraph(graph, left_id, env);
-    let right: String = RewriteBoolFromSemanticGraph(graph, right_id, env);
+    let left: String = RewriteExprFromSemanticGraph(graph, left_id, env);
+    let right: String = RewriteExprFromSemanticGraph(graph, right_id, env);
+    if kind == AstExpressionNodeAdd() {
+        let left_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, left_id
+        );
+        let right_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, right_id
+        );
+        if !IsSome(left_text) || !IsSome(right_text) {
+            Die("semantic addition operand is missing");
+        }
+        let left_kind: String = ExprKind(UnwrapOption(left_text), env);
+        let right_kind: String = ExprKind(UnwrapOption(right_text), env);
+        if left_kind == right_kind {
+            let op_name: String = LookupKindType(
+                env, Concat(left_kind, "+"), "op"
+            );
+            if op_name == "" && left_kind == "String" {
+                op_name = StringRuntimeCConcatFn();
+            }
+            if op_name != "" {
+                return Concat(op_name, Concat(
+                    "(", Concat(left, Concat(", ", Concat(right, ")")))
+                ));
+            }
+        }
+    }
     let operator: String = " || ";
     if kind == AstExpressionNodeLogicalAnd() {
         operator = " && ";
@@ -59,6 +85,24 @@ func RewriteBoolFromSemanticGraph(
         operator = " == ";
     } else if kind == AstExpressionNodeInequality() {
         operator = " != ";
+    } else if kind == AstExpressionNodeLess() {
+        operator = " < ";
+    } else if kind == AstExpressionNodeLessEqual() {
+        operator = " <= ";
+    } else if kind == AstExpressionNodeGreater() {
+        operator = " > ";
+    } else if kind == AstExpressionNodeGreaterEqual() {
+        operator = " >= ";
+    } else if kind == AstExpressionNodeAdd() {
+        operator = " + ";
+    } else if kind == AstExpressionNodeSubtract() {
+        operator = " - ";
+    } else if kind == AstExpressionNodeMultiply() {
+        operator = " * ";
+    } else if kind == AstExpressionNodeDivide() {
+        operator = " / ";
+    } else if kind == AstExpressionNodeModulo() {
+        operator = " % ";
     } else if kind != AstExpressionNodeLogicalOr() {
         Die("unsupported semantic expression graph node kind");
     }
@@ -67,8 +111,8 @@ func RewriteBoolFromSemanticGraph(
     ));
 }
 
-func WrapCondWithSemanticGraph(
-    cond: String,
+func WrapExprWithSemanticGraph(
+    expression: String,
     env: CodegenTypeEnv,
     view: SemanticExpressionGraphView
 ) -> String {
@@ -76,10 +120,10 @@ func WrapCondWithSemanticGraph(
         view.graph, view.root_id
     );
     if !view.ok || !IsSome(root_text) ||
-        UnwrapOption(root_text) != SemanticStripOuterParens(cond) {
-        Die("semantic condition graph does not match codegen expression");
+        UnwrapOption(root_text) != SemanticStripOuterParens(expression) {
+        Die("semantic expression graph does not match codegen expression");
     }
     return Concat("(", Concat(
-        RewriteBoolFromSemanticGraph(view.graph, view.root_id, env), ")"
+        RewriteExprFromSemanticGraph(view.graph, view.root_id, env), ")"
     ));
 }

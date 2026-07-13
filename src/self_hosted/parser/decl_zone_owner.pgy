@@ -12,7 +12,7 @@ func ParseZoneDecl(
     inout cursor_out: Array<Int>,
     decl_prefix: String,
     inout involve_types: Array<String>,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -321,7 +321,7 @@ func ParseZoneDecl(
             ArraySet(cursor_out, 0, i);
             let m_block: String = ParseFunction(
                 content, i, cursor_out, "", false, 4, "func", "Function: ",
-                false, "", condition_graphs
+                false, "", expression_graphs
             );
             i = cursor_out[0];
             auth_accum = AppendLine(auth_accum, m_block);

@@ -10,6 +10,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression_typed_binding_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
 import "ast_kind_surface_fact_owner.pgy";
 
@@ -332,7 +333,7 @@ func SemanticAstArtifactAnalyzeCompactBridge(
 ) -> SemanticAstArtifactAnalysis {
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint,
-        SemanticAstExpressionSurfaceFactsFromArtifact(artifact)
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact)
     );
 }
 

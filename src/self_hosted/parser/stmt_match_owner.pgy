@@ -7,7 +7,7 @@ func ParseMatchStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = after_head;
     // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
@@ -73,7 +73,7 @@ func ParseMatchStmt(
             }
             ArraySet(cursor_out, 0, i);
             let case_body: String = ParseOneStmt(
-                content, i, cursor_out, stmt_indent + 6, condition_graphs
+                content, i, cursor_out, stmt_indent + 6, expression_graphs
             );
             i = cursor_out[0];
             if StringLength(case_body) > 0 {

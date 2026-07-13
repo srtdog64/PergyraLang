@@ -6830,3 +6830,32 @@ Released/default replacement remains 0%.
 - Scope remains bounded: non-condition recursive expressions,
   indexed/wrapper/auxiliary lanes, and initial compact-tree arena construction
   remain `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 value expressions consume parser-owned graphs
+
+- Extended the parser/HIR expression arena with relational, additive, and
+  multiplicative node kinds while preserving precedence in parser-owned child
+  edges.
+- Bound required roots by canonical `(owner kind, lane)` rows for `let`,
+  assignment, and value return in addition to `if` and `while`. Assignment
+  targets remain under the existing assignment-fact owner and are not duplicated
+  as expression roots.
+- Required `expr0_graph` on migrated MIR definition, branch, and value-return
+  instructions. The MIR consumer maps those rows back to typed artifact owners
+  and fails closed on missing or mismatched root text.
+- Repointed scalar/String/Float/Long initializer, assignment, and return
+  emission to the graph consumer. The compact graph builder and compact
+  expression analyzer now carry explicit `CompactBridge` names and are blocked
+  from the DRV-2 hard source path.
+- Renamed the parser transport from `condition_graphs` to `expression_graphs`;
+  no compatibility alias remains. Split the expression-surface executable
+  contract and routine-entry seeding from their production owners to keep each
+  owner below 600 lines without hiding responsibility.
+- Focused evidence: readiness contracts 6/6, hard contract, component contract,
+  and owner-size gate are green. C-built and LLVM-built DRV-2 drivers pass the
+  19-source/10-MIR producer-first parity gate. The strengthened mutable-local
+  fixture emits byte-identical C across both tool builds and the generated
+  program exits 0.
+- Scope remains bounded: call/index/wrapper/unary internals,
+  log/collection/auxiliary lanes, and compact-tree arena construction remain
+  `BRIDGE`; released/default replacement remains 0%.

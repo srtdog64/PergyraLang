@@ -32,7 +32,7 @@ func ParseDecls(
     within_zone: String,
     inout involve_types: Array<String>,
     inout import_paths: Array<String>,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
@@ -64,22 +64,22 @@ func ParseDecls(
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
-                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
-                    condition_graphs[0], out_graphs[0]
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
+                    expression_graphs[0], out_graphs[0]
                 ));
-                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
-                    condition_graphs[0], script_graphs[0]
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
+                    expression_graphs[0], script_graphs[0]
                 ));
                 return AppendImplicitMain(out, script_body);
             }
         } else {
             if i >= n {
                 ArraySet(cursor_out, 0, i);
-                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
-                    condition_graphs[0], out_graphs[0]
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
+                    expression_graphs[0], out_graphs[0]
                 ));
-                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
-                    condition_graphs[0], script_graphs[0]
+                ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
+                    expression_graphs[0], script_graphs[0]
                 ));
                 return AppendImplicitMain(out, script_body);
             }
@@ -124,7 +124,7 @@ func ParseDecls(
             );
             if StringLength(imp_inner) > 0 {
                 out = AppendLine(out, imp_inner);
-                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                     out_graphs[0], imp_graphs[0]
                 ));
             }
@@ -160,7 +160,7 @@ func ParseDecls(
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
-                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                     out_graphs[0], inner_graphs[0]
                 ));
             }
@@ -194,7 +194,7 @@ func ParseDecls(
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
-                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                     out_graphs[0], inner_graphs[0]
                 ));
             }
@@ -352,12 +352,12 @@ func ParseDecls(
         i = cursor_out[0];
         if collect_script {
             script_body = AppendLine(script_body, stmt_block);
-            ArraySet(script_graphs, 0, ParserConditionGraphsAppendRows(
+            ArraySet(script_graphs, 0, ParserExpressionGraphsAppendRows(
                 script_graphs[0], statement_graphs[0]
             ));
         } else {
             out = AppendLine(out, stmt_block);
-            ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+            ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                 out_graphs[0], statement_graphs[0]
             ));
         }

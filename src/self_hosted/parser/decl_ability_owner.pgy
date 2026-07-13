@@ -12,7 +12,7 @@ func ParseAbilityDecl(
     start: Int,
     inout cursor_out: Array<Int>,
     decl_prefix: String,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = start + 7;
     let n: Int = StringLength(content);
@@ -99,7 +99,7 @@ func ParseAbilityDecl(
         ArraySet(cursor_out, 0, i);
         let sig: String = ParseFunction(
             content, i, cursor_out, "", false, 4, "func", "Function: ",
-            true, "", condition_graphs
+            true, "", expression_graphs
         );
         i = cursor_out[0];
         sig_blocks = AppendLine(sig_blocks, sig);

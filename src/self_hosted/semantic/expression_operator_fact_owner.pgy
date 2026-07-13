@@ -35,6 +35,7 @@ func SemanticTopLevelOperatorFactsFromExpression(
     let minus: Int = SourceByteOf("-");
     let star: Int = SourceByteOf("*");
     let slash: Int = SourceByteOf("/");
+    let percent: Int = SourceByteOf("%");
     let i: Int = 0;
     let depth: Int = 0;
     let logical_index: Int = -1;
@@ -112,7 +113,7 @@ func SemanticTopLevelOperatorFactsFromExpression(
             i = i + 1;
             continue;
         }
-        if c == plus || c == star || c == slash {
+        if c == plus || c == star || c == slash || c == percent {
             if arithmetic_marker_index < 0 {
                 arithmetic_marker_index = i;
             }

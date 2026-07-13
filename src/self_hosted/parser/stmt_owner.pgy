@@ -23,7 +23,7 @@ func ParseOneStmt(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let head_start: Int = i;
@@ -55,15 +55,15 @@ func ParseOneStmt(
     }
 
     if head == "if" {
-        return ParseIfStmt(content, i, cursor_out, stmt_indent, condition_graphs);
+        return ParseIfStmt(content, i, cursor_out, stmt_indent, expression_graphs);
     }
 
     if head == "while" {
-        return ParseWhileStmt(content, i, cursor_out, stmt_indent, condition_graphs);
+        return ParseWhileStmt(content, i, cursor_out, stmt_indent, expression_graphs);
     }
 
     if head == "loop" {
-        return ParseLoopStmt(content, i, cursor_out, stmt_indent, condition_graphs);
+        return ParseLoopStmt(content, i, cursor_out, stmt_indent, expression_graphs);
     }
 
     if head == "with" {
@@ -103,7 +103,7 @@ func ParseOneStmt(
         }
         ArraySet(cursor_out, 0, i);
         let with_body: String = ParseBlock(
-            content, i, cursor_out, stmt_indent + 4, condition_graphs
+            content, i, cursor_out, stmt_indent + 4, expression_graphs
         );
         i = cursor_out[0];
         let with_out: String = Concat(IndentStr(stmt_indent), Concat("With slot<", Concat(with_type, Concat("> as ", as_name))));
@@ -117,7 +117,7 @@ func ParseOneStmt(
 
     if head == "parallel" {
         return ParseParallelStmt(
-            content, i, cursor_out, stmt_indent, condition_graphs
+            content, i, cursor_out, stmt_indent, expression_graphs
         );
     }
 
@@ -155,7 +155,7 @@ func ParseOneStmt(
             }
             ArraySet(cursor_out, 0, i);
             let tx_stmt: String = ParseOneStmt(
-                content, i, cursor_out, stmt_indent + 4, condition_graphs
+                content, i, cursor_out, stmt_indent + 4, expression_graphs
             );
             i = cursor_out[0];
             if StringLength(tx_stmt) > 0 {
@@ -176,7 +176,7 @@ func ParseOneStmt(
         out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
         ArraySet(cursor_out, 0, i);
         let body: String = ParseBlock(
-            content, i, cursor_out, stmt_indent + 4, condition_graphs
+            content, i, cursor_out, stmt_indent + 4, expression_graphs
         );
         i = cursor_out[0];
         if StringLength(body) > 0 {
@@ -237,11 +237,11 @@ func ParseOneStmt(
     }
 
     if head == "match" {
-        return ParseMatchStmt(content, i, cursor_out, stmt_indent, condition_graphs);
+        return ParseMatchStmt(content, i, cursor_out, stmt_indent, expression_graphs);
     }
 
     if head == "for" {
-        return ParseForStmt(content, i, cursor_out, stmt_indent, condition_graphs);
+        return ParseForStmt(content, i, cursor_out, stmt_indent, expression_graphs);
     }
 
     if head == "return" {
@@ -253,7 +253,18 @@ func ParseOneStmt(
             return Concat(IndentStr(stmt_indent), "Return");
         }
         ArraySet(cursor_out, 0, i);
-        let val_text: String = ParseExpr(content, i, cursor_out);
+        let value_fact: ParserExpressionFact = ParseExprFact(
+            content, i, cursor_out
+        );
+        if !value_fact.ok { Exit(1); }
+        ArraySet(
+            expression_graphs, 0,
+            ParserExpressionGraphsAppend(
+                expression_graphs[0], TypedAstKindValueReturnStmtTag(),
+                AstExpressionLaneAtom(), value_fact
+            )
+        );
+        let val_text: String = value_fact.text;
         i = cursor_out[0];
         i = ConsumeStmtTerminator(content, i);
         if i < 0 {
@@ -337,7 +348,18 @@ func ParseOneStmt(
             Exit(1);
         }
         ArraySet(cursor_out, 0, i);
-        let val_text: String = ParseExpr(content, i, cursor_out);
+        let value_fact: ParserExpressionFact = ParseExprFact(
+            content, i, cursor_out
+        );
+        if !value_fact.ok { Exit(1); }
+        ArraySet(
+            expression_graphs, 0,
+            ParserExpressionGraphsAppend(
+                expression_graphs[0], TypedAstKindLetStmtTag(),
+                AstExpressionLaneValue(), value_fact
+            )
+        );
+        let val_text: String = value_fact.text;
         i = cursor_out[0];
         i = ConsumeStmtTerminator(content, i);
         if i < 0 {
@@ -361,7 +383,11 @@ func ParseOneStmt(
     // and parse a full expression (so `a + b;` and `obj.Greet();` both
     // work).
     ArraySet(cursor_out, 0, head_start);
-    let lhs: String = ParsePrimaryFact(content, head_start, cursor_out).text;
+    let lhs_fact: ParserExpressionFact = ParsePrimaryFact(
+        content, head_start, cursor_out
+    );
+    if !lhs_fact.ok { Exit(1); }
+    let lhs: String = lhs_fact.text;
     let i_after_lhs: Int = cursor_out[0];
     let peek: Int = SkipWhitespaceAndComments(content, i_after_lhs);
     // Event subscription: `LHS += RHS ;` emits
@@ -416,7 +442,18 @@ func ParseOneStmt(
     if ParserCharAt(content, peek) == "=" && ParserCharAt(content, peek + 1) != "=" {
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
-        let rhs: String = ParseExpr(content, i, cursor_out);
+        let rhs_fact: ParserExpressionFact = ParseExprFact(
+            content, i, cursor_out
+        );
+        if !rhs_fact.ok { Exit(1); }
+        ArraySet(
+            expression_graphs, 0,
+            ParserExpressionGraphsAppend(
+                expression_graphs[0], TypedAstKindAssignStmtTag(),
+                AstExpressionLaneValue(), rhs_fact
+            )
+        );
+        let rhs: String = rhs_fact.text;
         i = cursor_out[0];
         i = ConsumeStmtTerminator(content, i);
         if i < 0 {
@@ -447,7 +484,7 @@ func ParseBlock(
     start: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = Expect(content, start, "{");
     if i < 0 {
@@ -467,7 +504,7 @@ func ParseBlock(
         }
         ArraySet(cursor_out, 0, i);
         let stmt: String = ParseOneStmt(
-            content, i, cursor_out, stmt_indent, condition_graphs
+            content, i, cursor_out, stmt_indent, expression_graphs
         );
         i = cursor_out[0];
         if StringLength(out) == 0 {

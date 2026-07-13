@@ -11,6 +11,7 @@ import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_fact_owner.pgy";
 import "../semantic/ast_body_verdict_owner.pgy";
+import "../semantic/ast_expression_surface_contract_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
@@ -30,9 +31,11 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstAssignmentTypeFactsContractReady() &&
         SemanticAstStatementFactsContractReady() &&
         SemanticAstExpressionVerdictContractReady() &&
+        SemanticAstExpressionTypedBindingContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
         ParserExpressionGraphContractReady() &&
+        ParserExpressionPrecedenceGraphContractReady() &&
         SelfMirExpressionGraphRowsContractReady() &&
         SelfMirIndexedAssignmentUseContractReady() &&
         MirFactGraphPayloadContractReady() &&

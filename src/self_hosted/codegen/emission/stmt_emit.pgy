@@ -42,7 +42,7 @@ func EmitLet(
     arena: AstArena,
     idx: Int,
     inout env_state: Array<String>,
-    shape: SemanticAstExpressionShapeFact
+    graph: SemanticExpressionGraphView
 ) -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
@@ -55,31 +55,31 @@ func EmitLet(
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "Int", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEvalWithSemanticShape(expr, env, shape), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if type_name == "Long" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "Long", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEvalWithSemanticShape(expr, env, shape), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if type_name == "Bool" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "Bool", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(IntEvalWithSemanticShape(expr, env, shape), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if type_name == "Float" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "Float", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExprWithSemanticShape(expr, env, shape), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if type_name == "String" {
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "String", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(StrEvalWithSemanticShape(expr, env, shape), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if type_name == "Allocator" || type_name == "TextBuilder" {
         CodegenTypeEnvStateAppendValueBinding(
@@ -87,7 +87,7 @@ func EmitLet(
         );
         return Concat(AbiLayoutCLocalType(type_name, env),
             Concat(" ", Concat(c_name, Concat(" = ",
-                Concat(RewriteExprWithSemanticShape(expr, env, shape), ";")))));
+                Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if StartsWith(type_name, "Array<") {
         // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
@@ -104,7 +104,7 @@ func EmitLet(
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
         if !CodegenSemanticLetInitializerStartsArrayLiteral(local_bindings, idx) {
-            return Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExprWithSemanticShape(expr, env, shape), ";")))));
+            return Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
         }
         let out: String = Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(new_fn, "();")))));
         let element_count: Int = CodegenSemanticLetArrayLiteralElementCount(local_bindings, idx);
@@ -126,7 +126,7 @@ func EmitLet(
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, "ResultInt", c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(RewriteExpr(expr, env), ";")))));
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
     if StartsWith(type_name, "Option<") {
         let option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(type_name);
@@ -223,7 +223,7 @@ func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
     idx: Int,
     env_state: Array<String>,
-    shape: SemanticAstExpressionShapeFact
+    graph: SemanticExpressionGraphView
 ) -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx);
@@ -242,13 +242,13 @@ func EmitAssign(
     let c_name: String = CompilerSymbolCBindingName(name);
     let vt: String = LookupKindType(env, name, "v");
     if vt == "String" {
-        return Concat(c_name, Concat(" = ", Concat(StrEvalWithSemanticShape(expr, env, shape), ";")));
+        return Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")));
     }
     if vt == "Float" {
-        return Concat(c_name, Concat(" = ", Concat(RewriteExprWithSemanticShape(expr, env, shape), ";")));
+        return Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")));
     }
     if vt == "Long" {
-        return Concat(c_name, Concat(" = ", Concat(IntEvalWithSemanticShape(expr, env, shape), ";")));
+        return Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")));
     }
     let assign_option_struct_fact_opt: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(vt, env.global_rows);
@@ -268,7 +268,7 @@ func EmitAssign(
     if LookupKindType(env, vt, "s") == "struct" {
         return Concat(c_name, Concat(" = ", Concat(EmitStructValue(expr, vt, env), ";")));
     }
-    return Concat(c_name, Concat(" = ", Concat(IntEvalWithSemanticShape(expr, env, shape), ";")));
+    return Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")));
 }
 
 func EmitMatchCaseValue(pattern: String, subject_type: String, env: CodegenTypeEnv) -> String {
@@ -313,23 +313,23 @@ func EmitStmtList(count: Int, arena: AstArena,
             if CodegenSemanticLetInitializerHasTry(local_bindings, idx) {
                 ArrayPush(result, Concat(pad, Concat(EmitTryLet(local_bindings, arena, idx, env_state, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
             } else {
-                let let_shape: SemanticAstExpressionShapeFact =
-                    CodegenSemanticValueExpressionShapeOrDie(
-                        expression_surfaces, idx
+                let let_graph: SemanticExpressionGraphView =
+                    CodegenSemanticExpressionGraphOrDie(
+                        expression_surfaces, idx, AstExpressionLaneValue()
                     );
                 ArrayPush(result, Concat(pad, Concat(
-                    EmitLet(local_bindings, arena, idx, env_state, let_shape),
+                    EmitLet(local_bindings, arena, idx, env_state, let_graph),
                     "\n"
                 )));
             }
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticAssignmentIs(assignments, idx) {
-            let assign_shape: SemanticAstExpressionShapeFact =
-                CodegenSemanticValueExpressionShapeOrDie(
-                    expression_surfaces, idx
+            let assign_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneValue()
                 );
             ArrayPush(result, Concat(pad, Concat(
-                EmitAssign(assignments, idx, env_state, assign_shape), "\n"
+                EmitAssign(assignments, idx, env_state, assign_graph), "\n"
             )));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) {
@@ -356,15 +356,15 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) {
             let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx);
-            let return_shape: SemanticAstExpressionShapeFact =
-                CodegenSemanticAtomExpressionShapeOrDie(
-                    expression_surfaces, idx
+            let return_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
                 );
             ArrayPush(result, deferred);
             ArrayPush(result, active_defers);
             deferred = "";
             ArrayPush(result, Concat(pad, Concat(
-                EmitReturn(rexpr, cur_fn_ret, env, return_shape), "\n"
+                EmitReturn(rexpr, cur_fn_ret, env, return_graph), "\n"
             )));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindDeferStmtTag()) {
@@ -490,10 +490,10 @@ func EmitStmtList(count: Int, arena: AstArena,
                 statements, idx
             );
             let while_graph: SemanticExpressionGraphView =
-                CodegenSemanticAtomExpressionGraphOrDie(
-                    expression_surfaces, idx
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
                 );
-            let cond: String = WrapCondWithSemanticGraph(
+            let cond: String = WrapExprWithSemanticGraph(
                 while_expr, env, while_graph
             );
             ArrayPush(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
@@ -506,10 +506,10 @@ func EmitStmtList(count: Int, arena: AstArena,
                 statements, idx
             );
             let if_graph: SemanticExpressionGraphView =
-                CodegenSemanticAtomExpressionGraphOrDie(
-                    expression_surfaces, idx
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
                 );
-            let cond2: String = WrapCondWithSemanticGraph(
+            let cond2: String = WrapExprWithSemanticGraph(
                 if_expr, env, if_graph
             );
             ArrayPush(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));

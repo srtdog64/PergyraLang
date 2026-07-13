@@ -1,0 +1,163 @@
+// Binds parser/HIR expression roots to semantic node/lane slots.
+
+import "ast_expression_surface_fact_owner.pgy";
+
+struct SemanticAstExpressionRootSlots {
+    ok: Bool;
+    slots: Array<Int>;
+}
+
+func SemanticAstExpressionLanePresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int,
+    lane: Int
+) -> Bool {
+    if lane == AstExpressionLaneAtom() { return facts.has_atoms[index]; }
+    if lane == AstExpressionLaneValue() { return facts.has_values[index]; }
+    if lane == AstExpressionLaneAuxiliary() {
+        return facts.has_auxiliary_values[index];
+    }
+    return false;
+}
+
+func SemanticAstExpressionLaneText(
+    facts: SemanticAstExpressionSurfaceFacts,
+    index: Int,
+    lane: Int
+) -> String {
+    if lane == AstExpressionLaneAtom() {
+        return facts.normalized_atoms[index];
+    }
+    if lane == AstExpressionLaneValue() {
+        return facts.normalized_values[index];
+    }
+    if lane == AstExpressionLaneAuxiliary() {
+        return facts.normalized_auxiliary_values[index];
+    }
+    return "";
+}
+
+func SemanticAstExpressionRootSlotsFromArtifact(
+    artifact: AstTreeArtifact,
+    facts: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstExpressionRootSlots {
+    let slots: Array<Int> = [];
+    let rows: AstExpressionGraphRows = artifact.expression_graphs;
+    if !AstExpressionGraphRowsReady(rows) {
+        return SemanticAstExpressionRootSlots(false, slots);
+    }
+    let root_index: Int = 0;
+    let surface_index: Int = 0;
+    while surface_index < SemanticAstExpressionSurfaceCount(facts) &&
+        root_index < ArrayLength(rows.roots) {
+        let node_id: Int = facts.node_ids[surface_index];
+        let kind: Option<Int> = TypedAstArenaNodeKind(
+            artifact.arena, node_id
+        );
+        let lane: Int = AstExpressionLaneAtom();
+        while lane <= AstExpressionLaneAuxiliary() &&
+            root_index < ArrayLength(rows.roots) {
+            if IsSome(kind) && UnwrapOption(kind) ==
+                rows.root_owner_kinds[root_index] &&
+                lane == rows.root_lanes[root_index] {
+                let root: Int = rows.roots[root_index];
+                if !SemanticAstExpressionLanePresent(
+                    facts, surface_index, lane
+                ) || root < 0 ||
+                    root >= AstExpressionArenaNodeCount(rows.arena) ||
+                    SemanticStripOuterParens(
+                        rows.arena.node_texts[root]
+                    ) != SemanticAstExpressionLaneText(
+                        facts, surface_index, lane
+                    ) {
+                    return SemanticAstExpressionRootSlots(false, slots);
+                }
+                ArrayPush(slots, surface_index * 3 + lane);
+                root_index = root_index + 1;
+            }
+            lane = lane + 1;
+        }
+        surface_index = surface_index + 1;
+    }
+    return SemanticAstExpressionRootSlots(
+        root_index == ArrayLength(rows.roots), slots
+    );
+}
+
+func SemanticAstExpressionSurfaceFactsFromTypedArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstExpressionSurfaceFacts {
+    let rows: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
+    let binding: SemanticAstExpressionRootSlots =
+        SemanticAstExpressionRootSlotsFromArtifact(artifact, rows);
+    if !binding.ok {
+        return SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, rows, SemanticExpressionGraphFactsEmpty()
+        );
+    }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            artifact.expression_graphs, binding.slots,
+            SemanticAstExpressionSurfaceCount(rows) * 3
+        );
+    return SemanticAstExpressionSurfaceFactsWithGraph(
+        artifact, rows, graph
+    );
+}
+
+func SemanticAstExpressionTypedBindingContractReady() -> Bool {
+    let base: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: ready\n          Then:\n            Block:\n              Return\n"
+    );
+    let missing: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(base);
+    let root_rows: AstExpressionGraphRows = AstExpressionGraphRows(
+        true,
+        [TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag()],
+        [AstExpressionLaneValue(), AstExpressionLaneAtom()],
+        [0, 1],
+        AstExpressionArena(
+            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf()],
+            ["1", "ready"], [0, 0], [0, 0]
+        )
+    );
+    let typed: AstTreeArtifact = AstTreeArtifact(
+        base.tree_text, base.arena, base.count, root_rows
+    );
+    let facts: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(typed);
+    let bad_rows: AstExpressionGraphRows = AstExpressionGraphRows(
+        true,
+        [TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag()],
+        [AstExpressionLaneValue(), AstExpressionLaneAtom()],
+        [0, 1],
+        AstExpressionArena(
+            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf()],
+            ["1", "wrong"], [0, 0], [0, 0]
+        )
+    );
+    let bad: AstTreeArtifact = AstTreeArtifact(
+        base.tree_text, base.arena, base.count, bad_rows
+    );
+    let malformed: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(bad);
+    let let_graph_ok: Bool = false;
+    let if_graph_ok: Bool = false;
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if facts.has_values[i] && facts.normalized_values[i] == "1" {
+            let_graph_ok = SemanticAstExpressionGraphForNode(
+                facts, facts.node_ids[i], AstExpressionLaneValue()
+            ).ok;
+        }
+        if facts.has_atoms[i] && facts.normalized_atoms[i] == "ready" {
+            if_graph_ok = SemanticAstExpressionGraphForNode(
+                facts, facts.node_ids[i], AstExpressionLaneAtom()
+            ).ok;
+        }
+        i = i + 1;
+    }
+    return !missing.ok && facts.ok && let_graph_ok && if_graph_ok &&
+        !malformed.ok;
+}

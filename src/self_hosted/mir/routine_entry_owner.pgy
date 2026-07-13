@@ -1,0 +1,58 @@
+// Routine entry owner: validates the function shell and seeds MIR parameters.
+
+import "routine_lower_owner.pgy";
+
+func SelfMirRoutineFromInput(
+    input: SelfMirRoutineInput,
+    function_node_id: Int
+) -> SelfMirRoutineBuild {
+    let body_opt: Option<Int> = SelfMirFunctionBodyBlock(
+        input.artifact.arena, function_node_id
+    );
+    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
+    if !IsSome(body_opt) {
+        return SelfMirRoutineBuildError(build, "function body block is missing");
+    }
+    let signature_index_opt: Option<Int> =
+        SemanticAstFunctionSignatureIndexForNode(
+            input.analysis.signatures, function_node_id
+        );
+    if !IsSome(signature_index_opt) {
+        return SelfMirRoutineBuildError(
+            build, "function signature is missing for MIR parameter seeding"
+        );
+    }
+    let signature_index: Int = UnwrapOption(signature_index_opt);
+    let param_count_opt: Option<Int> = SemanticAstFunctionParamCountAt(
+        input.analysis.signatures, signature_index
+    );
+    if !IsSome(param_count_opt) {
+        return SelfMirRoutineBuildError(
+            build, "function parameter count is missing for MIR"
+        );
+    }
+    let p: Int = 0;
+    while p < UnwrapOption(param_count_opt) {
+        let param_name: Option<String> = SemanticAstFunctionParamNameAt(
+            input.analysis.signatures, signature_index, p
+        );
+        let param_type: Option<String> = SemanticAstFunctionParamTypeAt(
+            input.analysis.signatures, signature_index, p
+        );
+        if !IsSome(param_name) || !IsSome(param_type) {
+            return SelfMirRoutineBuildError(
+                build, "function parameter fact is incomplete for MIR"
+            );
+        }
+        build = SelfMirRoutineAddLocal(
+            build, UnwrapOption(param_name), UnwrapOption(param_type), 1
+        );
+        p = p + 1;
+    }
+    let root_break_blocks: Array<Int> = [];
+    let state: SelfMirRoutineState = SelfMirLowerBlockFromArtifact(
+        SelfMirRoutineState(input, build), UnwrapOption(body_opt),
+        root_break_blocks, -1
+    );
+    return state.build;
+}

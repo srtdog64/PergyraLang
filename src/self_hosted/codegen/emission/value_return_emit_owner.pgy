@@ -4,7 +4,7 @@ import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "expr_rewrite.pgy";
-import "expr_semantic_shape_emit_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
 import "struct_value_emit.pgy";
 import "array_value_emit_owner.pgy";
 
@@ -56,22 +56,22 @@ func EmitReturn(
     rexpr: String,
     return_type: String,
     env: CodegenTypeEnv,
-    shape: SemanticAstExpressionShapeFact
+    graph: SemanticExpressionGraphView
 ) -> String {
     if StringLength(rexpr) == 0 { return "return;"; }
     if return_type == "String" {
         return Concat("return ", Concat(
-            StrEvalWithSemanticShape(rexpr, env, shape), ";"
+            WrapExprWithSemanticGraph(rexpr, env, graph), ";"
         ));
     }
     if return_type == "Float" {
         return Concat("return ", Concat(
-            RewriteExprWithSemanticShape(rexpr, env, shape), ";"
+            WrapExprWithSemanticGraph(rexpr, env, graph), ";"
         ));
     }
     if return_type == "Long" {
         return Concat("return ", Concat(
-            IntEvalWithSemanticShape(rexpr, env, shape), ";"
+            WrapExprWithSemanticGraph(rexpr, env, graph), ";"
         ));
     }
     if StartsWith(return_type, "Array<") {
@@ -103,6 +103,6 @@ func EmitReturn(
         ));
     }
     return Concat("return ", Concat(
-        IntEvalWithSemanticShape(rexpr, env, shape), ";"
+        WrapExprWithSemanticGraph(rexpr, env, graph), ";"
     ));
 }

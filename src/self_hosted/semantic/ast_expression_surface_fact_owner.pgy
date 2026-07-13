@@ -39,9 +39,6 @@ struct SemanticAstExpressionSurfaceFacts {
     expression_graph: SemanticExpressionGraphFacts;
 }
 
-func SemanticAstExpressionAtomLane() -> Int { return 0; }
-func SemanticAstExpressionValueLane() -> Int { return 1; }
-func SemanticAstExpressionAuxiliaryLane() -> Int { return 2; }
 func SemanticAstExpressionOperatorWidth() -> Int { return 11; }
 func SemanticAstExpressionShapeWidth() -> Int { return 33; }
 
@@ -79,9 +76,33 @@ func SemanticAstExpressionInvalidShape() -> SemanticAstExpressionShapeFact {
     );
 }
 
+func SemanticAstExpressionGraphAtomLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindIfStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindWhileStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindValueReturnStmtTag()
+    );
+}
+
+func SemanticAstExpressionGraphValueLaneRequired(
+    artifact: AstTreeArtifact,
+    node_id: Int
+) -> Bool {
+    return TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindLetStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindAssignStmtTag()
+    );
+}
+
 func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     artifact: AstTreeArtifact,
-    derive_condition_graph: Bool
+    derive_compact_graph: Bool
 ) -> SemanticAstExpressionSurfaceFacts {
     let node_ids: Array<Int> = [];
     let has_atoms: Array<Bool> = [];
@@ -142,19 +163,19 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
                 ),
                 normalized_auxiliary
             );
-            let condition_atom: Bool = IsSome(atom) &&
-                (TypedAstArenaNodeKindIs(
-                    artifact.arena, node_id, TypedAstKindIfStmtTag()
-                ) || TypedAstArenaNodeKindIs(
-                    artifact.arena, node_id, TypedAstKindWhileStmtTag()
-                ));
+            let migrated_atom: Bool = IsSome(atom) &&
+                SemanticAstExpressionGraphAtomLaneRequired(artifact, node_id);
+            let migrated_value: Bool = IsSome(value) &&
+                SemanticAstExpressionGraphValueLaneRequired(artifact, node_id);
             expression_graph = SemanticExpressionGraphFactsAppendLane(
                 expression_graph,
-                derive_condition_graph && condition_atom,
+                derive_compact_graph && migrated_atom,
                 normalized_atom
             );
             expression_graph = SemanticExpressionGraphFactsAppendLane(
-                expression_graph, false, normalized_value
+                expression_graph,
+                derive_compact_graph && migrated_value,
+                normalized_value
             );
             expression_graph = SemanticExpressionGraphFactsAppendLane(
                 expression_graph, false, normalized_auxiliary
@@ -170,7 +191,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     );
 }
 
-func SemanticAstExpressionSurfaceFactsFromArtifact(
+func SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(
     artifact: AstTreeArtifact
 ) -> SemanticAstExpressionSurfaceFacts {
     return SemanticAstExpressionSurfaceFactsFromArtifactMode(artifact, true);
@@ -180,39 +201,6 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
     artifact: AstTreeArtifact
 ) -> SemanticAstExpressionSurfaceFacts {
     return SemanticAstExpressionSurfaceFactsFromArtifactMode(artifact, false);
-}
-
-func SemanticAstExpressionSurfaceFactsFromTypedArtifact(
-    artifact: AstTreeArtifact
-) -> SemanticAstExpressionSurfaceFacts {
-    let rows: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
-    let condition_slots: Array<Int> = [];
-    let i: Int = 0;
-    while i < SemanticAstExpressionSurfaceCount(rows) {
-        let node_id: Int = rows.node_ids[i];
-        if rows.has_atoms[i] &&
-            (TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindIfStmtTag()
-            ) || TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindWhileStmtTag()
-            )) {
-            ArrayPush(
-                condition_slots,
-                i * 3 + SemanticAstExpressionAtomLane()
-            );
-        }
-        i = i + 1;
-    }
-    let graph: SemanticExpressionGraphFacts =
-        SemanticExpressionGraphFactsFromAstRows(
-            artifact.expression_graphs,
-            condition_slots,
-            SemanticAstExpressionSurfaceCount(rows) * 3
-        );
-    return SemanticAstExpressionSurfaceFactsWithGraph(
-        artifact, rows, graph
-    );
 }
 
 func SemanticAstExpressionSurfaceCount(
@@ -276,10 +264,10 @@ func SemanticAstExpressionShapeAt(
     }
     let present: Bool = facts.has_atoms[index];
     let normalized: String = facts.normalized_atoms[index];
-    if lane == SemanticAstExpressionValueLane() {
+    if lane == AstExpressionLaneValue() {
         present = facts.has_values[index];
         normalized = facts.normalized_values[index];
-    } else if lane == SemanticAstExpressionAuxiliaryLane() {
+    } else if lane == AstExpressionLaneAuxiliary() {
         present = facts.has_auxiliary_values[index];
         normalized = facts.normalized_auxiliary_values[index];
     }
@@ -334,30 +322,28 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         SemanticExpressionGraphFactsReady(
             graph, SemanticAstExpressionSurfaceCount(facts) * 3
         );
-    let condition_count: Int = 0;
+    let migrated_root_count: Int = 0;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) && valid {
         let node_id: Int = facts.node_ids[i];
-        let condition_atom: Bool = facts.has_atoms[i] &&
-            (TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindIfStmtTag()
-            ) || TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindWhileStmtTag()
-            ));
+        let migrated_atom: Bool = facts.has_atoms[i] &&
+            SemanticAstExpressionGraphAtomLaneRequired(artifact, node_id);
+        let migrated_value: Bool = facts.has_values[i] &&
+            SemanticAstExpressionGraphValueLaneRequired(artifact, node_id);
         let atom_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, SemanticAstExpressionAtomLane()
+                graph, i, AstExpressionLaneAtom()
             );
         let value_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, SemanticAstExpressionValueLane()
+                graph, i, AstExpressionLaneValue()
             );
         let auxiliary_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
-                graph, i, SemanticAstExpressionAuxiliaryLane()
+                graph, i, AstExpressionLaneAuxiliary()
             );
-        if condition_atom {
-            condition_count = condition_count + 1;
+        if migrated_atom {
+            migrated_root_count = migrated_root_count + 1;
             let root_text: Option<String> =
                 SemanticExpressionGraphNodeText(
                     graph, atom_view.root_id
@@ -369,12 +355,25 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         } else if atom_view.ok {
             valid = false;
         }
-        if value_view.ok || auxiliary_view.ok {
+        if migrated_value {
+            migrated_root_count = migrated_root_count + 1;
+            let root_text: Option<String> =
+                SemanticExpressionGraphNodeText(
+                    graph, value_view.root_id
+                );
+            if !value_view.ok || !IsSome(root_text) ||
+                UnwrapOption(root_text) != facts.normalized_values[i] {
+                valid = false;
+            }
+        } else if value_view.ok {
+            valid = false;
+        }
+        if auxiliary_view.ok {
             valid = false;
         }
         i = i + 1;
     }
-    if condition_count == 0 &&
+    if migrated_root_count == 0 &&
         SemanticExpressionGraphArenaNodeCount(graph.arena) != 0 {
         valid = false;
     }
@@ -523,64 +522,4 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
     return SemanticAstExpressionSurfaceFactsWithGraph(
         artifact, rebuilt, facts.expression_graph
     ).ok;
-}
-
-func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : String = Concat(\"None\", \"x\")\n        Log((left + right))\n        If: (ready && enabled || fallback != denied)\n          Then:\n            Block:\n              Log(\"ok\")\n"
-    );
-    let facts: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
-    let missing_typed_graph: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
-    let additive_shape: SemanticAstExpressionShapeFact =
-        SemanticAstExpressionInvalidShape();
-    let logical_shape: SemanticAstExpressionShapeFact =
-        SemanticAstExpressionInvalidShape();
-    let logical_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    let non_condition_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(false, 0, facts.expression_graph);
-    let i: Int = 0;
-    while i < SemanticAstExpressionSurfaceCount(facts) {
-        if facts.has_atoms[i] && facts.normalized_atoms[i] == "left + right" {
-            additive_shape = SemanticAstExpressionShapeAt(
-                facts, i, SemanticAstExpressionAtomLane()
-            );
-        }
-        if facts.has_atoms[i] && facts.normalized_atoms[i] ==
-            "ready && enabled || fallback != denied" {
-            logical_shape = SemanticAstExpressionShapeAt(
-                facts, i, SemanticAstExpressionAtomLane()
-            );
-            logical_graph = SemanticExpressionGraphViewAt(
-                facts.expression_graph, i, SemanticAstExpressionAtomLane()
-            );
-        }
-        if facts.has_values[i] && StartsWith(
-            facts.normalized_values[i], "Concat("
-        ) {
-            non_condition_graph = SemanticExpressionGraphViewAt(
-                facts.expression_graph, i, SemanticAstExpressionValueLane()
-            );
-        }
-        i = i + 1;
-    }
-    let logical_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        logical_graph.graph, logical_graph.root_id
-    );
-    return !missing_typed_graph.ok &&
-        SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
-        SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
-        SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
-        !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&
-        additive_shape.ok && additive_shape.normalized_text == "left + right" &&
-        additive_shape.additive_index == 5 &&
-        additive_shape.additive_operator_code == SourceByteOf("+") &&
-        logical_shape.ok && logical_shape.logical_and_index == 6 &&
-        logical_shape.logical_or_index == 17 &&
-        logical_shape.equality_index == 29 && logical_shape.equality_is_not &&
-        logical_graph.ok && IsSome(logical_root_kind) &&
-        UnwrapOption(logical_root_kind) == AstExpressionNodeLogicalOr() &&
-        !non_condition_graph.ok;
 }

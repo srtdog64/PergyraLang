@@ -49,6 +49,6 @@ inventing a second AST serialization format.
 Run: `bash tests/self_hosted/parity/parser_parity.sh`
 
 The compact tree remains the byte-parity and provenance projection. It is not
-the semantic owner of migrated condition graphs. The current single-element
+the semantic owner of migrated expression graphs. The current single-element
 `Array<AstExpressionGraphRows>` transport is a bounded mutable parser context
 needed by the present self-host ABI; it does not encode graph meaning in text.

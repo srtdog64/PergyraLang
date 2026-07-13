@@ -99,20 +99,22 @@ emit the same 151,762-byte artifact. This closes duplicated semantic text
 ownership; it does not close remaining type-name/expression scans or the
 full-source gen3 fixed point.
 
-The latest DRV-2 slice carries normalized condition expression graphs from the
-parser/HIR artifact into each MIR branch instruction as `expr0_graph`. The
-precedence parser now emits canonical node kinds and child edges in the same
-walk that produces the compact parity projection. DRV-2 source compilation
-consumes only those typed rows; a text-created artifact without the graph fails
-closed. Direct `--mir-json` compilation likewise requires the carried graph and
-does not reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical
-MIR JSON and C for all 10 DRV-2 MIR fixtures, and every emitted program ran
-equal to the native C oracle. An earlier LLVM access violation from recursive
-return of an eight-array graph-copy aggregate was removed by consuming the
-graph's postorder contiguous-subtree invariant. This closes parser production,
-MIR carriage, and hard consumption for condition logical/equality topology.
-Non-condition recursive expression graphs, indexed/wrapper/auxiliary lanes,
-and the transitional compact-tree-to-arena construction remain `BRIDGE` work.
+The latest DRV-2 slice carries normalized expression graphs from the parser/HIR
+artifact into MIR branch, definition, and value-return instructions as
+`expr0_graph`. The precedence parser emits logical, equality, relational,
+additive, and multiplicative node kinds and child edges in the same walk that
+produces the compact parity projection. Typed source compilation binds roots by
+`(owner kind, lane)` for `if`, `while`, `let`, assignment, and value return; a
+text-created artifact without a required graph fails closed. Direct
+`--mir-json` compilation likewise requires the carried graph and does not
+reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
+and C across 19 source fixtures and all 10 DRV-2 MIR fixtures. The strengthened
+mutable-local fixture covers arithmetic precedence in initializer, assignment,
+condition, and return positions, and its generated program exits successfully.
+This closes parser production, MIR carriage, and hard consumption for those
+migrated operators and statement lanes. Call/index/wrapper/unary internals,
+log/collection/auxiliary lanes, and the transitional compact-tree-to-arena
+construction remain `BRIDGE` work.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns

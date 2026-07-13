@@ -115,7 +115,7 @@ func SelfMirRoutineAttachLastExpressionGraph(
 ) -> SelfMirRoutineBuild {
     if !view.ok {
         return SelfMirRoutineBuildError(
-            build, "MIR condition is missing its semantic expression graph"
+            build, "MIR instruction is missing its semantic expression graph"
         );
     }
     let cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpressionGraph(
@@ -125,7 +125,7 @@ func SelfMirRoutineAttachLastExpressionGraph(
     if instruction_index < 0 ||
         cfg.instructions.expression_graphs.has_roots[instruction_index] != 1 {
         return SelfMirRoutineBuildError(
-            build, "MIR condition graph attachment failed"
+            build, "MIR expression graph attachment failed"
         );
     }
     return SelfMirRoutineBuild(

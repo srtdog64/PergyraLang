@@ -8,7 +8,7 @@ func CodegenSemanticAtomExpressionShapeOrDie(
 ) -> SemanticAstExpressionShapeFact {
     let shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionShapeForNode(
-            facts, node_id, SemanticAstExpressionAtomLane()
+            facts, node_id, AstExpressionLaneAtom()
         );
     if !shape.ok {
         Die("self-host codegen requires a semantic atom-expression shape");
@@ -22,7 +22,7 @@ func CodegenSemanticValueExpressionShapeOrDie(
 ) -> SemanticAstExpressionShapeFact {
     let shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionShapeForNode(
-            facts, node_id, SemanticAstExpressionValueLane()
+            facts, node_id, AstExpressionLaneValue()
         );
     if !shape.ok {
         Die("self-host codegen requires a semantic value-expression shape");
@@ -30,23 +30,24 @@ func CodegenSemanticValueExpressionShapeOrDie(
     return shape;
 }
 
-func CodegenSemanticAtomExpressionGraphOrDie(
+func CodegenSemanticExpressionGraphOrDie(
     facts: SemanticAstExpressionSurfaceFacts,
-    node_id: Int
+    node_id: Int,
+    lane: Int
 ) -> SemanticExpressionGraphView {
     let graph: SemanticExpressionGraphView =
         SemanticAstExpressionGraphForNode(
-            facts, node_id, SemanticAstExpressionAtomLane()
+            facts, node_id, lane
         );
     if !graph.ok {
-        Die("self-host codegen requires a semantic atom-expression graph");
+        Die("self-host codegen requires a semantic expression graph");
     }
     let graph_text: Option<String> = SemanticExpressionGraphNodeText(
         graph.graph, graph.root_id
     );
     let shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionShapeForNode(
-            facts, node_id, SemanticAstExpressionAtomLane()
+            facts, node_id, lane
         );
     if !IsSome(graph_text) || !shape.ok ||
         UnwrapOption(graph_text) != shape.normalized_text {

@@ -7,7 +7,7 @@ func ParseParallelStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = after_head;
     let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
@@ -64,7 +64,7 @@ func ParseParallelStmt(
             }
             ArraySet(cursor_out, 0, i);
             on_body = ParseBlock(
-                content, i, cursor_out, stmt_indent + 6, condition_graphs
+                content, i, cursor_out, stmt_indent + 6, expression_graphs
             );
             i = cursor_out[0];
             i = Expect(content, i, "}");
@@ -81,7 +81,7 @@ func ParseParallelStmt(
                 }
                 ArraySet(cursor_out, 0, i);
                 let direct_stmt: String = ParseOneStmt(
-                    content, i, cursor_out, stmt_indent + 6, condition_graphs
+                    content, i, cursor_out, stmt_indent + 6, expression_graphs
                 );
                 i = cursor_out[0];
                 if StringLength(direct_stmt) > 0 {
@@ -130,7 +130,7 @@ func ParseParallelStmt(
     }
     ArraySet(cursor_out, 0, i);
     let pbody: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 2, condition_graphs
+        content, i, cursor_out, stmt_indent + 2, expression_graphs
     );
     i = cursor_out[0];
     ArraySet(cursor_out, 0, i);

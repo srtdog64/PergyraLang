@@ -411,6 +411,7 @@ for mir_producer_owner in \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
     routine_lower_owner.pgy \
+    routine_entry_owner.pgy \
     artifact_lower_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy; do
@@ -435,7 +436,7 @@ reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineAddLoca
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "struct SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "func SelfMirRoutineSetSuccessors"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "struct SelfMirRoutineState"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromInput"
+require_text "src/self_hosted/mir/routine_entry_owner.pgy" "func SelfMirRoutineFromInput"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromArtifact"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "inout build: SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromArtifact"
@@ -2436,7 +2437,7 @@ require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/as
 require_file "src/self_hosted/parser/expression_graph_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_graph_owner.pgy" 600
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "struct ParserExpressionFact"
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserConditionGraphsAppend"
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionGraphsAppend"
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "!AstExpressionGraphRowsReady(malformed)"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParseExprFact"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "struct ParserProgramBuild"
@@ -2553,6 +2554,23 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSour
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstExpressionTypedBindingContractReady()"
+for expression_graph_transport_owner in \
+    decl_ability_owner.pgy decl_dispatch_owner.pgy decl_nominal_owner.pgy \
+    decl_role_owner.pgy decl_zone_owner.pgy function_decl_owner.pgy \
+    program_parse_owner.pgy stmt_if_owner.pgy stmt_loop_owner.pgy \
+    stmt_match_owner.pgy stmt_owner.pgy stmt_parallel_owner.pgy; do
+    reject_text "src/self_hosted/parser/$expression_graph_transport_owner" \
+        "condition_graphs"
+done
+for migrated_graph_consumer in \
+    emission/expr_semantic_graph_emit_owner.pgy emission/stmt_emit.pgy \
+    emission/value_return_emit_owner.pgy \
+    input/semantic_expression_codegen_view_owner.pgy; do
+    reject_regex "src/self_hosted/codegen/$migrated_graph_consumer" \
+        "SemanticExpressionGraphBuild(CompactBridge)?FromText"
+done
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeTyped(artifact, true)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -2585,9 +2603,9 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "MIR shadowed local type changed"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "let initializer_uses: Array<String>"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "function signature is missing for MIR parameter seeding"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SemanticAstFunctionParamNameAt("
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     'let return_source_type: String = "AST_RETURN_VOID";'
@@ -3025,8 +3043,13 @@ require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_value: Bool"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_aux_value: Bool"
 require_file "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" 600
+require_file "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "func SemanticAstExpressionSurfaceFactsContractReady()"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "struct SemanticAstExpressionSurfaceFacts"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromArtifact"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge("
+reject_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromArtifact("
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceCallPresent"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceTokenPresent"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsMatchArtifact"
@@ -3040,20 +3063,28 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "e
 require_file "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphView"
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildFromText"
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildCompactBridgeFromText"
+reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildFromText"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphFactsFromAstRows"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeAdd()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMultiply()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeModulo()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeGreaterEqual()"
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphRightChild"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "expression_graph: SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "let condition_atom: Bool"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "!non_condition_graph.ok"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromTypedArtifact"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "!missing_typed_graph.ok"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphValueLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "arithmetic_graph.ok"
+require_file "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
+require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromTypedArtifact"
+require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" "func SemanticAstExpressionTypedBindingContractReady"
 require_file "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
-require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionGraphOrDie"
+require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticExpressionGraphOrDie"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int>"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageGroupPresent"
@@ -3573,10 +3604,12 @@ reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticValueExpressionShapeOrDie"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_shape: SemanticAstExpressionShapeFact"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_shape)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_shape: SemanticAstExpressionShapeFact"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitAssign(assignments, idx, env_state, assign_shape)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitAssign(assignments, idx, env_state, assign_graph)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_shape: SemanticAstExpressionShapeFact"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_shape: SemanticAstExpressionShapeFact"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
@@ -3591,24 +3624,24 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func RewriteEqualityProjection("
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'shape.additive_operator_code == SourceByteOf("+")'
 require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy"
-require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteBoolFromSemanticGraph("
-require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapCondWithSemanticGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
-    "func RewriteBoolFromSemanticGraph(" "FindTopLevelOp2"
+    "func RewriteExprFromSemanticGraph(" "FindTopLevelOp2"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
-    "func RewriteBoolFromSemanticGraph(" "Substring("
+    "func RewriteExprFromSemanticGraph(" "Substring("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
-    "func RewriteBoolFromSemanticGraph(" "RewriteBool("
+    "func RewriteExprFromSemanticGraph(" "RewriteBool("
 require_text "src/self_hosted/codegen/role_fixture/operator_add.pgy" "Log(5 - 2);"
 require_text "src/self_hosted/codegen/role_fixture/operator_add.pgy" "return 1 + 2;"
 require_text "src/self_hosted/codegen/role_expected/operator_add_stdout.txt" $'123\n123\n3'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindValueReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let return_shape: SemanticAstExpressionShapeFact"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitReturn(rexpr, cur_fn_ret, env, return_shape)"
-require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "StrEvalWithSemanticShape(rexpr, env, shape)"
-require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "IntEvalWithSemanticShape(rexpr, env, shape)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let return_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitReturn(rexpr, cur_fn_ret, env, return_graph)"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "WrapExprWithSemanticGraph(rexpr, env, graph)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let return_shape: SemanticAstExpressionShapeFact"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindDeferStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindArrayPopStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx)"
@@ -3632,10 +3665,10 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let coll: String 
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstArenaAuxValueText(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindWhileStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let while_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapCondWithSemanticGraph("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond: String = WrapExprWithSemanticGraph("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindIfStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let if_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond2: String = WrapCondWithSemanticGraph("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let cond2: String = WrapExprWithSemanticGraph("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "WrapCondWithSemanticShape("
 require_text "src/self_hosted/codegen/fixture/bool_logic.pgy" "if flag && !other"
 require_text "src/self_hosted/codegen/fixture/bool_logic.pgy" "if flag && !other || other"

@@ -91,6 +91,12 @@ func SelfMirLowerBlockFromArtifact(
                 local_name, arg1, expression, local_type,
                 "AST_LET_DECL", initializer_uses
             );
+            build = SelfMirRoutineAttachLastExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    state.input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneValue()
+                )
+            );
         } else if kind == TypedAstKindAssignStmtTag() {
             let assignment_index_opt: Option<Int> =
                 SemanticAstAssignmentIndexForNode(
@@ -154,6 +160,12 @@ func SelfMirLowerBlockFromArtifact(
             build = SelfMirRoutineAddInstruction(
                 build, "def", "ssa-def", SelfMirSsaName(target, version),
                 target, "", expression, target_text, "AST_ASSIGNMENT", uses
+            );
+            build = SelfMirRoutineAttachLastExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    state.input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneValue()
+                )
             );
         } else if kind == TypedAstKindBreakStmtTag() ||
             kind == TypedAstKindContinueStmtTag() {
@@ -226,6 +238,14 @@ func SelfMirLowerBlockFromArtifact(
                     return_source_type,
                     SelfMirExpressionUses(build, payload)
                 );
+                if kind == TypedAstKindValueReturnStmtTag() {
+                    build = SelfMirRoutineAttachLastExpressionGraph(
+                        build, SemanticAstExpressionGraphForNode(
+                            state.input.analysis.expression_surfaces,
+                            node_id, AstExpressionLaneAtom()
+                        )
+                    );
+                }
                 build = SelfMirRoutineTerminate(build);
             } else if kind == TypedAstKindIfStmtTag() {
                 let condition: String = payload;
@@ -240,7 +260,7 @@ func SelfMirLowerBlockFromArtifact(
                 build = SelfMirRoutineAttachLastExpressionGraph(
                     build, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
-                        node_id, SemanticAstExpressionAtomLane()
+                        node_id, AstExpressionLaneAtom()
                     )
                 );
                 let body_opt: Option<Int> = SelfMirControlBodyBlock(
@@ -399,7 +419,7 @@ func SelfMirLowerBlockFromArtifact(
                 build = SelfMirRoutineAttachLastExpressionGraph(
                     build, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
-                        node_id, SemanticAstExpressionAtomLane()
+                        node_id, AstExpressionLaneAtom()
                     )
                 );
                 build = SelfMirRoutineAddBlock(build);
@@ -534,59 +554,4 @@ func SelfMirLowerBlockFromArtifact(
         );
     }
     return SelfMirRoutineState(state.input, build);
-}
-
-func SelfMirRoutineFromInput(
-    input: SelfMirRoutineInput,
-    function_node_id: Int
-) -> SelfMirRoutineBuild {
-    let body_opt: Option<Int> = SelfMirFunctionBodyBlock(
-        input.artifact.arena, function_node_id
-    );
-    let build: SelfMirRoutineBuild = SelfMirRoutineBuildEmpty();
-    if !IsSome(body_opt) {
-        return SelfMirRoutineBuildError(build, "function body block is missing");
-    }
-    let signature_index_opt: Option<Int> =
-        SemanticAstFunctionSignatureIndexForNode(
-            input.analysis.signatures, function_node_id
-        );
-    if !IsSome(signature_index_opt) {
-        return SelfMirRoutineBuildError(
-            build, "function signature is missing for MIR parameter seeding"
-        );
-    }
-    let signature_index: Int = UnwrapOption(signature_index_opt);
-    let param_count_opt: Option<Int> = SemanticAstFunctionParamCountAt(
-        input.analysis.signatures, signature_index
-    );
-    if !IsSome(param_count_opt) {
-        return SelfMirRoutineBuildError(
-            build, "function parameter count is missing for MIR"
-        );
-    }
-    let p: Int = 0;
-    while p < UnwrapOption(param_count_opt) {
-        let param_name: Option<String> = SemanticAstFunctionParamNameAt(
-            input.analysis.signatures, signature_index, p
-        );
-        let param_type: Option<String> = SemanticAstFunctionParamTypeAt(
-            input.analysis.signatures, signature_index, p
-        );
-        if !IsSome(param_name) || !IsSome(param_type) {
-            return SelfMirRoutineBuildError(
-                build, "function parameter fact is incomplete for MIR"
-            );
-        }
-        build = SelfMirRoutineAddLocal(
-            build, UnwrapOption(param_name), UnwrapOption(param_type), 1
-        );
-        p = p + 1;
-    }
-    let root_break_blocks: Array<Int> = [];
-    let state: SelfMirRoutineState = SelfMirLowerBlockFromArtifact(
-        SelfMirRoutineState(input, build), UnwrapOption(body_opt),
-        root_break_blocks, -1
-    );
-    return state.build;
 }

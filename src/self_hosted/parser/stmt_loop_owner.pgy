@@ -7,15 +7,18 @@ func ParseWhileStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = after_head;
     ArraySet(cursor_out, 0, i);
     let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
     if !condition.ok { Exit(1); }
     ArraySet(
-        condition_graphs, 0,
-        ParserConditionGraphsAppend(condition_graphs[0], condition)
+        expression_graphs, 0,
+        ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindWhileStmtTag(),
+            AstExpressionLaneAtom(), condition
+        )
     );
     let cond: String = condition.text;
     i = cursor_out[0];
@@ -23,7 +26,7 @@ func ParseWhileStmt(
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
     let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, condition_graphs
+        content, i, cursor_out, stmt_indent + 4, expression_graphs
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {
@@ -38,20 +41,21 @@ func ParseLoopStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     let i: Int = after_head;
     let out: String = Concat(IndentStr(stmt_indent), "While: true");
     ArraySet(
-        condition_graphs, 0,
-        ParserConditionGraphsAppend(
-            condition_graphs[0], ParserExpressionLeaf("true")
+        expression_graphs, 0,
+        ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindWhileStmtTag(),
+            AstExpressionLaneAtom(), ParserExpressionLeaf("true")
         )
     );
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
     let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, condition_graphs
+        content, i, cursor_out, stmt_indent + 4, expression_graphs
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {
@@ -66,7 +70,7 @@ func ParseForStmt(
     after_head: Int,
     inout cursor_out: Array<Int>,
     stmt_indent: Int,
-    inout condition_graphs: Array<AstExpressionGraphRows>
+    inout expression_graphs: Array<AstExpressionGraphRows>
 ) -> String {
     // `for IDENT in EXPR..EXPR { ... }`. Range bounds use ParseExpr so `..`
     // terminates the lower bound and this owner consumes the upper explicitly.
@@ -102,7 +106,7 @@ func ParseForStmt(
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
     let body: String = ParseBlock(
-        content, i, cursor_out, stmt_indent + 4, condition_graphs
+        content, i, cursor_out, stmt_indent + 4, expression_graphs
     );
     i = cursor_out[0];
     if StringLength(body) > 0 {

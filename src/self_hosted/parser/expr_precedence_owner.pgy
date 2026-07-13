@@ -62,11 +62,15 @@ func ParseMulFact(
         i = i + 1;
         let right: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = ParserExpressionLeaf(Concat(
+        let kind: Int = AstExpressionNodeMultiply();
+        if op == "/" { kind = AstExpressionNodeDivide(); }
+        else if op == "%" { kind = AstExpressionNodeModulo(); }
+        let text: String = Concat(
             "(", Concat(left.text, Concat(" ", Concat(
                 op, Concat(" ", Concat(right.text, ")"))
             )))
-        ));
+        );
+        left = ParserExpressionBinary(kind, text, left, right);
     }
     return left;
 }
@@ -89,11 +93,14 @@ func ParseAdditiveFact(
         i = i + 1;
         let right: ParserExpressionFact = ParseMulFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = ParserExpressionLeaf(Concat(
+        let kind: Int = AstExpressionNodeAdd();
+        if op == "-" { kind = AstExpressionNodeSubtract(); }
+        let text: String = Concat(
             "(", Concat(left.text, Concat(" ", Concat(
                 op, Concat(" ", Concat(right.text, ")"))
             )))
-        ));
+        );
+        left = ParserExpressionBinary(kind, text, left, right);
     }
     return left;
 }
@@ -184,8 +191,24 @@ func ParseComparisonFact(
             left = ParserExpressionBinary(
                 AstExpressionNodeInequality(), text, left, right
             );
+        } else if op == "<" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeLess(), text, left, right
+            );
+        } else if op == "<=" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeLessEqual(), text, left, right
+            );
+        } else if op == ">" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeGreater(), text, left, right
+            );
+        } else if op == ">=" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeGreaterEqual(), text, left, right
+            );
         } else {
-            left = ParserExpressionLeaf(text);
+            return ParserExpressionInvalid();
         }
     }
     return left;
@@ -251,6 +274,33 @@ func ParseExprFact(
     cursor_out: Array<Int>
 ) -> ParserExpressionFact {
     return ParseLogicalOrFact(content, start, cursor_out);
+}
+
+func ParserExpressionPrecedenceGraphContractReady() -> Bool {
+    let source: String = "1 + 2 * 3 >= 7 && 5 % 2 != 0";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) {
+        return false;
+    }
+    let root: Int = fact.root;
+    if fact.arena.node_kinds[root] != AstExpressionNodeLogicalAnd() {
+        return false;
+    }
+    let comparison: Int = fact.arena.left_children[root];
+    let inequality: Int = fact.arena.right_children[root];
+    if fact.arena.node_kinds[comparison] !=
+        AstExpressionNodeGreaterEqual() ||
+        fact.arena.node_kinds[inequality] !=
+            AstExpressionNodeInequality() {
+        return false;
+    }
+    let addition: Int = fact.arena.left_children[comparison];
+    let modulo: Int = fact.arena.left_children[inequality];
+    return fact.arena.node_kinds[addition] == AstExpressionNodeAdd() &&
+        fact.arena.node_kinds[fact.arena.right_children[addition]] ==
+            AstExpressionNodeMultiply() &&
+        fact.arena.node_kinds[modulo] == AstExpressionNodeModulo();
 }
 
 // Compatibility text is a projection of the canonical parser fact, never a

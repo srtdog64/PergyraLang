@@ -150,10 +150,15 @@ inventory must not become a second fact-family owner registry.
   artifact-bound atom/value/auxiliary expression surfaces, normalized
   top-level operator rows, and string-safe call/token queries consumed by
   semantic and runtime projection.
+- `src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy` --
+  executable compact-bridge and expression-topology contract kept outside the
+  production fact owner.
 - `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` -- normalized
   expression node handles and child edges consumed by recursive semantic and
-  codegen projections; compact-text production remains an explicit bridge
-  until the parser emits the same graph rows directly.
+  codegen projections; compact-text production remains an explicit bridge for
+  non-migrated expression owners.
+- `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
+  parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
   artifact type-name rows consumed by runtime projection.
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` -- canonical
@@ -208,13 +213,15 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/expression_fact_owner.pgy` -- expression identifier-use
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
-  normalized condition graph rows and postorder subtree carriage.
+  normalized expression graph rows and postorder subtree carriage.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
   block edges, instruction IDs, termination, and local SSA version updates.
 - `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
   lowering as one value-state transformer with explicit loop/branch topology.
+- `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
+  signature parameter seeding, and routine-lowering entry.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and

@@ -1,5 +1,8 @@
 func Main() -> Int {
-    let mut x: Int = 1;
-    x = x + 2;
-    return x;
+    let mut x: Int = 1 + 2 * 3;
+    x = x - 4 / 2;
+    if x >= 5 && x % 2 != 0 {
+        return x - 5;
+    }
+    return 1;
 }

@@ -1,5 +1,7 @@
 // Parser-owned recursive expression rows carried by the typed AST artifact.
 
+import "ast_node_kind_owner.pgy";
+
 struct AstExpressionArena {
     node_kinds: Array<Int>;
     node_texts: Array<String>;
@@ -9,15 +11,35 @@ struct AstExpressionArena {
 
 struct AstExpressionGraphRows {
     ok: Bool;
-    condition_roots: Array<Int>;
+    root_owner_kinds: Array<Int>;
+    root_lanes: Array<Int>;
+    roots: Array<Int>;
     arena: AstExpressionArena;
 }
+
+func AstExpressionLaneAtom() -> Int { return 0; }
+func AstExpressionLaneValue() -> Int { return 1; }
+func AstExpressionLaneAuxiliary() -> Int { return 2; }
 
 func AstExpressionNodeLeaf() -> Int { return 0; }
 func AstExpressionNodeLogicalOr() -> Int { return 1; }
 func AstExpressionNodeLogicalAnd() -> Int { return 2; }
 func AstExpressionNodeEquality() -> Int { return 3; }
 func AstExpressionNodeInequality() -> Int { return 4; }
+func AstExpressionNodeLess() -> Int { return 5; }
+func AstExpressionNodeLessEqual() -> Int { return 6; }
+func AstExpressionNodeGreater() -> Int { return 7; }
+func AstExpressionNodeGreaterEqual() -> Int { return 8; }
+func AstExpressionNodeAdd() -> Int { return 9; }
+func AstExpressionNodeSubtract() -> Int { return 10; }
+func AstExpressionNodeMultiply() -> Int { return 11; }
+func AstExpressionNodeDivide() -> Int { return 12; }
+func AstExpressionNodeModulo() -> Int { return 13; }
+
+func AstExpressionNodeKindKnown(kind: Int) -> Bool {
+    return kind >= AstExpressionNodeLeaf() &&
+        kind <= AstExpressionNodeModulo();
+}
 
 func AstExpressionArenaEmpty() -> AstExpressionArena {
     let kinds: Array<Int> = [];
@@ -28,8 +50,22 @@ func AstExpressionArenaEmpty() -> AstExpressionArena {
 }
 
 func AstExpressionGraphRowsEmpty() -> AstExpressionGraphRows {
+    let owner_kinds: Array<Int> = [];
+    let lanes: Array<Int> = [];
     let roots: Array<Int> = [];
-    return AstExpressionGraphRows(true, roots, AstExpressionArenaEmpty());
+    return AstExpressionGraphRows(
+        true, owner_kinds, lanes, roots, AstExpressionArenaEmpty()
+    );
+}
+
+func AstExpressionOwnerKindKnown(kind: Int) -> Bool {
+    let tags: Array<Int> = TypedAstKindTags();
+    let i: Int = 0;
+    while i < ArrayLength(tags) {
+        if tags[i] == kind { return true; }
+        i = i + 1;
+    }
+    return false;
 }
 
 func AstExpressionArenaNodeCount(ref arena: AstExpressionArena) -> Int {
@@ -48,8 +84,8 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         let kind: Int = arena.node_kinds[i];
         let left: Int = arena.left_children[i];
         let right: Int = arena.right_children[i];
-        if arena.node_texts[i] == "" || kind < AstExpressionNodeLeaf() ||
-            kind > AstExpressionNodeInequality() {
+        if arena.node_texts[i] == "" ||
+            !AstExpressionNodeKindKnown(kind) {
             return false;
         }
         if kind == AstExpressionNodeLeaf() {
@@ -65,19 +101,32 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
 func AstExpressionGraphRowsReady(ref rows: AstExpressionGraphRows) -> Bool {
     if !rows.ok || !AstExpressionArenaReady(rows.arena) { return false; }
     let node_count: Int = AstExpressionArenaNodeCount(rows.arena);
-    let condition_count: Int = ArrayLength(rows.condition_roots);
-    if condition_count == 0 { return node_count == 0; }
+    let root_count: Int = ArrayLength(rows.roots);
+    if ArrayLength(rows.root_owner_kinds) != root_count ||
+        ArrayLength(rows.root_lanes) != root_count {
+        return false;
+    }
+    if root_count == 0 { return node_count == 0; }
     let seen: Array<Bool> = [];
     let stack: Array<Int> = [];
     let i: Int = 0;
     while i < node_count { ArrayPush(seen, false); i = i + 1; }
     i = 0;
-    while i < condition_count {
-        let root: Int = rows.condition_roots[i];
+    let previous_root: Int = -1;
+    while i < root_count {
+        let root: Int = rows.roots[i];
         if root < 0 || root >= node_count { return false; }
+        if root <= previous_root ||
+            !AstExpressionOwnerKindKnown(rows.root_owner_kinds[i]) ||
+            rows.root_lanes[i] < AstExpressionLaneAtom() ||
+            rows.root_lanes[i] > AstExpressionLaneAuxiliary() {
+            return false;
+        }
         ArrayPush(stack, root);
+        previous_root = root;
         i = i + 1;
     }
+    if previous_root != node_count - 1 { return false; }
     while ArrayLength(stack) > 0 {
         let node: Int = stack[ArrayLength(stack) - 1];
         ArrayPop(stack);

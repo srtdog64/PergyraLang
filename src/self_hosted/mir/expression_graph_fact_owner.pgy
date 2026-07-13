@@ -277,8 +277,7 @@ func SelfMirExpressionGraphRowsReady(
         while node_i < start + count {
             let kind: Int = rows.node_kinds[node_i];
             if rows.node_texts[node_i] == "" ||
-                kind < AstExpressionNodeLeaf() ||
-                kind > AstExpressionNodeInequality() {
+                !AstExpressionNodeKindKnown(kind) {
                 return false;
             }
             if kind == AstExpressionNodeLeaf() {
@@ -304,6 +303,15 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeLogicalAnd() { return "logical_and"; }
     if kind == AstExpressionNodeEquality() { return "equality"; }
     if kind == AstExpressionNodeInequality() { return "inequality"; }
+    if kind == AstExpressionNodeLess() { return "less"; }
+    if kind == AstExpressionNodeLessEqual() { return "less_equal"; }
+    if kind == AstExpressionNodeGreater() { return "greater"; }
+    if kind == AstExpressionNodeGreaterEqual() { return "greater_equal"; }
+    if kind == AstExpressionNodeAdd() { return "add"; }
+    if kind == AstExpressionNodeSubtract() { return "subtract"; }
+    if kind == AstExpressionNodeMultiply() { return "multiply"; }
+    if kind == AstExpressionNodeDivide() { return "divide"; }
+    if kind == AstExpressionNodeModulo() { return "modulo"; }
     return "";
 }
 
