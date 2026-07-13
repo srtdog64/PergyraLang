@@ -190,6 +190,27 @@ grep -Fq "symbol_hash_name" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "symbol_index_insert" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "scope_ensure_symbol_index_capacity" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "scope_lookup_current_linear" "$ROOT_DIR/src/semantic/symbol_table.c"
+grep -Fq "flow_tracks_memo_type" "$ROOT_DIR/src/semantic/symbol_table.h"
+grep -Fq "PGY_SEMPERF_VERIFY_CLASSIFY_MEMO" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_resources.c"
+grep -Fq "flow-snapshot classify memo diverged" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_resources.c"
+grep -Fq "PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1" "$ROOT_DIR/Makefile"
+
+PARSER_TREE_FIXTURE="$WORK_DIR/parser-tree-census.ast"
+PARSER_TREE_SUMMARY="$WORK_DIR/parser-tree-census.txt"
+cat > "$PARSER_TREE_FIXTURE" <<'EOF'
+Root:
+  A:
+    X
+  A:
+    X
+EOF
+bash "$ROOT_DIR/scripts/parser_tree_network_census.sh" \
+    "$PARSER_TREE_FIXTURE" > "$PARSER_TREE_SUMMARY"
+grep -Fqx \
+    "nodes=5 edges=4 roots=1 unique_subtrees=3 hash_cons_removed=2 hash_cons_removed_pct=40.0" \
+    "$PARSER_TREE_SUMMARY"
 grep -Fq "last_lookup_name;" "$ROOT_DIR/src/codegen/llvm_internal.h"
 grep -Fq "LLVMVarEntry *last_lookup;" "$ROOT_DIR/src/codegen/llvm_internal.h"
 grep -Fq "frame->last_lookup_name" "$ROOT_DIR/src/codegen/llvm_registry.c"
@@ -3996,7 +4017,6 @@ grep -Fq "strcmp(inner_name, \"Unknown\") == 0" "$ROOT_DIR/src/codegen/llvm_expr
 grep -Fq "if (ctx == NULL || node == NULL || ctx->has_error)" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM array access receiver is not an array, slice, string, or pointer" "$ROOT_DIR/src/codegen/llvm_expr_array_access.c"
 grep -Fq "llvm_zero_value_for_type" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
-grep -Fq "LLVM TaskGroup expression must lower through AIR/RIR/MIR task-group boundary" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "first_value = llvm_emit_expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "LLVM array literal could not lower element %zu" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "LLVM array literal could not allocate array temporary" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"

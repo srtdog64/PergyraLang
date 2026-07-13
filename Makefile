@@ -1783,7 +1783,7 @@ test-security: $(SECURITY_TEST)
 
 test-semantic: $(SEMANTIC_TEST)
 	@echo "=== Semantic Analyzer Test ==="
-	$(call pgy_run_native,$(SEMANTIC_TEST))
+	PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1 $(call pgy_run_native,$(SEMANTIC_TEST))
 
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="

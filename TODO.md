@@ -18621,8 +18621,10 @@ no-coreutils 폴백+실패 diff 렌더러로 잔류) ④ fork 다이어트(UNAME
 
 **WO-SEMPERF-1 1라운드 (2026-07-13, BDFL "네트워크 이론으로 줄일 것
 체크"→"문서화하고 작업시작해")**: 체크의 실측이 과녁을 옮겼다 —
-파서 사다리 축소(sort3 유사물)는 가능하나 전체의 1~2%라 보류, AST
-DAG-커널화는 메모리용(노드 56% 제거 가능하나 보일러플레이트), 진짜
+파서 사다리 축소는 Pratt 후보가 있으나 sorting-network 최소성 비유는
+성립하지 않고 raw AST dump가 약 0.2s라 보류. AST dump structural
+interning 상한은 재현 가능한 ordered hash 기준 38.0%이며 physical AST
+메모리 수치가 아니므로 DAG-커널화 주장은 철회. 진짜
 병목은 **mir_lower 7.6s = `ast_capture_inline`이 명령마다 디스크
 tmpfile() + stdout dup2 왕복**(Windows ~1ms/호출). 수술 =
 프린터를 파일-정적 싱크로(stdout 경로 byte-동일, 캡처는 malloc 버퍼),
@@ -18638,7 +18640,7 @@ semantic 3.1s**(별개 기전, docs/183 §2.5). 커밋 7c88c709, canonical =
 docs/183.
 
 **WO-SEMPERF-1 2라운드 (2026-07-13, "전부 작업해")**: semantic 3.1s의
-범인 = **분기-스냅샷 O(분기×심볼)** — if/match/loop flow가 분기마다
+범인 = **분기-스냅샷의 expensive classifier 반복** — if/match/loop flow가 분기마다
 `snapshot_resource_states` 최대 3회, 각 스냅샷이 scope 체인 전체(프로그램
 스코프 ~1천+ 심볼)를 심볼마다 ownership-classify cascade(host-decl 조회)로
 재분류. IF 4,707방문이 그걸 밟아 pass2가 2.4s. 격리는 관측성 3층 신설로
@@ -18650,8 +18652,12 @@ kind census; 리프 inclusive==self로 재귀 시간귀속 우회, 방문 97k≈
 분류 memo** + 검증 모드(`PGY_SEMPERF_VERIFY_CLASSIFY_MEMO`: 히트마다
 재계산 대조, 불일치 abort)로 무음-drift 공포를 게이트화 — 검증 모드
 켠 채 semantic 2794/0 통과(divergence 0). 결과: pass2 2.38→**0.30s(~8×)**,
-semantic 3.2→**0.77s**, driver_rung2 `--mir` 4.3~4.8→**1.76s**(원계측
-21s 대비 ~12×, §2 "한 자릿수 초" 목표 초과). 파리티 mir 11.5MB +
+semantic 3.2→**0.77s**, driver_rung2 `--mir` 통제 비교
+4.3~4.8→**1.76s**(§2 "한 자릿수 초" 목표 달성). 최초 21s는
+console/NUL 출력 오염을 포함하므로 12× 알고리즘 speedup으로 쓰지 않는다.
+Memo는 classifier를 amortize했지만 scope 전수 순회 O(분기×심볼)는 남는다.
+현 HEAD raw-file 재검증은 1.947~2.129s이며 검증 모드 MIR도 byte-동일.
+파리티 mir 11.5MB +
 mir-json 8.26MB byte-동일 · MIR 132/0 · transpile 918/0 · AIR 141/0 ·
 parser · compare 3/3. 잔여 최대 슬롯 = precollect ~0.3s — 측정-먼저
 교리상 중단. canonical = docs/183 §2.6.
