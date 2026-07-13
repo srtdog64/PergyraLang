@@ -190,9 +190,13 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         Die("codegen AST text bridge failed typed AST arena contract");
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    let artifact: AstTreeArtifact = AstTreeArtifact(tree_text, arena, count);
+    let artifact: AstTreeArtifact = AstTreeArtifact(
+        tree_text, arena, count, AstExpressionGraphRowsEmpty()
+    );
     let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(artifact, require_entrypoint);
+        SemanticAstArtifactAnalyzeCompactBridge(
+            artifact, require_entrypoint
+        );
     if !semantic_analysis.verdict.ok {
         Die(semantic_analysis.verdict.diagnostic_message);
     }
@@ -572,7 +576,9 @@ func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
 
 func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
     let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(artifact, require_entrypoint);
+        SemanticAstArtifactAnalyzeCompactBridge(
+            artifact, require_entrypoint
+        );
     return GenerateCUnitFromSemanticArtifact(
         artifact, semantic_analysis, require_entrypoint
     );

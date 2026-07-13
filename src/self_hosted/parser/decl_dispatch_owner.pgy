@@ -21,11 +21,29 @@ import "decl_nominal_owner.pgy";
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
 // namespaces). When `until_brace` is true, parsing stops at `}` (used
 // by the namespace branch); otherwise it stops at EOF.
-func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String, inout involve_types: Array<String>, inout import_paths: Array<String>) -> String {
+func ParseDecls(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    name_prefix: String,
+    until_brace: Bool,
+    source_dir: String,
+    force_export: Bool,
+    within_zone: String,
+    inout involve_types: Array<String>,
+    inout import_paths: Array<String>,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
     let script_body: String = "";
+    let out_graphs: Array<AstExpressionGraphRows> = [
+        AstExpressionGraphRowsEmpty()
+    ];
+    let script_graphs: Array<AstExpressionGraphRows> = [
+        AstExpressionGraphRowsEmpty()
+    ];
     let active_within_zone: String = within_zone;
     let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(active_within_zone) == 0;
 
@@ -46,11 +64,23 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             if ParserCharAt(content, i) == "}" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
+                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
+                    condition_graphs[0], out_graphs[0]
+                ));
+                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
+                    condition_graphs[0], script_graphs[0]
+                ));
                 return AppendImplicitMain(out, script_body);
             }
         } else {
             if i >= n {
                 ArraySet(cursor_out, 0, i);
+                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
+                    condition_graphs[0], out_graphs[0]
+                ));
+                ArraySet(condition_graphs, 0, ParserConditionGraphsAppendRows(
+                    condition_graphs[0], script_graphs[0]
+                ));
                 return AppendImplicitMain(out, script_body);
             }
         }
@@ -85,9 +115,18 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             let imp_content: String = ParserReadImportedSource(imp_path);
             let imp_dir: String = SelfHostPath.Dirname(imp_path);
             let imp_cursor: Array<Int> = [0];
-            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, active_within_zone, involve_types, import_paths);
+            let imp_graphs: Array<AstExpressionGraphRows> = [
+                AstExpressionGraphRowsEmpty()
+            ];
+            let imp_inner: String = ParseDecls(
+                imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true,
+                active_within_zone, involve_types, import_paths, imp_graphs
+            );
             if StringLength(imp_inner) > 0 {
                 out = AppendLine(out, imp_inner);
+                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                    out_graphs[0], imp_graphs[0]
+                ));
             }
             continue;
         }
@@ -110,10 +149,20 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
             }
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, active_within_zone, involve_types, import_paths);
+            let inner_graphs: Array<AstExpressionGraphRows> = [
+                AstExpressionGraphRowsEmpty()
+            ];
+            let inner: String = ParseDecls(
+                content, i, cursor_out, new_prefix, true, source_dir,
+                force_export, active_within_zone, involve_types, import_paths,
+                inner_graphs
+            );
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
+                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                    out_graphs[0], inner_graphs[0]
+                ));
             }
             continue;
         }
@@ -134,10 +183,20 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name, involve_types, import_paths);
+            let inner_graphs: Array<AstExpressionGraphRows> = [
+                AstExpressionGraphRowsEmpty()
+            ];
+            let inner: String = ParseDecls(
+                content, i, cursor_out, name_prefix, true, source_dir,
+                force_export, wz_name, involve_types, import_paths,
+                inner_graphs
+            );
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
+                ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                    out_graphs[0], inner_graphs[0]
+                ));
             }
             continue;
         }
@@ -176,14 +235,18 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
         }
 
         if MatchKeyword(content, i, "ability") {
-            let ability_block: String = ParseAbilityDecl(content, i, cursor_out, decl_prefix);
+            let ability_block: String = ParseAbilityDecl(
+                content, i, cursor_out, decl_prefix, out_graphs
+            );
             i = cursor_out[0];
             out = AppendLine(out, ability_block);
             continue;
         }
 
         if MatchKeyword(content, i, "zone") {
-            let zone_block: String = ParseZoneDecl(content, i, cursor_out, decl_prefix, involve_types);
+            let zone_block: String = ParseZoneDecl(
+                content, i, cursor_out, decl_prefix, involve_types, out_graphs
+            );
             i = cursor_out[0];
             out = AppendLine(out, zone_block);
             continue;
@@ -207,7 +270,10 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
 
 
         if MatchKeyword(content, i, "role") {
-            let role_block: String = ParseRoleDecl(content, i, cursor_out, decl_prefix, active_within_zone);
+            let role_block: String = ParseRoleDecl(
+                content, i, cursor_out, decl_prefix, active_within_zone,
+                out_graphs
+            );
             i = cursor_out[0];
             out = AppendLine(out, role_block);
             continue;
@@ -223,7 +289,10 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
 
 
         if MatchKeyword(content, i, "subject") || MatchKeyword(content, i, "class") || MatchKeyword(content, i, "vessel") || MatchKeyword(content, i, "struct") || MatchKeyword(content, i, "object") || MatchKeyword(content, i, "tobject") || MatchKeyword(content, i, "party") || MatchKeyword(content, i, "roster") || MatchKeyword(content, i, "world") {
-            let nominal_block: String = ParseNominalDecl(content, i, cursor_out, decl_prefix, active_within_zone, involve_types);
+            let nominal_block: String = ParseNominalDecl(
+                content, i, cursor_out, decl_prefix, active_within_zone,
+                involve_types, out_graphs
+            );
             i = cursor_out[0];
             out = AppendLine(out, nominal_block);
             continue;
@@ -254,7 +323,10 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
         // `func NAME(params) -> Type { body }` at top level (base_indent=2).
         if MatchKeyword(content, i, "func") {
             ArraySet(cursor_out, 0, i);
-            let fn_block: String = ParseFunction(content, i, cursor_out, decl_prefix, effective_export, 2, "func", "Function: ", false, active_within_zone);
+            let fn_block: String = ParseFunction(
+                content, i, cursor_out, decl_prefix, effective_export, 2,
+                "func", "Function: ", false, active_within_zone, out_graphs
+            );
             i = cursor_out[0];
             out = AppendLine(out, fn_block);
             continue;
@@ -271,12 +343,23 @@ func ParseDecls(content: String, start: Int, inout cursor_out: Array<Int>, name_
         if collect_script {
             stmt_indent = 8;
         }
-        let stmt_block: String = ParseOneStmt(content, i, cursor_out, stmt_indent);
+        let statement_graphs: Array<AstExpressionGraphRows> = [
+            AstExpressionGraphRowsEmpty()
+        ];
+        let stmt_block: String = ParseOneStmt(
+            content, i, cursor_out, stmt_indent, statement_graphs
+        );
         i = cursor_out[0];
         if collect_script {
             script_body = AppendLine(script_body, stmt_block);
+            ArraySet(script_graphs, 0, ParserConditionGraphsAppendRows(
+                script_graphs[0], statement_graphs[0]
+            ));
         } else {
             out = AppendLine(out, stmt_block);
+            ArraySet(out_graphs, 0, ParserConditionGraphsAppendRows(
+                out_graphs[0], statement_graphs[0]
+            ));
         }
     }
     return out;

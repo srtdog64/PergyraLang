@@ -2,6 +2,7 @@
 
 import "typed_ast_arena_owner.pgy";
 import "ast_text_inventory_owner.pgy";
+import "ast_expression_graph_owner.pgy";
 
 func CodegenAstTextArenaAtomFor(node: CodegenAstTextNode) -> String {
     if node.name != "" {
@@ -281,6 +282,7 @@ struct AstTreeArtifact {
     tree_text: String;
     arena: AstArena;
     count: Int;
+    expression_graphs: AstExpressionGraphRows;
 }
 
 func AstTreeArtifactPayloadSchema() -> String {
@@ -293,12 +295,15 @@ func AstTreeArtifactFromText(tree_text: String) -> AstTreeArtifact {
     CodegenAstTextNodeInventory(tree_text, nodes, count_box);
     let count: Int = count_box[0];
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
-    return AstTreeArtifact(tree_text, arena, count);
+    return AstTreeArtifact(
+        tree_text, arena, count, AstExpressionGraphRowsEmpty()
+    );
 }
 
 func AstTreeArtifactReady(artifact: AstTreeArtifact) -> Bool {
     return TypedAstArenaParallelRowsReady(artifact.arena) &&
-        TypedAstArenaNodeCount(artifact.arena) == artifact.count;
+        TypedAstArenaNodeCount(artifact.arena) == artifact.count &&
+        AstExpressionGraphRowsReady(artifact.expression_graphs);
 }
 
 func AstTreeArtifactPayloadContractReady() -> Bool {

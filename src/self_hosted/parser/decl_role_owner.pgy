@@ -6,7 +6,14 @@ import "type_name_owner.pgy";
 import "stmt_owner.pgy";
 import "function_decl_owner.pgy";
 
-func ParseRoleDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, within_zone: String) -> String {
+func ParseRoleDecl(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    decl_prefix: String,
+    within_zone: String,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -65,14 +72,19 @@ func ParseRoleDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
         }
         if MatchKeyword(content, i, "parallel") {
             ArraySet(cursor_out, 0, i);
-            let role_parallel: String = ParseOneStmt(content, i, cursor_out, 4);
+            let role_parallel: String = ParseOneStmt(
+                content, i, cursor_out, 4, condition_graphs
+            );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, role_parallel);
             continue;
         }
         if StringLength(compact_impl) > 0 && MatchKeyword(content, i, "func") {
             ArraySet(cursor_out, 0, i);
-            let compact_m: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
+            let compact_m: String = ParseFunction(
+                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                false, within_zone, condition_graphs
+            );
             i = cursor_out[0];
             impl_blocks = AppendLine(impl_blocks, "    Impl ability: (null)");
             impl_blocks = AppendLine(impl_blocks, compact_m);
@@ -111,7 +123,10 @@ func ParseRoleDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
                 Exit(1);
             }
             ArraySet(cursor_out, 0, i);
-            let m_block: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
+            let m_block: String = ParseFunction(
+                content, i, cursor_out, "", false, 6, "func", "Function: ",
+                false, within_zone, condition_graphs
+            );
             i = cursor_out[0];
             impl_methods = AppendLine(impl_methods, m_block);
         }

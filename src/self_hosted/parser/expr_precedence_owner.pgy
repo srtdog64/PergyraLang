@@ -1,62 +1,55 @@
 // Self-host parser expression precedence owner.
 
 import "cursor_owner.pgy";
+import "expression_graph_owner.pgy";
 
-// Unary level: `!` and `-`, right-associative; output wraps the whole
-// `OP EXPR` form in `(...)` to match `pgy --ast`. Unary `-` only fires
-// when `-` is in primary position (after whitespace) because binary
-// subtraction consumes its `-` token before recursing into ParseUnary
-// for the RHS.
-func ParseUnary(content: String, start: Int, cursor_out: Array<Int>) -> String {
+func ParseUnaryFact(
+    content: String,
+    start: Int,
+    cursor_out: Array<Int>
+) -> ParserExpressionFact {
     let i: Int = SkipWhitespaceAndComments(content, start);
     if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
         i = i + 1;
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("(!", Concat(operand, ")"));
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("(!", Concat(operand.text, ")")));
     }
     if ParserCharAt(content, i) == "-" {
         i = i + 1;
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("(-", Concat(operand, ")"));
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("(-", Concat(operand.text, ")")));
     }
     if ParserCharAt(content, i) == "&" && ParserCharAt(content, i + 1) != "&" {
         i = i + 1;
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("(&", Concat(operand, ")"));
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("(&", Concat(operand.text, ")")));
     }
-    // Channel receive: `<-EXPR` is emitted bare as `<-OPERAND` (no
-    // space, no parens — different from `!` and `-`).
     if ParserCharAt(content, i) == "<" && ParserCharAt(content, i + 1) == "-" {
         i = i + 2;
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("<-", operand);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("<-", operand.text));
     }
-    // `spawn EXPR` and `await EXPR`: unary-precedence prefix forms,
-    // emitted verbatim with a single space (e.g. `spawn Add(1, 2)`,
-    // `await f`).
     if MatchKeyword(content, i, "spawn") {
         i = i + 5;
-        // Optional `blocking` modifier — `spawn blocking F(args)` is
-        // printed as `spawn F(args)`, the modifier dropped.
         let after_spawn: Int = SkipWhitespaceAndComments(content, i);
-        if MatchKeyword(content, after_spawn, "blocking") {
-            i = after_spawn + 8;
-        }
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("spawn ", operand);
+        if MatchKeyword(content, after_spawn, "blocking") { i = after_spawn + 8; }
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("spawn ", operand.text));
     }
     if MatchKeyword(content, i, "await") {
         i = i + 5;
-        let operand: String = ParseUnary(content, i, cursor_out);
-        return Concat("await ", operand);
+        let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        return ParserExpressionLeaf(Concat("await ", operand.text));
     }
-    return ParsePrimary(content, i, cursor_out);
+    return ParsePrimaryFact(content, i, cursor_out);
 }
 
-// Multiplicative level: `*`, `/`, `%` left-associative, tighter than
-// `+ -`. RHS goes through ParseUnary so `1 * -2` becomes `(1 * (-2))`.
-func ParseMul(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParseUnary(content, start, cursor_out);
+func ParseMulFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseUnaryFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -67,16 +60,23 @@ func ParseMul(content: String, start: Int, inout cursor_out: Array<Int>) -> Stri
             return left;
         }
         i = i + 1;
-        let right: String = ParseUnary(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+        left = ParserExpressionLeaf(Concat(
+            "(", Concat(left.text, Concat(" ", Concat(
+                op, Concat(" ", Concat(right.text, ")"))
+            )))
+        ));
     }
     return left;
 }
 
-// Additive level: `+` and `-` left-associative.
-func ParseAdditive(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParseMul(content, start, cursor_out);
+func ParseAdditiveFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseMulFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -87,20 +87,23 @@ func ParseAdditive(content: String, start: Int, inout cursor_out: Array<Int>) ->
             return left;
         }
         i = i + 1;
-        let right: String = ParseMul(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseMulFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+        left = ParserExpressionLeaf(Concat(
+            "(", Concat(left.text, Concat(" ", Concat(
+                op, Concat(" ", Concat(right.text, ")"))
+            )))
+        ));
     }
     return left;
 }
 
-// Pipe operator `|>` — left-associative, *looser* than `+ -` so
-// `1 + 2 |> D` becomes `D((1 + 2))`. The C printer rewrites
-// `EXPR |> FUNC` as `FUNC(EXPR)` and `EXPR |> FUNC(args)` as
-// `FUNC(EXPR, args)`. Chained pipes nest left: `a |> b |> c` →
-// `c(b(a))`.
-func ParsePipe(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParseAdditive(content, start, cursor_out);
+func ParsePipeFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseAdditiveFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -109,58 +112,47 @@ func ParsePipe(content: String, start: Int, inout cursor_out: Array<Int>) -> Str
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
-        i = i + 2;
-        i = SkipWhitespaceAndComments(content, i);
+        i = SkipWhitespaceAndComments(content, i + 2);
         ArraySet(cursor_out, 0, i);
         let fn_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
-        if StringLength(fn_name) == 0 {
-            Exit(1);
-        }
+        if fn_name == "" { Exit(1); }
         let after_fn: Int = SkipWhitespaceAndComments(content, i);
+        let combined_args: String = left.text;
         if ParserCharAt(content, after_fn) == "(" {
-            i = after_fn + 1;
+            i = SkipWhitespaceAndComments(content, after_fn + 1);
             let extra_args: String = "";
-            i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
-                    let a: String = ParseExpr(content, i, cursor_out);
+                    let argument: String = ParseExpr(content, i, cursor_out);
                     i = cursor_out[0];
-                    if StringLength(extra_args) == 0 {
-                        extra_args = a;
-                    } else {
-                        extra_args = Concat(extra_args, Concat(", ", a));
-                    }
+                    if extra_args == "" { extra_args = argument; }
+                    else { extra_args = Concat(extra_args, Concat(", ", argument)); }
                     i = SkipWhitespaceAndComments(content, i);
-                    if ParserCharAt(content, i) == "," {
-                        i = i + 1;
-                        continue;
-                    }
+                    if ParserCharAt(content, i) == "," { i = i + 1; continue; }
                     break;
                 }
             }
             i = Expect(content, i, ")");
-            if i < 0 {
-                Exit(1);
+            if i < 0 { Exit(1); }
+            if extra_args != "" {
+                combined_args = Concat(left.text, Concat(", ", extra_args));
             }
-            let combined_args: String = left;
-            if StringLength(extra_args) > 0 {
-                combined_args = Concat(left, Concat(", ", extra_args));
-            }
-            left = Concat(fn_name, Concat("(", Concat(combined_args, ")")));
-        } else {
-            left = Concat(fn_name, Concat("(", Concat(left, ")")));
         }
+        left = ParserExpressionLeaf(Concat(
+            fn_name, Concat("(", Concat(combined_args, ")"))
+        ));
     }
     return left;
 }
 
-// Comparison level: `< > <= >= == !=` left-associative, *looser* than
-// the pipe `|>` layer (which is looser than additive). So
-// `1 + 2 < 5` is `((1 + 2) < 5)` and `1 |> f < 5` is `(f(1) < 5)`.
-func ParseComparison(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParsePipe(content, start, cursor_out);
+func ParseComparisonFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParsePipeFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -168,34 +160,43 @@ func ParseComparison(content: String, start: Int, inout cursor_out: Array<Int>) 
         let c0: String = ParserCharAt(content, i);
         let c1: String = ParserCharAt(content, i + 1);
         let op: String = "";
-        if c0 == "=" && c1 == "=" {
-            op = "==";
-        } else if c0 == "!" && c1 == "=" {
-            op = "!=";
-        } else if c0 == "<" && c1 == "=" {
-            op = "<=";
-        } else if c0 == ">" && c1 == "=" {
-            op = ">=";
-        } else if c0 == "<" {
-            op = "<";
-        } else if c0 == ">" {
-            op = ">";
-        }
-        if StringLength(op) == 0 {
+        if c0 == "=" && c1 == "=" { op = "=="; }
+        else if c0 == "!" && c1 == "=" { op = "!="; }
+        else if c0 == "<" && c1 == "=" { op = "<="; }
+        else if c0 == ">" && c1 == "=" { op = ">="; }
+        else if c0 == "<" { op = "<"; }
+        else if c0 == ">" { op = ">"; }
+        if op == "" {
             ArraySet(cursor_out, 0, before_ws);
             return left;
         }
         i = i + StringLength(op);
-        let right: String = ParseAdditive(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseAdditiveFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = Concat("(", Concat(left, Concat(" ", Concat(op, Concat(" ", Concat(right, ")"))))));
+        let text: String = Concat("(", Concat(left.text, Concat(
+            " ", Concat(op, Concat(" ", Concat(right.text, ")")))
+        )));
+        if op == "==" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeEquality(), text, left, right
+            );
+        } else if op == "!=" {
+            left = ParserExpressionBinary(
+                AstExpressionNodeInequality(), text, left, right
+            );
+        } else {
+            left = ParserExpressionLeaf(text);
+        }
     }
     return left;
 }
 
-// Logical AND: `&&` left-associative, looser than comparison.
-func ParseLogicalAnd(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParseComparison(content, start, cursor_out);
+func ParseLogicalAndFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseComparisonFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -205,16 +206,24 @@ func ParseLogicalAnd(content: String, start: Int, inout cursor_out: Array<Int>) 
             return left;
         }
         i = i + 2;
-        let right: String = ParseComparison(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseComparisonFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = Concat("(", Concat(left, Concat(" && ", Concat(right, ")"))));
+        let text: String = Concat(
+            "(", Concat(left.text, Concat(" && ", Concat(right.text, ")")))
+        );
+        left = ParserExpressionBinary(
+            AstExpressionNodeLogicalAnd(), text, left, right
+        );
     }
     return left;
 }
 
-// Logical OR: `||` left-associative, looser than `&&`.
-func ParseLogicalOr(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
-    let left: String = ParseLogicalAnd(content, start, cursor_out);
+func ParseLogicalOrFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseLogicalAndFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -224,14 +233,28 @@ func ParseLogicalOr(content: String, start: Int, inout cursor_out: Array<Int>) -
             return left;
         }
         i = i + 2;
-        let right: String = ParseLogicalAnd(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseLogicalAndFact(content, i, cursor_out);
         i = cursor_out[0];
-        left = Concat("(", Concat(left, Concat(" || ", Concat(right, ")"))));
+        let text: String = Concat(
+            "(", Concat(left.text, Concat(" || ", Concat(right.text, ")")))
+        );
+        left = ParserExpressionBinary(
+            AstExpressionNodeLogicalOr(), text, left, right
+        );
     }
     return left;
 }
 
-// Top-level expression entry. Used by let, return, if, while, for, call args.
+func ParseExprFact(
+    content: String,
+    start: Int,
+    cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    return ParseLogicalOrFact(content, start, cursor_out);
+}
+
+// Compatibility text is a projection of the canonical parser fact, never a
+// second parse path.
 func ParseExpr(content: String, start: Int, cursor_out: Array<Int>) -> String {
-    return ParseLogicalOr(content, start, cursor_out);
+    return ParseExprFact(content, start, cursor_out).text;
 }

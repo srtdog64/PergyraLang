@@ -18,7 +18,13 @@ import "stmt_match_owner.pgy";
 // Parse one statement. Returns its formatted AST lines joined by "\n";
 // empty string only if a parse error path was reached (which Exits anyway).
 // Mutually recursive with ParseBlock for `if` and `while` bodies.
-func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseOneStmt(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let head_start: Int = i;
     ArraySet(cursor_out, 0, i);
@@ -49,15 +55,15 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "if" {
-        return ParseIfStmt(content, i, cursor_out, stmt_indent);
+        return ParseIfStmt(content, i, cursor_out, stmt_indent, condition_graphs);
     }
 
     if head == "while" {
-        return ParseWhileStmt(content, i, cursor_out, stmt_indent);
+        return ParseWhileStmt(content, i, cursor_out, stmt_indent, condition_graphs);
     }
 
     if head == "loop" {
-        return ParseLoopStmt(content, i, cursor_out, stmt_indent);
+        return ParseLoopStmt(content, i, cursor_out, stmt_indent, condition_graphs);
     }
 
     if head == "with" {
@@ -96,7 +102,9 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
             Exit(1);
         }
         ArraySet(cursor_out, 0, i);
-        let with_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        let with_body: String = ParseBlock(
+            content, i, cursor_out, stmt_indent + 4, condition_graphs
+        );
         i = cursor_out[0];
         let with_out: String = Concat(IndentStr(stmt_indent), Concat("With slot<", Concat(with_type, Concat("> as ", as_name))));
         with_out = Concat(with_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
@@ -108,7 +116,9 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "parallel" {
-        return ParseParallelStmt(content, i, cursor_out, stmt_indent);
+        return ParseParallelStmt(
+            content, i, cursor_out, stmt_indent, condition_graphs
+        );
     }
 
     if head == "transaction" {
@@ -144,7 +154,9 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
                 continue;
             }
             ArraySet(cursor_out, 0, i);
-            let tx_stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 4);
+            let tx_stmt: String = ParseOneStmt(
+                content, i, cursor_out, stmt_indent + 4, condition_graphs
+            );
             i = cursor_out[0];
             if StringLength(tx_stmt) > 0 {
                 tx_out = AppendLine(tx_out, tx_stmt);
@@ -163,7 +175,9 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
         let out: String = Concat(IndentStr(stmt_indent), "Defer:");
         out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
         ArraySet(cursor_out, 0, i);
-        let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        let body: String = ParseBlock(
+            content, i, cursor_out, stmt_indent + 4, condition_graphs
+        );
         i = cursor_out[0];
         if StringLength(body) > 0 {
             out = Concat(out, Concat("\n", body));
@@ -223,11 +237,11 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     }
 
     if head == "match" {
-        return ParseMatchStmt(content, i, cursor_out, stmt_indent);
+        return ParseMatchStmt(content, i, cursor_out, stmt_indent, condition_graphs);
     }
 
     if head == "for" {
-        return ParseForStmt(content, i, cursor_out, stmt_indent);
+        return ParseForStmt(content, i, cursor_out, stmt_indent, condition_graphs);
     }
 
     if head == "return" {
@@ -347,7 +361,7 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
     // and parse a full expression (so `a + b;` and `obj.Greet();` both
     // work).
     ArraySet(cursor_out, 0, head_start);
-    let lhs: String = ParsePrimary(content, head_start, cursor_out);
+    let lhs: String = ParsePrimaryFact(content, head_start, cursor_out).text;
     let i_after_lhs: Int = cursor_out[0];
     let peek: Int = SkipWhitespaceAndComments(content, i_after_lhs);
     // Event subscription: `LHS += RHS ;` emits
@@ -428,7 +442,13 @@ func ParseOneStmt(content: String, start: Int, inout cursor_out: Array<Int>, stm
 // Parse a `{ stmt* }` block. Returns formatted lines joined by "\n".
 // stmt_indent is the column at which each child statement's first line
 // starts; nested blocks (if/while) compute their own deeper indents.
-func ParseBlock(content: String, start: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseBlock(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = Expect(content, start, "{");
     if i < 0 {
         Exit(1);
@@ -446,7 +466,9 @@ func ParseBlock(content: String, start: Int, inout cursor_out: Array<Int>, stmt_
             return out;
         }
         ArraySet(cursor_out, 0, i);
-        let stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent);
+        let stmt: String = ParseOneStmt(
+            content, i, cursor_out, stmt_indent, condition_graphs
+        );
         i = cursor_out[0];
         if StringLength(out) == 0 {
             out = stmt;

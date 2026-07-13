@@ -57,6 +57,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
+- `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
+  expression node/edge construction and condition-root accumulation.
 - `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix expression parsing.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
@@ -186,6 +188,8 @@ inventory must not become a second fact-family owner registry.
 
 - `src/self_hosted/hir/ast_node_kind_owner.pgy` -- canonical compact AST/HIR
   node-kind tags consumed by inventory, semantic, and codegen views.
+- `src/self_hosted/hir/ast_expression_graph_owner.pgy` -- canonical expression
+  graph arena, condition-root rows, and structural/reachability validation.
 - `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
   primitives shared by parser/HIR and codegen.
 - `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- compact AST text

@@ -2,15 +2,29 @@
 
 import "cursor_owner.pgy";
 
-func ParseWhileStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseWhileStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = after_head;
     ArraySet(cursor_out, 0, i);
-    let cond: String = ParseExpr(content, i, cursor_out);
+    let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
+    if !condition.ok { Exit(1); }
+    ArraySet(
+        condition_graphs, 0,
+        ParserConditionGraphsAppend(condition_graphs[0], condition)
+    );
+    let cond: String = condition.text;
     i = cursor_out[0];
     let out: String = Concat(IndentStr(stmt_indent), Concat("While: ", cond));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+    let body: String = ParseBlock(
+        content, i, cursor_out, stmt_indent + 4, condition_graphs
+    );
     i = cursor_out[0];
     if StringLength(body) > 0 {
         out = Concat(out, Concat("\n", body));
@@ -19,12 +33,26 @@ func ParseWhileStmt(content: String, after_head: Int, inout cursor_out: Array<In
     return out;
 }
 
-func ParseLoopStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseLoopStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = after_head;
     let out: String = Concat(IndentStr(stmt_indent), "While: true");
+    ArraySet(
+        condition_graphs, 0,
+        ParserConditionGraphsAppend(
+            condition_graphs[0], ParserExpressionLeaf("true")
+        )
+    );
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+    let body: String = ParseBlock(
+        content, i, cursor_out, stmt_indent + 4, condition_graphs
+    );
     i = cursor_out[0];
     if StringLength(body) > 0 {
         out = Concat(out, Concat("\n", body));
@@ -33,7 +61,13 @@ func ParseLoopStmt(content: String, after_head: Int, inout cursor_out: Array<Int
     return out;
 }
 
-func ParseForStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseForStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     // `for IDENT in EXPR..EXPR { ... }`. Range bounds use ParseExpr so `..`
     // terminates the lower bound and this owner consumes the upper explicitly.
     let i: Int = SkipWhitespaceAndComments(content, after_head);
@@ -67,7 +101,9 @@ func ParseForStmt(content: String, after_head: Int, inout cursor_out: Array<Int>
     let out: String = Concat(IndentStr(stmt_indent), header);
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+    let body: String = ParseBlock(
+        content, i, cursor_out, stmt_indent + 4, condition_graphs
+    );
     i = cursor_out[0];
     if StringLength(body) > 0 {
         out = Concat(out, Concat("\n", body));

@@ -14,6 +14,13 @@ are consumed during construction and do not cross the artifact boundary.
 Parser produces that artifact; codegen consumes it without rebuilding the
 arena.
 
+`ast_expression_graph_owner.pgy` separately owns canonical expression node
+kinds, child edges, and ordered condition roots. Parser fills those rows during
+the precedence walk and carries them in `AstTreeArtifact`. Its validator rejects
+shape drift, forward/self edges, invalid roots, and unreachable nodes. The
+semantic layer may project these rows into its own indexed facts, but it may
+not recover migrated condition topology from compact expression text.
+
 HIR lowering or validation must consume parser-owned facts and compare against
 the C compiler before it counts toward substitution. Re-reading source text to
 recover an already parsed semantic fact is not a valid self-host bridge.

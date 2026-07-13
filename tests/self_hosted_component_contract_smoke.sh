@@ -2404,7 +2404,13 @@ require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "struct A
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func AstTreeArtifactFromText"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func AstTreeArtifactReady"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func AstTreeArtifactPayloadContractReady"
+require_file "src/self_hosted/hir/ast_expression_graph_owner.pgy"
+require_max_lines "src/self_hosted/hir/ast_expression_graph_owner.pgy" 600
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "struct AstExpressionGraphRows"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionGraphRowsReady"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "if !seen[i] { return false; }"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v1"
+require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "expression_graphs: AstExpressionGraphRows;"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "ArrayPush(provenance_texts, nodes[i].text)"
 reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "nodes: Array<CodegenAstTextNode>;"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'let lines: Array<String> = Split(tree_text, "\n");'
@@ -2427,6 +2433,14 @@ require_text "src/self_hosted/codegen/text/text_owner.pgy" 'import "../../hir/as
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func NextNewline"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelComma"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/ast_text_arena_projection_owner.pgy";'
+require_file "src/self_hosted/parser/expression_graph_owner.pgy"
+require_max_lines "src/self_hosted/parser/expression_graph_owner.pgy" 600
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "struct ParserExpressionFact"
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserConditionGraphsAppend"
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "!AstExpressionGraphRowsReady(malformed)"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParseExprFact"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" "struct ParserProgramBuild"
+require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramBuild"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramArtifact"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromAstArtifact"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromAstArtifact"
@@ -2440,7 +2454,8 @@ require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "func Cod
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "field_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" "func SemanticAstNominalConstructorFieldNameAt"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactEntrypointVerdict"
-require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyze"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeCompactBridge"
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeTyped"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
@@ -2515,7 +2530,7 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'exactly one `Ma
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" 'at most one `Main` function is allowed'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyze(artifact, true)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "struct CompilerEmissionArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" '"emitted-c",'
@@ -2537,6 +2552,15 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyzeTyped(artifact, true)"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyze(artifact, true)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphBuildFromText"
 require_file "src/self_hosted/mir/expression_graph_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/expression_graph_fact_owner.pgy" 600
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -3017,12 +3041,16 @@ require_file "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphView"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildFromText"
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphFactsFromAstRows"
+reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphRightChild"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "expression_graph: SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "let condition_atom: Bool"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "!non_condition_graph.ok"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromTypedArtifact"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "!missing_typed_graph.ok"
 require_file "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionGraphOrDie"

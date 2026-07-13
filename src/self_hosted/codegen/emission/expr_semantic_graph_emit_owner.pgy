@@ -19,7 +19,7 @@ func RewriteBoolFromSemanticGraph(
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
-    if kind == SemanticExpressionNodeLeaf() {
+    if kind == AstExpressionNodeLeaf() {
         return RewriteTokens(text, env);
     }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -33,8 +33,8 @@ func RewriteBoolFromSemanticGraph(
     }
     let left_id: Int = UnwrapOption(left_opt);
     let right_id: Int = UnwrapOption(right_opt);
-    if kind == SemanticExpressionNodeEquality() ||
-        kind == SemanticExpressionNodeInequality() {
+    if kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() {
         let left_text: Option<String> = SemanticExpressionGraphNodeText(
             graph, left_id
         );
@@ -46,20 +46,20 @@ func RewriteBoolFromSemanticGraph(
         }
         let projected: Option<String> = RewriteEqualityProjection(
             UnwrapOption(left_text), UnwrapOption(right_text),
-            kind == SemanticExpressionNodeEquality(), env
+            kind == AstExpressionNodeEquality(), env
         );
         if IsSome(projected) { return UnwrapOption(projected); }
     }
     let left: String = RewriteBoolFromSemanticGraph(graph, left_id, env);
     let right: String = RewriteBoolFromSemanticGraph(graph, right_id, env);
     let operator: String = " || ";
-    if kind == SemanticExpressionNodeLogicalAnd() {
+    if kind == AstExpressionNodeLogicalAnd() {
         operator = " && ";
-    } else if kind == SemanticExpressionNodeEquality() {
+    } else if kind == AstExpressionNodeEquality() {
         operator = " == ";
-    } else if kind == SemanticExpressionNodeInequality() {
+    } else if kind == AstExpressionNodeInequality() {
         operator = " != ";
-    } else if kind != SemanticExpressionNodeLogicalOr() {
+    } else if kind != AstExpressionNodeLogicalOr() {
         Die("unsupported semantic expression graph node kind");
     }
     return Concat("(", Concat(

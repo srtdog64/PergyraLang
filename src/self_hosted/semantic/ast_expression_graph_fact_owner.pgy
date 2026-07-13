@@ -6,6 +6,7 @@
 
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
+import "../hir/ast_expression_graph_owner.pgy";
 
 struct SemanticExpressionGraphArena {
     node_kinds: Array<Int>;
@@ -33,12 +34,6 @@ struct SemanticExpressionGraphView {
     graph: SemanticExpressionGraphFacts;
 }
 
-func SemanticExpressionNodeLeaf() -> Int { return 0; }
-func SemanticExpressionNodeLogicalOr() -> Int { return 1; }
-func SemanticExpressionNodeLogicalAnd() -> Int { return 2; }
-func SemanticExpressionNodeEquality() -> Int { return 3; }
-func SemanticExpressionNodeInequality() -> Int { return 4; }
-
 func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
@@ -54,6 +49,57 @@ func SemanticExpressionGraphFactsEmpty() -> SemanticExpressionGraphFacts {
     let has_roots: Array<Bool> = [];
     return SemanticExpressionGraphFacts(
         true, roots, has_roots, SemanticExpressionGraphArenaEmpty()
+    );
+}
+
+func SemanticExpressionGraphFactsFromAstRows(
+    rows: AstExpressionGraphRows,
+    condition_slots: Array<Int>,
+    expected_root_count: Int
+) -> SemanticExpressionGraphFacts {
+    let roots: Array<Int> = [];
+    let has_roots: Array<Bool> = [];
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let ok: Bool = expected_root_count >= 0 &&
+        AstExpressionGraphRowsReady(rows) &&
+        ArrayLength(condition_slots) == ArrayLength(rows.condition_roots);
+    let i: Int = 0;
+    while i < expected_root_count {
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        i = i + 1;
+    }
+    i = 0;
+    while i < AstExpressionArenaNodeCount(rows.arena) {
+        ArrayPush(kinds, rows.arena.node_kinds[i]);
+        ArrayPush(texts, SemanticStripOuterParens(rows.arena.node_texts[i]));
+        ArrayPush(left_children, rows.arena.left_children[i]);
+        ArrayPush(right_children, rows.arena.right_children[i]);
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(condition_slots) && ok {
+        let slot: Int = condition_slots[i];
+        if slot < 0 || slot >= expected_root_count || has_roots[slot] {
+            ok = false;
+        } else {
+            ArraySet(roots, slot, rows.condition_roots[i]);
+            ArraySet(has_roots, slot, true);
+        }
+        i = i + 1;
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        kinds, texts, left_children, right_children
+    );
+    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        ok, roots, has_roots, arena
+    );
+    return SemanticExpressionGraphFacts(
+        SemanticExpressionGraphFactsReady(facts, expected_root_count),
+        roots, has_roots, arena
     );
 }
 
@@ -77,11 +123,11 @@ func SemanticExpressionGraphArenaReady(
         let kind: Int = arena.node_kinds[i];
         let left: Int = arena.left_children[i];
         let right: Int = arena.right_children[i];
-        if arena.node_texts[i] == "" || kind < SemanticExpressionNodeLeaf() ||
-            kind > SemanticExpressionNodeInequality() {
+        if arena.node_texts[i] == "" || kind < AstExpressionNodeLeaf() ||
+            kind > AstExpressionNodeInequality() {
             return false;
         }
-        if kind == SemanticExpressionNodeLeaf() {
+        if kind == AstExpressionNodeLeaf() {
             if left != 0 || right != 0 { return false; }
         } else if left < 0 || right < 0 || left >= i || right >= i {
             return false;
@@ -133,22 +179,22 @@ func SemanticExpressionGraphBuildFromText(
     }
     let operators: SemanticTopLevelOperatorFacts =
         SemanticTopLevelOperatorFactsFromExpression(text);
-    let kind: Int = SemanticExpressionNodeLeaf();
+    let kind: Int = AstExpressionNodeLeaf();
     let operator_index: Option<Int> = None;
     if operators.logical_or_index >= 0 {
-        kind = SemanticExpressionNodeLogicalOr();
+        kind = AstExpressionNodeLogicalOr();
         operator_index = Some(operators.logical_or_index);
     } else if operators.logical_and_index >= 0 {
-        kind = SemanticExpressionNodeLogicalAnd();
+        kind = AstExpressionNodeLogicalAnd();
         operator_index = Some(operators.logical_and_index);
     } else if operators.equality_index >= 0 {
-        kind = SemanticExpressionNodeEquality();
+        kind = AstExpressionNodeEquality();
         if operators.equality_is_not {
-            kind = SemanticExpressionNodeInequality();
+            kind = AstExpressionNodeInequality();
         }
         operator_index = Some(operators.equality_index);
     }
-    if kind == SemanticExpressionNodeLeaf() {
+    if kind == AstExpressionNodeLeaf() {
         return SemanticExpressionGraphAppendNode(arena, kind, text, 0, 0);
     }
     if !IsSome(operator_index) {
@@ -274,7 +320,7 @@ func SemanticExpressionGraphLeftChild(
     node_id: Int
 ) -> Option<Int> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
-    if !IsSome(kind) || UnwrapOption(kind) == SemanticExpressionNodeLeaf() {
+    if !IsSome(kind) || UnwrapOption(kind) == AstExpressionNodeLeaf() {
         return None;
     }
     return Some(facts.arena.left_children[node_id]);
@@ -285,7 +331,7 @@ func SemanticExpressionGraphRightChild(
     node_id: Int
 ) -> Option<Int> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
-    if !IsSome(kind) || UnwrapOption(kind) == SemanticExpressionNodeLeaf() {
+    if !IsSome(kind) || UnwrapOption(kind) == AstExpressionNodeLeaf() {
         return None;
     }
     return Some(facts.arena.right_children[node_id]);

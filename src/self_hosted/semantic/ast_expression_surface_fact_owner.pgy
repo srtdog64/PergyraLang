@@ -182,6 +182,39 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
     return SemanticAstExpressionSurfaceFactsFromArtifactMode(artifact, false);
 }
 
+func SemanticAstExpressionSurfaceFactsFromTypedArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstExpressionSurfaceFacts {
+    let rows: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
+    let condition_slots: Array<Int> = [];
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(rows) {
+        let node_id: Int = rows.node_ids[i];
+        if rows.has_atoms[i] &&
+            (TypedAstArenaNodeKindIs(
+                artifact.arena, node_id, TypedAstKindIfStmtTag()
+            ) || TypedAstArenaNodeKindIs(
+                artifact.arena, node_id, TypedAstKindWhileStmtTag()
+            )) {
+            ArrayPush(
+                condition_slots,
+                i * 3 + SemanticAstExpressionAtomLane()
+            );
+        }
+        i = i + 1;
+    }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            artifact.expression_graphs,
+            condition_slots,
+            SemanticAstExpressionSurfaceCount(rows) * 3
+        );
+    return SemanticAstExpressionSurfaceFactsWithGraph(
+        artifact, rows, graph
+    );
+}
+
 func SemanticAstExpressionSurfaceCount(
     facts: SemanticAstExpressionSurfaceFacts
 ) -> Int {
@@ -498,6 +531,8 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact);
+    let missing_typed_graph: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact);
     let additive_shape: SemanticAstExpressionShapeFact =
         SemanticAstExpressionInvalidShape();
     let logical_shape: SemanticAstExpressionShapeFact =
@@ -534,7 +569,8 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let logical_root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         logical_graph.graph, logical_graph.root_id
     );
-    return SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
+    return !missing_typed_graph.ok &&
+        SemanticAstExpressionSurfaceFactsMatchArtifact(artifact, facts) &&
         SemanticAstExpressionSurfaceCallPresent(facts, "Concat") &&
         SemanticAstExpressionSurfaceTokenPresent(facts, "None") &&
         !SemanticAstExpressionSurfaceCallPresent(facts, "Substring") &&
@@ -545,6 +581,6 @@ func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
         logical_shape.logical_or_index == 17 &&
         logical_shape.equality_index == 29 && logical_shape.equality_is_not &&
         logical_graph.ok && IsSome(logical_root_kind) &&
-        UnwrapOption(logical_root_kind) == SemanticExpressionNodeLogicalOr() &&
+        UnwrapOption(logical_root_kind) == AstExpressionNodeLogicalOr() &&
         !non_condition_graph.ok;
 }

@@ -42,7 +42,8 @@ branch instructions. It validates node kinds, postorder child edges, root
 bounds, and reconstructed-artifact condition binding before semantic/codegen
 consumption. The direct DRV-2 `--mir-json` path requires this fact and never
 rebuilds it from `expr0`; `--canonicalize-mir-json` is the named C-oracle bridge
-that upgrades older native MIR JSON before comparison.
+that upgrades older native MIR JSON before comparison through the explicitly
+named `SemanticAstArtifactAnalyzeCompactBridge` boundary.
 
 `parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
 task count, unique row names, and the closed `snapshot_copy` /

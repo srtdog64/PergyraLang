@@ -6,7 +6,15 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 
-func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, within_zone: String, inout involve_types: Array<String>) -> String {
+func ParseNominalDecl(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    decl_prefix: String,
+    within_zone: String,
+    inout involve_types: Array<String>,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -139,7 +147,11 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
             }
             if MatchKeyword(content, i, "func") {
                 ArraySet(cursor_out, 0, i);
-                let m_block: String = ParseFunction(content, i, cursor_out, "", false, host_method_indent, "func", "Function: ", false, within_zone);
+                let m_block: String = ParseFunction(
+                    content, i, cursor_out, "", false, host_method_indent,
+                    "func", "Function: ", false, within_zone,
+                    condition_graphs
+                );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, m_block);
                 continue;
@@ -149,7 +161,11 @@ func ParseNominalDecl(content: String, start: Int, inout cursor_out: Array<Int>,
             // base_indent.
             if MatchKeyword(content, i, "action") {
                 ArraySet(cursor_out, 0, i);
-                let a_block: String = ParseFunction(content, i, cursor_out, "", false, host_method_indent, "action", "Action: ", false, within_zone);
+                let a_block: String = ParseFunction(
+                    content, i, cursor_out, "", false, host_method_indent,
+                    "action", "Action: ", false, within_zone,
+                    condition_graphs
+                );
                 i = cursor_out[0];
                 method_blocks = AppendLine(method_blocks, a_block);
                 continue;

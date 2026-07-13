@@ -11,7 +11,8 @@ inventing a second AST serialization format.
   vs `--fixture-manifest`, then delegates source selection and parsing.
 - `program_parse_owner.pgy` - root Program SoT. Owns root source reads, root
   cursor initialization, top-level declaration parse invocation, and final
-  compact AST `Program:` assembly.
+  compact AST `Program:` assembly. It returns the text projection and typed
+  condition-expression graph together as one `ParserProgramBuild`.
 - `source_path_owner.pgy` - parser input/import-path SoT. Owns the argv/default
   source path, imported-source read marker, and import graph membership fact.
   Source dirname and import joins consume `SelfHostPath` instead of
@@ -25,6 +26,10 @@ inventing a second AST serialization format.
 - `expr_postfix_owner.pgy` - postfix expression chain owner. Owns calls,
   indexes, member access, postfix try, object-init syntax, and call-only
   turbofish consumption.
+- `expression_graph_owner.pgy` - expression graph construction owner. The
+  precedence walk emits stable node kinds and child edges while it parses;
+  semantic analysis must not reparse the compact expression projection on the
+  DRV-2 hard path.
 - `stmt_owner.pgy` - statement dispatch and block parsing owner. It delegates
   branch-specific statement syntax to statement owners instead of carrying every
   statement shape itself.
@@ -42,3 +47,8 @@ inventing a second AST serialization format.
   coverage result.
 
 Run: `bash tests/self_hosted/parity/parser_parity.sh`
+
+The compact tree remains the byte-parity and provenance projection. It is not
+the semantic owner of migrated condition graphs. The current single-element
+`Array<AstExpressionGraphRows>` transport is a bounded mutable parser context
+needed by the present self-host ABI; it does not encode graph meaning in text.

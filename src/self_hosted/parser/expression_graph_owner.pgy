@@ -1,0 +1,182 @@
+// Canonical parser expression result: rendered compatibility text plus the
+// recursive graph produced by the same precedence walk.
+
+import "../hir/ast_expression_graph_owner.pgy";
+
+struct ParserExpressionFact {
+    ok: Bool;
+    text: String;
+    root: Int;
+    arena: AstExpressionArena;
+}
+
+func ParserExpressionInvalid() -> ParserExpressionFact {
+    return ParserExpressionFact(false, "", 0, AstExpressionArenaEmpty());
+}
+
+func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeLeaf()];
+    let texts: Array<String> = [text];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
+    );
+}
+
+func ParserExpressionBinary(
+    kind: Int,
+    text: String,
+    left: ParserExpressionFact,
+    right: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !left.ok || !right.ok || text == "" ||
+        kind <= AstExpressionNodeLeaf() ||
+        kind > AstExpressionNodeInequality() {
+        return ParserExpressionInvalid();
+    }
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let left_count: Int = AstExpressionArenaNodeCount(left.arena);
+    let i: Int = 0;
+    while i < left_count {
+        ArrayPush(kinds, left.arena.node_kinds[i]);
+        ArrayPush(texts, left.arena.node_texts[i]);
+        ArrayPush(left_children, left.arena.left_children[i]);
+        ArrayPush(right_children, left.arena.right_children[i]);
+        i = i + 1;
+    }
+    let right_count: Int = AstExpressionArenaNodeCount(right.arena);
+    i = 0;
+    while i < right_count {
+        ArrayPush(kinds, right.arena.node_kinds[i]);
+        ArrayPush(texts, right.arena.node_texts[i]);
+        let child_left: Int = right.arena.left_children[i];
+        let child_right: Int = right.arena.right_children[i];
+        if right.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+            child_left = child_left + left_count;
+            child_right = child_right + left_count;
+        }
+        ArrayPush(left_children, child_left);
+        ArrayPush(right_children, child_right);
+        i = i + 1;
+    }
+    let root: Int = ArrayLength(kinds);
+    ArrayPush(kinds, kind);
+    ArrayPush(texts, text);
+    ArrayPush(left_children, left.root);
+    ArrayPush(right_children, right.root + left_count);
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    return ParserExpressionFact(
+        AstExpressionArenaReady(arena), text, root, arena
+    );
+}
+
+func ParserConditionGraphsAppend(
+    rows: AstExpressionGraphRows,
+    fact: ParserExpressionFact
+) -> AstExpressionGraphRows {
+    if !rows.ok || !fact.ok { return AstExpressionGraphRows(false, rows.condition_roots, rows.arena); }
+    let kinds: Array<Int> = rows.arena.node_kinds;
+    let texts: Array<String> = rows.arena.node_texts;
+    let left_children: Array<Int> = rows.arena.left_children;
+    let right_children: Array<Int> = rows.arena.right_children;
+    let roots: Array<Int> = rows.condition_roots;
+    let offset: Int = ArrayLength(kinds);
+    let i: Int = 0;
+    while i < AstExpressionArenaNodeCount(fact.arena) {
+        ArrayPush(kinds, fact.arena.node_kinds[i]);
+        ArrayPush(texts, fact.arena.node_texts[i]);
+        let left: Int = fact.arena.left_children[i];
+        let right: Int = fact.arena.right_children[i];
+        if fact.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+            left = left + offset;
+            right = right + offset;
+        }
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        i = i + 1;
+    }
+    ArrayPush(roots, fact.root + offset);
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    let next: AstExpressionGraphRows = AstExpressionGraphRows(
+        AstExpressionArenaReady(arena), roots, arena
+    );
+    return next;
+}
+
+func ParserConditionGraphsAppendRows(
+    target: AstExpressionGraphRows,
+    source: AstExpressionGraphRows
+) -> AstExpressionGraphRows {
+    if !target.ok || !AstExpressionGraphRowsReady(source) {
+        return AstExpressionGraphRows(false, target.condition_roots, target.arena);
+    }
+    let next: AstExpressionGraphRows = target;
+    let condition: Int = 0;
+    let previous_start: Int = 0;
+    while condition < ArrayLength(source.condition_roots) {
+        let root: Int = source.condition_roots[condition];
+        let start: Int = previous_start;
+        let end: Int = root + 1;
+        let kinds: Array<Int> = [];
+        let texts: Array<String> = [];
+        let left_children: Array<Int> = [];
+        let right_children: Array<Int> = [];
+        let i: Int = start;
+        while i < end {
+            ArrayPush(kinds, source.arena.node_kinds[i]);
+            ArrayPush(texts, source.arena.node_texts[i]);
+            let left: Int = source.arena.left_children[i];
+            let right: Int = source.arena.right_children[i];
+            if source.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+                left = left - start;
+                right = right - start;
+            }
+            ArrayPush(left_children, left);
+            ArrayPush(right_children, right);
+            i = i + 1;
+        }
+        let fact: ParserExpressionFact = ParserExpressionFact(
+            true, texts[ArrayLength(texts) - 1], root - start,
+            AstExpressionArena(kinds, texts, left_children, right_children)
+        );
+        next = ParserConditionGraphsAppend(next, fact);
+        previous_start = end;
+        condition = condition + 1;
+    }
+    return next;
+}
+
+func ParserExpressionGraphContractReady() -> Bool {
+    let left: ParserExpressionFact = ParserExpressionLeaf("a");
+    let right: ParserExpressionFact = ParserExpressionLeaf("b");
+    let fact: ParserExpressionFact = ParserExpressionBinary(
+        AstExpressionNodeLogicalAnd(), "(a && b)", left, right
+    );
+    let rows: AstExpressionGraphRows = ParserConditionGraphsAppend(
+        AstExpressionGraphRowsEmpty(), fact
+    );
+    let malformed: AstExpressionGraphRows = AstExpressionGraphRows(
+        true, [2],
+        AstExpressionArena(
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLogicalAnd(), AstExpressionNodeLeaf()
+            ],
+            ["a", "b", "(a && b)", "unreachable"],
+            [0, 0, 0, 0],
+            [0, 0, 1, 0]
+        )
+    );
+    return fact.ok && fact.root == 2 && AstExpressionGraphRowsReady(rows) &&
+        !AstExpressionGraphRowsReady(malformed);
+}

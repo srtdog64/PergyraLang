@@ -7,7 +7,13 @@ import "function_decl_owner.pgy";
 
 // `ability NAME { func SIG; ... }` declares an interface-shaped collection of
 // function signatures. AST emits as `  [export] Ability: NAME`.
-func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String) -> String {
+func ParseAbilityDecl(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    decl_prefix: String,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start + 7;
     let n: Int = StringLength(content);
     i = SkipWhitespaceAndComments(content, i);
@@ -91,7 +97,10 @@ func ParseAbilityDecl(content: String, start: Int, inout cursor_out: Array<Int>,
             Exit(1);
         }
         ArraySet(cursor_out, 0, i);
-        let sig: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", true, "");
+        let sig: String = ParseFunction(
+            content, i, cursor_out, "", false, 4, "func", "Function: ",
+            true, "", condition_graphs
+        );
         i = cursor_out[0];
         sig_blocks = AppendLine(sig_blocks, sig);
     }

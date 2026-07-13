@@ -30,7 +30,13 @@ func ParseIfLetPayload(content: String, start: Int, inout cursor_out: Array<Int>
     return payload;
 }
 
-func ParseIfStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseIfStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = after_head;
     let if_probe: Int = SkipWhitespaceAndComments(content, i);
     if MatchKeyword(content, if_probe, "let") {
@@ -65,7 +71,9 @@ func ParseIfStmt(content: String, after_head: Int, inout cursor_out: Array<Int>,
         match_out = AppendLine(match_out, Concat(IndentStr(stmt_indent + 2), Concat("Case: ", Concat(variant_name, Concat("(", Concat(case_payload, ")"))))));
         match_out = AppendLine(match_out, Concat(IndentStr(stmt_indent + 4), "Block:"));
         ArraySet(cursor_out, 0, i);
-        let match_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 6);
+        let match_body: String = ParseBlock(
+            content, i, cursor_out, stmt_indent + 6, condition_graphs
+        );
         i = cursor_out[0];
         if StringLength(match_body) > 0 {
             match_out = AppendLine(match_out, match_body);
@@ -74,13 +82,21 @@ func ParseIfStmt(content: String, after_head: Int, inout cursor_out: Array<Int>,
         return match_out;
     }
     ArraySet(cursor_out, 0, i);
-    let cond: String = ParseExpr(content, i, cursor_out);
+    let condition: ParserExpressionFact = ParseExprFact(content, i, cursor_out);
+    if !condition.ok { Exit(1); }
+    ArraySet(
+        condition_graphs, 0,
+        ParserConditionGraphsAppend(condition_graphs[0], condition)
+    );
+    let cond: String = condition.text;
     i = cursor_out[0];
     let out: String = Concat(IndentStr(stmt_indent), Concat("If: ", cond));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Then:")));
     out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 4), "Block:")));
     ArraySet(cursor_out, 0, i);
-    let then_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 6);
+    let then_body: String = ParseBlock(
+        content, i, cursor_out, stmt_indent + 6, condition_graphs
+    );
     i = cursor_out[0];
     if StringLength(then_body) > 0 {
         out = Concat(out, Concat("\n", then_body));
@@ -98,7 +114,9 @@ func ParseIfStmt(content: String, after_head: Int, inout cursor_out: Array<Int>,
         if MatchKeyword(content, i, "if") {
             out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Else:")));
             ArraySet(cursor_out, 0, i);
-            let nested_if: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 4);
+            let nested_if: String = ParseOneStmt(
+                content, i, cursor_out, stmt_indent + 4, condition_graphs
+            );
             i = cursor_out[0];
             if StringLength(nested_if) > 0 {
                 out = Concat(out, Concat("\n", nested_if));
@@ -107,7 +125,9 @@ func ParseIfStmt(content: String, after_head: Int, inout cursor_out: Array<Int>,
             out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Else:")));
             out = Concat(out, Concat("\n", Concat(IndentStr(stmt_indent + 4), "Block:")));
             ArraySet(cursor_out, 0, i);
-            let else_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 6);
+            let else_body: String = ParseBlock(
+                content, i, cursor_out, stmt_indent + 6, condition_graphs
+            );
             i = cursor_out[0];
             if StringLength(else_body) > 0 {
                 out = Concat(out, Concat("\n", else_body));

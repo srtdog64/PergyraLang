@@ -6,7 +6,14 @@ import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "function_decl_owner.pgy";
 
-func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, decl_prefix: String, inout involve_types: Array<String>) -> String {
+func ParseZoneDecl(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    decl_prefix: String,
+    inout involve_types: Array<String>,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
@@ -312,7 +319,10 @@ func ParseZoneDecl(content: String, start: Int, inout cursor_out: Array<Int>, de
             continue;
         } else if MatchKeyword(content, i, "func") {
             ArraySet(cursor_out, 0, i);
-            let m_block: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", false, "");
+            let m_block: String = ParseFunction(
+                content, i, cursor_out, "", false, 4, "func", "Function: ",
+                false, "", condition_graphs
+            );
             i = cursor_out[0];
             auth_accum = AppendLine(auth_accum, m_block);
             continue;

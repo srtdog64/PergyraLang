@@ -2,7 +2,13 @@
 
 import "cursor_owner.pgy";
 
-func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseMatchStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = after_head;
     // `match EXPR { (case EXPR : STMT | default : STMT)* }`. Each
     // case/default body is a single statement (the C parser
@@ -66,7 +72,9 @@ func ParseMatchStmt(content: String, after_head: Int, inout cursor_out: Array<In
                 break;
             }
             ArraySet(cursor_out, 0, i);
-            let case_body: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 6);
+            let case_body: String = ParseOneStmt(
+                content, i, cursor_out, stmt_indent + 6, condition_graphs
+            );
             i = cursor_out[0];
             if StringLength(case_body) > 0 {
                 out = AppendLine(out, case_body);

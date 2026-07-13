@@ -2,7 +2,13 @@
 
 import "cursor_owner.pgy";
 
-func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array<Int>, stmt_indent: Int) -> String {
+func ParseParallelStmt(
+    content: String,
+    after_head: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let i: Int = after_head;
     let parallel_probe: Int = SkipWhitespaceAndComments(content, i);
     if MatchKeyword(content, parallel_probe, "on") {
@@ -57,7 +63,9 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
                 }
             }
             ArraySet(cursor_out, 0, i);
-            on_body = ParseBlock(content, i, cursor_out, stmt_indent + 6);
+            on_body = ParseBlock(
+                content, i, cursor_out, stmt_indent + 6, condition_graphs
+            );
             i = cursor_out[0];
             i = Expect(content, i, "}");
             if i < 0 {
@@ -72,7 +80,9 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
                     break;
                 }
                 ArraySet(cursor_out, 0, i);
-                let direct_stmt: String = ParseOneStmt(content, i, cursor_out, stmt_indent + 6);
+                let direct_stmt: String = ParseOneStmt(
+                    content, i, cursor_out, stmt_indent + 6, condition_graphs
+                );
                 i = cursor_out[0];
                 if StringLength(direct_stmt) > 0 {
                     direct_out = AppendLine(direct_out, direct_stmt);
@@ -119,7 +129,9 @@ func ParseParallelStmt(content: String, after_head: Int, inout cursor_out: Array
         return Concat(IndentStr(stmt_indent), "Parallel:");
     }
     ArraySet(cursor_out, 0, i);
-    let pbody: String = ParseBlock(content, i, cursor_out, stmt_indent + 2);
+    let pbody: String = ParseBlock(
+        content, i, cursor_out, stmt_indent + 2, condition_graphs
+    );
     i = cursor_out[0];
     ArraySet(cursor_out, 0, i);
     let pout: String = Concat(IndentStr(stmt_indent), "Parallel:");

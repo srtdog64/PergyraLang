@@ -6803,3 +6803,30 @@ Released/default replacement remains 0%.
 - Scope remains bounded: parser payload to semantic graph production and
   non-condition recursive expression graphs are still `BRIDGE`; released and
   default replacement remain 0%.
+
+### 2026-07-13 -- Parser/HIR owns DRV-2 condition graph production
+
+- Added canonical `AstExpressionArena` and `AstExpressionGraphRows` under HIR,
+  with shape, edge-order, root, and union-reachability validation.
+- Changed the parser precedence walk to return `ParserExpressionFact` and emit
+  logical/equality graph nodes while parsing. Compact expression text is now a
+  parity/provenance projection for this migrated slice, not its semantic owner.
+- Carried ordered condition roots through `ParserProgramBuild` and
+  `AstTreeArtifact`. Declaration and implicit-`Main` lanes preserve emitted
+  tree order.
+- Rewired DRV-2 source verification to
+  `SemanticAstArtifactAnalyzeTyped`. A text-created artifact with no typed graph
+  is rejected; hard source and MIR consumers are statically forbidden from
+  invoking `SemanticExpressionGraphBuildFromText`.
+- Renamed the transitional analyzer to
+  `SemanticAstArtifactAnalyzeCompactBridge`. It remains available to older
+  standalone semantic fixtures, DRV-0/DRV-1 breadth paths, and the named
+  C-oracle canonicalizer only. A function-scoped hard gate forbids it in
+  `VerifyArtifactForMirProduction`.
+- Focused evidence: parser C/LLVM parity is byte-equal across 188 sources;
+  DRV-2 producer-first parity passes both backends across 19 source fixtures
+  and 10 MIR fixtures; the public `pgy --self-driver` path is artifact-equal
+  and fails closed when its self-host driver is unavailable.
+- Scope remains bounded: non-condition recursive expressions,
+  indexed/wrapper/auxiliary lanes, and initial compact-tree arena construction
+  remain `BRIDGE`; released/default replacement remains 0%.

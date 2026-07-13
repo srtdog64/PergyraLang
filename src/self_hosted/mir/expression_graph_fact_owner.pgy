@@ -65,7 +65,7 @@ func SelfMirExpressionGraphSubtreeStart(
     while node >= 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(source, node);
         if !IsSome(kind) { return None; }
-        if UnwrapOption(kind) == SemanticExpressionNodeLeaf() {
+        if UnwrapOption(kind) == AstExpressionNodeLeaf() {
             return Some(node);
         }
         let left: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -112,7 +112,7 @@ func SelfMirExpressionGraphAttachLast(
             return rows;
         }
         let kind: Int = UnwrapOption(kind_opt);
-        if kind != SemanticExpressionNodeLeaf() {
+        if kind != AstExpressionNodeLeaf() {
             let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
                 view.graph, source_node
             );
@@ -140,7 +140,7 @@ func SelfMirExpressionGraphAttachLast(
         ArrayPush(texts, view.graph.arena.node_texts[source_node]);
         let left: Int = 0;
         let right: Int = 0;
-        if kind != SemanticExpressionNodeLeaf() {
+        if kind != AstExpressionNodeLeaf() {
             left = start + view.graph.arena.left_children[source_node] -
                 source_start;
             right = start + view.graph.arena.right_children[source_node] -
@@ -197,7 +197,7 @@ func SelfMirExpressionGraphRowsAppendRows(
         ArrayPush(texts, source.node_texts[node_i]);
         let left: Int = 0;
         let right: Int = 0;
-        if kind != SemanticExpressionNodeLeaf() {
+        if kind != AstExpressionNodeLeaf() {
             left = source.left_children[node_i] + node_offset;
             right = source.right_children[node_i] + node_offset;
         }
@@ -234,7 +234,7 @@ func SelfMirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        if rows.node_kinds[node] != SemanticExpressionNodeLeaf() {
+        if rows.node_kinds[node] != AstExpressionNodeLeaf() {
             ArrayPush(pending, rows.left_children[node]);
             ArrayPush(pending, rows.right_children[node]);
         }
@@ -277,11 +277,11 @@ func SelfMirExpressionGraphRowsReady(
         while node_i < start + count {
             let kind: Int = rows.node_kinds[node_i];
             if rows.node_texts[node_i] == "" ||
-                kind < SemanticExpressionNodeLeaf() ||
-                kind > SemanticExpressionNodeInequality() {
+                kind < AstExpressionNodeLeaf() ||
+                kind > AstExpressionNodeInequality() {
                 return false;
             }
-            if kind == SemanticExpressionNodeLeaf() {
+            if kind == AstExpressionNodeLeaf() {
                 if rows.left_children[node_i] != 0 ||
                     rows.right_children[node_i] != 0 { return false; }
             } else if rows.left_children[node_i] < start ||
@@ -299,11 +299,11 @@ func SelfMirExpressionGraphRowsReady(
 }
 
 func SelfMirExpressionGraphKindName(kind: Int) -> String {
-    if kind == SemanticExpressionNodeLeaf() { return "leaf"; }
-    if kind == SemanticExpressionNodeLogicalOr() { return "logical_or"; }
-    if kind == SemanticExpressionNodeLogicalAnd() { return "logical_and"; }
-    if kind == SemanticExpressionNodeEquality() { return "equality"; }
-    if kind == SemanticExpressionNodeInequality() { return "inequality"; }
+    if kind == AstExpressionNodeLeaf() { return "leaf"; }
+    if kind == AstExpressionNodeLogicalOr() { return "logical_or"; }
+    if kind == AstExpressionNodeLogicalAnd() { return "logical_and"; }
+    if kind == AstExpressionNodeEquality() { return "equality"; }
+    if kind == AstExpressionNodeInequality() { return "inequality"; }
     return "";
 }
 
@@ -311,9 +311,9 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
     let valid: SelfMirExpressionGraphRows = SelfMirExpressionGraphRows(
         [1], [2], [0], [3],
         [
-            SemanticExpressionNodeLeaf(),
-            SemanticExpressionNodeLeaf(),
-            SemanticExpressionNodeEquality()
+            AstExpressionNodeLeaf(),
+            AstExpressionNodeLeaf(),
+            AstExpressionNodeEquality()
         ],
         ["a", "b", "a == b"], [0, 0, 0], [0, 0, 1]
     );
@@ -321,10 +321,10 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
         SelfMirExpressionGraphRows(
             [1], [3], [0], [4],
             [
-                SemanticExpressionNodeLeaf(),
-                SemanticExpressionNodeLeaf(),
-                SemanticExpressionNodeLeaf(),
-                SemanticExpressionNodeEquality()
+                AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(),
+                AstExpressionNodeEquality()
             ],
             ["a", "b", "unused", "a == b"],
             [0, 0, 0, 0], [0, 0, 0, 1]

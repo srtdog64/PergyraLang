@@ -167,7 +167,7 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstLo
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToAstArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstArtifactToC"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyze(artifact, true)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromSemanticArtifact(artifact, semantic_analysis)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAstArtifact(source_path)"

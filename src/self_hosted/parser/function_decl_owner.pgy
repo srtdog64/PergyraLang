@@ -15,7 +15,19 @@ import "stmt_owner.pgy";
 //
 // Used at both top level (base_indent = 2) and inside subject/class
 // `Methods:` blocks (base_indent = 6).
-func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, name_prefix: String, is_export: Bool, base_indent: Int, fn_keyword: String, fn_label: String, is_signature: Bool, within_zone_arg: String) -> String {
+func ParseFunction(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    name_prefix: String,
+    is_export: Bool,
+    base_indent: Int,
+    fn_keyword: String,
+    fn_label: String,
+    is_signature: Bool,
+    within_zone_arg: String,
+    inout condition_graphs: Array<AstExpressionGraphRows>
+) -> String {
     let kw: String = fn_keyword;
     if StringLength(kw) == 0 {
         kw = "func";
@@ -299,7 +311,9 @@ func ParseFunction(content: String, start: Int, inout cursor_out: Array<Int>, na
         }
     } else {
         ArraySet(cursor_out, 0, i);
-        body_text = ParseBlock(content, i, cursor_out, base_indent + 6);
+        body_text = ParseBlock(
+            content, i, cursor_out, base_indent + 6, condition_graphs
+        );
         i = cursor_out[0];
     }
 

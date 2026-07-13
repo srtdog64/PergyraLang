@@ -8,7 +8,12 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
 
-func ParseRootProgram(source_path: String) -> String {
+struct ParserProgramBuild {
+    tree_text: String;
+    condition_graphs: AstExpressionGraphRows;
+}
+
+func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
     if !FileExists(source_path) {
         Exit(1);
     }
@@ -21,15 +26,34 @@ func ParseRootProgram(source_path: String) -> String {
     let src_dir: String = SelfHostPath.Dirname(source_path);
     let involve_types: Array<String> = [];
     let import_paths: Array<String> = [source_path];
-    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "", involve_types, import_paths);
+    let condition_graphs: Array<AstExpressionGraphRows> = [
+        AstExpressionGraphRowsEmpty()
+    ];
+    let decls: String = ParseDecls(
+        content, i, cursor, "", false, src_dir, false, "", involve_types,
+        import_paths, condition_graphs
+    );
+    let graph_rows: AstExpressionGraphRows = condition_graphs[0];
+    if !AstExpressionGraphRowsReady(graph_rows) { Exit(1); }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
-        return Concat(empty_program, "\n");
+        return ParserProgramBuild(
+            Concat(empty_program, "\n"), graph_rows
+        );
     }
     let program_text: String = Concat("Program:\n", decls);
-    return Concat(program_text, "\n");
+    return ParserProgramBuild(Concat(program_text, "\n"), graph_rows);
+}
+
+func ParseRootProgram(source_path: String) -> String {
+    return ParseRootProgramBuild(source_path).tree_text;
 }
 
 func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
-    return AstTreeArtifactFromText(ParseRootProgram(source_path));
+    let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
+    return AstTreeArtifact(
+        artifact.tree_text, artifact.arena, artifact.count,
+        build.condition_graphs
+    );
 }

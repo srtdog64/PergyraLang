@@ -326,13 +326,23 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     );
 }
 
-func SemanticAstArtifactAnalyze(
+func SemanticAstArtifactAnalyzeCompactBridge(
     artifact: AstTreeArtifact,
     requires_entrypoint: Bool
 ) -> SemanticAstArtifactAnalysis {
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint,
         SemanticAstExpressionSurfaceFactsFromArtifact(artifact)
+    );
+}
+
+func SemanticAstArtifactAnalyzeTyped(
+    artifact: AstTreeArtifact,
+    requires_entrypoint: Bool
+) -> SemanticAstArtifactAnalysis {
+    return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+        artifact, requires_entrypoint,
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact)
     );
 }
 
@@ -387,7 +397,7 @@ func SemanticAstArtifactVerdictContractReady() -> Bool {
         "Program:\n  Enum: Direction { North, East }\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n"
     );
     let valid_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(valid, true);
+        SemanticAstArtifactAnalyzeCompactBridge(valid, true);
     if !SemanticAstArtifactAnalysisMatches(valid, valid_analysis, true) ||
         valid_analysis.verdict.main_count != 1 ||
         SemanticAstFunctionSignatureCount(valid_analysis.signatures) != 1 ||

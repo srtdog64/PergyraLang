@@ -32,6 +32,33 @@ forbid_text() {
     fi
 }
 
+function_body() {
+    local rel="$1"
+    local function_name="$2"
+    awk -v signature="func ${function_name}(" '
+        index($0, signature) == 1 { in_function = 1 }
+        in_function && $0 ~ /^func / && index($0, signature) != 1 { exit }
+        in_function { print }
+    ' "$ROOT_DIR/$rel"
+}
+
+require_function_text() {
+    local rel="$1"
+    local function_name="$2"
+    local term="$3"
+    function_body "$rel" "$function_name" | grep -Fq -- "$term" ||
+        fail "$rel function $function_name missing term: $term"
+}
+
+forbid_function_text() {
+    local rel="$1"
+    local function_name="$2"
+    local term="$3"
+    if function_body "$rel" "$function_name" | grep -Fq -- "$term"; then
+        fail "$rel function $function_name contains forbidden term: $term"
+    fi
+}
+
 source "$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
 
 require_file "docs/self_hosted/10_hard_self_host_contract.md"
@@ -99,6 +126,8 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MirExpressionGraphFactsForArtifact(json, artifact)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyzeTyped(artifact, true)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeWithExpressionGraph("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MIR instruction expression graph is missing or invalid"
@@ -112,6 +141,19 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     '"expr0_graph_removed"'
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CheckProgram("
+forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstArtifactAnalyze(artifact, true)"
+forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphBuildFromText"
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "VerifyArtifactForMirProduction" \
+    "SemanticAstArtifactAnalyzeTyped(artifact, true)"
+forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "VerifyArtifactForMirProduction" \
+    "SemanticAstArtifactAnalyzeCompactBridge"
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CanonicalizeMirJsonVerified" \
+    "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"

@@ -32,6 +32,7 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstExpressionVerdictContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
+        ParserExpressionGraphContractReady() &&
         SelfMirExpressionGraphRowsContractReady() &&
         SelfMirIndexedAssignmentUseContractReady() &&
         MirFactGraphPayloadContractReady() &&
@@ -197,15 +198,16 @@ func VerifyArtifactForMirProduction(
     artifact: AstTreeArtifact
 ) -> DriverRung2VerifiedFacts {
     return VerifyArtifactAnalysisForDriverRung2(
-        artifact, SemanticAstArtifactAnalyze(artifact, true)
+        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true)
     );
 }
 
-func CompileArtifactToMirJsonVerified(
-    artifact: AstTreeArtifact
+func CompileArtifactAnalysisToMirJsonVerified(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis
 ) -> String {
     let verified: DriverRung2VerifiedFacts =
-        VerifyArtifactForMirProduction(artifact);
+        VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, verified.analysis, verified.initializer_types,
         verified.iteration_types
@@ -222,6 +224,14 @@ func CompileArtifactToMirJsonVerified(
     return json;
 }
 
+func CompileArtifactToMirJsonVerified(
+    artifact: AstTreeArtifact
+) -> String {
+    return CompileArtifactAnalysisToMirJsonVerified(
+        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true)
+    );
+}
+
 func CompileSourceToMirJsonVerified(
     source_path: String
 ) -> String with caps io_read {
@@ -234,8 +244,12 @@ func CanonicalizeMirJsonVerified(
     mir_json_path: String
 ) -> String with caps io_read {
     let json: String = MirJsonReadInput(mir_json_path);
-    return CompileArtifactToMirJsonVerified(
-        AstTreeArtifactFromText(EmitMirProgramTree(json))
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        EmitMirProgramTree(json)
+    );
+    return CompileArtifactAnalysisToMirJsonVerified(
+        artifact,
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true)
     );
 }
 

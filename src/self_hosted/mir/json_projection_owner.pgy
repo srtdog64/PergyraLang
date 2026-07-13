@@ -39,7 +39,7 @@ func SelfMirJsonExpressionGraph(
             ),
             JsonEmitFieldString("text", rows.node_texts[node])
         ];
-        if kind == SemanticExpressionNodeLeaf() {
+        if kind == AstExpressionNodeLeaf() {
             ArrayPush(fields, JsonEmitFieldRaw("left", "null"));
             ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
         } else {

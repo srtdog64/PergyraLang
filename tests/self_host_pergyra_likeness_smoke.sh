@@ -76,7 +76,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # recovery cannot consume the unratcheted margin.
 # 83 -> 82 (2026-07-13): dead arena payload views were deleted; no live
 # semantic consumer moved back to string recovery.
-CORE_STRING_MUNGE_SIG_MAX=82
+# 82 -> 79 (2026-07-13): parser precedence rows now carry typed expression
+# facts while compact text is only their parity/provenance projection.
+CORE_STRING_MUNGE_SIG_MAX=79
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line

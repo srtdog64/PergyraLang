@@ -25,18 +25,18 @@ func MirExpressionGraphSequenceError(
 }
 
 func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
-    if kind == "leaf" { return Some(SemanticExpressionNodeLeaf()); }
+    if kind == "leaf" { return Some(AstExpressionNodeLeaf()); }
     if kind == "logical_or" {
-        return Some(SemanticExpressionNodeLogicalOr());
+        return Some(AstExpressionNodeLogicalOr());
     }
     if kind == "logical_and" {
-        return Some(SemanticExpressionNodeLogicalAnd());
+        return Some(AstExpressionNodeLogicalAnd());
     }
     if kind == "equality" {
-        return Some(SemanticExpressionNodeEquality());
+        return Some(AstExpressionNodeEquality());
     }
     if kind == "inequality" {
-        return Some(SemanticExpressionNodeInequality());
+        return Some(AstExpressionNodeInequality());
     }
     return None;
 }
@@ -64,7 +64,7 @@ func MirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        if arena.node_kinds[node] != SemanticExpressionNodeLeaf() {
+        if arena.node_kinds[node] != AstExpressionNodeLeaf() {
             ArrayPush(pending, arena.left_children[node]);
             ArrayPush(pending, arena.right_children[node]);
         }
@@ -122,7 +122,7 @@ func MirExpressionGraphSequenceAppend(
         let right_opt: Option<String> = JsonObjectFactNumberFieldOpt(
             node, "right"
         );
-        if kind == SemanticExpressionNodeLeaf() {
+        if kind == AstExpressionNodeLeaf() {
             if IsSome(left_opt) || IsSome(right_opt) {
                 return MirExpressionGraphSequenceError(sequence);
             }

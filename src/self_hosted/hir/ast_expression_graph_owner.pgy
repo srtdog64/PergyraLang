@@ -1,0 +1,98 @@
+// Parser-owned recursive expression rows carried by the typed AST artifact.
+
+struct AstExpressionArena {
+    node_kinds: Array<Int>;
+    node_texts: Array<String>;
+    left_children: Array<Int>;
+    right_children: Array<Int>;
+}
+
+struct AstExpressionGraphRows {
+    ok: Bool;
+    condition_roots: Array<Int>;
+    arena: AstExpressionArena;
+}
+
+func AstExpressionNodeLeaf() -> Int { return 0; }
+func AstExpressionNodeLogicalOr() -> Int { return 1; }
+func AstExpressionNodeLogicalAnd() -> Int { return 2; }
+func AstExpressionNodeEquality() -> Int { return 3; }
+func AstExpressionNodeInequality() -> Int { return 4; }
+
+func AstExpressionArenaEmpty() -> AstExpressionArena {
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    return AstExpressionArena(kinds, texts, left_children, right_children);
+}
+
+func AstExpressionGraphRowsEmpty() -> AstExpressionGraphRows {
+    let roots: Array<Int> = [];
+    return AstExpressionGraphRows(true, roots, AstExpressionArenaEmpty());
+}
+
+func AstExpressionArenaNodeCount(ref arena: AstExpressionArena) -> Int {
+    return ArrayLength(arena.node_kinds);
+}
+
+func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
+    let count: Int = AstExpressionArenaNodeCount(arena);
+    if ArrayLength(arena.node_texts) != count ||
+        ArrayLength(arena.left_children) != count ||
+        ArrayLength(arena.right_children) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        let kind: Int = arena.node_kinds[i];
+        let left: Int = arena.left_children[i];
+        let right: Int = arena.right_children[i];
+        if arena.node_texts[i] == "" || kind < AstExpressionNodeLeaf() ||
+            kind > AstExpressionNodeInequality() {
+            return false;
+        }
+        if kind == AstExpressionNodeLeaf() {
+            if left != 0 || right != 0 { return false; }
+        } else if left < 0 || right < 0 || left >= i || right >= i {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func AstExpressionGraphRowsReady(ref rows: AstExpressionGraphRows) -> Bool {
+    if !rows.ok || !AstExpressionArenaReady(rows.arena) { return false; }
+    let node_count: Int = AstExpressionArenaNodeCount(rows.arena);
+    let condition_count: Int = ArrayLength(rows.condition_roots);
+    if condition_count == 0 { return node_count == 0; }
+    let seen: Array<Bool> = [];
+    let stack: Array<Int> = [];
+    let i: Int = 0;
+    while i < node_count { ArrayPush(seen, false); i = i + 1; }
+    i = 0;
+    while i < condition_count {
+        let root: Int = rows.condition_roots[i];
+        if root < 0 || root >= node_count { return false; }
+        ArrayPush(stack, root);
+        i = i + 1;
+    }
+    while ArrayLength(stack) > 0 {
+        let node: Int = stack[ArrayLength(stack) - 1];
+        ArrayPop(stack);
+        if !seen[node] {
+            ArraySet(seen, node, true);
+            if rows.arena.node_kinds[node] != AstExpressionNodeLeaf() {
+                ArrayPush(stack, rows.arena.left_children[node]);
+                ArrayPush(stack, rows.arena.right_children[node]);
+            }
+        }
+    }
+    i = 0;
+    while i < node_count {
+        if !seen[i] { return false; }
+        i = i + 1;
+    }
+    return true;
+}

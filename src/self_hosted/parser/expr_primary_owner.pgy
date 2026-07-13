@@ -1,6 +1,7 @@
 // Self-host parser primary expression owner.
 
 import "cursor_owner.pgy";
+import "expression_graph_owner.pgy";
 
 // Forward-declared mutual recursion: ParsePrimary may recurse into
 // ParseAdditive via `( EXPR )`. Pergyra mutual recursion is fine (see
@@ -9,10 +10,16 @@ import "cursor_owner.pgy";
 // A primary expression is `STRING | NUMBER | IDENT | ( EXPR )`. The
 // emitted text is the source text for literals/idents and the wrapped
 // `(...)` form for binary subtrees.
-func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
+func ParsePrimaryFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
     let i: Int = SkipWhitespaceAndComments(content, start);
     let c: String = ParserCharAt(content, i);
     let base: String = "";
+    let grouped: ParserExpressionFact = ParserExpressionInvalid();
+    let preserves_grouped_graph: Bool = false;
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
@@ -248,7 +255,10 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                     base = "<node:26>";
                 } else {
                     i = i + 1;
-                    base = ParseLogicalOr(content, i, cursor_out);
+                    grouped = ParseLogicalOrFact(content, i, cursor_out);
+                    if !grouped.ok { Exit(1); }
+                    base = grouped.text;
+                    preserves_grouped_graph = true;
                     i = cursor_out[0];
                     i = Expect(content, i, ")");
                     if i < 0 {
@@ -376,5 +386,9 @@ func ParsePrimary(content: String, start: Int, inout cursor_out: Array<Int>) -> 
         Exit(1);
     }
 
-    return ApplyPostfixExpr(content, base, i, cursor_out);
+    let rendered: String = ApplyPostfixExpr(content, base, i, cursor_out);
+    if preserves_grouped_graph && rendered == base {
+        return grouped;
+    }
+    return ParserExpressionLeaf(rendered);
 }

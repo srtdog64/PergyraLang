@@ -41,7 +41,7 @@ func CompileAstArtifactToC(
         Die("driver pipeline facts are not ready");
     }
     let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyze(artifact, true);
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
