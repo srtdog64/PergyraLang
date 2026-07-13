@@ -7,6 +7,7 @@
 import "ast_statement_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
+import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 
 struct SemanticAstIterationTypeFacts {
@@ -16,6 +17,8 @@ struct SemanticAstIterationTypeFacts {
     artifact_node_count: Int;
     node_ids: Array<Int>;
     binding_type_names: Array<String>;
+    iterable_type_names: Array<String>;
+    collection_hoists: Array<Int>;
     verified: Array<Int>;
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
@@ -33,9 +36,38 @@ func SemanticAstIterationTypeStructuralError(
             "node_count", ToString(artifact.count),
             "owner", "SemanticAstIterationTypeFacts"
         ),
-        artifact.count, empty_ints, empty_strings, empty_ints,
-        empty_strings, empty_strings
+        artifact.count, empty_ints, empty_strings, empty_strings, empty_ints,
+        empty_ints, empty_strings, empty_strings
     );
+}
+
+func SemanticAstIterationCollectionIsBoundIdentifier(
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    node_id: Int,
+    names: Array<String>
+) -> Bool {
+    let view: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            expression_surfaces, node_id, AstExpressionLaneValue()
+        );
+    if !view.ok { return false; }
+    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        view.graph, view.root_id
+    );
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(
+        view.graph, view.root_id
+    );
+    if !IsSome(root_kind) || !IsSome(root_text) ||
+        UnwrapOption(root_kind) != AstExpressionNodeLeaf() {
+        return false;
+    }
+    let name: String = UnwrapOption(root_text);
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        if names[i] == name { return true; }
+        i = i + 1;
+    }
+    return false;
 }
 
 func SemanticAstIterationSeedVisibleRows(
@@ -92,7 +124,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
-    statements: SemanticAstStatementFacts
+    statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstIterationTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -103,9 +136,11 @@ func SemanticAstIterationTypeFactsFromArtifact(
             artifact, signatures, locals
         ) || !SemanticAstInitializerTypeFactsMatchArtifact(
             artifact, signatures, constructors, locals, initializer_types
-        ) || !SemanticAstStatementFactsMatchArtifact(
-            artifact, signatures, statements
-        ) {
+         ) || !SemanticAstStatementFactsMatchArtifact(
+             artifact, signatures, statements
+         ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
+             artifact, expression_surfaces
+         ) {
         return SemanticAstIterationTypeStructuralError(artifact);
     }
     let function_names: Array<String> = [];
@@ -120,6 +155,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
 
     let node_ids: Array<Int> = [];
     let binding_types: Array<String> = [];
+    let iterable_types: Array<String> = [];
+    let collection_hoists: Array<Int> = [];
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
@@ -152,6 +189,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
         }
 
         let binding_type: String = "";
+        let iterable_type: String = "";
+        let collection_hoist: Int = 0;
         let row_verified: Int = 1;
         let row_code: String = "";
         let row_message: String = "";
@@ -165,6 +204,7 @@ func SemanticAstIterationTypeFactsFromArtifact(
             row_code = first.diagnostic_code;
             row_message = first.diagnostic_message;
         } else if statements.auxiliary_texts[i] != "" {
+            iterable_type = first.inferred_type_name;
             let last: SemanticAstExpressionVerdict =
                 SemanticAstExpressionVerdictFromPayload(
                     statements.auxiliary_texts[i], names, types, modes,
@@ -189,13 +229,18 @@ func SemanticAstIterationTypeFactsFromArtifact(
                 );
             }
         } else {
-            let iterable_type: String = first.inferred_type_name;
+            iterable_type = first.inferred_type_name;
             if StartsWith(iterable_type, "Array<") &&
                 StringLength(iterable_type) > 7 &&
                 CharAt(iterable_type, StringLength(iterable_type) - 1) == ">" {
                 binding_type = Substring(
                     iterable_type, 6, StringLength(iterable_type) - 7
                 );
+                if !SemanticAstIterationCollectionIsBoundIdentifier(
+                    expression_surfaces, statements.node_ids[i], names
+                ) {
+                    collection_hoist = 1;
+                }
             } else {
                 row_verified = 0;
                 row_code = "statement_type_unresolved";
@@ -208,14 +253,17 @@ func SemanticAstIterationTypeFactsFromArtifact(
         }
         ArrayPush(node_ids, statements.node_ids[i]);
         ArrayPush(binding_types, binding_type);
+        ArrayPush(iterable_types, iterable_type);
+        ArrayPush(collection_hoists, collection_hoist);
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
         i = i + 1;
     }
     return SemanticAstIterationTypeFacts(
-        true, "", "", artifact.count, node_ids, binding_types, verified,
-        diagnostic_codes, diagnostic_messages
+        true, "", "", artifact.count, node_ids, binding_types,
+        iterable_types, collection_hoists, verified, diagnostic_codes,
+        diagnostic_messages
     );
 }
 
@@ -253,18 +301,21 @@ func SemanticAstIterationTypeFactsMatchArtifact(
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     facts: SemanticAstIterationTypeFacts
 ) -> Bool {
     let rebuilt: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statements
+            statements, expression_surfaces
         );
     let n: Int = SemanticAstIterationTypeCount(facts);
     if !facts.ok || !rebuilt.ok ||
         facts.artifact_node_count != artifact.count ||
         SemanticAstIterationTypeCount(rebuilt) != n ||
         ArrayLength(facts.binding_type_names) != n ||
+        ArrayLength(facts.iterable_type_names) != n ||
+        ArrayLength(facts.collection_hoists) != n ||
         ArrayLength(facts.verified) != n ||
         ArrayLength(facts.diagnostic_codes) != n ||
         ArrayLength(facts.diagnostic_messages) != n {
@@ -274,6 +325,8 @@ func SemanticAstIterationTypeFactsMatchArtifact(
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.binding_type_names[i] != facts.binding_type_names[i] ||
+            rebuilt.iterable_type_names[i] != facts.iterable_type_names[i] ||
+            rebuilt.collection_hoists[i] != facts.collection_hoists[i] ||
             rebuilt.verified[i] != facts.verified[i] ||
             rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
             rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
@@ -300,14 +353,18 @@ func SemanticAstIterationTypeFactsContractReady() -> Bool {
         );
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
     let facts: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializers,
-            statements
+            statements, expression_surfaces
         );
     return SemanticAstIterationTypeFactsMatchArtifact(
         artifact, signatures, constructors, locals, initializers,
-        statements, facts
+        statements, expression_surfaces, facts
     ) && SemanticAstIterationTypeCount(facts) == 1 &&
-        facts.verified[0] == 1 && facts.binding_type_names[0] == "Int";
+        facts.verified[0] == 1 && facts.binding_type_names[0] == "Int" &&
+        facts.iterable_type_names[0] == "Int" &&
+        facts.collection_hoists[0] == 0;
 }

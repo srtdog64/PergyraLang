@@ -6,6 +6,8 @@ import "../semantic/ast_iteration_type_fact_owner.pgy";
 struct SelfMirIterationRows {
     node_ids: Array<Int>;
     binding_type_names: Array<String>;
+    iterable_type_names: Array<String>;
+    collection_hoists: Array<Int>;
 }
 
 struct SelfMirRoutineInput {
@@ -17,19 +19,33 @@ struct SelfMirRoutineInput {
 func SelfMirIterationRowsFromSemantic(
     facts: SemanticAstIterationTypeFacts
 ) -> SelfMirIterationRows {
-    return SelfMirIterationRows(facts.node_ids, facts.binding_type_names);
+    return SelfMirIterationRows(
+        facts.node_ids, facts.binding_type_names,
+        facts.iterable_type_names, facts.collection_hoists
+    );
 }
 
 func SelfMirIterationRowsReady(rows: SelfMirIterationRows) -> Bool {
     let n: Int = ArrayLength(rows.node_ids);
-    if ArrayLength(rows.binding_type_names) != n {
+    if ArrayLength(rows.binding_type_names) != n ||
+        ArrayLength(rows.iterable_type_names) != n ||
+        ArrayLength(rows.collection_hoists) != n {
         return false;
     }
     let i: Int = 0;
     while i < n {
         if rows.node_ids[i] < 0 || rows.binding_type_names[i] == "" ||
-            rows.binding_type_names[i] == "Unknown" {
+            rows.binding_type_names[i] == "Unknown" ||
+            rows.iterable_type_names[i] == "" ||
+            rows.iterable_type_names[i] == "Unknown" ||
+            (rows.collection_hoists[i] != 0 &&
+             rows.collection_hoists[i] != 1) {
             return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if rows.node_ids[prior] == rows.node_ids[i] { return false; }
+            prior = prior + 1;
         }
         i = i + 1;
     }
@@ -48,6 +64,35 @@ func SelfMirNodeDescendsFrom(
         remaining = remaining - 1;
     }
     return false;
+}
+
+func SelfMirForEachSyntheticOrdinal(
+    ref input: SelfMirRoutineInput, node_id: Int
+) -> Int {
+    if !SelfMirIterationRowsReady(input.iterations) { return -1; }
+    let found: Bool = false;
+    let ordinal: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(input.iterations.node_ids) {
+        let candidate: Int = input.iterations.node_ids[i];
+        if candidate == node_id && input.iterations.collection_hoists[i] == 1 {
+            found = true;
+        } else if input.iterations.collection_hoists[i] == 1 {
+            let candidate_is_nested: Bool = SelfMirNodeDescendsFrom(
+                input.artifact.arena, candidate, node_id
+            );
+            let current_is_nested: Bool = SelfMirNodeDescendsFrom(
+                input.artifact.arena, node_id, candidate
+            );
+            if candidate_is_nested ||
+                (!current_is_nested && candidate < node_id) {
+                ordinal = ordinal + 1;
+            }
+        }
+        i = i + 1;
+    }
+    if !found { return -1; }
+    return ordinal;
 }
 
 func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {

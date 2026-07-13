@@ -65,6 +65,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
     statements: SemanticAstStatementFacts
 ) -> SemanticAstStatementTypeFacts {
@@ -95,7 +96,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
     }
     if !SemanticAstIterationTypeFactsMatchArtifact(
         artifact, signatures, constructors, locals, initializer_types,
-        statements, iteration_types
+        statements, expression_surfaces, iteration_types
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "iteration");
     }
@@ -423,6 +424,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
     statements: SemanticAstStatementFacts,
     facts: SemanticAstStatementTypeFacts
@@ -430,7 +432,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
     let rebuilt: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            iteration_types, statements
+            expression_surfaces, iteration_types, statements
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
@@ -476,18 +478,21 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         );
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(valid, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
     let iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            valid, signatures, constructors, locals, initializers, statements
+            valid, signatures, constructors, locals, initializers, statements,
+            expression_surfaces
         );
     let facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
             valid, signatures, constructors, locals, initializers,
-            iterations, statements
+            expression_surfaces, iterations, statements
         );
     if !SemanticAstStatementTypeFactsMatchArtifact(
-        valid, signatures, constructors, locals, initializers, iterations,
-        statements, facts
+        valid, signatures, constructors, locals, initializers,
+        expression_surfaces, iterations, statements, facts
     ) || !SemanticAstStatementTypesAllVerified(facts) ||
         ArrayLength(facts.node_ids) != 3 ||
         facts.expected_type_names[0] != "Bool" ||
@@ -509,17 +514,19 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         );
     let bad_statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(bad, bad_signatures);
+    let bad_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(bad);
     let bad_iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             bad, bad_signatures, bad_constructors, bad_locals,
             bad_initializers,
-            bad_statements
+            bad_statements, bad_expression_surfaces
         );
     let bad_facts: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
             bad, bad_signatures, bad_constructors, bad_locals,
             bad_initializers,
-            bad_iterations, bad_statements
+            bad_expression_surfaces, bad_iterations, bad_statements
         );
     return !SemanticAstStatementTypesAllVerified(bad_facts) &&
         SemanticAstStatementFirstDiagnosticCode(bad_facts) ==

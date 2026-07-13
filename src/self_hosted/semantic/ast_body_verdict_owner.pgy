@@ -127,20 +127,23 @@ func SemanticAstBodyVerdictContractReady() -> Bool {
         SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
     let statement_rows: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
     let iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statement_rows
+            statement_rows, expression_surfaces
         );
     let assignment_types: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statement_rows, iteration_types, assignment_rows
+            statement_rows, expression_surfaces, iteration_types,
+            assignment_rows
         );
     let statement_types: SemanticAstStatementTypeFacts =
         SemanticAstStatementTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            iteration_types, statement_rows
+            expression_surfaces, iteration_types, statement_rows
         );
     return SemanticAstBodyVerdictFromFacts(
         initializer_types, iteration_types, assignment_types, statement_types

@@ -54,6 +54,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
     assignments: SemanticAstAssignmentFacts
 ) -> SemanticAstAssignmentTypeFacts {
@@ -68,7 +69,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types
         ) || !SemanticAstIterationTypeFactsMatchArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statements, iteration_types
+            statements, expression_surfaces, iteration_types
         ) || !SemanticAstAssignmentFactsMatchArtifact(
             artifact, signatures, assignments
         ) {
@@ -293,6 +294,7 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     locals: SemanticAstLocalBindingFacts,
     initializer_types: SemanticAstInitializerTypeFacts,
     statements: SemanticAstStatementFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
     iteration_types: SemanticAstIterationTypeFacts,
     assignments: SemanticAstAssignmentFacts,
     facts: SemanticAstAssignmentTypeFacts
@@ -300,7 +302,7 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     let rebuilt: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializer_types,
-            statements, iteration_types, assignments
+            statements, expression_surfaces, iteration_types, assignments
         );
     let n: Int = ArrayLength(facts.node_ids);
     if !facts.ok || !rebuilt.ok ||
@@ -348,18 +350,21 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstAssignmentFactsFromArtifact(valid, signatures);
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(valid, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
     let iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
-            valid, signatures, constructors, locals, initializers, statements
+            valid, signatures, constructors, locals, initializers, statements,
+            expression_surfaces
         );
     let valid_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             valid, signatures, constructors, locals, initializers, statements,
-            iterations, assignments
+            expression_surfaces, iterations, assignments
         );
     if !SemanticAstAssignmentTypeFactsMatchArtifact(
         valid, signatures, constructors, locals, initializers, statements,
-        iterations, assignments, valid_facts
+        expression_surfaces, iterations, assignments, valid_facts
     ) || !SemanticAstAssignmentTypesAllVerified(valid_facts) ||
         ArrayLength(valid_facts.node_ids) != 2 ||
         valid_facts.expected_type_names[0] != "Int" ||
@@ -391,17 +396,21 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstStatementFactsFromArtifact(
             mismatch, mismatch_signatures
         );
+    let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
     let mismatch_iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,
             mismatch_locals,
-            mismatch_initializers, mismatch_statements
+            mismatch_initializers, mismatch_statements,
+            mismatch_expression_surfaces
         );
     let mismatch_facts: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,
             mismatch_locals,
-            mismatch_initializers, mismatch_statements, mismatch_iterations,
+            mismatch_initializers, mismatch_statements,
+            mismatch_expression_surfaces, mismatch_iterations,
             mismatch_assignments
         );
     return !SemanticAstAssignmentTypesAllVerified(mismatch_facts) &&

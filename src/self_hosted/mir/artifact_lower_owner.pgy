@@ -363,7 +363,7 @@ func SelfMirProgramFactsFromArtifact(
     ) || !SemanticAstIterationTypeFactsMatchArtifact(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings, initializer_types, analysis.statements,
-        iteration_types
+        analysis.expression_surfaces, iteration_types
     ) {
         return SelfMirProgramFactsError(
             facts, "mir_artifact_invalid",
@@ -374,7 +374,11 @@ func SelfMirProgramFactsFromArtifact(
     while iteration_i < SemanticAstIterationTypeCount(iteration_types) {
         if iteration_types.verified[iteration_i] != 1 ||
             iteration_types.binding_type_names[iteration_i] == "" ||
-            iteration_types.binding_type_names[iteration_i] == "Unknown" {
+            iteration_types.binding_type_names[iteration_i] == "Unknown" ||
+            iteration_types.iterable_type_names[iteration_i] == "" ||
+            iteration_types.iterable_type_names[iteration_i] == "Unknown" ||
+            (iteration_types.collection_hoists[iteration_i] != 0 &&
+             iteration_types.collection_hoists[iteration_i] != 1) {
             return SelfMirProgramFactsError(
                 facts, "mir_artifact_invalid",
                 "MIR producer requires verified iteration type rows"

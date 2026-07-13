@@ -2746,6 +2746,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/param_carriage.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/codegen/fixture/for_each.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/for_each_call.pgy"'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'func SelfMirIfElseLoweringRoot('
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'return Some(child_id);'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirRoutineAdvanceLocalVersion('
@@ -2783,6 +2784,30 @@ require_file "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner
 require_max_lines "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"'
+require_file "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_foreach_call_type'
+require_text "tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh" \
+    'missing foreach synthetic local was accepted'
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
+    'iterable_type_names: Array<String>;'
+require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
+    'collection_hoists: Array<Int>;'
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    'func SelfMirForEachSyntheticOrdinal('
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    'func SelfMirSyntheticLocalExpressionGraph('
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
+    'Concat("__pgy_forin_", ToString(ordinal))'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'for-each direct call return type fact'
+reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'MirInstructionDirectCallCalleeOpt('
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'CodegenSemanticDirectCallReturnTypeOrDie('
 require_text "src/self_hosted/parser/stmt_loop_owner.pgy" \
     'AstExpressionLaneAuxiliary(), upper_fact'
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
@@ -2805,7 +2830,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 19;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"

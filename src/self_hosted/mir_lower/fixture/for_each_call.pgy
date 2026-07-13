@@ -1,0 +1,17 @@
+func MakeValues() -> Array<Int> {
+    return [1, 2, 3];
+}
+
+func Main() -> Void {
+    let mut total: Int = 0;
+    for outer in MakeValues() {
+        for inner in MakeValues() {
+            total = total + inner;
+        }
+        total = total + outer;
+    }
+    for tail in MakeValues() {
+        total = total + tail;
+    }
+    Log(total);
+}

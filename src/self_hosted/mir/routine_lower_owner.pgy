@@ -483,6 +483,12 @@ func SelfMirLowerBlockFromArtifact(
                 let binding: String = iteration.binding_name;
                 let start: String = iteration.start_expression;
                 let stop: String = iteration.stop_expression;
+                build = SelfMirPrepareIterationCollection(
+                    build, iteration, SemanticAstExpressionGraphForNode(
+                        state.input.analysis.expression_surfaces,
+                        node_id, AstExpressionLaneValue()
+                    )
+                );
                 build = SelfMirRoutineAddLocal(
                     build, binding, iteration.binding_type_name, 0
                 );
@@ -491,11 +497,17 @@ func SelfMirLowerBlockFromArtifact(
                     build, "loop-init", "loop-init", "", binding, "",
                     start, stop, "AST_FOR_LOOP", SelfMirNoUses()
                 );
-                build = SelfMirRoutineAttachLastExpressionGraph(
-                    build, SemanticAstExpressionGraphForNode(
+                let loop_init_graph: SemanticExpressionGraphView =
+                    SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
                         node_id, AstExpressionLaneValue()
-                    )
+                    );
+                if iteration.collection_hoisted {
+                    loop_init_graph =
+                        SelfMirSyntheticLocalExpressionGraph(start);
+                }
+                build = SelfMirRoutineAttachLastExpressionGraph(
+                    build, loop_init_graph
                 );
                 build = SelfMirRoutineAddBlock(build);
                 let for_header: Int = SelfMirCfgBlockCount(build.cfg) - 1;

@@ -114,7 +114,7 @@ spine is rejected. Typed source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 18 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 20 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -139,8 +139,7 @@ still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
 internals, array/struct literal argument bridges, borrow/receive/spawn/await
-unary forms, non-identifier foreach sources, and expression result-type
-classification remain `BRIDGE` work.
+unary forms, and expression result-type classification remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -281,9 +280,9 @@ drivers emitted byte-identical C for `forloop` and `for_each` (SHA-256
 `D39BE785...B57F7D3` and `C17441A...356DD`) and matched outputs `0/1/2` and
 `60/abbccc`. Removing only the range-stop or foreach-value graph failed closed
 under both drivers. The full 20-source/18-MIR matrix exceeded the five-minute
-focused budget and was terminated, so this entry claims only those two
-falsifying fixtures. Non-identifier foreach result-type classification remains
-`BRIDGE`; released/default replacement remains 0%.
+focused budget and was terminated, so that historical slice claimed only those
+two falsifying fixtures. Non-identifier foreach classification was closed by a
+later 20-MIR producer run; released/default replacement remains 0%.
 
 The next executable delta deletes the payload-free enum call-argument text
 bridge from hard graph emission. A qualified enum argument such as
@@ -298,6 +297,16 @@ both executables printed `east`. Removing only the call graph failed closed on
 both drivers while the expected enum parameter and expression text remained.
 Array and struct literal arguments remain bounded text bridges; released/
 default replacement remains 0%.
+
+The twentieth DRV-2 MIR fixture closes non-identifier foreach normalization.
+`SemanticAstIterationTypeFacts` owns the full iterable type and whether the
+collection requires a single-evaluation hoist. Self MIR consumes those rows to
+emit the same reserved synthetic local and post-order ordinal as native
+`forin_desugar`, while direct MIR consumption sees only the normalized local.
+The nested/sibling fixture makes native/self canonical MIR byte-identical under
+both C-built and LLVM-built drivers and run-equal at `30`; removing the
+synthetic source-local type is rejected. The temporary consumer-side callable
+return lookup was deleted and is forbidden by the component contract.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
@@ -447,8 +456,8 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 29,833 frontend/backend LOC / 287,395 C-reference LOC = 10.38%; broader Pergyra compiler-core inventory = 46,911 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 18 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Implementation inventory | 30,574 frontend/backend LOC / 287,406 C-reference LOC = 10.64%; broader Pergyra compiler-core inventory = 48,031 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 20 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -602,7 +611,18 @@ The foreach producer no longer assumes every loop binding is `Int`. DRV-2
 carries the semantic iteration owner rows through `DriverRung2VerifiedFacts`,
 projects the verified node/type rows into `SelfMirRoutineInput`, and emits
 range or foreach MIR from that owner. The gate directly pins `Int` and `String`
-foreach binding types plus collection SSA uses. Self-produced MIR also owns
+foreach binding types plus collection SSA uses. Non-identifier collections now
+carry their verified iterable type and one explicit hoist fact in those same
+rows. The MIR producer evaluates the expression once into the reserved
+`__pgy_forin_N` local and gives the loop only that local; MIR consumption and
+codegen do not recover a callable return type from expression text. A nested
+plus sibling call-foreach fixture fixes the native post-order names
+`__pgy_forin_0/1/2`, and deleting a required synthetic source-local type fails
+closed. C-built and LLVM-built full DRV-2 gates are green at 20 source and 20
+MIR fixtures; all four canonical native/self JSON artifacts for this fixture
+have SHA-256
+`19815C3CD3E5C3B36AA9F70EF9241BC8105CAE5B7FFA739DA36E3B6D7F06FCCB`,
+and the native/self executables both print `30`. Self-produced MIR also owns
 the `parallel_capture_boundaries` inventory, including the empty bounded-subset
 case, so `pgy.mir.v1` output remains consumable by the same self-host path.
 
