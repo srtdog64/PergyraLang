@@ -492,8 +492,10 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
 
 cleanup:
+    /* A dump is not complete until its buffered bytes reach the configured
+     * output boundary. Keep the debug total honest about output and teardown. */
     if (timings != NULL)
-        timings->total = driver_now_seconds() - total_start;
+        (void)fflush(stdout);
     free(load_error);
     free(hir_error);
     dir_destroy(dir);
@@ -503,5 +505,7 @@ cleanup:
     hir_destroy(hir);
     semantic_result_destroy(sem);
     ast_destroy(ast);
+    if (timings != NULL)
+        timings->total = driver_now_seconds() - total_start;
     return exit_code;
 }

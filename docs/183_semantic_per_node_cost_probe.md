@@ -230,6 +230,15 @@ semantic 1.192s / MIR lower 0.271s / total 1.941s였고, memo 검증 모드는
 고정 corpus·machine 표본은 아니므로 회귀 판정이 아니라 효과의 현재
 재현으로만 취급한다.
 
+2026-07-14 계측 감사에서 두 사각을 추가로 닫았다. 기존 pipeline
+`total`은 teardown 직전에 기록되어 MIR/HIR/AIR/AST 파괴와 stdout flush를
+제외했고, semantic 하위표는 stable-ID 부여와 host-decl index 구축을
+제외했다. 이제 debug `total`은 stdout 파일 경계 flush와 compiler teardown
+뒤에 기록하고, semantic 표는 `identity_host_index` 슬롯을 별도로 낸다.
+따라서 위 2026-07-13 수치는 동결 코퍼스의 역사적 전후 비교로 유효하지만,
+당시 pipeline `total`을 프로세스 end-to-end와 동일시하지 않는다. wallclock
+회귀 판정은 계속 외부 파일-리다이렉트 측정을 기준으로 한다.
+
 교훈 3건: ① 덤프 벤치는 반드시 파일-리다이렉트로(NUL/콘솔이 3배
 부풀림). ② 재귀 검사기의 시간귀속은 (a) 방문 census로 재보행/노드당
 비용을 가르고 (b) 리프-kind inclusive==self로 층을 가른다 — 프로파일러

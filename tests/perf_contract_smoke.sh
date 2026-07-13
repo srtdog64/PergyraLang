@@ -196,6 +196,19 @@ grep -Fq "PGY_SEMPERF_VERIFY_CLASSIFY_MEMO" \
 grep -Fq "flow-snapshot classify memo diverged" \
     "$ROOT_DIR/src/semantic/type_checker_flow_resources.c"
 grep -Fq "PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1" "$ROOT_DIR/Makefile"
+grep -Fq "identity_host_index=%.3f" \
+    "$ROOT_DIR/src/semantic/type_checker_program.c"
+if ! awk '
+    /^cleanup:/ { in_cleanup = 1 }
+    in_cleanup && /ast_destroy\(ast\)/ { destroy_line = NR }
+    in_cleanup && /timings->total = driver_now_seconds/ { total_line = NR }
+    END { exit !(destroy_line > 0 && total_line > destroy_line) }
+' "$ROOT_DIR/src/compiler/driver_app.c"; then
+    echo "[perf-contract] pipeline total must include compiler teardown" >&2
+    exit 1
+fi
+grep -A6 -F "cleanup:" "$ROOT_DIR/src/compiler/driver_app.c" | \
+    grep -Fq "fflush(stdout)"
 
 PARSER_TREE_FIXTURE="$WORK_DIR/parser-tree-census.ast"
 PARSER_TREE_SUMMARY="$WORK_DIR/parser-tree-census.txt"
