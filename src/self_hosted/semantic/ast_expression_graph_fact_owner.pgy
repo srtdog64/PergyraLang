@@ -6,6 +6,7 @@
 
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
+import "try_expression_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
 
 struct SemanticExpressionGraphArena {
@@ -184,6 +185,21 @@ func SemanticExpressionGraphInvalidBuild(
     return SemanticExpressionGraphBuild(false, 0, arena);
 }
 
+func SemanticExpressionGraphBuildTryCompactBridge(
+    arena: SemanticExpressionGraphArena,
+    operand: String
+) -> SemanticExpressionGraphBuild {
+    let child: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(arena, operand);
+    if !child.ok {
+        return child;
+    }
+    return SemanticExpressionGraphAppendNode(
+        child.arena, AstExpressionNodeTry(), Concat("?", operand),
+        child.root_id, 0
+    );
+}
+
 // Transitional producer: operator discovery still consumes compact parser
 // payload text. The resulting graph, not that text scan, is the consumer API.
 func SemanticExpressionGraphBuildCompactBridgeFromText(
@@ -193,6 +209,12 @@ func SemanticExpressionGraphBuildCompactBridgeFromText(
     let text: String = SemanticStripOuterParens(expression);
     if text == "" {
         return SemanticExpressionGraphInvalidBuild(arena);
+    }
+    let prefix_try: Option<String> = SemanticTryOperand(text);
+    if CharAt(text, 0) == "?" && IsSome(prefix_try) {
+        return SemanticExpressionGraphBuildTryCompactBridge(
+            arena, UnwrapOption(prefix_try)
+        );
     }
     let operators: SemanticTopLevelOperatorFacts =
         SemanticTopLevelOperatorFactsFromExpression(text);
@@ -253,6 +275,12 @@ func SemanticExpressionGraphBuildCompactBridgeFromText(
         operator_width = 1;
     }
     if kind == AstExpressionNodeLeaf() {
+        let postfix_try: Option<String> = SemanticTryOperand(text);
+        if IsSome(postfix_try) {
+            return SemanticExpressionGraphBuildTryCompactBridge(
+                arena, UnwrapOption(postfix_try)
+            );
+        }
         return SemanticExpressionGraphAppendNode(arena, kind, text, 0, 0);
     }
     if !IsSome(operator_index) || operator_width <= 0 {
@@ -281,6 +309,41 @@ func SemanticExpressionGraphBuildCompactBridgeFromText(
         right_build.arena, kind, text,
         left_build.root_id, right_build.root_id
     );
+}
+
+func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
+    let prefix: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(), "(?Pick(x))"
+        );
+    if !prefix.ok ||
+        prefix.arena.node_kinds[prefix.root_id] != AstExpressionNodeTry() ||
+        prefix.arena.node_texts[prefix.root_id] != "?Pick(x)" {
+        return false;
+    }
+    let prefix_operand: Int = prefix.arena.left_children[prefix.root_id];
+    if prefix.arena.node_kinds[prefix_operand] != AstExpressionNodeLeaf() ||
+        prefix.arena.node_texts[prefix_operand] != "Pick(x)" {
+        return false;
+    }
+
+    let postfix: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(), "1 + value?"
+        );
+    if !postfix.ok ||
+        postfix.arena.node_kinds[postfix.root_id] != AstExpressionNodeAdd() {
+        return false;
+    }
+    let postfix_try: Int = postfix.arena.right_children[postfix.root_id];
+    if postfix.arena.node_kinds[postfix_try] != AstExpressionNodeTry() ||
+        postfix.arena.node_texts[postfix_try] != "?value" {
+        return false;
+    }
+    let postfix_operand: Int = postfix.arena.left_children[postfix_try];
+    return postfix.arena.node_kinds[postfix_operand] ==
+            AstExpressionNodeLeaf() &&
+        postfix.arena.node_texts[postfix_operand] == "value";
 }
 
 func SemanticExpressionGraphFactsAppendLane(

@@ -8,7 +8,6 @@ import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
 import "../input/semantic_array_literal_codegen_view_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
-import "../input/semantic_try_let_codegen_view_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../input/semantic_assignment_codegen_view_owner.pgy";
 import "../input/semantic_statement_codegen_view_owner.pgy";
@@ -23,6 +22,7 @@ import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "log_emit_owner.pgy";
 import "struct_value_emit.pgy";
+import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
 
 func EmitCollectionElementValue(kind: String, value_expr: String, env: CodegenTypeEnv, kind_code: Int) -> String {
@@ -161,62 +161,6 @@ func EmitLet(
     return "";
 }
 
-func EmitTryLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena, idx: Int, inout env_state: Array<String>, cur_fn_ret: String, pad: String, cleanup: String) -> String {
-    let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
-    let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx);
-    let c_name: String = CompilerSymbolCBindingName(name);
-    let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx);
-    let inner_opt: Option<String> = CodegenSemanticLetTryInner(local_bindings, idx);
-    if !IsSome(inner_opt) {
-        Die(Concat("unsupported try let shape in self-host codegen subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
-    }
-    let inner: String = UnwrapOption(inner_opt);
-    let tmp: String = CompilerSymbolCTryTempName(idx);
-    if StartsWith(cur_fn_ret, "Result<") && StringIndexOf(cur_fn_ret, "Int") >= 0 {
-        if type_name != "Int" {
-            Die(Concat("unsupported Result try let payload type in self-host codegen subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
-        }
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, "Int", c_name
-        );
-        let result_out: String = Concat(AbiLayoutCLocalType("Result<Int>", env), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env), ";\n")))));
-        result_out = Concat(result_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCResultIsOkFn(), Concat("(", Concat(tmp, ")) {\n"))))));
-        result_out = Concat(result_out, cleanup);
-        result_out = Concat(result_out, Concat(pad, Concat("    return ", Concat(tmp, ";\n"))));
-        result_out = Concat(result_out, Concat(pad, "}\n"));
-        result_out = Concat(result_out, Concat(pad, Concat(AbiLayoutCLocalType("Int", env), Concat(" ", Concat(c_name, Concat(" = ", Concat(OptionResultRuntimeCResultUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
-        return result_out;
-    }
-    if StartsWith(cur_fn_ret, "Option<") {
-        let return_option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(cur_fn_ret);
-        if return_option_payload_kind == 0 {
-            Die(Concat("unsupported option try return payload type: ", cur_fn_ret));
-        }
-        let inner_kind: String = ExprKind(inner, env);
-        let operand_payload_kind: Int = OptionResultRuntimeOptionPayloadKindForType(inner_kind);
-        if operand_payload_kind == 0 {
-            operand_payload_kind = OptionResultRuntimeOptionPayloadKindFromEnvKind(inner_kind);
-        }
-        let operand_value_type: String = OptionResultRuntimeOptionValueTypeForPayloadKind(operand_payload_kind);
-        if StringLength(operand_value_type) == 0 || operand_value_type != type_name {
-            Die(Concat("try expression payload type does not match let type: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
-        }
-        CodegenTypeEnvStateAppendValueBinding(
-            env_state, name, type_name, c_name
-        );
-        let operand_option_type: String = OptionResultRuntimeOptionTypeNameForPayloadKind(operand_payload_kind);
-        let option_out: String = Concat(AbiLayoutCLocalType(operand_option_type, env), Concat(" ", Concat(tmp, Concat(" = ", Concat(RewriteExpr(inner, env), ";\n")))));
-        option_out = Concat(option_out, Concat(pad, Concat("if (!", Concat(OptionResultRuntimeCOptionIsSomeFn(), Concat("(", Concat(tmp, ")) {\n"))))));
-        option_out = Concat(option_out, cleanup);
-        option_out = Concat(option_out, Concat(pad, Concat("    return ", Concat(OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind), "();\n"))));
-        option_out = Concat(option_out, Concat(pad, "}\n"));
-        option_out = Concat(option_out, Concat(pad, Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(OptionResultRuntimeCOptionUnwrapFn(), Concat("(", Concat(tmp, ");")))))))));
-        return option_out;
-    }
-    Die(Concat("try expression requires Result<Int> or Option<T> function return: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
-    return "";
-}
-
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.
 func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
@@ -309,13 +253,16 @@ func EmitStmtList(count: Int, arena: AstArena,
             Die(Concat("unexpected over-indented AST line: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
         }
         if CodegenSemanticLocalBindingIs(local_bindings, idx) {
-            if CodegenSemanticLetInitializerHasTry(local_bindings, idx) {
-                ArrayPush(result, Concat(pad, Concat(EmitTryLet(local_bindings, arena, idx, env_state, cur_fn_ret, pad, Concat(deferred, active_defers)), "\n")));
+            let let_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneValue()
+                );
+            if CodegenSemanticExpressionGraphIsTry(let_graph) {
+                ArrayPush(result, Concat(pad, Concat(EmitTryLet(
+                    local_bindings, arena, idx, let_graph, env_state,
+                    cur_fn_ret, pad, Concat(deferred, active_defers)
+                ), "\n")));
             } else {
-                let let_graph: SemanticExpressionGraphView =
-                    CodegenSemanticExpressionGraphOrDie(
-                        expression_surfaces, idx, AstExpressionLaneValue()
-                    );
                 ArrayPush(result, Concat(pad, Concat(
                     EmitLet(local_bindings, arena, idx, env_state, let_graph),
                     "\n"

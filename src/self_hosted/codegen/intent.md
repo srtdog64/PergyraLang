@@ -164,10 +164,10 @@ shape and top-level element facts while expression payloads remain string-backed
 `../semantic/ast_enum_fact_owner.pgy` owns enum names, ordered variants, and
 payload arity. `input/semantic_enum_codegen_view_owner.pgy` projects the
 payload-free subset fail-closed; codegen does not read or split enum aux text.
-`input/semantic_try_let_codegen_view_owner.pgy` consumes semantic-owned
-try-operand rows. Try syntax recognition belongs to
-`../semantic/try_expression_fact_owner.pgy`; codegen cannot recover that fact
-from initializer text.
+`input/semantic_expression_codegen_view_owner.pgy` projects parser-owned try
+nodes and operand edges fail-closed. `emission/try_let_emit_owner.pgy` consumes
+that graph and Option/Result ABI facts; codegen cannot recover try structure
+from initializer text or a parallel local-binding string row.
 `../semantic/ast_assignment_fact_owner.pgy` owns assignment target, receiver,
 index, and RHS rows. `input/semantic_assignment_codegen_view_owner.pgy`
 projects those rows fail-closed; codegen does not reinterpret assignment arena
@@ -208,8 +208,9 @@ scalar/String local initializers and assignments consume the value lane.
 Root `if`/`while` conditions consume distinct semantic `||`, `&&`, `==`, and
 `!=` facts. They now consume stable semantic expression node handles and child
 edges for recursive logical/equality structure; codegen cannot split condition
-text or call the legacy recursive boolean scanner. Graph production is still
-a compact-text bridge until the parser emits those same rows directly.
+text or call the legacy recursive boolean scanner. Condition graph production
+is still a compact-text bridge until the parser emits those same rows directly;
+postfix try is already parser-owned and is not part of that bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. The remaining blocker is indexed collection value/auxiliary payloads,

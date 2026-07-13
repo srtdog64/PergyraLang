@@ -17,7 +17,11 @@ TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy"
-TRY_CONSUMER="src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy"
+EXPRESSION_GRAPH_OWNER="src/self_hosted/hir/ast_expression_graph_owner.pgy"
+TRY_PRODUCER="src/self_hosted/parser/expr_postfix_owner.pgy"
+TRY_COMPACT_BRIDGE="src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
+TRY_VIEW="src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
+TRY_CONSUMER="src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
 COLLECTION_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
 ENUM_CONSUMER="src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy"
 ENUM_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
@@ -62,11 +66,24 @@ reject_text() {
 check_owner_copy() {
     local path="$1"
     grep -Fq -- "initializer_array_bodies: Array<String>;" "$path" &&
-        grep -Fq -- "has_initializer_array_bodies: Array<Int>;" "$path" &&
-        grep -Fq -- "func SemanticAstLocalBindingArrayLiteralBodyAt(" "$path" &&
-        grep -Fq -- "initializer_try_operands: Array<String>;" "$path" &&
-        grep -Fq -- "has_initializer_try_operands: Array<Int>;" "$path" &&
-        grep -Fq -- "func SemanticAstLocalBindingTryOperandAt(" "$path"
+    grep -Fq -- "has_initializer_array_bodies: Array<Int>;" "$path" &&
+    grep -Fq -- "func SemanticAstLocalBindingArrayLiteralBodyAt(" "$path" &&
+    ! grep -Fq -- "initializer_try_operands" "$path" &&
+    ! grep -Fq -- "SemanticAstLocalBindingTryOperandAt(" "$path"
+}
+
+check_try_graph_owner_copy() {
+    local path="$1"
+    grep -Fq -- "func AstExpressionNodeTry() -> Int" "$path" &&
+    grep -Fq -- "kind == AstExpressionNodeTry();" "$path"
+}
+
+check_try_consumer_copy() {
+    local path="$1"
+    grep -Fq -- "CodegenSemanticTryOperandNodeOrDie(graph)" "$path" &&
+    grep -Fq -- "RewriteExprFromSemanticGraph(" "$path" &&
+    ! grep -Fq -- "SemanticAstLocalBindingTryOperandAt(" "$path" &&
+    ! grep -Fq -- "SemanticTryOperand(" "$path"
 }
 
 check_consumer_copy() {
@@ -329,10 +346,14 @@ check_signature_owner_copy "$ROOT_DIR/$SIGNATURE_OWNER" ||
 check_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" \
     "SemanticAstLocalBindingArrayLiteralBodyAt(" ||
     fail "live array codegen consumer reopened text recovery"
-check_consumer_copy "$ROOT_DIR/$TRY_CONSUMER" \
-    "SemanticAstLocalBindingTryOperandAt(" ||
+check_try_graph_owner_copy "$ROOT_DIR/$EXPRESSION_GRAPH_OWNER" ||
+    fail "live try graph owner is incomplete"
+require_text "$TRY_PRODUCER" "AstExpressionNodeTry(),"
+require_text "$TRY_COMPACT_BRIDGE" "SemanticExpressionGraphBuildTryCompactBridge("
+require_text "$TRY_COMPACT_BRIDGE" "SemanticTryOperand(text)"
+require_text "$TRY_VIEW" "func CodegenSemanticTryOperandNodeOrDie("
+check_try_consumer_copy "$ROOT_DIR/$TRY_CONSUMER" ||
     fail "live try codegen consumer reopened text recovery"
-require_text "$TRY_CONSUMER" "SemanticAstLocalBindingTryOperandAt("
 check_consumer_copy "$ROOT_DIR/$COLLECTION_CONSUMER" \
     "CodegenSemanticArraySetTargetOrDie(" ||
     fail "live collection codegen consumer reopened text recovery"
@@ -646,11 +667,18 @@ if check_signature_owner_copy "$tmp_dir/signature_owner_missing.pgy"; then
     fail "missing signature-owner mutation was not rejected"
 fi
 
+cp "$ROOT_DIR/$EXPRESSION_GRAPH_OWNER" "$tmp_dir/try_graph_owner_missing.pgy"
+sed 's/func AstExpressionNodeTry()/func RemovedAstExpressionNodeTry()/' \
+    "$tmp_dir/try_graph_owner_missing.pgy" >"$tmp_dir/try_graph_owner_missing.next"
+mv "$tmp_dir/try_graph_owner_missing.next" "$tmp_dir/try_graph_owner_missing.pgy"
+if check_try_graph_owner_copy "$tmp_dir/try_graph_owner_missing.pgy"; then
+    fail "missing try graph owner mutation was not rejected"
+fi
+
 cp "$ROOT_DIR/$TRY_CONSUMER" "$tmp_dir/consumer_fallback.pgy"
-printf '\nfunc ReintroducedFallback(x: String) -> String { return StringTrim(x); }\n' \
+printf '\nfunc ReintroducedFallback(x: String) -> Option<String> { return SemanticTryOperand(x); }\n' \
     >>"$tmp_dir/consumer_fallback.pgy"
-if check_consumer_copy "$tmp_dir/consumer_fallback.pgy" \
-    "SemanticAstLocalBindingTryOperandAt("; then
+if check_try_consumer_copy "$tmp_dir/consumer_fallback.pgy"; then
     fail "fallback mutation was not rejected"
 fi
 

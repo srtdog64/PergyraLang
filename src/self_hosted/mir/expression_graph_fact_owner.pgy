@@ -358,6 +358,7 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeCall() { return "call"; }
     if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
     if kind == AstExpressionNodeMemberAccess() { return "member_access"; }
+    if kind == AstExpressionNodeTry() { return "try"; }
     return "";
 }
 
@@ -394,6 +395,12 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [1], [1], [0], [2],
             [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
             ["flag", "(!flag)"], [0, 0], [0, 1]
+        );
+    let valid_try: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [1], [0], [2],
+            [AstExpressionNodeLeaf(), AstExpressionNodeTry()],
+            ["value", "?value"], [0, 0], [0, 0]
         );
     let valid_call: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRows(
@@ -437,6 +444,7 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
         );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
         SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
+        SelfMirExpressionGraphRowsReady(valid_try, 1) &&
         SelfMirExpressionGraphRowsReady(valid_call, 1) &&
         SelfMirExpressionGraphRowsReady(valid_member, 1) &&
         !SelfMirExpressionGraphRowsReady(disconnected, 1) &&

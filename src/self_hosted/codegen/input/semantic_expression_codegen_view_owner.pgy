@@ -55,3 +55,28 @@ func CodegenSemanticExpressionGraphOrDie(
     }
     return graph;
 }
+
+func CodegenSemanticExpressionGraphIsTry(
+    view: SemanticExpressionGraphView
+) -> Bool {
+    if !view.ok { return false; }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        view.graph, view.root_id
+    );
+    return IsSome(kind) && UnwrapOption(kind) == AstExpressionNodeTry();
+}
+
+func CodegenSemanticTryOperandNodeOrDie(
+    view: SemanticExpressionGraphView
+) -> Int {
+    if !CodegenSemanticExpressionGraphIsTry(view) {
+        Die("self-host codegen requires a semantic try-expression graph");
+    }
+    let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+        view.graph, view.root_id
+    );
+    if !IsSome(operand) {
+        Die("semantic try-expression operand edge is missing");
+    }
+    return UnwrapOption(operand);
+}

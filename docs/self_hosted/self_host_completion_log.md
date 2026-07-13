@@ -7003,3 +7003,25 @@ Released/default replacement remains 0%.
   try (`?`), object-init, special-unary, or structured-leaf bridges. The full
   20-source/14-MIR matrix was not refreshed and released/default replacement
   remains 0%.
+
+### 2026-07-14 -- DRV-2 postfix try owns operand graphs
+
+- Postfix `?` now produces `AstExpressionNodeTry` with one parser-owned operand
+  edge. The rendered compatibility surface remains separate from the graph
+  node text, so codegen never has to rediscover the operand boundary.
+- Deleted the local-binding try-operand string row and its dedicated codegen
+  view. `try_let_emit_owner.pgy` receives the semantic expression-graph view,
+  requires a Try root, and renders only the operand child. Missing or malformed
+  `expr0_graph` fails closed.
+- The named compact bridge still recognizes legacy/native try text, but it
+  immediately constructs the canonical Try graph. It is limited to
+  canonicalization and soft compatibility paths and cannot feed hard codegen
+  as a string fallback.
+- Focused evidence: C-built and LLVM-built DRV-2 drivers emitted byte-identical
+  self MIR. Native and self canonical MIR were byte-identical with Try nodes
+  retained. All source/raw/canonical routes emitted C with SHA-256
+  `92AB69DB2E436CA221F6D3B5526C1FB3FD8FDBD3A778460EBCD5718743ECA159`, and the
+  executable matched `option_try_stdout.txt`. Removing all expression graphs
+  failed closed under both drivers.
+- The full 20-source/15-MIR matrix was not refreshed in this focused slice.
+  Released/default replacement remains 0%.

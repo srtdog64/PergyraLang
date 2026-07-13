@@ -222,14 +222,18 @@ and LLVM-built codegen tools (SHA-256
 generated program matched the committed output. This is one mixed-tree
 consumer closure; released/default replacement remains 0%.
 
-The next executable delta moved try-expression shape to
-`semantic/try_expression_fact_owner.pgy` and try operands into
-`SemanticAstLocalBindingFacts`. The transitional codegen text owner is deleted;
-the replacement view only consumes `SemanticAstLocalBindingTryOperandAt`.
-C-built and LLVM-built codegen tools emitted byte-identical C for the existing
-`option_try` and `result_try` fixtures, and both generated executables matched
-their committed outputs. No fixture-count expansion or compatibility fallback
-was needed.
+The next executable delta first moved try-expression shape into a semantic
+local-binding row. That intermediate owner is now superseded: postfix `?` is a
+parser-owned `AstExpressionNodeTry` with one operand edge, and hard codegen
+consumes only the semantic expression-graph view. The parallel local-binding
+operand string and its dedicated codegen view are deleted. A named compact
+bridge preserves the same Try graph only while canonicalizing legacy/native
+MIR input; it is not a hard-codegen fallback. Focused `option_try` evidence
+made C-built and LLVM-built DRV-2 raw MIR byte-identical, made native/self
+canonical MIR byte-identical, and made every source/MIR route emit the same C
+and committed runtime output. Removing `expr0_graph` fails closed on both
+drivers. The full 20-source/15-MIR matrix was not refreshed in this slice, and
+released/default replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact

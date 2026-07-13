@@ -135,6 +135,18 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
+        if [[ "$base" == "option_try" ]]; then
+            grep -Fq '"kind":"try","text":"?Pick(x)"' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend try expression collapsed out of the operand graph" >&2
+                exit 1
+            }
+            grep -Fq '"kind":"call_argument","text":"Pick(x)"' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend try operand call spine was lost" >&2
+                exit 1
+            }
+        fi
         if [[ "$base" == "for_each" ]]; then
             grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr0_graph":null,"expr1":"nums"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Int foreach fact drifted" >&2
@@ -165,6 +177,15 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$self_mir_json_arg" | tr -d '\r' >"$self_canonical")
+        if [[ "$base" == "option_try" ]]; then
+            for canonical_try_graph in "$oracle_canonical" "$self_canonical"; do
+                grep -Fq '"kind":"try","text":"?Pick(x)"' \
+                    "$canonical_try_graph" || {
+                    echo "[self-host-parity:driver-rung2] $backend canonical try expression graph was lost" >&2
+                    exit 1
+                }
+            done
+        fi
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
             "$oracle_canonical" "$self_canonical" "mir_json"

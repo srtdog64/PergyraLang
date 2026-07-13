@@ -448,12 +448,14 @@ rejects the old `TypedAstArena*Text(arena, i)` scan shape. This still does not
 close the blocker because `CodegenExpressionParts` is backed by transitional
 arena text until typed/tagged expression rows replace the bridge.
 
-TypedAst delta, superseded 2026-07-12: the intermediate
-`ast_text_try_let_owner.pgy` codegen shape seam is deleted. Canonical prefix,
-wrapped, and postfix try shape belongs to
-`semantic/try_expression_fact_owner.pgy`; semantic local-binding facts capture
-the operand once, and `semantic_try_let_codegen_view_owner.pgy` only projects
-that row. The gate rejects codegen text recovery and direct AST value reads.
+TypedAst delta, superseded again 2026-07-14: the intermediate
+`ast_text_try_let_owner.pgy` and local-binding try-operand row are both deleted.
+The parser now emits postfix try as `AstExpressionNodeTry` with one operand
+edge. The semantic expression-graph view and `try_let_emit_owner.pgy` consume
+that graph fail-closed. `semantic/try_expression_fact_owner.pgy` remains only
+inside the named compact bridge used to canonicalize legacy/native input into
+the same graph; hard codegen cannot consume its text result. The gate rejects
+the retired accessor, dedicated try view, and codegen text recovery.
 
 TypedAst delta, superseded 2026-07-12: the intermediate
 `ast_text_array_literal_owner.pgy` codegen shape seam is deleted. Array-literal

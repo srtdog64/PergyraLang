@@ -41,15 +41,17 @@ func AstExpressionNodeNegate() -> Int { return 16; }
 func AstExpressionNodeCall() -> Int { return 17; }
 func AstExpressionNodeCallArgument() -> Int { return 18; }
 func AstExpressionNodeMemberAccess() -> Int { return 19; }
+func AstExpressionNodeTry() -> Int { return 20; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeMemberAccess();
+        kind <= AstExpressionNodeTry();
 }
 
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
     return kind == AstExpressionNodeLogicalNot() ||
-        kind == AstExpressionNodeNegate();
+        kind == AstExpressionNodeNegate() ||
+        kind == AstExpressionNodeTry();
 }
 
 func AstExpressionNodeIsCallSpine(kind: Int) -> Bool {

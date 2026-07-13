@@ -62,8 +62,12 @@ fallback consumers are gone.
   exposes the array-literal body row;
 - `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy`
   consumes that accessor;
-- `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy`
-  consumes the semantic try-operand accessor;
+- `src/self_hosted/parser/expr_postfix_owner.pgy` produces postfix try as an
+  `AstExpressionNodeTry` plus its operand edge;
+- `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
+  and `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` consume that
+  graph fail-closed. A local-binding try string or codegen text recovery is not
+  an alternate authority;
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` owns collection
   mutation payload rows consumed by the semantic statement codegen view;
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` owns enum declaration rows

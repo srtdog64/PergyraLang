@@ -5,7 +5,6 @@ import "../hir/ast_node_kind_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
-import "try_expression_fact_owner.pgy";
 
 struct SemanticAstLocalBindingFacts {
     ok: Bool;
@@ -22,8 +21,6 @@ struct SemanticAstLocalBindingFacts {
     initializer_texts: Array<String>;
     initializer_array_bodies: Array<String>;
     has_initializer_array_bodies: Array<Int>;
-    initializer_try_operands: Array<String>;
-    has_initializer_try_operands: Array<Int>;
 }
 
 // The semantic local-binding owner captures array-literal structure once.
@@ -89,8 +86,6 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let initializer_texts: Array<String> = [];
     let initializer_array_bodies: Array<String> = [];
     let has_initializer_array_bodies: Array<Int> = [];
-    let initializer_try_operands: Array<String> = [];
-    let has_initializer_try_operands: Array<Int> = [];
     let ok: Bool = AstTreeArtifactReady(artifact) &&
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
@@ -193,16 +188,6 @@ func SemanticAstLocalBindingFactsFromArtifact(
             ArrayPush(initializer_array_bodies, "");
             ArrayPush(has_initializer_array_bodies, 0);
         }
-        let try_operand: Option<String> = SemanticTryOperand(
-            UnwrapOption(initializer)
-        );
-        if IsSome(try_operand) {
-            ArrayPush(initializer_try_operands, UnwrapOption(try_operand));
-            ArrayPush(has_initializer_try_operands, 1);
-        } else {
-            ArrayPush(initializer_try_operands, "");
-            ArrayPush(has_initializer_try_operands, 0);
-        }
         node_id = node_id + 1;
     }
     return SemanticAstLocalBindingFacts(
@@ -211,8 +196,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
         artifact.count,
         node_ids, function_node_ids, scope_node_ids, names,
         declared_type_names, has_declared_types, initializer_texts,
-        initializer_array_bodies, has_initializer_array_bodies,
-        initializer_try_operands, has_initializer_try_operands
+        initializer_array_bodies, has_initializer_array_bodies
     );
 }
 
@@ -236,9 +220,7 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         ArrayLength(facts.has_declared_types) != n ||
         ArrayLength(facts.initializer_texts) != n ||
         ArrayLength(facts.initializer_array_bodies) != n ||
-        ArrayLength(facts.has_initializer_array_bodies) != n ||
-        ArrayLength(facts.initializer_try_operands) != n ||
-        ArrayLength(facts.has_initializer_try_operands) != n {
+        ArrayLength(facts.has_initializer_array_bodies) != n {
         return false;
     }
     let i: Int = 0;
@@ -256,9 +238,6 @@ func SemanticAstLocalBindingFactsMatchArtifact(
             artifact.arena, node_id
         );
         let array_body: Option<String> = SemanticAstInitializerArrayBody(
-            UnwrapOption(initializer)
-        );
-        let try_operand: Option<String> = SemanticTryOperand(
             UnwrapOption(initializer)
         );
         if node_id < 0 || node_id >= artifact.count ||
@@ -297,16 +276,6 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         } else if facts.has_initializer_array_bodies[i] != 0 ||
             IsSome(array_body) ||
             StringLength(facts.initializer_array_bodies[i]) != 0 {
-            return false;
-        }
-        if facts.has_initializer_try_operands[i] == 1 {
-            if !IsSome(try_operand) || UnwrapOption(try_operand) !=
-                facts.initializer_try_operands[i] {
-                return false;
-            }
-        } else if facts.has_initializer_try_operands[i] != 0 ||
-            IsSome(try_operand) ||
-            StringLength(facts.initializer_try_operands[i]) != 0 {
             return false;
         }
         i = i + 1;
@@ -380,17 +349,6 @@ func SemanticAstLocalBindingArrayLiteralBodyAt(
     return Some(facts.initializer_array_bodies[index]);
 }
 
-func SemanticAstLocalBindingTryOperandAt(
-    facts: SemanticAstLocalBindingFacts,
-    index: Int
-) -> Option<String> {
-    if index < 0 || index >= SemanticAstLocalBindingCount(facts) ||
-        facts.has_initializer_try_operands[index] == 0 {
-        return None;
-    }
-    return Some(facts.initializer_try_operands[index]);
-}
-
 func SemanticAstLocalBindingFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Let: xs : Array<Int> = [1, x]\n        Let: found : Int = (?Pick(x))\n        If: true\n          Then:\n            Block:\n              Let: y = x\n"
@@ -418,11 +376,6 @@ func SemanticAstLocalBindingFactsContractReady() -> Bool {
         facts.initializer_array_bodies[1] != "1, x" ||
         facts.has_initializer_array_bodies[2] != 0 ||
         facts.has_initializer_array_bodies[3] != 0 ||
-        facts.has_initializer_try_operands[0] != 0 ||
-        facts.has_initializer_try_operands[1] != 0 ||
-        facts.has_initializer_try_operands[2] != 1 ||
-        facts.initializer_try_operands[2] != "Pick(x)" ||
-        facts.has_initializer_try_operands[3] != 0 ||
         facts.function_node_ids[0] != facts.function_node_ids[1] ||
         facts.function_node_ids[0] != facts.function_node_ids[2] ||
         facts.function_node_ids[0] != facts.function_node_ids[3] ||

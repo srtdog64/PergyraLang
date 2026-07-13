@@ -60,7 +60,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.
-- `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix expression parsing.
+- `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix call/index/try
+  parsing, including canonical `AstExpressionNodeTry` ownership and its operand
+  edge.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
 - `src/self_hosted/parser/expr_string_owner.pgy` -- string literal expression parsing.
@@ -102,8 +104,8 @@ inventory must not become a second fact-family owner registry.
   constructor scans are forbidden.
 - `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` -- artifact-bound
   local binding node, function, scope, name, declared-type, and initializer
-  payload facts, including array-literal body, try-operand shape, and `Let`
-  statement-routing identity.
+  payload facts, including array-literal body and `Let` statement-routing
+  identity.
 - `src/self_hosted/semantic/try_expression_fact_owner.pgy` -- canonical prefix,
   wrapped, and postfix try-expression shape and operand bounds.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
@@ -157,7 +159,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy` -- normalized
   expression node handles and child edges consumed by recursive semantic and
   codegen projections; compact-text production remains an explicit bridge for
-  non-migrated expression owners.
+  non-migrated expression owners and legacy/native canonicalization, not an
+  alternate hard-codegen authority.
 - `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
   parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
@@ -276,13 +279,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy` --
   fail-closed codegen projection of semantic nominal names and ordered field
   name/type rows.
-- `src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy` -- fail-closed projection of semantic-owned try-let operand facts.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
 - `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
   -- fail-closed codegen view over semantic-owned expression shape and graph
-  rows keyed by artifact node and payload lane.
+  rows keyed by artifact node and payload lane, including try operand edges.
 - `src/self_hosted/codegen/input/semantic_kind_codegen_view_owner.pgy` --
   fail-closed node-kind identity projection for ability/event declaration
   routing.
@@ -331,6 +333,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
+- `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression
+  local-binding control flow from semantic graph edges and Option/Result ABI
+  facts.
 - `src/self_hosted/codegen/emission/value_return_emit_owner.pgy` -- expected-type Option and return value emission.
 
 ## Fuzz

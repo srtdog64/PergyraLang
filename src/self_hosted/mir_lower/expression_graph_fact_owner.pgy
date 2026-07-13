@@ -63,6 +63,7 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "member_access" {
         return Some(AstExpressionNodeMemberAccess());
     }
+    if kind == "try" { return Some(AstExpressionNodeTry()); }
     return None;
 }
 

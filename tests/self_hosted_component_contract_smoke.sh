@@ -783,7 +783,6 @@ require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'import "try_expression_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "try_expression_fact_owner.pgy";'
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" 'import "try_expression_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" 'import "expression_operator_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "struct SemanticTopLevelOperatorFacts"
 require_text "src/self_hosted/semantic/expression_operator_fact_owner.pgy" "func SemanticTopLevelOperatorFactsFromExpression"
@@ -903,7 +902,6 @@ require_owner_surface codegen \
     "input/semantic_signature_codegen_view_owner.pgy" \
     "input/semantic_role_codegen_view_owner.pgy" \
     "input/semantic_nominal_codegen_view_owner.pgy" \
-    "input/semantic_try_let_codegen_view_owner.pgy" \
     "input/semantic_local_binding_codegen_view_owner.pgy" \
     "input/semantic_assignment_codegen_view_owner.pgy" \
     "input/semantic_statement_codegen_view_owner.pgy" \
@@ -932,6 +930,7 @@ require_owner_surface codegen \
     "emission/expr_semantic_shape_emit_owner.pgy" \
     "emission/log_emit_owner.pgy" \
     "emission/struct_value_emit.pgy" \
+    "emission/try_let_emit_owner.pgy" \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
     "emission/program_emit.pgy"
@@ -2571,6 +2570,7 @@ for expression_graph_transport_owner in \
 done
 for migrated_graph_consumer in \
     emission/expr_semantic_graph_emit_owner.pgy emission/stmt_emit.pgy \
+    emission/try_let_emit_owner.pgy \
     emission/value_return_emit_owner.pgy \
     input/semantic_expression_codegen_view_owner.pgy; do
     reject_regex "src/self_hosted/codegen/$migrated_graph_consumer" \
@@ -2761,7 +2761,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 14;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 15;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -3097,6 +3097,35 @@ require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "call = ParserExpressionCallArgument("
 reject_function_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
     "func ParsePipeFact(" 'left = ParserExpressionLeaf(Concat('
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeTry() -> Int"
+require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
+    "func ParserExpressionTryGraphContractReady("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "ParserExpressionTryGraphContractReady()"
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    'import "try_expression_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "func SemanticExpressionGraphCompactBridgeTryContractReady("
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "SemanticExpressionGraphBuildTryCompactBridge("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphCompactBridgeTryContractReady()"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "canonical try expression graph was lost"
+require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
+    "AstExpressionNodeTry(),"
+try_postfix_block="$(sed -n '/if nc == "?" {/,/continue;/p' \
+    "$ROOT_DIR/src/self_hosted/parser/expr_postfix_owner.pgy")"
+grep -Fq "ParserExpressionUnary(" <<<"$try_postfix_block" ||
+    fail "postfix try producer is not graph-backed"
+if grep -Fq "ParserExpressionLeaf(" <<<"$try_postfix_block"; then
+    fail "postfix try producer reopened leaf collapse"
+fi
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    'AstExpressionNodeTry() { return "try"; }'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'kind == "try"'
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
@@ -3400,7 +3429,7 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "env_state, loop_v
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCInoutParamName(p_name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachCollectionTempName(loop_var)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCForEachIndexTempName(loop_var)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCTryTempName(idx)"
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "CompilerSymbolCTryTempName(idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCMatchTempName(idx)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(p_name, Concat("=v:"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'Concat(name, "=v:'
@@ -3413,6 +3442,7 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" '"_pgy_inout_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyc_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgyi_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_try_"'
+reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" '"_pgy_try_"'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
@@ -3478,7 +3508,10 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaEx
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaExpectThen(arena, count, cur)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitLet("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "local_bindings: SemanticAstLocalBindingFacts"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitTryLet(local_bindings: SemanticAstLocalBindingFacts, arena: AstArena"
+require_file "src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "func EmitTryLet("
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "local_bindings: SemanticAstLocalBindingFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
@@ -3533,21 +3566,23 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCharAt(ex"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetTryInner"
 reject_file "src/self_hosted/codegen/input/ast_text_try_let_owner.pgy"
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_try_operands: Array<String>;"
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "has_initializer_try_operands: Array<Int>;"
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingTryOperandAt("
-require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "func CodegenSemanticLetInitializerHasTry"
-require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "func CodegenSemanticLetTryInner"
-require_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "SemanticAstLocalBindingTryOperandAt("
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "TypedAstArenaValueText"
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "CodegenAstArenaValueOrDie"
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "ContainsOutsideStrings("
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "FindMatchingParen("
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "StringTrim("
-reject_text "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy" "CharAt("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_try_let_codegen_view_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetInitializerHasTry(local_bindings, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetTryInner("
+reject_file "src/self_hosted/codegen/input/semantic_try_let_codegen_view_owner.pgy"
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_try_operands"
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "SemanticAstLocalBindingTryOperandAt("
+require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" \
+    "func CodegenSemanticTryOperandNodeOrDie("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticExpressionGraphIsTry(let_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'import "try_let_emit_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "CodegenSemanticTryOperandNodeOrDie(graph)"
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "RewriteExprFromSemanticGraph("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetInitializerHasTry("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetTryInner("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "SemanticTryOperand("
+reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "SemanticTryOperand("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerHasTry"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetTryInner"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func TryExprInner"
@@ -4240,7 +4275,7 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "HostIORuntimeCExi
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeOptionPayloadKindFromExprKind(ExprKind(some_inner, env))"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "OptionResultRuntimeCOptionSomeFnForPayloadKind(some_payload_kind)"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "OptionResultRuntimeCResultOkFn"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCResultIsOkFn"
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "OptionResultRuntimeCResultIsOkFn"
 reject_regex_under "src/self_hosted/codegen/emission" '"pgy_[A-Za-z0-9_]*'
 reject_regex_under "src/self_hosted/codegen/text" '"pgy_[A-Za-z0-9_]*'
 reject_regex_under "src/self_hosted/codegen/input" '"pgy_[A-Za-z0-9_]*'
@@ -4264,8 +4299,10 @@ reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionStructType"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionSomeFnForType"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionNoneFnForType"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeCOptionNoneFnForPayloadKind(return_option_payload_kind)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "OptionResultRuntimeOptionValueTypeForPayloadKind(operand_payload_kind)"
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "OptionResultRuntimeCOptionNoneFnForPayloadKind("
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "OptionResultRuntimeOptionValueTypeForPayloadKind("
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" 'return "OptionString";'
 require_file "src/self_hosted/codegen/fixture/option_string_core.pgy"
 require_file "src/self_hosted/codegen/expected/option_string_core_stdout.txt"

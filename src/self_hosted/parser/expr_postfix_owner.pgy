@@ -201,9 +201,12 @@ func ApplyPostfixFact(
         }
         if nc == "?" {
             i = after_ws + 1;
-            base = ParserExpressionLeaf(Concat(
-                "(?", Concat(base.text, ")")
-            ));
+            let try_text: String = Concat("?", base.text);
+            base = ParserExpressionUnary(
+                AstExpressionNodeTry(), try_text, base
+            );
+            if !base.ok { Exit(1); }
+            base.text = Concat("(", Concat(try_text, ")"));
             continue;
         }
         if nc == "." && ParserCharAt(content, after_ws + 1) != "." {
@@ -245,6 +248,29 @@ func ParserExpressionPostfixGraphContractReady() -> Bool {
     return fact.arena.node_kinds[base] == AstExpressionNodeLeaf() &&
         fact.arena.node_texts[base] == "values" &&
         fact.arena.node_kinds[index] == AstExpressionNodeAdd();
+}
+
+func ParserExpressionTryGraphContractReady() -> Bool {
+    let source: String = "Pick(3)?";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.text != "(?Pick(3))" ||
+        fact.arena.node_kinds[fact.root] != AstExpressionNodeTry() ||
+        fact.arena.node_texts[fact.root] != "?Pick(3)" {
+        return false;
+    }
+    let operand: Int = fact.arena.left_children[fact.root];
+    if fact.arena.node_kinds[operand] !=
+        AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let call: Int = fact.arena.left_children[operand];
+    let argument: Int = fact.arena.right_children[operand];
+    let callee: Int = fact.arena.left_children[call];
+    return fact.arena.node_kinds[call] == AstExpressionNodeCall() &&
+        fact.arena.node_texts[callee] == "Pick" &&
+        fact.arena.node_texts[argument] == "3";
 }
 
 func ParserExpressionCallGraphContractReady() -> Bool {
