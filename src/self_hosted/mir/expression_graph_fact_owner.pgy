@@ -312,6 +312,17 @@ func SelfMirExpressionGraphRowsReady(
                 rows.right_children[node_i] >= node_i {
                 return false;
             }
+            if kind == AstExpressionNodeCall() &&
+                rows.node_kinds[rows.left_children[node_i]] !=
+                    AstExpressionNodeLeaf() {
+                return false;
+            }
+            if kind == AstExpressionNodeCallArgument() &&
+                !AstExpressionNodeIsCallSpine(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) {
+                return false;
+            }
             node_i = node_i + 1;
         }
         expected_start = start + count;
@@ -338,6 +349,8 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeIndex() { return "index"; }
     if kind == AstExpressionNodeLogicalNot() { return "logical_not"; }
     if kind == AstExpressionNodeNegate() { return "negate"; }
+    if kind == AstExpressionNodeCall() { return "call"; }
+    if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
     return "";
 }
 
@@ -375,8 +388,30 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
             ["flag", "(!flag)"], [0, 0], [0, 1]
         );
+    let valid_call: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [3], [0], [4],
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+                AstExpressionNodeLeaf(), AstExpressionNodeCallArgument()
+            ],
+            ["Pick", "Pick()", "1", "Pick(1)"],
+            [0, 0, 0, 1], [0, 0, 0, 2]
+        );
+    let malformed_call: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [3], [0], [4],
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(), AstExpressionNodeCallArgument()
+            ],
+            ["Pick", "not-a-call", "1", "Pick(1)"],
+            [0, 0, 0, 1], [0, 0, 0, 2]
+        );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
         SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
+        SelfMirExpressionGraphRowsReady(valid_call, 1) &&
         !SelfMirExpressionGraphRowsReady(disconnected, 1) &&
-        !SelfMirExpressionGraphRowsReady(malformed_unary, 1);
+        !SelfMirExpressionGraphRowsReady(malformed_unary, 1) &&
+        !SelfMirExpressionGraphRowsReady(malformed_call, 1);
 }

@@ -6901,3 +6901,26 @@ Released/default replacement remains 0%.
   borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and
   compact-tree arena construction remain `BRIDGE`; released/default
   replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 direct identifier calls own argument spines
+
+- Added `call` and `call_argument` graph kinds. A call root owns its callee;
+  every argument row owns the prior call spine and one argument expression.
+  Parser, semantic, MIR JSON, and consumer verifiers reject malformed arity or
+  a call-argument row whose left edge is not a call spine.
+- Direct identifier calls now emit argument order, `inout`/`ref` parameter
+  modes, runtime ABI aliases, `Some`/`ArrayLength` specialization, and struct
+  constructors from carried graph facts. The hard consumer is gate-forbidden
+  from reopening the legacy `RewriteInoutCallArgs` or `ExprSequenceItemAt`
+  argument scanners.
+- Promoted `valid_call_int.pgy` into the source/MIR intersection. C-built and
+  LLVM-built DRV-2 drivers pass the 20-source/13-MIR producer-first gate with
+  byte-identical MIR JSON and C, native execution parity, and malformed call
+  mutations rejected.
+- The owner-level unknown arity sentinel was removed; unknown node kinds now
+  fail closed. The likeness gate is green at sentinel 0 and its Result/Option
+  use floor is ratcheted to 1,395.
+- Scope remains bounded: qualified/member calls, try/pipe/object-init
+  internals, literal-only argument bridges, borrow/receive/spawn/await unary
+  forms, log/collection/auxiliary lanes, and compact-tree arena construction
+  remain `BRIDGE`; released/default replacement remains 0%.

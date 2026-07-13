@@ -137,6 +137,14 @@ func SemanticExpressionGraphArenaReady(
         } else if right < 0 || right >= i {
             return false;
         }
+        if kind == AstExpressionNodeCall() &&
+            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            return false;
+        }
+        if kind == AstExpressionNodeCallArgument() &&
+            !AstExpressionNodeIsCallSpine(arena.node_kinds[left]) {
+            return false;
+        }
         i = i + 1;
     }
     return true;

@@ -313,8 +313,11 @@ inventory must not become a second fact-family owner registry.
   top-level expression emission that consumes semantic shape rows instead of
   rescanning the source payload.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
-  recursive condition emission from semantic node handles and child edges;
-  codegen does not split the condition payload to rediscover precedence.
+  recursive expression emission from semantic node handles and child edges;
+  codegen does not split migrated payloads to rediscover precedence.
+- `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
+  direct-call spine consumption, ordered argument projection, parameter-mode
+  handling, and runtime/constructor symbol fact consumption.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --

@@ -15,8 +15,8 @@ blockers.
 - Process/evidence blockers: subprocess execution, the Pergyra-owned test
   harness, compatibility evolution consumption, and live AIR evidence
   consumption.
-- Implementation inventory is 10.16 percent of the C reference inventory
-  (29,159 frontend/backend LOC against 287,075 C-reference LOC, measured
+- Implementation inventory is 10.27 percent of the C reference inventory
+  (29,514 frontend/backend LOC against 287,395 C-reference LOC, measured
   2026-07-13). This remains an implementation-volume metric, not substitution.
 - Released/default replacement is 0 percent. The default `pgy` driver remains
   C-owned.

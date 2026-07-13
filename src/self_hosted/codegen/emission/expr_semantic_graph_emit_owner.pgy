@@ -2,6 +2,7 @@
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "expr_rewrite.pgy";
+import "expr_semantic_call_emit_owner.pgy";
 
 func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
@@ -22,6 +23,9 @@ func RewriteExprFromSemanticGraph(
     if kind == AstExpressionNodeLeaf() {
         return RewriteTokens(text, env);
     }
+    if AstExpressionNodeIsCallSpine(kind) {
+        return RewriteSemanticDirectCall(graph, node_id, env);
+    }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, node_id
     );
@@ -29,7 +33,7 @@ func RewriteExprFromSemanticGraph(
         Die("semantic expression graph left edge is missing");
     }
     let left_id: Int = UnwrapOption(left_opt);
-    if AstExpressionNodeArity(kind) == 1 {
+    if AstExpressionNodeIsUnaryOperator(kind) {
         let operand: String = RewriteExprFromSemanticGraph(
             graph, left_id, env
         );

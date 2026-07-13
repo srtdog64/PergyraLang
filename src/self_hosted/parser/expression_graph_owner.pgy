@@ -31,7 +31,8 @@ func ParserExpressionUnary(
     text: String,
     operand: ParserExpressionFact
 ) -> ParserExpressionFact {
-    if !operand.ok || text == "" || AstExpressionNodeArity(kind) != 1 {
+    if !operand.ok || text == "" ||
+        !AstExpressionNodeIsUnaryOperator(kind) {
         return ParserExpressionInvalid();
     }
     let kinds: Array<Int> = operand.arena.node_kinds;
@@ -48,6 +49,47 @@ func ParserExpressionUnary(
     );
     return ParserExpressionFact(
         AstExpressionArenaReady(arena), text, root, arena
+    );
+}
+
+func ParserExpressionCall(
+    text: String,
+    callee: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !callee.ok || text == "" ||
+        callee.arena.node_kinds[callee.root] != AstExpressionNodeLeaf() {
+        return ParserExpressionInvalid();
+    }
+    let kinds: Array<Int> = callee.arena.node_kinds;
+    let texts: Array<String> = callee.arena.node_texts;
+    let left_children: Array<Int> = callee.arena.left_children;
+    let right_children: Array<Int> = callee.arena.right_children;
+    let root: Int = ArrayLength(kinds);
+    ArrayPush(kinds, AstExpressionNodeCall());
+    ArrayPush(texts, text);
+    ArrayPush(left_children, callee.root);
+    ArrayPush(right_children, 0);
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    return ParserExpressionFact(
+        AstExpressionArenaReady(arena), text, root, arena
+    );
+}
+
+func ParserExpressionCallArgument(
+    text: String,
+    call: ParserExpressionFact,
+    argument: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !call.ok || !argument.ok ||
+        !AstExpressionNodeIsCallSpine(
+            call.arena.node_kinds[call.root]
+        ) {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeCallArgument(), text, call, argument
     );
 }
 

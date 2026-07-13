@@ -38,17 +38,31 @@ func AstExpressionNodeModulo() -> Int { return 13; }
 func AstExpressionNodeIndex() -> Int { return 14; }
 func AstExpressionNodeLogicalNot() -> Int { return 15; }
 func AstExpressionNodeNegate() -> Int { return 16; }
+func AstExpressionNodeCall() -> Int { return 17; }
+func AstExpressionNodeCallArgument() -> Int { return 18; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeNegate();
+        kind <= AstExpressionNodeCallArgument();
+}
+
+func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
+    return kind == AstExpressionNodeLogicalNot() ||
+        kind == AstExpressionNodeNegate();
+}
+
+func AstExpressionNodeIsCallSpine(kind: Int) -> Bool {
+    return kind == AstExpressionNodeCall() ||
+        kind == AstExpressionNodeCallArgument();
 }
 
 func AstExpressionNodeArity(kind: Int) -> Int {
-    if !AstExpressionNodeKindKnown(kind) { return -1; }
+    if !AstExpressionNodeKindKnown(kind) {
+        Die("unknown typed expression node kind");
+    }
     if kind == AstExpressionNodeLeaf() { return 0; }
-    if kind == AstExpressionNodeLogicalNot() ||
-        kind == AstExpressionNodeNegate() {
+    if AstExpressionNodeIsUnaryOperator(kind) ||
+        kind == AstExpressionNodeCall() {
         return 1;
     }
     return 2;
@@ -109,6 +123,14 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         } else if arity == 1 {
             if right != 0 { return false; }
         } else if right < 0 || right >= i {
+            return false;
+        }
+        if kind == AstExpressionNodeCall() &&
+            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            return false;
+        }
+        if kind == AstExpressionNodeCallArgument() &&
+            !AstExpressionNodeIsCallSpine(arena.node_kinds[left]) {
             return false;
         }
         i = i + 1;

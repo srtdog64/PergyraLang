@@ -3,6 +3,22 @@
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
 
+func ParserExpressionDirectCallCallee(
+    fact: ParserExpressionFact
+) -> Bool {
+    if !fact.ok || fact.arena.node_kinds[fact.root] !=
+        AstExpressionNodeLeaf() || fact.text == "" ||
+        !IsAlpha(ParserCharAt(fact.text, 0)) {
+        return false;
+    }
+    let i: Int = 1;
+    while i < StringLength(fact.text) &&
+        IsAlphaNum(ParserCharAt(fact.text, i)) {
+        i = i + 1;
+    }
+    return i == StringLength(fact.text);
+}
+
 func ApplyPostfixFact(
     content: String,
     base_start: ParserExpressionFact,
@@ -101,16 +117,38 @@ func ApplyPostfixFact(
         if nc == "(" {
             i = after_ws + 1;
             let arg_text: String = "";
+            let direct_call: Bool = ParserExpressionDirectCallCallee(base);
+            let call: ParserExpressionFact = ParserExpressionInvalid();
+            if direct_call {
+                call = ParserExpressionCall(
+                    Concat(base.text, "()"), base
+                );
+                if !call.ok { Exit(1); }
+            }
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != ")" {
                 while true {
                     ArraySet(cursor_out, 0, i);
-                    let a: String = ParseExpr(content, i, cursor_out);
+                    let argument: ParserExpressionFact = ParseExprFact(
+                        content, i, cursor_out
+                    );
+                    if !argument.ok { Exit(1); }
                     i = cursor_out[0];
                     if StringLength(arg_text) == 0 {
-                        arg_text = a;
+                        arg_text = argument.text;
                     } else {
-                        arg_text = Concat(arg_text, Concat(", ", a));
+                        arg_text = Concat(
+                            arg_text, Concat(", ", argument.text)
+                        );
+                    }
+                    if direct_call {
+                        call = ParserExpressionCallArgument(
+                            Concat(base.text, Concat(
+                                "(", Concat(arg_text, ")")
+                            )),
+                            call, argument
+                        );
+                        if !call.ok { Exit(1); }
                     }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
@@ -124,9 +162,13 @@ func ApplyPostfixFact(
             if i < 0 {
                 Exit(1);
             }
-            base = ParserExpressionLeaf(Concat(
-                base.text, Concat("(", Concat(arg_text, ")"))
-            ));
+            if direct_call {
+                base = call;
+            } else {
+                base = ParserExpressionLeaf(Concat(
+                    base.text, Concat("(", Concat(arg_text, ")"))
+                ));
+            }
             continue;
         }
         if nc == "[" {
@@ -191,4 +233,31 @@ func ParserExpressionPostfixGraphContractReady() -> Bool {
     return fact.arena.node_kinds[base] == AstExpressionNodeLeaf() &&
         fact.arena.node_texts[base] == "values" &&
         fact.arena.node_kinds[index] == AstExpressionNodeAdd();
+}
+
+func ParserExpressionCallGraphContractReady() -> Bool {
+    let source: String = "Pick(1 + Next(2), values[0])";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let previous: Int = fact.arena.left_children[fact.root];
+    let second_argument: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[previous] !=
+            AstExpressionNodeCallArgument() ||
+        fact.arena.node_kinds[second_argument] != AstExpressionNodeIndex() {
+        return false;
+    }
+    let call: Int = fact.arena.left_children[previous];
+    let first_argument: Int = fact.arena.right_children[previous];
+    if fact.arena.node_kinds[call] != AstExpressionNodeCall() ||
+        fact.arena.node_kinds[first_argument] != AstExpressionNodeAdd() {
+        return false;
+    }
+    let callee: Int = fact.arena.left_children[call];
+    return fact.arena.node_kinds[callee] == AstExpressionNodeLeaf() &&
+        fact.arena.node_texts[callee] == "Pick";
 }

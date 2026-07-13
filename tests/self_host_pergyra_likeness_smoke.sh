@@ -206,7 +206,7 @@ SENTINEL_MAX=0
 # fallback is accepted by recursive codegen consumption.
 # 1323 -> 1353 (2026-07-13): MIR JSON graph decoding keeps kind, text, edge,
 # root, and subtree-boundary absence explicit through Option facts.
-RESULT_USE_MIN=1353
+RESULT_USE_MIN=1395
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
