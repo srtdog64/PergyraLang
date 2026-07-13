@@ -1,9 +1,66 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
 #include "../common/match_variant_policy.h"
+
+/* PGY_DEBUG_SEMANTIC_TIMING visit census: total expression visits vs
+ * distinct nodes separates "each node costs too much" from "nodes are
+ * re-walked" (docs/183 methodology). Per-kind time is INCLUSIVE (a parent
+ * accumulates its children), so leaf kinds (identifier/number/string) read
+ * as true self-time. clock() is 1ms-grained on MinGW -- too coarse for
+ * ~us visits -- hence QPC on Windows. */
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+static size_t g_expr_visits_total;
+static size_t g_expr_visits_by_kind[512];
+static double g_expr_seconds_by_kind[512];
+
+static double
+expr_census_now(void)
+{
+#ifdef _WIN32
+    LARGE_INTEGER freq;
+    LARGE_INTEGER counter;
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)freq.QuadPart;
+#else
+    return (double)clock() / (double)CLOCKS_PER_SEC;
+#endif
+}
+
+static bool
+expr_visit_census_enabled(void)
+{
+    static int enabled = -1;
+
+    if (enabled < 0)
+        enabled = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL ? 1 : 0;
+    return enabled == 1;
+}
+
+void
+type_check_expr_debug_visit_report(void)
+{
+    if (!expr_visit_census_enabled() || g_expr_visits_total == 0)
+        return;
+    fprintf(stderr, "[semantic timing] expr visits total=%zu\n",
+            g_expr_visits_total);
+    for (size_t i = 0; i < 512; i++) {
+        if (g_expr_visits_by_kind[i] > 5000
+            || g_expr_seconds_by_kind[i] > 0.2) {
+            fprintf(stderr,
+                    "[semantic timing]   kind=%zu visits=%zu inclusive=%.3fs\n",
+                    i, g_expr_visits_by_kind[i], g_expr_seconds_by_kind[i]);
+        }
+    }
+}
 static Type *
 expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
@@ -36,11 +93,9 @@ expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
         member_name,
         type_name);
 }
-Type *
-type_check_expression(ASTNode *expr, SemanticContext *ctx)
+static Type *
+type_check_expression_dispatch(ASTNode *expr, SemanticContext *ctx)
 {
-    if (expr == NULL)
-        return TYPE_VOID;
     switch (expr->type) {
     case AST_NUMBER:
         /* Duration first: it rides the is_long lane for codegen, but
@@ -323,6 +378,26 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     default:
         return TYPE_UNKNOWN;
     }
+}
+
+Type *
+type_check_expression(ASTNode *expr, SemanticContext *ctx)
+{
+    double t0;
+    Type *result;
+
+    if (expr == NULL)
+        return TYPE_VOID;
+    if (!expr_visit_census_enabled())
+        return type_check_expression_dispatch(expr, ctx);
+    g_expr_visits_total++;
+    if ((size_t)expr->type < 512)
+        g_expr_visits_by_kind[(size_t)expr->type]++;
+    t0 = expr_census_now();
+    result = type_check_expression_dispatch(expr, ctx);
+    if ((size_t)expr->type < 512)
+        g_expr_seconds_by_kind[(size_t)expr->type] += expr_census_now() - t0;
+    return result;
 }
 
 Type *

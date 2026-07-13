@@ -1,6 +1,7 @@
 # 183. 네트워크-이론 축소 체크 → semantic 노드당 비용 프로브 (2026-07-13)
 
-Status: `measured` → `work-order` (§4 실행 중)
+Status: `measured` → `executed` (1라운드 §2.5 + 2라운드 §2.6 완료,
+2026-07-13; 잔여는 교리-게이트 §3)
 
 BDFL 질문(2026-07-13): "파서에서 구문트리 만들 때 네트워크 이론을
 접목해 커널처럼/sort3처럼 줄일 수 있는 게 있는지 체크할 수 있나?"
@@ -127,6 +128,73 @@ compare 3/3.
 
 잔여(2라운드): **semantic 3.1s** — `ast_capture_inline` 미호출 확인,
 별도 기전. 같은 방법론(단계 이분→하위 슬롯→skip-프로브)으로.
+
+## §2.6 실행 결과 (2026-07-13 당일) — 2라운드: semantic의 분기-스냅샷 O(분기×심볼)
+
+격리 사슬(관측성을 한 층씩 신설하며 하강; 코퍼스는 동시 스트림이
+진화시키는 중이라 src/self_hosted 전체를 동결 사본으로 고정):
+
+1. `PGY_DEBUG_PIPELINE_TIMING` 신설(기존 `DriverPhaseTimings`를
+   env-게이트 stderr로; AIR 2블록이 무계측 사각 + **316행 고아
+   phase_start**였던 것도 배선): semantic 3.2s가 파이프라인의 75~80%.
+   부수 적발 — **Windows NUL 리다이렉트 아티팩트**: `--mir 1>nul`
+   13.7s vs 파일 4.8s. 덤프 wallclock은 파일 기준만 유효(§1.3의
+   원계측 21s에도 콘솔/채널 오염이 섞여 있었다).
+2. `PGY_DEBUG_SEMANTIC_TIMING` 신설, 3층 하강: semantic 3.2 =
+   type_check_program 3.0 → 하위슬롯 pass2_full_check 2.4s (precollect
+   0.3 / topo 0.1 / worklist 0.03) → 문장 티커 >100ms **단 1건** =
+   병리적 소수 함수가 아니라 고른 노드당 상수.
+3. 식 census(방문수+kind별 inclusive; **리프 kind는 inclusive==self**
+   성질로 재귀 시간귀속을 우회, QPC — clock()은 1ms 해상도라 불가):
+   방문 97k ≈ 노드수(재보행 아님), **식 전체 inclusive 합 0.4s → 식
+   검사 무죄**. 범인은 문장-레벨 기계.
+4. 문장 census: **IF 4,707방문 inclusive 5.19s**(중첩 이중계상 —
+   else-if 사다리가 깊이만큼 재누적), WHILE 656방문 1.98s.
+5. **체포**: if/match/loop flow가 분기마다 `snapshot_resource_states`
+   최대 3회 — 각 스냅샷이 **scope 체인 전체**(프로그램 스코프 ~1천+
+   심볼 포함)를 돌며 심볼마다 `semantic_classify_ownership_type`
+   cascade(subject/boundary 판정 = host-decl 조회)를 재실행.
+   O(분기×심볼) — §1.3이 예측한 "side-table 선형 스캔 O(n·m)"의
+   실체, 위치만 식 검사가 아니라 분기 스냅샷. skip-프로브로 확정
+   (classify를 끄니 pass2 2.38→0.32s).
+
+수술: **Symbol에 type-포인터-키 memo**(`flow_tracks_memo`) — 분류는
+(심볼, 타입포인터)당 1회, 재해석이 포인터를 갈면 자연 무효화.
+무음-drift 공포는 **검증 모드**(`PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1`:
+memo 히트마다 재계산 대조, 불일치 시 fail-loud abort)로 봉인 —
+동결 코퍼스 + semantic 배터리 2794케이스 전체를 검증 모드로 통과
+(divergence 0).
+
+결과(동결 driver_rung2, 파일-리다이렉트, min-of-3):
+
+| | 2라운드 전 | 후 |
+|---|---|---|
+| pass2_full_check | 2.38s | **0.30s (~8×)** |
+| semantic 전체 | 3.2s | **0.77s** |
+| `--mir` end-to-end | 4.3~4.8s | **1.76s** |
+| `--mir-json` end-to-end | ~4.5s | **1.63s** |
+
+§2 목표 "한 자릿수 초" 초과 달성(원계측 21s 대비 ~12×; 1라운드
+tempfile 제거와 합산). 파리티: mir 덤프 11.5MB + mir-json 8.26MB
+**byte-동일**. 배터리: semantic 2794/0(검증 모드 on) · MIR 132/0 ·
+transpile 918/0 · AIR 141/0 · parser · compare 3/3.
+
+교훈 3건: ① 덤프 벤치는 반드시 파일-리다이렉트로(NUL/콘솔이 3배
+부풀림). ② 재귀 검사기의 시간귀속은 (a) 방문 census로 재보행/노드당
+비용을 가르고 (b) 리프-kind inclusive==self로 층을 가른다 — 프로파일러
+없이 결정 가능. ③ 분류-memo처럼 "무음 divergence가 무서운" 캐시는
+검증 모드(재계산 대조 + fail-loud)를 같이 지어 배터리로 실증하면
+공포가 게이트로 바뀐다.
+
+신설 관측성(영구, env-게이트): `PGY_DEBUG_PIPELINE_TIMING`(드라이버
+단계 테이블+AIR 2슬롯), `PGY_DEBUG_SEMANTIC_TIMING`(패스 3층 +
+>100ms 문장 티커 + 식/문장 kind census), `PGY_SEMPERF_VERIFY_CLASSIFY_MEMO`
+(memo 무결성 게이트).
+
+잔여: semantic 0.77s의 최대 슬롯은 precollect ~0.3s — 측정-먼저
+교리상 여기서 중단(velocity 병목 해소됨). routine_lower_owner.pgy는
+동시 스트림 개편으로 현 트리에 부재 — driver_rung2 단일 코퍼스
+전후로 판정.
 
 ## §3. 잔여·비주문 (교리-게이트)
 

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,12 +17,10 @@ flow_snapshot_count_fits(size_t count)
 }
 
 static bool
-flow_snapshot_tracks_symbol(const Symbol *sym, SemanticContext *ctx)
+flow_snapshot_tracks_classify(const Symbol *sym, SemanticContext *ctx)
 {
     OwnershipTypeClass ownership;
 
-    if (sym == NULL || sym->type == NULL)
-        return false;
     if (type_is_resource_handle(sym->type))
         return true;
 
@@ -30,6 +29,44 @@ flow_snapshot_tracks_symbol(const Symbol *sym, SemanticContext *ctx)
         || ownership == OWNERSHIP_TYPE_BORROW_TRACKED
         || ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
         || ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE;
+}
+
+static bool
+flow_snapshot_tracks_symbol(Symbol *sym, SemanticContext *ctx)
+{
+    bool tracks;
+    /* PGY_SEMPERF_VERIFY_CLASSIFY_MEMO=1 recomputes on every memo hit and
+     * fails loud on divergence -- the witness that classification really is
+     * pointer-stable (no silent tracked-set drift). */
+    static int verify_memo = -1;
+
+    if (sym == NULL || sym->type == NULL)
+        return false;
+
+    if (sym->flow_tracks_memo != 0
+        && sym->flow_tracks_memo_type == sym->type) {
+        if (verify_memo < 0)
+            verify_memo =
+                getenv("PGY_SEMPERF_VERIFY_CLASSIFY_MEMO") != NULL ? 1 : 0;
+        if (verify_memo == 1) {
+            bool recomputed = flow_snapshot_tracks_classify(sym, ctx);
+            if (recomputed != (sym->flow_tracks_memo == 2)) {
+                fprintf(stderr,
+                        "pgy: flow-snapshot classify memo diverged for"
+                        " symbol '%s' (memo=%u recomputed=%d)\n",
+                        sym->name != NULL ? sym->name : "(unnamed)",
+                        (unsigned)sym->flow_tracks_memo,
+                        (int)recomputed);
+                abort();
+            }
+        }
+        return sym->flow_tracks_memo == 2;
+    }
+
+    tracks = flow_snapshot_tracks_classify(sym, ctx);
+    sym->flow_tracks_memo_type = sym->type;
+    sym->flow_tracks_memo = tracks ? 2 : 1;
+    return tracks;
 }
 
 ResourceConsumeSnapshot

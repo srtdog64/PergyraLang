@@ -132,6 +132,17 @@ struct Symbol
         Symbol*   boundary_sym;   /* NULL when the boundary is a literal */
         long long boundary_lit;   /* valid when boundary_sym == NULL */
     } slice_split_info;
+
+    /*
+     * Memo for flow-snapshot tracking (docs/183 round 2). Branch/loop flow
+     * snapshots classify every in-scope symbol per snapshot; the ownership
+     * classification of a (symbol, type) pair is stable while the type
+     * pointer is unchanged, so it is computed once per pointer. A type
+     * re-resolution swaps the pointer and invalidates the memo naturally.
+     * 0 = unset, 1 = not tracked, 2 = tracked.
+     */
+    const Type* flow_tracks_memo_type;
+    uint8_t     flow_tracks_memo;
 };
 
 /*

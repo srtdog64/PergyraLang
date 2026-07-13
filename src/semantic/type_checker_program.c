@@ -1,9 +1,22 @@
 ﻿#include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <time.h>
 
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+
+/* PGY_DEBUG_SEMANTIC_TIMING sub-slots for type_check_program: which of the
+ * prepass/worklist/full-check regions holds the semantic wallclock. */
+void type_check_expr_debug_visit_report(void);
+void type_check_stmt_debug_visit_report(void);
+
+static double
+program_timing_now(void)
+{
+    return (double)clock() / (double)CLOCKS_PER_SEC;
+}
 
 static Type *
 program_lookup_dag_type_ref_or_unknown(ASTNode *type_node,
@@ -69,6 +82,13 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
 {
     size_t *topo_order = NULL;
     size_t topo_count = 0;
+    bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
+    double t_mark = 0.0;
+    double t_precollect = 0.0;
+    double t_pass1 = 0.0;
+    double t_topo = 0.0;
+    double t_worklist = 0.0;
+    double t_pass2 = 0.0;
 
     if (program == NULL || program->type != AST_PROGRAM)
         return false;
@@ -86,7 +106,13 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     if (!semantic_build_host_decl_index(ctx, program))
         return program_report_resolution_oom(ctx, program,
             "host declaration index");
+    if (timing)
+        t_mark = program_timing_now();
     semantic_type_resolution_precollect_program(program, ctx);
+    if (timing) {
+        t_precollect = program_timing_now() - t_mark;
+        t_mark = program_timing_now();
+    }
 
     /*
      * Pass 1: collect all top-level function and class names
@@ -411,6 +437,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         }
     }
 
+    if (timing) {
+        t_pass1 = program_timing_now() - t_mark;
+        t_mark = program_timing_now();
+    }
+
     if (!type_resolution_validate_graph(ctx))
         return false;
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,
@@ -420,14 +451,49 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         return program_report_resolution_oom(ctx, program,
             "type-resolution topological order");
     }
+    if (timing) {
+        t_topo = program_timing_now() - t_mark;
+        t_mark = program_timing_now();
+    }
 
     semantic_run_type_resolution_worklist(program, ctx, topo_order, topo_count);
+    if (timing) {
+        t_worklist = program_timing_now() - t_mark;
+        t_mark = program_timing_now();
+    }
 
     /*
      * Pass 2: full type-check
      */
-    for (size_t i = 0; i < ast_program_statement_count(program); i++)
-        type_check_statement(ast_program_statement(program, i), ctx);
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
+        double t_stmt = timing ? program_timing_now() : 0.0;
+
+        type_check_statement(stmt, ctx);
+        if (timing) {
+            t_stmt = program_timing_now() - t_stmt;
+            if (t_stmt > 0.1 && stmt != NULL) {
+                fprintf(stderr,
+                        "[semantic timing]   stmt kind=%d line=%u name=%s"
+                        " %.3fs\n",
+                        (int)stmt->type, stmt->line,
+                        ast_declaration_name(stmt) != NULL
+                            ? ast_declaration_name(stmt)
+                            : "(unnamed)",
+                        t_stmt);
+            }
+        }
+    }
+    if (timing) {
+        t_pass2 = program_timing_now() - t_mark;
+        fprintf(stderr,
+                "[semantic timing] type_check_program: precollect=%.3f"
+                " pass1_placeholders=%.3f topo=%.3f worklist=%.3f"
+                " pass2_full_check=%.3f\n",
+                t_precollect, t_pass1, t_topo, t_worklist, t_pass2);
+        type_check_expr_debug_visit_report();
+        type_check_stmt_debug_visit_report();
+    }
 
     (void)type_resolution_validate_graph(ctx);
     semantic_maybe_print_type_resolution_stats(ctx);

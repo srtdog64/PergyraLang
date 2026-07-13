@@ -87,7 +87,28 @@ run_token_dump(const char *source, const char *path)
 int
 driver_run_pipeline(const DriverFlags *flags)
 {
-    return driver_run_pipeline_timed(flags, NULL);
+    DriverPhaseTimings timings;
+    int exit_code;
+
+    /* One level up from PGY_DEBUG_MIR_TIMING: the pipeline must answer
+     * "which phase did the time go to" without a debugger. */
+    if (getenv("PGY_DEBUG_PIPELINE_TIMING") == NULL)
+        return driver_run_pipeline_timed(flags, NULL);
+
+    exit_code = driver_run_pipeline_timed(flags, &timings);
+    fprintf(stderr,
+            "[pipeline timing] module_load=%.3f semantic=%.3f hir=%.3f"
+            " dir=%.3f dir_validate=%.3f rir=%.3f rir_enrich=%.3f"
+            " rir_validate=%.3f rir_dir_validate=%.3f air_synth=%.3f"
+            " mir_lower=%.3f mir_validate=%.3f air_mir=%.3f backend=%.3f"
+            " total=%.3f\n",
+            timings.module_load, timings.semantic, timings.hir_lower,
+            timings.dir_lower, timings.dir_validate, timings.rir_lower,
+            timings.rir_enrich, timings.rir_validate,
+            timings.rir_dir_validate, timings.air_synthesize,
+            timings.mir_lower, timings.mir_validate,
+            timings.air_mir_evidence, timings.backend, timings.total);
+    return exit_code;
 }
 
 int
@@ -327,6 +348,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             hir_error != NULL ? hir_error : "invalid AIR/DAG evidence");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->air_synthesize = driver_now_seconds() - phase_start;
     if (air_drift_count(air) > 0 && !flags->dump_air_json) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
@@ -360,6 +383,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         timings->mir_validate = driver_now_seconds() - phase_start;
 
     driver_debug_stage("air_mir_evidence");
+    phase_start = driver_now_seconds();
     if (!air_collect_mir_evidence(air, mir, &hir_error)) {
         driver_emit_stage_fail(flags, "air_mir_evidence",
             "AIR MIR evidence collection failed",
@@ -372,6 +396,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             hir_error != NULL ? hir_error : "invalid AIR graph");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->air_mir_evidence = driver_now_seconds() - phase_start;
     if (flags->dump_air && !flags->dump_air_json) {
         air_dump(air, stdout);
         exit_code = 0;

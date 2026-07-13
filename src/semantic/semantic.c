@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 #include "../common/string_compat.h"
 #include "../common/squiggle_class.h"
 #include "semantic.h"
@@ -228,9 +229,25 @@ semantic_analyze(ASTNode *ast)
     return semantic_analyze_ex(ast, false);
 }
 
+/* PGY_DEBUG_SEMANTIC_TIMING: the one-level-down sibling of
+ * PGY_DEBUG_PIPELINE_TIMING (which itself sits above PGY_DEBUG_MIR_TIMING).
+ * The semantic stage must answer "which pass did the time go to" without a
+ * debugger. clock() is wallclock on Windows MSVCRT, matching mir.c. */
+static double
+semantic_timing_now(void)
+{
+    return (double)clock() / (double)CLOCKS_PER_SEC;
+}
+
 SemanticResult *
 semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
 {
+    bool timing = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL;
+    double t_mark = 0.0;
+    double t_preload = 0.0;
+    double t_type_check = 0.0;
+    double t_legacy_slot = 0.0;
+
     SemanticResult *result = calloc(1, sizeof(SemanticResult));
     if (result == NULL)
         return NULL;
@@ -242,12 +259,29 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     }
     ctx->emit_advisories = emit_advisories;
 
+    if (timing)
+        t_mark = semantic_timing_now();
     semantic_preload_stdlib_uses(ast);
+    if (timing) {
+        t_preload = semantic_timing_now() - t_mark;
+        t_mark = semantic_timing_now();
+    }
 
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);
+    if (timing) {
+        t_type_check = semantic_timing_now() - t_mark;
+        t_mark = semantic_timing_now();
+    }
 
     semantic_run_legacy_slot_resource_analysis(ast, ctx);
+    if (timing) {
+        t_legacy_slot = semantic_timing_now() - t_mark;
+        fprintf(stderr,
+                "[semantic timing] stdlib_preload=%.3f type_check=%.3f"
+                " legacy_slot_lifecycle=%.3f\n",
+                t_preload, t_type_check, t_legacy_slot);
+    }
 
     if (!semantic_snapshot_lifecycle_state_spaces(result)) {
         semantic_error(ctx, ast,

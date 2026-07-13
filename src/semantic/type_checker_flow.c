@@ -9,6 +9,58 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loops.h"
 
+/* PGY_DEBUG_SEMANTIC_TIMING statement census: per-kind INCLUSIVE time for
+ * body statements (parents such as blocks/ifs double-count their children;
+ * leaf statement kinds read as self-time). Mirrors the expression census in
+ * type_checker_expr.c. */
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+static size_t g_stmt_visits_by_kind[512];
+static double g_stmt_seconds_by_kind[512];
+
+static double
+stmt_census_now(void)
+{
+#ifdef _WIN32
+    LARGE_INTEGER freq;
+    LARGE_INTEGER counter;
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)freq.QuadPart;
+#else
+    return (double)clock() / (double)CLOCKS_PER_SEC;
+#endif
+}
+
+static bool
+stmt_census_enabled(void)
+{
+    static int enabled = -1;
+
+    if (enabled < 0)
+        enabled = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL ? 1 : 0;
+    return enabled == 1;
+}
+
+void
+type_check_stmt_debug_visit_report(void)
+{
+    if (!stmt_census_enabled())
+        return;
+    for (size_t i = 0; i < 512; i++) {
+        if (g_stmt_visits_by_kind[i] > 5000
+            || g_stmt_seconds_by_kind[i] > 0.2) {
+            fprintf(stderr,
+                    "[semantic timing]   stmt kind=%zu visits=%zu"
+                    " inclusive=%.3fs\n",
+                    i, g_stmt_visits_by_kind[i], g_stmt_seconds_by_kind[i]);
+        }
+    }
+}
+
 FlowFlags
 flow_terminating_flags(FlowFlags flags)
 {
@@ -108,13 +160,10 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
     return flags;
 }
 
-FlowFlags
-type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
-                          LoopFlowState *loop_flow)
+static FlowFlags
+type_check_statement_flow_dispatch(ASTNode *node, SemanticContext *ctx,
+                                   LoopFlowState *loop_flow)
 {
-    if (node == NULL)
-        return FLOW_FALLTHROUGH;
-
     switch (node->type) {
     case AST_BLOCK: {
         FlowFlags flags;
@@ -198,6 +247,26 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         type_check_expression(node, ctx);
         return FLOW_FALLTHROUGH;
     }
+}
+
+FlowFlags
+type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
+                          LoopFlowState *loop_flow)
+{
+    double t0;
+    FlowFlags flags;
+
+    if (node == NULL)
+        return FLOW_FALLTHROUGH;
+    if (!stmt_census_enabled())
+        return type_check_statement_flow_dispatch(node, ctx, loop_flow);
+    if ((size_t)node->type < 512)
+        g_stmt_visits_by_kind[(size_t)node->type]++;
+    t0 = stmt_census_now();
+    flags = type_check_statement_flow_dispatch(node, ctx, loop_flow);
+    if ((size_t)node->type < 512)
+        g_stmt_seconds_by_kind[(size_t)node->type] += stmt_census_now() - t0;
+    return flags;
 }
 
 FlowFlags

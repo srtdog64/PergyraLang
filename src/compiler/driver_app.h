@@ -39,8 +39,10 @@ typedef struct
     double rir_enrich;
     double rir_validate;
     double rir_dir_validate;
+    double air_synthesize;
     double mir_lower;
     double mir_validate;
+    double air_mir_evidence;
     double backend;
     double backend_codegen;
     double backend_native_compile;
