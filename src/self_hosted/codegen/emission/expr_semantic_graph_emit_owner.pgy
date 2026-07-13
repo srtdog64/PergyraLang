@@ -25,13 +25,37 @@ func RewriteExprFromSemanticGraph(
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, node_id
     );
+    if !IsSome(left_opt) {
+        Die("semantic expression graph left edge is missing");
+    }
+    let left_id: Int = UnwrapOption(left_opt);
+    if AstExpressionNodeArity(kind) == 1 {
+        let operand: String = RewriteExprFromSemanticGraph(
+            graph, left_id, env
+        );
+        let operand_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, left_id
+        );
+        if !IsSome(operand_kind) {
+            Die("semantic unary operand kind is missing");
+        }
+        if AstExpressionNodeArity(UnwrapOption(operand_kind)) == 1 {
+            operand = Concat("(", Concat(operand, ")"));
+        }
+        if kind == AstExpressionNodeLogicalNot() {
+            return Concat("!", operand);
+        }
+        if kind == AstExpressionNodeNegate() {
+            return Concat("-", operand);
+        }
+        Die("unsupported semantic unary expression graph node kind");
+    }
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
         graph, node_id
     );
-    if !IsSome(left_opt) || !IsSome(right_opt) {
-        Die("semantic expression graph edge is missing");
+    if !IsSome(right_opt) {
+        Die("semantic expression graph right edge is missing");
     }
-    let left_id: Int = UnwrapOption(left_opt);
     let right_id: Int = UnwrapOption(right_opt);
     if kind == AstExpressionNodeEquality() ||
         kind == AstExpressionNodeInequality() {

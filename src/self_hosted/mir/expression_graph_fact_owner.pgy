@@ -112,17 +112,23 @@ func SelfMirExpressionGraphAttachLast(
             return rows;
         }
         let kind: Int = UnwrapOption(kind_opt);
-        if kind != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 {
             let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
                 view.graph, source_node
             );
+            if !IsSome(left_opt) ||
+                UnwrapOption(left_opt) < source_start ||
+                UnwrapOption(left_opt) >= source_node {
+                return rows;
+            }
+        }
+        if arity == 2 {
             let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
                 view.graph, source_node
             );
-            if !IsSome(left_opt) || !IsSome(right_opt) ||
-                UnwrapOption(left_opt) < source_start ||
+            if !IsSome(right_opt) ||
                 UnwrapOption(right_opt) < source_start ||
-                UnwrapOption(left_opt) >= source_node ||
                 UnwrapOption(right_opt) >= source_node {
                 return rows;
             }
@@ -140,9 +146,14 @@ func SelfMirExpressionGraphAttachLast(
         ArrayPush(texts, view.graph.arena.node_texts[source_node]);
         let left: Int = 0;
         let right: Int = 0;
-        if kind != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 {
             left = start + view.graph.arena.left_children[source_node] -
                 source_start;
+        }
+        if arity == 1 {
+            right = 0;
+        } else if arity == 2 {
             right = start + view.graph.arena.right_children[source_node] -
                 source_start;
         }
@@ -197,8 +208,13 @@ func SelfMirExpressionGraphRowsAppendRows(
         ArrayPush(texts, source.node_texts[node_i]);
         let left: Int = 0;
         let right: Int = 0;
-        if kind != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 {
             left = source.left_children[node_i] + node_offset;
+        }
+        if arity == 1 {
+            right = 0;
+        } else if arity == 2 {
             right = source.right_children[node_i] + node_offset;
         }
         ArrayPush(left_children, left);
@@ -234,8 +250,11 @@ func SelfMirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        if rows.node_kinds[node] != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(rows.node_kinds[node]);
+        if arity >= 1 {
             ArrayPush(pending, rows.left_children[node]);
+        }
+        if arity == 2 {
             ArrayPush(pending, rows.right_children[node]);
         }
     }
@@ -280,12 +299,16 @@ func SelfMirExpressionGraphRowsReady(
                 !AstExpressionNodeKindKnown(kind) {
                 return false;
             }
-            if kind == AstExpressionNodeLeaf() {
+            let arity: Int = AstExpressionNodeArity(kind);
+            if arity == 0 {
                 if rows.left_children[node_i] != 0 ||
                     rows.right_children[node_i] != 0 { return false; }
             } else if rows.left_children[node_i] < start ||
-                rows.right_children[node_i] < start ||
-                rows.left_children[node_i] >= node_i ||
+                rows.left_children[node_i] >= node_i {
+                return false;
+            } else if arity == 1 {
+                if rows.right_children[node_i] != 0 { return false; }
+            } else if rows.right_children[node_i] < start ||
                 rows.right_children[node_i] >= node_i {
                 return false;
             }
@@ -313,6 +336,8 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeDivide() { return "divide"; }
     if kind == AstExpressionNodeModulo() { return "modulo"; }
     if kind == AstExpressionNodeIndex() { return "index"; }
+    if kind == AstExpressionNodeLogicalNot() { return "logical_not"; }
+    if kind == AstExpressionNodeNegate() { return "negate"; }
     return "";
 }
 
@@ -338,6 +363,20 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ["a", "b", "unused", "a == b"],
             [0, 0, 0, 0], [0, 0, 0, 1]
         );
+    let valid_unary: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [1], [0], [2],
+            [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
+            ["flag", "(!flag)"], [0, 0], [0, 0]
+        );
+    let malformed_unary: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [1], [0], [2],
+            [AstExpressionNodeLeaf(), AstExpressionNodeLogicalNot()],
+            ["flag", "(!flag)"], [0, 0], [0, 1]
+        );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
-        !SelfMirExpressionGraphRowsReady(disconnected, 1);
+        SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
+        !SelfMirExpressionGraphRowsReady(disconnected, 1) &&
+        !SelfMirExpressionGraphRowsReady(malformed_unary, 1);
 }

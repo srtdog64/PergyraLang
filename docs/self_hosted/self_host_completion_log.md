@@ -6880,3 +6880,24 @@ Released/default replacement remains 0%.
 - Scope remains bounded: call/wrapper/unary internals,
   log/collection/auxiliary lanes, and compact-tree arena construction remain
   `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 logical-not and numeric-negate own unary edges
+
+- Added explicit `logical_not` and `negate` graph kinds plus the owner-level
+  0/1/2 arity rule. Unary nodes carry one operand edge; the unused storage cell
+  stays at canonical zero and MIR JSON projects the absent edge as `null`.
+- Replaced the `ParseUnaryFact` leaf collapse for `!expr` and `-expr` with
+  `ParserExpressionUnary`. Semantic, MIR producer/consumer, reachability, JSON,
+  and codegen now consume the same arity fact. A unary row with a second child
+  fails the MIR verifier.
+- Codegen emits logical-not and numeric-negate from the operand handle. The
+  root text is not reparsed, and canonical outer-parenthesis ownership remains
+  byte-identical with the native oracle, including the existing `-1` CFG case.
+- Promoted `valid_option_none_literal.pgy` into the source/MIR intersection.
+  C-built and LLVM-built DRV-2 drivers pass the 20-source/12-MIR producer-first
+  gate, native execution oracle, source/MIR C artifact comparison, and missing
+  or malformed graph mutations.
+- Scope remains bounded: call/try/member/pipe/object-init internals,
+  borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and
+  compact-tree arena construction remain `BRIDGE`; released/default
+  replacement remains 0%.

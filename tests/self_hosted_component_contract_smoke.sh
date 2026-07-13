@@ -2555,6 +2555,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstExpressionTypedBindingContractReady()"
 for expression_graph_transport_owner in \
@@ -2757,7 +2758,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 11;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 12;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -3072,6 +3073,13 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeModulo()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeGreaterEqual()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIndex()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeLogicalNot()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeNegate()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArity("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionUnary("
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeNegate()"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_unary"
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixFact("
 reject_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixExpr("
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
@@ -3640,10 +3648,16 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_
     "func RewriteExprFromSemanticGraph(" "RewriteIndexing("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeIndex()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "kind == AstExpressionNodeLogicalNot()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "kind == AstExpressionNodeNegate()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"valid_array_builtins|ok"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/semantic/fixture/valid_array_builtins.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/semantic/fixture/valid_option_none_literal.pgy"'
 require_text "src/self_hosted/codegen/role_fixture/operator_add.pgy" "Log(5 - 2);"
 require_text "src/self_hosted/codegen/role_fixture/operator_add.pgy" "return 1 + 2;"
 require_text "src/self_hosted/codegen/role_expected/operator_add_stdout.txt" $'123\n123\n3'

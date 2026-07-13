@@ -39,8 +39,14 @@ func SelfMirJsonExpressionGraph(
             ),
             JsonEmitFieldString("text", rows.node_texts[node])
         ];
-        if kind == AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity == 0 {
             ArrayPush(fields, JsonEmitFieldRaw("left", "null"));
+            ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
+        } else if arity == 1 {
+            ArrayPush(fields, JsonEmitFieldNumber(
+                "left", ToString(rows.left_children[node] - start)
+            ));
             ArrayPush(fields, JsonEmitFieldRaw("right", "null"));
         } else {
             ArrayPush(fields, JsonEmitFieldNumber(

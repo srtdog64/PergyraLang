@@ -52,6 +52,10 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "divide" { return Some(AstExpressionNodeDivide()); }
     if kind == "modulo" { return Some(AstExpressionNodeModulo()); }
     if kind == "index" { return Some(AstExpressionNodeIndex()); }
+    if kind == "logical_not" {
+        return Some(AstExpressionNodeLogicalNot());
+    }
+    if kind == "negate" { return Some(AstExpressionNodeNegate()); }
     return None;
 }
 
@@ -78,8 +82,11 @@ func MirExpressionGraphRangeReachable(
         if seen[local_index] { continue; }
         ArraySet(seen, local_index, true);
         visited = visited + 1;
-        if arena.node_kinds[node] != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(arena.node_kinds[node]);
+        if arity >= 1 {
             ArrayPush(pending, arena.left_children[node]);
+        }
+        if arity == 2 {
             ArrayPush(pending, arena.right_children[node]);
         }
     }
@@ -136,10 +143,21 @@ func MirExpressionGraphSequenceAppend(
         let right_opt: Option<String> = JsonObjectFactNumberFieldOpt(
             node, "right"
         );
-        if kind == AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity == 0 {
             if IsSome(left_opt) || IsSome(right_opt) {
                 return MirExpressionGraphSequenceError(sequence);
             }
+        } else if arity == 1 {
+            if !IsSome(left_opt) || IsSome(right_opt) {
+                return MirExpressionGraphSequenceError(sequence);
+            }
+            let local_left: Int = ToInt(UnwrapOption(left_opt));
+            if local_left < 0 || local_left >= i {
+                return MirExpressionGraphSequenceError(sequence);
+            }
+            left = offset + local_left;
+            right = 0;
         } else {
             if !IsSome(left_opt) || !IsSome(right_opt) {
                 return MirExpressionGraphSequenceError(sequence);

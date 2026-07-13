@@ -26,6 +26,31 @@ func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
     );
 }
 
+func ParserExpressionUnary(
+    kind: Int,
+    text: String,
+    operand: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !operand.ok || text == "" || AstExpressionNodeArity(kind) != 1 {
+        return ParserExpressionInvalid();
+    }
+    let kinds: Array<Int> = operand.arena.node_kinds;
+    let texts: Array<String> = operand.arena.node_texts;
+    let left_children: Array<Int> = operand.arena.left_children;
+    let right_children: Array<Int> = operand.arena.right_children;
+    let root: Int = ArrayLength(kinds);
+    ArrayPush(kinds, kind);
+    ArrayPush(texts, text);
+    ArrayPush(left_children, operand.root);
+    ArrayPush(right_children, 0);
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    return ParserExpressionFact(
+        AstExpressionArenaReady(arena), text, root, arena
+    );
+}
+
 func ParserExpressionBinary(
     kind: Int,
     text: String,
@@ -57,8 +82,13 @@ func ParserExpressionBinary(
         ArrayPush(texts, right.arena.node_texts[i]);
         let child_left: Int = right.arena.left_children[i];
         let child_right: Int = right.arena.right_children[i];
-        if right.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(
+            right.arena.node_kinds[i]
+        );
+        if arity >= 1 {
             child_left = child_left + left_count;
+        }
+        if arity == 2 {
             child_right = child_right + left_count;
         }
         ArrayPush(left_children, child_left);
@@ -105,8 +135,11 @@ func ParserExpressionGraphsAppend(
         ArrayPush(texts, fact.arena.node_texts[i]);
         let left: Int = fact.arena.left_children[i];
         let right: Int = fact.arena.right_children[i];
-        if fact.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(fact.arena.node_kinds[i]);
+        if arity >= 1 {
             left = left + offset;
+        }
+        if arity == 2 {
             right = right + offset;
         }
         ArrayPush(left_children, left);
@@ -152,8 +185,13 @@ func ParserExpressionGraphsAppendRows(
             ArrayPush(texts, source.arena.node_texts[i]);
             let left: Int = source.arena.left_children[i];
             let right: Int = source.arena.right_children[i];
-            if source.arena.node_kinds[i] != AstExpressionNodeLeaf() {
+            let arity: Int = AstExpressionNodeArity(
+                source.arena.node_kinds[i]
+            );
+            if arity >= 1 {
                 left = left - start;
+            }
+            if arity == 2 {
                 right = right - start;
             }
             ArrayPush(left_children, left);

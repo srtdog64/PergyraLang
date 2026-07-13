@@ -127,9 +127,14 @@ func SemanticExpressionGraphArenaReady(
             !AstExpressionNodeKindKnown(kind) {
             return false;
         }
-        if kind == AstExpressionNodeLeaf() {
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity == 0 {
             if left != 0 || right != 0 { return false; }
-        } else if left < 0 || right < 0 || left >= i || right >= i {
+        } else if left < 0 || left >= i {
+            return false;
+        } else if arity == 1 {
+            if right != 0 { return false; }
+        } else if right < 0 || right >= i {
             return false;
         }
         i = i + 1;
@@ -363,7 +368,7 @@ func SemanticExpressionGraphLeftChild(
     node_id: Int
 ) -> Option<Int> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
-    if !IsSome(kind) || UnwrapOption(kind) == AstExpressionNodeLeaf() {
+    if !IsSome(kind) || AstExpressionNodeArity(UnwrapOption(kind)) < 1 {
         return None;
     }
     return Some(facts.arena.left_children[node_id]);
@@ -374,7 +379,7 @@ func SemanticExpressionGraphRightChild(
     node_id: Int
 ) -> Option<Int> {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(facts, node_id);
-    if !IsSome(kind) || UnwrapOption(kind) == AstExpressionNodeLeaf() {
+    if !IsSome(kind) || AstExpressionNodeArity(UnwrapOption(kind)) < 2 {
         return None;
     }
     return Some(facts.arena.right_children[node_id]);

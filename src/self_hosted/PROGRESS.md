@@ -102,19 +102,23 @@ full-source gen3 fixed point.
 The latest DRV-2 slice carries normalized expression graphs from the parser/HIR
 artifact into MIR branch, definition, and value-return instructions as
 `expr0_graph`. The precedence/postfix parser emits logical, equality,
-relational, additive, multiplicative, and index node kinds and child edges in the same walk that
-produces the compact parity projection. Typed source compilation binds roots by
+relational, additive, multiplicative, index, logical-not, and numeric-negate
+node kinds and child edges in the same walk that produces the compact parity
+projection. Unary nodes carry one operand edge and are rejected if a second
+edge appears. Typed source compilation binds roots by
 `(owner kind, lane)` for `if`, `while`, `let`, assignment, and value return; a
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 11 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 12 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
 migrated operators and statement lanes. Index reads select the collection
 runtime ABI from their receiver fact without calling the legacy index scanner.
-Call/wrapper/unary internals, log/collection/auxiliary lanes, and the
+Logical-not and numeric-negate emit directly from their operand handle rather
+than reparsing the unary root text. Call/try/member/pipe/object-init internals,
+borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and the
 transitional compact-tree-to-arena
 construction remain `BRIDGE` work.
 
@@ -328,8 +332,8 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 29,060 frontend/backend LOC / 287,075 C-reference LOC = 10.12%; broader Pergyra compiler-core inventory = 45,928 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 11 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Implementation inventory | 29,159 frontend/backend LOC / 287,075 C-reference LOC = 10.16%; broader Pergyra compiler-core inventory = 46,114 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 12 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -466,11 +470,11 @@ the integrated driver may not recover these facts from source text.
 The same executable owns a bounded typed-artifact MIR producer and accepts
 `--mir-json <file>` through the existing MIR fact consumer. Source mode now
 follows `artifact -> verified MIR rows -> pgy.mir.v1 -> MIR consumer -> artifact
-verifier -> codegen`; it no longer calls the C MIR producer. Eleven intersection
+verifier -> codegen`; it no longer calls the C MIR producer. Twelve intersection
 fixtures (linear local/log, range loop, nested CFG with phi, indexed assignment,
 payload-free enum return, explicit if/else phi, parameter carriage, recursive
 calls, nominal method construction, typed array foreach, and parser-owned array
-index read)
+index read plus parser-owned logical-not)
 require C/LLVM-built drivers
 to produce stable canonical reconstructions, emit identical C, and run-equal.
 This is not a raw native-MIR byte-equality claim: the indexed fixture therefore

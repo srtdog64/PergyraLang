@@ -12,12 +12,18 @@ func ParseUnaryFact(
     if ParserCharAt(content, i) == "!" && ParserCharAt(content, i + 1) != "=" {
         i = i + 1;
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
-        return ParserExpressionLeaf(Concat("(!", Concat(operand.text, ")")));
+        return ParserExpressionUnary(
+            AstExpressionNodeLogicalNot(),
+            Concat("(!", Concat(operand.text, ")")), operand
+        );
     }
     if ParserCharAt(content, i) == "-" {
         i = i + 1;
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
-        return ParserExpressionLeaf(Concat("(-", Concat(operand.text, ")")));
+        return ParserExpressionUnary(
+            AstExpressionNodeNegate(),
+            Concat("(-", Concat(operand.text, ")")), operand
+        );
     }
     if ParserCharAt(content, i) == "&" && ParserCharAt(content, i + 1) != "&" {
         i = i + 1;
@@ -301,6 +307,32 @@ func ParserExpressionPrecedenceGraphContractReady() -> Bool {
         fact.arena.node_kinds[fact.arena.right_children[addition]] ==
             AstExpressionNodeMultiply() &&
         fact.arena.node_kinds[modulo] == AstExpressionNodeModulo();
+}
+
+func ParserExpressionUnaryGraphContractReady() -> Bool {
+    let logical_cursor: Array<Int> = [0];
+    let logical: ParserExpressionFact = ParseExprFact(
+        "!!flag", 0, logical_cursor
+    );
+    let numeric_cursor: Array<Int> = [0];
+    let numeric: ParserExpressionFact = ParseExprFact(
+        "-(-value)", 0, numeric_cursor
+    );
+    if !logical.ok || !numeric.ok || logical_cursor[0] != 6 ||
+        numeric_cursor[0] != 9 ||
+        logical.arena.node_kinds[logical.root] !=
+            AstExpressionNodeLogicalNot() ||
+        numeric.arena.node_kinds[numeric.root] != AstExpressionNodeNegate() ||
+        logical.arena.right_children[logical.root] != 0 ||
+        numeric.arena.right_children[numeric.root] != 0 {
+        return false;
+    }
+    let logical_operand: Int = logical.arena.left_children[logical.root];
+    let numeric_operand: Int = numeric.arena.left_children[numeric.root];
+    return logical.arena.node_kinds[logical_operand] ==
+            AstExpressionNodeLogicalNot() &&
+        numeric.arena.node_kinds[numeric_operand] ==
+            AstExpressionNodeNegate();
 }
 
 // Compatibility text is a projection of the canonical parser fact, never a
