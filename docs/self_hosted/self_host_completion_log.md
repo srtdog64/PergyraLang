@@ -7044,3 +7044,25 @@ Released/default replacement remains 0%.
 - Scope remains bounded: nested-receiver method calls, namespace-qualified
   calls, object-init internals, and auxiliary type classification remain
   `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 nested receiver calls consume recursive type facts
+
+- Repointed hard instance-call emission so a receiver no longer has to be a
+  leaf binding. `line.end.LengthPlus(2)` resolves `line.end` recursively from
+  member edges and field/type rows, then consumes the `Vec2.LengthPlus`
+  signature row and emits the receiver as argument zero.
+- Added `nested_member_call.pgy` as the seventeenth DRV-2 MIR fixture. C-built
+  and LLVM-built drivers produced byte-identical self MIR and generated C, and
+  the generated executable matched the native oracle output `9`.
+- Missing and invalid expression graphs fail closed under both drivers. The
+  hard consumer cannot call the legacy member, qualified-call, field-access,
+  parenthesis, or dotted-path type scanners.
+- Native C MIR does not yet carry the rich graph on this legacy route, so the
+  explicitly named `--canonicalize-mir-json` oracle bridge reuses the Pergyra
+  expression parser to construct the comparison graph. Direct source and
+  `--mir-json` hard consumers still require `expr0_graph` and cannot invoke that
+  bridge.
+- The full producer-first gate passed at 20 source fixtures and 17 MIR fixtures
+  for both driver backends. Namespace-qualified call classification,
+  object-init internals, and auxiliary/result-type classification remain
+  `BRIDGE`; released/default replacement remains 0%.

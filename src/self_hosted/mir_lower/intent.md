@@ -44,7 +44,10 @@ binding before semantic/codegen consumption. The direct DRV-2 `--mir-json`
 path requires this fact and never
 rebuilds it from `expr0`; `--canonicalize-mir-json` is the named C-oracle bridge
 that upgrades older native MIR JSON before comparison through the explicitly
-named `SemanticAstArtifactAnalyzeCompactBridge` boundary.
+named `SemanticAstArtifactAnalyzeCompactBridge` boundary. That bridge reuses
+the canonical Pergyra expression parser for legacy nested call/member text; the
+hard consumer cannot invoke it and still fails closed when `expr0_graph` is
+missing or malformed.
 
 `parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
 task count, unique row names, and the closed `snapshot_copy` /

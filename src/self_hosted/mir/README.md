@@ -29,9 +29,13 @@ For the bounded DRV-2 source frontier, however, C MIR is comparison evidence
 only: the live replacement path produces and consumes MIR in Pergyra. DRV-2
 source and `--mir-json` compilation require `expr0_graph` on migrated branch,
 definition, value-return, Log, and bare-call instructions and fail closed when
-it is absent.
+it is absent. Recursive member facts cover nested field reads and nested
+receiver instance calls in the bounded DRV-2 fixture set.
 Compact expression text is still retained for reconstructed source shape, but
 it is not reparsed to recover a migrated expression graph in the hard consumer.
+The explicitly named C-oracle canonicalization bridge may run the Pergyra
+expression parser over legacy native MIR text before comparison; that bridge is
+not reachable from hard source or direct `--mir-json` consumption.
 Pipe syntax is normalized by the parser into the same direct-call and
 call-argument graph consumed by ordinary calls; no pipe-specific codegen parser
 or graph node kind exists.

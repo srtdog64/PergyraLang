@@ -159,6 +159,17 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 }
             done
         fi
+        if [[ "$base" == "nested_member_call" ]]; then
+            for nested_call_edge in \
+                '"kind":"member_access","text":"line.end"' \
+                '"kind":"member_access","text":"line.end.LengthPlus"' \
+                '"kind":"call","text":"line.end.LengthPlus()"'; do
+                grep -Fq "$nested_call_edge" "$self_mir_json" || {
+                    echo "[self-host-parity:driver-rung2] $backend nested member-call graph edge was lost: $nested_call_edge" >&2
+                    exit 1
+                }
+            done
+        fi
         if [[ "$base" == "for_each" ]]; then
             grep -Fq '"arg0":"n","arg1":null,"expr0":"nums","expr0_graph":null,"expr1":"nums"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend Int foreach fact drifted" >&2

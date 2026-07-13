@@ -8,6 +8,7 @@ import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
+import "../parser/expr_owner.pgy";
 
 struct SemanticExpressionGraphArena {
     node_kinds: Array<Int>;
@@ -185,6 +186,39 @@ func SemanticExpressionGraphInvalidBuild(
     return SemanticExpressionGraphBuild(false, 0, arena);
 }
 
+func SemanticExpressionGraphBuildParserCompactBridge(
+    arena: SemanticExpressionGraphArena,
+    text: String
+) -> SemanticExpressionGraphBuild {
+    let cursor: Array<Int> = [0];
+    let parsed: ParserExpressionFact = ParseExprFact(text, 0, cursor);
+    if !parsed.ok || cursor[0] != StringLength(text) {
+        return SemanticExpressionGraphInvalidBuild(arena);
+    }
+    let offset: Int = SemanticExpressionGraphArenaNodeCount(arena);
+    let i: Int = 0;
+    while i < AstExpressionArenaNodeCount(parsed.arena) {
+        let kind: Int = parsed.arena.node_kinds[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        let left: Int = 0;
+        let right: Int = 0;
+        if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
+        if arity == 2 { right = offset + parsed.arena.right_children[i]; }
+        let appended: SemanticExpressionGraphBuild =
+            SemanticExpressionGraphAppendNode(
+                arena, kind,
+                SemanticStripOuterParens(parsed.arena.node_texts[i]),
+                left, right
+            );
+        if !appended.ok { return appended; }
+        arena = appended.arena;
+        i = i + 1;
+    }
+    return SemanticExpressionGraphBuild(
+        true, offset + parsed.root, arena
+    );
+}
+
 func SemanticExpressionGraphBuildTryCompactBridge(
     arena: SemanticExpressionGraphArena,
     operand: String
@@ -281,6 +315,9 @@ func SemanticExpressionGraphBuildCompactBridgeFromText(
                 arena, UnwrapOption(postfix_try)
             );
         }
+        let parser_bridge: SemanticExpressionGraphBuild =
+            SemanticExpressionGraphBuildParserCompactBridge(arena, text);
+        if parser_bridge.ok { return parser_bridge; }
         return SemanticExpressionGraphAppendNode(arena, kind, text, 0, 0);
     }
     if !IsSome(operator_index) || operator_width <= 0 {
@@ -322,8 +359,16 @@ func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
         return false;
     }
     let prefix_operand: Int = prefix.arena.left_children[prefix.root_id];
-    if prefix.arena.node_kinds[prefix_operand] != AstExpressionNodeLeaf() ||
-        prefix.arena.node_texts[prefix_operand] != "Pick(x)" {
+    if prefix.arena.node_kinds[prefix_operand] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let prefix_call: Int = prefix.arena.left_children[prefix_operand];
+    let prefix_argument: Int = prefix.arena.right_children[prefix_operand];
+    let prefix_callee: Int = prefix.arena.left_children[prefix_call];
+    if prefix.arena.node_kinds[prefix_call] != AstExpressionNodeCall() ||
+        prefix.arena.node_texts[prefix_callee] != "Pick" ||
+        prefix.arena.node_texts[prefix_argument] != "x" {
         return false;
     }
 
@@ -344,6 +389,31 @@ func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
     return postfix.arena.node_kinds[postfix_operand] ==
             AstExpressionNodeLeaf() &&
         postfix.arena.node_texts[postfix_operand] == "value";
+}
+
+func SemanticExpressionGraphParserBridgeContractReady() -> Bool {
+    let nested: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(),
+            "line.end.LengthPlus(2)"
+        );
+    if !nested.ok || nested.arena.node_kinds[nested.root_id] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let call: Int = nested.arena.left_children[nested.root_id];
+    if nested.arena.node_kinds[call] != AstExpressionNodeCall() {
+        return false;
+    }
+    let method: Int = nested.arena.left_children[call];
+    if nested.arena.node_kinds[method] !=
+            AstExpressionNodeMemberAccess() {
+        return false;
+    }
+    let receiver: Int = nested.arena.left_children[method];
+    return nested.arena.node_kinds[receiver] ==
+            AstExpressionNodeMemberAccess() &&
+        nested.arena.node_texts[receiver] == "line.end";
 }
 
 func SemanticExpressionGraphFactsAppendLane(

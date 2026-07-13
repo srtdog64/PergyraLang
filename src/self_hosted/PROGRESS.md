@@ -114,7 +114,7 @@ spine is rejected. Typed source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 16 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 17 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -129,10 +129,16 @@ the receiver/member handles, method signature rows, and explicit receiver
 argument; those consumers cannot call the legacy member, qualified-call,
 field-access, or parenthesis scanners. The `nested_member_access` fixture
 projects `line.end.x` and `line.start.x` recursively from receiver/member edges
-and field/type rows rather than scanning a dotted path. Nested-receiver or
-namespace-qualified member calls, object-init internals, literal-only argument
-bridges, borrow/receive/spawn/await unary forms, collection/auxiliary lanes, and
-the transitional compact-tree-to-arena construction remain `BRIDGE` work.
+and field/type rows rather than scanning a dotted path. The
+`nested_member_call` fixture follows the same recursive type facts for
+`line.end.LengthPlus(2)`, then consumes the method signature row and emits the
+explicit receiver without a dotted-path or member-call scanner. The named
+compact C-oracle canonicalization bridge reuses the Pergyra expression parser
+to upgrade legacy native MIR text; it cannot feed the hard consumer, which
+still requires `expr0_graph`. Namespace-qualified call classification,
+object-init internals, literal-only argument bridges, borrow/receive/spawn/await
+unary forms, collection/auxiliary lanes, and expression result-type
+classification remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -244,9 +250,10 @@ rows. It cannot call the text-backed `ExprMemberFieldType` dotted-path scanner.
 The `nested_member_access` fixture made C-built and LLVM-built drivers emit
 byte-identical MIR and C, executed equal to the native oracle (`3`), and rejected
 both a missing graph and an invalid root. The full producer-first gate is green
-at 20 source fixtures and 16 MIR fixtures across both driver backends.
-Nested-receiver method calls and namespace-qualified calls remain `BRIDGE`;
-released/default replacement remains 0%.
+at 20 source fixtures and 17 MIR fixtures across both driver backends.
+Nested-receiver instance method calls are closed in this bounded hard path;
+namespace-qualified call classification remains `BRIDGE`. Released/default
+replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact

@@ -1,0 +1,17 @@
+class Vec2 {
+    let x: Int;
+    let y: Int;
+
+    func LengthPlus(self, extra: Int) -> Int {
+        return self.x + self.y + extra;
+    }
+}
+
+struct Line {
+    end: Vec2;
+}
+
+func Main() -> Void {
+    let line: Line = Line(Vec2(3, 4));
+    Log(ToString(line.end.LengthPlus(2)));
+}

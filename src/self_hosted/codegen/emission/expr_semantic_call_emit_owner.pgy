@@ -325,22 +325,20 @@ func RewriteSemanticMemberCall(
     let member_text: Option<String> = SemanticExpressionGraphNodeText(
         graph, member.member_node
     );
-    if !IsSome(receiver_kind) || UnwrapOption(receiver_kind) !=
-            AstExpressionNodeLeaf() || !IsSome(receiver_text) ||
-        !IsSome(member_text) ||
-        !IsIdentifier(UnwrapOption(receiver_text)) ||
+    if !IsSome(receiver_kind) || !IsSome(member_text) ||
         !IsIdentifier(UnwrapOption(member_text)) {
-        Die("semantic member-call leaf fact is missing");
+        Die("semantic member-call edge fact is missing");
     }
-    let receiver_name: String = UnwrapOption(receiver_text);
     let method_name: String = UnwrapOption(member_text);
-    let receiver_type: String = LookupKindType(env, receiver_name, "v");
+    let receiver_type: Option<String> = SemanticMemberReceiverTypeFromGraph(
+        graph, member.receiver_node, env
+    );
     let call_symbol: String = "";
     let param_offset: Int = 0;
     let prefix_argument: String = "";
-    if receiver_type != "" {
+    if IsSome(receiver_type) {
         call_symbol = CompilerSymbolCQualifiedName(
-            receiver_type, method_name
+            UnwrapOption(receiver_type), method_name
         );
         if LookupKindType(env, call_symbol, "f") == "" {
             Die("semantic member-call method fact is missing");
@@ -350,8 +348,13 @@ func RewriteSemanticMemberCall(
             graph, member.receiver_node, env
         );
     } else {
+        if UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
+            !IsSome(receiver_text) ||
+            !IsIdentifier(UnwrapOption(receiver_text)) {
+            Die("semantic member-call receiver type fact is missing");
+        }
         call_symbol = CompilerSymbolCQualifiedName(
-            receiver_name, method_name
+            UnwrapOption(receiver_text), method_name
         );
         if LookupKindType(env, call_symbol, "f") == "" {
             Die("semantic qualified-call function fact is missing");
