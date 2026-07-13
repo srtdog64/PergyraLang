@@ -491,6 +491,12 @@ func SelfMirLowerBlockFromArtifact(
                     build, "loop-init", "loop-init", "", binding, "",
                     start, stop, "AST_FOR_LOOP", SelfMirNoUses()
                 );
+                build = SelfMirRoutineAttachLastExpressionGraph(
+                    build, SemanticAstExpressionGraphForNode(
+                        state.input.analysis.expression_surfaces,
+                        node_id, AstExpressionLaneValue()
+                    )
+                );
                 build = SelfMirRoutineAddBlock(build);
                 let for_header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
                 build = SelfMirRoutineSetSuccessors(
@@ -503,6 +509,14 @@ func SelfMirLowerBlockFromArtifact(
                     build, "branch", "branch", "", binding, "", start,
                     stop, "AST_FOR_LOOP", for_branch_uses
                 );
+                if !iteration.is_foreach {
+                    build = SelfMirRoutineAttachLastExpressionGraph(
+                        build, SemanticAstExpressionGraphForNode(
+                            state.input.analysis.expression_surfaces,
+                            node_id, AstExpressionLaneAuxiliary()
+                        )
+                    );
+                }
                 build = SelfMirRoutineAddBlock(build);
                 let for_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
                 build = SelfMirRoutineAtBlock(build, for_body);

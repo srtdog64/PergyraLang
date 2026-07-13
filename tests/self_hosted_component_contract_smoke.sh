@@ -2778,8 +2778,28 @@ require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'state.input.analysis
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
-    '"expr0":"nums","expr0_graph":null,"expr1":"nums"'
+require_file "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"'
+require_text "src/self_hosted/parser/stmt_loop_owner.pgy" \
+    'AstExpressionLaneAuxiliary(), upper_fact'
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+    "func SemanticAstExpressionGraphAuxiliaryLaneRequired("
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    'node_id, AstExpressionLaneAuxiliary()'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'source == "AST_FOR_LOOP"'
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'AstExpressionLaneAuxiliary()'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'IntEval(start_v, env)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'IntEval(end_v, env)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'ExprKind(coll, env)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'RewriteExpr(coll, env)'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexedAssignmentUseReady('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'

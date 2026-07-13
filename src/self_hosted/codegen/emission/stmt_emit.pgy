@@ -368,23 +368,56 @@ func EmitStmtList(count: Int, arena: AstArena,
             // Integer ranges are exclusive at the upper bound.
             let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx);
             let c_loop_var: String = CompilerSymbolCBindingName(loop_var);
+            let iteration_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneValue()
+                );
             if CodegenSemanticForIsRange(statements, idx) {
                 let start_v: String = CodegenSemanticForRangeStartOrDie(statements, idx);
                 let end_v: String = CodegenSemanticForRangeEndOrDie(statements, idx);
+                let stop_graph: SemanticExpressionGraphView =
+                    CodegenSemanticExpressionGraphOrDie(
+                        expression_surfaces, idx,
+                        AstExpressionLaneAuxiliary()
+                    );
+                let start_c: String = RewriteExprWithSemanticGraph(
+                    start_v, env, iteration_graph
+                );
+                let end_c: String = RewriteExprWithSemanticGraph(
+                    end_v, env, stop_graph
+                );
                 CodegenTypeEnvStateAppendValueBinding(
                     env_state, loop_var, "Int", c_loop_var
                 );
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
                 for_hdr = Concat(for_hdr, Concat(" ", c_loop_var));
-                for_hdr = Concat(for_hdr, Concat(" = ", IntEval(start_v, env)));
+                for_hdr = Concat(for_hdr, Concat(" = ", start_c));
                 for_hdr = Concat(for_hdr, Concat("; ", c_loop_var));
-                for_hdr = Concat(for_hdr, Concat(" < ", IntEval(end_v, env)));
+                for_hdr = Concat(for_hdr, Concat(" < ", end_c));
                 for_hdr = Concat(for_hdr, Concat("; ", c_loop_var));
                 for_hdr = Concat(for_hdr, "++) {\n");
                 ArrayPush(result, Concat(pad, for_hdr));
             } else {
                 let coll: String = CodegenSemanticForEachCollectionOrDie(statements, idx);
-                let ck: String = ExprKind(coll, env);
+                let coll_root_kind: Option<Int> =
+                    SemanticExpressionGraphNodeKind(
+                        iteration_graph.graph, iteration_graph.root_id
+                    );
+                let coll_root_text: Option<String> =
+                    SemanticExpressionGraphNodeText(
+                        iteration_graph.graph, iteration_graph.root_id
+                    );
+                if !IsSome(coll_root_kind) || !IsSome(coll_root_text) ||
+                    UnwrapOption(coll_root_kind) != AstExpressionNodeLeaf() ||
+                    !IsIdentifier(UnwrapOption(coll_root_text)) {
+                    Die("for-each collection type fact is outside the bounded graph subset");
+                }
+                let ck: String = LookupKindType(
+                    env, UnwrapOption(coll_root_text), "v"
+                );
+                let coll_c: String = RewriteExprWithSemanticGraph(
+                    coll, env, iteration_graph
+                );
                 let arr_c: String = "";
                 let elem_c: String = "";
                 let get_fn: String = "";
@@ -416,7 +449,7 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenTypeEnvStateAppendValueBinding(
                     env_state, loop_var, elem_kind, c_loop_var
                 );
-                ArrayPush(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(RewriteExpr(coll, env), ";\n")))))));
+                ArrayPush(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(coll_c, ";\n")))))));
                 let foreach_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
                 foreach_hdr = Concat(foreach_hdr, Concat(" ", ti));
                 foreach_hdr = Concat(foreach_hdr, Concat(" = 0; ", ti));

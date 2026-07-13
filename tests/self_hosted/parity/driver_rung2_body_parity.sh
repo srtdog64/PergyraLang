@@ -8,6 +8,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"

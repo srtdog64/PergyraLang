@@ -248,6 +248,9 @@ func MirInstructionRequiresExpressionGraph(
     let expr0: Option<String> = JsonObjectFactStringFieldOpt(
         instruction, "expr0"
     );
+    let expr1: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr1"
+    );
     if !IsSome(kind) || !IsSome(name) || !IsSome(source_type) ||
         !IsSome(expr0) {
         return false;
@@ -255,6 +258,11 @@ func MirInstructionRequiresExpressionGraph(
     let instruction_kind: String = UnwrapOption(kind);
     let instruction_name: String = UnwrapOption(name);
     let source: String = UnwrapOption(source_type);
+    if source == "AST_FOR_LOOP" {
+        if instruction_kind == "loop-init" { return true; }
+        return instruction_kind == "branch" && IsSome(expr1) &&
+            UnwrapOption(expr0) != UnwrapOption(expr1);
+    }
     if instruction_kind == "branch" && instruction_name == "branch" &&
         !IsSome(arg0) && source != "AST_MATCH_CASE" {
         return true;
@@ -341,6 +349,12 @@ func MirExpressionGraphFactsForArtifact(
                         artifact, node_id
                     );
                 expected_text = surfaces.normalized_values[i];
+            } else if lane == AstExpressionLaneAuxiliary() {
+                required = surfaces.has_auxiliary_values[i] &&
+                    SemanticAstExpressionGraphAuxiliaryLaneRequired(
+                        artifact, node_id
+                    );
+                expected_text = surfaces.normalized_auxiliary_values[i];
             }
             if required {
                 if sequence_i >= ArrayLength(sequence.roots) {

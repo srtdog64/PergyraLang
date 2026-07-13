@@ -138,8 +138,8 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, literal-only argument bridges, borrow/receive/spawn/await
-unary forms, collection/auxiliary lanes, and expression result-type
+internals, literal-only argument bridges, borrow/receive/spawn/await unary
+forms, non-identifier foreach sources, and expression result-type
 classification remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
@@ -268,6 +268,22 @@ arena to six growable-array values exposed an LLVM aggregate ABI crash, so the
 semantic representation keeps one optional canonical target-name row while the
 MIR boundary remains explicitly tagged by `call_target_kind` plus
 `call_target_name`. Released/default replacement remains 0%.
+
+The following executable delta closes `for` value/auxiliary graph carriage.
+`ParseForStmt` now captures the lower/collection expression in the value lane
+and the range upper expression in the auxiliary lane during the canonical
+precedence walk. MIR attaches the value graph to `loop-init` and the range-stop
+graph to `branch`; direct MIR consumption requires them in that order. Hard
+codegen emits range bounds and identifier foreach collections from those node
+handles and no longer calls `IntEval(start/end)`, `ExprKind(collection)`, or
+`RewriteExpr(collection)` on the statement text. C-built and LLVM-built
+drivers emitted byte-identical C for `forloop` and `for_each` (SHA-256
+`D39BE785...B57F7D3` and `C17441A...356DD`) and matched outputs `0/1/2` and
+`60/abbccc`. Removing only the range-stop or foreach-value graph failed closed
+under both drivers. The full 20-source/18-MIR matrix exceeded the five-minute
+focused budget and was terminated, so this entry claims only those two
+falsifying fixtures. Non-identifier foreach result-type classification remains
+`BRIDGE`; released/default replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact

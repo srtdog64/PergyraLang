@@ -7092,3 +7092,26 @@ Released/default replacement remains 0%.
 - Scope remains bounded: object-init internals, special unary/literal argument
   bridges, and auxiliary/result-type classification remain `BRIDGE`;
   released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 carries for-range and identifier-foreach graphs
+
+- `ParseForStmt` now records the lower or collection expression in the value
+  lane and a range upper expression in the auxiliary lane during the canonical
+  parser walk. Compact oracle canonicalization uses the same lane contract.
+- MIR attaches the value graph to `loop-init` and the range-stop graph to the
+  `branch`. Direct `--mir-json` consumption requires those rows and maps them
+  back to the corresponding semantic lanes; it does not reparse `expr0` or
+  `expr1`.
+- Hard codegen emits range bounds and identifier foreach collections from the
+  graph handles. The old `IntEval(start/end)`, `ExprKind(collection)`, and
+  `RewriteExpr(collection)` statement-text decisions are gate-forbidden.
+- C-built and LLVM-built drivers emitted byte-identical C for `forloop`
+  (`D39BE7851A72DCA92E8CB123D8EFDFA9F9C894A8F3FD0EBA804BF8155B57F7D3`)
+  and `for_each`
+  (`C17441A36810B68CE423B1299384C74FDE0E65D5EFF5CF2278B2975D6CB356DD`).
+  Both legs ran equal (`0 / 1 / 2` and `60 / abbccc`). Removing only the
+  range-stop or foreach-value graph failed closed under both drivers.
+- The full 20-source/18-MIR matrix exceeded the five-minute focused budget and
+  was terminated. This entry therefore claims only the two focused fixtures;
+  arbitrary-expression foreach type classification remains `BRIDGE`, and
+  released/default replacement remains 0%.

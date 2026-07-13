@@ -210,7 +210,9 @@ SENTINEL_MAX=0
 # root, and subtree-boundary absence explicit through Option facts.
 # 1407 -> 1449 (2026-07-14): namespace call-target lookup and MIR carriage
 # expose missing or malformed target facts through Option and fail closed.
-RESULT_USE_MIN=1449
+# 1449 -> 1453 (2026-07-14): for value/auxiliary graph consumption keeps
+# root kind and text absence explicit while deleting text classifiers.
+RESULT_USE_MIN=1453
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

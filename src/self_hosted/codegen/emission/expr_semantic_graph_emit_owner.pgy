@@ -167,7 +167,7 @@ func RewriteExprFromSemanticGraph(
     ));
 }
 
-func WrapExprWithSemanticGraph(
+func RewriteExprWithSemanticGraph(
     expression: String,
     env: CodegenTypeEnv,
     view: SemanticExpressionGraphView
@@ -179,7 +179,15 @@ func WrapExprWithSemanticGraph(
         UnwrapOption(root_text) != SemanticStripOuterParens(expression) {
         Die("semantic expression graph does not match codegen expression");
     }
+    return RewriteExprFromSemanticGraph(view.graph, view.root_id, env);
+}
+
+func WrapExprWithSemanticGraph(
+    expression: String,
+    env: CodegenTypeEnv,
+    view: SemanticExpressionGraphView
+) -> String {
     return Concat("(", Concat(
-        RewriteExprFromSemanticGraph(view.graph, view.root_id, env), ")"
+        RewriteExprWithSemanticGraph(expression, env, view), ")"
     ));
 }
