@@ -2740,6 +2740,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_call.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/namespace_call.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_call_argument.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/indexed_assignment.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
@@ -2804,7 +2805,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 18;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 19;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -2857,6 +2858,14 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_call_target_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     '"call_target_kind":"namespace","call_target_name":"Math_Add"'
+require_file "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_enum_argument_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh" \
+    '"kind":"member_access","text":"Direction.East"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "EnumPayloadFreeArgumentProjectionFactOpt"
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     "missing namespace call target was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_prepare_driver_rung2_mir_oracles"

@@ -1,0 +1,14 @@
+enum Direction {
+    North,
+    East
+}
+
+func IsEast(value: Direction) -> Bool {
+    return value == Direction.East;
+}
+
+func Main() -> Void {
+    if IsEast(Direction.East) {
+        Log("east");
+    }
+}

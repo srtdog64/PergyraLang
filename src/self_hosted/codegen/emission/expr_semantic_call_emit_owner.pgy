@@ -111,15 +111,7 @@ func RewriteSemanticCallArgument(
         StructLiteralCallMatchesType(source, expected_type) {
         rendered = RewriteStructLiteralCallArg(source, expected_type, env);
     } else {
-        let enum_fact: Option<EnumLiteralProjectionFact> =
-            EnumPayloadFreeArgumentProjectionFactOpt(
-                source, expected_type, env
-            );
-        if IsSome(enum_fact) {
-            rendered = UnwrapOption(enum_fact).c_value;
-        } else {
-            rendered = RewriteExprFromSemanticGraph(graph, node_id, env);
-        }
+        rendered = RewriteExprFromSemanticGraph(graph, node_id, env);
     }
     if mode == "inout" {
         if !IsIdentifier(source) {

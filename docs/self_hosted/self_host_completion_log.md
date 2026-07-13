@@ -7115,3 +7115,24 @@ Released/default replacement remains 0%.
   was terminated. This entry therefore claims only the two focused fixtures;
   arbitrary-expression foreach type classification remains `BRIDGE`, and
   released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 deletes enum call-argument text classification
+
+- Added `enum_call_argument.pgy` as the nineteenth bounded MIR fixture. Its
+  qualified argument is represented as the parser-owned
+  `member_access(Direction, East)` subtree inside the `IsEast(...)` call
+  spine.
+- Hard `RewriteSemanticCallArgument` no longer invokes
+  `EnumPayloadFreeArgumentProjectionFactOpt(source, expected_type, env)`.
+  Enum value projection now follows the same graph-member and type-environment
+  rows as ordinary expression emission.
+- C-built and LLVM-built drivers emitted byte-identical C with SHA-256
+  `E4E901D03F43C7429A2E9E033FCC12651D58718897453F0875AE4285D82409A3`;
+  both generated programs printed `east`.
+- Removing only `IsEast(Direction.East)`'s `expr0_graph` failed closed under
+  both drivers even though the source expression and expected enum parameter
+  remained. The static component gate forbids the deleted classifier inside
+  the hard argument consumer.
+- This is focused fixture evidence, not a refreshed full matrix. Array and
+  struct literal argument bridges remain open; released/default replacement
+  remains 0%.

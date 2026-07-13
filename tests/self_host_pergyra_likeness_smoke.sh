@@ -212,7 +212,10 @@ SENTINEL_MAX=0
 # expose missing or malformed target facts through Option and fail closed.
 # 1449 -> 1453 (2026-07-14): for value/auxiliary graph consumption keeps
 # root kind and text absence explicit while deleting text classifiers.
-RESULT_USE_MIN=1453
+# 1453 -> 1452 (2026-07-14): deleting the duplicate enum-argument classifier
+# removed its temporary Option; the graph path remains fail-closed and no
+# sentinel or hidden failure replaced it.
+RESULT_USE_MIN=1452
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

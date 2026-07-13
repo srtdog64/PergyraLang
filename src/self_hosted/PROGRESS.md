@@ -138,8 +138,8 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, literal-only argument bridges, borrow/receive/spawn/await unary
-forms, non-identifier foreach sources, and expression result-type
+internals, array/struct literal argument bridges, borrow/receive/spawn/await
+unary forms, non-identifier foreach sources, and expression result-type
 classification remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
@@ -284,6 +284,20 @@ under both drivers. The full 20-source/18-MIR matrix exceeded the five-minute
 focused budget and was terminated, so this entry claims only those two
 falsifying fixtures. Non-identifier foreach result-type classification remains
 `BRIDGE`; released/default replacement remains 0%.
+
+The next executable delta deletes the payload-free enum call-argument text
+bridge from hard graph emission. A qualified enum argument such as
+`IsEast(Direction.East)` is already a parser-owned
+`member_access(Direction, East)` subtree, and the type environment owns its
+enum projection row. `RewriteSemanticCallArgument` now delegates directly to
+that graph instead of reclassifying the source token from the expected
+parameter type. The nineteenth DRV-2 MIR fixture emitted byte-identical C from
+C-built and LLVM-built drivers (SHA-256
+`E4E901D03F43C7429A2E9E033FCC12651D58718897453F0875AE4285D82409A3`) and
+both executables printed `east`. Removing only the call graph failed closed on
+both drivers while the expected enum parameter and expression text remained.
+Array and struct literal arguments remain bounded text bridges; released/
+default replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
