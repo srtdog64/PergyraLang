@@ -3,7 +3,7 @@
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_rewrite.pgy";
-import "expr_semantic_shape_emit_owner.pgy";
+import "expr_semantic_graph_emit_owner.pgy";
 
 func EmitFormattedScalarLog(
     c_expr: String,
@@ -24,48 +24,30 @@ func EmitFormattedScalarLog(
 func EmitLog(
     inner: String,
     env: CodegenTypeEnv,
-    shape: SemanticAstExpressionShapeFact
+    graph: SemanticExpressionGraphView
 ) -> String {
-    if StartsWith(inner, "ToString(") {
-        let n: Int = StringLength(inner);
-        if CodegenCharAt(inner, n - 1) != ")" {
-            Die(Concat("malformed ToString(...): ", inner));
-        }
-        let arg: String = Substring(inner, 9, n - 9 - 1);
-        let arg_kind: String = ExprKind(arg, env);
-        if arg_kind == "String" {
-            return Concat(StringRuntimeCLogFn(), Concat(
-                "(", Concat(StrEval(arg, env), ");")
-            ));
-        }
-        if arg_kind == "Long" {
-            return EmitFormattedScalarLog(
-                IntEval(arg, env), "Long", StringRuntimeCIntLineFormat(), env
-            );
-        }
-        return EmitFormattedScalarLog(
-            IntEval(arg, env), "Int", StringRuntimeCIntLineFormat(), env
-        );
-    }
+    let rendered: String = RewriteExprFromSemanticGraph(
+        graph.graph, graph.root_id, env
+    );
     if ExprKind(inner, env) == "Int" {
         return EmitFormattedScalarLog(
-            IntEvalWithSemanticShape(inner, env, shape), "Int",
+            rendered, "Int",
             StringRuntimeCIntLineFormat(), env
         );
     }
     if ExprKind(inner, env) == "Long" {
         return EmitFormattedScalarLog(
-            IntEvalWithSemanticShape(inner, env, shape), "Long",
+            rendered, "Long",
             StringRuntimeCIntLineFormat(), env
         );
     }
     if ExprKind(inner, env) == "Float" {
         return EmitFormattedScalarLog(
-            RewriteExprWithSemanticShape(inner, env, shape), "Float",
+            rendered, "Float",
             StringRuntimeCFloatLineFormat(), env
         );
     }
     return Concat(StringRuntimeCLogFn(), Concat("(", Concat(
-        StrEvalWithSemanticShape(inner, env, shape), ");"
+        rendered, ");"
     )));
 }

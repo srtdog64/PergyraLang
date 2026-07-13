@@ -256,6 +256,98 @@ func ParserExpressionGraphsAppendRows(
     return next;
 }
 
+func ParserExpressionSubtree(
+    fact: ParserExpressionFact,
+    root: Int
+) -> ParserExpressionFact {
+    let count: Int = AstExpressionArenaNodeCount(fact.arena);
+    if !fact.ok || root < 0 || root >= count {
+        return ParserExpressionInvalid();
+    }
+    let pending: Array<Int> = [root];
+    let start: Int = root;
+    while ArrayLength(pending) > 0 {
+        let node: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        if node < start { start = node; }
+        let arity: Int = AstExpressionNodeArity(
+            fact.arena.node_kinds[node]
+        );
+        if arity >= 1 {
+            ArrayPush(pending, fact.arena.left_children[node]);
+        }
+        if arity == 2 {
+            ArrayPush(pending, fact.arena.right_children[node]);
+        }
+    }
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let i: Int = start;
+    while i <= root {
+        let kind: Int = fact.arena.node_kinds[i];
+        let left: Int = fact.arena.left_children[i];
+        let right: Int = fact.arena.right_children[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 { left = left - start; }
+        if arity == 2 { right = right - start; }
+        ArrayPush(kinds, kind);
+        ArrayPush(texts, fact.arena.node_texts[i]);
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        i = i + 1;
+    }
+    let local_root: Int = root - start;
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    let rows: AstExpressionGraphRows = AstExpressionGraphRows(
+        true, [TypedAstKindBareCallStmtTag()],
+        [AstExpressionLaneAtom()], [local_root], arena
+    );
+    return ParserExpressionFact(
+        AstExpressionGraphRowsReady(rows), texts[local_root],
+        local_root, arena
+    );
+}
+
+func ParserExpressionNamedSingleCallArgument(
+    fact: ParserExpressionFact,
+    expected_callee: String
+) -> ParserExpressionFact {
+    if !fact.ok || expected_callee == "" ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeCallArgument() {
+        return ParserExpressionInvalid();
+    }
+    let call: Int = fact.arena.left_children[fact.root];
+    if fact.arena.node_kinds[call] != AstExpressionNodeCall() {
+        return ParserExpressionInvalid();
+    }
+    let callee: Int = fact.arena.left_children[call];
+    if fact.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
+        fact.arena.node_texts[callee] != expected_callee {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionSubtree(
+        fact, fact.arena.right_children[fact.root]
+    );
+}
+
+func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "Log(ToString(20 + 22))";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let argument: ParserExpressionFact =
+        ParserExpressionNamedSingleCallArgument(call, "Log");
+    return call.ok && argument.ok &&
+        cursor[0] == StringLength(source) &&
+        argument.text == "ToString((20 + 22))" &&
+        argument.arena.node_kinds[argument.root] ==
+            AstExpressionNodeCallArgument();
+}
+
 func ParserExpressionGraphContractReady() -> Bool {
     let left: ParserExpressionFact = ParserExpressionLeaf("a");
     let right: ParserExpressionFact = ParserExpressionLeaf("b");

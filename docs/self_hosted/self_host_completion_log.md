@@ -6944,3 +6944,23 @@ Released/default replacement remains 0%.
   borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and
   compact-tree arena construction remain `BRIDGE`; released/default
   replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 Log arguments own parser subtrees
+
+- The expression-statement parser now extracts a verified single-argument
+  subtree from the `Log(...)` call spine and binds it to
+  `(TypedAstKindLogStmtTag, AstExpressionLaneAtom)`. It does not slice the
+  rendered call text to recover the argument.
+- Semantic and MIR verifiers require the Log root. Source lowering attaches it
+  to the Log instruction, and direct MIR consumption rejects a missing or
+  malformed `expr0_graph` instead of rebuilding it from `expr0`.
+- `EmitLog` now renders through `RewriteExprFromSemanticGraph` and is
+  gate-forbidden from using the former ToString prefix, substring, or
+  semantic-shape paths. The first run found topology-dependent output: rich
+  self MIR selected direct scalar printing while the approved compact oracle
+  graph selected the runtime ToString alias. Removing that specialization made
+  both graph representations emit the same canonical C.
+- C-built and LLVM-built DRV-2 drivers pass the 20-source/13-MIR
+  producer-first gate with byte/run parity and graph-removal/invalid-root
+  rejection. Expression result-type classification remains a separate
+  text-backed seam; released/default replacement remains 0%.

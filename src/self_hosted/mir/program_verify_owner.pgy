@@ -132,6 +132,11 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
             rows.expression_graphs.has_roots[i] != 1 {
             return false;
         }
+        if kind == "stmt" && rows.arg0s[i] == "Log" &&
+            rows.source_types[i] == "AST_CALL" &&
+            rows.expression_graphs.has_roots[i] != 1 {
+            return false;
+        }
         if (kind == "def" &&
             (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
              rows.source_types[i] == "")) ||

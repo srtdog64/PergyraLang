@@ -100,7 +100,7 @@ ownership; it does not close remaining type-name/expression scans or the
 full-source gen3 fixed point.
 
 The latest DRV-2 slice carries normalized expression graphs from the parser/HIR
-artifact into MIR branch, definition, and value-return instructions as
+artifact into MIR branch, definition, value-return, and Log instructions as
 `expr0_graph`. The precedence/postfix parser emits logical, equality,
 relational, additive, multiplicative, index, logical-not, numeric-negate,
 member-access, direct-call, and call-argument node kinds and child edges in the
@@ -128,8 +128,18 @@ the receiver/member handles, method signature rows, and explicit receiver
 argument; those consumers cannot call the legacy member, qualified-call,
 field-access, or parenthesis scanners. Nested/namespace-qualified member calls,
 try/pipe/object-init internals, literal-only argument bridges,
-borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and the
+borrow/receive/spawn/await unary forms, collection/auxiliary lanes, and the
 transitional compact-tree-to-arena construction remain `BRIDGE` work.
+
+The Log statement lane now extracts its single argument subtree from the
+parser-owned call spine, requires that atom-lane root in semantic and MIR
+verification, and emits the value through `RewriteExprFromSemanticGraph`.
+`EmitLog` cannot reopen the old `StartsWith("ToString(")`, `Substring`, or
+semantic-shape paths. A richer self MIR call graph and the approved compact
+C-oracle graph initially selected different ToString optimizations; the parity
+gate falsified that topology-dependent output, so both now project the same
+runtime-alias C form. Expression result-type classification remains a separate
+text-backed seam and is not claimed closed by this carriage delta.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns
@@ -341,7 +351,7 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 29,743 frontend/backend LOC / 287,395 C-reference LOC = 10.35%; broader Pergyra compiler-core inventory = 46,803 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Implementation inventory | 29,833 frontend/backend LOC / 287,395 C-reference LOC = 10.38%; broader Pergyra compiler-core inventory = 46,911 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
 | Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 13 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 

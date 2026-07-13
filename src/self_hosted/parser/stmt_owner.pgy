@@ -466,7 +466,22 @@ func ParseOneStmt(
 
     // Expression statement fallback.
     ArraySet(cursor_out, 0, head_start);
-    let expr_text: String = ParseExpr(content, head_start, cursor_out);
+    let expr_fact: ParserExpressionFact = ParseExprFact(
+        content, head_start, cursor_out
+    );
+    if !expr_fact.ok { Exit(1); }
+    let log_argument: ParserExpressionFact =
+        ParserExpressionNamedSingleCallArgument(expr_fact, "Log");
+    if log_argument.ok {
+        ArraySet(
+            expression_graphs, 0,
+            ParserExpressionGraphsAppend(
+                expression_graphs[0], TypedAstKindLogStmtTag(),
+                AstExpressionLaneAtom(), log_argument
+            )
+        );
+    }
+    let expr_text: String = expr_fact.text;
     i = cursor_out[0];
     i = ConsumeStmtTerminator(content, i);
     if i < 0 {

@@ -20,7 +20,6 @@ import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_rewrite.pgy";
-import "expr_semantic_shape_emit_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "log_emit_owner.pgy";
 import "struct_value_emit.pgy";
@@ -334,12 +333,12 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) {
             let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx);
-            let log_shape: SemanticAstExpressionShapeFact =
-                CodegenSemanticAtomExpressionShapeOrDie(
-                    expression_surfaces, idx
+            let log_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
                 );
             ArrayPush(result, Concat(pad, Concat(
-                EmitLog(log_inner, env, log_shape), "\n"
+                EmitLog(log_inner, env, log_graph), "\n"
             )));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) {

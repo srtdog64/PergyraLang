@@ -3084,6 +3084,8 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionUnary("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCall("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCallArgument("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgument("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgumentContractReady("
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeNegate()"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_unary"
@@ -3095,6 +3097,7 @@ reject_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixEx
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphRightChild"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "expression_graph: SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
@@ -3635,8 +3638,24 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_shape: 
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAtomExpressionShapeOrDie("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLog(log_inner, env, log_shape)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLog(log_inner, env, log_graph)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAtomExpressionShapeOrDie("
+require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "RewriteExprFromSemanticGraph("
+reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    "func EmitLog(" "StartsWith("
+reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    "func EmitLog(" "Substring("
+reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    "func EmitLog(" "WithSemanticShape("
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'ParserExpressionNamedSingleCallArgument(expr_fact, "Log")'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "if kind == TypedAstKindLogStmtTag()"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    'rows.arg0s[i] == "Log"'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'UnwrapOption(arg0) == "Log"'
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteExprWithSemanticShape("
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteBoolWithSemanticShape("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \

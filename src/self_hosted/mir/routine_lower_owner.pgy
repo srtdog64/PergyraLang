@@ -225,6 +225,14 @@ func SelfMirLowerBlockFromArtifact(
                 build = SelfMirLowerSimpleStatement(
                     build, kind, payload, value_payload, auxiliary_payload
                 );
+                if kind == TypedAstKindLogStmtTag() {
+                    build = SelfMirRoutineAttachLastExpressionGraph(
+                        build, SemanticAstExpressionGraphForNode(
+                            state.input.analysis.expression_surfaces,
+                            node_id, AstExpressionLaneAtom()
+                        )
+                    );
+                }
             } else if kind == TypedAstKindBareReturnStmtTag() ||
                 kind == TypedAstKindValueReturnStmtTag() {
                 let return_source_type: String = "AST_RETURN_VOID";

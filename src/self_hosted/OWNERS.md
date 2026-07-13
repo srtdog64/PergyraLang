@@ -58,7 +58,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
-  expression node/edge construction and condition-root accumulation.
+  expression node/edge construction, verified subtree extraction, and
+  statement-lane root accumulation.
 - `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix expression parsing.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
@@ -194,7 +195,7 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/hir/ast_node_kind_owner.pgy` -- canonical compact AST/HIR
   node-kind tags consumed by inventory, semantic, and codegen views.
 - `src/self_hosted/hir/ast_expression_graph_owner.pgy` -- canonical expression
-  graph arena, condition-root rows, and structural/reachability validation.
+  graph arena, statement-lane root rows, and structural/reachability validation.
 - `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
   primitives shared by parser/HIR and codegen.
 - `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- compact AST text
@@ -320,7 +321,7 @@ inventory must not become a second fact-family owner registry.
   parameter-mode handling, receiver insertion, and runtime/constructor/method
   symbol fact consumption.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
-  projection and scalar formatting ABI consumption.
+  graph-owned log expression projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
   owners; string literals remain opaque.
