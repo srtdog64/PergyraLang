@@ -576,10 +576,15 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, Concat(inner_pad, "}\n"));
             ArrayPush(result, Concat(pad, "}\n"));
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
-            // Bare function-call statement, e.g. `Die(Concat(...))` or a void
-            // user call. Arguments lower through the same RewriteExpr pipeline.
-            let call_expr: String = CodegenSemanticBareCallExprOrDie(statements, idx);
-            ArrayPush(result, Concat(pad, Concat(RewriteExpr(call_expr, env), ";\n")));
+            let call_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
+                );
+            ArrayPush(result, Concat(pad, Concat(
+                RewriteExprFromSemanticGraph(
+                    call_graph.graph, call_graph.root_id, env
+                ), ";\n"
+            )));
             ArraySet(cur, 0, idx + 1);
         } else {
             Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));

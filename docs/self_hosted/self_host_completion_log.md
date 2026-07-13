@@ -2221,8 +2221,9 @@ rewrite history.
 
 ## 2026-07-01 - Codegen bare-call statements leave statement-owner text parsing
 
-- Moved bare-call statement classification into `CodegenAstTextKindOf` so the
-  inventory owner records single-call rows as typed statement facts.
+- Moved bare-call statement classification into `TypedAstTextKindOf`, backed by
+  the canonical `TypedAstCallStatementKindForCallee` owner, so the inventory
+  records single-call rows as typed statement facts.
 - Repointed `CodegenAstTextIsBareCallStmt` and `CodegenAstTextBareCallExpr` to
   consume `CodegenAstTextNode.kind` and `payload`.
 - Tightened the component contract to reject `IsSingleCall(node.text)` and
@@ -6964,3 +6965,23 @@ Released/default replacement remains 0%.
   producer-first gate with byte/run parity and graph-removal/invalid-root
   rejection. Expression result-type classification remains a separate
   text-backed seam; released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 bare-call statements consume parser call graphs
+
+- Added `TypedAstCallStatementKindForCallee` as the single owner for direct
+  call-statement classification. The typed-text bridge consumes that owner;
+  no compatibility alias for the retired classifier remains.
+- The parser binds the complete direct-call graph to the bare-call atom lane.
+  Semantic and MIR verifiers require it, source lowering carries it, and the
+  MIR JSON consumer rejects a missing or invalid graph.
+- Repointed bare-call emission to `RewriteExprFromSemanticGraph` and removed
+  the unused string payload accessor. The component contract rejects both the
+  accessor and `RewriteExpr(call_expr, env)` fallback if they return.
+- Focused evidence: C-built and LLVM-built DRV-2 drivers emitted identical MIR
+  JSON and generated C for `param_carriage`; both generated
+  `Mutate(&value);`, and execution matched the native oracle (`2`, `2`, `42`).
+  Removing only the bare-call graph failed closed with the same diagnostic on
+  both builds.
+- The full 20-source/13-MIR corpus was not refreshed in this slice: it exceeded
+  the five-minute focused-gate budget after making progress without an
+  implementation error. Released/default replacement remains 0%.

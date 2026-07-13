@@ -225,7 +225,8 @@ func SelfMirLowerBlockFromArtifact(
                 build = SelfMirLowerSimpleStatement(
                     build, kind, payload, value_payload, auxiliary_payload
                 );
-                if kind == TypedAstKindLogStmtTag() {
+                if kind == TypedAstKindLogStmtTag() ||
+                    kind == TypedAstKindBareCallStmtTag() {
                     build = SelfMirRoutineAttachLastExpressionGraph(
                         build, SemanticAstExpressionGraphForNode(
                             state.input.analysis.expression_surfaces,

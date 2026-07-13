@@ -311,5 +311,5 @@ func AstTreeArtifactPayloadContractReady() -> Bool {
     let root_kind: Option<Int> = TypedAstArenaNodeKind(artifact.arena, 0);
     return AstTreeArtifactPayloadSchema() == "pgy.selfhost.ast-tree-artifact.v1" &&
         AstTreeArtifactReady(artifact) && artifact.count == 1 &&
-        IsSome(root_kind) && UnwrapOption(root_kind) == CodegenAstTextKindOf("Program:");
+        IsSome(root_kind) && UnwrapOption(root_kind) == TypedAstTextKindOf("Program:");
 }

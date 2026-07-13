@@ -231,9 +231,9 @@ func MirInstructionRequiresExpressionGraph(
         (source == "AST_LET_DECL" || source == "AST_ASSIGNMENT") {
         return true;
     }
-    if instruction_kind == "stmt" && source == "AST_CALL" &&
-        IsSome(arg0) && UnwrapOption(arg0) == "Log" {
-        return true;
+    if instruction_kind == "stmt" && source == "AST_CALL" {
+        return !IsSome(arg0) || UnwrapOption(arg0) == "" ||
+            UnwrapOption(arg0) == "Log";
     }
     return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }

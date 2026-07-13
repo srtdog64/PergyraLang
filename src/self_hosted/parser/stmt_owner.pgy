@@ -470,16 +470,33 @@ func ParseOneStmt(
         content, head_start, cursor_out
     );
     if !expr_fact.ok { Exit(1); }
-    let log_argument: ParserExpressionFact =
-        ParserExpressionNamedSingleCallArgument(expr_fact, "Log");
-    if log_argument.ok {
-        ArraySet(
-            expression_graphs, 0,
-            ParserExpressionGraphsAppend(
-                expression_graphs[0], TypedAstKindLogStmtTag(),
-                AstExpressionLaneAtom(), log_argument
-            )
+    let callee: Option<String> =
+        ParserExpressionDirectCallCalleeName(expr_fact);
+    if IsSome(callee) {
+        let owner_kind: Int = TypedAstCallStatementKindForCallee(
+            UnwrapOption(callee)
         );
+        if owner_kind == TypedAstKindLogStmtTag() {
+            let log_argument: ParserExpressionFact =
+                ParserExpressionNamedSingleCallArgument(expr_fact, "Log");
+            if log_argument.ok {
+                ArraySet(
+                    expression_graphs, 0,
+                    ParserExpressionGraphsAppend(
+                        expression_graphs[0], owner_kind,
+                        AstExpressionLaneAtom(), log_argument
+                    )
+                );
+            }
+        } else if owner_kind == TypedAstKindBareCallStmtTag() {
+            ArraySet(
+                expression_graphs, 0,
+                ParserExpressionGraphsAppend(
+                    expression_graphs[0], owner_kind,
+                    AstExpressionLaneAtom(), expr_fact
+                )
+            );
+        }
     }
     let expr_text: String = expr_fact.text;
     i = cursor_out[0];

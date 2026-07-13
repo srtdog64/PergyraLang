@@ -118,10 +118,6 @@ func CodegenSemanticMatchCasePatternOrDie(facts: SemanticAstStatementFacts, node
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindMatchCaseStmtTag());
 }
 
-func CodegenSemanticBareCallExprOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
-    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindBareCallStmtTag());
-}
-
 func CodegenSemanticForLoopVarOrDie(
     facts: SemanticAstStatementFacts, node_id: Int
 ) -> String {

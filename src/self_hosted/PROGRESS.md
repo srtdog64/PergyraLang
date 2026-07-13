@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -100,7 +100,8 @@ ownership; it does not close remaining type-name/expression scans or the
 full-source gen3 fixed point.
 
 The latest DRV-2 slice carries normalized expression graphs from the parser/HIR
-artifact into MIR branch, definition, value-return, and Log instructions as
+artifact into MIR branch, definition, value-return, Log, and bare-call
+instructions as
 `expr0_graph`. The precedence/postfix parser emits logical, equality,
 relational, additive, multiplicative, index, logical-not, numeric-negate,
 member-access, direct-call, and call-argument node kinds and child edges in the
@@ -140,6 +141,20 @@ C-oracle graph initially selected different ToString optimizations; the parity
 gate falsified that topology-dependent output, so both now project the same
 runtime-alias C form. Expression result-type classification remains a separate
 text-backed seam and is not claimed closed by this carriage delta.
+
+The bare-call statement lane now classifies direct calls through the canonical
+`TypedAstCallStatementKindForCallee` owner, carries the complete parser call
+spine at `(TypedAstKindBareCallStmtTag, AstExpressionLaneAtom)`, and emits it
+through `RewriteExprFromSemanticGraph`. The retired text payload accessor and
+`RewriteExpr(call_expr, env)` fallback are gate-forbidden. On the pinned
+`param_carriage` fixture, C-built and LLVM-built DRV-2 drivers emitted
+byte-identical MIR JSON and generated C, both projected `Mutate(&value);`, and
+the generated program matched the native oracle output `2 / 2 / 42`. Removing
+only that instruction's graph produced the same fail-closed diagnostic under
+both driver builds. The component contract is green. The broader 20-source /
+13-MIR corpus was started but exceeded the five-minute focused-gate budget, so
+this entry claims only the pinned falsifying fixture and does not present a new
+full-corpus refresh or a released/default replacement increase.
 
 The 2026-07-11 owner-isolated closure raised the M2 source and stage minima to
 250. The preceding unfiltered ledger exposed six codegen gaps; focused reruns

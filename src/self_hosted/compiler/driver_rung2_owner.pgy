@@ -40,6 +40,7 @@ func CompilerDriverRung2Ready() -> Bool {
         ParserExpressionPostfixGraphContractReady() &&
         ParserExpressionCallGraphContractReady() &&
         ParserExpressionNamedSingleCallArgumentContractReady() &&
+        ParserExpressionDirectCallCalleeContractReady() &&
         SelfMirExpressionGraphRowsContractReady() &&
         SelfMirIndexedAssignmentUseContractReady() &&
         MirFactGraphPayloadContractReady() &&

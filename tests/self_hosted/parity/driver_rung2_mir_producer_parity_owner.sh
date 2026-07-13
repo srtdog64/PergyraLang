@@ -40,7 +40,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local fixture_rel base mir_json mir_json_arg self_mir_json
     local self_mir_json_arg oracle_canonical oracle_canonical_arg
     local self_canonical actual err missing_graph invalid_graph
-    local self_actual source_actual mir_baseline
+    local self_actual source_actual mir_baseline bare_call_missing_graph
 
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         base="$(basename "$fixture_rel" .pgy)"
@@ -101,6 +101,25 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             }
             grep -Fq '"name":"values","type":"Array<Int>","carriage":"owner-handle","pass":"direct"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend owner-handle ABI fact drifted" >&2
+                exit 1
+            }
+            grep -Fq '"expr0":"Mutate(value)","expr0_graph":{' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend bare-call expression graph was lost" >&2
+                exit 1
+            }
+            bare_call_missing_graph="$BUILD_DIR/${base}_${backend}.bare-call-missing-graph.mir.json"
+            sed 's/"expr0":"Mutate(value)","expr0_graph"/"expr0":"Mutate(value)","expr0_graph_removed"/g' \
+                "$self_mir_json" >"$bare_call_missing_graph"
+            if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+                "$(pgy_selfhost_path_relative_to_root "$bare_call_missing_graph")" \
+                >"$bare_call_missing_graph.out" 2>"$bare_call_missing_graph.err"); then
+                echo "[self-host-parity:driver-rung2] $backend bare-call missing expression graph was accepted" >&2
+                exit 1
+            fi
+            grep -Fq "MIR instruction expression graph is missing or invalid" \
+                "$bare_call_missing_graph.err" "$bare_call_missing_graph.out" || {
+                echo "[self-host-parity:driver-rung2] $backend bare-call missing graph diagnostic drifted" >&2
+                cat "$bare_call_missing_graph.out" "$bare_call_missing_graph.err" >&2
                 exit 1
             }
         fi

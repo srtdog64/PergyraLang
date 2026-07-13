@@ -38,7 +38,7 @@ declaration inventory facts, and explicitly listed declaration facts. Missing
 or unsupported MIR facts are hard errors.
 
 `expression_graph_fact_owner.pgy` owns `expr0_graph` decoding for migrated
-branch, definition, value-return, and Log instructions. It validates node
+branch, definition, value-return, Log, and bare-call instructions. It validates node
 kinds, postorder child edges, root bounds, and reconstructed-artifact lane
 binding before semantic/codegen consumption. The direct DRV-2 `--mir-json`
 path requires this fact and never

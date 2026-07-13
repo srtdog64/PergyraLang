@@ -2270,7 +2270,9 @@ require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let payload: St
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let name: String"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let type_name: String"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let mode: Int"
-require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
+require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func TypedAstTextKindOf"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstCallStatementKindForCallee"
+reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextKindOf"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "func CodegenAstTextPayloadFor"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'import "ast_text_row_fact_owner.pgy";'
 reject_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'node.name == "Main"'
@@ -3086,6 +3088,11 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCallArgument("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgument("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgumentContractReady("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
+require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
+require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeNegate()"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_unary"
@@ -3098,6 +3105,7 @@ reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphRightChild"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindLogStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "expression_graph: SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
@@ -3607,7 +3615,7 @@ require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owne
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticIfConditionOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchSubjectOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchCasePatternOrDie"
-require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticBareCallExprOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticBareCallExprOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticStatementIs"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_statement_codegen_view_owner.pgy";'
 if [[ -f "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_statement_payload_owner.pgy" ]]; then
@@ -3667,6 +3675,10 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pg
 require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "call_graph.graph, call_graph.root_id, env"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "RewriteExpr(call_expr, env)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticBareCallExprOrDie(statements, idx)"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteExprFromSemanticGraph(" "FindTopLevelOp2"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
@@ -3781,7 +3793,6 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatch
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0])"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_expr: String = CodegenSemanticBareCallExprOrDie(statements, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let q_arr: String = CodegenAstArenaAtomOrDie(arena, idx)"

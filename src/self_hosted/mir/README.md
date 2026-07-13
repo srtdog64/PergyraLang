@@ -28,7 +28,7 @@ The C compiler remains the whole-language oracle and default native producer.
 For the bounded DRV-2 source frontier, however, C MIR is comparison evidence
 only: the live replacement path produces and consumes MIR in Pergyra. DRV-2
 source and `--mir-json` compilation require `expr0_graph` on migrated branch,
-definition, value-return, and Log instructions and fail closed when it is
-absent.
+definition, value-return, Log, and bare-call instructions and fail closed when
+it is absent.
 Compact expression text is still retained for reconstructed source shape, but
 it is not reparsed to recover a migrated expression graph in the hard consumer.

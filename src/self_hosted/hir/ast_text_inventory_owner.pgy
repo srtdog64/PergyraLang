@@ -19,7 +19,7 @@ struct CodegenAstTextNode {
     let mode: Int;
 }
 
-func CodegenAstTextKindOf(text: String) -> Int {
+func TypedAstTextKindOf(text: String) -> Int {
     if text == "Program:" {
         return TypedAstKindProgramTag();
     }
@@ -64,26 +64,11 @@ func CodegenAstTextKindOf(text: String) -> Int {
     if StartsWith(text, "Ability:") {
         return TypedAstKindAbilityDeclTag();
     }
-    if StartsWith(text, "Log(") {
-        return TypedAstKindLogStmtTag();
-    }
     if text == "Return" {
         return TypedAstKindBareReturnStmtTag();
     }
     if StartsWith(text, "Return:") {
         return TypedAstKindValueReturnStmtTag();
-    }
-    if StartsWith(text, "ArrayPop(") {
-        return TypedAstKindArrayPopStmtTag();
-    }
-    if StartsWith(text, "Exit(") {
-        return TypedAstKindExitStmtTag();
-    }
-    if StartsWith(text, "ArraySet(") {
-        return TypedAstKindArraySetStmtTag();
-    }
-    if StartsWith(text, "ArrayPush(") {
-        return TypedAstKindArrayPushStmtTag();
     }
     if StartsWith(text, "Let: ") {
         return TypedAstKindLetStmtTag();
@@ -122,7 +107,10 @@ func CodegenAstTextKindOf(text: String) -> Int {
         return TypedAstKindContinueStmtTag();
     }
     if IsSingleCall(text) {
-        return TypedAstKindBareCallStmtTag();
+        let open: Int = StringIndexOf(text, "(");
+        return TypedAstCallStatementKindForCallee(
+            Substring(text, 0, open)
+        );
     }
     return TypedAstKindUnknownTag();
 }
@@ -278,7 +266,7 @@ func CodegenAstTextNodeInventory(tree_text: String, inout nodes: Array<CodegenAs
         }
         if StringLength(trimmed) > 0 {
             let indent: Int = CodegenAstTextIndentOf(raw_line);
-            let kind: Int = CodegenAstTextKindOf(trimmed);
+            let kind: Int = TypedAstTextKindOf(trimmed);
             if param_indent >= 0 && indent < param_indent {
                 param_indent = -1;
             }

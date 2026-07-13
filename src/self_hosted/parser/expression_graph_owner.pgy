@@ -335,6 +335,35 @@ func ParserExpressionNamedSingleCallArgument(
     );
 }
 
+func ParserExpressionDirectCallCalleeName(
+    fact: ParserExpressionFact
+) -> Option<String> {
+    if !fact.ok { return None; }
+    let node: Int = fact.root;
+    while fact.arena.node_kinds[node] ==
+        AstExpressionNodeCallArgument() {
+        node = fact.arena.left_children[node];
+    }
+    if fact.arena.node_kinds[node] != AstExpressionNodeCall() {
+        return None;
+    }
+    let callee: Int = fact.arena.left_children[node];
+    if fact.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
+        !IsIdentifier(fact.arena.node_texts[callee]) {
+        return None;
+    }
+    return Some(fact.arena.node_texts[callee]);
+}
+
+func ParserExpressionDirectCallCalleeContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "Mutate(value)";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let callee: Option<String> = ParserExpressionDirectCallCalleeName(call);
+    return call.ok && cursor[0] == StringLength(source) &&
+        IsSome(callee) && UnwrapOption(callee) == "Mutate";
+}
+
 func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let source: String = "Log(ToString(20 + 22))";

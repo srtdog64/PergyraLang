@@ -37,6 +37,16 @@ func TypedAstKindMatchStmtTag() -> Int { return 34; }
 func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
 
+func TypedAstCallStatementKindForCallee(callee: String) -> Int {
+    if callee == "Log" { return TypedAstKindLogStmtTag(); }
+    if callee == "ArrayPop" { return TypedAstKindArrayPopStmtTag(); }
+    if callee == "Exit" { return TypedAstKindExitStmtTag(); }
+    if callee == "ArraySet" { return TypedAstKindArraySetStmtTag(); }
+    if callee == "ArrayPush" { return TypedAstKindArrayPushStmtTag(); }
+    if callee != "" { return TypedAstKindBareCallStmtTag(); }
+    return TypedAstKindUnknownTag();
+}
+
 func TypedAstNominalSubkindNone() -> Int { return 0; }
 func TypedAstNominalSubkindStruct() -> Int { return 1; }
 func TypedAstNominalSubkindClass() -> Int { return 2; }
@@ -109,5 +119,13 @@ func TypedAstKindOwnerReady() -> Bool {
             "tobject" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindVessel()) ==
             "vessel" &&
-        TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "";
+        TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "" &&
+        TypedAstCallStatementKindForCallee("Log") ==
+            TypedAstKindLogStmtTag() &&
+        TypedAstCallStatementKindForCallee("ArrayPush") ==
+            TypedAstKindArrayPushStmtTag() &&
+        TypedAstCallStatementKindForCallee("Mutate") ==
+            TypedAstKindBareCallStmtTag() &&
+        TypedAstCallStatementKindForCallee("") ==
+            TypedAstKindUnknownTag();
 }
