@@ -316,8 +316,9 @@ inventory must not become a second fact-family owner registry.
   recursive expression emission from semantic node handles and child edges;
   codegen does not split migrated payloads to rediscover precedence.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
-  direct-call spine consumption, ordered argument projection, parameter-mode
-  handling, and runtime/constructor symbol fact consumption.
+  call-spine and simple member-access consumption, ordered argument projection,
+  parameter-mode handling, receiver insertion, and runtime/constructor/method
+  symbol fact consumption.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   projection and scalar formatting ABI consumption.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --

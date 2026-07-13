@@ -24,7 +24,10 @@ func RewriteExprFromSemanticGraph(
         return RewriteTokens(text, env);
     }
     if AstExpressionNodeIsCallSpine(kind) {
-        return RewriteSemanticDirectCall(graph, node_id, env);
+        return RewriteSemanticCall(graph, node_id, env);
+    }
+    if kind == AstExpressionNodeMemberAccess() {
+        return RewriteSemanticMemberAccess(graph, node_id, env);
     }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, node_id

@@ -6924,3 +6924,23 @@ Released/default replacement remains 0%.
   internals, literal-only argument bridges, borrow/receive/spawn/await unary
   forms, log/collection/auxiliary lanes, and compact-tree arena construction
   remain `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-13 -- DRV-2 simple member access and method calls own edges
+
+- Added `member_access` graph rows with receiver/member child handles. Parser,
+  semantic, MIR JSON, and consumer verifiers require a leaf member name and
+  reject malformed member rows.
+- Repointed simple `self.field` emission and `v.Method(arg)` dispatch to the
+  graph owner. Method emission resolves the receiver type and method signature
+  rows, inserts the receiver at parameter offset zero, and projects explicit
+  arguments from the call spine. The hard member consumers are gate-forbidden
+  from reopening the legacy member-call, qualified-call, field-access, or
+  parenthesis scanners.
+- Strengthened `class_method.pgy` with field reads and an explicit method
+  argument. C-built and LLVM-built DRV-2 drivers pass the 20-source/13-MIR
+  producer-first gate with byte/run parity and malformed graph rejection.
+- Scope remains bounded: nested or namespace-qualified member calls,
+  try/pipe/object-init internals, literal-only argument bridges,
+  borrow/receive/spawn/await unary forms, log/collection/auxiliary lanes, and
+  compact-tree arena construction remain `BRIDGE`; released/default
+  replacement remains 0%.

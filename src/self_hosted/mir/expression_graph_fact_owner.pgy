@@ -313,14 +313,20 @@ func SelfMirExpressionGraphRowsReady(
                 return false;
             }
             if kind == AstExpressionNodeCall() &&
-                rows.node_kinds[rows.left_children[node_i]] !=
-                    AstExpressionNodeLeaf() {
+                !AstExpressionNodeIsCallableCallee(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) {
                 return false;
             }
             if kind == AstExpressionNodeCallArgument() &&
                 !AstExpressionNodeIsCallSpine(
                     rows.node_kinds[rows.left_children[node_i]]
                 ) {
+                return false;
+            }
+            if kind == AstExpressionNodeMemberAccess() &&
+                rows.node_kinds[rows.right_children[node_i]] !=
+                    AstExpressionNodeLeaf() {
                 return false;
             }
             node_i = node_i + 1;
@@ -351,6 +357,7 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeNegate() { return "negate"; }
     if kind == AstExpressionNodeCall() { return "call"; }
     if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
+    if kind == AstExpressionNodeMemberAccess() { return "member_access"; }
     return "";
 }
 
@@ -408,10 +415,32 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ["Pick", "not-a-call", "1", "Pick(1)"],
             [0, 0, 0, 1], [0, 0, 0, 2]
         );
+    let valid_member: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [2], [0], [3],
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeMemberAccess()
+            ],
+            ["value", "field", "value.field"],
+            [0, 0, 0], [0, 0, 1]
+        );
+    let malformed_member: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [3], [0], [4],
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeAdd(), AstExpressionNodeMemberAccess()
+            ],
+            ["value", "field", "value + field", "value.field"],
+            [0, 0, 0, 0], [0, 0, 1, 2]
+        );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
         SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
         SelfMirExpressionGraphRowsReady(valid_call, 1) &&
+        SelfMirExpressionGraphRowsReady(valid_member, 1) &&
         !SelfMirExpressionGraphRowsReady(disconnected, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_unary, 1) &&
-        !SelfMirExpressionGraphRowsReady(malformed_call, 1);
+        !SelfMirExpressionGraphRowsReady(malformed_call, 1) &&
+        !SelfMirExpressionGraphRowsReady(malformed_member, 1);
 }

@@ -3078,6 +3078,8 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeNegate()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCall()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCallArgument()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMemberAccess()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArity("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionUnary("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCall("
@@ -3086,7 +3088,9 @@ require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNo
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeNegate()"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_unary"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_call"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_member"
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixFact("
+require_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ParserExpressionMemberGraphContractReady("
 reject_text "src/self_hosted/parser/expr_postfix_owner.pgy" "func ApplyPostfixExpr("
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionNodeLogicalOr"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphLeftChild"
@@ -3659,9 +3663,21 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeNegate()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
-    "RewriteSemanticDirectCall(graph, node_id, env)"
+    "RewriteSemanticCall(graph, node_id, env)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "kind == AstExpressionNodeMemberAccess()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "struct SemanticCallSpineView"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "struct SemanticMemberAccessView"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArguments("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberAccess("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberCall("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCall("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "RuntimeCallCName(source_name)"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -3674,6 +3690,22 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
     "func RewriteSemanticDirectCall(" "RewriteInoutCallArgs("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticDirectCall(" "ExprSequenceItemAt("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberAccess(" "RewriteMemberCalls("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberAccess(" "RewriteStructFieldAccess("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberAccess(" "FindMatchingParen("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberCall(" "RewriteMemberCalls("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberCall(" "RewriteQualifiedCalls("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberCall(" "FindMatchingParen("
+require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \
+    "func LengthPlus(self, extra: Int) -> Int"
+require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \
+    "return v.LengthPlus(5) - 15;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"valid_array_builtins|ok"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

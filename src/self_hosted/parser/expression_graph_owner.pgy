@@ -57,7 +57,9 @@ func ParserExpressionCall(
     callee: ParserExpressionFact
 ) -> ParserExpressionFact {
     if !callee.ok || text == "" ||
-        callee.arena.node_kinds[callee.root] != AstExpressionNodeLeaf() {
+        !AstExpressionNodeIsCallableCallee(
+            callee.arena.node_kinds[callee.root]
+        ) {
         return ParserExpressionInvalid();
     }
     let kinds: Array<Int> = callee.arena.node_kinds;

@@ -40,10 +40,11 @@ func AstExpressionNodeLogicalNot() -> Int { return 15; }
 func AstExpressionNodeNegate() -> Int { return 16; }
 func AstExpressionNodeCall() -> Int { return 17; }
 func AstExpressionNodeCallArgument() -> Int { return 18; }
+func AstExpressionNodeMemberAccess() -> Int { return 19; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeCallArgument();
+        kind <= AstExpressionNodeMemberAccess();
 }
 
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
@@ -54,6 +55,11 @@ func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
 func AstExpressionNodeIsCallSpine(kind: Int) -> Bool {
     return kind == AstExpressionNodeCall() ||
         kind == AstExpressionNodeCallArgument();
+}
+
+func AstExpressionNodeIsCallableCallee(kind: Int) -> Bool {
+    return kind == AstExpressionNodeLeaf() ||
+        kind == AstExpressionNodeMemberAccess();
 }
 
 func AstExpressionNodeArity(kind: Int) -> Int {
@@ -126,11 +132,15 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
             return false;
         }
         if kind == AstExpressionNodeCall() &&
-            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            !AstExpressionNodeIsCallableCallee(arena.node_kinds[left]) {
             return false;
         }
         if kind == AstExpressionNodeCallArgument() &&
             !AstExpressionNodeIsCallSpine(arena.node_kinds[left]) {
+            return false;
+        }
+        if kind == AstExpressionNodeMemberAccess() &&
+            arena.node_kinds[right] != AstExpressionNodeLeaf() {
             return false;
         }
         i = i + 1;

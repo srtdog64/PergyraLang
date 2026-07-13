@@ -2,12 +2,12 @@ class Vec2 {
     let x: Int;
     let y: Int;
 
-    func Length(self) -> Int {
-        return self.x + self.y;
+    func LengthPlus(self, extra: Int) -> Int {
+        return self.x + self.y + extra;
     }
 }
 
-func Main() -> Void {
+func Main() -> Int {
     let v: Vec2 = Vec2(3, 7);
-    Log(v.Length());
+    return v.LengthPlus(5) - 15;
 }

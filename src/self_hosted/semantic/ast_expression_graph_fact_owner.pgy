@@ -138,11 +138,15 @@ func SemanticExpressionGraphArenaReady(
             return false;
         }
         if kind == AstExpressionNodeCall() &&
-            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            !AstExpressionNodeIsCallableCallee(arena.node_kinds[left]) {
             return false;
         }
         if kind == AstExpressionNodeCallArgument() &&
             !AstExpressionNodeIsCallSpine(arena.node_kinds[left]) {
+            return false;
+        }
+        if kind == AstExpressionNodeMemberAccess() &&
+            arena.node_kinds[right] != AstExpressionNodeLeaf() {
             return false;
         }
         i = i + 1;
