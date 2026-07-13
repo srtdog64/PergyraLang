@@ -15,6 +15,8 @@ struct SemanticExpressionGraphArena {
     node_texts: Array<String>;
     left_children: Array<Int>;
     right_children: Array<Int>;
+    // Empty means no semantic target; otherwise this is the canonical callable.
+    call_target_names: Array<String>;
 }
 
 struct SemanticExpressionGraphFacts {
@@ -41,10 +43,15 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
     let right_children: Array<Int> = [];
+    let call_target_names: Array<String> = [];
     return SemanticExpressionGraphArena(
-        node_kinds, node_texts, left_children, right_children
+        node_kinds, node_texts, left_children, right_children,
+        call_target_names
     );
 }
+
+func SemanticCallTargetNone() -> Int { return 0; }
+func SemanticCallTargetNamespace() -> Int { return 1; }
 
 func SemanticExpressionGraphFactsEmpty() -> SemanticExpressionGraphFacts {
     let roots: Array<Int> = [];
@@ -65,6 +72,7 @@ func SemanticExpressionGraphFactsFromAstRows(
     let texts: Array<String> = [];
     let left_children: Array<Int> = [];
     let right_children: Array<Int> = [];
+    let call_target_names: Array<String> = [];
     let ok: Bool = expected_root_count >= 0 &&
         AstExpressionGraphRowsReady(rows) &&
         ArrayLength(root_slots) == ArrayLength(rows.roots);
@@ -80,6 +88,7 @@ func SemanticExpressionGraphFactsFromAstRows(
         ArrayPush(texts, SemanticStripOuterParens(rows.arena.node_texts[i]));
         ArrayPush(left_children, rows.arena.left_children[i]);
         ArrayPush(right_children, rows.arena.right_children[i]);
+        ArrayPush(call_target_names, "");
         i = i + 1;
     }
     i = 0;
@@ -94,7 +103,8 @@ func SemanticExpressionGraphFactsFromAstRows(
         i = i + 1;
     }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, left_children, right_children
+        kinds, texts, left_children, right_children,
+        call_target_names
     );
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         ok, roots, has_roots, arena
@@ -117,7 +127,8 @@ func SemanticExpressionGraphArenaReady(
     let count: Int = SemanticExpressionGraphArenaNodeCount(arena);
     if ArrayLength(arena.node_texts) != count ||
         ArrayLength(arena.left_children) != count ||
-        ArrayLength(arena.right_children) != count {
+        ArrayLength(arena.right_children) != count ||
+        ArrayLength(arena.call_target_names) != count {
         return false;
     }
     let i: Int = 0;
@@ -127,6 +138,10 @@ func SemanticExpressionGraphArenaReady(
         let right: Int = arena.right_children[i];
         if arena.node_texts[i] == "" ||
             !AstExpressionNodeKindKnown(kind) {
+            return false;
+        }
+        let call_target_name: String = arena.call_target_names[i];
+        if call_target_name != "" && kind != AstExpressionNodeCall() {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);
@@ -167,13 +182,16 @@ func SemanticExpressionGraphAppendNode(
     let texts: Array<String> = arena.node_texts;
     let left_children: Array<Int> = arena.left_children;
     let right_children: Array<Int> = arena.right_children;
+    let call_target_names: Array<String> = arena.call_target_names;
     let root_id: Int = ArrayLength(kinds);
     ArrayPush(kinds, kind);
     ArrayPush(texts, text);
     ArrayPush(left_children, left);
     ArrayPush(right_children, right);
+    ArrayPush(call_target_names, "");
     let next: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, left_children, right_children
+        kinds, texts, left_children, right_children,
+        call_target_names
     );
     return SemanticExpressionGraphBuild(
         SemanticExpressionGraphArenaReady(next), root_id, next
@@ -551,7 +569,9 @@ func SemanticExpressionGraphFactsEqual(
         if left.arena.node_kinds[i] != right.arena.node_kinds[i] ||
             left.arena.node_texts[i] != right.arena.node_texts[i] ||
             left.arena.left_children[i] != right.arena.left_children[i] ||
-            left.arena.right_children[i] != right.arena.right_children[i] {
+            left.arena.right_children[i] != right.arena.right_children[i] ||
+            left.arena.call_target_names[i] !=
+                right.arena.call_target_names[i] {
             return false;
         }
         i = i + 1;

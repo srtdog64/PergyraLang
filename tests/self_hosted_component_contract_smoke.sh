@@ -2598,12 +2598,28 @@ require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "func SelfMirExpressionGraphRowsContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirExpressionGraphRowsContractReady()"
+require_file "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "call_target_names: Array<String>;"
+require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+    "func SemanticExpressionGraphCallTargetsFromSignatures("
+require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+    "SemanticCallableIndex("
+require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
+    "require_carried_call_targets"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphCopy"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" \
     "expression_graphs: SelfMirExpressionGraphRows;"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"expr0_graph", SelfMirJsonExpressionGraph('
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"call_target_kind"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"call_target_name"'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "MIR shadowed local type changed"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
@@ -2691,6 +2707,10 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'instruction, "expr0_graph"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'node, "call_target_kind"'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'node, "call_target_name"'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "SemanticAstExpressionSurfaceRowsFromArtifact(artifact)"
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
@@ -2719,6 +2739,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--ca
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_access.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_member_call.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/namespace_call.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/indexed_assignment.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
@@ -2763,7 +2784,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexed
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 17;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 18;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
@@ -2810,7 +2831,14 @@ require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver -
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 300
+require_file "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_mir_producer_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_call_target_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
+    '"call_target_kind":"namespace","call_target_name":"Math_Add"'
+require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
+    "missing namespace call target was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_prepare_driver_rung2_mir_oracles"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_run_driver_rung2_mir_producer_parity"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "--emit-mir-json-verified"
@@ -3759,6 +3787,10 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionGraphCallTargetKind("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "SemanticExpressionGraphCallTargetName("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCall("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "RuntimeCallCName(source_name)"
@@ -3788,6 +3820,8 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
     "func RewriteSemanticMemberCall(" "FindMatchingParen("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" "ExprMemberFieldType("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticMemberCall(" "receiver_text"
 require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \
     "func LengthPlus(self, extra: Int) -> Int"
 require_text "src/self_hosted/mir_lower/fixture/class_method.pgy" \

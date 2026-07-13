@@ -1,0 +1,170 @@
+// Canonical callable targets bound to semantic call-node handles.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+struct SemanticExpressionCallTargetFact {
+    ok: Bool;
+    kind: Int;
+    name: String;
+}
+
+func SemanticExpressionGraphCallTargetKind(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !graph.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        return None;
+    }
+    if graph.arena.call_target_names[node_id] == "" {
+        return Some(SemanticCallTargetNone());
+    }
+    return Some(SemanticCallTargetNamespace());
+}
+
+func SemanticExpressionGraphCallTargetName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    if !graph.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        return None;
+    }
+    return Some(graph.arena.call_target_names[node_id]);
+}
+
+func SemanticExpressionCallTargetExpected(
+    ref graph: SemanticExpressionGraphFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    node_id: Int
+) -> SemanticExpressionCallTargetFact {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), ""
+        );
+    }
+    if UnwrapOption(kind) != AstExpressionNodeCall() {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), ""
+        );
+    }
+    let callee: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if !IsSome(callee) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), ""
+        );
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, UnwrapOption(callee)
+    );
+    if !IsSome(callee_kind) || UnwrapOption(callee_kind) !=
+        AstExpressionNodeMemberAccess() {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), ""
+        );
+    }
+    let source_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, UnwrapOption(callee)
+    );
+    if !IsSome(source_name) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), ""
+        );
+    }
+    let target: Option<Int> = SemanticCallableIndex(
+        signatures.names, UnwrapOption(source_name)
+    );
+    if !IsSome(target) {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), ""
+        );
+    }
+    return SemanticExpressionCallTargetFact(
+        true, SemanticCallTargetNamespace(),
+        signatures.names[UnwrapOption(target)]
+    );
+}
+
+func SemanticExpressionGraphCallTargetsFromSignatures(
+    graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    require_carried: Bool
+) -> SemanticExpressionGraphFacts {
+    if !graph.ok || !signatures.ok ||
+        !SemanticExpressionGraphArenaReady(graph.arena) {
+        return SemanticExpressionGraphFacts(
+            false, graph.roots, graph.has_roots, graph.arena
+        );
+    }
+    let target_names: Array<String> = graph.arena.call_target_names;
+    let valid: Bool = true;
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
+        let expected: SemanticExpressionCallTargetFact =
+            SemanticExpressionCallTargetExpected(graph, signatures, node_id);
+        if !expected.ok {
+            valid = false;
+        } else if require_carried {
+            if target_names[node_id] != expected.name {
+                valid = false;
+            }
+        } else {
+            ArraySet(target_names, node_id, expected.name);
+        }
+        node_id = node_id + 1;
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, graph.arena.node_texts,
+        graph.arena.left_children, graph.arena.right_children,
+        target_names
+    );
+    return SemanticExpressionGraphFacts(
+        valid && SemanticExpressionGraphArenaReady(arena),
+        graph.roots, graph.has_roots, arena
+    );
+}
+
+func SemanticExpressionCallTargetFactContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(), "Math.Add()"
+        );
+    let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        build.ok, [build.root_id], [build.ok], build.arena
+    );
+    let carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            source, signatures, false
+        );
+    if !carried.ok ||
+        carried.arena.call_target_names[build.root_id] != "Math_Add" ||
+        !SemanticExpressionGraphCallTargetsFromSignatures(
+            carried, signatures, true
+        ).ok {
+        return false;
+    }
+    let missing_names: Array<String> = carried.arena.call_target_names;
+    ArraySet(missing_names, build.root_id, "");
+    let missing_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            carried.arena.node_kinds, carried.arena.node_texts,
+            carried.arena.left_children, carried.arena.right_children,
+            missing_names
+        );
+    let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, carried.roots, carried.has_roots, missing_arena
+    );
+    return !SemanticExpressionGraphCallTargetsFromSignatures(
+        missing, signatures, true
+    ).ok;
+}

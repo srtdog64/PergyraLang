@@ -114,7 +114,7 @@ spine is rejected. Typed source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 17 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 18 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -135,8 +135,10 @@ and field/type rows rather than scanning a dotted path. The
 explicit receiver without a dotted-path or member-call scanner. The named
 compact C-oracle canonicalization bridge reuses the Pergyra expression parser
 to upgrade legacy native MIR text; it cannot feed the hard consumer, which
-still requires `expr0_graph`. Namespace-qualified call classification,
-object-init internals, literal-only argument bridges, borrow/receive/spawn/await
+still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
+callable target in each call-node row; direct hard-MIR consumption validates
+that target against semantic signature ownership before codegen. Object-init
+internals, literal-only argument bridges, borrow/receive/spawn/await
 unary forms, collection/auxiliary lanes, and expression result-type
 classification remain `BRIDGE` work.
 
@@ -251,9 +253,21 @@ The `nested_member_access` fixture made C-built and LLVM-built drivers emit
 byte-identical MIR and C, executed equal to the native oracle (`3`), and rejected
 both a missing graph and an invalid root. The full producer-first gate is green
 at 20 source fixtures and 17 MIR fixtures across both driver backends.
-Nested-receiver instance method calls are closed in this bounded hard path;
-namespace-qualified call classification remains `BRIDGE`. Released/default
-replacement remains 0%.
+Nested-receiver instance method calls are closed in this bounded hard path.
+
+The next executable delta closes namespace-qualified call classification.
+`SemanticExpressionCallTargetFact` resolves `Math.Add` through the canonical
+callable index, carries `Math_Add` through self MIR JSON, and requires the same
+target during direct `--mir-json` consumption. Hard codegen consumes that fact
+before method dispatch and no longer rebuilds a namespace symbol from receiver
+text. Replacing the carried target with `none` fails closed under C-built and
+LLVM-built drivers. The full producer-first gate is green at 20 source fixtures
+and 18 MIR fixtures; both drivers emit byte-identical MIR and C, and the new
+fixture runs equal to the native oracle (`7`). Widening the hot semantic graph
+arena to six growable-array values exposed an LLVM aggregate ABI crash, so the
+semantic representation keeps one optional canonical target-name row while the
+MIR boundary remains explicitly tagged by `call_target_kind` plus
+`call_target_name`. Released/default replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
@@ -404,7 +418,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 29,833 frontend/backend LOC / 287,395 C-reference LOC = 10.38%; broader Pergyra compiler-core inventory = 46,911 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 16 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 18 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

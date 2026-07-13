@@ -10,6 +10,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_typed_binding_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
 import "ast_kind_surface_fact_owner.pgy";
@@ -123,10 +124,24 @@ func SemanticAstArtifactVerdictMatches(
 func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
     artifact: AstTreeArtifact,
     requires_entrypoint: Bool,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts
+    input_expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    require_carried_call_targets: Bool
 ) -> SemanticAstArtifactAnalysis {
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        input_expression_surfaces;
+    if signatures.ok && input_expression_surfaces.ok {
+        let target_graph: SemanticExpressionGraphFacts =
+            SemanticExpressionGraphCallTargetsFromSignatures(
+                input_expression_surfaces.expression_graph,
+                signatures,
+                require_carried_call_targets
+            );
+        expression_surfaces = SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, input_expression_surfaces, target_graph
+        );
+    }
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let enums: SemanticAstEnumFacts = SemanticAstEnumFactsFromArtifact(artifact);
@@ -333,7 +348,8 @@ func SemanticAstArtifactAnalyzeCompactBridge(
 ) -> SemanticAstArtifactAnalysis {
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint,
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact)
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact),
+        false
     );
 }
 
@@ -343,7 +359,8 @@ func SemanticAstArtifactAnalyzeTyped(
 ) -> SemanticAstArtifactAnalysis {
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         artifact, requires_entrypoint,
-        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact)
+        SemanticAstExpressionSurfaceFactsFromTypedArtifact(artifact),
+        false
     );
 }
 
@@ -359,7 +376,7 @@ func SemanticAstArtifactAnalyzeWithExpressionGraph(
             graph
         );
     return SemanticAstArtifactAnalyzeFromExpressionSurfaces(
-        artifact, requires_entrypoint, expression_surfaces
+        artifact, requires_entrypoint, expression_surfaces, true
     );
 }
 

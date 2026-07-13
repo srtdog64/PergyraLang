@@ -7066,3 +7066,29 @@ Released/default replacement remains 0%.
   for both driver backends. Namespace-qualified call classification,
   object-init internals, and auxiliary/result-type classification remain
   `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 carries canonical namespace-call targets
+
+- Added `SemanticExpressionCallTargetFact` as the semantic owner for qualified
+  callable identity. `Math.Add(...)` resolves once to canonical `Math_Add`, and
+  self MIR carries that target as explicit `call_target_kind` and
+  `call_target_name` fields on the call node.
+- Direct `--mir-json` consumption validates the carried target against the
+  reconstructed semantic signature inventory. Replacing the namespace target
+  with `none` fails closed under both C-built and LLVM-built drivers.
+- Hard member-call emission now consumes the call-node target first. The old
+  receiver-text branch that reconstructed `receiver.method` as a namespace
+  symbol is deleted and gate-forbidden; target-less member calls must have a
+  receiver type and remain instance-method calls.
+- A six-array semantic graph arena triggered an LLVM aggregate ABI crash in
+  `SemanticExpressionGraphAppendNode`. The landed representation keeps one
+  optional canonical target-name row in the hot semantic arena while preserving
+  the explicit kind/name pair at the MIR boundary. C/LLVM contracts and output
+  remain equal without widening that hot value bundle past the working ABI.
+- Added `namespace_call.pgy` as the eighteenth DRV-2 MIR fixture. The full
+  producer-first gate passed at 20 source fixtures and 18 MIR fixtures for both
+  driver backends; MIR JSON and emitted C are byte-identical, and execution
+  matches the native oracle output `7`.
+- Scope remains bounded: object-init internals, special unary/literal argument
+  bridges, and auxiliary/result-type classification remain `BRIDGE`;
+  released/default replacement remains 0%.

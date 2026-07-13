@@ -161,6 +161,9 @@ inventory must not become a second fact-family owner registry.
   codegen projections; compact-text production remains an explicit bridge for
   non-migrated expression owners and legacy/native canonicalization, not an
   alternate hard-codegen authority.
+- `src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy` --
+  canonical namespace-call target identity derived by callable resolution,
+  carried by self MIR, and verified before hard codegen consumption.
 - `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
   parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical

@@ -78,7 +78,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # semantic consumer moved back to string recovery.
 # 82 -> 79 (2026-07-13): parser precedence rows now carry typed expression
 # facts while compact text is only their parity/provenance projection.
-CORE_STRING_MUNGE_SIG_MAX=79
+# 79 -> 78 (2026-07-14): namespace call targets are carried as semantic facts
+# instead of being reconstructed from receiver text in hard codegen.
+CORE_STRING_MUNGE_SIG_MAX=78
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -206,7 +208,9 @@ SENTINEL_MAX=0
 # fallback is accepted by recursive codegen consumption.
 # 1323 -> 1353 (2026-07-13): MIR JSON graph decoding keeps kind, text, edge,
 # root, and subtree-boundary absence explicit through Option facts.
-RESULT_USE_MIN=1407
+# 1407 -> 1449 (2026-07-14): namespace call-target lookup and MIR carriage
+# expose missing or malformed target facts through Option and fail closed.
+RESULT_USE_MIN=1449
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

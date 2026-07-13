@@ -1,0 +1,9 @@
+namespace Math {
+    export func Add(a: Int, b: Int) -> Int {
+        return a + b;
+    }
+}
+
+func Main() -> Void {
+    Log(ToString(Math.Add(2, 5)));
+}

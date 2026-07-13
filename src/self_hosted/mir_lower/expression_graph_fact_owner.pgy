@@ -67,6 +67,14 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     return None;
 }
 
+func MirExpressionCallTargetKindCode(kind: String) -> Option<Int> {
+    if kind == "none" { return Some(SemanticCallTargetNone()); }
+    if kind == "namespace" {
+        return Some(SemanticCallTargetNamespace());
+    }
+    return None;
+}
+
 func MirExpressionGraphRangeReachable(
     ref arena: SemanticExpressionGraphArena,
     start: Int,
@@ -125,6 +133,7 @@ func MirExpressionGraphSequenceAppend(
     let texts: Array<String> = sequence.arena.node_texts;
     let left_children: Array<Int> = sequence.arena.left_children;
     let right_children: Array<Int> = sequence.arena.right_children;
+    let call_target_names: Array<String> = sequence.arena.call_target_names;
     let offset: Int = ArrayLength(kinds);
     let i: Int = 0;
     while i < count {
@@ -133,13 +142,33 @@ func MirExpressionGraphSequenceAppend(
             node, "kind"
         );
         let text: Option<String> = JsonObjectFactStringFieldOpt(node, "text");
-        if !IsSome(kind_text) || !IsSome(text) || UnwrapOption(text) == "" {
+        let target_kind_text: Option<String> = JsonObjectFactStringFieldOpt(
+            node, "call_target_kind"
+        );
+        let target_name: Option<String> = JsonObjectFactStringFieldOpt(
+            node, "call_target_name"
+        );
+        if !IsSome(kind_text) || !IsSome(text) || UnwrapOption(text) == "" ||
+            !IsSome(target_kind_text) || !IsSome(target_name) {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind_opt: Option<Int> = MirExpressionGraphKindCode(
             UnwrapOption(kind_text)
         );
         if !IsSome(kind_opt) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        let target_kind_opt: Option<Int> = MirExpressionCallTargetKindCode(
+            UnwrapOption(target_kind_text)
+        );
+        if !IsSome(target_kind_opt) {
+            return MirExpressionGraphSequenceError(sequence);
+        }
+        let target_kind: Int = UnwrapOption(target_kind_opt);
+        if (target_kind == SemanticCallTargetNone() &&
+                UnwrapOption(target_name) != "") ||
+            (target_kind == SemanticCallTargetNamespace() &&
+                UnwrapOption(target_name) == "") {
             return MirExpressionGraphSequenceError(sequence);
         }
         let kind: Int = UnwrapOption(kind_opt);
@@ -183,12 +212,14 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(texts, UnwrapOption(text));
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
+        ArrayPush(call_target_names, UnwrapOption(target_name));
         i = i + 1;
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, left_children, right_children
+        kinds, texts, left_children, right_children,
+        call_target_names
     );
     if !SemanticExpressionGraphArenaReady(arena) ||
         !MirExpressionGraphRangeReachable(

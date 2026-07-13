@@ -34,7 +34,7 @@ coq_path = root / "docs/semantics/proofs/SoTAuthority.v"
 begin = "<!-- BEGIN sot-owner-spine-registry -->"
 end = "<!-- END sot-owner-spine-registry -->"
 statuses = {"ACTIVE", "BRIDGE", "CLOSED"}
-expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 7, "CLOSED": 12})
+expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 7, "CLOSED": 13})
 expected_pairs = {
     "source.module_graph": ("SFSourceModuleGraph", "SOModuleLoader"),
     "lexer.token_stream": ("SFTokenStream", "SOLexer"),
@@ -52,6 +52,7 @@ expected_pairs = {
     "artifact.zone": ("SFBackendArtifact", "SOArtifactZone"),
     "compatibility.evolution": ("SFCompatibilityEvolution", "SOCompatibilityEvolution"),
     "selfhost.initializer_expression_shape": ("SFInitializerExpressionShape", "SOSemanticLocalBinding"),
+    "selfhost.try_expression_graph": ("SFExpressionGraph", "SOParserExpressionGraph"),
     "selfhost.collection_mutation_statement": ("SFCollectionMutationStatement", "SOSemanticStatement"),
     "selfhost.enum_declaration_rows": ("SFEnumDeclarationRows", "SOSemanticEnum"),
     "selfhost.nominal_declaration_rows": ("SFNominalDeclarationRows", "SOSemanticNominalConstructor"),
@@ -130,7 +131,7 @@ def path_list(value: str, field: str) -> list[pathlib.Path]:
 
 def validate(rows: list[dict[str, str]]) -> None:
     if {row["owner_id"] for row in rows} != set(expected_pairs):
-        fail("owner id set drifted from the accepted 28-row compiler spine")
+        fail("owner id set drifted from the accepted 29-row compiler spine")
     if len(rows) != len(expected_pairs):
         fail("registry contains duplicate owner ids")
 
@@ -216,7 +217,7 @@ must_reject(
 )
 
 print(
-    "[sot-owner-spine] 28 owner rows locked "
-    "(CLOSED=12 BRIDGE=7 ACTIVE=9); mutations rejected"
+    "[sot-owner-spine] 29 owner rows locked "
+    "(CLOSED=13 BRIDGE=7 ACTIVE=9); mutations rejected"
 )
 PY

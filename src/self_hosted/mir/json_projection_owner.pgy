@@ -37,7 +37,16 @@ func SelfMirJsonExpressionGraph(
             JsonEmitFieldString(
                 "kind", SelfMirExpressionGraphKindName(kind)
             ),
-            JsonEmitFieldString("text", rows.node_texts[node])
+            JsonEmitFieldString("text", rows.node_texts[node]),
+            JsonEmitFieldString(
+                "call_target_kind",
+                SelfMirExpressionCallTargetKindName(
+                    rows.call_target_kinds[node]
+                )
+            ),
+            JsonEmitFieldString(
+                "call_target_name", rows.call_target_names[node]
+            )
         ];
         let arity: Int = AstExpressionNodeArity(kind);
         if arity == 0 {

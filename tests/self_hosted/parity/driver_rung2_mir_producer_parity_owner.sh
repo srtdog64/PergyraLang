@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # Owns DRV-2 source-to-MIR producer, consumer, artifact, and run parity.
-
 pgy_selfhost_prepare_driver_rung2_mir_oracles() {
     local fixture_rel fixture_abs base mir_json oracle_bin
-
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         fixture_abs="$ROOT_DIR/$fixture_rel"
         base="$(basename "$fixture_rel" .pgy)"
@@ -33,15 +31,12 @@ pgy_selfhost_prepare_driver_rung2_mir_oracles() {
             >"$BUILD_DIR/${base}.oracle.run"
     done
 }
-
 pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local backend="$1"
     local driver_bin="$2"
     local fixture_rel base mir_json mir_json_arg self_mir_json
-    local self_mir_json_arg oracle_canonical oracle_canonical_arg
-    local self_canonical actual err missing_graph invalid_graph
-    local self_actual source_actual mir_baseline bare_call_missing_graph
-
+    local self_mir_json_arg oracle_canonical oracle_canonical_arg self_canonical
+    local actual err missing_graph invalid_graph self_actual source_actual mir_baseline bare_call_missing_graph
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         base="$(basename "$fixture_rel" .pgy)"
         mir_json="$BUILD_DIR/${base}.mir.json"
@@ -70,6 +65,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
+        pgy_selfhost_verify_driver_rung2_call_target "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "indexed_assignment" ]]; then
             grep -Fq '"expr1":"values[i]"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend indexed target fact was lost" >&2
