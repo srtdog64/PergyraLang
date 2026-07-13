@@ -18,6 +18,13 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
 {
     if (inst == NULL)
         return;
+    /* Always recompute: stmt population assigns expr0/expr1 AFTER the
+     * first append and relies on its final refresh pass to re-derive
+     * the facts -- a recompute-once guard here goes stale on exactly
+     * the spawn/await instructions the validators pin (two MIR tests
+     * caught that). The walks are cheap (docs/183 measured them at
+     * noise level); the expensive part of recording provenance was the
+     * per-instruction tmpfile in ast_capture_inline, fixed separately. */
     inst->has_surface_usage_facts = true;
     inst->uses_thread_pool_surface =
         ast_uses_thread_pool_surface(inst->expr0)

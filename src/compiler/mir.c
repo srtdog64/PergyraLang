@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../common/string_compat.h"
 #include "../common/arena.h"
@@ -25,6 +26,58 @@
 #include "mir_surface_usage.h"
 #include "mir_stmt_population.h"
 #include "mir_validation.h"
+
+/* PGY_DEBUG_MIR_TIMING=1 prints where mir_lower's wallclock lives, one
+ * accumulated line per sub-stage. Same observability contract as
+ * PGY_DEBUG_PIPELINE_STAGE one level up: the pipeline must be able to
+ * answer "where did the time go" without a debugger (docs/183). */
+enum {
+    MIR_TIMING_RIR_MATCH = 0,
+    MIR_TIMING_SIGNATURE,
+    MIR_TIMING_SOURCE_LOCAL_TYPES,
+    MIR_TIMING_BUILD_BLOCKS,
+    MIR_TIMING_CLEANUP_BLOCK,
+    MIR_TIMING_POPULATE_INSTS,
+    MIR_TIMING_SSA_RENAME,
+    MIR_TIMING_STMT_INSTS,
+    MIR_TIMING_SPECULATION,
+    MIR_TIMING_USE_EDGES,
+    MIR_TIMING_CLEANUP_EDGES,
+    MIR_TIMING_RECOMPUTE,
+    MIR_TIMING_DCE,
+    MIR_TIMING_BB_SOURCE_LOC,
+    MIR_TIMING_BB_COPIES,
+    MIR_TIMING_BB_APPEND,
+    MIR_TIMING_BB_PHI_TERM,
+    MIR_TIMING_SLOT_COUNT
+};
+
+static const char *const kMirTimingNames[MIR_TIMING_SLOT_COUNT] = {
+    "rir_scope_match", "signature_capture", "source_local_types",
+    "build_blocks", "cleanup_block", "populate_instructions",
+    "ssa_rename", "stmt_instructions", "speculation_facts",
+    "use_edges", "cleanup_edges", "recompute_analysis", "dce_pass",
+    "  bb/source_location", "  bb/copies", "  bb/append",
+    "  bb/phi_terminator",
+};
+
+static double g_mir_timing[MIR_TIMING_SLOT_COUNT];
+
+static double
+mir_timing_now(void)
+{
+    return (double)clock() / (double)CLOCKS_PER_SEC;
+}
+
+static void
+mir_timing_report(void)
+{
+    fprintf(stderr, "[mir timing] sub-stage totals:\n");
+    for (int i = 0; i < MIR_TIMING_SLOT_COUNT; i++) {
+        fprintf(stderr, "[mir timing]   %-22s %8.3fs\n",
+                kMirTimingNames[i], g_mir_timing[i]);
+    }
+}
 
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
@@ -158,7 +211,10 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
             source_node = src->terminator_condition;
         else if (src->terminator_value != NULL)
             source_node = src->terminator_value;
+        double t_bb = mir_timing_now();
         mir_block_record_source_location(&block, source_node);
+        g_mir_timing[MIR_TIMING_BB_SOURCE_LOC] += mir_timing_now() - t_bb;
+        t_bb = mir_timing_now();
         block.succ_true = src->succ_true;
         block.succ_false = src->succ_false;
         block.has_succ_true = src->has_succ_true;
@@ -198,20 +254,27 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
             free(block.source_phi_nodes);
             return false;
         }
+        g_mir_timing[MIR_TIMING_BB_COPIES] += mir_timing_now() - t_bb;
+        t_bb = mir_timing_now();
         if (!append_block(routine, block))
             return false;
+        g_mir_timing[MIR_TIMING_BB_APPEND] += mir_timing_now() - t_bb;
     }
 
-    for (size_t i = 0; i < hir_routine->cfg.block_count; i++) {
-        const HIRBasicBlock *src = &hir_routine->cfg.blocks[i];
-        if (!mir_add_phi_placeholders(routine, &routine->blocks[i]))
-            return false;
-        if (!mir_add_terminator_instruction(routine,
-                                            &routine->blocks[i],
-                                            src->terminator_kind,
-                                            src->terminator_condition,
-                                            src->terminator_value))
-            return false;
+    {
+        double t_pt = mir_timing_now();
+        for (size_t i = 0; i < hir_routine->cfg.block_count; i++) {
+            const HIRBasicBlock *src = &hir_routine->cfg.blocks[i];
+            if (!mir_add_phi_placeholders(routine, &routine->blocks[i]))
+                return false;
+            if (!mir_add_terminator_instruction(routine,
+                                                &routine->blocks[i],
+                                                src->terminator_kind,
+                                                src->terminator_condition,
+                                                src->terminator_value))
+                return false;
+        }
+        g_mir_timing[MIR_TIMING_BB_PHI_TERM] += mir_timing_now() - t_pt;
     }
 
     return true;
@@ -424,7 +487,11 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
         routine.ast = hir_routine->ast;
         routine.is_action_like = hir_routine->is_action_like;
         routine.hir_routine = hir_routine;
-        routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+        {
+            double t0 = mir_timing_now();
+            routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+            g_mir_timing[MIR_TIMING_RIR_MATCH] += mir_timing_now() - t0;
+        }
         routine.owner_name = routine.rir_scope != NULL
             ? routine.rir_scope->owner_name
             : hir_routine->owner_name;
@@ -437,7 +504,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             routine.return_type = ast_func_return_type(routine.ast);
             routine.within_zone = ast_func_within_zone(routine.ast);
             routine.has_signature = true;
-            if (!mir_routine_signature_metadata_capture(mir, &routine)) {
+            double t_sig = mir_timing_now();
+            bool sig_ok = mir_routine_signature_metadata_capture(mir, &routine);
+            g_mir_timing[MIR_TIMING_SIGNATURE] += mir_timing_now() - t_sig;
+            if (!sig_ok) {
                 mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
@@ -445,7 +515,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                 mir_destroy(mir);
                 return NULL;
             }
-            if (!mir_routine_source_local_type_names_capture(mir, &routine)) {
+            double t_loc = mir_timing_now();
+            bool loc_ok = mir_routine_source_local_type_names_capture(mir, &routine);
+            g_mir_timing[MIR_TIMING_SOURCE_LOCAL_TYPES] += mir_timing_now() - t_loc;
+            if (!loc_ok) {
                 mir_routine_source_local_type_names_clear(&routine);
                 mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
@@ -460,16 +533,49 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
         cfg_block_count_before =
             hir_routine->has_cfg ? hir_routine->cfg.block_count : 0;
 
-        if (!mir_build_blocks_from_hir(&routine, hir_routine)
-            || !mir_append_cleanup_block(&routine, routine.rir_scope)
-            || !mir_populate_instructions(&routine)
-            || !mir_apply_ssa_rename(&routine)
-            || !mir_populate_stmt_instructions(&routine)
-            || !mir_capture_speculation_facts(&routine)
-            || !mir_populate_use_edges(&routine)
-            || !mir_materialize_cleanup_edges(&routine)
-            || !mir_recompute_analysis(&routine)
-            || !append_routine(mir, routine)) {
+        bool routine_ok = true;
+        double t_step;
+#define MIR_TIMED_STEP(slot, call) \
+        do { \
+            if (routine_ok) { \
+                t_step = mir_timing_now(); \
+                routine_ok = (call); \
+                g_mir_timing[slot] += mir_timing_now() - t_step; \
+            } \
+        } while (0)
+        MIR_TIMED_STEP(MIR_TIMING_BUILD_BLOCKS,
+                       mir_build_blocks_from_hir(&routine, hir_routine));
+        MIR_TIMED_STEP(MIR_TIMING_CLEANUP_BLOCK,
+                       mir_append_cleanup_block(&routine, routine.rir_scope));
+        MIR_TIMED_STEP(MIR_TIMING_POPULATE_INSTS,
+                       mir_populate_instructions(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_SSA_RENAME,
+                       mir_apply_ssa_rename(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_STMT_INSTS,
+                       mir_populate_stmt_instructions(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_SPECULATION,
+                       mir_capture_speculation_facts(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_USE_EDGES,
+                       mir_populate_use_edges(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_CLEANUP_EDGES,
+                       mir_materialize_cleanup_edges(&routine));
+        MIR_TIMED_STEP(MIR_TIMING_RECOMPUTE,
+                       mir_recompute_analysis(&routine));
+#undef MIR_TIMED_STEP
+        if (getenv("PGY_DEBUG_MIR_TIMING") != NULL) {
+            double routine_total = 0.0;
+            for (int slot = 0; slot < MIR_TIMING_SLOT_COUNT; slot++)
+                routine_total += g_mir_timing[slot];
+            static double prev_total;
+            if (routine_total - prev_total > 0.05) {
+                fprintf(stderr,
+                    "[mir timing]   routine '%s': +%.3fs (blocks=%zu)\n",
+                    routine.name != NULL ? routine.name : "(anonymous)",
+                    routine_total - prev_total, routine.block_count);
+            }
+            prev_total = routine_total;
+        }
+        if (!routine_ok || !append_routine(mir, routine)) {
             mir_routine_signature_metadata_clear(&routine);
             pgy_arena_destroy(&routine.scratch);
             if (error_message != NULL)
@@ -509,11 +615,19 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
 
     mir_link_decl_method_routines(mir);
 
-    if (!mir_run_dce_pass(mir, error_message)) {
-        mir_destroy(mir);
-        return NULL;
+    {
+        double t0 = mir_timing_now();
+        bool dce_ok = mir_run_dce_pass(mir, error_message);
+        g_mir_timing[MIR_TIMING_DCE] += mir_timing_now() - t0;
+        if (!dce_ok) {
+            mir_destroy(mir);
+            return NULL;
+        }
     }
     mir_refresh_non_cfg_body_fallback_inventory(mir);
+
+    if (getenv("PGY_DEBUG_MIR_TIMING") != NULL)
+        mir_timing_report();
 
     return mir;
 }

@@ -85,6 +85,49 @@ rung(메모리 압박이 실측될 때).
    자릿수 초) + 배터리 무회귀(semantic 2794 / transpile 918 /
    parser) + 기존 게이트 전부.
 
+## §2.5 실행 결과 (2026-07-13 당일) — 1라운드: mir_lower의 7.6초
+
+격리 사슬(전부 실측, 가설은 두 번 기각):
+
+1. 단계 이분(`PGY_DEBUG_PIPELINE_STAGE` 타임스탬프): semantic 3.1s +
+   **mir_lower 6.8s**, 나머지 단계 전부 ~0.07s.
+2. 신설 `PGY_DEBUG_MIR_TIMING`(mir_lower 13 하위-슬롯 + 루틴별 티커,
+   영구 env-게이트 관측성): **build_blocks 3.5s + stmt_instructions
+   4.0s** = 95%. 단일 괴물 루틴 없음 — 블록당 ~1ms 상수가 전면.
+3. 기각 1: 합성 스케일링(깊이/폭/문장/스코프) 전부 선형 — 합성이
+   실물 미재현(--hir로 재서 mir_lower 미측정이었던 것도 자백).
+4. 기각 2: 명령당 surface-usage AST 워크 4회 — skip-프로브로 무죄
+   (끄고도 불변).
+5. **체포**: `bb/phi_terminator` 3.59s → terminator의
+   `mir_instruction_capture_source_provenance` →
+   **`ast_capture_inline`이 호출마다 디스크 `tmpfile()` 생성 + stdout
+   fd dup2 왕복 + flush 4회**. Windows에서 tmpfile ≈ 1ms — 명령 수천
+   개 × 1ms = 그 7.5초. skip-프로브로 확정(끄니 build_blocks 0.075s /
+   stmt 0.042s).
+
+수술: 인라인 프린터를 **파일-정적 싱크**(printf→emitf, stdout 모드는
+같은 포맷 문자열로 byte-동일, 캡처 모드는 malloc 버퍼)로 전환 —
+프린터 이원화 없이 tmpfile/fd 서커스 제거. 부수: 타 파일에 살던
+`print_generic_params_inline`/`print_where_clause_inline`이 캡처 중
+진짜 stdout으로 새는 회귀를 **8.2MB mir-json byte-비교가 적발** →
+싱크 파일로 이주(ast_print_generics.c 소멸).
+
+결과: build_blocks 3.62→**0.028s**, stmt_instructions 4.17→**0.015s**
+(합 ~150×). driver_rung2 `--mir` 11.7→7.7s, routine_lower 6.4→2.1s.
+파리티: mir-json 8.2MB + basic + `--ast` 덤프 전부 byte-동일. 배터리:
+MIR 132/0 · semantic 2794/0 · transpile 918/0 · AIR 141/0 · parser ·
+compare 3/3.
+
+**교훈 2건**: ① 최적화 중 하나 넣은 recompute-once 가드가 MIR 테스트
+2건을 깨뜨림 — stmt population이 append 후 expr0을 배정하고 **최종
+재기록 패스에 의존**하는 계약이었다(가드 철회, 계약을 함수 주석으로
+명문화; 프리-수술 상태 pathspec-stash 이분으로 내 회귀임을 확정).
+② "본질이 싼 AST 워크"와 "syscall 낀 캡처"를 프로파일 없이 구별하는
+유일한 도구는 skip-프로브 이분이었다 — gdb는 Windows에서 3연패.
+
+잔여(2라운드): **semantic 3.1s** — `ast_capture_inline` 미호출 확인,
+별도 기전. 같은 방법론(단계 이분→하위 슬롯→skip-프로브)으로.
+
 ## §3. 잔여·비주문 (교리-게이트)
 
 - Pratt 사다리 치환: self-host 파서 재작성 시 기본형 (§1.1).

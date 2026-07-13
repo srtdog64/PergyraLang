@@ -314,7 +314,6 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_print_domain.c \
                    $(PARSER_DIR)/ast_print_event.c \
                    $(PARSER_DIR)/ast_print_expr.c \
-                   $(PARSER_DIR)/ast_print_generics.c \
                    $(PARSER_DIR)/ast_print_inline.c \
                    $(PARSER_DIR)/ast_print_intent.c \
                    $(PARSER_DIR)/ast_print_misc.c \
