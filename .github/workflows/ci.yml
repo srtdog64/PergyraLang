@@ -22,6 +22,33 @@ jobs:
         # runner into another compiler worker pool.
         run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 
+  formal-proofs-rocq9:
+    runs-on: ubuntu-latest
+    # build-linux machine-checks the proof corpus with Ubuntu's apt Coq (8.x),
+    # but development happens against Rocq 9 -- so the prover actually used day
+    # to day was never gated, and what Rocq 9 says about the corpus (starting
+    # with the deprecated `Coq.` namespace prefix, which a later release turns
+    # into an error) surfaced only in someone's local run. Pinned to the exact
+    # version used locally so this gate is deterministic.
+    #
+    # This job also does what `coqc` cannot: rocqchk re-runs the trusted kernel
+    # over the compiled .vo and pins the axiom budget, so an added Axiom or
+    # Admitted, an impredicative Set, an unsafe fixpoint, or an assumed-positive
+    # inductive cannot slip in behind a green gate.
+    #
+    # The image runs as a non-root user, so actions/checkout cannot write the
+    # workspace; --user root fixes that, and HOME=/home/rocq keeps opam able to
+    # find its switch (root would otherwise look under /root and the prover
+    # would vanish). Both were verified against this exact image.
+    container:
+      image: rocq/rocq-prover:9.0.1
+      options: --user root -e HOME=/home/rocq
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Kernel-check the proof corpus with Rocq 9
+        run: bash tests/coq_kernel_check.sh
+
   backend-compare-linux:
     runs-on: ubuntu-latest
     strategy:
