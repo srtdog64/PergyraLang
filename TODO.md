@@ -9883,7 +9883,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 
 | 트랙 | 상태 | 다음 WO |
 |---|---|---|
-| Beta closure (§0a) | strict ~83%; ✅full-suite 증거 갱신(2026-07-15, 909/909 C/LLVM parity, 0 fail) | WO-B2 |
+| Beta closure (§0a) | strict ~83%; ✅WO-B1 full-suite 909/909 + ✅WO-B2 ABI freeze 표(docs/118 §11) (2026-07-15) | WO-B3 |
 | Red-team 잔여 (docs/137) | R6 닫힘; D1/D3 열림, D2/D4 결정 대기 | WO-B4, WO-B5 |
 | Self-host typed AST | payload 커밋 스트림 활성(동시 세션 가능성) | WO-S1/WO-S2 |
 | Formal corpus (docs/semantics/19) | 24 .v coqc 24/24, 0 admits; ✅WO-F1 닫힘(2026-07-04) | WO-F3/F4 후보 |
@@ -9926,8 +9926,21 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 - **DoD**: 전 shard green 로그 + anchor 갱신 커밋.
 - **금지**: 일부 shard만 돌리고 "full-suite 검증" 보고.
 
-#### WO-B2 — ABI/Slot/Pin ownership freeze 마감 (§0a-6)
+#### WO-B2 — ABI/Slot/Pin ownership freeze 마감 (§0a-6) — ✅ CLOSED (2026-07-15)
 
+- **상태**: ✅ CLOSED (2026-07-15). **Slot-계열 ABI Freeze 표**를
+  `docs/118 §11`에 착지: plain/secure/device slot·token·pin-view·slot-check
+  always-on·MIR↔runtime field-offset·runtime lifecycle·panic class·crypto
+  toolchain 각 행 → 소유 게이트 매핑 + 변경 절차(ABI-breaking=post-beta 명시
+  결정). **전 frozen 행 게이트 매핑 100%**; 의도적 non-freeze(내부 32+32
+  핸들·mutex/condvar opaque 플랫폼 핸들)는 근거 명시로 배제. 게이트: doc 잠그는
+  3종 **green**(`abi-ownership-shape`/`runtime-abi-lifetime`/
+  `security-portability`, 후자 둘은 느리나 rc=0), `secure-token-reuse`는
+  Vanguard 직계-gcc 차단으로 재실행 불가(doc-only 변경이라 영향 없음 — 확인:
+  트리비얼 gcc도 무음 사망). **전제 정정**: "freeze 표가 없다"는 부분 stale —
+  `docs/136`이 이미 Option/niche 레이아웃을 freeze(golden gates 포함); WO-B2는
+  그 Slot-계열 대응물을 `docs/118`에 추가하고 상호참조. mutex/condvar gap은
+  freeze가 아니라 "의도적 opaque"로 판정(억지 leg 미추가). 후속 = WO-B3.
 - **목표**: Slot/Pin cleanup, zone-bound handle, runtime-none, raw escape,
   ABI non-leakage를 코드 게이트 + 문서 계약으로 **명시 고정**(freeze 선언).
 - **현재**: 게이트는 산재 존재(`abi-ownership-shape-test-smoke`,

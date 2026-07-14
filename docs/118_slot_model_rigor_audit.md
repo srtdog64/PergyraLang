@@ -716,3 +716,60 @@ The Slot model is not "I wish it worked like this." It is a
 well-defined runtime-validated handle with a documented static layer
 above it, written in three tiers with regression evidence at each tier.
 That is the audit's honest answer.
+
+## 11. Beta ABI Freeze Table — Slot-Family Surfaces (WO-B2)
+
+This section freezes the **runtime ABI surface of the Slot family** and names
+the gate that owns each row, so that no future edit can silently drift a
+layout the two backends and the MIR ABI fact all depend on. It is the
+Slot-family counterpart to `docs/136`'s "Frozen Beta Layout Facts" (which
+freezes `Option<T>` tag/niche layout). Both are load-bearing per §0: a Slot
+ABI bug affects every abstraction above Slot.
+
+**Freeze rule.** A change to any *frozen* row below is ABI-breaking and is a
+**post-beta explicit decision only** (per the top-of-TODO anchor and
+`docs/136`). When such a change is eventually made, it must land in one commit
+that updates *all* of: (1) the struct in `src/runtime/pgy_abi_spec.h`, (2) the
+static asserts in `src/runtime/pgy_abi_spec_asserts.h`, (3) the owning gate's
+required term(s), (4) the MIR ABI fact in `src/compiler/mir_abi_layout.c` if a
+field offset moves, (5) the runtime-shape checks in `src/test_abi_spec.c`, and
+(6) a green backend-compare parity sweep. Adding a debug/release layout
+dimension is permanently rejected — layout is not selected by build mode
+(`docs/semantics/13`).
+
+### 11.1 Frozen rows (each maps to ≥1 executable gate)
+
+| ABI surface | Definition | Owning gate(s) | What the gate locks |
+| --- | --- | --- | --- |
+| Plain slot storage `pgy_abi_slot_{int,long,float,double,bool,string}` (`{value@0, occupied}`) | `pgy_abi_spec.h` | `pgy_abi_spec_asserts.h` (static offset/size) + `abi-ownership-shape-test-smoke` (struct text) + `test-abi` (runtime shape) + MIR `ABI_FIELD_STRUCT("occupied", …)` | `value` at offset 0; `occupied` at ≥4; size ≥8/16/2; no `_rel`/`_dbg` variants; no `PGY_RAW_SLOTS` |
+| Secure slot storage `pgy_abi_secure_slot_*` (`{value@0, occupied, token}`) | `pgy_abi_spec.h` | static asserts (`token` offset > value/occupied, size > plain) + `abi-ownership-shape` + `test-abi` + `secure-token-reuse-failclosed-smoke` | token field present and after occupied; secure size strictly greater than plain; fresh monotonic token identity, fail-closed on stale reuse |
+| Token capability `pgy_abi_token_int` (`{id:uint64_t, can_write, can_read}`) | `pgy_abi_spec.h` | `abi-ownership-shape` (exact struct + reject `_rel`/`_dbg`) | id + rw/rd capability shape; capability gates read/write/release |
+| Pin/lease view handles `pgy_abi_pinned_slot_view_int`, `pgy_abi_pinned_secure_slot_view_int` | `pgy_abi_spec.h` | `abi-ownership-shape` (struct names) + `test-abi` (view size + `token` offset) | block-scoped typed lease shape; secure view carries a `const pgy_abi_token_int *`; fail-closed view cache (`docs/74`) |
+| Device slot storage `pgy_abi_device_slot_*` (`{value@0, claimed}`) | `pgy_abi_spec.h` | static asserts + `test-abi` + MIR `ABI_FIELD_STRUCT("claimed", …)` | `value` at 0; `claimed` field name/offset; MIR fact matches runtime struct |
+| Slot-check-always-on policy | `pgy_runtime_panic_checked_inline.h`, `pgy_runtime_plain_slot_inline.h` | `abi-ownership-shape` (`PGY_WITH_SLOT_CHECKS remains defined`; reject `PGY_RAW_SLOTS`/`PGY_SLOT_DEFINE_RAW`) | generation/token checks are unconditional; raw slots cannot be re-introduced (see the slot-safety-always-on decision) |
+| MIR ↔ runtime field-offset agreement | `mir_abi_layout.c` | `abi-ownership-shape` (`ABI_FIELD_STRUCT` terms) + `test-abi` | the MIR ABI fact is the single backend input; C and LLVM consume the same offsets |
+| Runtime ABI lifecycle + string exports | `docs/semantics/04_ownership_abi.md`, runtime exports | `runtime-abi-lifetime-smoke` | ownership lifecycle wording + every runtime string-export ABI function has a real body |
+| Panic class list (`PGY_RUNTIME_PANIC*`) | runtime panic headers | `runtime-panic-abi-smoke` + `runtime-panic-contract-smoke` + `runtime-panic-codegen-smoke` | panic class identities and abort contract stay stable across both backends |
+| Secure-slot crypto toolchain (bcrypt/CNG + OpenSSL EVP; token validate; sealed payload AES/HMAC) | `slot_security_crypto*.c/.h`, `slot_manager_secure_ops.c` | `security-portability-contract-smoke` | platform crypto provider linkage; `TokenCompareSecure`/`slot_token_valid_for_entry_locked` validation path; sealed-payload AES-256-CTR + HMAC-SHA256 |
+| `Option<T>` tag/niche layout | `docs/136` "Frozen Beta Layout Facts" | `test-abi` + `test-mir` + `abi-ownership-shape` | explicit-tag Option layout (size/align/tag/offset); no backend-local niche shrink (cross-reference, complementary) |
+
+### 11.2 Intentionally **not** frozen (replaceable below the Slot boundary)
+
+Per §0a, the Slot contract is stable while the *backend handle below it is
+replaceable*. These are deliberately excluded from the freeze so that runtime
+implementation can evolve:
+
+- **Internal slot handle** (generation/index representation, e.g. a 32+32
+  packed id). The frozen surface is the *value ABI + token capability*, not the
+  handle encoding. The runtime may re-shape the handle freely as long as the
+  gates above still pass.
+- **Sync-primitive handles** `pgy_abi_mutex_t` / `pgy_abi_condvar_t`. These are
+  opaque, platform-conditional (`#if defined(_MSC_VER)` vs pthread) wrappers
+  whose `_reserved[]` tail is sized per platform. Only the *opaque-handle
+  contract* (pointer-first, reserved tail, never inspected across the boundary)
+  is stable; the internals are backend-owned and not part of the user-facing
+  ABI. Freezing their byte shape would wrongly pin a platform-tuned detail.
+
+Every frozen row in §11.1 maps to at least one executable gate; every
+excluded row in §11.2 is excluded by an explicit, documented rationale. That
+is the freeze's 100% coverage claim.
