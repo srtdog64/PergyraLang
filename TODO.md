@@ -18662,6 +18662,36 @@ mir-json 8.26MB byte-동일 · MIR 132/0 · transpile 918/0 · AIR 141/0 ·
 parser · compare 3/3. 잔여 최대 슬롯 = precollect ~0.3s — 측정-먼저
 교리상 중단. canonical = docs/183 §2.6.
 
+**WO-DIAG-1 무음 잘림 제거 (2026-07-13, 외부 레드팀 2차의 유효 신호 3건 중
+1건, 커밋 17d3b1d8)**: 진단은 컴파일러의 **산출물**인데 고정 버퍼 sink가
+꼬리를 조용히 버리면 §1.1 무음 경로다 — 읽는 사람이 조각과 전문을 구별할
+수 없다. 전수 census 결과 **나머지 코드베이스는 이미 heap-exact**
+(`semantic_error_with_hints`, MIR/DIR/RIR/AIR 검증기 전부 2패스 vsnprintf) —
+잘리는 건 소수의 **비일관 잔여**였고, 레드팀이 짚은 2곳보다 **llvm_error.c
+10곳**이 최대 지분이었다(그 아이러니: `llvm_result_error_fmt`는 arena
+heap-exact인데 그걸 먹이는 set_error가 512에서 먼저 자름).
+- **heap-exact 전환(무손실)**: `Parser.error_msg[512]`→소유 `char*`
+  (destroy에서 free, `parser_get_error`는 total — NULL 반환 없음, OOM도
+  구별되는 메시지로). 렌더 byte 배치 불변 → driver_diag의 코드-접두사
+  라우팅이 보던 것 그대로. + `import_resolver set_error[1024]`.
+- **고정 유지, 대신 잘림 선언**(`pergyra_str_mark_clipped` → `...[+N bytes
+  clipped]`): LLVM ctx(10곳→단일 chokepoint `llvm_store_error_message`),
+  intent contract summary(9 호출자), C백엔드 MIR reason.
+- ★**LLVM 힙 전환은 ASAN(WO-SEC-2)에 차단**: `llvm_mir_case_payload_type`이
+  에러상태를 투기적 저장/복원하는데 `llvm_stmt_type_infer`가 has_error만
+  끄고 message는 안 지워 **"error_msg≠NULL ⟹ has_error" 불변식이 깨져
+  있다** → 포인터화하면 그 롤백이 use-after-free. 무음 잘림을 없애려고
+  무음 메모리 버그를 심는 건 §9(안전성 최우선) 역전. **의존성 발견:
+  ASAN이 이 큐에서 먼저였어야 한다.**
+- 목격자 2종(RED 선증명): 4000자 식별자 진단이 **475B로 잘려 나오던 것이
+  4111B 전문 생존**; 클립 마커는 넘칠 때만 찍히고 들어맞으면 무동작.
+- 정직 기록: 착수 시 내가 "Code: 접두사가 사라진다"고 주장했으나 **측정으로
+  자가 반증**(384+상수98=482<512라 접두사는 생존, 진짜 절단점은 message[384]
+  뿐). 그리고 오늘 일상적으로 잘리고 있진 않았다 — 입력이 결정하는
+  hardening이지 터진 버그 수리가 아니다.
+- 검증: parser · semantic 2794/0 · transpile 918/0 · MIR 132/0 · AIR 141/0 ·
+  compare 3/3 · 파스에러 end-to-end 출력 배치 불변.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
