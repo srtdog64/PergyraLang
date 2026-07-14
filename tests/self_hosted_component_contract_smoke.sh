@@ -2840,6 +2840,46 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_struct_argument'
 require_text "tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh" \
     'malformed struct spine was accepted'
+require_file "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_struct_value'
+require_text "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh" \
+    'malformed struct value was accepted'
+require_file "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
+require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'SemanticExpressionGraphIntrinsicTypeContractReady()'
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'SemanticAstExpressionVerdictFromGraph('
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'ref expression_surfaces: SemanticAstExpressionSurfaceFacts'
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'SemanticAstExpressionGraphRootForNode('
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'SemanticAstExpressionGraphForNode('
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    'SemanticAstExpressionGraphForNode('
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    'SemanticAstExpressionGraphForNode('
+reject_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
+    'SemanticAstExpressionGraphForNode('
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    'SemanticAstExpressionVerdictFromGraph('
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'RewriteExpectedValueWithSemanticGraph('
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    'RewriteExpectedValueWithSemanticGraph('
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'EmitStructValue(expr, type_name, env)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'EmitStructValue(expr, vt, env)'
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    'EmitStructValue(rexpr, return_type, env)'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \

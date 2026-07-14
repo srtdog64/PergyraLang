@@ -1,0 +1,69 @@
+// Borrowed expression-graph view over artifact-bound surface facts.
+
+import "ast_expression_surface_fact_owner.pgy";
+
+func SemanticAstExpressionSurfaceBorrowReady(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstExpressionSurfaceFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.node_ids);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.has_atoms) != count ||
+        ArrayLength(facts.atoms) != count ||
+        ArrayLength(facts.has_values) != count ||
+        ArrayLength(facts.values) != count ||
+        ArrayLength(facts.has_auxiliary_values) != count ||
+        ArrayLength(facts.auxiliary_values) != count ||
+        ArrayLength(facts.normalized_atoms) != count ||
+        ArrayLength(facts.normalized_values) != count ||
+        ArrayLength(facts.normalized_auxiliary_values) != count ||
+        ArrayLength(facts.operator_rows) !=
+            count * SemanticAstExpressionShapeWidth() ||
+        !SemanticExpressionGraphFactsReady(
+            facts.expression_graph, count * 3
+        ) {
+        return false;
+    }
+    let previous_node_id: Int = -1;
+    let i: Int = 0;
+    while i < count {
+        let node_id: Int = facts.node_ids[i];
+        if node_id <= previous_node_id || node_id < 0 ||
+            node_id >= artifact.count ||
+            (facts.expression_graph.has_roots[i * 3] &&
+                !facts.has_atoms[i]) ||
+            (facts.expression_graph.has_roots[i * 3 + 1] &&
+                !facts.has_values[i]) ||
+            (facts.expression_graph.has_roots[i * 3 + 2] &&
+                !facts.has_auxiliary_values[i]) {
+            return false;
+        }
+        previous_node_id = node_id;
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstExpressionGraphRootForNode(
+    ref facts: SemanticAstExpressionSurfaceFacts,
+    node_id: Int,
+    lane: Int
+) -> Option<Int> {
+    if !facts.ok || lane < 0 || lane > 2 { return None; }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.node_ids[i] == node_id {
+            let root_index: Int = i * 3 + lane;
+            if root_index < 0 ||
+                root_index >= ArrayLength(facts.expression_graph.roots) ||
+                root_index >=
+                    ArrayLength(facts.expression_graph.has_roots) ||
+                !facts.expression_graph.has_roots[root_index] {
+                return None;
+            }
+            return Some(facts.expression_graph.roots[root_index]);
+        }
+        i = i + 1;
+    }
+    return None;
+}

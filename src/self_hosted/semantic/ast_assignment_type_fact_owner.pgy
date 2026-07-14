@@ -13,6 +13,7 @@ import "ast_expression_verdict_owner.pgy";
 import "array_type_owner.pgy";
 import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
 
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
@@ -66,7 +67,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
         ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, constructors, locals, initializer_types
+            artifact, signatures, constructors, locals,
+            expression_surfaces, initializer_types
         ) || !SemanticAstIterationTypeFactsMatchArtifact(
             artifact, signatures, constructors, locals, initializer_types,
             statements, expression_surfaces, iteration_types
@@ -96,6 +98,12 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     let enum_facts: SemanticAstEnumFacts =
         SemanticAstEnumFactsFromArtifact(artifact);
     if !enum_facts.ok {
+        return SemanticAstAssignmentTypeStructuralError(artifact);
+    }
+    let member_root_names: Array<String> = [];
+    if !SemanticAstExpressionMemberRootNames(
+        constructors, enum_facts, member_root_names
+    ) {
         return SemanticAstAssignmentTypeStructuralError(artifact);
     }
     let i: Int = 0;
@@ -161,10 +169,21 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 }
             }
             if row_code == "" {
+                let value_root: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        expression_surfaces, assignments.node_ids[i],
+                        AstExpressionLaneValue()
+                    );
+                if !IsSome(value_root) {
+                    return SemanticAstAssignmentTypeStructuralError(artifact);
+                }
                 let value_verdict: SemanticAstExpressionVerdict =
-                    SemanticAstExpressionVerdictFromPayload(
-                        assignments.value_texts[i], names, types, modes,
-                        function_names, function_returns, function_params
+                    SemanticAstExpressionVerdictFromGraph(
+                        assignments.value_texts[i],
+                        expression_surfaces.expression_graph,
+                        UnwrapOption(value_root), names, types, modes,
+                        function_names, function_returns, function_params,
+                        member_root_names
                     );
                 inferred = value_verdict.inferred_type_name;
                 if !value_verdict.ok {
@@ -342,16 +361,16 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(valid);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            valid, signatures, constructors, locals
+            valid, signatures, constructors, locals, expression_surfaces
         );
     let assignments: SemanticAstAssignmentFacts =
         SemanticAstAssignmentFactsFromArtifact(valid, signatures);
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(valid, signatures);
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
     let iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             valid, signatures, constructors, locals, initializers, statements,
@@ -383,10 +402,12 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstLocalBindingFactsFromArtifact(
             mismatch, mismatch_signatures
         );
+    let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
     let mismatch_initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,
-            mismatch_locals
+            mismatch_locals, mismatch_expression_surfaces
         );
     let mismatch_assignments: SemanticAstAssignmentFacts =
         SemanticAstAssignmentFactsFromArtifact(
@@ -396,8 +417,6 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         SemanticAstStatementFactsFromArtifact(
             mismatch, mismatch_signatures
         );
-    let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
     let mismatch_iterations: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,

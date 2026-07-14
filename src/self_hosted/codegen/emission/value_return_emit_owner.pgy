@@ -99,7 +99,9 @@ func EmitReturn(
     }
     if LookupKindType(env, return_type, "s") == "struct" {
         return Concat("return ", Concat(
-            EmitStructValue(rexpr, return_type, env), ";"
+            RewriteExpectedValueWithSemanticGraph(
+                rexpr, return_type, env, graph
+            ), ";"
         ));
     }
     return Concat("return ", Concat(

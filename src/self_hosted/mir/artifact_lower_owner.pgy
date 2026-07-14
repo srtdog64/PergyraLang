@@ -359,7 +359,8 @@ func SelfMirProgramFactsFromArtifact(
     }
     if !SemanticAstInitializerTypeFactsMatchArtifact(
         artifact, analysis.signatures, analysis.constructors,
-        analysis.local_bindings, initializer_types
+        analysis.local_bindings, analysis.expression_surfaces,
+        initializer_types
     ) || !SemanticAstIterationTypeFactsMatchArtifact(
         artifact, analysis.signatures, analysis.constructors,
         analysis.local_bindings, initializer_types, analysis.statements,

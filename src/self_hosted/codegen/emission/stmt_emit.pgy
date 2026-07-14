@@ -150,12 +150,14 @@ func EmitLet(
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
     if LookupKindType(env, type_name, "s") == "struct" {
-        // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
-        // struct-returning call.
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, type_name, c_name
         );
-        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(EmitStructValue(expr, type_name, env), ";")))));
+        let value: String = RewriteExpectedValueWithSemanticGraph(
+            expr, type_name, env, graph
+        );
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+            Concat(c_name, Concat(" = ", Concat(value, ";")))));
     }
     Die(Concat("unsupported let type (only Int/Bool/Float/String/Array/Option/struct): ", type_name));
     return "";
@@ -209,7 +211,10 @@ func EmitAssign(
         return Concat(c_name, Concat(" = ", Concat(assign_option_expr, ";")));
     }
     if LookupKindType(env, vt, "s") == "struct" {
-        return Concat(c_name, Concat(" = ", Concat(EmitStructValue(expr, vt, env), ";")));
+        return Concat(c_name, Concat(" = ", Concat(
+            RewriteExpectedValueWithSemanticGraph(expr, vt, env, graph),
+            ";"
+        )));
     }
     return Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")));
 }

@@ -181,13 +181,13 @@ row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.
-`text/struct_literal_call_owner.pgy` owns remaining non-graph struct value
-call-envelope facts: `Name(...)` recognition plus the typed
-type-name/inner-payload fact row. Named struct literals in migrated call
-arguments consume parser-owned struct/field graph nodes through
-`emission/expr_semantic_composite_literal_emit_owner.pgy`.
-`text/struct_literal_field_owner.pgy` owns the remaining non-graph typed struct
-literal field-entry fact row while those payloads remain string-backed.
+`text/struct_literal_call_owner.pgy` owns the legacy compact-expression struct
+call envelope for explicit non-graph lanes: `Name(...)` recognition plus the
+typed type-name/inner-payload fact row. Named struct literals in migrated call
+arguments and general local/assignment/return values consume parser-owned
+struct/field graph nodes through the semantic graph emitters.
+`text/struct_literal_field_owner.pgy` owns the corresponding legacy typed field
+entry row while those payloads remain string-backed.
 `text/struct_field_access_owner.pgy` owns dotted member-access spelling
 projection while member payloads remain string-backed.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,
@@ -217,16 +217,18 @@ postfix try is already parser-owned and is not part of that bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. The remaining blocker is indexed collection value/auxiliary payloads,
-Option/Result/struct wrapper internals, non-condition recursive expression
+Option/Result wrapper internals, `Option<struct>` payloads,
+`CodegenAstTextNode` collection elements, non-condition recursive expression
 text, and parser-to-semantic graph production. Those bridges remain inside
 named owners rather than reopening a codegen arena read.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
-`emission/struct_value_emit.pgy` owns struct-valued expression lowering for the
-statement paths that need it. That AST comes from the self-host parser for
-committed codegen fixtures. The accepted subset is:
+`emission/struct_value_emit.pgy` remains only for explicitly unclosed compact
+lanes such as `Option<struct>` payloads and `CodegenAstTextNode` collection
+elements. General struct-valued local initialization, assignment, and value
+return consume expected-type semantic graph facts. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`

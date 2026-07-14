@@ -1,0 +1,15 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func BuildPair(base: Int) -> Pair {
+    return Pair { left: base + 1, right: base + 2 };
+}
+
+func Main() -> Void {
+    let mut pair: Pair = Pair { left: 1, right: 2 };
+    pair = Pair { left: 3, right: 4 };
+    let built: Pair = BuildPair(pair.right);
+    Log(ToString(built.left + built.right));
+}

@@ -120,7 +120,7 @@ source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 22 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 23 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -144,8 +144,9 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, struct literal argument bridges, borrow/receive/spawn/await
-unary forms, and expression result-type classification remain `BRIDGE` work.
+internals, `Option<struct>` payload and `CodegenAstTextNode` collection-value
+bridges, borrow/receive/spawn/await unary forms, and expression result-type
+classification beyond graph-owned struct literals remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -154,8 +155,9 @@ verification, and emits the value through `RewriteExprFromSemanticGraph`.
 semantic-shape paths. A richer self MIR call graph and the approved compact
 C-oracle graph initially selected different ToString optimizations; the parity
 gate falsified that topology-dependent output, so both now project the same
-runtime-alias C form. Expression result-type classification remains a separate
-text-backed seam and is not claimed closed by this carriage delta.
+runtime-alias C form. Expression result-type classification beyond the
+graph-owned nominal struct-literal row remains a separate text-backed seam and
+is not claimed closed by this carriage delta.
 
 The bare-call statement lane now classifies direct calls through the canonical
 `TypedAstCallStatementKindForCallee` owner, carries the complete parser call
@@ -346,6 +348,22 @@ struct values outside the migrated call-argument lane and initial compact
 bridge graph construction remain open; released/default replacement remains
 0%.
 
+The twenty-third DRV-2 MIR fixture closes general named struct-literal value
+reparsing for local initialization, assignment, and value return. The semantic
+expression graph owns the braced literal and ordered field spines; its nominal
+type owner validates the literal type against the canonical constructor row.
+Initializer, assignment, and return verdicts consume that graph fact, and
+codegen emits through the expected-type graph boundary instead of
+`EmitStructValue`. A borrowed expression-surface view yields only the scalar
+root handle, so this rung does not copy the compiler-scale graph across each
+consumer boundary. C-built and LLVM-built DRV-2 drivers are green across 20
+source and 23 MIR fixtures; the value-flow fixture prints `11`, and changing
+the carried struct-literal root to a leaf is rejected as invalid MIR. The
+legacy text struct emitter remains only on explicit unclosed lanes such as
+`Option<struct>` payloads and `CodegenAstTextNode` collection elements; initial
+compact graph construction and non-struct result-type classification also
+remain open. Released/default replacement remains 0%.
+
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
 was already captured by `SemanticAstStatementFacts`; `ArrayPush` target/value
@@ -495,7 +513,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 22 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 23 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

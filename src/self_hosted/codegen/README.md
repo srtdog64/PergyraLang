@@ -204,9 +204,9 @@ top-level additive index and operator kind, while
 The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
 Scalar/String returns reuse the atom row; ordinary scalar/String local
 initializers and assignments consume the value row. Indexed collection
-elements, Option/Result/struct wrapper internals, auxiliary payloads, and
-non-condition recursive child-expression lowering remain the explicit
-compact-text bridge.
+elements, Option/Result wrapper internals, `Option<struct>` payloads,
+`CodegenAstTextNode` collection elements, auxiliary payloads, and non-condition
+recursive child-expression lowering remain the explicit compact-text bridge.
 Root `if`/`while` conditions additionally consume separate semantic `||`,
 `&&`, equality-position, and equality-kind facts plus stable expression node
 handles and child edges. String and payload-free enum equality share one
@@ -218,14 +218,13 @@ row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts used by array literals, call arguments, and struct literal field
 lists so emission participants do not reimplement list splitting.
-`text/struct_literal_call_owner.pgy` owns the remaining non-graph struct value
-call-envelope facts: `Name(...)` recognition plus the typed
-type-name/inner-payload fact row. Named struct literals in migrated call
-arguments instead consume parser-owned struct/field graph nodes through
-`emission/expr_semantic_composite_literal_emit_owner.pgy`.
-`text/struct_literal_field_owner.pgy` owns the remaining non-graph typed struct
-literal field-entry fact row, including positional field fallback from
-collected field rows.
+`text/struct_literal_call_owner.pgy` owns the legacy compact-expression struct
+call envelope for explicit non-graph lanes: `Name(...)` recognition plus the
+typed type-name/inner-payload fact row. Named struct literals in migrated call
+arguments and general local/assignment/return values instead consume
+parser-owned struct/field graph nodes through the semantic graph emitters.
+`text/struct_literal_field_owner.pgy` owns the corresponding legacy typed field
+entry row, including positional field fallback from collected field rows.
 `text/struct_field_access_owner.pgy` owns dotted member-access field spelling
 projection from source-space field facts into emitted C field names.
 Function signature and statement body emission now
@@ -235,10 +234,11 @@ body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
 consumes that fact through function-env `pm` rows and must not infer mutation
 mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
-calls the run owner. `emission/struct_value_emit.pgy` owns struct-valued
-expression lowering used by `let`, assignment, and return paths;
-`emission/stmt_emit.pgy` consumes that boundary instead of owning struct literal
-policy directly. `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
+calls the run owner. `emission/struct_value_emit.pgy` is retained only for
+explicitly unclosed compact lanes such as `Option<struct>` payloads and
+`CodegenAstTextNode` collection elements. General struct-valued `let`,
+assignment, and return paths consume expected-type semantic graph facts.
+`compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
 payload-free enum variants, struct fields, source-to-C binding names, `inout`
 temporary parameter names, foreach loop temporary names, and try/match emission

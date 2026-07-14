@@ -31,6 +31,7 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstAssignmentTypeFactsContractReady() &&
         SemanticAstStatementFactsContractReady() &&
         SemanticAstExpressionVerdictContractReady() &&
+        SemanticExpressionGraphIntrinsicTypeContractReady() &&
         SemanticAstExpressionTypedBindingContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
@@ -104,6 +105,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/for_each_call.pgy",
         "src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy",
         "src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy",
+        "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy",
         "src/self_hosted/semantic/fixture/valid_array_builtins.pgy",
         "src/self_hosted/semantic/fixture/valid_option_none_literal.pgy",
         "src/self_hosted/semantic/fixture/valid_call_int.pgy"
@@ -111,7 +113,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 22;
+    return 23;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -160,7 +162,8 @@ func VerifyArtifactAnalysisForDriverRung2(
             artifact,
             semantic_analysis.signatures,
             semantic_analysis.constructors,
-            semantic_analysis.local_bindings
+            semantic_analysis.local_bindings,
+            semantic_analysis.expression_surfaces
         );
     if !initializer_types.ok {
         Log(initializer_types.diagnostic_message);

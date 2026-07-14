@@ -4,6 +4,7 @@ import "expression_normalization_owner.pgy";
 import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "ast_expression_graph_identifier_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -87,7 +88,7 @@ func SemanticAstExpressionVerdictFromPayload(
 
 func SemanticAstExpressionVerdictFromGraph(
     expression: String,
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     names: Array<String>,
     types: Array<String>,
@@ -141,10 +142,17 @@ func SemanticAstExpressionVerdictFromGraph(
     if StringLength(binary_error) > 0 {
         return SemanticAstExpressionVerdictError(text, binary_error);
     }
-    return SemanticAstExpressionVerdictOk(
-        text,
-        ExprType(text, names, types, function_names, function_returns)
+    let inferred: String = ExprType(
+        text, names, types, function_names, function_returns
     );
+    if inferred == "Unknown" || inferred == "" {
+        let intrinsic: Option<String> =
+            SemanticExpressionGraphIntrinsicTypeName(
+                graph, root_id, function_names, function_returns
+            );
+        if IsSome(intrinsic) { inferred = UnwrapOption(intrinsic); }
+    }
+    return SemanticAstExpressionVerdictOk(text, inferred);
 }
 
 func SemanticAstExpressionVerdictContractReady() -> Bool {

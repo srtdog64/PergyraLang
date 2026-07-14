@@ -129,6 +129,10 @@ inventory must not become a second fact-family owner registry.
   undefined-use, try, logical, binary, and inferred-type expression verdicts.
 - `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
   undefined-identifier evidence from parser graph node roles.
+- `src/self_hosted/semantic/ast_expression_graph_type_owner.pgy` -- intrinsic
+  nominal result types carried by parser-owned expression graph nodes.
+- `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
+  expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
   return, condition, call, and statement expression type verdict rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body

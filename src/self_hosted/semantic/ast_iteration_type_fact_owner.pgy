@@ -9,6 +9,7 @@ import "ast_initializer_type_fact_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
 
 struct SemanticAstIterationTypeFacts {
     ok: Bool;
@@ -46,16 +47,16 @@ func SemanticAstIterationCollectionIsBoundIdentifier(
     node_id: Int,
     names: Array<String>
 ) -> Bool {
-    let view: SemanticExpressionGraphView =
-        SemanticAstExpressionGraphForNode(
+    let root: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(
             expression_surfaces, node_id, AstExpressionLaneValue()
         );
-    if !view.ok { return false; }
+    if !IsSome(root) { return false; }
     let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        view.graph, view.root_id
+        expression_surfaces.expression_graph, UnwrapOption(root)
     );
     let root_text: Option<String> = SemanticExpressionGraphNodeText(
-        view.graph, view.root_id
+        expression_surfaces.expression_graph, UnwrapOption(root)
     );
     if !IsSome(root_kind) || !IsSome(root_text) ||
         UnwrapOption(root_kind) != AstExpressionNodeLeaf() {
@@ -135,7 +136,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
         ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, constructors, locals, initializer_types
+            artifact, signatures, constructors, locals,
+            expression_surfaces, initializer_types
          ) || !SemanticAstStatementFactsMatchArtifact(
              artifact, signatures, statements
          ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
@@ -347,14 +349,14 @@ func SemanticAstIterationTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
     let initializers: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            artifact, signatures, constructors, locals
+            artifact, signatures, constructors, locals, expression_surfaces
         );
     let statements: SemanticAstStatementFacts =
         SemanticAstStatementFactsFromArtifact(artifact, signatures);
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
     let facts: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, signatures, constructors, locals, initializers,

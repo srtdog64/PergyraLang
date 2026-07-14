@@ -40,7 +40,7 @@ func SemanticExpressionGraphIdentifierNodeArity(kind: Int) -> Int {
 }
 
 func SemanticExpressionGraphIdentifierEvidence(
-    graph: SemanticExpressionGraphFacts,
+    ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     names: Array<String>,
     member_root_names: Array<String>

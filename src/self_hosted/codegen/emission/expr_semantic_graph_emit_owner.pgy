@@ -187,6 +187,27 @@ func RewriteExprWithSemanticGraph(
     return RewriteExprFromSemanticGraph(view.graph, view.root_id, env);
 }
 
+func RewriteExpectedValueWithSemanticGraph(
+    expression: String,
+    expected_type: String,
+    env: CodegenTypeEnv,
+    view: SemanticExpressionGraphView
+) -> String {
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(
+        view.graph, view.root_id
+    );
+    if !view.ok || !IsSome(root_text) ||
+        UnwrapOption(root_text) != SemanticStripOuterParens(expression) {
+        Die("semantic expected-value graph does not match codegen expression");
+    }
+    if expected_type == "" {
+        Die("semantic expected-value type fact is missing");
+    }
+    return RewriteSemanticExpectedValue(
+        view.graph, view.root_id, expected_type, env
+    );
+}
+
 func WrapExprWithSemanticGraph(
     expression: String,
     env: CodegenTypeEnv,

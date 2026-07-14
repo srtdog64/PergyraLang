@@ -11,6 +11,7 @@ import "ast_local_binding_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
 import "array_type_owner.pgy";
 import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
@@ -51,7 +52,8 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
-    locals: SemanticAstLocalBindingFacts
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
 ) -> SemanticAstInitializerTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -60,6 +62,8 @@ func SemanticAstInitializerTypeFactsFromArtifact(
             artifact, constructors
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
+        ) || !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
         ) {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
@@ -85,6 +89,12 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     if !enum_facts.ok {
         return SemanticAstInitializerTypeStructuralError(artifact);
     }
+    let member_root_names: Array<String> = [];
+    if !SemanticAstExpressionMemberRootNames(
+        constructors, enum_facts, member_root_names
+    ) {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
     let i: Int = 0;
     while i < SemanticAstLocalBindingCount(locals) {
         let names: Array<String> = [];
@@ -104,10 +114,21 @@ func SemanticAstInitializerTypeFactsFromArtifact(
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
         let expression: String = locals.initializer_texts[i];
+        let graph_root: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, locals.node_ids[i],
+                AstExpressionLaneValue()
+            );
+        if !IsSome(graph_root) {
+            return SemanticAstInitializerTypeStructuralError(artifact);
+        }
         let expression_verdict: SemanticAstExpressionVerdict =
-            SemanticAstExpressionVerdictFromPayload(
-                expression, names, types, modes,
-                function_names, function_returns, function_params
+            SemanticAstExpressionVerdictFromGraph(
+                expression, expression_surfaces.expression_graph,
+                UnwrapOption(graph_root),
+                names, types, modes,
+                function_names, function_returns, function_params,
+                member_root_names
             );
         let inferred: String = expression_verdict.inferred_type_name;
         let declared: Option<String> =
@@ -243,11 +264,12 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
     facts: SemanticAstInitializerTypeFacts
 ) -> Bool {
     let rebuilt: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            artifact, signatures, constructors, locals
+            artifact, signatures, constructors, locals, expression_surfaces
         );
     let n: Int = SemanticAstInitializerTypeCount(facts);
     if !facts.ok || !rebuilt.ok ||
@@ -286,12 +308,16 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(valid);
     let valid_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(valid, valid_signatures);
+    let valid_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
     let valid_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            valid, valid_signatures, valid_constructors, valid_locals
+            valid, valid_signatures, valid_constructors, valid_locals,
+            valid_expression_surfaces
         );
     if !SemanticAstInitializerTypeFactsMatchArtifact(
-        valid, valid_signatures, valid_constructors, valid_locals, valid_facts
+        valid, valid_signatures, valid_constructors, valid_locals,
+        valid_expression_surfaces, valid_facts
     ) || !SemanticAstInitializerTypesAllVerified(valid_facts) ||
         SemanticAstInitializerTypeCount(valid_facts) != 2 ||
         valid_facts.inferred_type_names[0] != "Int" ||
@@ -310,10 +336,12 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstLocalBindingFactsFromArtifact(
             mismatch, mismatch_signatures
         );
+    let mismatch_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(mismatch);
     let mismatch_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             mismatch, mismatch_signatures, mismatch_constructors,
-            mismatch_locals
+            mismatch_locals, mismatch_expression_surfaces
         );
     if SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
         SemanticAstInitializerFirstDiagnosticCode(mismatch_facts) !=
@@ -330,9 +358,12 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstNominalConstructorFactsFromArtifact(unknown);
     let unknown_locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(unknown, unknown_signatures);
+    let unknown_expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(unknown);
     let unknown_facts: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
-            unknown, unknown_signatures, unknown_constructors, unknown_locals
+            unknown, unknown_signatures, unknown_constructors, unknown_locals,
+            unknown_expression_surfaces
         );
     return !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
         SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
