@@ -31,6 +31,10 @@ bool  ownership_let_is_unresolved_none_option(const Type *type);
 bool  ownership_let_is_unresolved_empty_array(const Type *type);
 bool  ownership_let_is_unresolved_empty_set(const Type *type);
 bool  ownership_let_is_unresolved_device_slot(const Type *type);
+void  ownership_let_record_slice_split_fact(ASTNode *node,
+                                            SemanticContext *ctx,
+                                            Symbol *sym,
+                                            Type *decl_type);
 bool  ownership_let_validate_builtin_owner_binding(ASTNode *node,
                                                     SemanticContext *ctx,
                                                     Type *decl_type,

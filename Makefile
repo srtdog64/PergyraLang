@@ -530,6 +530,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_let_slice.c \
                    $(SEMANTIC_DIR)/type_checker_builtin_owner_let_contract.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_view.c \
@@ -549,6 +550,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
+                   $(SEMANTIC_DIR)/type_checker_expr_collections.c \
                    $(SEMANTIC_DIR)/type_checker_reflect.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_intent_observability.c \
@@ -571,6 +573,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_scalar.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_map.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_collections.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_stdlib_array.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_channel_transport.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_variant.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_body.c \

@@ -213,17 +213,16 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
-type_system_owner_violations="$(
+semantic_owner_violations="$(
     cd "$ROOT_DIR"
-    wc -l \
-        src/semantic/type_system.c \
-        src/semantic/type_system_function.c \
+    find src/semantic -maxdepth 1 -type f -name '*.c' -print0 \
+        | xargs -0 wc -l \
         | awk '$2 != "total" && $1 > 599 { print }'
 )"
 
-if [[ -n "$type_system_owner_violations" ]]; then
-    echo "type-system owner size violations; limit is 599 LOC:" >&2
-    echo "$type_system_owner_violations" >&2
+if [[ -n "$semantic_owner_violations" ]]; then
+    echo "semantic owner size violations; limit is 599 LOC:" >&2
+    echo "$semantic_owner_violations" >&2
     exit 1
 fi
 
@@ -244,4 +243,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; type-system core/function owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"

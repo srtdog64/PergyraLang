@@ -347,6 +347,7 @@ for path in \
     src/semantic/type_checker_builtins_stdlib_scalar.c \
     src/semantic/type_checker_builtins_stdlib_map.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
+    src/semantic/type_checker_builtins_stdlib_array.c \
     src/semantic/type_checker_resolution_stage_alias.c \
     src/semantic/type_checker_resolution_stage_nominal.c \
     src/semantic/type_checker_resolution_stage_systemic.c \
@@ -411,6 +412,7 @@ for path in \
     src/semantic/type_checker_builtins_stdlib_map.c \
     src/semantic/type_checker_builtins_stdlib_body.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
+    src/semantic/type_checker_builtins_stdlib_array.c \
     src/semantic/type_checker_intent_ability.c \
     src/semantic/type_checker_intent_role_fields.c \
     src/semantic/type_checker_intent_decl.c \
@@ -1322,7 +1324,7 @@ grep -q 'Void expression cannot be passed as a call argument' \
     || fail "call checking must reject Void expressions before generic argument inference"
 
 grep -q 'Void expression cannot be stored as an array literal element' \
-    src/semantic/type_checker_expr_ops.c \
+    src/semantic/type_checker_expr_collections.c \
     || fail "array literal checking must reject Void element values"
 
 grep -q 'Void expression cannot be stored as a tuple literal element' \
@@ -1334,8 +1336,35 @@ grep -q 'Void expression cannot initialize constructor field' \
     || fail "constructor checking must reject Void field initializer values"
 
 grep -q 'type_name_or_unknown(elem_type)' \
-    src/semantic/type_checker_expr_ops.c \
+    src/semantic/type_checker_expr_collections.c \
     || fail "array literal diagnostics must not dereference unresolved element types"
+
+grep -q '^type_check_array_literal(ASTNode \*expr, SemanticContext \*ctx)' \
+    src/semantic/type_checker_expr_collections.c \
+    || fail "collection expression owner must define array literal checking"
+
+if grep -q '^type_check_array_literal(ASTNode \*expr, SemanticContext \*ctx)' \
+        src/semantic/type_checker_expr_ops.c; then
+    fail "operator expression owner must not reclaim collection literal checking"
+fi
+
+grep -q '^type_check_stdlib_array_call(ASTNode \*expr,' \
+    src/semantic/type_checker_builtins_stdlib_array.c \
+    || fail "stdlib array owner must define Array/Slice builtin contracts"
+
+if grep -q '^type_check_stdlib_array_call(ASTNode \*expr,' \
+        src/semantic/type_checker_builtins_stdlib_collections.c; then
+    fail "collection builtin dispatcher must not reclaim Array/Slice contracts"
+fi
+
+grep -q '^ownership_let_record_slice_split_fact(ASTNode \*node, SemanticContext \*ctx,' \
+    src/semantic/type_checker_ownership_let_slice.c \
+    || fail "slice split owner must define let-bound disjointness evidence capture"
+
+if grep -q '^ownership_let_record_slice_split_fact(ASTNode \*node, SemanticContext \*ctx,' \
+        src/semantic/type_checker_ownership_let.c; then
+    fail "let binding owner must not reclaim Slice split evidence capture"
+fi
 
 if grep -q 'find_type_decl_by_name(ctx->program_root' \
     src/semantic/type_checker_ownership_let.c; then
@@ -1809,6 +1838,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/semantic/type_checker_expr_host.c \
     src/semantic/type_checker_expr_call.c \
     src/semantic/type_checker_expr_ops.c \
+    src/semantic/type_checker_expr_collections.c \
     src/semantic/type_checker_func_action_contract.c \
     src/semantic/type_checker_func_decl.c \
     src/semantic/type_checker_generic_support.c \
@@ -3102,11 +3132,13 @@ for path in \
     src/semantic/type_checker_builtins_slotops.c \
     src/semantic/type_checker_builtins_slotops_view.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
+    src/semantic/type_checker_builtins_stdlib_array.c \
     src/semantic/type_checker_builtins_stdlib_map.c \
     src/semantic/type_checker_helpers_effects.c \
     src/semantic/type_checker_helpers_late.c \
     src/semantic/type_checker_host_helpers.c \
     src/semantic/type_checker_ownership_let.c \
+    src/semantic/type_checker_ownership_let_slice.c \
     src/semantic/type_checker_ownership_let_helpers.c \
     src/semantic/type_checker_ownership_let_slot_claim.c \
     src/semantic/type_checker_program.c \
