@@ -227,11 +227,18 @@ if [[ -n "$semantic_owner_violations" ]]; then
 fi
 
 type_system_owners=(
+    "src/compiler/mir.h"
+    "src/compiler/mir_source_shape.c"
+    "src/compiler/mir_source_provenance.c"
     "src/compiler/mir_source_local_types.c"
     "src/compiler/mir_source_local_type_shape.c"
     "src/compiler/mir_source_local_expr_binding_facts.c"
     "src/compiler/mir_source_local_expr_call_facts.c"
     "src/compiler/mir_source_local_expr_types.c"
+    "src/compiler/mir_decl_headers.c"
+    "src/compiler/mir_decl_header_generic_metadata.c"
+    "src/compiler/mir_decl_header_validate.c"
+    "src/compiler/mir_decl_header_shape_validate.c"
 )
 
 type_system_owner_violations="$(
@@ -263,4 +270,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic and source-local type owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic and MIR type/declaration owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"

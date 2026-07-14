@@ -897,6 +897,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_parallel_capture_facts.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
+                   $(COMPILER_DIR)/mir_source_provenance.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
                    $(COMPILER_DIR)/mir_source_lifecycle_shape.c \
                    $(COMPILER_DIR)/mir_source_node_name.c \
@@ -937,6 +938,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_ability_ref.c \
                    $(COMPILER_DIR)/mir_decl_header_authority.c \
+                   $(COMPILER_DIR)/mir_decl_header_generic_metadata.c \
                    $(COMPILER_DIR)/mir_decl_header_refresh.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_state.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_state_validate.c \
@@ -945,6 +947,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_header_fields.c \
                    $(COMPILER_DIR)/mir_decl_header_variants.c \
                    $(COMPILER_DIR)/mir_decl_header_role_validate.c \
+                   $(COMPILER_DIR)/mir_decl_header_shape_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_access.c \
                    $(COMPILER_DIR)/mir_decl_header_zone_access.c \
@@ -1414,6 +1417,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
+                   $(BUILD_DIR)/compiler/mir_source_provenance.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
@@ -1450,6 +1454,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
+                   $(BUILD_DIR)/compiler/mir_source_provenance.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
@@ -1488,6 +1493,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
                    $(BUILD_DIR)/compiler/mir_ability_ref.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_authority.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_generic_metadata.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_refresh.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_state.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_state_validate.o \
@@ -1495,6 +1501,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_fields.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_role_validate.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_shape_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_zone_access.o \

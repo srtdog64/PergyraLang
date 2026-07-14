@@ -1,5 +1,7 @@
 #include "mir_stmt_population_internal.h"
 
+#include "mir_abi_layout.h"
+
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,12 +1,20 @@
 # Include Cleanup Status
 
-Last updated: 2026-05-19
+Last updated: 2026-07-15
 
 This note records the current state of the beta include-cleanup track. It is a
 progress ledger, not a new language surface.
 
 ## Closed In This Slice
 
+- 2026-07-15 MIR type/declaration owner split: source provenance/location/order
+  moved from `mir_source_shape.c` to `mir_source_provenance.c`; generic
+  declaration metadata capture/cleanup moved from `mir_decl_headers.c` to
+  `mir_decl_header_generic_metadata.c`; declaration identity/pointer-self ABI
+  checks moved from `mir_decl_header_validate.c` to
+  `mir_decl_header_shape_validate.c`. `mir.h` no longer redeclares the ABI
+  layout lookup API owned by `mir_abi_layout.h`. The named MIR type/declaration
+  owner set is now ratcheted at 599 LOC by `test_inc_size_smoke.sh`.
 - `.inc` cleanup is closed for the full `src` tree: there are now **0 `.inc`
   files / 0 LOC** under `src`, including test fixtures.
 - 2026-04-29 audit rerun: `find src -name '*.inc'` returns zero files after the

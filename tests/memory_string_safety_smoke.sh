@@ -533,8 +533,10 @@ require_literal "src/compiler/mir_lifecycle.c" \
     "mir_strdup_fmt(\"_pgy_mir_bb_%s_%zu\""
 require_literal "src/compiler/mir_lifecycle.c" \
     "block source-location allocation failed"
+reject_literal "src/compiler/mir_decl_header_validate.c" \
+    "mir_decl_header_strdup_fmt"
 require_literal "src/compiler/mir_decl_header_validate.c" \
-    "written < 0 || written != length"
+    "#define mir_strdup_fmt mir_fact_strdup_fmt"
 require_literal "src/compiler/mir_fact_validate.c" \
     "written < 0 || written != length"
 require_literal "src/compiler/mir_intent_fact.c" \

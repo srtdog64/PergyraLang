@@ -35,6 +35,7 @@ require_text() {
 }
 
 require_file "src/compiler/mir_source_shape.c"
+require_file "src/compiler/mir_source_provenance.c"
 require_file "src/compiler/mir_public_surface.c"
 require_file "src/compiler/mir_lifecycle.c"
 require_file "src/compiler/mir_fact_surface_validate.c"
@@ -72,7 +73,7 @@ while IFS= read -r line; do
     case "$line" in
         src/compiler/mir.h:*)
             ;;
-        src/compiler/mir_source_shape.c:*)
+        src/compiler/mir_source_provenance.c:*)
             ;;
         *)
             payload_bad+="$line"$'\n'

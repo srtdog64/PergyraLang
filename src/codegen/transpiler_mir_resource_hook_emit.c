@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../compiler/mir_abi_layout.h"
 #include "../semantic/diag_codes.h"
 #include "../compiler/mir_type_helpers.h"
 #include "transpiler_context.h"

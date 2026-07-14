@@ -361,9 +361,9 @@ run_literal_doc_contract_smoke() {
         echo "MIR public surface usage facts must be recorded from MIR expression facts, not source payload rescans" >&2
         exit 1
     fi
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_capture_source_provenance"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_capture_source_provenance"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_has_source_payload"
     require_literal "src/compiler/mir_source_node_name.c" "mir_source_node_type_name"
     require_literal "src/compiler/mir_source_shape.c" "AST_BIND_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_hir_source_mapping"
@@ -530,12 +530,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_statement_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_local_decl_emit"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_statement_order"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_is_first_source_statement"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_index_or"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instructions_share_source_statement"
-    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_has_source_statement_order"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_is_first_source_statement"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_source_statement_index_or"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_source_statement_order_compare"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instructions_share_source_statement"
+    require_literal "src/compiler/mir_source_provenance.c" "mir_instruction_source_line_matches_node"
     require_literal "src/compiler/mir_source_emit_predicates.h" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_runtime_boundary_emit_is_allowed"
     if grep -A8 -F "mir_instruction_uses_source_statement_emit" \
@@ -842,7 +842,7 @@ run_literal_doc_contract_smoke() {
     local raw_payload_hits
     raw_payload_hits="$(grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/compiler" \
         | grep -v 'src/compiler/mir.c:' \
-        | grep -v 'src/compiler/mir_source_shape.c:' \
+        | grep -v 'src/compiler/mir_source_provenance.c:' \
         | grep -v 'src/compiler/mir_non_cfg_stmt_population.c:' \
         || true)"
     if [ -n "$raw_payload_hits" ]; then
@@ -855,6 +855,7 @@ run_literal_doc_contract_smoke() {
         grep -RInE -- '(inst|block)->(source_node_type|source_line|source_column|has_source_location)\b' \
             "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
         | grep -v 'src/compiler/mir.c:' \
+        | grep -v 'src/compiler/mir_source_provenance.c:' \
         | grep -v 'src/compiler/mir_source_shape.c:' \
         | grep -v 'src/compiler/mir_source_inventory_build.c:' \
         || true

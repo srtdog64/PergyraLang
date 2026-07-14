@@ -161,6 +161,8 @@ for rel in \
     "src/compiler/mir_decl_method_projection.h" \
     "src/compiler/mir_decl.h" \
     "src/compiler/mir_decl_header_access.c" \
+    "src/compiler/mir_decl_header_generic_metadata.c" \
+    "src/compiler/mir_decl_header_shape_validate.c" \
     "src/compiler/mir_decl_header_validate.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
@@ -286,9 +288,9 @@ require_term "src/compiler/mir_decl_headers.c" \
     "header.type_alias_target_type_name ="
 require_term "src/compiler/mir_decl_headers.c" \
     "header.intent_retry_count = ast_intent_decl_retry_count(decl)"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape_validate.c" \
     "type-alias target metadata drift"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape_validate.c" \
     "intent retry metadata drift"
 require_term "src/compiler/mir_lifecycle.c" \
     "free(mir->decl_headers[i].type_alias_target_type_name)"
@@ -3048,7 +3050,7 @@ done
 require_term "src/compiler/mir_decl.h" "NominalDeclKind nominal_kind"
 require_term "src/compiler/mir_decl_headers.c" \
     "header.nominal_kind = ast_class_nominal_kind(decl)"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape_validate.c" \
     "nominal pointer-self metadata drift"
 for term in \
     "MIRDeclField" \
@@ -3440,10 +3442,11 @@ for term in \
     "meta->default_arg_type_name =" \
     "constraint != NULL && meta->bound_type_name == NULL" \
     "default_type != NULL" \
-    "header->generic_metadata_count = count" \
-    "mir_decl_header_free_generics(&header)"; do
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    "header->generic_metadata_count = count"; do
+    require_term "src/compiler/mir_decl_header_generic_metadata.c" "$term"
 done
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_decl_header_free_generics(&header)"
 for term in \
     "mir_decl_header_generic_param_count" \
     "mir_decl_header_generic_param(" \
@@ -7556,17 +7559,20 @@ require_term "src/compiler/mir_decl_header_validate.c" \
 require_term "src/compiler/mir_decl_header_validate.c" \
     "field[%zu] type metadata drift"
 for term in \
-    "mir_validate_decl_header_shape_metadata" \
     "mir_validate_decl_header_metadata" \
     "declaration method count" \
-    "declaration name metadata" \
     "duplicates declaration header" \
-    "pointer-self ABI metadata drift" \
     "method metadata count" \
     "type-name storage" \
     "routine index" \
     "routine link metadata drift"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
+done
+for term in \
+    "mir_validate_decl_header_shape_metadata" \
+    "declaration name metadata" \
+    "pointer-self ABI metadata drift"; do
+    require_term "src/compiler/mir_decl_header_shape_validate.c" "$term"
 done
 if awk '
     /header->method_metadata_count != header->method_count/ { in_method_count = 1 }
