@@ -355,8 +355,9 @@ type owner validates the literal type against the canonical constructor row.
 Initializer, assignment, and return verdicts consume that graph fact, and
 codegen emits through the expected-type graph boundary instead of
 `EmitStructValue`. A borrowed expression-surface view yields only the scalar
-root handle, so this rung does not copy the compiler-scale graph across each
-consumer boundary. C-built and LLVM-built DRV-2 drivers are green across 20
+root handle, so initializer, assignment, statement, and iteration rows no
+longer return a graph-bearing view per lookup. C-built and LLVM-built DRV-2
+drivers are green across 20
 source and 23 MIR fixtures; the value-flow fixture prints `11`, and changing
 the carried struct-literal root to a leaf is rejected as invalid MIR. The
 legacy text struct emitter remains only on explicit unclosed lanes such as
