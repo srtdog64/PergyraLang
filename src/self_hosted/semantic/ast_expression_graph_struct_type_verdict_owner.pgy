@@ -1,0 +1,155 @@
+// Nominal field type verdicts over parser-owned struct-literal graphs.
+
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_struct_view_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "expr_type_owner.pgy";
+import "diagnostic_owner.pgy";
+
+func SemanticExpressionGraphStructValueRoot(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> Option<Int> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    if IsSome(kind) &&
+        AstExpressionNodeIsStructLiteralSpine(UnwrapOption(kind)) {
+        return Some(root_id);
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 {
+        return None;
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !IsSome(callee_text) || UnwrapOption(callee_text) != "Some" {
+        return None;
+    }
+    let payload_id: Int = call.argument_nodes[0];
+    let payload_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, payload_id
+    );
+    if !IsSome(payload_kind) ||
+        !AstExpressionNodeIsStructLiteralSpine(UnwrapOption(payload_kind)) {
+        return None;
+    }
+    return Some(payload_id);
+}
+
+func SemanticExpressionGraphStructValueTypeError(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> String {
+    let struct_root: Option<Int> = SemanticExpressionGraphStructValueRoot(
+        graph, root_id
+    );
+    if !IsSome(struct_root) { return ""; }
+    let view: SemanticStructLiteralView = SemanticStructLiteralViewFromGraph(
+        graph, UnwrapOption(struct_root)
+    );
+    if !view.ok {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "struct_literal_graph"
+        );
+    }
+    let type_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, view.type_node
+    );
+    let type_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.type_node
+    );
+    if !IsSome(type_kind) ||
+        UnwrapOption(type_kind) != AstExpressionNodeLeaf() ||
+        !IsSome(type_text) {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "struct_literal_type"
+        );
+    }
+    let nominal: String = UnwrapOption(type_text);
+    let constructor_index: Int = 0 - 1;
+    let i: Int = 0;
+    while i < ArrayLength(constructors.node_ids) {
+        if constructors.names[i] == nominal { constructor_index = i; }
+        i = i + 1;
+    }
+    if constructor_index < 0 {
+        return SemanticError1(
+            "undefined_function", "func", nominal
+        );
+    }
+    let expected_count: Int = constructors.param_counts[constructor_index];
+    if ArrayLength(view.field_names) != expected_count {
+        return SemanticError3(
+            "call_arity_mismatch", "func", nominal,
+            "expected", ToString(expected_count),
+            "actual", ToString(ArrayLength(view.field_names))
+        );
+    }
+    i = 0;
+    while i < ArrayLength(view.field_names) {
+        let field_name: String = view.field_names[i];
+        let j: Int = 0;
+        while j < i {
+            if view.field_names[j] == field_name {
+                return SemanticError1(
+                    "undefined_symbol", "name",
+                    Concat(nominal, Concat(".", field_name))
+                );
+            }
+            j = j + 1;
+        }
+        let field_row: Int = 0 - 1;
+        j = 0;
+        while j < expected_count {
+            let row: Int = constructors.param_starts[constructor_index] + j;
+            if constructors.field_names[row] == field_name { field_row = row; }
+            j = j + 1;
+        }
+        if field_row < 0 {
+            return SemanticError1(
+                "undefined_symbol", "name",
+                Concat(nominal, Concat(".", field_name))
+            );
+        }
+        let value_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, view.value_nodes[i]
+        );
+        if !IsSome(value_text) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "struct_field_value"
+            );
+        }
+        let actual_opt: Option<String> = SemanticExpressionGraphIntrinsicTypeName(
+            graph, view.value_nodes[i], function_names, function_returns
+        );
+        let actual: String = ExprType(
+            UnwrapOption(value_text), names, types,
+            function_names, function_returns
+        );
+        if IsSome(actual_opt) { actual = UnwrapOption(actual_opt); }
+        let expected: String = constructors.param_type_names[field_row];
+        if actual == "" || actual == "Unknown" ||
+            !ExpressionAssignableTo(expected, actual, UnwrapOption(value_text)) {
+            return SemanticError3(
+                "call_arg_type_mismatch",
+                "func", Concat(nominal, Concat(".", field_name)),
+                "expected", expected, "actual", actual
+            );
+        }
+        i = i + 1;
+    }
+    return "";
+}

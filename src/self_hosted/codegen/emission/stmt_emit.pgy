@@ -145,7 +145,9 @@ func EmitLet(
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, option_kind, c_name
         );
-        let option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(expr, type_name, env);
+        let option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(
+            expr, type_name, env, graph
+        );
         let option_expr: String = option_expr_fact.c_expr;
         return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ", Concat(c_name, Concat(" = ", Concat(option_expr, ";")))));
     }
@@ -198,7 +200,8 @@ func EmitAssign(
     let assign_option_struct_fact_opt: Option<OptionStructRuntimeFact> =
         OptionResultRuntimeStructOptionFact(vt, env.global_rows);
     if IsSome(assign_option_struct_fact_opt) {
-        let assign_option_expr_fact: OptionExprEmissionFact = EmitOptionExprFactForType(expr, vt, env);
+        let assign_option_expr_fact: OptionExprEmissionFact =
+            EmitOptionExprFactForType(expr, vt, env, graph);
         return Concat(c_name, Concat(" = ", Concat(assign_option_expr_fact.c_expr, ";")));
     }
     let assign_option_payload_kind: Int = OptionResultRuntimeOptionPayloadKindFromEnvKind(vt);

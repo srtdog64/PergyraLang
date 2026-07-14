@@ -181,7 +181,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         assignments.value_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(value_root), names, types, modes,
+                        UnwrapOption(value_root), constructors,
+                        names, types, modes,
                         function_names, function_returns, function_params,
                         member_root_names
                     );

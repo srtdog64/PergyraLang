@@ -2587,6 +2587,7 @@ for expression_graph_transport_owner in \
 done
 for migrated_graph_consumer in \
     emission/expr_semantic_graph_emit_owner.pgy emission/stmt_emit.pgy \
+    emission/option_value_emit_owner.pgy \
     emission/try_let_emit_owner.pgy \
     emission/value_return_emit_owner.pgy \
     input/semantic_expression_codegen_view_owner.pgy; do
@@ -2765,6 +2766,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/codegen/fixture/for_each.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/for_each_call.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy"'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'func SelfMirIfElseLoweringRoot('
 require_text "src/self_hosted/mir/routine_input_owner.pgy" 'return Some(child_id);'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirRoutineAdvanceLocalVersion('
@@ -2848,8 +2850,31 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_struct_value'
 require_text "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh" \
     'malformed struct value was accepted'
+require_file "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_option_struct_value'
+require_text "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" \
+    'malformed Option<struct> call spine was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" \
+    'Option<struct> field type mismatch was accepted'
+require_file "src/self_hosted/mir_lower/fixture/option_struct_bad_field_type.pgy"
 require_file "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
+require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
+require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
+    "struct SemanticStructLiteralView"
+require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
+    "func SemanticStructLiteralViewFromGraph("
+require_file "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 180
+require_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
+    "func SemanticExpressionGraphStructValueTypeError("
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "SemanticExpressionGraphStructValueTypeError("
 require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -3902,8 +3927,18 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
     "RewriteSemanticCall(graph, node_id, env)"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeMemberAccess()"
-require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+require_file "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" 100
+require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
     "struct SemanticCallSpineView"
+require_text "src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy" \
+    "func SemanticCallSpineViewFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'import "../../semantic/ast_expression_graph_call_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "struct SemanticCallSpineView"
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func SemanticCallSpineViewFromGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "struct SemanticMemberAccessView"
 require_file "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"
@@ -3913,7 +3948,11 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_e
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "func RewriteSemanticArrayLiteralValue("
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    'import "../../semantic/ast_expression_graph_struct_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "struct SemanticStructLiteralView"
+reject_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    "func SemanticStructLiteralViewFromGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "func RewriteSemanticStructLiteralValue("
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
@@ -4526,10 +4565,19 @@ require_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pg
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "option_struct_block_fact.requires_bool_header"
 require_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" "OptionResultRuntimeStructOptionFact(type_name, struct_env.global_rows)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows)"
-require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "struct OptionExprEmissionFact"
-require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "func EmitOptionExprFactForType"
-require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitOptionExprFactForType(expr, type_name, env)"
+require_file "src/self_hosted/codegen/emission/option_value_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" 160
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "struct OptionExprEmissionFact"
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "func EmitOptionExprFactForType"
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallSpineViewFromGraph("
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "RewriteSemanticExpectedValue("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, type_name, env, graph"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, vt, env, graph"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "rexpr, return_type, env, graph"
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" 'StartsWith(trimmed, "Some(")'
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "FindMatchingParen("
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "EmitStructValue("
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeOptionEnvKindForType"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCStructOptionDefinitions"
 reject_text "src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy" "func OptionResultRuntimeCOptionStructType"

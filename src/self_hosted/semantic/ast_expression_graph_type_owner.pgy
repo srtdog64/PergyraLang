@@ -1,34 +1,11 @@
 // Intrinsic expression result types carried by parser-owned graph nodes.
 
 import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_graph_struct_view_owner.pgy";
 import "env_owner.pgy";
 
-func SemanticExpressionGraphStructLiteralNode(
-    ref graph: SemanticExpressionGraphFacts,
-    root_id: Int
-) -> Option<Int> {
-    let node_id: Int = root_id;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
-    let traversed: Int = 0;
-    while IsSome(kind) &&
-        UnwrapOption(kind) == AstExpressionNodeStructField() &&
-        traversed < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node_id
-        );
-        if !IsSome(previous) { return None; }
-        node_id = UnwrapOption(previous);
-        kind = SemanticExpressionGraphNodeKind(graph, node_id);
-        traversed = traversed + 1;
-    }
-    if !IsSome(kind) ||
-        UnwrapOption(kind) != AstExpressionNodeStructLiteral() {
-        return None;
-    }
-    return Some(node_id);
-}
-
-func SemanticExpressionGraphIntrinsicTypeName(
+func SemanticExpressionGraphStructLiteralTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     function_names: Array<String>,
@@ -38,18 +15,14 @@ func SemanticExpressionGraphIntrinsicTypeName(
         ArrayLength(function_names) != ArrayLength(function_returns) {
         return None;
     }
-    let struct_node: Option<Int> =
-        SemanticExpressionGraphStructLiteralNode(graph, root_id);
-    if !IsSome(struct_node) { return None; }
-    let type_node: Option<Int> = SemanticExpressionGraphLeftChild(
-        graph, UnwrapOption(struct_node)
-    );
-    if !IsSome(type_node) { return None; }
+    let literal: SemanticStructLiteralView =
+        SemanticStructLiteralViewFromGraph(graph, root_id);
+    if !literal.ok { return None; }
     let type_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, UnwrapOption(type_node)
+        graph, literal.type_node
     );
     let type_name: Option<String> = SemanticExpressionGraphNodeText(
-        graph, UnwrapOption(type_node)
+        graph, literal.type_node
     );
     if !IsSome(type_kind) ||
         UnwrapOption(type_kind) != AstExpressionNodeLeaf() ||
@@ -65,6 +38,43 @@ func SemanticExpressionGraphIntrinsicTypeName(
         i = i + 1;
     }
     return None;
+}
+
+func SemanticExpressionGraphIntrinsicTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let direct: Option<String> =
+        SemanticExpressionGraphStructLiteralTypeName(
+            graph, root_id, function_names, function_returns
+        );
+    if IsSome(direct) { return direct; }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 {
+        return None;
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !IsSome(callee_text) || UnwrapOption(callee_text) != "Some" {
+        return None;
+    }
+    let payload_type: Option<String> =
+        SemanticExpressionGraphStructLiteralTypeName(
+            graph, call.argument_nodes[0],
+            function_names, function_returns
+        );
+    if !IsSome(payload_type) { return None; }
+    return Some(Concat("Option<", Concat(UnwrapOption(payload_type), ">")));
 }
 
 func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
@@ -88,8 +98,34 @@ func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
     let type_name: Option<String> = SemanticExpressionGraphIntrinsicTypeName(
         graph, 1, names, returns
     );
+    let option_kinds: Array<Int> = [
+        AstExpressionNodeLeaf(), AstExpressionNodeStructLiteral(),
+        AstExpressionNodeLeaf(), AstExpressionNodeCall(),
+        AstExpressionNodeCallArgument()
+    ];
+    let option_texts: Array<String> = [
+        "Pair", "Pair { }", "Some", "Some()", "Some(Pair { })"
+    ];
+    let option_left: Array<Int> = [0, 0, 0, 2, 3];
+    let option_right: Array<Int> = [0, 0, 0, 0, 1];
+    let option_targets: Array<String> = ["", "", "", "Some", ""];
+    let option_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            option_kinds, option_texts, option_left, option_right,
+            option_targets
+        );
+    let option_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            SemanticExpressionGraphArenaReady(option_arena), [4], [true],
+            option_arena
+        );
+    let option_type: Option<String> =
+        SemanticExpressionGraphIntrinsicTypeName(
+            option_graph, 4, names, returns
+        );
     let missing: Array<String> = ["Other"];
     return IsSome(type_name) && UnwrapOption(type_name) == "Pair" &&
+        IsSome(option_type) && UnwrapOption(option_type) == "Option<Pair>" &&
         !IsSome(SemanticExpressionGraphIntrinsicTypeName(
             graph, 1, missing, returns
         ));

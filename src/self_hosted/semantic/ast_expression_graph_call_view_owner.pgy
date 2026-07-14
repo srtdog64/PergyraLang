@@ -1,0 +1,50 @@
+// Ordered call-spine view over parser-owned semantic expression graphs.
+
+import "ast_expression_graph_fact_owner.pgy";
+
+struct SemanticCallSpineView {
+    ok: Bool;
+    call_node: Int;
+    callee_node: Int;
+    argument_nodes: Array<Int>;
+}
+
+func SemanticCallSpineViewFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticCallSpineView {
+    let reversed: Array<Int> = [];
+    let node: Int = root_id;
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeCallArgument() {
+        let argument: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node
+        );
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node
+        );
+        if !IsSome(argument) || !IsSome(previous) {
+            return SemanticCallSpineView(false, 0, 0, reversed);
+        }
+        ArrayPush(reversed, UnwrapOption(argument));
+        node = UnwrapOption(previous);
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeCall() {
+        return SemanticCallSpineView(false, 0, 0, reversed);
+    }
+    let callee: Option<Int> = SemanticExpressionGraphLeftChild(graph, node);
+    if !IsSome(callee) {
+        return SemanticCallSpineView(false, 0, 0, reversed);
+    }
+    let arguments: Array<Int> = [];
+    let i: Int = ArrayLength(reversed) - 1;
+    while i >= 0 {
+        ArrayPush(arguments, reversed[i]);
+        i = i - 1;
+    }
+    return SemanticCallSpineView(
+        true, node, UnwrapOption(callee), arguments
+    );
+}

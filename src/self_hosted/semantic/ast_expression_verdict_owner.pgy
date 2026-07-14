@@ -5,6 +5,7 @@ import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "ast_expression_graph_identifier_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
+import "ast_expression_graph_struct_type_verdict_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -90,6 +91,7 @@ func SemanticAstExpressionVerdictFromGraph(
     expression: String,
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
@@ -99,10 +101,28 @@ func SemanticAstExpressionVerdictFromGraph(
     member_root_names: Array<String>
 ) -> SemanticAstExpressionVerdict {
     let text: String = SemanticStripOuterParens(expression);
-    let call_error: String = CheckCallFromGraphIdentifiers(
-        text, names, types, modes,
-        function_names, function_returns, function_params
-    );
+    let intrinsic: Option<String> =
+        SemanticExpressionGraphIntrinsicTypeName(
+            graph, root_id, function_names, function_returns
+        );
+    let struct_type_error: String =
+        SemanticExpressionGraphStructValueTypeError(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if StringLength(struct_type_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, struct_type_error);
+    }
+    let graph_owned_struct_option: Bool = IsSome(intrinsic) &&
+        StartsWith(UnwrapOption(intrinsic), "Option<") &&
+        UnwrapOption(intrinsic) != "Option<Unknown>";
+    let call_error: String = "";
+    if !graph_owned_struct_option {
+        call_error = CheckCallFromGraphIdentifiers(
+            text, names, types, modes,
+            function_names, function_returns, function_params
+        );
+    }
     if StringLength(call_error) > 0 {
         return SemanticAstExpressionVerdictError(text, call_error);
     }
@@ -145,11 +165,8 @@ func SemanticAstExpressionVerdictFromGraph(
     let inferred: String = ExprType(
         text, names, types, function_names, function_returns
     );
-    if inferred == "Unknown" || inferred == "" {
-        let intrinsic: Option<String> =
-            SemanticExpressionGraphIntrinsicTypeName(
-                graph, root_id, function_names, function_returns
-            );
+    if inferred == "Unknown" || inferred == "" ||
+        inferred == "Option<Unknown>" {
         if IsSome(intrinsic) { inferred = UnwrapOption(intrinsic); }
     }
     return SemanticAstExpressionVerdictOk(text, inferred);

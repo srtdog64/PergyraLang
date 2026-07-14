@@ -217,7 +217,7 @@ postfix try is already parser-owned and is not part of that bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
 absent. The remaining blocker is indexed collection value/auxiliary payloads,
-Option/Result wrapper internals, `Option<struct>` payloads,
+Option/Result wrapper internals,
 `CodegenAstTextNode` collection elements, non-condition recursive expression
 text, and parser-to-semantic graph production. Those bridges remain inside
 named owners rather than reopening a codegen arena read.
@@ -226,9 +226,12 @@ owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
 `emission/struct_value_emit.pgy` remains only for explicitly unclosed compact
-lanes such as `Option<struct>` payloads and `CodegenAstTextNode` collection
-elements. General struct-valued local initialization, assignment, and value
-return consume expected-type semantic graph facts. The accepted subset is:
+`CodegenAstTextNode` collection elements. General struct-valued local
+initialization, assignment, and value return consume expected-type semantic
+graph facts. `emission/option_value_emit_owner.pgy` consumes the shared semantic
+call spine and expected-type ABI row for `Option<struct>` constructors and
+payloads in the `Some` lane. The semantic struct view first joins nominal field rows and rejects
+unknown, duplicate, missing, or type-incompatible fields. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`

@@ -120,7 +120,7 @@ source compilation binds roots by
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 23 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 24 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -144,8 +144,9 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, `Option<struct>` payload and `CodegenAstTextNode` collection-value
-bridges, borrow/receive/spawn/await unary forms, and expression result-type
+internals, `Option<struct>` `None` native-oracle contextual emission,
+`CodegenAstTextNode` collection-value bridges,
+borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
@@ -365,6 +366,22 @@ legacy text struct emitter remains only on explicit unclosed lanes such as
 compact graph construction and non-struct result-type classification also
 remain open. Released/default replacement remains 0%.
 
+The twenty-fourth DRV-2 MIR fixture closes `Option<struct>` `Some` constructor and
+payload reparsing for local initialization, assignment, and value return. A
+shared semantic call-spine view owns the ordered `Some` argument handle, while
+the expected `Option<T>` type selects the MIR-owned scalar or struct runtime ABI
+row. Codegen emits the payload through the expected-type semantic graph
+boundary; it cannot recognize `Some(`, slice payload text, or call the legacy
+struct text emitter. C-built and LLVM-built DRV-2 drivers are green across 20
+source and 24 MIR fixtures; the fixture prints `7` and `11`, and reclassifying
+its `Some(Pair { ... })` call-argument spine as a leaf is rejected as invalid
+MIR. The same graph view joins nominal constructor field rows before type
+inference: assigning `String` to `Pair.left: Int` is rejected by both the
+self-host driver and native oracle. `CodegenAstTextNode` collection elements, initial compact graph
+construction, non-struct result-type classification, and native-oracle
+contextual emission for `Option<struct>` `None` remain open.
+Released/default replacement remains 0%.
+
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
 was already captured by `SemanticAstStatementFacts`; `ArrayPush` target/value
@@ -514,7 +531,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 23 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 24 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

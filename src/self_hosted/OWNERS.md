@@ -129,6 +129,14 @@ inventory must not become a second fact-family owner registry.
   undefined-use, try, logical, binary, and inferred-type expression verdicts.
 - `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
   undefined-identifier evidence from parser graph node roles.
+- `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
+  canonical ordered callee/argument projection over parser-owned call spines;
+  semantic and codegen consumers share this view.
+- `src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy` --
+  canonical nominal type, field-name, and value-handle projection over
+  parser-owned struct literal spines; semantic and codegen share this view.
+- `src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy`
+  -- nominal constructor field/cardinality/type verdicts over that graph view.
 - `src/self_hosted/semantic/ast_expression_graph_type_owner.pgy` -- intrinsic
   nominal result types carried by parser-owned expression graph nodes.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
@@ -336,6 +344,9 @@ inventory must not become a second fact-family owner registry.
   symbol fact consumption.
 - `src/self_hosted/codegen/emission/log_emit_owner.pgy` -- log expression
   graph-owned log expression projection and scalar formatting ABI consumption.
+- `src/self_hosted/codegen/emission/option_value_emit_owner.pgy` --
+  expected-type `Option<T>` constructor and payload emission from semantic call
+  spines plus MIR-owned runtime ABI rows.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
   owners; string literals remain opaque.

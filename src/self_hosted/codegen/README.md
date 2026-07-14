@@ -204,7 +204,7 @@ top-level additive index and operator kind, while
 The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
 Scalar/String returns reuse the atom row; ordinary scalar/String local
 initializers and assignments consume the value row. Indexed collection
-elements, Option/Result wrapper internals, `Option<struct>` payloads,
+elements, Option/Result wrapper internals,
 `CodegenAstTextNode` collection elements, auxiliary payloads, and non-condition
 recursive child-expression lowering remain the explicit compact-text bridge.
 Root `if`/`while` conditions additionally consume separate semantic `||`,
@@ -235,9 +235,14 @@ consumes that fact through function-env `pm` rows and must not infer mutation
 mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
 calls the run owner. `emission/struct_value_emit.pgy` is retained only for
-explicitly unclosed compact lanes such as `Option<struct>` payloads and
-`CodegenAstTextNode` collection elements. General struct-valued `let`,
-assignment, and return paths consume expected-type semantic graph facts.
+explicitly unclosed `CodegenAstTextNode` collection elements. General
+struct-valued `let`, assignment, and return paths consume expected-type
+semantic graph facts. `emission/option_value_emit_owner.pgy` consumes the same
+graph boundary for `Option<struct>` `Some` constructors and payloads, selecting
+constructor spellings only from the expected-type runtime ABI row. The shared
+semantic struct view validates field names, cardinality, and field value types
+against nominal constructor rows before emission. Native-oracle contextual
+emission for `Option<struct>` `None` remains outside this hard parity rung.
 `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
 payload-free enum variants, struct fields, source-to-C binding names, `inout`

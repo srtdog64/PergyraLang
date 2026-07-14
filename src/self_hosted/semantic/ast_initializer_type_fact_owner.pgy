@@ -126,6 +126,7 @@ func SemanticAstInitializerTypeFactsFromArtifact(
             SemanticAstExpressionVerdictFromGraph(
                 expression, expression_surfaces.expression_graph,
                 UnwrapOption(graph_root),
+                constructors,
                 names, types, modes,
                 function_names, function_returns, function_params,
                 member_root_names
