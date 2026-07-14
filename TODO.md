@@ -18760,6 +18760,29 @@ gdb/lldb 없음(sudo 비번), Windows gcc 심볼 스택 도구 없음 → 계측
 지금 임의 지점에 넣는 건 라인 모르면 cosmetic(§8) → **라인 확정 선행**. 임시
 진단코드 전부 되돌림(6파일 committed 복원), semantic 2794/0 무회귀.
 
+**WO-SEMPERF-3 — semantic super-linear 폭발: 클린-HEAD 재현자 확보 + EmitStmtList
+국소화 + snapshot 가설 측정-반증 (2026-07-15, "계속 작업해", backend-compare sweep가
+노출)**: WO-B1 sweep 도중 pgy 워커 1개가 442MB/CPU-pegged로 처리량 급락 → 범인
+`pgy --hir src/self_hosted/codegen/main.pgy`. **git worktree(HEAD e2976769, 동시세션
+dirty 완전 배제)에서도 재현** → dirty 산물 아니라 **커밋된 HEAD 결함**(단 self_hosted
+codegen=동시세션 WIP라 "회귀" 과잉주장 금지; 세션-독립 결함은 "컴파일러가 어떤
+입력에도 hang 금지"는 종료계약 위반 — 파서 `PARSER_MAX_RECURSION_DEPTH`의 semantic
+대응물 부재). **최고 재현자 = 25s, 결정적, 격리**. 격리: `--tokens` 0.1s / `--ast`
+0.6s(1.18MB OK) / `--hir`·`--mir`·`--backend=c`·`--emit-c` 전부 hang; 스테이지 마커
+마지막=`semantic`(hir_lower 안 찍힘) → **hang은 `semantic_analyze` 내부**. 함수 국소화:
+pass2 `stmt[1235/1269]=EmitStmtList`(stmt_emit.pgy:184-558) — **1라운드 재확인**. 형태:
+거대 `while cur[0]<count` + ~18 else-if 분기 + 중첩 match + 7 자기재귀, constructed/
+generic 타입 let 다수. **snapshot 가설 측정-반증(§7.1)**: `snapshot_resource_states`가
+분기마다 O(symbols) 스캔이라 "O(branches×symbols)"로 단정할 뻔했으나 내부 심볼-방문
+카운터 20s간 <100M → snapshot **hot 아님**. type_equals clean(5M) → assignability도
+transitively 배제. **미측정 후보**: constructed 타입 해소(generic instantiate,
+type_resolution_graph) 또는 else-if-chain flow 구조. **다음**: (a) 프로파일러 1방, 또는
+(b) **입력 이분**(worktree stmt_emit.pgy 분기 삭제→재컴파일, 리빌드 불필요 — 유일 미시도
+non-profiler 경로), (c) type_resolution 카운터. **fix=안전필수 flow 수술(자원 라이프사이클
+증거, false-accept=자원 UB)이라 서두르지 말 것.** host_decl 해시(e2976769) 무죄 재확정.
+전체 진단 = [[project_semantic_termination_gap]] 4라운드. 임시 프로브 2파일 클린 리버트,
+semantic 2794/0.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
