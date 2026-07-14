@@ -1,0 +1,30 @@
+#ifndef PERGYRA_MIR_TIMING_H
+#define PERGYRA_MIR_TIMING_H
+
+typedef enum MIRTimingSlot {
+    MIR_TIMING_RIR_MATCH = 0,
+    MIR_TIMING_SIGNATURE,
+    MIR_TIMING_SOURCE_LOCAL_TYPES,
+    MIR_TIMING_BUILD_BLOCKS,
+    MIR_TIMING_CLEANUP_BLOCK,
+    MIR_TIMING_POPULATE_INSTS,
+    MIR_TIMING_SSA_RENAME,
+    MIR_TIMING_STMT_INSTS,
+    MIR_TIMING_SPECULATION,
+    MIR_TIMING_USE_EDGES,
+    MIR_TIMING_CLEANUP_EDGES,
+    MIR_TIMING_RECOMPUTE,
+    MIR_TIMING_DCE,
+    MIR_TIMING_BB_SOURCE_LOC,
+    MIR_TIMING_BB_COPIES,
+    MIR_TIMING_BB_APPEND,
+    MIR_TIMING_BB_PHI_TERM,
+    MIR_TIMING_SLOT_COUNT
+} MIRTimingSlot;
+
+double mir_timing_now(void);
+void mir_timing_add(MIRTimingSlot slot, double elapsed_seconds);
+double mir_timing_total(void);
+void mir_timing_report(void);
+
+#endif /* PERGYRA_MIR_TIMING_H */

@@ -51,6 +51,7 @@ run_literal_contract_smoke() {
     require_literal "src/codegen/thread_pool_usage.c" "pgy_mir_program_uses_thread_pool"
     require_literal "src/codegen/thread_pool_usage.c" "mir_routine_inventory_from_program"
     reject_literal "src/codegen/thread_pool_usage.c" "Compatibility fallback for source-only MIR blocks"
+    reject_literal "src/parser/ast_types.h" "AST_TASK_GROUP"
 
     require_literal "src/codegen/transpiler_inventory_view.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
     require_literal "src/codegen/transpiler_thread_pool.c" "transpiler_active_uses_thread_pool(ctx)"
@@ -200,13 +201,16 @@ reject_text(
         "Compatibility fallback for source-only MIR blocks",
     ],
 )
+reject_text("src/parser/ast_types.h", ["AST_TASK_GROUP"])
 
 require_text(
     "src/parser/ast_thread_pool_analysis.c",
     [
         "ast_uses_thread_pool_surface",
+        "AST_PARALLEL_BLOCK",
+        "AST_ASYNC_BLOCK",
+        "AST_SPAWN_EXPR",
         "AST_AWAIT_EXPR",
-        "AST_TASK_GROUP",
     ],
 )
 

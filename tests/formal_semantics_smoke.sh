@@ -815,7 +815,11 @@ fi
 
 require_terms "$CI_PATH" ".github/workflows/ci.yml" <<'TERMS'
 sudo apt-get install -y gcc make llvm-dev llvm coq
-make ci-linux
+make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
+TERMS
+
+require_terms "$ROOT_DIR/Makefile" "Makefile" <<'TERMS'
+scripts/ci_step_runner.sh scripts/ci_linux_steps.sh
 TERMS
 
 echo "formal semantics smoke: ok"

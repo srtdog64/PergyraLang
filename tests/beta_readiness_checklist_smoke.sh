@@ -547,7 +547,7 @@ EOF
 
 require_terms ".github/workflows/ci.yml" <<'EOF'
 sudo apt-get install -y gcc make llvm-dev llvm coq
-make ci-linux
+make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 mingw-w64-ucrt-x86_64-python
 build-macos-c-only
 make ci-macos
@@ -568,6 +568,7 @@ observability-schema-test-smoke:
 memory-concurrency-model-test-smoke:
 dogfood-webgl-test-smoke:
 self-host-preparation-test-smoke:
+scripts/ci_step_runner.sh scripts/ci_linux_steps.sh
 EOF
 
 require_terms "scripts/ci_windows_steps.sh" <<'EOF'

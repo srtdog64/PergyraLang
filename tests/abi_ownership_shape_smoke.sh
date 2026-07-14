@@ -198,7 +198,7 @@ require_term "src/codegen/llvm_expr_assignment_member_projection.c" "mir_abi_res
 require_term "src/codegen/llvm_expr_assignment_member_projection.c" "MIR_RESOURCE_ABI_SECURE_SLOT"
 require_term "src/codegen/llvm_stmt_let_resources.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/llvm_stmt_with.c" "mir_abi_resource_runtime_fn_by_kind("
-require_term "src/codegen/llvm_stmt.c" "mir_abi_resource_runtime_fn_by_kind("
+require_term "src/codegen/llvm_stmt_block.c" "mir_abi_resource_runtime_fn_by_kind("
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "mir_abi_resource_runtime_row_by_kind("
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "row->call_shape"
 require_term "src/codegen/transpiler_slot_builtin_emit.c" "C source slot builtin %s requires MIR ABI runtime function row"
