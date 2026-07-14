@@ -7,6 +7,11 @@ English anchor for tooling/doc gates:
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
   runtime-frontier, semantic domain-owner seams, and LLVM backend-compare
   inventory/coverage plus full local backend-compare shard sweep pass locally.
+  Full-suite backend-compare evidence refreshed 2026-07-15 (WO-B1):
+  909/909 fixtures C/LLVM byte-parity, 0 failed, jobs=14, one transient
+  Windows-launch retry that recovered to PASS. Ran on the local tree at
+  commit f321d877 with two concurrent-session uncommitted compiler edits
+  present and non-breaking (they did not perturb any fixture's parity).
   Windows-bash
   tooling and raw-escape gates now reach
   executable probes instead of skipping after path helper setup. The 83% line
@@ -9878,7 +9883,7 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 
 | 트랙 | 상태 | 다음 WO |
 |---|---|---|
-| Beta closure (§0a) | strict ~83%; full-suite 증거 재신선화 필요 | WO-B1 → WO-B2 |
+| Beta closure (§0a) | strict ~83%; ✅full-suite 증거 갱신(2026-07-15, 909/909 C/LLVM parity, 0 fail) | WO-B2 |
 | Red-team 잔여 (docs/137) | R6 닫힘; D1/D3 열림, D2/D4 결정 대기 | WO-B4, WO-B5 |
 | Self-host typed AST | payload 커밋 스트림 활성(동시 세션 가능성) | WO-S1/WO-S2 |
 | Formal corpus (docs/semantics/19) | 24 .v coqc 24/24, 0 admits; ✅WO-F1 닫힘(2026-07-04) | WO-F3/F4 후보 |
@@ -9895,8 +9900,14 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 
 ### Beta closure 트랙 (§0a "남는 순서" 실행 분해)
 
-#### WO-B1 — backend-compare full-suite 증거 갱신
+#### WO-B1 — backend-compare full-suite 증거 갱신 — ✅ CLOSED (2026-07-15)
 
+- **상태**: ✅ CLOSED (2026-07-15). `llvm-test-backend-compare` 전체
+  로컬 sweep = **909/909 C/LLVM byte-parity, 0 failed**(jobs=14, 일시
+  Windows-launch 1건 재시도→PASS로 관측 회복). 최상단 anchor에 날짜/수치
+  박제. 실행 트리 = f321d877 + 동시 세션 미커밋 컴파일러 2파일 present
+  (parity 무영향 실증). 오늘 host_decl 해시(e2976769)를 양 백엔드
+  end-to-end 검증한 부수 효과 포함. 후속 = WO-B2(ABI freeze).
 - **목표**: 최상단 anchor의 "beta-complete 선언 전 full-suite evidence
   refresh" 요구를 이행하고 날짜 박제.
 - **현재**: 기본 스위트가 커져 CI는 20-shard(`CI_BACKEND_COMPARE_SHARD_TOTAL`)
