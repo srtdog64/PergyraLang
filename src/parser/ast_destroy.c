@@ -299,6 +299,12 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.assignment.value);
             break;
 
+        case AST_ARRAY_LITERAL:
+            for (size_t i = 0; i < node->data.array_literal.count; i++)
+                ast_destroy(node->data.array_literal.elements[i]);
+            free(node->data.array_literal.elements);
+            break;
+
         case AST_TUPLE_LITERAL:
             for (size_t i = 0; i < node->data.tuple_literal.count; i++)
                 ast_destroy(node->data.tuple_literal.elements[i]);
@@ -445,6 +451,17 @@ void ast_destroy(ASTNode* node) {
             free(node->data.bind_stmt.party_var);
             free(node->data.bind_stmt.slot_name);
             free(node->data.bind_stmt.role_name);
+            break;
+
+        /* Owns nothing on the heap -- listed rather than left to `default` so
+         * that "nothing to free" is a decision on the record, not an omission.
+         * AST_ARRAY_LITERAL sat in `default` for exactly that reason and leaked
+         * its whole element subtree on every parse until the sanitizer gate
+         * caught it; the coverage meta-gate now requires every kind to appear
+         * in one of the two destroy switches. */
+        case AST_NUMBER:
+        case AST_BOOLEAN:
+        case AST_PARTY_METHOD:
             break;
 
         default:

@@ -13,6 +13,138 @@
 #include "type_system.h"
 
 /* -----------------------------------------------------------------
+ * Per-analysis type ownership (WO-SEC-2)
+ *
+ * Types were never freed by anyone: they are reachable only through Symbols
+ * and the resolution metadata table, both of which die with the
+ * SemanticContext, so every Type a compile created became unreachable
+ * garbage the moment analysis returned. Harmless for a batch compile that
+ * then exits -- not harmless for pgy-lsp, which re-analyzes the document on
+ * every keystroke and grew without bound. The sanitizer gate measured it at
+ * 259 bytes for a five-line program.
+ *
+ * Every Type now comes from type_alloc(), which records it in the registry
+ * for the analysis in flight. semantic_analyze_ex opens a registry, hands it
+ * to the SemanticResult, and semantic_result_destroy frees it -- which is
+ * after the whole pipeline, so an IR or backend that borrowed a Type* is
+ * still reading live memory. Freeing each *allocation* once makes aliasing
+ * (the same Type* held by many Symbols) a non-issue.
+ *
+ * The built-in singletons are allocated with tracking off: they are
+ * process-scoped and type_system_shutdown owns them.
+ * ----------------------------------------------------------------- */
+
+typedef struct TypeRegistry
+{
+    Type  **types;
+    size_t  count;
+    size_t  capacity;
+} TypeRegistry;
+
+static TypeRegistry *g_active_registry = NULL;
+
+Type *
+type_alloc(void)
+{
+    Type *type = calloc(1, sizeof(Type));
+
+    if (type == NULL)
+        return NULL;
+    if (g_active_registry == NULL)
+        return type;  /* singleton init, or an allocation outside an analysis */
+
+    if (g_active_registry->count == g_active_registry->capacity) {
+        size_t next = g_active_registry->capacity == 0
+            ? 64
+            : g_active_registry->capacity * 2;
+        Type **grown;
+
+        if (next > SIZE_MAX / sizeof(Type *)) {
+            free(type);
+            return NULL;
+        }
+        grown = realloc(g_active_registry->types, next * sizeof(Type *));
+        if (grown == NULL) {
+            /* Losing the registry slot would leak this Type silently, which
+             * is the very thing being fixed. Fail the allocation instead. */
+            free(type);
+            return NULL;
+        }
+        g_active_registry->types = grown;
+        g_active_registry->capacity = next;
+    }
+    g_active_registry->types[g_active_registry->count++] = type;
+    return type;
+}
+
+TypeRegistry *
+type_registry_begin(void)
+{
+    TypeRegistry *registry = calloc(1, sizeof(TypeRegistry));
+
+    if (registry == NULL)
+        return NULL;
+    g_active_registry = registry;
+    return registry;
+}
+
+void
+type_registry_end(TypeRegistry *registry)
+{
+    if (g_active_registry == registry)
+        g_active_registry = NULL;
+}
+
+static void
+type_free_owned(Type *type)
+{
+    if (type == NULL)
+        return;
+
+    /* Only what this Type allocated itself. The Type* elements inside these
+     * arrays are separate registry entries and are freed on their own turn. */
+    free(type->name);
+    switch (type->kind) {
+    case TYPE_KIND_GENERIC:
+        free(type->data.generic.param_name);
+        free(type->data.generic.constraints);
+        break;
+    case TYPE_KIND_CONSTRUCTED:
+        free(type->data.constructed.args);
+        break;
+    case TYPE_KIND_FUNCTION:
+        free(type->data.function.param_types);
+        free(type->data.function.param_modes);
+        free(type->data.function.param_escape_summary_masks);
+        break;
+    case TYPE_KIND_TUPLE:
+        free(type->data.tuple.elements);
+        break;
+    case TYPE_KIND_PRIMITIVE:
+    case TYPE_KIND_SLOT:
+    case TYPE_KIND_CLASS:
+    case TYPE_KIND_ENUM:
+    case TYPE_KIND_TRAIT:
+    case TYPE_KIND_ALIAS:
+        break;
+    }
+    free(type);
+}
+
+void
+type_registry_destroy(TypeRegistry *registry)
+{
+    if (registry == NULL)
+        return;
+    if (g_active_registry == registry)
+        g_active_registry = NULL;
+    for (size_t i = 0; i < registry->count; i++)
+        type_free_owned(registry->types[i]);
+    free(registry->types);
+    free(registry);
+}
+
+/* -----------------------------------------------------------------
  * Built-in singleton types
  * ----------------------------------------------------------------- */
 
@@ -62,8 +194,24 @@ type_free_singleton(Type **slot)
 void
 type_system_init(void)
 {
+    TypeRegistry *suspended;
+
     if (TYPE_INT != NULL)
         return;
+
+    /*
+     * The singletons belong to the process, not to any one analysis --
+     * type_system_cleanup owns them. But this runs LAZILY, from inside
+     * semantic_context_create, which means the registry for the analysis in
+     * flight is already open. Left alone, the first analysis would adopt
+     * TYPE_INT and friends and free them along with its result; the second
+     * would read freed memory. (pgy survives that by doing exactly one
+     * analysis per process. pgy-lsp, which re-analyzes on every keystroke,
+     * would not -- and neither did the AIR battery, which is where the
+     * sanitizer caught it.) So step outside the registry explicitly.
+     */
+    suspended = g_active_registry;
+    g_active_registry = NULL;
 
     TYPE_INT    = type_create_primitive("Int",    4, true);
     TYPE_LONG   = type_create_primitive("Long",   8, true);
@@ -94,6 +242,8 @@ type_system_init(void)
     TYPE_TEXT_BUILDER = type_create_primitive("TextBuilder", 0, false);
     TYPE_RESULT = type_create_primitive("Result", 0, false);
     TYPE_OPTION = type_create_primitive("Option", 0, false);
+
+    g_active_registry = suspended;
 }
 
 void
@@ -136,7 +286,7 @@ type_system_cleanup(void)
 Type *
 type_create_primitive(const char *name, size_t size, bool is_signed)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t = type_alloc();
     if (t == NULL)
         return NULL;
 
@@ -154,7 +304,7 @@ type_create_primitive(const char *name, size_t size, bool is_signed)
 Type *
 type_create_generic(const char *param_name)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t = type_alloc();
     if (t == NULL)
         return NULL;
 
@@ -175,7 +325,7 @@ type_create_generic(const char *param_name)
 Type *
 type_create_constructed(Type *constructor, Type **args, size_t arg_count)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t = type_alloc();
     if (t == NULL)
         return NULL;
 
@@ -313,7 +463,7 @@ type_constructed_is(const Type *type, const Type *constructor, size_t arg_count)
 Type *
 type_create_function(Type **params, size_t param_count, Type *return_type)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t = type_alloc();
     if (t == NULL)
         return NULL;
 

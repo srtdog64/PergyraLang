@@ -6,7 +6,7 @@
 Type *
 create_overlay_nominal_type(const char *name)
 {
-    Type *type = calloc(1, sizeof(Type));
+    Type *type = type_alloc();
     if (type == NULL)
         return TYPE_UNKNOWN;
     type->kind = TYPE_KIND_CLASS;

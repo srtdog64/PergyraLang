@@ -309,6 +309,10 @@ ast_destroy_namespace_shell_only(ASTNode* node)
     node->data.namespace_decl.name = NULL;
     node->data.namespace_decl.statements = NULL;
     node->data.namespace_decl.count = 0;
+    /* Every ASTNode carries origin_path, including one being torn down shell
+     * -only after its statements were hoisted out. Skipping it here leaked a
+     * path string per namespace block, which the sanitizer gate found. */
+    free(node->origin_path);
     free(node);
 }
 

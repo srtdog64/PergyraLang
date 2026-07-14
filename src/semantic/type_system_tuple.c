@@ -7,7 +7,7 @@
 Type *
 type_create_tuple(Type **elements, size_t element_count)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t = type_alloc();
     if (t == NULL)
         return NULL;
 

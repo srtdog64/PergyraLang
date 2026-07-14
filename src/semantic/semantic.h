@@ -17,6 +17,7 @@
 #include "boundary_witness.h"
 #include "lifecycle_state.h"
 #include "parallel_capture_facts.h"
+#include "type_system.h"
 
 /*
  * Result of semantic analysis
@@ -50,6 +51,10 @@ typedef struct SemanticResult
      * projection of this table, never checker annotations on AST nodes. */
     SemanticParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t       parallel_capture_boundary_count;
+    /* Owns every Type this analysis allocated (WO-SEC-2). Borrowed Type*
+     * held by symbols, IRs, or the backend stay valid until this result is
+     * destroyed, which the driver does last. */
+    TypeRegistry *owned_types;
 } SemanticResult;
 
 /* -----------------------------------------------------------------

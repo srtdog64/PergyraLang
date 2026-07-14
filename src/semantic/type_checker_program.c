@@ -141,7 +141,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         } else if (stmt->type == AST_CLASS_DECL) {
             const char *cname = ast_class_name(stmt);
             if (cname != NULL && scope_lookup_current(ctx->scope, cname) == NULL) {
-                Type *t = calloc(1, sizeof(Type));
+                Type *t = type_alloc();
                 if (t == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "class placeholder type");
@@ -267,7 +267,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             size_t variant_count = 0;
             char **variants = ast_enum_variants(stmt, &variant_count);
             if (ename != NULL && scope_lookup_current(ctx->scope, ename) == NULL) {
-                Type *t = calloc(1, sizeof(Type));
+                Type *t = type_alloc();
                 if (t == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "enum placeholder type");
@@ -423,7 +423,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             else
                 dname = ast_zone_name(stmt);
             if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
-                Type *t = calloc(1, sizeof(Type));
+                Type *t = type_alloc();
                 if (t == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "domain placeholder type");

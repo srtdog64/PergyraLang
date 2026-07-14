@@ -74,6 +74,18 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
     return sym->type;
 }
 
+/*
+ * This table borrows Types; it never frees them. The per-analysis registry
+ * (type_alloc / type_registry_destroy) is the single owner, so a store that
+ * fails, or an entry that gets replaced, simply drops its pointer -- the
+ * Type is still on the registry's list and dies with the SemanticResult.
+ *
+ * It used to free them here, which made two owners for one allocation and,
+ * worse, freed them at semantic_context_destroy -- before MIR and the
+ * backend were done reading types. `owned` now means only "this table
+ * synthesized the entry rather than borrowing an existing symbol's type";
+ * callers still read it as that.
+ */
 static void
 semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
                                                    ASTNode *type_node,
@@ -95,11 +107,6 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
             size_t i = existing;
             bool keep_owned = owned;
             if (ctx->type_resolution_metadata.owned[i]
-                && ctx->type_resolution_metadata.values[i] != resolved_type) {
-                semantic_type_resolution_free_owned_type(
-                    (Type *)ctx->type_resolution_metadata.values[i]);
-            }
-            if (ctx->type_resolution_metadata.owned[i]
                 && ctx->type_resolution_metadata.values[i] == resolved_type) {
                 keep_owned = true;
             }
@@ -114,8 +121,6 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         size_t new_cap;
         if (ctx->type_resolution_metadata.capacity > SIZE_MAX / 2)
         {
-            if (owned)
-                semantic_type_resolution_free_owned_type(resolved_type);
             return;
         }
         new_cap = ctx->type_resolution_metadata.capacity == 0
@@ -123,8 +128,6 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
             : ctx->type_resolution_metadata.capacity * 2;
         if (new_cap > SIZE_MAX / sizeof(void *)
             || new_cap > SIZE_MAX / sizeof(bool)) {
-            if (owned)
-                semantic_type_resolution_free_owned_type(resolved_type);
             return;
         }
         new_keys = malloc(new_cap * sizeof(void *));
@@ -134,8 +137,6 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
             free(new_keys);
             free(new_values);
             free(new_owned);
-            if (owned)
-                semantic_type_resolution_free_owned_type(resolved_type);
             return;
         }
         for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
@@ -154,15 +155,11 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
 
     if (!metadata_ensure_index_capacity(
             ctx, ctx->type_resolution_metadata.count + 1)) {
-        if (owned)
-            semantic_type_resolution_free_owned_type(resolved_type);
         return;
     }
     if (!metadata_index_insert(ctx,
                                (void *)type_node,
                                ctx->type_resolution_metadata.count)) {
-        if (owned)
-            semantic_type_resolution_free_owned_type(resolved_type);
         return;
     }
     ctx->type_resolution_metadata.keys[ctx->type_resolution_metadata.count] =

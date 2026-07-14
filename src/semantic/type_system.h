@@ -169,6 +169,24 @@ struct TypeEnv
     GenericParams* generic_params;
 };
 
+/*
+ * Per-analysis Type ownership (WO-SEC-2).
+ *
+ * type_alloc() is the ONLY way to get a Type: it enrolls the allocation in
+ * the registry of the analysis in flight, so nothing can be created down a
+ * path that forgets to free it. semantic_analyze_ex opens the registry and
+ * hands it to the SemanticResult; semantic_result_destroy frees it, after
+ * the whole pipeline has stopped reading types. Outside an analysis (the
+ * built-in singletons at type_system_init) the registry is closed and
+ * type_alloc just allocates -- type_system_shutdown owns those.
+ */
+typedef struct TypeRegistry TypeRegistry;
+
+Type*         type_alloc(void);
+TypeRegistry* type_registry_begin(void);
+void          type_registry_end(TypeRegistry* registry);
+void          type_registry_destroy(TypeRegistry* registry);
+
 /* Type operations */
 Type* type_create_primitive(const char* name, size_t size, bool is_signed);
 Type* type_create_generic(const char* param_name);

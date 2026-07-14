@@ -41,7 +41,7 @@ type_create_slot_access(Type *inner_type,
     if (inner_type == NULL || inner_type->name == NULL)
         return NULL;
 
-    t = calloc(1, sizeof(Type));
+    t = type_alloc();
     if (t == NULL)
         return NULL;
 

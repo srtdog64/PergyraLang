@@ -138,7 +138,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    Type *class_type = calloc(1, sizeof(Type));
+    Type *class_type = type_alloc();
     if (class_type == NULL) {
         if (has_generics) scope_exit(&ctx->scope);
         return false;

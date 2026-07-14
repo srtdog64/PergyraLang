@@ -252,8 +252,18 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     if (result == NULL)
         return NULL;
 
+    /* Open the Type registry before anything can allocate a Type. It is
+     * handed to the result below, and freed by semantic_result_destroy --
+     * i.e. after every IR and the backend have stopped reading types. */
+    result->owned_types = type_registry_begin();
+    if (result->owned_types == NULL) {
+        free(result);
+        return NULL;
+    }
+
     SemanticContext *ctx = semantic_context_create();
     if (ctx == NULL) {
+        type_registry_destroy(result->owned_types);
         free(result);
         return NULL;
     }
@@ -331,6 +341,9 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->parallel_capture_boundary_capacity = 0;
 
     semantic_context_destroy(ctx);
+    /* Close the registry: types created from here on (there should be none)
+     * would have no owner. The result keeps the list itself. */
+    type_registry_end(result->owned_types);
     return result;
 }
 
@@ -350,6 +363,9 @@ semantic_result_destroy(SemanticResult *result)
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,
         result->parallel_capture_boundary_count);
+    /* Last: the IRs and the backend borrow Type* from here, and the driver
+     * destroys them before this result. */
+    type_registry_destroy(result->owned_types);
     free(result);
 }
 

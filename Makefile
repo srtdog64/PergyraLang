@@ -106,6 +106,21 @@ CFLAGS  = -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-i
 ifeq ($(PGY_DEBUG_SYMBOLS),1)
 CFLAGS += -g
 endif
+
+# Sanitizer build (WO-SEC-2). `SANITIZE=1` compiles and links the whole tree
+# with ASan+UBSan; the link recipes reuse CFLAGS, so the runtimes come along.
+# -fno-sanitize-recover makes a UBSan hit abort instead of printing and
+# carrying on -- a gate that keeps going after finding UB is not a gate.
+# Always pair with a separate BUILD_DIR/BIN_DIR (see the test-asan target):
+# make cannot tell a sanitized object from a release one, and mixing them
+# produces a binary that links but does not detect.
+SANITIZE ?= 0
+PGY_SANITIZERS ?= address,undefined
+ifneq ($(filter-out 0,$(SANITIZE)),)
+CFLAGS += -fsanitize=$(PGY_SANITIZERS) -fno-sanitize-recover=all \
+          -fno-omit-frame-pointer -g -O1
+endif
+
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
@@ -2030,7 +2045,65 @@ test-all:
 	$(MAKE) test-rir
 	$(MAKE) test-mir
 	$(MAKE) test-hir
+	$(MAKE) ast-destroy-coverage-test-smoke
 	@echo "=== All Frontend Tests Completed ==="
+
+# WO-SEC-2: the memory-safety question -- are there leaks, use-after-frees,
+# or UB in here? -- had no answer, and an unanswered safety question is not
+# a passing grade, it is an unmeasured one. This runs the batteries we
+# already have under ASan+UBSan so the answer is evidence.
+#
+# Sanitized objects go to their own BUILD_DIR/BIN_DIR: make cannot tell them
+# apart from release objects, and a mixed link produces a binary that runs
+# but does not detect. Toolchains without libasan (MinGW) cannot run this;
+# use Linux/WSL or a clang that ships the runtime.
+# Scoped by target triple: a sanitizer tree built by MinGW and one built by
+# Linux gcc must not share a directory. They did, once -- the leftover .d
+# files carried Windows drive-letter paths, and make read the colon as a
+# second target and died with "multiple target patterns" instead of saying
+# the tree was from another toolchain.
+ASAN_BUILD_DIR ?= build-asan-$(CC_MACHINE)
+ASAN_BIN_DIR   ?= bin-asan-$(CC_MACHINE)
+ASAN_PGY       ?= $(ASAN_BIN_DIR)/pgy$(EXEEXT)
+# Batteries re-run under the sanitizers for MEMORY faults, not for pass/fail --
+# they already pass. They earn their place by driving many analyses in one
+# process, which is the only way to see a Type freed by analysis N and read by
+# analysis N+1. A single compile cannot: it never gets to N+1. That is exactly
+# the use-after-free the singleton registry bug produced, and the shape pgy-lsp
+# runs in.
+ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser
+ASAN_UNIT_BINARIES  := $(addprefix $(ASAN_BIN_DIR)/,$(addsuffix $(EXEEXT),$(ASAN_UNIT_BATTERIES)))
+
+ast-destroy-coverage-test-smoke:
+	"$(BASH)" tests/ast_destroy_coverage_smoke.sh
+
+# Two axes, because one sanitizer run cannot ask both questions honestly:
+#   - the compiler over a real corpus, leak detection ON: does compiling leak?
+#   - the unit batteries, leak detection OFF: does anything use freed memory or
+#     execute UB? (Leaks there are harness untidiness -- several tests never
+#     destroy the ASTs they build -- and are not a property of the compiler.)
+# LLVM_ENABLED=0: the LLVM leg needs llvm-c headers the sanitizer host may not
+# have. The frontend and the C backend, where the allocations live, are covered.
+test-asan:
+	@echo "=== Sanitizer gate: ASan + UBSan ($(PGY_SANITIZERS)) ==="
+	$(MAKE) SANITIZE=1 \
+	        LLVM_ENABLED=0 \
+	        BUILD_DIR=$(ASAN_BUILD_DIR) \
+	        BIN_DIR=$(ASAN_BIN_DIR) \
+	        PGY_DEBUG_SYMBOLS=1 \
+	        $(ASAN_PGY) $(ASAN_UNIT_BINARIES)
+	PGY_ASAN_BIN="$(abspath $(ASAN_PGY))" "$(BASH)" tests/sanitizer_compile_smoke.sh
+	@echo "--- batteries under the sanitizers (use-after-free / UB) ---"
+	@for battery in $(ASAN_UNIT_BINARIES); do \
+	    echo "  $$battery"; \
+	    ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 \
+	    UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+	    "$$battery" > .tmp/asan-$$(basename $$battery).log 2>&1 \
+	        || { echo "  FAULT in $$battery -- see .tmp/asan-$$(basename $$battery).log" >&2; \
+	             grep -E 'ERROR:|runtime error:' .tmp/asan-$$(basename $$battery).log | head -3 >&2; \
+	             exit 1; }; \
+	done
+	@echo "=== Sanitizer gate: clean ==="
 
 llvm-test:
 	$(MAKE) LLVM_ENABLED=1 test
