@@ -411,8 +411,8 @@ read_codegen_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$CODEGEN_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 69 ]]; then
-        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 69" >&2
+    if [[ "${#FIXTURES[@]}" -ne 70 ]]; then
+        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 70" >&2
         exit 1
     fi
 

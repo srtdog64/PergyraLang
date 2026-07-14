@@ -351,6 +351,9 @@ inventory must not become a second fact-family owner registry.
   single-pass source builtin call recognition projected through runtime symbol
   owners; string literals remain opaque.
 - `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- expected-type array literal value emission.
+- `src/self_hosted/codegen/emission/collection_element_emit_owner.pgy` --
+  collection element value emission; graph-owned `ArrayPush` projection is
+  separated from the still-explicit array-literal and `ArraySet` text bridges.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.

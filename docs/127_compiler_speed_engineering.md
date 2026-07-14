@@ -223,7 +223,7 @@ call projection now performs one identifier scan and delegates C spelling to
 the existing runtime ABI owners; the retired per-builtin repeated scan is
 gate-forbidden. The Pergyra-built emitter still reaches a 14,673-line
 gen2==gen3 fixed point and
-matches both native backend oracles on all 69 codegen fixtures.
+matches both native backend oracles on all 70 codegen fixtures.
 
 An apples-to-apples Windows process-tree measurement used the same
 1,289,598-byte AST artifact, 100 ms sampling, a 4 GiB ceiling, and two runs per

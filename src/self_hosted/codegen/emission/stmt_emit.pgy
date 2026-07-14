@@ -20,21 +20,10 @@ import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
+import "collection_element_emit_owner.pgy";
 import "log_emit_owner.pgy";
-import "struct_value_emit.pgy";
 import "try_let_emit_owner.pgy";
 import "value_return_emit_owner.pgy";
-
-func EmitCollectionElementValue(kind: String, value_expr: String, env: CodegenTypeEnv, kind_code: Int) -> String {
-    let elem_type: String = CollectionRuntimeElementTypeFromKindCode(kind_code);
-    if elem_type == "String" {
-        return StrEval(value_expr, env);
-    }
-    if elem_type == "CodegenAstTextNode" {
-        return EmitStructValue(value_expr, elem_type, env);
-    }
-    return IntEval(value_expr, env);
-}
 
 func EmitLet(
     local_bindings: SemanticAstLocalBindingFacts,
@@ -346,10 +335,16 @@ func EmitStmtList(count: Int, arena: AstArena,
             let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx);
             let c_p_arr: String = CompilerSymbolCBindingName(p_arr);
             let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx);
+            let p_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneValue()
+                );
             let p_kind: String = LookupKindType(env, p_arr, "v");
             let p_kind_code: Int = CollectionRuntimeKindCode(p_kind);
             let push_fn: String = CollectionRuntimeCPushFn(p_kind_code);
-            let p_rhs: String = EmitCollectionElementValue(p_kind, p_val, env, p_kind_code);
+            let p_rhs: String = EmitCollectionPushElementValue(
+                p_val, env, p_kind_code, p_graph
+            );
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(c_p_arr, Concat(", ", Concat(p_rhs, ");")))));
             ArrayPush(result, Concat(pad, Concat(push_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);

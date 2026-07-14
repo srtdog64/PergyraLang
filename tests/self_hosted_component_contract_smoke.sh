@@ -507,7 +507,7 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenPari
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 69;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 70;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
@@ -3270,6 +3270,9 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMemberAccess()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArity("
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" 'Log("TYPED AST INVARIANT ERROR: unknown expression node kind")'
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "Exit(1);"
+reject_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "Die("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionUnary("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCall("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCallArgument("
@@ -3334,6 +3337,7 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "e
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphForNode"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphValueLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindArrayPushStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "arithmetic_graph.ok"
 require_file "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
@@ -4213,8 +4217,18 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "IndentOf(raw_li
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" ".text"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func IndentOf"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitCollectionElementValue"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitStructValue(value_expr, elem_type, env)"
+require_file "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" 600
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionElementValue"
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "EmitStructValue(value_expr, elem_type, env)"
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionPushElementValue("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_graph: SemanticExpressionGraphView"
+reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
+    "func EmitCollectionPushElementValue(" "EmitStructValue("
+reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
+    "func EmitCollectionPushElementValue(" "RewriteExpr("
+reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
+    "func EmitCollectionPushElementValue(" "StringTrim("
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "AbiLayoutCStructTypeName(sname)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CompilerSymbolCFieldName(fld)"
@@ -6813,10 +6827,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 69 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 69"
-[[ "$codegen_expected_count" -eq 69 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 69"
+[[ "$codegen_fixture_count" -eq 70 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 70"
+[[ "$codegen_expected_count" -eq 70 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 70"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -6966,7 +6980,7 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpe
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 69;"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 70;"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -6993,7 +7007,7 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 69'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 70'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7018,7 +7032,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 69'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 70'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'

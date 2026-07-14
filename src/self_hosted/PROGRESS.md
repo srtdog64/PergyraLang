@@ -144,9 +144,18 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, `CodegenAstTextNode` collection-value bridges,
+internals, `CodegenAstTextNode` array-literal and `ArraySet` collection-value
+bridges,
 borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
+
+The focused codegen rung now also requires a value-lane expression graph for
+`ArrayPush`. A pushed `CodegenAstTextNode(...)` constructor is emitted through
+that graph and the expected collection element type; the push consumer cannot
+call `EmitStructValue`, `RewriteExpr`, or `StringTrim`. The committed fixture is
+run-equal under C-built and LLVM-built self-host codegen. This closes only the
+`ArrayPush` consumer: array-literal and `ArraySet` element emission still use
+the explicit text bridge and remain the next collection-value boundary.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -794,7 +803,7 @@ the parity harness itself: the MIR JSON positive fixture inventory must stay at
 95, the clean-reject inventory must stay at 0, the scorecard must cite the same
 96 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
-as an example-origin fixture after all 69 committed self-host codegen fixtures,
+as an example-origin fixture after all 70 committed self-host codegen fixtures,
 not only purpose-built MIR-lower fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth

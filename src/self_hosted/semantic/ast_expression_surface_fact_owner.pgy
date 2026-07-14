@@ -103,6 +103,8 @@ func SemanticAstExpressionGraphValueLaneRequired(
         artifact.arena, node_id, TypedAstKindAssignStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindForStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArrayPushStmtTag()
     );
 }
 

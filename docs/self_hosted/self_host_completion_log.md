@@ -6,6 +6,19 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-14 - ArrayPush consumes the semantic value graph
+
+- Required the value-lane semantic expression graph for every `ArrayPush`
+  statement and repointed the self-host C emitter to consume that graph.
+- Split collection element projection into its own responsibility owner. The
+  migrated push path cannot call the legacy struct/text emitter; array literals
+  and `ArraySet` remain explicitly documented bridges.
+- Added a `CodegenAstTextNode` constructor push fixture. C-built and LLVM-built
+  self-host codegen both produced the expected executable output, while the
+  existing enum/event negative legs remained fail-closed.
+- Raised the committed codegen fixture frontier from 69 to 70. This is one
+  executable consumer replacement, not whole-compiler self-host completion.
+
 ## 2026-07-13 - First semantic expression-shape consumer
 
 - Extended the existing semantic expression-surface authority instead of

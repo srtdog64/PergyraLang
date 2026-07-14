@@ -82,7 +82,8 @@ func AstExpressionNodeIsCallableCallee(kind: Int) -> Bool {
 
 func AstExpressionNodeArity(kind: Int) -> Int {
     if !AstExpressionNodeKindKnown(kind) {
-        Die("unknown typed expression node kind");
+        Log("TYPED AST INVARIANT ERROR: unknown expression node kind");
+        Exit(1);
     }
     if kind == AstExpressionNodeLeaf() ||
         kind == AstExpressionNodeStructFieldName() ||
