@@ -81,13 +81,17 @@ func SelfMirIterationLoweringFactForNode(
     let synthetic_name: String = "";
     if is_foreach {
         if collection_hoist == 1 {
-            let ordinal: Int = SelfMirForEachSyntheticOrdinal(input, node_id);
-            if ordinal < 0 {
+            let ordinal: Option<Int> = SelfMirForEachSyntheticOrdinal(
+                input, node_id
+            );
+            if !IsSome(ordinal) {
                 return SelfMirIterationLoweringError(
                     "MIR foreach synthetic-local ordinal is missing"
                 );
             }
-            synthetic_name = Concat("__pgy_forin_", ToString(ordinal));
+            synthetic_name = Concat(
+                "__pgy_forin_", ToString(UnwrapOption(ordinal))
+            );
             canonical_start = synthetic_name;
         }
         stop = canonical_start;

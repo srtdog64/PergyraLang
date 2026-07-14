@@ -69,7 +69,7 @@ func SelfMirExpressionGraphSubtreeStart(
     while node >= 0 {
         let kind: Option<Int> = SemanticExpressionGraphNodeKind(source, node);
         if !IsSome(kind) { return None; }
-        if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        if AstExpressionNodeArity(UnwrapOption(kind)) == 0 {
             return Some(node);
         }
         let left: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -371,6 +371,12 @@ func SelfMirExpressionGraphRowsReady(
                     AstExpressionNodeLeaf() {
                 return false;
             }
+            if kind == AstExpressionNodeArrayElement() &&
+                !AstExpressionNodeIsArrayLiteralSpine(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) {
+                return false;
+            }
             node_i = node_i + 1;
         }
         expected_start = start + count;
@@ -401,6 +407,8 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
     if kind == AstExpressionNodeMemberAccess() { return "member_access"; }
     if kind == AstExpressionNodeTry() { return "try"; }
+    if kind == AstExpressionNodeArrayLiteral() { return "array_literal"; }
+    if kind == AstExpressionNodeArrayElement() { return "array_element"; }
     return "";
 }
 
@@ -506,14 +514,36 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ["Pick", "Pick()"], [0, 0], [0, 0],
             [SemanticCallTargetNamespace(), 0], ["Pick", ""]
         );
+    let valid_array: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [2], [0], [3],
+            [
+                AstExpressionNodeArrayLiteral(), AstExpressionNodeLeaf(),
+                AstExpressionNodeArrayElement()
+            ],
+            ["[]", "1", "[1]"], [0, 0, 0], [0, 0, 1],
+            [0, 0, 0], ["", "", ""]
+        );
+    let malformed_array: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [2], [0], [3],
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeArrayElement()
+            ],
+            ["[]", "1", "[1]"], [0, 0, 0], [0, 0, 1],
+            [0, 0, 0], ["", "", ""]
+        );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
         SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
         SelfMirExpressionGraphRowsReady(valid_try, 1) &&
         SelfMirExpressionGraphRowsReady(valid_call, 1) &&
         SelfMirExpressionGraphRowsReady(valid_member, 1) &&
+        SelfMirExpressionGraphRowsReady(valid_array, 1) &&
         !SelfMirExpressionGraphRowsReady(disconnected, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_unary, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_call, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_member, 1) &&
+        !SelfMirExpressionGraphRowsReady(malformed_array, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_target, 1);
 }

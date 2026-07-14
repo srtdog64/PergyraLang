@@ -109,12 +109,15 @@ same walk that produces the compact parity projection. Unary and call-root
 nodes carry one edge; member-access nodes carry receiver/member edges, and each
 call-argument node carries the prior call spine plus one argument. Malformed
 arity, a non-leaf member name, or a call-argument whose left edge is not a call
-spine is rejected. Typed source compilation binds roots by
+spine is rejected. Array literals carry one zero-arity literal root plus an
+ordered element chain; each element remains its full recursive expression
+graph. An element whose left edge is not an array spine is rejected. Typed
+source compilation binds roots by
 `(owner kind, lane)` for `if`, `while`, `let`, assignment, and value return; a
 text-created artifact without a required graph fails closed. Direct
 `--mir-json` compilation likewise requires the carried graph and does not
 reparse `expr0`. C-built and LLVM-built drivers emitted byte-identical MIR JSON
-and C across 20 source fixtures and all 20 DRV-2 MIR fixtures. The strengthened
+and C across 20 source fixtures and all 21 DRV-2 MIR fixtures. The strengthened
 mutable-local fixture covers arithmetic precedence in initializer, assignment,
 condition, and return positions, and its generated program exits successfully.
 This closes parser production, MIR carriage, and hard consumption for those
@@ -138,7 +141,7 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, array/struct literal argument bridges, borrow/receive/spawn/await
+internals, struct literal argument bridges, borrow/receive/spawn/await
 unary forms, and expression result-type classification remain `BRIDGE` work.
 
 The Log statement lane now extracts its single argument subtree from the
@@ -306,7 +309,23 @@ emit the same reserved synthetic local and post-order ordinal as native
 The nested/sibling fixture makes native/self canonical MIR byte-identical under
 both C-built and LLVM-built drivers and run-equal at `30`; removing the
 synthetic source-local type is rejected. The temporary consumer-side callable
-return lookup was deleted and is forbidden by the component contract.
+return lookup was deleted and is forbidden by the component contract. The
+synthetic ordinal lookup reports absence as `Option<Int>`; the likeness gate
+forbids reintroducing its former `-1` sentinel.
+
+The twenty-first DRV-2 MIR fixture closes array-literal call-argument
+reparsing. `ParsePrimaryFact` now keeps the empty literal root and every element
+subgraph instead of collapsing the literal to one leaf. The semantic/MIR graph
+and JSON projection preserve that ordered spine, and
+`RewriteSemanticCallArgument` emits each element through its node handle; it no
+longer recognizes `[` or calls `EmitArrayLiteralValue(source, ...)`. A nested
+arithmetic/direct-call fixture made all four C-built/LLVM-built native/self
+canonical MIR artifacts byte-identical (SHA-256
+`56A2A77CBDCE635ECE29084E378B801C56E5359F31DBDA758DBD391D45A98A13`) and
+printed `11`. Reclassifying the literal root as a leaf while retaining the
+element chain is rejected as an invalid MIR expression graph. Struct literal
+arguments and expression result-type classification remain open; released/
+default replacement remains 0%.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
@@ -456,8 +475,8 @@ These numbers must not be collapsed into one percentage:
 
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
-| Implementation inventory | 30,574 frontend/backend LOC / 287,406 C-reference LOC = 10.64%; broader Pergyra compiler-core inventory = 48,031 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 20 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 21 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -618,7 +637,7 @@ rows. The MIR producer evaluates the expression once into the reserved
 codegen do not recover a callable return type from expression text. A nested
 plus sibling call-foreach fixture fixes the native post-order names
 `__pgy_forin_0/1/2`, and deleting a required synthetic source-local type fails
-closed. C-built and LLVM-built full DRV-2 gates are green at 20 source and 20
+closed. C-built and LLVM-built full DRV-2 gates are green at 20 source and 21
 MIR fixtures; all four canonical native/self JSON artifacts for this fixture
 have SHA-256
 `19815C3CD3E5C3B36AA9F70EF9241BC8105CAE5B7FFA739DA36E3B6D7F06FCCB`,

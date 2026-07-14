@@ -166,6 +166,12 @@ func SemanticExpressionGraphArenaReady(
             arena.node_kinds[right] != AstExpressionNodeLeaf() {
             return false;
         }
+        if kind == AstExpressionNodeArrayElement() &&
+            !AstExpressionNodeIsArrayLiteralSpine(
+                arena.node_kinds[left]
+            ) {
+            return false;
+        }
         i = i + 1;
     }
     return true;

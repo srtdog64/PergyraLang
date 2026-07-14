@@ -2798,10 +2798,22 @@ require_text "src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy" \
     'collection_hoists: Array<Int>;'
 require_text "src/self_hosted/mir/routine_input_owner.pgy" \
     'func SelfMirForEachSyntheticOrdinal('
+require_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    ') -> Option<Int> {'
+reject_function_text "src/self_hosted/mir/routine_input_owner.pgy" \
+    'func SelfMirForEachSyntheticOrdinal(' 'return -1'
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
     'func SelfMirSyntheticLocalExpressionGraph('
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" \
-    'Concat("__pgy_forin_", ToString(ordinal))'
+    '"__pgy_forin_", ToString(UnwrapOption(ordinal))'
+require_file "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_array_argument'
+require_text "tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh" \
+    'malformed array spine was accepted'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -3827,6 +3839,18 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "struct SemanticMemberAccessView"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "struct SemanticArrayLiteralView"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticArrayLiteralValue("
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeArrayLiteral() -> Int"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeArrayElement() -> Int"
+require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+    'AstExpressionNodeArrayElement() { return "array_element"; }'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'if kind == "array_element" {'
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArguments("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess("
@@ -3858,6 +3882,10 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
     "func RewriteSemanticDirectCall(" "RewriteInoutCallArgs("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticDirectCall(" "ExprSequenceItemAt("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "EmitArrayLiteralValue("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "CodegenCharAt(source"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess(" "RewriteMemberCalls("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \

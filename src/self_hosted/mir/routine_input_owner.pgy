@@ -68,8 +68,8 @@ func SelfMirNodeDescendsFrom(
 
 func SelfMirForEachSyntheticOrdinal(
     ref input: SelfMirRoutineInput, node_id: Int
-) -> Int {
-    if !SelfMirIterationRowsReady(input.iterations) { return -1; }
+) -> Option<Int> {
+    if !SelfMirIterationRowsReady(input.iterations) { return None; }
     let found: Bool = false;
     let ordinal: Int = 0;
     let i: Int = 0;
@@ -91,8 +91,8 @@ func SelfMirForEachSyntheticOrdinal(
         }
         i = i + 1;
     }
-    if !found { return -1; }
-    return ordinal;
+    if !found { return None; }
+    return Some(ordinal);
 }
 
 func SelfMirControlBodyBlock(arena: AstArena, node_id: Int) -> Option<Int> {

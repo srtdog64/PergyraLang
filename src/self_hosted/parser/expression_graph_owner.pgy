@@ -95,6 +95,32 @@ func ParserExpressionCallArgument(
     );
 }
 
+func ParserExpressionArrayLiteral(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeArrayLiteral()];
+    let texts: Array<String> = [text];
+    let children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, children, children)
+    );
+}
+
+func ParserExpressionArrayElement(
+    text: String,
+    literal: ParserExpressionFact,
+    element: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !literal.ok || !AstExpressionNodeIsArrayLiteralSpine(
+        literal.arena.node_kinds[literal.root]
+    ) {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeArrayElement(), text, literal, element
+    );
+}
+
 func ParserExpressionBinary(
     kind: Int,
     text: String,
@@ -362,6 +388,30 @@ func ParserExpressionDirectCallCalleeContractReady() -> Bool {
     let callee: Option<String> = ParserExpressionDirectCallCalleeName(call);
     return call.ok && cursor[0] == StringLength(source) &&
         IsSome(callee) && UnwrapOption(callee) == "Mutate";
+}
+
+func ParserExpressionArrayLiteralGraphContractReady() -> Bool {
+    let source: String = "[1 + 2, Double(4)]";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeArrayElement() {
+        return false;
+    }
+    let previous: Int = fact.arena.left_children[fact.root];
+    let second: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[previous] !=
+            AstExpressionNodeArrayElement() ||
+        fact.arena.node_kinds[second] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let empty: Int = fact.arena.left_children[previous];
+    let first: Int = fact.arena.right_children[previous];
+    return fact.arena.node_kinds[empty] ==
+            AstExpressionNodeArrayLiteral() &&
+        fact.arena.node_kinds[first] == AstExpressionNodeAdd();
 }
 
 func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {

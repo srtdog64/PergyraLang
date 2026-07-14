@@ -69,6 +69,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_iteration_graph "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_foreach_call_type "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_enum_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "indexed_assignment" ]]; then
             grep -Fq '"expr1":"values[i]"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend indexed target fact was lost" >&2

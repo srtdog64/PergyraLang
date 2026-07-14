@@ -64,6 +64,12 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
         return Some(AstExpressionNodeMemberAccess());
     }
     if kind == "try" { return Some(AstExpressionNodeTry()); }
+    if kind == "array_literal" {
+        return Some(AstExpressionNodeArrayLiteral());
+    }
+    if kind == "array_element" {
+        return Some(AstExpressionNodeArrayElement());
+    }
     return None;
 }
 

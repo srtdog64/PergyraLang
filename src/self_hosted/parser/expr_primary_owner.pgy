@@ -20,6 +20,8 @@ func ParsePrimaryFact(
     let base: String = "";
     let grouped: ParserExpressionFact = ParserExpressionInvalid();
     let preserves_grouped_graph: Bool = false;
+    let array_literal: ParserExpressionFact = ParserExpressionInvalid();
+    let preserves_array_literal_graph: Bool = false;
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
@@ -358,17 +360,26 @@ func ParsePrimaryFact(
         // full expression; binary subtrees come out parenthesised.
         i = i + 1;
         let elems: String = "";
+        array_literal = ParserExpressionArrayLiteral("[]");
         i = SkipWhitespaceAndComments(content, i);
         if ParserCharAt(content, i) != "]" {
             while true {
                 ArraySet(cursor_out, 0, i);
-                let e: String = ParseExpr(content, i, cursor_out);
+                let element: ParserExpressionFact = ParseExprFact(
+                    content, i, cursor_out
+                );
+                if !element.ok { Exit(1); }
                 i = cursor_out[0];
                 if StringLength(elems) == 0 {
-                    elems = e;
+                    elems = element.text;
                 } else {
-                    elems = Concat(elems, Concat(", ", e));
+                    elems = Concat(elems, Concat(", ", element.text));
                 }
+                array_literal = ParserExpressionArrayElement(
+                    Concat("[", Concat(elems, "]")),
+                    array_literal, element
+                );
+                if !array_literal.ok { Exit(1); }
                 i = SkipWhitespaceAndComments(content, i);
                 if ParserCharAt(content, i) == "," {
                     i = i + 1;
@@ -381,12 +392,14 @@ func ParsePrimaryFact(
         if i < 0 {
             Exit(1);
         }
-        base = Concat("[", Concat(elems, "]"));
+        base = array_literal.text;
+        preserves_array_literal_graph = true;
     } else {
         Exit(1);
     }
 
     let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
     if preserves_grouped_graph { base_fact = grouped; }
+    if preserves_array_literal_graph { base_fact = array_literal; }
     return ApplyPostfixFact(content, base_fact, i, cursor_out);
 }

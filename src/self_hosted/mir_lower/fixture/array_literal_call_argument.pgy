@@ -1,0 +1,11 @@
+func Double(value: Int) -> Int {
+    return value * 2;
+}
+
+func SumPair(values: Array<Int>) -> Int {
+    return values[0] + values[1];
+}
+
+func Main() -> Void {
+    Log(ToString(SumPair([1 + 2, Double(4)])));
+}
