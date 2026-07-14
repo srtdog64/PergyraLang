@@ -4244,9 +4244,10 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func IndentOf"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func ExpectText"
 require_file "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" 600
-require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionElementValue"
-require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "EmitStructValue(value_expr, elem_type, env)"
 require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionGraphElementValue("
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "RewriteExpectedValueWithSemanticGraph("
+reject_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionElementValue("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitCollectionElementValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_graph: SemanticExpressionGraphView"
 reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \

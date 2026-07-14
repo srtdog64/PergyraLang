@@ -182,7 +182,9 @@ func EmitAssign(
         let arr_kind: String = LookupKindType(env, arr_name, "v");
         let arr_kind_code: Int = CollectionRuntimeKindCode(arr_kind);
         let set_fn: String = CollectionRuntimeCSetFn(arr_kind_code);
-        let rhs: String = EmitCollectionElementValue(arr_kind, expr, env, arr_kind_code);
+        let rhs: String = EmitCollectionGraphElementValue(
+            expr, env, arr_kind_code, graph
+        );
         return Concat(set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
             Concat(IntEval(idx_expr, env), Concat(", ", Concat(rhs, ");")))))));
     }

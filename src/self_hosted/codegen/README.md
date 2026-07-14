@@ -204,9 +204,10 @@ top-level additive index and operator kind, while
 `emission/log_emit_owner.pgy` owns log type routing and scalar formatting ABI.
 The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
 Scalar/String returns reuse the atom row; ordinary scalar/String local
-initializers and assignments consume the value row. Indexed collection
-elements, Option/Result wrapper internals,
-`CodegenAstTextNode` collection elements, auxiliary payloads, and non-condition
+initializers and assignments consume the value row. Indexed assignment,
+`ArrayPush`, and `ArraySet` values share one expected-type graph consumer for
+scalar, String, and struct elements. Indexed target-index expressions,
+Option/Result wrapper internals, special unary forms, and non-condition
 recursive child-expression lowering remain the explicit compact-text bridge.
 Root `if`/`while` conditions additionally consume separate semantic `||`,
 `&&`, equality-position, and equality-kind facts plus stable expression node
@@ -235,8 +236,8 @@ body markers, and statement reads. Parameter mode spelling (`inout`, `own`,
 consumes that fact through function-env `pm` rows and must not infer mutation
 mode from `ArrayPush` or other statement text. `run/codegen_run_owner.pgy` owns the CLI-to-output
 orchestration that wires that owned AST text into `GenerateC`; `main.pgy` only
-calls the run owner. `emission/struct_value_emit.pgy` is retained only for
-explicitly unclosed `CodegenAstTextNode` collection elements. General
+calls the run owner. `emission/struct_value_emit.pgy` remains a legacy
+compact-expression owner for unmigrated lanes; collection values and general
 struct-valued `let`, assignment, and return paths consume expected-type
 semantic graph facts. `emission/option_value_emit_owner.pgy` consumes the same
 graph boundary for `Option<struct>` `Some` constructors and payloads, selecting

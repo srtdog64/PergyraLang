@@ -175,7 +175,9 @@ projects those rows fail-closed; codegen does not reinterpret assignment arena
 payloads.
 `../semantic/ast_statement_fact_owner.pgy` also owns `ArrayPush` target/value
 and `ArraySet` target/index/value rows. The semantic statement codegen view
-projects them fail-closed; no collection mutation AST-text owner exists.
+projects them fail-closed; no collection mutation AST-text owner exists. One
+expected-type expression-graph renderer owns indexed-assignment, `ArrayPush`,
+and `ArraySet` values across scalar, String, and struct element types.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
@@ -217,17 +219,16 @@ is still a compact-text bridge until the parser emits those same rows directly;
 postfix try is already parser-owned and is not part of that bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
-absent. The remaining blocker is indexed collection value/auxiliary payloads,
-Option/Result wrapper internals,
-`CodegenAstTextNode` collection elements, non-condition recursive expression
-text, and parser-to-semantic graph production. Those bridges remain inside
+absent. The remaining blocker is indexed-assignment target-index projection,
+Option/Result wrapper internals, special unary forms, non-condition recursive
+expression text, and initial compact-tree construction. Those bridges remain inside
 named owners rather than reopening a codegen arena read.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 `expected/*_stdout.txt` outputs. `main.pgy` only calls that run owner.
-`emission/struct_value_emit.pgy` remains only for explicitly unclosed compact
-`CodegenAstTextNode` collection elements. General struct-valued local
+`emission/struct_value_emit.pgy` remains a legacy compact-expression owner for
+unmigrated lanes. Collection values and general struct-valued local
 initialization, assignment, and value return consume expected-type semantic
 graph facts. `emission/option_value_emit_owner.pgy` consumes the shared semantic
 call spine and expected-type ABI row for `Option<struct>` constructors and

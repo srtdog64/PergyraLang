@@ -6,6 +6,22 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-14 - Collection values have one expression-graph consumer
+
+- Deleted the text-based collection element emitter. Indexed assignment,
+  `ArrayPush`, and `ArraySet` now consume their parser-owned expression graph
+  through one expected-type renderer for Int, String, and struct elements.
+- Added `str_array.pgy` as the twenty-eighth DRV-2 MIR fixture. The manifest
+  records the String `ArraySet` leaf graph instead of accepting value text as
+  a second semantic source.
+- Focused C-built and LLVM-built drivers matched native canonical MIR, emitted
+  C, and runtime output for indexed assignment, String and Int mutators, and
+  struct `ArrayPush`/`ArraySet`. Missing and invalid graphs failed closed in
+  both drivers.
+- Static gates reject `EmitCollectionElementValue` and require the shared graph
+  renderer. The complete 28-case matrix was not rerun in this slice; the next
+  collection seam is the indexed-assignment target-index expression.
+
 ## 2026-07-14 - ArraySet consumes the semantic auxiliary graph
 
 - Required the auxiliary-lane semantic expression graph for every `ArraySet`
