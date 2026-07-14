@@ -81,6 +81,11 @@ func ApplyPostfixFact(
             }
             i = after_ws + 1;
             let init_args: String = "";
+            let struct_literal: ParserExpressionFact =
+                ParserExpressionStructLiteral(
+                    Concat(base.text, " { }"), base
+                );
+            if !struct_literal.ok { Exit(1); }
             i = SkipWhitespaceAndComments(content, i);
             if ParserCharAt(content, i) != "}" {
                 while true {
@@ -96,14 +101,30 @@ func ApplyPostfixFact(
                         Exit(1);
                     }
                     ArraySet(cursor_out, 0, i);
-                    let init_value: String = ParseExpr(content, i, cursor_out);
+                    let init_value: ParserExpressionFact = ParseExprFact(
+                        content, i, cursor_out
+                    );
+                    if !init_value.ok { Exit(1); }
                     i = cursor_out[0];
-                    let init_pair: String = Concat(init_name, Concat(": ", init_value));
+                    let init_pair: String = Concat(
+                        init_name, Concat(": ", init_value.text)
+                    );
                     if StringLength(init_args) == 0 {
                         init_args = init_pair;
                     } else {
                         init_args = Concat(init_args, Concat(", ", init_pair));
                     }
+                    let binding: ParserExpressionFact =
+                        ParserExpressionStructFieldBinding(
+                            init_pair, init_name, init_value
+                        );
+                    struct_literal = ParserExpressionStructField(
+                        Concat(base.text, Concat(
+                            " { ", Concat(init_args, " }")
+                        )),
+                        struct_literal, binding
+                    );
+                    if !struct_literal.ok { Exit(1); }
                     i = SkipWhitespaceAndComments(content, i);
                     if ParserCharAt(content, i) == "," {
                         i = i + 1;
@@ -116,9 +137,7 @@ func ApplyPostfixFact(
             if i < 0 {
                 Exit(1);
             }
-            base = ParserExpressionLeaf(Concat(
-                base.text, Concat("(", Concat(init_args, ")"))
-            ));
+            base = struct_literal;
             continue;
         }
         if nc == "(" {

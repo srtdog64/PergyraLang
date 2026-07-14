@@ -1,0 +1,239 @@
+// Composite literal emission from semantic-owned expression graph nodes.
+
+import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../abi_layout/abi_layout_owner.pgy";
+import "../runtime_abi/collection_runtime_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+import "expr_rewrite.pgy";
+
+struct SemanticArrayLiteralView {
+    ok: Bool;
+    element_nodes: Array<Int>;
+}
+
+struct SemanticStructLiteralView {
+    ok: Bool;
+    type_node: Int;
+    field_names: Array<String>;
+    value_nodes: Array<Int>;
+}
+
+func SemanticArrayLiteralViewFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticArrayLiteralView {
+    let reversed: Array<Int> = [];
+    let node: Int = root_id;
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeArrayElement() {
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node
+        );
+        let element: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node
+        );
+        if !IsSome(previous) || !IsSome(element) {
+            return SemanticArrayLiteralView(false, reversed);
+        }
+        ArrayPush(reversed, UnwrapOption(element));
+        node = UnwrapOption(previous);
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeArrayLiteral() {
+        return SemanticArrayLiteralView(false, reversed);
+    }
+    let elements: Array<Int> = [];
+    let i: Int = ArrayLength(reversed) - 1;
+    while i >= 0 {
+        ArrayPush(elements, reversed[i]);
+        i = i - 1;
+    }
+    return SemanticArrayLiteralView(true, elements);
+}
+
+func SemanticStructLiteralViewFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticStructLiteralView {
+    let reversed_names: Array<String> = [];
+    let reversed_values: Array<Int> = [];
+    let node: Int = root_id;
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeStructField() {
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node
+        );
+        let binding: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node
+        );
+        if !IsSome(previous) || !IsSome(binding) {
+            return SemanticStructLiteralView(
+                false, 0, reversed_names, reversed_values
+            );
+        }
+        let binding_id: Int = UnwrapOption(binding);
+        let binding_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, binding_id
+        );
+        let name_node: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, binding_id
+        );
+        let value_node: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, binding_id
+        );
+        if !IsSome(binding_kind) || UnwrapOption(binding_kind) !=
+                AstExpressionNodeStructFieldBinding() ||
+            !IsSome(name_node) || !IsSome(value_node) {
+            return SemanticStructLiteralView(
+                false, 0, reversed_names, reversed_values
+            );
+        }
+        let name_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, UnwrapOption(name_node)
+        );
+        let name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, UnwrapOption(name_node)
+        );
+        if !IsSome(name_kind) || UnwrapOption(name_kind) !=
+                AstExpressionNodeStructFieldName() ||
+            !IsSome(name) || !IsIdentifier(UnwrapOption(name)) {
+            return SemanticStructLiteralView(
+                false, 0, reversed_names, reversed_values
+            );
+        }
+        ArrayPush(reversed_names, UnwrapOption(name));
+        ArrayPush(reversed_values, UnwrapOption(value_node));
+        node = UnwrapOption(previous);
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeStructLiteral() {
+        return SemanticStructLiteralView(
+            false, 0, reversed_names, reversed_values
+        );
+    }
+    let type_node: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node
+    );
+    if !IsSome(type_node) {
+        return SemanticStructLiteralView(
+            false, 0, reversed_names, reversed_values
+        );
+    }
+    let field_names: Array<String> = [];
+    let value_nodes: Array<Int> = [];
+    let i: Int = ArrayLength(reversed_names) - 1;
+    while i >= 0 {
+        ArrayPush(field_names, reversed_names[i]);
+        ArrayPush(value_nodes, reversed_values[i]);
+        i = i - 1;
+    }
+    return SemanticStructLiteralView(
+        true, UnwrapOption(type_node), field_names, value_nodes
+    );
+}
+
+func RewriteSemanticExpectedValue(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    expected_type: String,
+    env: CodegenTypeEnv
+) -> String {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { Die("semantic expected-value kind is missing"); }
+    if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {
+        return RewriteSemanticArrayLiteralValue(
+            graph, node_id, expected_type, env
+        );
+    }
+    if AstExpressionNodeIsStructLiteralSpine(UnwrapOption(kind)) {
+        return RewriteSemanticStructLiteralValue(
+            graph, node_id, expected_type, env
+        );
+    }
+    return RewriteExprFromSemanticGraph(graph, node_id, env);
+}
+
+func RewriteSemanticArrayLiteralValue(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    expected_type: String,
+    env: CodegenTypeEnv
+) -> String {
+    let view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !view.ok || !StartsWith(expected_type, "Array<") {
+        Die("semantic array-literal graph/type fact is invalid");
+    }
+    let kind: String = CollectionRuntimeKindFromTypeName(expected_type);
+    let kind_code: Int = CollectionRuntimeKindCode(kind);
+    let element_type: String =
+        CollectionRuntimeElementTypeFromKindCode(kind_code);
+    if element_type == "CodegenAstTextNode" {
+        Die("inline Array<CodegenAstTextNode> values are outside the bootstrap subset");
+    }
+    let c_type: String = AbiLayoutCValueType(expected_type, env);
+    let temp: String = "_pgy_array_value";
+    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
+        Concat(temp, Concat(" = ", Concat(
+            CollectionRuntimeCNewFn(kind_code), "(); "))))));
+    let i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let value: String = RewriteSemanticExpectedValue(
+            graph, view.element_nodes[i], element_type, env
+        );
+        out = Concat(out, Concat(CollectionRuntimeCPushFn(kind_code),
+            Concat("(&", Concat(temp, Concat(", ",
+                Concat(value, "); "))))));
+        i = i + 1;
+    }
+    return Concat(out, Concat(temp, "; })"));
+}
+
+func RewriteSemanticStructLiteralValue(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    expected_type: String,
+    env: CodegenTypeEnv
+) -> String {
+    let view: SemanticStructLiteralView =
+        SemanticStructLiteralViewFromGraph(graph, root_id);
+    if !view.ok {
+        Die("semantic struct-literal graph/type fact is invalid");
+    }
+    let type_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.type_node
+    );
+    if !IsSome(type_name) ||
+        UnwrapOption(type_name) != expected_type ||
+        LookupKindType(env, expected_type, "s") != "struct" {
+        Die("semantic struct-literal graph/type fact is invalid");
+    }
+    let c_type: String = AbiLayoutCStructTypeName(expected_type);
+    let out: String = Concat("(", Concat(c_type, "){ "));
+    let i: Int = 0;
+    while i < ArrayLength(view.field_names) {
+        let field_name: String = view.field_names[i];
+        let field_type: String = LookupFieldType(
+            env, expected_type, field_name
+        );
+        if field_type == "" {
+            Die(Concat("struct argument initializer field lacks type fact: ",
+                Concat(expected_type, Concat(".", field_name))));
+        }
+        if i > 0 { out = Concat(out, ", "); }
+        let value: String = RewriteSemanticExpectedValue(
+            graph, view.value_nodes[i], field_type, env
+        );
+        out = Concat(out, Concat(".", Concat(
+            CompilerSymbolCFieldName(field_name),
+            Concat(" = (", Concat(value, ")"))
+        )));
+        i = i + 1;
+    }
+    return Concat(out, " }");
+}

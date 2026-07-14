@@ -83,6 +83,11 @@ parser_parse_object_literal(Parser *parser, ASTNode *type_expr)
 {
     ASTNode *call = ast_create_call(type_expr);
     bool saved_nsl = parser->no_struct_literal;
+    if (!ast_call_mark_braced_initializer_syntax(call)) {
+        parser_error(parser, "Out of memory while parsing object initializer");
+        ast_destroy(call);
+        return NULL;
+    }
     if (call != NULL && type_expr != NULL) {
         call->line = type_expr->line;
         call->column = type_expr->column;

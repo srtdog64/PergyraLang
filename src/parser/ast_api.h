@@ -145,6 +145,8 @@ ASTNode* ast_create_give_statement(ASTNode* value);
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right);
 ASTNode* ast_create_unary(Token op, ASTNode* operand);
 ASTNode* ast_create_call(ASTNode* callee);
+bool ast_call_uses_braced_initializer_syntax(const ASTNode* node);
+bool ast_call_mark_braced_initializer_syntax(ASTNode* node);
 ASTNode* ast_create_member_access(ASTNode* object, const char* member);
 ASTNode* ast_member_object(const ASTNode* node);
 const char* ast_member_name(const ASTNode* node);

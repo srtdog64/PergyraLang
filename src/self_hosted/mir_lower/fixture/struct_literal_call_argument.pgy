@@ -1,0 +1,24 @@
+struct Vec2 {
+    x: Int;
+    y: Int;
+}
+
+struct Line {
+    start: Vec2;
+    end: Vec2;
+}
+
+func Twice(value: Int) -> Int {
+    return value * 2;
+}
+
+func Width(line: Line) -> Int {
+    return line.end.x - line.start.x;
+}
+
+func Main() -> Void {
+    Log(ToString(Width(Line {
+        start: Vec2 { x: Twice(1), y: 3 },
+        end: Vec2 { x: 7 + 1, y: 9 }
+    })));
+}

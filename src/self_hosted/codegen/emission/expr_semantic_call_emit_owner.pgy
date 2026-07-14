@@ -17,82 +17,6 @@ struct SemanticMemberAccessView {
     member_node: Int;
 }
 
-struct SemanticArrayLiteralView {
-    ok: Bool;
-    element_nodes: Array<Int>;
-}
-
-func SemanticArrayLiteralViewFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    root_id: Int
-) -> SemanticArrayLiteralView {
-    let reversed: Array<Int> = [];
-    let node: Int = root_id;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
-    while IsSome(kind) &&
-        UnwrapOption(kind) == AstExpressionNodeArrayElement() {
-        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node
-        );
-        let element: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, node
-        );
-        if !IsSome(previous) || !IsSome(element) {
-            return SemanticArrayLiteralView(false, reversed);
-        }
-        ArrayPush(reversed, UnwrapOption(element));
-        node = UnwrapOption(previous);
-        kind = SemanticExpressionGraphNodeKind(graph, node);
-    }
-    if !IsSome(kind) ||
-        UnwrapOption(kind) != AstExpressionNodeArrayLiteral() {
-        return SemanticArrayLiteralView(false, reversed);
-    }
-    let elements: Array<Int> = [];
-    let i: Int = ArrayLength(reversed) - 1;
-    while i >= 0 {
-        ArrayPush(elements, reversed[i]);
-        i = i - 1;
-    }
-    return SemanticArrayLiteralView(true, elements);
-}
-
-func RewriteSemanticArrayLiteralValue(
-    graph: SemanticExpressionGraphFacts,
-    root_id: Int,
-    expected_type: String,
-    env: CodegenTypeEnv
-) -> String {
-    let view: SemanticArrayLiteralView =
-        SemanticArrayLiteralViewFromGraph(graph, root_id);
-    if !view.ok || !StartsWith(expected_type, "Array<") {
-        Die("semantic array-literal graph/type fact is invalid");
-    }
-    let kind: String = CollectionRuntimeKindFromTypeName(expected_type);
-    let kind_code: Int = CollectionRuntimeKindCode(kind);
-    let element_type: String =
-        CollectionRuntimeElementTypeFromKindCode(kind_code);
-    if element_type == "CodegenAstTextNode" {
-        Die("inline Array<CodegenAstTextNode> values are outside the bootstrap subset");
-    }
-    let c_type: String = AbiLayoutCValueType(expected_type, env);
-    let temp: String = "_pgy_array_value";
-    let out: String = Concat("({ ", Concat(c_type, Concat(" ",
-        Concat(temp, Concat(" = ", Concat(
-            CollectionRuntimeCNewFn(kind_code), "(); "))))));
-    let i: Int = 0;
-    while i < ArrayLength(view.element_nodes) {
-        let value: String = RewriteExprFromSemanticGraph(
-            graph, view.element_nodes[i], env
-        );
-        out = Concat(out, Concat(CollectionRuntimeCPushFn(kind_code),
-            Concat("(&", Concat(temp, Concat(", ",
-                Concat(value, "); "))))));
-        i = i + 1;
-    }
-    return Concat(out, Concat(temp, "; })"));
-}
-
 func SemanticMemberAccessViewFromGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int
@@ -171,25 +95,13 @@ func RewriteSemanticCallArgument(
     let text: Option<String> = SemanticExpressionGraphNodeText(
         graph, node_id
     );
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, node_id
-    );
-    if !IsSome(text) || !IsSome(kind) {
+    if !IsSome(text) {
         Die("semantic call argument fact is missing");
     }
     let source: String = UnwrapOption(text);
-    let rendered: String = "";
-    if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {
-        rendered = RewriteSemanticArrayLiteralValue(
-            graph, node_id, expected_type, env
-        );
-    } else if LookupKindType(env, expected_type, "s") == "struct" &&
-        UnwrapOption(kind) == AstExpressionNodeLeaf() &&
-        StructLiteralCallMatchesType(source, expected_type) {
-        rendered = RewriteStructLiteralCallArg(source, expected_type, env);
-    } else {
-        rendered = RewriteExprFromSemanticGraph(graph, node_id, env);
-    }
+    let rendered: String = RewriteSemanticExpectedValue(
+        graph, node_id, expected_type, env
+    );
     if mode == "inout" {
         if !IsIdentifier(source) {
             Die(Concat("inout argument must be a variable: ", source));

@@ -540,6 +540,7 @@ ASTNode* ast_create_call(ASTNode* callee) {
     node->data.call.arg_names = NULL;
     node->data.call.arg_count = 0;
     node->data.call.generic_args = NULL;
+    node->data.call.uses_braced_initializer_syntax = false;
     return node;
 }
 

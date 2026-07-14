@@ -218,10 +218,14 @@ row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts used by array literals, call arguments, and struct literal field
 lists so emission participants do not reimplement list splitting.
-`text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
-`Name(...)` recognition plus the typed type-name/inner-payload fact row.
-`text/struct_literal_field_owner.pgy` owns the typed struct literal field-entry
-fact row, including positional field fallback from collected field rows.
+`text/struct_literal_call_owner.pgy` owns the remaining non-graph struct value
+call-envelope facts: `Name(...)` recognition plus the typed
+type-name/inner-payload fact row. Named struct literals in migrated call
+arguments instead consume parser-owned struct/field graph nodes through
+`emission/expr_semantic_composite_literal_emit_owner.pgy`.
+`text/struct_literal_field_owner.pgy` owns the remaining non-graph typed struct
+literal field-entry fact row, including positional field fallback from
+collected field rows.
 `text/struct_field_access_owner.pgy` owns dotted member-access field spelling
 projection from source-space field facts into emitted C field names.
 Function signature and statement body emission now

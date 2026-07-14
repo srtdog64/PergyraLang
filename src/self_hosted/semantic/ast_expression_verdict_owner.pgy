@@ -3,6 +3,7 @@
 import "expression_normalization_owner.pgy";
 import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
+import "ast_expression_graph_identifier_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -84,6 +85,68 @@ func SemanticAstExpressionVerdictFromPayload(
     );
 }
 
+func SemanticAstExpressionVerdictFromGraph(
+    expression: String,
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>,
+    member_root_names: Array<String>
+) -> SemanticAstExpressionVerdict {
+    let text: String = SemanticStripOuterParens(expression);
+    let call_error: String = CheckCallFromGraphIdentifiers(
+        text, names, types, modes,
+        function_names, function_returns, function_params
+    );
+    if StringLength(call_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, call_error);
+    }
+    let identifier_fact: SemanticExpressionGraphIdentifierFact =
+        SemanticExpressionGraphIdentifierEvidence(
+            graph, root_id, names, member_root_names
+        );
+    if !identifier_fact.ok {
+        return SemanticAstExpressionVerdictError(
+            text, SemanticError1(
+                "ast_artifact_invalid", "owner", "expression_graph"
+            )
+        );
+    }
+    if identifier_fact.has_undefined {
+        return SemanticAstExpressionVerdictError(
+            text, SemanticError1(
+                "undefined_symbol", "name", identifier_fact.name
+            )
+        );
+    }
+    let try_error: String = CheckTryOperand(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(try_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, try_error);
+    }
+    let logical_error: String = CheckLogicalOperands(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(logical_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, logical_error);
+    }
+    let binary_error: String = CheckBinaryOperands(
+        text, names, types, function_names, function_returns
+    );
+    if StringLength(binary_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, binary_error);
+    }
+    return SemanticAstExpressionVerdictOk(
+        text,
+        ExprType(text, names, types, function_names, function_returns)
+    );
+}
+
 func SemanticAstExpressionVerdictContractReady() -> Bool {
     let names: Array<String> = ["x"];
     let types: Array<String> = ["Int"];
@@ -112,5 +175,6 @@ func SemanticAstExpressionVerdictContractReady() -> Bool {
         !undefined.ok && undefined.diagnostic_code == "undefined_symbol" &&
         !bad_call.ok && bad_call.diagnostic_code == "call_arg_type_mismatch" &&
         !unknown.ok &&
-        unknown.diagnostic_code == "unregistered_diagnostic_code";
+        unknown.diagnostic_code == "unregistered_diagnostic_code" &&
+        SemanticExpressionGraphIdentifierContractReady();
 }

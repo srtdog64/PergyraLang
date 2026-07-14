@@ -44,10 +44,14 @@ func AstExpressionNodeMemberAccess() -> Int { return 19; }
 func AstExpressionNodeTry() -> Int { return 20; }
 func AstExpressionNodeArrayLiteral() -> Int { return 21; }
 func AstExpressionNodeArrayElement() -> Int { return 22; }
+func AstExpressionNodeStructLiteral() -> Int { return 23; }
+func AstExpressionNodeStructFieldBinding() -> Int { return 24; }
+func AstExpressionNodeStructField() -> Int { return 25; }
+func AstExpressionNodeStructFieldName() -> Int { return 26; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeArrayElement();
+        kind <= AstExpressionNodeStructFieldName();
 }
 
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
@@ -66,6 +70,11 @@ func AstExpressionNodeIsArrayLiteralSpine(kind: Int) -> Bool {
         kind == AstExpressionNodeArrayElement();
 }
 
+func AstExpressionNodeIsStructLiteralSpine(kind: Int) -> Bool {
+    return kind == AstExpressionNodeStructLiteral() ||
+        kind == AstExpressionNodeStructField();
+}
+
 func AstExpressionNodeIsCallableCallee(kind: Int) -> Bool {
     return kind == AstExpressionNodeLeaf() ||
         kind == AstExpressionNodeMemberAccess();
@@ -76,11 +85,13 @@ func AstExpressionNodeArity(kind: Int) -> Int {
         Die("unknown typed expression node kind");
     }
     if kind == AstExpressionNodeLeaf() ||
+        kind == AstExpressionNodeStructFieldName() ||
         kind == AstExpressionNodeArrayLiteral() {
         return 0;
     }
     if AstExpressionNodeIsUnaryOperator(kind) ||
-        kind == AstExpressionNodeCall() {
+        kind == AstExpressionNodeCall() ||
+        kind == AstExpressionNodeStructLiteral() {
         return 1;
     }
     return 2;
@@ -159,6 +170,21 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
             !AstExpressionNodeIsArrayLiteralSpine(
                 arena.node_kinds[left]
             ) {
+            return false;
+        }
+        if kind == AstExpressionNodeStructLiteral() &&
+            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            return false;
+        }
+        if kind == AstExpressionNodeStructFieldBinding() &&
+            arena.node_kinds[left] != AstExpressionNodeStructFieldName() {
+            return false;
+        }
+        if kind == AstExpressionNodeStructField() &&
+            (!AstExpressionNodeIsStructLiteralSpine(
+                arena.node_kinds[left]
+            ) || arena.node_kinds[right] !=
+                AstExpressionNodeStructFieldBinding()) {
             return false;
         }
         i = i + 1;

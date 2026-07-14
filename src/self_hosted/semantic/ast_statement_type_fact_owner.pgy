@@ -129,6 +129,14 @@ func SemanticAstStatementTypeFactsFromArtifact(
     if !enum_facts.ok {
         return SemanticAstStatementTypeStructuralError(artifact, "enum");
     }
+    let member_root_names: Array<String> = [];
+    if !SemanticAstExpressionMemberRootNames(
+        constructors, enum_facts, member_root_names
+    ) {
+        return SemanticAstStatementTypeStructuralError(
+            artifact, "member_root_environment"
+        );
+    }
     let i: Int = 0;
     while i < SemanticAstStatementCount(statements) {
         let names: Array<String> = [];
@@ -169,10 +177,37 @@ func SemanticAstStatementTypeFactsFromArtifact(
             kind != TypedAstKindArrayPushStmtTag();
         if checks_expression {
             let expression_verdict: SemanticAstExpressionVerdict =
-                SemanticAstExpressionVerdictFromPayload(
+                SemanticAstExpressionVerdictError(
+                    statements.payload_texts[i],
+                    SemanticError1(
+                        "ast_artifact_invalid", "owner", "expression_graph"
+                    )
+                );
+            if SemanticAstExpressionGraphAtomLaneRequired(
+                artifact, statements.node_ids[i]
+            ) {
+                let graph_view: SemanticExpressionGraphView =
+                    SemanticAstExpressionGraphForNode(
+                        expression_surfaces, statements.node_ids[i],
+                        AstExpressionLaneAtom()
+                    );
+                if !graph_view.ok {
+                    return SemanticAstStatementTypeStructuralError(
+                        artifact, "expression_graph"
+                    );
+                }
+                expression_verdict = SemanticAstExpressionVerdictFromGraph(
+                    statements.payload_texts[i], graph_view.graph,
+                    graph_view.root_id, names, types, modes,
+                    function_names, function_returns, function_params,
+                    member_root_names
+                );
+            } else {
+                expression_verdict = SemanticAstExpressionVerdictFromPayload(
                     statements.payload_texts[i], names, types, modes,
                     function_names, function_returns, function_params
                 );
+            }
             inferred = expression_verdict.inferred_type_name;
             if !expression_verdict.ok {
                 row_verified = 0;

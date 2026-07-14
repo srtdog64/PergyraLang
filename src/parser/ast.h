@@ -240,6 +240,7 @@ struct ASTNode
             size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */
             uint32_t       semantic_callee_decl_id;
+            bool           uses_braced_initializer_syntax;
         } call;
         
         /* Member access */

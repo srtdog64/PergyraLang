@@ -6,8 +6,36 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_fact_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_enum_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
+
+func SemanticAstExpressionMemberRootNames(
+    constructors: SemanticAstNominalConstructorFacts,
+    enums: SemanticAstEnumFacts,
+    inout roots: Array<String>
+) -> Bool {
+    if !SemanticAstNominalConstructorRowsReady(constructors) || !enums.ok {
+        return false;
+    }
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(constructors) {
+        let name: Option<String> = SemanticAstNominalConstructorNameAt(
+            constructors, i
+        );
+        if !IsSome(name) { return false; }
+        ArrayPush(roots, UnwrapOption(name));
+        i = i + 1;
+    }
+    i = 0;
+    while i < SemanticAstEnumCount(enums) {
+        let enum_name: Option<String> = SemanticAstEnumNameAt(enums, i);
+        if !IsSome(enum_name) { return false; }
+        ArrayPush(roots, UnwrapOption(enum_name));
+        i = i + 1;
+    }
+    return true;
+}
 
 func SemanticAstExpressionFunctionRowIndex(
     names: Array<String>,

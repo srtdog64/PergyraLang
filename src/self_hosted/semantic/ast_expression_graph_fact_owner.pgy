@@ -172,6 +172,20 @@ func SemanticExpressionGraphArenaReady(
             ) {
             return false;
         }
+        if kind == AstExpressionNodeStructLiteral() &&
+            arena.node_kinds[left] != AstExpressionNodeLeaf() {
+            return false;
+        }
+        if kind == AstExpressionNodeStructFieldBinding() && arena.node_kinds[left] != AstExpressionNodeStructFieldName() {
+            return false;
+        }
+        if kind == AstExpressionNodeStructField() &&
+            (!AstExpressionNodeIsStructLiteralSpine(
+                arena.node_kinds[left]
+            ) || arena.node_kinds[right] !=
+                AstExpressionNodeStructFieldBinding()) {
+            return false;
+        }
         i = i + 1;
     }
     return true;

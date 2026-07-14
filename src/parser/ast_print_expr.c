@@ -35,7 +35,8 @@ ast_print_expr_node(ASTNode *node, int indent)
 
         case AST_CALL:
             ast_print_inline(node->data.call.callee);
-            printf("(");
+            printf(ast_call_uses_braced_initializer_syntax(node)
+                ? " { " : "(");
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 if (i > 0)
                     printf(", ");
@@ -44,7 +45,8 @@ ast_print_expr_node(ASTNode *node, int indent)
                     printf("%s: ", node->data.call.arg_names[i]);
                 ast_print_inline(node->data.call.arguments[i]);
             }
-            printf(")");
+            printf(ast_call_uses_braced_initializer_syntax(node)
+                ? " }" : ")");
             break;
 
         case AST_BINARY:

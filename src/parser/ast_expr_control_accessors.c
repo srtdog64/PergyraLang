@@ -62,6 +62,22 @@ ast_call_set_semantic_callee_decl_id(ASTNode *node, uint32_t decl_id)
     return true;
 }
 
+bool
+ast_call_uses_braced_initializer_syntax(const ASTNode *node)
+{
+    return node != NULL && node->type == AST_CALL
+        && node->data.call.uses_braced_initializer_syntax;
+}
+
+bool
+ast_call_mark_braced_initializer_syntax(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    node->data.call.uses_braced_initializer_syntax = true;
+    return true;
+}
+
 size_t
 ast_call_arg_count(const ASTNode* node)
 {

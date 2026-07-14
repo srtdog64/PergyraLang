@@ -26,6 +26,16 @@ func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
     );
 }
 
+func ParserExpressionStructFieldName(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeStructFieldName()];
+    let texts: Array<String> = [text];
+    let children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0, AstExpressionArena(kinds, texts, children, children)
+    );
+}
+
 func ParserExpressionUnary(
     kind: Int,
     text: String,
@@ -118,6 +128,63 @@ func ParserExpressionArrayElement(
     }
     return ParserExpressionBinary(
         AstExpressionNodeArrayElement(), text, literal, element
+    );
+}
+
+func ParserExpressionStructLiteral(
+    text: String,
+    type_expression: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !type_expression.ok || text == "" ||
+        type_expression.arena.node_kinds[type_expression.root] !=
+            AstExpressionNodeLeaf() {
+        return ParserExpressionInvalid();
+    }
+    let kinds: Array<Int> = type_expression.arena.node_kinds;
+    let texts: Array<String> = type_expression.arena.node_texts;
+    let left_children: Array<Int> = type_expression.arena.left_children;
+    let right_children: Array<Int> = type_expression.arena.right_children;
+    let root: Int = ArrayLength(kinds);
+    ArrayPush(kinds, AstExpressionNodeStructLiteral());
+    ArrayPush(texts, text);
+    ArrayPush(left_children, type_expression.root);
+    ArrayPush(right_children, 0);
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    return ParserExpressionFact(
+        AstExpressionArenaReady(arena), text, root, arena
+    );
+}
+
+func ParserExpressionStructFieldBinding(
+    text: String,
+    field_name: String,
+    value: ParserExpressionFact
+) -> ParserExpressionFact {
+    if field_name == "" || !value.ok {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeStructFieldBinding(), text,
+        ParserExpressionStructFieldName(field_name), value
+    );
+}
+
+func ParserExpressionStructField(
+    text: String,
+    literal: ParserExpressionFact,
+    binding: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !literal.ok || !binding.ok ||
+        !AstExpressionNodeIsStructLiteralSpine(
+            literal.arena.node_kinds[literal.root]
+        ) || binding.arena.node_kinds[binding.root] !=
+            AstExpressionNodeStructFieldBinding() {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeStructField(), text, literal, binding
     );
 }
 
@@ -412,6 +479,46 @@ func ParserExpressionArrayLiteralGraphContractReady() -> Bool {
     return fact.arena.node_kinds[empty] ==
             AstExpressionNodeArrayLiteral() &&
         fact.arena.node_kinds[first] == AstExpressionNodeAdd();
+}
+
+func ParserExpressionStructLiteralGraphContractReady() -> Bool {
+    let source: String =
+        "Pair { left: 1 + 2, right: Next(3) }";
+    let canonical: String =
+        "Pair { left: (1 + 2), right: Next(3) }";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeStructField() || fact.text != canonical ||
+        fact.arena.node_texts[fact.root] != canonical {
+        return false;
+    }
+    let previous: Int = fact.arena.left_children[fact.root];
+    let right_binding: Int = fact.arena.right_children[fact.root];
+    if fact.arena.node_kinds[previous] !=
+            AstExpressionNodeStructField() ||
+        fact.arena.node_kinds[right_binding] !=
+            AstExpressionNodeStructFieldBinding() {
+        return false;
+    }
+    let literal: Int = fact.arena.left_children[previous];
+    let left_binding: Int = fact.arena.right_children[previous];
+    let type_node: Int = fact.arena.left_children[literal];
+    let left_name: Int = fact.arena.left_children[left_binding];
+    let left_value: Int = fact.arena.right_children[left_binding];
+    let right_name: Int = fact.arena.left_children[right_binding];
+    let right_value: Int = fact.arena.right_children[right_binding];
+    return fact.arena.node_kinds[literal] ==
+            AstExpressionNodeStructLiteral() &&
+        fact.arena.node_texts[type_node] == "Pair" &&
+        fact.arena.node_kinds[left_name] ==
+            AstExpressionNodeStructFieldName() &&
+        fact.arena.node_texts[left_name] == "left" &&
+        fact.arena.node_kinds[left_value] == AstExpressionNodeAdd() &&
+        fact.arena.node_texts[right_name] == "right" &&
+        fact.arena.node_kinds[right_value] ==
+            AstExpressionNodeCallArgument();
 }
 
 func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {

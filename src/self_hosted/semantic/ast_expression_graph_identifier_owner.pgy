@@ -1,0 +1,180 @@
+// Undefined-identifier evidence from parser-owned expression graph roles.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "env_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+struct SemanticExpressionGraphIdentifierFact {
+    ok: Bool;
+    has_undefined: Bool;
+    name: String;
+}
+
+func SemanticExpressionGraphIdentifierInvalid() -> SemanticExpressionGraphIdentifierFact {
+    return SemanticExpressionGraphIdentifierFact(false, false, "");
+}
+
+func SemanticExpressionGraphIdentifierReady() -> SemanticExpressionGraphIdentifierFact {
+    return SemanticExpressionGraphIdentifierFact(true, false, "");
+}
+
+func SemanticExpressionGraphIdentifierUndefined(
+    name: String
+) -> SemanticExpressionGraphIdentifierFact {
+    return SemanticExpressionGraphIdentifierFact(true, true, name);
+}
+
+func SemanticExpressionGraphIdentifierNodeArity(kind: Int) -> Int {
+    if !AstExpressionNodeKindKnown(kind) { return -1; }
+    if kind == AstExpressionNodeLeaf() ||
+        kind == AstExpressionNodeStructFieldName() ||
+        kind == AstExpressionNodeArrayLiteral() {
+        return 0;
+    }
+    if AstExpressionNodeIsUnaryOperator(kind) ||
+        kind == AstExpressionNodeCall() ||
+        kind == AstExpressionNodeStructLiteral() {
+        return 1;
+    }
+    return 2;
+}
+
+func SemanticExpressionGraphIdentifierEvidence(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Array<String>,
+    member_root_names: Array<String>
+) -> SemanticExpressionGraphIdentifierFact {
+    let pending: Array<Int> = [root_id];
+    while ArrayLength(pending) > 0 {
+        let node_id: Int = pending[ArrayLength(pending) - 1];
+        ArrayPop(pending);
+        let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, node_id
+        );
+        if !IsSome(kind_opt) {
+            return SemanticExpressionGraphIdentifierInvalid();
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        if kind == AstExpressionNodeLeaf() {
+            let text_opt: Option<String> = SemanticExpressionGraphNodeText(
+                graph, node_id
+            );
+            if !IsSome(text_opt) {
+                return SemanticExpressionGraphIdentifierInvalid();
+            }
+            let text: String = UnwrapOption(text_opt);
+            if text != "true" && text != "false" && text != "None" &&
+                IsIdentifier(text) && !EnvContainsName(names, text) {
+                return SemanticExpressionGraphIdentifierUndefined(text);
+            }
+            continue;
+        }
+        if kind == AstExpressionNodeStructFieldName() ||
+            kind == AstExpressionNodeStructLiteral() ||
+            kind == AstExpressionNodeArrayLiteral() {
+            continue;
+        }
+        if kind == AstExpressionNodeMemberAccess() {
+            let receiver: Int = graph.arena.left_children[node_id];
+            let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+                graph, receiver
+            );
+            if !IsSome(receiver_kind) {
+                return SemanticExpressionGraphIdentifierInvalid();
+            }
+            if UnwrapOption(receiver_kind) == AstExpressionNodeLeaf() {
+                let receiver_text: Option<String> =
+                    SemanticExpressionGraphNodeText(graph, receiver);
+                if !IsSome(receiver_text) {
+                    return SemanticExpressionGraphIdentifierInvalid();
+                }
+                let receiver_name: String = UnwrapOption(receiver_text);
+                if IsIdentifier(receiver_name) &&
+                    !EnvContainsName(names, receiver_name) &&
+                    !EnvContainsName(member_root_names, receiver_name) {
+                    return SemanticExpressionGraphIdentifierUndefined(
+                        receiver_name
+                    );
+                }
+            } else {
+                ArrayPush(pending, receiver);
+            }
+            continue;
+        }
+        if kind == AstExpressionNodeCall() {
+            continue;
+        }
+        if kind == AstExpressionNodeStructFieldBinding() {
+            ArrayPush(pending, graph.arena.right_children[node_id]);
+            continue;
+        }
+        let arity: Int = SemanticExpressionGraphIdentifierNodeArity(kind);
+        if arity < 0 {
+            return SemanticExpressionGraphIdentifierInvalid();
+        }
+        if arity >= 1 {
+            ArrayPush(pending, graph.arena.left_children[node_id]);
+        }
+        if arity == 2 {
+            ArrayPush(pending, graph.arena.right_children[node_id]);
+        }
+    }
+    return SemanticExpressionGraphIdentifierReady();
+}
+
+func SemanticExpressionGraphIdentifierContractReady() -> Bool {
+    let missing_cursor: Array<Int> = [0];
+    let missing_source: String = "Pair { label: missing }";
+    let missing: ParserExpressionFact = ParseExprFact(
+        missing_source, 0, missing_cursor
+    );
+    let valid_cursor: Array<Int> = [0];
+    let valid_source: String = "Pair { missing: 1 }";
+    let valid: ParserExpressionFact = ParseExprFact(
+        valid_source, 0, valid_cursor
+    );
+    let member_cursor: Array<Int> = [0];
+    let member_source: String = "known.value";
+    let member: ParserExpressionFact = ParseExprFact(
+        member_source, 0, member_cursor
+    );
+    if !missing.ok || !valid.ok || !member.ok { return false; }
+    let missing_facts: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLogStmtTag()], [AstExpressionLaneAtom()],
+                [missing.root], missing.arena
+            ), [0], 1
+        );
+    let valid_facts: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLogStmtTag()], [AstExpressionLaneAtom()],
+                [valid.root], valid.arena
+            ), [0], 1
+        );
+    let member_facts: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLogStmtTag()], [AstExpressionLaneAtom()],
+                [member.root], member.arena
+            ), [0], 1
+        );
+    let names: Array<String> = ["known"];
+    let member_roots: Array<String> = ["Choice"];
+    let undefined: SemanticExpressionGraphIdentifierFact =
+        SemanticExpressionGraphIdentifierEvidence(
+            missing_facts, missing.root, names, member_roots
+        );
+    return missing_cursor[0] == StringLength(missing_source) &&
+        valid_cursor[0] == StringLength(valid_source) &&
+        member_cursor[0] == StringLength(member_source) &&
+        undefined.ok && undefined.has_undefined && undefined.name == "missing" &&
+        !SemanticExpressionGraphIdentifierEvidence(
+            valid_facts, valid.root, names, member_roots
+        ).has_undefined &&
+        !SemanticExpressionGraphIdentifierEvidence(
+            member_facts, member.root, names, member_roots
+        ).has_undefined;
+}

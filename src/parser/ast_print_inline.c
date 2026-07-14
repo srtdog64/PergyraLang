@@ -266,7 +266,8 @@ ast_print_compact(ASTNode* node)
 
         case AST_CALL:
             ast_print_compact(node->data.call.callee);
-            inline_emitf("(");
+            inline_emitf(ast_call_uses_braced_initializer_syntax(node)
+                ? " { " : "(");
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 if (i > 0)
                     inline_emitf(", ");
@@ -275,7 +276,8 @@ ast_print_compact(ASTNode* node)
                     inline_emitf("%s: ", node->data.call.arg_names[i]);
                 ast_print_compact(node->data.call.arguments[i]);
             }
-            inline_emitf(")");
+            inline_emitf(ast_call_uses_braced_initializer_syntax(node)
+                ? " }" : ")");
             break;
 
         case AST_BINARY:

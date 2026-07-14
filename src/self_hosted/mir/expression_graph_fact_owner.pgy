@@ -1,5 +1,4 @@
 // MIR instruction-owned normalized expression graph rows.
-
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
 
@@ -377,6 +376,21 @@ func SelfMirExpressionGraphRowsReady(
                 ) {
                 return false;
             }
+            if kind == AstExpressionNodeStructLiteral() &&
+                rows.node_kinds[rows.left_children[node_i]] !=
+                    AstExpressionNodeLeaf() {
+                return false;
+            }
+            if kind == AstExpressionNodeStructFieldBinding() && rows.node_kinds[rows.left_children[node_i]] != AstExpressionNodeStructFieldName() {
+                return false;
+            }
+            if kind == AstExpressionNodeStructField() &&
+                (!AstExpressionNodeIsStructLiteralSpine(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) || rows.node_kinds[rows.right_children[node_i]] !=
+                    AstExpressionNodeStructFieldBinding()) {
+                return false;
+            }
             node_i = node_i + 1;
         }
         expected_start = start + count;
@@ -409,6 +423,12 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
     if kind == AstExpressionNodeTry() { return "try"; }
     if kind == AstExpressionNodeArrayLiteral() { return "array_literal"; }
     if kind == AstExpressionNodeArrayElement() { return "array_element"; }
+    if kind == AstExpressionNodeStructLiteral() { return "struct_literal"; }
+    if kind == AstExpressionNodeStructFieldBinding() {
+        return "struct_field_binding";
+    }
+    if kind == AstExpressionNodeStructField() { return "struct_field"; }
+    if kind == AstExpressionNodeStructFieldName() { return "struct_field_name"; }
     return "";
 }
 
@@ -534,16 +554,46 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ["[]", "1", "[1]"], [0, 0, 0], [0, 0, 1],
             [0, 0, 0], ["", "", ""]
         );
+    let valid_struct: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [5], [0], [6],
+            [
+                AstExpressionNodeLeaf(),
+                AstExpressionNodeStructLiteral(),
+                AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+                AstExpressionNodeStructFieldBinding(),
+                AstExpressionNodeStructField()
+            ],
+            ["Pair", "Pair()", "a", "1", "a: 1", "Pair(a: 1)"],
+            [0, 0, 0, 0, 2, 1], [0, 0, 0, 0, 3, 4],
+            [0, 0, 0, 0, 0, 0], ["", "", "", "", "", ""]
+        );
+    let malformed_struct: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [5], [0], [6],
+            [
+                AstExpressionNodeLeaf(),
+                AstExpressionNodeStructLiteral(),
+                AstExpressionNodeStructFieldName(), AstExpressionNodeLeaf(),
+                AstExpressionNodeStructFieldBinding(),
+                AstExpressionNodeStructField()
+            ],
+            ["Pair", "Pair()", "a", "1", "a: 1", "Pair(a: 1)"],
+            [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 3, 4],
+            [0, 0, 0, 0, 0, 0], ["", "", "", "", "", ""]
+        );
     return SelfMirExpressionGraphRowsReady(valid, 1) &&
         SelfMirExpressionGraphRowsReady(valid_unary, 1) &&
         SelfMirExpressionGraphRowsReady(valid_try, 1) &&
         SelfMirExpressionGraphRowsReady(valid_call, 1) &&
         SelfMirExpressionGraphRowsReady(valid_member, 1) &&
         SelfMirExpressionGraphRowsReady(valid_array, 1) &&
+        SelfMirExpressionGraphRowsReady(valid_struct, 1) &&
         !SelfMirExpressionGraphRowsReady(disconnected, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_unary, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_call, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_member, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_array, 1) &&
+        !SelfMirExpressionGraphRowsReady(malformed_struct, 1) &&
         !SelfMirExpressionGraphRowsReady(malformed_target, 1);
 }

@@ -16,7 +16,8 @@ func CompareCallArgs(
     names: Array<String>,
     types: Array<String>,
     func_names: Array<String>,
-    func_rets: Array<String>
+    func_rets: Array<String>,
+    check_argument_identifiers: Bool
 ) -> String {
     let i: Int = 0;
     let arg_index: Int = 0;
@@ -25,9 +26,12 @@ func CompareCallArgs(
             argument_facts, args_src, i
         );
         if StringLength(part) > 0 {
-            let undefined_error: String = CheckUndefinedIdentifiers(part, names);
-            if StringLength(undefined_error) > 0 {
-                return undefined_error;
+            if check_argument_identifiers {
+                let undefined_error: String =
+                    CheckUndefinedIdentifiers(part, names);
+                if StringLength(undefined_error) > 0 {
+                    return undefined_error;
+                }
             }
             let expected: String = NthExpectedFromFacts(
                 signature_facts, sig, arg_index
@@ -55,20 +59,23 @@ func CheckScalarUtilityArgs(
     names: Array<String>,
     types: Array<String>,
     func_names: Array<String>,
-    func_rets: Array<String>
+    func_rets: Array<String>,
+    check_argument_identifiers: Bool
 ) -> String {
     if callee != "Min" && callee != "Max" {
         return "";
     }
     let first: String = CallArgAtFromFacts(argument_facts, args_src, 0);
     let second: String = CallArgAtFromFacts(argument_facts, args_src, 1);
-    let first_undefined: String = CheckUndefinedIdentifiers(first, names);
-    if StringLength(first_undefined) > 0 {
-        return first_undefined;
-    }
-    let second_undefined: String = CheckUndefinedIdentifiers(second, names);
-    if StringLength(second_undefined) > 0 {
-        return second_undefined;
+    if check_argument_identifiers {
+        let first_undefined: String = CheckUndefinedIdentifiers(first, names);
+        if StringLength(first_undefined) > 0 {
+            return first_undefined;
+        }
+        let second_undefined: String = CheckUndefinedIdentifiers(second, names);
+        if StringLength(second_undefined) > 0 {
+            return second_undefined;
+        }
     }
     let first_type: String = ExprType(first, names, types, func_names, func_rets);
     let second_type: String = ExprType(second, names, types, func_names, func_rets);
@@ -198,7 +205,16 @@ func CheckOptionBuiltinArgs(
     }
     return "";
 }
-func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
+func CheckCallWithIdentifierOwner(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>,
+    func_params: Array<String>,
+    check_argument_identifiers: Bool
+) -> String {
     let trimmed: String = Trim(text);
     let tn: Int = StringLength(trimmed);
     if tn == 0 {
@@ -249,7 +265,8 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
     }
     let scalar_error: String = CheckScalarUtilityArgs(
         argument_facts, callee, args_src,
-        names, types, func_names, func_rets
+        names, types, func_names, func_rets,
+        check_argument_identifiers
     );
     if StringLength(scalar_error) > 0 {
         return scalar_error;
@@ -259,7 +276,36 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, modes: 
     }
     return CompareCallArgs(
         argument_facts, signature_facts, callee, args_src, sig,
-        names, types, func_names, func_rets
+        names, types, func_names, func_rets,
+        check_argument_identifiers
+    );
+}
+
+func CheckCall(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>,
+    func_params: Array<String>
+) -> String {
+    return CheckCallWithIdentifierOwner(
+        text, names, types, modes, func_names, func_rets, func_params, true
+    );
+}
+
+func CheckCallFromGraphIdentifiers(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>,
+    func_params: Array<String>
+) -> String {
+    return CheckCallWithIdentifierOwner(
+        text, names, types, modes, func_names, func_rets, func_params, false
     );
 }
 import "callable_resolution_owner.pgy";

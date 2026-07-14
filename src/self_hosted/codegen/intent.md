@@ -181,10 +181,13 @@ row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.
-`text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
-`Name(...)` recognition plus the typed type-name/inner-payload fact row.
-`text/struct_literal_field_owner.pgy` owns the typed struct literal field-entry
-fact row while struct literal payloads remain string-backed.
+`text/struct_literal_call_owner.pgy` owns remaining non-graph struct value
+call-envelope facts: `Name(...)` recognition plus the typed
+type-name/inner-payload fact row. Named struct literals in migrated call
+arguments consume parser-owned struct/field graph nodes through
+`emission/expr_semantic_composite_literal_emit_owner.pgy`.
+`text/struct_literal_field_owner.pgy` owns the remaining non-graph typed struct
+literal field-entry fact row while those payloads remain string-backed.
 `text/struct_field_access_owner.pgy` owns dotted member-access spelling
 projection while member payloads remain string-backed.
 Statement-row facts for `Let`, `Assign`, `Log`, `Return`, `Defer`, `ArrayPop`,

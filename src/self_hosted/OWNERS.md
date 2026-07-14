@@ -127,6 +127,8 @@ inventory must not become a second fact-family owner registry.
   array mutation, and bare-call kind/payload rows used for statement routing.
 - `src/self_hosted/semantic/ast_expression_verdict_owner.pgy` -- ordered call,
   undefined-use, try, logical, binary, and inferred-type expression verdicts.
+- `src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy` --
+  undefined-identifier evidence from parser graph node roles.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
   return, condition, call, and statement expression type verdict rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
@@ -321,6 +323,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
   recursive expression emission from semantic node handles and child edges;
   codegen does not split migrated payloads to rediscover precedence.
+- `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
+  expected-type array and named-struct literal emission from semantic graph
+  handles and field edges.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method

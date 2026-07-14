@@ -70,6 +70,18 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "array_element" {
         return Some(AstExpressionNodeArrayElement());
     }
+    if kind == "struct_literal" {
+        return Some(AstExpressionNodeStructLiteral());
+    }
+    if kind == "struct_field_binding" {
+        return Some(AstExpressionNodeStructFieldBinding());
+    }
+    if kind == "struct_field" {
+        return Some(AstExpressionNodeStructField());
+    }
+    if kind == "struct_field_name" {
+        return Some(AstExpressionNodeStructFieldName());
+    }
     return None;
 }
 
@@ -332,10 +344,17 @@ func MirExpressionGraphFactsForArtifact(
         SemanticAstExpressionSurfaceRowsFromArtifact(artifact);
     let sequence: MirExpressionGraphSequence =
         MirExpressionGraphSequenceFromJson(json);
+    if !sequence.ok {
+        let invalid_roots: Array<Int> = [];
+        let invalid_has_roots: Array<Bool> = [];
+        return SemanticExpressionGraphFacts(
+            false, invalid_roots, invalid_has_roots, sequence.arena
+        );
+    }
     let roots: Array<Int> = [];
     let has_roots: Array<Bool> = [];
     let sequence_i: Int = 0;
-    let valid: Bool = sequence.ok;
+    let valid: Bool = true;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(surfaces) {
         let node_id: Int = surfaces.node_ids[i];
