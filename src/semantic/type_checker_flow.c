@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
