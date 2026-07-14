@@ -18743,6 +18743,23 @@ HANG finding으로 보고). 재실행 clean(40소스+3배터리). **★2건 잔�
 무한루프. 원인 격리는 입력이 moving target(동시세션 미커밋)이라 보류, semantic guard
 추가는 별도 대작업.
 
+**semantic 무한루프 격리 시도 (2026-07-14, "계속 작업해") — 7-guard 회피, gdb
+부재로 라인 미확정, 정직 종결**: (2)를 파려고 안정 스냅샷(loop_repro) 뜨고 단계
+이분. 확정: pass2 stmt 1281 = **`EmitStmtList`**(self-host codegen 함수)의 while
+body 검사 → `type_check_flow_loops.c`의 while-flow iter==0 → scope_enter 정상 →
+**`type_check_block_flow`(body)에서 무한**. **임시 guard 7개 전부 회피**:
+expr(200M)/stmt-flow(50M)/scope-walk(1M)/block진입(20M)/block-for(20M)/for-in-flow
+(5M)/snapshot-호출(10M). 핵심 진단: **census guard가 "함수 진입 카운트"라, stmt_flow가
+1프레임 진입 후 계측 안 된 dispatch case(if/match/with/let 등)의 내부 tight loop에서
+무한이면 못 잡는다**. 그 loop는 snapshot/expr/stmt/block/for를 안 지나는 순수
+tight loop(CPU R+). frozen 사본(이전 스냅샷)은 현재 pgy로 정상 → **내 코드
+무죄**(WO-SEC-2 registry/WO-SEMPERF memo 둘 다 종료성 중립). **막힌 이유**: WSL
+gdb/lldb 없음(sudo 비번), Windows gcc 심볼 스택 도구 없음 → 계측 안 된 flow 함수의
+내부 loop를 정적으로 못 좁힘. **다음 스텝**: (a) gdb/procdump 확보 후 스택 1방, 또는
+(b) 각 flow 함수(if/match/with/loop)에 개별 iteration guard 뿌려 이분. 종료 guard를
+지금 임의 지점에 넣는 건 라인 모르면 cosmetic(§8) → **라인 확정 선행**. 임시
+진단코드 전부 되돌림(6파일 committed 복원), semantic 2794/0 무회귀.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
