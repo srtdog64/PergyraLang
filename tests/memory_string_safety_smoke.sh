@@ -86,6 +86,22 @@ fi
 
 grep -Fq "Memory/string safety audit remains open" "$ROOT_DIR/TODO.md" \
     || fail "TODO must keep the memory/string safety audit bucket visible"
+
+require_literal "src/lexer/lexer.h" \
+    "LexerTokenTextOwner *token_text_owner;"
+require_literal "src/lexer/lexer.c" \
+    "pgy_arena_alloc(&lexer->token_text_owner->arena, length + 1)"
+require_literal "src/lexer/lexer.c" \
+    "pgy_arena_destroy(&lexer->token_text_owner->arena)"
+reject_literal "src/lexer/lexer.c" \
+    "token.text = pergyra_strndup(start, length)"
+reject_literal "src/parser/parser_expr_lambda.c" \
+    "free(next.text)"
+require_literal "src/parser/ast_constructors.c" \
+    "op.text = NULL;"
+require_literal "src/parser/ast_clone.c" \
+    "clone.text = NULL;"
+
 grep -Fq "Buffer Overflow" "$ROOT_DIR/src/test_security_buffer_overflow.c" \
     || fail "historical buffer-overflow regression coverage is missing"
 grep -Fq "snprintf" "$ROOT_DIR/src/test_security_comprehensive.c" \

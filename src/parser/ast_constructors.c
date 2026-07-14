@@ -518,6 +518,7 @@ ASTNode* ast_create_give_statement(ASTNode* value) {
 // Binary operation
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right) {
     ASTNode* node = ast_create_node(AST_BINARY);
+    op.text = NULL;
     node->data.binary.left = left;
     node->data.binary.op = op;
     node->data.binary.right = right;
@@ -527,6 +528,7 @@ ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right) {
 // Unary operation
 ASTNode* ast_create_unary(Token op, ASTNode* operand) {
     ASTNode* node = ast_create_node(AST_UNARY);
+    op.text = NULL;
     node->data.unary.op = op;
     node->data.unary.operand = operand;
     return node;

@@ -13,7 +13,7 @@ ast_clone_token(Token token)
 {
     Token clone = token;
 
-    clone.text = token.text != NULL ? pergyra_strdup(token.text) : NULL;
+    clone.text = NULL;
     return clone;
 }
 

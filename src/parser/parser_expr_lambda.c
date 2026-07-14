@@ -1,20 +1,10 @@
 #include "parser_internal.h"
 
-static void
-free_lookahead_token(Token *token, bool owned)
-{
-    if (owned && token != NULL) {
-        free(token->text);
-        token->text = NULL;
-    }
-}
-
 bool
 parser_is_lambda_start(Parser *parser)
 {
     Lexer lookahead;
     Token token;
-    bool token_owned = false;
     int paren_depth = 0;
 
     if (!parser_check(parser, TOKEN_LPAREN))
@@ -32,18 +22,13 @@ parser_is_lambda_start(Parser *parser)
                 Token next = lexer_next_token(&lookahead);
                 bool is_lambda = next.type == TOKEN_LAMBDA
                     || next.type == TOKEN_ARROW;
-                free(next.text);
-                free_lookahead_token(&token, token_owned);
                 return is_lambda;
             }
         } else if (token.type == TOKEN_EOF) {
-            free_lookahead_token(&token, token_owned);
             return false;
         }
 
-        free_lookahead_token(&token, token_owned);
         token = lexer_next_token(&lookahead);
-        token_owned = true;
     }
 }
 

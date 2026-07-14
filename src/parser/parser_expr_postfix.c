@@ -16,7 +16,6 @@ parser_synthetic_minus_token(ASTNode *anchor)
 
     memset(&token, 0, sizeof(token));
     token.type = TOKEN_MINUS;
-    token.text = pergyra_strdup("-");
     token.length = 1;
     if (anchor != NULL) {
         token.line = anchor->line;
@@ -234,6 +233,7 @@ parser_parse_call(Parser *parser)
                 try_node->type = AST_UNARY;
                 try_node->line = parser->previous_token.line;
                 try_node->data.unary.op = parser->previous_token;
+                try_node->data.unary.op.text = NULL;
                 try_node->data.unary.operand = expr;
             }
             expr = try_node;

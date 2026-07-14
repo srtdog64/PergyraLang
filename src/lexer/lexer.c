@@ -5,17 +5,46 @@
 
 #include "lexer.h"
 #include "lexer_keywords.h"
-#include "../common/string_compat.h"
+#include "../common/arena.h"
 #include "../semantic/diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
 
+struct LexerTokenTextOwner
+{
+    PgyArena arena;
+};
+
+static char *
+lexer_token_text_copy(Lexer *lexer, const char *start, size_t length)
+{
+    char *copy;
+
+    if (lexer == NULL || lexer->token_text_owner == NULL || start == NULL
+        || length == SIZE_MAX) {
+        return NULL;
+    }
+    copy = pgy_arena_alloc(&lexer->token_text_owner->arena, length + 1);
+    if (copy == NULL)
+        return NULL;
+    memcpy(copy, start, length);
+    copy[length] = '\0';
+    return copy;
+}
+
 /* Create a new lexer */
 Lexer* lexer_create(const char* source) {
     Lexer* lexer = calloc(1, sizeof(Lexer));
     if (!lexer) return NULL;
+
+    lexer->token_text_owner = calloc(1, sizeof(*lexer->token_text_owner));
+    if (lexer->token_text_owner == NULL) {
+        free(lexer);
+        return NULL;
+    }
+    pgy_arena_init(&lexer->token_text_owner->arena, 0);
     
     lexer->source = source;
     lexer->current = source;
@@ -30,6 +59,10 @@ Lexer* lexer_create(const char* source) {
 /* Destroy lexer */
 void lexer_destroy(Lexer* lexer) {
     if (lexer) {
+        if (lexer->token_text_owner != NULL) {
+            pgy_arena_destroy(&lexer->token_text_owner->arena);
+            free(lexer->token_text_owner);
+        }
         free(lexer);
     }
 }
@@ -157,7 +190,7 @@ static bool is_alnum(char c) {
 static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length) {
     Token token;
     token.type = type;
-    token.text = pergyra_strndup(start, length);
+    token.text = lexer_token_text_copy(lexer, start, length);
     token.length = length;
     token.line = lexer->line;
     token.column = lexer->column - length;
@@ -177,7 +210,7 @@ static Token error_token(Lexer* lexer, const char* message) {
     
     Token token;
     token.type = TOKEN_ERROR;
-    token.text = pergyra_strdup(message);
+    token.text = lexer_token_text_copy(lexer, message, strlen(message));
     token.length = strlen(message);
     token.line = lexer->line;
     token.column = lexer->column;

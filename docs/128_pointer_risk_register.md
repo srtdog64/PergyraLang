@@ -27,6 +27,7 @@ Any pointer not fitting one of these classes is beta debt.
 | Intent observability string exports | `runtime-borrowed string` copied into thread-local snapshots; consume/copy before a later borrowed string query on the same thread reuses the slot | `runtime-abi-lifetime-test-smoke` |
 | Intent last-history lifecycle | inline and runtime-lib exits clear every previous `PgyIntentHistoryStep` field through the step-clear owner before replacing the snapshot; partial field frees are forbidden | `runtime-intent-observability-contract-test-smoke` |
 | String helpers | `result-owned string` | `runtime-abi-lifetime-test-smoke` |
+| Lexer token text | `scratch` storage owned by one parse-lifetime arena; speculative lexer cursors share that owner, while AST operator tokens retain kind/span facts and clear the text pointer | `memory-string-safety-test-smoke` + `test-parser` + `test-semantic` |
 | `Substring` / `StringReplace` sizing | reject strings beyond the `Int` index range and count replacements with `size_t` before result allocation | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | `StringSplit` / `MapKeys` arrays | `result-owned array` with copied string payloads | `runtime-abi-lifetime-test-smoke` |
 | File descriptors | `runtime-owned handle` table, released by close | `runtime-abi-lifetime-test-smoke` |
@@ -220,6 +221,14 @@ Required direction:
 The compiler has scratch, persistent, result-owned, and runtime-owned lanes.
 The unsafe pattern is caching a pointer from a shorter-lived lane in a
 longer-lived structure.
+
+Lexer token text is a closed instance of this rule. The lexer owns one
+parse-lifetime arena, and non-destructive cursor copies share that owner rather
+than copying arena state. Parser lookahead may retain token text only while the
+lexer is alive. AST operator nodes preserve the stable token kind and source
+span but clear the scratch text pointer, so semantic and backend phases cannot
+cache lexer storage. Per-token heap allocation and per-lookahead `free` are
+forbidden old paths.
 
 This remains real residual debt at the proof level. Existing smoke gates cover
 known static-scratch and runtime ABI seams, but they are not a complete

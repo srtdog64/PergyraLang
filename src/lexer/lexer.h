@@ -219,6 +219,8 @@ typedef struct
     } value;
 } Token;
 
+typedef struct LexerTokenTextOwner LexerTokenTextOwner;
+
 /*
  * Lexer state structure
  */
@@ -231,6 +233,8 @@ typedef struct
     uint32_t    column;
     bool        hasError;
     char        errorMsg[256];
+    /* Parse-lifetime owner shared by non-destructive lexer cursor copies. */
+    LexerTokenTextOwner *token_text_owner;
 } Lexer;
 
 /*
