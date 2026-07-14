@@ -150,6 +150,18 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
+        if [[ "$base" == "ast_node_array_push" ]]; then
+            grep -Fq '"expr0":"ArrayPush(nodes, CodegenAstTextNode(2, \"Let\", 0, 8))","expr0_graph":{' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend ArrayPush value graph was lost" >&2
+                exit 1
+            }
+            grep -Fq '"kind":"call_argument","text":"CodegenAstTextNode(2, \"Let\", 0, 8)"' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend ArrayPush constructor graph was lost" >&2
+                exit 1
+            }
+        fi
         if [[ "$base" == "nested_member_access" ]]; then
             for nested_member in \
                 '"kind":"member_access","text":"line.end"' \

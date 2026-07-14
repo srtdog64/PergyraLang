@@ -405,17 +405,22 @@ func ParserExpressionSubtree(
     );
 }
 
-func ParserExpressionNamedSingleCallArgument(
+func ParserExpressionNamedCallArgumentAt(
     fact: ParserExpressionFact,
-    expected_callee: String
+    expected_callee: String,
+    argument_index: Int
 ) -> ParserExpressionFact {
-    if !fact.ok || expected_callee == "" ||
-        fact.arena.node_kinds[fact.root] !=
-            AstExpressionNodeCallArgument() {
+    if !fact.ok || expected_callee == "" || argument_index < 0 {
         return ParserExpressionInvalid();
     }
-    let call: Int = fact.arena.left_children[fact.root];
-    if fact.arena.node_kinds[call] != AstExpressionNodeCall() {
+    let reversed_arguments: Array<Int> = [];
+    let call: Int = fact.root;
+    while fact.arena.node_kinds[call] == AstExpressionNodeCallArgument() {
+        ArrayPush(reversed_arguments, fact.arena.right_children[call]);
+        call = fact.arena.left_children[call];
+    }
+    if fact.arena.node_kinds[call] != AstExpressionNodeCall() ||
+        argument_index >= ArrayLength(reversed_arguments) {
         return ParserExpressionInvalid();
     }
     let callee: Int = fact.arena.left_children[call];
@@ -424,8 +429,22 @@ func ParserExpressionNamedSingleCallArgument(
         return ParserExpressionInvalid();
     }
     return ParserExpressionSubtree(
-        fact, fact.arena.right_children[fact.root]
+        fact,
+        reversed_arguments[ArrayLength(reversed_arguments) - argument_index - 1]
     );
+}
+
+func ParserExpressionNamedSingleCallArgument(
+    fact: ParserExpressionFact,
+    expected_callee: String
+) -> ParserExpressionFact {
+    if !fact.ok || fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeCallArgument() ||
+        fact.arena.node_kinds[fact.arena.left_children[fact.root]] !=
+            AstExpressionNodeCall() {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionNamedCallArgumentAt(fact, expected_callee, 0);
 }
 
 func ParserExpressionDirectCallCalleeName(
@@ -530,6 +549,19 @@ func ParserExpressionNamedSingleCallArgumentContractReady() -> Bool {
     return call.ok && argument.ok &&
         cursor[0] == StringLength(source) &&
         argument.text == "ToString((20 + 22))" &&
+        argument.arena.node_kinds[argument.root] ==
+            AstExpressionNodeCallArgument();
+}
+
+func ParserExpressionNamedCallArgumentAtContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let source: String = "ArrayPush(nodes, Node(2, \"Let\"))";
+    let call: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let argument: ParserExpressionFact =
+        ParserExpressionNamedCallArgumentAt(call, "ArrayPush", 1);
+    return call.ok && argument.ok &&
+        cursor[0] == StringLength(source) &&
+        argument.text == "Node(2, \"Let\")" &&
         argument.arena.node_kinds[argument.root] ==
             AstExpressionNodeCallArgument();
 }

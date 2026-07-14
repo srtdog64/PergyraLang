@@ -150,12 +150,16 @@ borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
 
 The focused codegen rung now also requires a value-lane expression graph for
-`ArrayPush`. A pushed `CodegenAstTextNode(...)` constructor is emitted through
-that graph and the expected collection element type; the push consumer cannot
-call `EmitStructValue`, `RewriteExpr`, or `StringTrim`. The committed fixture is
-run-equal under C-built and LLVM-built self-host codegen. This closes only the
-`ArrayPush` consumer: array-literal and `ArraySet` element emission still use
-the explicit text bridge and remain the next collection-value boundary.
+`ArrayPush`. The parser extracts argument one from the call spine, the typed
+artifact carries that root, self MIR attaches it to the call instruction, and
+the MIR JSON importer requires the same graph before codegen. A pushed
+`CodegenAstTextNode(...)` constructor is emitted through that graph and the
+expected collection element type; neither the producer nor the push consumer
+may rebuild it from expression text. C-built and LLVM-built DRV-2 drivers emit
+byte-identical C and the fixture runs with output `1`. Array-literal and
+`ArraySet` element emission remain the next explicit collection-value bridges.
+The committed DRV-2 MIR inventory is now 25; this focused slice did not rerun
+the complete 25-case matrix.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -393,7 +397,7 @@ inference: assigning `String` to `Pair.left: Int` is rejected by both the
 self-host driver and native oracle. The emitted-C ratchet requires the
 `pgy_option_none_Pair()` ABI constructor, and C-built and LLVM-built DRV-2
 drivers remain green across 20 source and 24 MIR fixtures.
-`CodegenAstTextNode` collection elements, initial compact graph construction,
+Initial compact graph construction, `ArraySet` collection elements,
 and non-struct result-type classification remain open.
 Released/default replacement remains 0%.
 

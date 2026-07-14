@@ -3278,6 +3278,8 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionCallArgument("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgument("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedSingleCallArgumentContractReady("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedCallArgumentAt("
+require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedCallArgumentAtContractReady("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
@@ -3892,6 +3894,24 @@ reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "WithSemanticShape("
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'ParserExpressionNamedSingleCallArgument(expr_fact, "Log")'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'ParserExpressionNamedCallArgumentAt('
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'expr_fact, "ArrayPush", 1'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'func ParserStatementArrayPushGraphContractReady()'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    'if kind == TypedAstKindArrayPushStmtTag() {'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    'graph_lane = AstExpressionLaneValue();'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'UnwrapOption(arg0) == "ArrayPush";'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    'rows.arg0s[i] == "ArrayPush") &&'
+reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "func SelfMirLowerNodeSequence(" \
+    "SemanticAstExpressionGraphFromText(" \
+    "SemanticAstExpressionGraphCompactBridge"
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "if kind == TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \

@@ -18,6 +18,11 @@ rewrite history.
   existing enum/event negative legs remained fail-closed.
 - Raised the committed codegen fixture frontier from 69 to 70. This is one
   executable consumer replacement, not whole-compiler self-host completion.
+- Extended the same fixture into the 25-case DRV-2 MIR inventory. The parser
+  now owns the pushed argument subtree, self MIR serializes it as `expr0_graph`,
+  and the MIR importer/verifier reject its absence instead of reparsing
+  `expr0`. C-built and LLVM-built drivers emitted byte-identical C and both
+  generated programs printed `1`.
 
 ## 2026-07-13 - First semantic expression-shape consumer
 
