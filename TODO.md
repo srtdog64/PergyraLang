@@ -18692,6 +18692,40 @@ heap-exact인데 그걸 먹이는 set_error가 512에서 먼저 자름).
 - 검증: parser · semantic 2794/0 · transpile 918/0 · MIR 132/0 · AIR 141/0 ·
   compare 3/3 · 파스에러 end-to-end 출력 배치 불변.
 
+**WO-SEC-2 메모리 안전성 게이트 + 실버그 3건 (2026-07-14, 레드팀 2차 유효신호
+#1, 커밋 b7bab578)**: "이 컴파일러 메모리 안전한가?"가 **측정 없이 Unknown**이었고,
+답 없는 안전질문은 통과가 아니라 미측정이다. `make test-asan`(ASan+UBSan,
+툴체인-스코프 트리, WSL gcc13/libasan — MinGW은 libasan 부재) 신설. **2축**:
+컴파일러가 42실소스 컴파일(leak on) + 유닛배터리(UAF/UB, leak off — 하네스
+정리누락은 컴파일러 성질 아님). **첫 실행이 실버그 3건 적발**: ①`ast_destroy`
+AST_ARRAY_LITERAL 케이스 누락→배열리터럴이 원소서브트리째 누수(모든 파스) —
+`default:break`가 무음누수공장이고 두 switch가 enum분할이라 -Wswitch 못 봄 →
+ast_destroy_coverage 메타게이트(100종 전부 destroy정책, RED실증) ②Type 전량
+미해제(Symbol/metadata로만 도달, analysis끝나면 도달불가 쓰레기 — 배치무해,
+**LSP 무한증가**) → per-analysis **type registry**(type_alloc→SemanticResult
+소유→result_destroy 해제, IR/backend 차용 후) ③RIR scratch scope ops만 해제
+(facts 누수 448B) + namespace shell origin_path 누수. **★게이트가 내 registry
+회귀(싱글턴 UAF)까지 잡음**: type_system_init이 analysis중 지연호출→registry가
+TYPE_INT 삼켜 result파괴시 free→다음 analysis UAF(pgy는 프로세스당1회라 무사,
+AIR배터리는 밟음) → 싱글턴생성 registry밖 격리. **게이트를 fix전에 지은 값**.
+검증: 42소스 clean(누수/UAF/UB 0), 배터리 AIR141·semantic2794·parser UAF0, 양
+백엔드 무회귀+compare.
+
+**WO-SEC-1 임시파일 심링크 레이스 (2026-07-14, 유효신호 #2, 커밋 2a84bd0f)**:
+C백엔드가 `$TMPDIR/_pgy_<stem>_<pid>.c`(예측가능)에 `fopen("w")`(심링크 따라감
+— 실증: 심링크 통한 fopen이 victim 클로버)로 씀 = 공유tmp 심링크 레이스. **이름
+난수화로는 못 고침**(공격자 1회만 이기면 됨) → **mkdir 0700 원자생성**(EEXIST
+거부=squatter 회피, owner-only=심을 자리 없음) 안에 기록. tmpdir 없으면
+fail-closed(PGY_C_RUNNER_TMPDIR_UNAVAILABLE). 목격자 RED실증(구코드 공유루트
+이름 `_pgy_hello_<pid>.c` 검출)→GREEN(pgy-* 사설디렉터리). POSIX전용(Windows
+%TEMP% per-user, 명시skip). 양 백엔드 바이너리 생성 실측.
+
+**교훈(레드팀 2차 메타)**: 카운트(malloc/파일/assert/NULL 수)는 성질 대리물이
+아니다(600LOC사건 일반화). 그러나 **"카운트가 증거 아님"≠"안전성 확인됨"** —
+실제 누수 유무는 살아있었고 WO-SEC-2가 답함(3건 있었다). 판정 전문 = docs/137
+부록(2차 리뷰). 잔여: WO-DIAG-1의 LLVM 힙전환(이제 ASAN backstop 있음, error-
+state 불변식 수술 필요) + WO-SEC-2 게이트 CI 배선(ci_linux_steps는 동시세션 잠금).
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
