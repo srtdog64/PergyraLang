@@ -37,9 +37,11 @@ import "emission/log_emit_owner.pgy";
 import "emission/runtime_call_rewrite_owner.pgy";
 import "emission/struct_value_emit.pgy";
 import "emission/try_let_emit_owner.pgy";
+import "emission/assign_emit_owner.pgy";
 import "emission/stmt_emit.pgy";
 import "emission/function_emit.pgy";
 import "emission/program_emit.pgy";
+import "emission/program_entry_owner.pgy";
 import "input/ast_input_owner.pgy";
 import "run/codegen_run_owner.pgy";
 

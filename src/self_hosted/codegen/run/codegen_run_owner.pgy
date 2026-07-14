@@ -5,7 +5,7 @@
 // program_emit.pgy.
 
 import "../input/ast_input_owner.pgy";
-import "../emission/program_emit.pgy";
+import "../emission/program_entry_owner.pgy";
 import "../fixture_manifest_owner.pgy";
 import "../../compiler/target_capability_owner.pgy";
 

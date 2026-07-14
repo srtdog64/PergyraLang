@@ -1,0 +1,63 @@
+// Public semantic and source entrypoints for the program emission core.
+
+import "program_emit.pgy";
+
+func GenerateCUnitFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    require_entrypoint: Bool
+) -> String {
+    let statement_types: SemanticAstStatementTypeFacts =
+        CodegenSemanticStatementTypeFactsFromAnalysisOrDie(
+            artifact, semantic_analysis
+        );
+    return GenerateCUnitFromSemanticFacts(
+        artifact, semantic_analysis, statement_types, require_entrypoint
+    );
+}
+
+func GenerateCFromVerifiedSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis,
+    ref statement_types: SemanticAstStatementTypeFacts
+) -> String {
+    return GenerateCUnitFromSemanticFacts(
+        artifact, semantic_analysis, statement_types, true
+    );
+}
+
+func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
+    return GenerateCUnitFromAstArtifact(
+        AstTreeArtifactFromText(tree_text), require_entrypoint
+    );
+}
+
+func GenerateCUnitFromAstArtifact(
+    artifact: AstTreeArtifact,
+    require_entrypoint: Bool
+) -> String {
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(
+            artifact, require_entrypoint
+        );
+    return GenerateCUnitFromSemanticArtifact(
+        artifact, semantic_analysis, require_entrypoint
+    );
+}
+
+func GenerateCFromSemanticArtifact(
+    artifact: AstTreeArtifact,
+    semantic_analysis: SemanticAstArtifactAnalysis
+) -> String {
+    return GenerateCUnitFromSemanticArtifact(
+        artifact, semantic_analysis, true
+    );
+}
+
+func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
+    return GenerateCUnitFromAstArtifact(artifact, true);
+}
+
+func GenerateC(tree_text: String) -> String {
+    return GenerateCUnit(tree_text, true);
+}

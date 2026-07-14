@@ -1,5 +1,4 @@
 // Artifact-native routine CFG lowering for the bounded hard self-host frontier.
-
 import "program_fact_owner.pgy";
 import "expression_fact_owner.pgy";
 import "routine_input_owner.pgy";
@@ -7,12 +6,10 @@ import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "routine_iteration_owner.pgy";
 import "routine_statement_owner.pgy";
-
 struct SelfMirRoutineState {
     input: SelfMirRoutineInput;
     build: SelfMirRoutineBuild;
 }
-
 func SelfMirLowerBlockFromArtifact(
     state: SelfMirRoutineState,
     block_node_id: Int,

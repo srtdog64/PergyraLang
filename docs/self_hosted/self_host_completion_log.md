@@ -7227,3 +7227,24 @@ Released/default replacement remains 0%.
   the selected MIR case. Their non-target exits now return success explicitly;
   the official focused C and LLVM gates each completed with 20 shared body
   fixtures and exactly one indexed-assignment MIR fixture.
+
+### 2026-07-14 -- DRV-2 Log formatting consumes statement type facts
+
+- `DriverRung2VerifiedFacts` now carries the already verified
+  `SemanticAstStatementTypeFacts` into the hard C-emission entry. The hard path
+  does not rerun semantic analysis to recover this row.
+- `stmt_emit.pgy` resolves the Log node's inferred type through the stable
+  node-handle query owner and passes that fact to `EmitLog`. The emitter no
+  longer invokes `ExprKind` or reclassifies the statement payload.
+- `SemanticAstStatementTypeQueryContractReady` rejects wrong-kind, unverified,
+  `Unknown`, and missing rows. A small owner contract compiled and ran under C
+  and LLVM with byte-equal output; the component, hard-substitution, and
+  Pergyra-likeness gates passed.
+- Restored the missing `ast_node_array_literal_stdout.txt` golden (`1`) and
+  raised the shared codegen/DRV-0/DRV-1/MIR-lower manifest frontier from 70 to
+  71. The source fixture had already landed without its required golden.
+- A filtered `str_array` DRV-2 run was attempted, but compiling the full
+  self-host driver exceeded the five-minute focused budget while holding about
+  718 MB. It was terminated, so this entry does not claim full-driver C/LLVM
+  parity. The remaining broad expression result-type classification is still
+  `BRIDGE`; released/default replacement remains 0%.

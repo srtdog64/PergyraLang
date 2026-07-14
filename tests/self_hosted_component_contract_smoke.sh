@@ -507,7 +507,7 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenPari
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 70;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 71;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
@@ -930,9 +930,11 @@ require_owner_surface codegen \
     "emission/log_emit_owner.pgy" \
     "emission/struct_value_emit.pgy" \
     "emission/try_let_emit_owner.pgy" \
+    "emission/assign_emit_owner.pgy" \
     "emission/stmt_emit.pgy" \
     "emission/function_emit.pgy" \
-    "emission/program_emit.pgy"
+    "emission/program_emit.pgy" \
+    "emission/program_entry_owner.pgy"
 for codegen_non_runtime_dir in \
     "src/self_hosted/codegen/emission" \
     "src/self_hosted/codegen/input" \
@@ -2443,10 +2445,12 @@ require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParseExprF
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "struct ParserProgramBuild"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramBuild"
 require_text "src/self_hosted/parser/program_parse_owner.pgy" "func ParseRootProgramArtifact"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromAstArtifact"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromAstArtifact"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCUnitFromSemanticArtifact"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "func GenerateCFromSemanticArtifact"
+require_file "src/self_hosted/codegen/emission/program_entry_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/program_entry_owner.pgy" 100
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func GenerateCUnitFromAstArtifact"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func GenerateCFromAstArtifact"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func GenerateCUnitFromSemanticArtifact"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "func GenerateCFromSemanticArtifact"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactVerdict"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "struct SemanticAstArtifactAnalysis"
 require_text "src/self_hosted/hir/typed_ast_arena_owner.pgy" "nominal_subkinds: Array<Int>;"
@@ -2634,7 +2638,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphCopy"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" \
-    "expression_graphs: SelfMirExpressionGraphRows;"
+    "expr0_graphs: SelfMirExpressionGraphRows;"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "expr1_graphs: SelfMirExpressionGraphRows;"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"expr0_graph", SelfMirJsonExpressionGraph('
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
@@ -2801,7 +2807,9 @@ require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = &bl
 require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = saved_terminator_ssa_map;'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'state.input.analysis.assignments.target_texts[assignment_index]'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
+require_file "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
 require_file "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh" 100
@@ -2986,6 +2994,9 @@ require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_own
 require_file "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_mir_producer_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_indexed_assignment_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_indexed_assignment"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_call_target_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     '"call_target_kind":"namespace","call_target_name":"Math_Add"'
@@ -3412,7 +3423,7 @@ require_text "src/parser/ast_print.c" 'printf("inout ")'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "inout "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "ref "'
 require_text "src/self_hosted/parser/function_decl_owner.pgy" 'param_mode_prefix = "own "'
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "GenerateC(tree_text: String)"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" "GenerateC(tree_text: String)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CheckCUnit(tree_text: String, require_entrypoint: Bool)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" 'import "../runtime_abi/host_io_runtime_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "RejectUnsupportedCodegenBuiltins(tree_text)"
@@ -3713,7 +3724,9 @@ require_file "src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" "func EmitTryLet("
 require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
     "local_bindings: SemanticAstLocalBindingFacts"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign("
+require_file "src/self_hosted/codegen/emission/assign_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/assign_emit_owner.pgy" 160
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "func EmitAssign("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentIs(assignments, idx)"
@@ -3731,8 +3744,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenSemanticLocalBindingNameOrDie(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenSemanticLocalBindingDeclaredTypeOrDie(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingInitializerOrDie("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx)"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx)"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx)"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
@@ -3795,8 +3808,12 @@ require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "stru
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "func SemanticAstAssignmentTypeFactsFromArtifact"
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "assignment_type_unresolved"
 require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" "func CodegenSemanticAssignmentTargetIsIndex"
-require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" "func CodegenSemanticAssignmentIndexReceiverOrDie"
-require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" "func CodegenSemanticAssignmentIndexExprOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" "func CodegenSemanticAssignmentIndexReceiverOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" "func CodegenSemanticAssignmentIndexExprOrDie"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "SemanticExpressionGraphLeftChild("
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "SemanticExpressionGraphRightChild("
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForLoopVarOrDie"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForIsRange"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaForRangeStartOrDie"
@@ -3846,7 +3863,18 @@ require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlo
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "a terminal instruction erases its"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "reachable statement follows terminal MIR instruction"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsContractReady"
-require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticLogArgumentOrDie"
+require_file "src/self_hosted/semantic/ast_statement_type_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 80
+require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
+    "func SemanticAstStatementInferredTypeForNode("
+require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
+    "func SemanticAstStatementTypeRowsReady("
+require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
+    "func SemanticAstStatementTypeQueryContractReady("
+require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
+    "func CodegenSemanticStatementInferredTypeOrDie("
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
+    "func CodegenSemanticLogArgumentOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticReturnValueOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArrayPopTargetOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticExitArgumentOrDie"
@@ -3879,22 +3907,39 @@ require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_own
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_graph)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitAssign(assignments, idx, env_state, assign_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "assign_target_graph"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "target_graph: SemanticExpressionGraphView"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_shape: SemanticAstExpressionShapeFact"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_shape: SemanticAstExpressionShapeFact"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StringIndexOf(name, "[")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindLogStmtTag()"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenSemanticLogArgumentOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "let log_type: String ="
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLog(log_inner, env, log_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "EmitLog(log_type, env, log_graph)"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticLogArgumentOrDie("
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAtomExpressionShapeOrDie("
 require_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" "RewriteExprFromSemanticGraph("
+reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
+    "func EmitLog(" "ExprKind("
 reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "StartsWith("
 reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "Substring("
 reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "WithSemanticShape("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "statement_types: SemanticAstStatementTypeFacts;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticAstStatementTypeQueryContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "GenerateCFromVerifiedSemanticArtifact("
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "func GenerateCFromVerifiedSemanticArtifact("
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'ParserExpressionNamedSingleCallArgument(expr_fact, "Log")'
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
@@ -4208,6 +4253,7 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" ".text"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitLet(line: String"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitTryLet(line: String"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitAssign(line: String"
+reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "func EmitAssign(line: String"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Let: ")'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Assign: ")'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'StartsWith(t, "Log(")'
@@ -4631,7 +4677,8 @@ require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "Opt
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallSpineViewFromGraph("
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "RewriteSemanticExpectedValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, type_name, env, graph"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, vt, env, graph"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "expr, vt, env, graph"
 require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "rexpr, return_type, env, graph"
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" 'StartsWith(trimmed, "Some(")'
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "FindMatchingParen("
@@ -6871,10 +6918,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 70 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 70"
-[[ "$codegen_expected_count" -eq 70 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 70"
+[[ "$codegen_fixture_count" -eq 71 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 71"
+[[ "$codegen_expected_count" -eq 71 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 71"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -7024,7 +7071,7 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpe
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 70;"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 71;"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7051,7 +7098,7 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 70'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 71'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7076,7 +7123,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 70'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 71'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'

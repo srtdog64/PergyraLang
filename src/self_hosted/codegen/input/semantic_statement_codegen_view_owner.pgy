@@ -1,6 +1,66 @@
 // Codegen projection over semantic-owned statement payload rows.
 
 import "../../semantic/ast_statement_fact_owner.pgy";
+import "../../semantic/ast_artifact_verdict_owner.pgy";
+import "../../semantic/ast_initializer_type_fact_owner.pgy";
+import "../../semantic/ast_iteration_type_fact_owner.pgy";
+import "../../semantic/ast_statement_type_fact_owner.pgy";
+import "../../semantic/ast_statement_type_query_owner.pgy";
+
+func CodegenSemanticStatementTypeFactsReady(
+    artifact: AstTreeArtifact,
+    ref statements: SemanticAstStatementFacts,
+    ref facts: SemanticAstStatementTypeFacts
+) -> Bool {
+    let count: Int = SemanticAstStatementCount(statements);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        !SemanticAstStatementTypeRowsReady(facts) ||
+        !SemanticAstStatementTypesAllVerified(facts) ||
+        ArrayLength(facts.node_ids) != count ||
+        ArrayLength(facts.kind_tags) != count ||
+        ArrayLength(facts.inferred_type_names) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != statements.node_ids[i] ||
+            facts.kind_tags[i] != statements.kind_tags[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func CodegenSemanticStatementTypeFactsFromAnalysisOrDie(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis
+) -> SemanticAstStatementTypeFacts {
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, analysis.expression_surfaces
+        );
+    let iteration_types: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.expression_surfaces
+        );
+    let facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, iteration_types,
+            analysis.statements
+        );
+    if !CodegenSemanticStatementTypeFactsReady(
+        artifact, analysis.statements, facts
+    ) {
+        Die("codegen semantic statement type facts are missing or invalid");
+    }
+    return facts;
+}
 
 func CodegenSemanticStatementIs(
     facts: SemanticAstStatementFacts,
@@ -43,8 +103,20 @@ func CodegenSemanticStatementPayloadOrDie(
     return facts.payload_texts[index];
 }
 
-func CodegenSemanticLogArgumentOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
-    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindLogStmtTag());
+func CodegenSemanticStatementInferredTypeOrDie(
+    ref facts: SemanticAstStatementTypeFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> String {
+    let type_name: Option<String> = SemanticAstStatementInferredTypeForNode(
+        facts, node_id, expected_kind
+    );
+    if !IsSome(type_name) {
+        Die(Concat(
+            "missing semantic statement result type: ", ToString(node_id)
+        ));
+    }
+    return UnwrapOption(type_name);
 }
 
 func CodegenSemanticReturnValueOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {

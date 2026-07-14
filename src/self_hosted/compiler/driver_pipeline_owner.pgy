@@ -7,7 +7,7 @@
 import "../parser/program_parse_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_signature_contract_owner.pgy";
-import "../codegen/emission/program_emit.pgy";
+import "../codegen/emission/program_entry_owner.pgy";
 
 struct CompilerEmissionArtifact {
     kind: String;

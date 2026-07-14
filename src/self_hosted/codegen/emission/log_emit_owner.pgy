@@ -22,26 +22,26 @@ func EmitFormattedScalarLog(
 }
 
 func EmitLog(
-    inner: String,
+    inferred_type_name: String,
     env: CodegenTypeEnv,
     graph: SemanticExpressionGraphView
 ) -> String {
     let rendered: String = RewriteExprFromSemanticGraph(
         graph.graph, graph.root_id, env
     );
-    if ExprKind(inner, env) == "Int" {
+    if inferred_type_name == "Int" {
         return EmitFormattedScalarLog(
             rendered, "Int",
             StringRuntimeCIntLineFormat(), env
         );
     }
-    if ExprKind(inner, env) == "Long" {
+    if inferred_type_name == "Long" {
         return EmitFormattedScalarLog(
             rendered, "Long",
             StringRuntimeCIntLineFormat(), env
         );
     }
-    if ExprKind(inner, env) == "Float" {
+    if inferred_type_name == "Float" {
         return EmitFormattedScalarLog(
             rendered, "Float",
             StringRuntimeCFloatLineFormat(), env

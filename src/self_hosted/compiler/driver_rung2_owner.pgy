@@ -10,6 +10,7 @@ import "../semantic/ast_initializer_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_fact_owner.pgy";
+import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_body_verdict_owner.pgy";
 import "../semantic/ast_expression_surface_contract_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
@@ -34,6 +35,7 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticExpressionGraphIntrinsicTypeContractReady() &&
         SemanticAstExpressionTypedBindingContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
+        SemanticAstStatementTypeQueryContractReady() &&
         SemanticAstBodyVerdictContractReady() &&
         ParserExpressionGraphContractReady() &&
         ParserExpressionPrecedenceGraphContractReady() &&
@@ -150,6 +152,7 @@ struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     initializer_types: SemanticAstInitializerTypeFacts;
     iteration_types: SemanticAstIterationTypeFacts;
+    statement_types: SemanticAstStatementTypeFacts;
 }
 
 func VerifyArtifactAnalysisForDriverRung2(
@@ -230,7 +233,7 @@ func VerifyArtifactAnalysisForDriverRung2(
         Exit(1);
     }
     return DriverRung2VerifiedFacts(
-        semantic_analysis, initializer_types, iteration_types
+        semantic_analysis, initializer_types, iteration_types, statement_types
     );
 }
 
@@ -312,7 +315,9 @@ func CompileMirJsonTextToCVerified(
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     return CompilerEmissionArtifact(
         "emitted-c",
-        GenerateCFromSemanticArtifact(artifact, verified.analysis)
+        GenerateCFromVerifiedSemanticArtifact(
+            artifact, verified.analysis, verified.statement_types
+        )
     );
 }
 

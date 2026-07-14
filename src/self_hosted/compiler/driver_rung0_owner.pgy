@@ -29,7 +29,7 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
 }
 
 func DriverParityExpectedFixtureCount() -> Int {
-    return 70;
+    return 71;
 }
 
 func DriverParityFixtureRows() -> Array<String> {

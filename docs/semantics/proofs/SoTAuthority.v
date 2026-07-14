@@ -1039,7 +1039,8 @@ Inductive SpineFact : Type :=
   | SFFunctionDeclarationRows
   | SFLocalBindingStatementRouting
   | SFAssignmentStatementRouting
-  | SFStatementKindRouting.
+  | SFStatementKindRouting
+  | SFStatementResultType.
 
 Inductive SpineOwner : Type :=
   | SOModuleLoader
@@ -1067,7 +1068,8 @@ Inductive SpineOwner : Type :=
   | SOSemanticTypeSurface
   | SOSemanticKindSurface
   | SOSemanticSignature
-  | SOSemanticAssignment.
+  | SOSemanticAssignment
+  | SOSemanticStatementType.
 
 Definition spine_authority (fact : SpineFact) : SpineOwner :=
   match fact with
@@ -1099,6 +1101,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFLocalBindingStatementRouting => SOSemanticLocalBinding
   | SFAssignmentStatementRouting => SOSemanticAssignment
   | SFStatementKindRouting => SOSemanticStatement
+  | SFStatementResultType => SOSemanticStatementType
   end.
 
 Inductive DeclaredSpineAuthority : SpineOwner -> SpineFact -> Prop :=

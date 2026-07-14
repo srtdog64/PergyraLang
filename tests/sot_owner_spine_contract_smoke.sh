@@ -34,7 +34,7 @@ coq_path = root / "docs/semantics/proofs/SoTAuthority.v"
 begin = "<!-- BEGIN sot-owner-spine-registry -->"
 end = "<!-- END sot-owner-spine-registry -->"
 statuses = {"ACTIVE", "BRIDGE", "CLOSED"}
-expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 7, "CLOSED": 12})
+expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 8, "CLOSED": 12})
 expected_pairs = {
     "source.module_graph": ("SFSourceModuleGraph", "SOModuleLoader"),
     "lexer.token_stream": ("SFTokenStream", "SOLexer"),
@@ -64,6 +64,7 @@ expected_pairs = {
     "selfhost.local_binding_statement_routing": ("SFLocalBindingStatementRouting", "SOSemanticLocalBinding"),
     "selfhost.assignment_statement_routing": ("SFAssignmentStatementRouting", "SOSemanticAssignment"),
     "selfhost.statement_kind_routing": ("SFStatementKindRouting", "SOSemanticStatement"),
+    "selfhost.statement_result_type": ("SFStatementResultType", "SOSemanticStatementType"),
 }
 
 
@@ -207,16 +208,20 @@ must_reject(
     "missing Coq owner",
 )
 must_reject(
-    lambda rs: rs[-1].__setitem__("open_reason", "fallback still live"),
+    lambda rs: next(
+        row for row in rs if row["status"] == "CLOSED"
+    ).__setitem__("open_reason", "fallback still live"),
     "closed row with open reason",
 )
 must_reject(
-    lambda rs: rs[-1].__setitem__("forbidden_fallbacks", "MissingFallbackToken"),
+    lambda rs: next(
+        row for row in rs if row["status"] == "CLOSED"
+    ).__setitem__("forbidden_fallbacks", "MissingFallbackToken"),
     "closed gate missing fallback token",
 )
 
 print(
-    "[sot-owner-spine] 28 owner rows locked "
-    "(CLOSED=12 BRIDGE=7 ACTIVE=9); mutations rejected"
+    "[sot-owner-spine] 29 owner rows locked "
+    "(CLOSED=12 BRIDGE=8 ACTIVE=9); mutations rejected"
 )
 PY

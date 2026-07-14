@@ -143,6 +143,8 @@ inventory must not become a second fact-family owner registry.
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
   return, condition, call, and statement expression type verdict rows.
+- `src/self_hosted/semantic/ast_statement_type_query_owner.pgy` -- stable
+  node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
   verdict across initializer, iteration, assignment, and statement owners.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
@@ -357,6 +359,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
+- `src/self_hosted/codegen/emission/program_entry_owner.pgy` -- public source,
+  artifact, and verified semantic entrypoints into program emission.
+- `src/self_hosted/codegen/emission/assign_emit_owner.pgy` -- assignment target
+  and value projection over semantic rows and expression graph handles.
 - `src/self_hosted/codegen/emission/stmt_emit.pgy` -- statement emission.
 - `src/self_hosted/codegen/emission/struct_value_emit.pgy` -- struct value emission.
 - `src/self_hosted/codegen/emission/try_let_emit_owner.pgy` -- try-expression

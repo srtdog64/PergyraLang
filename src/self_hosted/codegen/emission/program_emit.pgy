@@ -297,9 +297,10 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     return true;
 }
 
-func GenerateCUnitFromSemanticArtifact(
+func GenerateCUnitFromSemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
+    ref statement_types: SemanticAstStatementTypeFacts,
     require_entrypoint: Bool
 ) -> String {
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
@@ -316,6 +317,11 @@ func GenerateCUnitFromSemanticArtifact(
         artifact, semantic_analysis, require_entrypoint
     ) {
         Die("codegen semantic evidence does not match AST artifact");
+    }
+    if !CodegenSemanticStatementTypeFactsReady(
+        artifact, semantic_analysis.statements, statement_types
+    ) {
+        Die("codegen statement type evidence does not match AST artifact");
     }
     let signatures: SemanticAstFunctionSignatureFacts =
         semantic_analysis.signatures;
@@ -389,7 +395,7 @@ func GenerateCUnitFromSemanticArtifact(
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
-                        local_bindings, assignments, statements,
+                        local_bindings, assignments, statements, statement_types,
                         semantic_analysis.expression_surfaces,
                         cur, method_indent,
                         base_env, uses_args
@@ -407,7 +413,7 @@ func GenerateCUnitFromSemanticArtifact(
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
-                        local_bindings, assignments, statements,
+                        local_bindings, assignments, statements, statement_types,
                         semantic_analysis.expression_surfaces,
                         cur, role_method_indent,
                         base_env, uses_args
@@ -421,7 +427,7 @@ func GenerateCUnitFromSemanticArtifact(
             cur_indent == f_indent {
             let def: String = EmitFunction(
                 count, arena, signatures, semantic_analysis.roles,
-                local_bindings, assignments, statements,
+                local_bindings, assignments, statements, statement_types,
                 semantic_analysis.expression_surfaces,
                 cur, f_indent, base_env, uses_args
             );
@@ -568,33 +574,4 @@ func GenerateCUnitFromSemanticArtifact(
     let generated_c: String = TextBuilderFinish(output, output_allocator);
     AllocatorDestroy(output_allocator);
     return generated_c;
-}
-
-func GenerateCUnit(tree_text: String, require_entrypoint: Bool) -> String {
-    return GenerateCUnitFromAstArtifact(AstTreeArtifactFromText(tree_text), require_entrypoint);
-}
-
-func GenerateCUnitFromAstArtifact(artifact: AstTreeArtifact, require_entrypoint: Bool) -> String {
-    let semantic_analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(
-            artifact, require_entrypoint
-        );
-    return GenerateCUnitFromSemanticArtifact(
-        artifact, semantic_analysis, require_entrypoint
-    );
-}
-
-func GenerateCFromSemanticArtifact(
-    artifact: AstTreeArtifact,
-    semantic_analysis: SemanticAstArtifactAnalysis
-) -> String {
-    return GenerateCUnitFromSemanticArtifact(artifact, semantic_analysis, true);
-}
-
-func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
-    return GenerateCUnitFromAstArtifact(artifact, true);
-}
-
-func GenerateC(tree_text: String) -> String {
-    return GenerateCUnit(tree_text, true);
 }

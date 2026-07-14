@@ -1,0 +1,64 @@
+// Stable node-handle queries over semantic-owned statement type rows.
+
+import "ast_statement_type_fact_owner.pgy";
+
+func SemanticAstStatementTypeRowsReady(
+    ref facts: SemanticAstStatementTypeFacts
+) -> Bool {
+    let count: Int = ArrayLength(facts.node_ids);
+    return facts.ok && ArrayLength(facts.kind_tags) == count &&
+        ArrayLength(facts.expected_type_names) == count &&
+        ArrayLength(facts.inferred_type_names) == count &&
+        ArrayLength(facts.verified) == count &&
+        ArrayLength(facts.diagnostic_codes) == count &&
+        ArrayLength(facts.diagnostic_messages) == count;
+}
+
+func SemanticAstStatementTypeIndexForNode(
+    ref facts: SemanticAstStatementTypeFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !SemanticAstStatementTypeRowsReady(facts) { return None; }
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstStatementInferredTypeForNode(
+    ref facts: SemanticAstStatementTypeFacts,
+    node_id: Int,
+    expected_kind: Int
+) -> Option<String> {
+    let index: Option<Int> = SemanticAstStatementTypeIndexForNode(
+        facts, node_id
+    );
+    if !IsSome(index) { return None; }
+    let row: Int = UnwrapOption(index);
+    if facts.kind_tags[row] != expected_kind || facts.verified[row] != 1 ||
+        facts.inferred_type_names[row] == "" ||
+        facts.inferred_type_names[row] == "Unknown" {
+        return None;
+    }
+    return Some(facts.inferred_type_names[row]);
+}
+
+func SemanticAstStatementTypeQueryContractReady() -> Bool {
+    let facts: SemanticAstStatementTypeFacts = SemanticAstStatementTypeFacts(
+        true, "", "", 3,
+        [7, 9, 11], [41, 41, 41], ["", "", ""],
+        ["String", "Unknown", "Int"], [1, 1, 0],
+        ["", "", ""], ["", "", ""]
+    );
+    let found: Option<String> = SemanticAstStatementInferredTypeForNode(
+        facts, 7, 41
+    );
+    return SemanticAstStatementTypeRowsReady(facts) &&
+        IsSome(found) && UnwrapOption(found) == "String" &&
+        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 7, 42)) &&
+        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 9, 41)) &&
+        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 11, 41)) &&
+        !IsSome(SemanticAstStatementInferredTypeForNode(facts, 12, 41));
+}
