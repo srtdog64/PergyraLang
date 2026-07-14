@@ -2046,6 +2046,7 @@ test-all:
 	$(MAKE) test-mir
 	$(MAKE) test-hir
 	$(MAKE) ast-destroy-coverage-test-smoke
+	$(MAKE) c-backend-tmpfile-test-smoke
 	@echo "=== All Frontend Tests Completed ==="
 
 # WO-SEC-2: the memory-safety question -- are there leaks, use-after-frees,
@@ -2076,6 +2077,9 @@ ASAN_UNIT_BINARIES  := $(addprefix $(ASAN_BIN_DIR)/,$(addsuffix $(EXEEXT),$(ASAN
 
 ast-destroy-coverage-test-smoke:
 	"$(BASH)" tests/ast_destroy_coverage_smoke.sh
+
+c-backend-tmpfile-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/c_backend_tmpfile_smoke.sh
 
 # Two axes, because one sanitizer run cannot ask both questions honestly:
 #   - the compiler over a real corpus, leak detection ON: does compiling leak?
