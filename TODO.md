@@ -18723,8 +18723,11 @@ fail-closed(PGY_C_RUNNER_TMPDIR_UNAVAILABLE). 목격자 RED실증(구코드 공�
 **교훈(레드팀 2차 메타)**: 카운트(malloc/파일/assert/NULL 수)는 성질 대리물이
 아니다(600LOC사건 일반화). 그러나 **"카운트가 증거 아님"≠"안전성 확인됨"** —
 실제 누수 유무는 살아있었고 WO-SEC-2가 답함(3건 있었다). 판정 전문 = docs/137
-부록(2차 리뷰). 잔여: WO-DIAG-1의 LLVM 힙전환(이제 ASAN backstop 있음, error-
-state 불변식 수술 필요) + WO-SEC-2 게이트 CI 배선(ci_linux_steps는 동시세션 잠금).
+부록(2차 리뷰). **WO-DIAG-1 LLVM 힙전환 시도→되돌림(e66a67f4): "ASAN backstop"이
+틀렸다 — LLVM-전용 파일은 어느 ASAN게이트도(WSL=LLVM off, Windows=libasan 부재)
+안 밟음. 전환 중 5exit중 2 leak 놓침이 검증부재 위험의 실증. mark_clipped가 §1.1
+이미 충족→영구보류(재개=clang LLVM+ASAN 게이트 선행).** 잔여: WO-SEC-2 게이트 CI
+배선(ci_linux_steps 동시세션 잠금) + LLVM+ASAN 게이트(clang, 힙전환 재개 시).
 
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
