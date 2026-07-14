@@ -467,9 +467,12 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
   `src/semantic/type_env.c` owns `TypeEnv` create/destroy/add/lookup helpers.
   Lightweight inference/unification moved to `src/semantic/type_infer.c`, and
   function/resource effect helpers moved to `src/semantic/type_effects.c`.
-  `src/semantic/type_system.c` is now 598 LOC and stays focused on built-in
-  singleton lifecycle, type constructors, equality/assignability, constraints,
-  and generic instantiation. Verified with `make test-semantic` (2357/0).
+  Function signature construction, parameter modes, escape summaries, and
+  function summary mutation now belong to
+  `src/semantic/type_system_function.c`. `type_system.c` is 461 LOC and the
+  function owner is 251 LOC; both are held below 600 LOC by the semantic and
+  cross-platform production-size gates. The public type API did not gain an
+  alias or compatibility path.
 - Stdlib builtin semantic ownership now has scalar and map owners:
   `src/semantic/type_checker_builtins_stdlib_scalar.c` owns scalar, string, and
   math builtin calls, while

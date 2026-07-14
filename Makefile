@@ -405,6 +405,7 @@ ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/type_system_function.c \
                    $(SEMANTIC_DIR)/boundary_witness.c \
                    $(SEMANTIC_DIR)/type_system_slot.c \
                    $(SEMANTIC_DIR)/type_system_tuple.c \

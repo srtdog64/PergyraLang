@@ -23,8 +23,8 @@ cap_for_path() {
         src/semantic/type_checker_zone_decl.c)
             echo 1150
             ;;
-        src/semantic/type_system.c)
-            echo 1050
+        src/semantic/type_system.c|src/semantic/type_system_function.c)
+            echo 599
             ;;
         *)
             echo "$DEFAULT_LIMIT"

@@ -3123,12 +3123,17 @@ done
 if grep -R "data\.\(constructed\|slot\|function\|tuple\|generic\|primitive\)\." \
     src/semantic src/compiler src/codegen \
     | grep -v "src/semantic/type_system.c" \
+    | grep -v "src/semantic/type_system_function.c" \
     | grep -v "src/semantic/type_system_slot.c" \
     | grep -v "src/semantic/type_system_tuple.c" \
     | grep -v "src/semantic/type_system_compat.c" \
     | grep -v "src/semantic/type_effects.c" \
     | grep -v "src/semantic/type_checker_resolution_metadata_storage.c" >/dev/null; then
     fail "non-type-system owners must use type-system accessors for Type payloads"
+fi
+
+if grep -q '^type_function_' src/semantic/type_system.c; then
+    fail "function type facts must stay owned by type_system_function.c"
 fi
 
 if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
