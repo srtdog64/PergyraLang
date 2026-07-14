@@ -18819,6 +18819,19 @@ enclosing-state 처리가 다른 loops에 비례). 2R "cap=1도 hang"과 정합(
 loop setup). fix 타깃 = `type_checker_flow_loops.c`/`type_checker_flow_branch.c`의 per-loop
 enclosing-state, **안전필수라 미착수**(정밀 타깃만 확보). 이분은 커밋 0(내 트리 무변경).
 
+**WO-SEMPERF-3 6라운드 + ✅RESOLVED (2026-07-15) — gdb가 근본원인 확정, 동시 세션이 fix:**
+"프로파일러 없음"은 오판(mingw gdb 16.3 존재). hung pgy에 `gdb -p PID`(반드시 `thread
+apply all bt` — attach는 break-in 스레드만 보임) → 181프레임에서 hot 함수 = **`slot_access_
+mask_for_named_symbol`**(param-escape 분석의 **메모없는 함수-following 지수 재귀**: body walk 중
+ref/own 인자 호출을 콜리 body로 depth+1, `EmitStmtList`의 inout 다수전달로 branching^6).
+"loop 개수" 상관은 body 크기/호출수 프록시였고, 9라운드 카운터가 cold였던 건 hot 함수가
+자원-flow 아닌 **slot escape 분석**이라서. **격리 worktree 프로토타입 검증 시도 → hot 함수가
+동시 세션 refactor로 이동(collect_slot_escapes) 발견**. **✅최종: 동시 세션의 미커밋 escape-
+분석 refactor가 지수 재귀를 고침 — `pgy --hir codegen/main.pgy` 실측 1s 종료/1.7MB/0에러
+(직전 >25s hang).** 내 기여 = gdb 근본원인 확정 + fix 작동 검증. self-host 차단 hang 해소.
+교훈: **CPU-bound hang은 gdb `thread apply all bt` 한 방 > 카운터 9라운드.** 전체=메모리
+[[project_semantic_termination_gap]].
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
