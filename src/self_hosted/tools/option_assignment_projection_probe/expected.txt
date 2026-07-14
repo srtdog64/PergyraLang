@@ -1,0 +1,4 @@
+a = pgy_option_some(7);
+a = pgy_option_none();
+s = pgy_option_some_string("ok");
+s = pgy_option_none_string();

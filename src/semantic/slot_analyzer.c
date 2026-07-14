@@ -212,7 +212,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     size_t escape_capacity = 0;
 
     collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
-        sa->program_root, 0);
+        sa->program_root, 0, NULL);
 
     for (size_t i = 0; i < after_count; i++) {
         Symbol *sym = live_after[i];
@@ -476,13 +476,29 @@ unsigned
 slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
                                      ASTNode *program_root)
 {
-    return slot_escape_mask_in_program(node, slot_name, program_root, 0);
+    return slot_escape_mask_in_program(node, slot_name, program_root, 0, NULL);
 }
 
 unsigned
-slot_analyze_legacy_ast_param_summary_in_program(ASTNode *node,
-                                                 const char *slot_name,
+slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
+                                                 size_t param_index,
                                                  ASTNode *program_root)
 {
-    return slot_param_summary_in_program(node, slot_name, program_root, 0);
+    FuncParam *param;
+    SlotSummaryOrigin origin;
+
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
+        || param_index >= ast_func_param_count(func_decl)) {
+        return SLOT_PARAM_SUMMARY_NONE;
+    }
+
+    param = ast_func_param(func_decl, param_index);
+    if (param == NULL || param->name == NULL || ast_func_body(func_decl) == NULL)
+        return SLOT_PARAM_SUMMARY_NONE;
+
+    origin.function_decl = func_decl;
+    origin.param_index = param_index;
+    origin.param_name = param->name;
+    return slot_param_summary_in_program(ast_func_body(func_decl), param->name,
+        program_root, 0, &origin);
 }

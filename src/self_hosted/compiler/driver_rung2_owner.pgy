@@ -152,6 +152,7 @@ struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
     initializer_types: SemanticAstInitializerTypeFacts;
     iteration_types: SemanticAstIterationTypeFacts;
+    assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
 }
 
@@ -233,7 +234,8 @@ func VerifyArtifactAnalysisForDriverRung2(
         Exit(1);
     }
     return DriverRung2VerifiedFacts(
-        semantic_analysis, initializer_types, iteration_types, statement_types
+        semantic_analysis, initializer_types, iteration_types,
+        assignment_types, statement_types
     );
 }
 
@@ -313,10 +315,14 @@ func CompileMirJsonTextToCVerified(
         );
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+    let body_types: CodegenSemanticBodyTypeFacts =
+        CodegenSemanticBodyTypeFacts(
+            verified.assignment_types, verified.statement_types
+        );
     return CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
-            artifact, verified.analysis, verified.statement_types
+            artifact, verified.analysis, body_types
         )
     );
 }

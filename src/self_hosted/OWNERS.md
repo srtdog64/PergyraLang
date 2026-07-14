@@ -299,7 +299,8 @@ inventory must not become a second fact-family owner registry.
   fail-closed codegen projection of semantic nominal names and ordered field
   name/type rows.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
-- `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity and target/base/index/RHS facts, including `Assign` routing.
+- `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity, target/base/index/RHS rows, and verified expected-type facts, including `Assign` routing.
+- `src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy` -- one-shot initializer/iteration synthesis and verified assignment/statement type bundle consumed by C emission.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
 - `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
   -- fail-closed codegen view over semantic-owned expression shape and graph
@@ -401,6 +402,9 @@ inventory must not become a second fact-family owner registry.
   entrypoint.
 - `src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy` --
   backend-emitter contract report schema, count rows, and finding shapes.
+- `src/self_hosted/tools/option_assignment_projection_probe/main.pgy` --
+  focused executable proof that scalar Option assignment consumes semantic
+  expected-type and expression-graph facts under C/LLVM projection parity.
 - `src/self_hosted/tools/compatibility_evolution_checker/main.pgy` --
   compatibility row analysis, fail-closed self-test modes, and checker
   entrypoint.

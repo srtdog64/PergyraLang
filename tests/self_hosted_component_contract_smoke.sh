@@ -3675,7 +3675,8 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstText
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsParameters(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFieldsHeader(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextExpectNode(nodes, count, cur"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "count, arena, local_bindings, assignments, statements,"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "count, arena, local_bindings, assignments, statements, body_types,"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "expression_surfaces, stmt_indent, cur,"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsZeroArtifactDeclLine"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func IsNominalDeclLine"
@@ -3727,6 +3728,13 @@ require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
 require_file "src/self_hosted/codegen/emission/assign_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/assign_emit_owner.pgy" 160
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "func EmitAssign("
+require_file "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy"
+require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "struct CodegenSemanticBodyTypeFacts"
+require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "func CodegenSemanticBodyTypeFactsFromAnalysisOrDie("
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
+    "func CodegenSemanticStatementTypeFactsFromAnalysisOrDie("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingIs(local_bindings, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentIs(assignments, idx)"
@@ -3746,6 +3754,22 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: St
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLocalBindingInitializerOrDie("
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx)"
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" "let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx)"
+require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" \
+    "func CodegenSemanticAssignmentExpectedTypeOrDie("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticAssignmentExpectedTypeOrDie("
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "expected_type: String"
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "EmitOptionExprFactForType(expr, expected_type, env, graph)"
+reject_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "func EmitAssign(" "OptionResultRuntimeOptionPayloadKindFromEnvKind("
+reject_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "func EmitAssign(" "RewriteExpr(expr, env)"
+reject_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "func EmitAssign(" "StringTrim(expr)"
+reject_function_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "func EmitAssign(" 'LookupKindType(env, name, "v")'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let name: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let type_name: String = CodegenAstArenaTypeNameOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let expr: String = CodegenAstArenaValueOrDie(arena, idx)"
@@ -4684,7 +4708,7 @@ require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "Sem
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "RewriteSemanticExpectedValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, type_name, env, graph"
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
-    "expr, vt, env, graph"
+    "expr, expected_type, env, graph"
 require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "rexpr, return_type, env, graph"
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" 'StartsWith(trimmed, "Some(")'
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "FindMatchingParen("
@@ -5652,7 +5676,15 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 11;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 13;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "CompilerHarnessOptionAssignmentProbeSourcePath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "CompilerHarnessOptionAssignmentProbeExpectedPath"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    'src/self_hosted/tools/option_assignment_projection_probe/main.pgy'
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    'src/self_hosted/tools/option_assignment_projection_probe/expected.txt'
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParityReady"
 require_file "tests/self_hosted/parity/codegen_reject_parity_leg.sh"
@@ -6939,7 +6971,8 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
-require_text "tests/self_hosted/parity/codegen_parity.sh" "PGY_SELFHOST_CODEGEN_FIXTURES"
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    "PGY_SELFHOST_CODEGEN_FIXTURES"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "PGY_SELFHOST_MIR_FIXTURES"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "DirWalk(CodegenParityFixtureDir())"
@@ -6980,13 +7013,64 @@ require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 'if [[ "$re
 require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" 'compare_run_output_with_owner'
 require_file "tests/self_hosted/parity/codegen_role_parity_leg.sh"
 require_max_lines "tests/self_hosted/parity/codegen_role_parity_leg.sh" 600
+require_file "tests/self_hosted/parity/codegen_tool_build_leg.sh"
+require_max_lines "tests/self_hosted/parity/codegen_tool_build_leg.sh" 600
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/codegen_tool_build_leg.sh"'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    'compile_tool_backend c "$C_TOOL_BIN"'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    'C_TOOL_COMPILED=1'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    'pgy.selfhost.completeness-cache.v1|codegen-parity-tool-build.v1'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    'source-set=%s|tool-source=%s|tool-source-hash=%s|compiler-executable=%s'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    'grep -Fxq "$build_key" "$stamp"'
+reject_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    '[[ -f "$tool_bin" ]] && return'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_role_operator_parity "$backend" "$tool_bin"'
 require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" "run_role_operator_parity()"
 require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" 'compare_run_output_with_owner "$backend" "$base" "$ROLE_EXPECTED" "$run_out" 2'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
 require_text "tests/self_hosted/parity/codegen_parity.sh" '"$PARSER_BIN" "$src_rel"'
-require_text "tests/self_hosted/parity/codegen_parity.sh" '"$manifest_bin" --fixture-manifest'
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    'C_TOOL_BIN="$ABS_BUILD/tool_c.exe"'
+require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
+    '"$C_TOOL_BIN" --fixture-manifest'
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    'if [[ "$backend" != "c" || "$C_TOOL_COMPILED" -ne 1 ]]; then'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" 'tool_manifest.exe'
+reject_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" 'tool_manifest.exe'
+require_file "src/self_hosted/tools/option_assignment_projection_probe/main.pgy"
+require_max_lines "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" 600
+require_file "src/self_hosted/tools/option_assignment_projection_probe/expected.txt"
+require_text "src/self_hosted/OWNERS.md" \
+    "src/self_hosted/tools/option_assignment_projection_probe/main.pgy"
+require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+    'import "../../codegen/emission/assign_emit_owner.pgy";'
+require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+    'ProbeOptionAssignment("a", "Some(7)", "Option<Int>")'
+require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+    'ProbeOptionAssignment("s", "None", "Option<String>")'
+require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+    'args[0] == "--missing-type"'
+require_file "tests/self_hosted/parity/codegen_option_assignment_parity.sh"
+require_max_lines "tests/self_hosted/parity/codegen_option_assignment_parity.sh" 600
+require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+    'pgy_selfhost_read_test_harness_manifest'
+require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+    'run_missing_type_negative c'
+require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+    'assert_llvm_leg_with_artifact_owner'
+require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+    '"run_output"'
+reject_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+    '"option-assignment-projection"'
+require_make_target_text \
+    "self-host-codegen-option-assignment-parity-test-smoke" \
+    "tests/self_hosted/parity/codegen_option_assignment_parity.sh"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    hello"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    seed_random"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'

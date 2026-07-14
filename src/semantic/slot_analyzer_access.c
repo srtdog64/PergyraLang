@@ -77,7 +77,7 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
             continue;
 
         mask = slot_param_summary_in_program(
-            body, param->name, program_root, depth + 1);
+            body, param->name, program_root, depth + 1, NULL);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
             slot_access_record(entries, count, capacity,
                 ast_identifier_name(arg), SLOT_ACCESS_READ);

@@ -204,11 +204,7 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         return 0u;
 
     unsigned mask = slot_analyze_legacy_ast_param_summary_in_program(
-        ast_func_body(callee_decl),
-        ast_func_param(callee_decl, arg_index) != NULL
-            ? ast_func_param(callee_decl, arg_index)->name
-            : NULL,
-        legacy_ast_param_summary_program(ctx));
+        callee_decl, arg_index, legacy_ast_param_summary_program(ctx));
 
     /* P0 #1 PR2 consumer migration: when the callee's body-summary
      * inventory positively proves no channel send happens, strip the

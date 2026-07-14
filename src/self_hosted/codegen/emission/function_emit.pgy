@@ -87,7 +87,7 @@ func EmitFunction(count: Int, arena: AstArena,
                    local_bindings: SemanticAstLocalBindingFacts,
                    assignments: SemanticAstAssignmentFacts,
                    statements: SemanticAstStatementFacts,
-                   ref statement_types: SemanticAstStatementTypeFacts,
+                   ref body_types: CodegenSemanticBodyTypeFacts,
                    expression_surfaces: SemanticAstExpressionSurfaceFacts,
                    inout cur: Array<Int>, f_indent: Int,
                    base_env: CodegenTypeEnv, uses_args: Bool) -> String {
@@ -200,8 +200,8 @@ func EmitFunction(count: Int, arena: AstArena,
         body_ret = AbiLayoutCEntrypointBodyReturnType();
     }
     let body: String = EmitStmtList(
-        count, arena, local_bindings, assignments, statements,
-        statement_types, expression_surfaces, stmt_indent, cur, "    ",
+        count, arena, local_bindings, assignments, statements, body_types,
+        expression_surfaces, stmt_indent, cur, "    ",
         env_state, body_ret, copyout
     );
 

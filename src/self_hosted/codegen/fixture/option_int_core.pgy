@@ -1,6 +1,8 @@
 func Main() -> Void {
-    let a: Option<Int> = Some(7);
-    let b: Option<Int> = None;
+    let a: Option<Int> = None;
+    a = Some(7);
+    let b: Option<Int> = Some(1);
+    b = None();
     if IsSome(a) {
         Log(UnwrapOption(a));
     }

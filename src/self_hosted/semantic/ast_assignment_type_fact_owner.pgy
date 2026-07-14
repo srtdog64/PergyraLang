@@ -260,7 +260,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
 }
 
 func SemanticAstAssignmentTypesAllVerified(
-    facts: SemanticAstAssignmentTypeFacts
+    ref facts: SemanticAstAssignmentTypeFacts
 ) -> Bool {
     if !facts.ok {
         return false;

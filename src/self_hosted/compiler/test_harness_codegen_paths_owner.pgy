@@ -51,8 +51,16 @@ func CompilerHarnessCodegenEventRejectExpectedPath() -> String {
     return "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt";
 }
 
+func CompilerHarnessOptionAssignmentProbeSourcePath() -> String {
+    return "src/self_hosted/tools/option_assignment_projection_probe/main.pgy";
+}
+
+func CompilerHarnessOptionAssignmentProbeExpectedPath() -> String {
+    return "src/self_hosted/tools/option_assignment_projection_probe/expected.txt";
+}
+
 func CompilerHarnessCodegenPathCount() -> Int {
-    return 11;
+    return 13;
 }
 
 func CompilerHarnessCodegenPathAt(index: Int) -> String {
@@ -67,11 +75,13 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 8 { return CompilerHarnessCodegenRoleExpectedPath(); }
     if index == 9 { return CompilerHarnessCodegenEventRejectSourcePath(); }
     if index == 10 { return CompilerHarnessCodegenEventRejectExpectedPath(); }
+    if index == 11 { return CompilerHarnessOptionAssignmentProbeSourcePath(); }
+    if index == 12 { return CompilerHarnessOptionAssignmentProbeExpectedPath(); }
     return "";
 }
 
 func CompilerHarnessCodegenParityReady() -> Bool {
-    if CompilerHarnessCodegenPathCount() != 11 {
+    if CompilerHarnessCodegenPathCount() != 13 {
         return false;
     }
     let i: Int = 0;

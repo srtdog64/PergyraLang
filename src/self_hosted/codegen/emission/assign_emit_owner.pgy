@@ -9,10 +9,12 @@ import "../../compiler/symbol_table_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "collection_element_emit_owner.pgy";
+import "option_value_emit_owner.pgy";
 
 func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
     idx: Int,
+    expected_type: String,
     env_state: Array<String>,
     graph: SemanticExpressionGraphView,
     target_graph: SemanticExpressionGraphView
@@ -20,6 +22,9 @@ func EmitAssign(
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx);
     let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx);
+    if expected_type == "" {
+        Die("assignment expected type is missing");
+    }
     if CodegenSemanticAssignmentTargetIsIndex(assignments, idx) {
         let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
             target_graph.graph, target_graph.root_id
@@ -64,37 +69,24 @@ func EmitAssign(
             Concat(idx_expr, Concat(", ", Concat(rhs, ");")))))));
     }
     let c_name: String = CompilerSymbolCBindingName(name);
-    let vt: String = LookupKindType(env, name, "v");
-    if vt == "String" || vt == "Float" || vt == "Long" {
+    if expected_type == "String" || expected_type == "Float" ||
+        expected_type == "Long" {
         return Concat(c_name, Concat(" = ", Concat(
             WrapExprWithSemanticGraph(expr, env, graph), ";"
         )));
     }
-    let option_struct: Option<OptionStructRuntimeFact> =
-        OptionResultRuntimeStructOptionFact(vt, env.global_rows);
-    if IsSome(option_struct) {
+    if StartsWith(expected_type, "Option<") {
         let option_expr: OptionExprEmissionFact =
-            EmitOptionExprFactForType(expr, vt, env, graph);
+            EmitOptionExprFactForType(expr, expected_type, env, graph);
         return Concat(c_name, Concat(" = ", Concat(
             option_expr.c_expr, ";"
         )));
     }
-    let payload_kind: Int =
-        OptionResultRuntimeOptionPayloadKindFromEnvKind(vt);
-    if payload_kind != 0 {
-        let rendered: String = RewriteExpr(expr, env);
-        let trimmed: String = StringTrim(expr);
-        if trimmed == "None" || trimmed == "None()" {
-            rendered = Concat(
-                OptionResultRuntimeCOptionNoneFnForPayloadKind(payload_kind),
-                "()"
-            );
-        }
-        return Concat(c_name, Concat(" = ", Concat(rendered, ";")));
-    }
-    if LookupKindType(env, vt, "s") == "struct" {
+    if LookupKindType(env, expected_type, "s") == "struct" {
         return Concat(c_name, Concat(" = ", Concat(
-            RewriteExpectedValueWithSemanticGraph(expr, vt, env, graph), ";"
+            RewriteExpectedValueWithSemanticGraph(
+                expr, expected_type, env, graph
+            ), ";"
         )));
     }
     return Concat(c_name, Concat(" = ", Concat(

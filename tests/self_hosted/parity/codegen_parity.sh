@@ -38,6 +38,7 @@ source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/codegen_role_parity_leg.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/codegen_reject_parity_leg.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/codegen_tool_build_leg.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -91,8 +92,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 11 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 11 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 13 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 13 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -124,6 +125,8 @@ for dir in "$FIXTURE_DIR" "$EXPECTED_DIR"; do
 done
 
 COMPARATOR_BIN="$ABS_BUILD/backend_output_comparator.exe"
+C_TOOL_BIN="$ABS_BUILD/tool_c.exe"
+C_TOOL_COMPILED=0
 
 run_native_capture() {
     local cwd="$1"
@@ -367,77 +370,6 @@ check_oracle_drift() {
     compare_run_output_with_owner "c-oracle" "$base" "$expected_file" "$oracle_norm" 0
 }
 
-compile_tool_backend() {
-    local backend="$1"
-    local tool_bin="$2"
-    local compile_log="$ABS_BUILD/tool_${backend}.compile.log"
-    local compile_out="$ABS_BUILD/tool_${backend}.compile.out"
-    local compile_err="$ABS_BUILD/tool_${backend}.compile.err"
-
-    echo "[self-host-parity:codegen] compiling codegen tool backend=$backend..."
-    if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
-        --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")"; then
-        cat "$compile_out" "$compile_err" > "$compile_log"
-        if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$compile_log"; then
-            echo "[self-host-parity:codegen] LLVM backend unavailable; skipping llvm-compiled codegen tool"
-            return 2
-        fi
-        echo "[self-host-parity:codegen] backend=$backend codegen tool failed to build" >&2
-        cat "$compile_log" >&2
-        exit 1
-    fi
-    cat "$compile_out" "$compile_err" > "$compile_log"
-    return 0
-}
-
-read_codegen_fixture_manifest() {
-    local manifest_bin="$ABS_BUILD/tool_manifest.exe"
-    local line
-
-    compile_tool_backend c "$manifest_bin"
-    FIXTURES=()
-    if ! run_native_capture "$ROOT_DIR" "$CODEGEN_FIXTURE_MANIFEST_FILE" "$ABS_BUILD/codegen_fixture_manifest.err" \
-        "$manifest_bin" --fixture-manifest; then
-        echo "[self-host-parity:codegen] fixture manifest emission failed" >&2
-        cat "$ABS_BUILD/codegen_fixture_manifest.err" >&2
-        exit 1
-    fi
-
-    while IFS= read -r line; do
-        line="${line%$'\r'}"
-        [[ -n "$line" ]] || continue
-        FIXTURES+=("$line")
-    done <"$CODEGEN_FIXTURE_MANIFEST_FILE"
-
-    if [[ "${#FIXTURES[@]}" -ne 71 ]]; then
-        echo "[self-host-parity:codegen] fixture manifest count drifted: ${#FIXTURES[@]} != 71" >&2
-        exit 1
-    fi
-
-    if [[ -n "${PGY_SELFHOST_CODEGEN_FIXTURES:-}" ]]; then
-        local selected=()
-        local requested
-        local requested_fixtures=()
-        IFS=', ' read -r -a requested_fixtures \
-            <<< "$PGY_SELFHOST_CODEGEN_FIXTURES"
-        for requested in "${requested_fixtures[@]}"; do
-            [[ -n "$requested" ]] || continue
-            if ! printf '%s\n' "${FIXTURES[@]}" | grep -Fxq "$requested"; then
-                echo "[self-host-parity:codegen] unknown fixture filter: $requested" >&2
-                exit 1
-            fi
-            selected+=("$requested")
-        done
-        if [[ "${#selected[@]}" -eq 0 ]]; then
-            echo "[self-host-parity:codegen] empty fixture filter" >&2
-            exit 1
-        fi
-        FIXTURES=("${selected[@]}")
-    fi
-}
-
 run_tool_fixture() {
     local backend="$1"
     local tool_bin="$2"
@@ -574,10 +506,13 @@ RAN_BACKENDS=()
 SKIPPED_BACKENDS=()
 for backend in $BACKENDS; do
     tool_bin="$ABS_BUILD/tool_${backend}.exe"
-    set +e
-    compile_tool_backend "$backend" "$tool_bin"
-    compile_rc="$?"
-    set -e
+    compile_rc=0
+    if [[ "$backend" != "c" || "$C_TOOL_COMPILED" -ne 1 ]]; then
+        set +e
+        compile_tool_backend "$backend" "$tool_bin"
+        compile_rc="$?"
+        set -e
+    fi
     if [[ "$compile_rc" -eq 2 ]]; then
         SKIPPED_BACKENDS+=("$backend")
         continue

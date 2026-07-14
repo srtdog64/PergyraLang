@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -420,6 +420,23 @@ drivers remain green across 20 source and 24 MIR fixtures.
 Initial compact graph construction, array-literal collection elements, and
 non-struct result-type classification remain open.
 Released/default replacement remains 0%.
+
+The next assignment-consumer delta removes the remaining scalar
+`Option<T>` reassignment fallback from self-host codegen. A single verified
+body-type view carries canonical assignment and statement type rows; the
+assignment emitter now selects Option ABI emission from the semantic expected
+type and expression graph rather than an environment-kind lookup or `None`
+text inspection. Direct synchronous recursion may reborrow the same readonly
+fact parameter into the same parameter position, while return escape remains
+fail-closed. The semantic suite is green at 2799/2799 and the compiler-scale
+HIR probe has zero diagnostics. A focused assignment projection probe is
+run-equal under C-built and LLVM-built binaries for `Option<Int>` and
+`Option<String>` `Some`/`None` reassignment; both binaries also reject a missing
+expected type. This delta does not raise the released/default replacement
+percentage or close the active expression-surface row because the full
+71-fixture codegen matrix was not rerun. The broader codegen parity harness
+reuses its manifest-producing C tool for the C parity leg only when the full
+self-host source-set, tool-source, backend, and compiler fingerprints match.
 
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact

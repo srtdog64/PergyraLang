@@ -26,6 +26,13 @@ typedef struct
     unsigned    mask;
 } SlotEscapeEntry;
 
+typedef struct
+{
+    ASTNode    *function_decl;
+    size_t      param_index;
+    const char *param_name;
+} SlotSummaryOrigin;
+
 unsigned slot_builtin_access_mask(const char *name);
 bool slot_builtin_call_is_local_non_escape(const char *name);
 
@@ -39,12 +46,15 @@ unsigned slot_access_mask_for_named_symbol(ASTNode *node,
                                            const char *symbol_name,
                                            ASTNode *program_root, int depth);
 unsigned slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
-                                     ASTNode *program_root, int depth);
+                                     ASTNode *program_root, int depth,
+                                     const SlotSummaryOrigin *origin);
 unsigned slot_param_summary_in_program(ASTNode *node, const char *slot_name,
-                                       ASTNode *program_root, int depth);
+                                       ASTNode *program_root, int depth,
+                                       const SlotSummaryOrigin *origin);
 void collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                           size_t *count, size_t *capacity,
-                          ASTNode *program_root, int depth);
+                          ASTNode *program_root, int depth,
+                          const SlotSummaryOrigin *origin);
 void collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                            size_t *count, size_t *capacity,
                            ASTNode *program_root);

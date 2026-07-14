@@ -7,22 +7,22 @@ func GenerateCUnitFromSemanticArtifact(
     semantic_analysis: SemanticAstArtifactAnalysis,
     require_entrypoint: Bool
 ) -> String {
-    let statement_types: SemanticAstStatementTypeFacts =
-        CodegenSemanticStatementTypeFactsFromAnalysisOrDie(
+    let body_types: CodegenSemanticBodyTypeFacts =
+        CodegenSemanticBodyTypeFactsFromAnalysisOrDie(
             artifact, semantic_analysis
         );
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, statement_types, require_entrypoint
+        artifact, semantic_analysis, body_types, require_entrypoint
     );
 }
 
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    ref statement_types: SemanticAstStatementTypeFacts
+    ref body_types: CodegenSemanticBodyTypeFacts
 ) -> String {
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, statement_types, true
+        artifact, semantic_analysis, body_types, true
     );
 }
 

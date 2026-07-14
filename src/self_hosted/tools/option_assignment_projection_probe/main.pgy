@@ -1,0 +1,54 @@
+// Focused executable proof for semantic-owned Option assignment projection.
+
+import "../../codegen/emission/assign_emit_owner.pgy";
+
+func ProbeAssignmentFacts(name: String, expression: String) -> SemanticAstAssignmentFacts {
+    return SemanticAstAssignmentFacts(
+        true, "", "", 1,
+        [0], [0], [0], [name], [name], [0], [""], [expression]
+    );
+}
+
+func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
+    let built: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(), expression
+        );
+    if !built.ok {
+        Die("option assignment probe graph build failed");
+    }
+    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [built.root_id], [true], built.arena
+    );
+    return SemanticExpressionGraphView(true, built.root_id, facts);
+}
+
+func ProbeOptionAssignment(
+    name: String,
+    expression: String,
+    expected_type: String
+) -> String {
+    let assignments: SemanticAstAssignmentFacts =
+        ProbeAssignmentFacts(name, expression);
+    let graph: SemanticExpressionGraphView = ProbeExpressionGraph(expression);
+    let no_target_graph: SemanticExpressionGraphView =
+        SemanticExpressionGraphView(
+            false, 0, SemanticExpressionGraphFactsEmpty()
+        );
+    let env_state: Array<String> = ["|", "|"];
+    return EmitAssign(
+        assignments, 0, expected_type, env_state, graph, no_target_graph
+    );
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--missing-type" {
+        Log(ProbeOptionAssignment("a", "Some(7)", ""));
+        return;
+    }
+    Log(ProbeOptionAssignment("a", "Some(7)", "Option<Int>"));
+    Log(ProbeOptionAssignment("a", "None()", "Option<Int>"));
+    Log(ProbeOptionAssignment("s", "Some(\"ok\")", "Option<String>"));
+    Log(ProbeOptionAssignment("s", "None", "Option<String>"));
+}

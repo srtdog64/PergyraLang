@@ -1,6 +1,32 @@
 // Codegen projection over semantic-owned assignment rows.
 
 import "../../semantic/ast_assignment_fact_owner.pgy";
+import "../../semantic/ast_assignment_type_fact_owner.pgy";
+
+func CodegenSemanticAssignmentTypeFactsReady(
+    artifact: AstTreeArtifact,
+    ref assignments: SemanticAstAssignmentFacts,
+    ref facts: SemanticAstAssignmentTypeFacts
+) -> Bool {
+    let count: Int = ArrayLength(assignments.node_ids);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        !SemanticAstAssignmentTypesAllVerified(facts) ||
+        ArrayLength(facts.node_ids) != count ||
+        ArrayLength(facts.target_texts) != count ||
+        ArrayLength(facts.expected_type_names) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != assignments.node_ids[i] ||
+            facts.target_texts[i] != assignments.target_texts[i] ||
+            facts.expected_type_names[i] == "" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
 
 func CodegenSemanticAssignmentIs(
     facts: SemanticAstAssignmentFacts,
@@ -50,4 +76,22 @@ func CodegenSemanticAssignmentTargetIsIndex(
     return facts.target_is_indexed[
         CodegenSemanticAssignmentIndexOrDie(facts, node_id)
     ] == 1;
+}
+
+func CodegenSemanticAssignmentExpectedTypeOrDie(
+    ref facts: SemanticAstAssignmentTypeFacts,
+    node_id: Int
+) -> String {
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.node_ids[i] == node_id && facts.verified[i] == 1 &&
+            facts.expected_type_names[i] != "" {
+            return facts.expected_type_names[i];
+        }
+        i = i + 1;
+    }
+    Die(Concat(
+        "missing semantic assignment expected type: ", ToString(node_id)
+    ));
+    return "";
 }

@@ -12,6 +12,39 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_support_internal.h"
 
+#include <string.h>
+
+static bool
+semantic_call_is_direct_sync_self_ref_reborrow(SemanticContext *ctx,
+                                                ASTNode *callee_decl,
+                                                ASTNode *arg_expr,
+                                                size_t arg_index,
+                                                ParamMode pmode)
+{
+    FuncParam *target_param;
+    const char *borrowed_name;
+
+    if (pmode != PARAM_MODE_REF
+        || ctx == NULL
+        || callee_decl == NULL
+        || callee_decl != ctx->current_function_decl
+        || callee_decl->type != AST_FUNC_DECL
+        || callee_decl->is_async_decl
+        || arg_index >= ast_func_param_count(callee_decl)) {
+        return false;
+    }
+
+    target_param = ast_func_param(callee_decl, arg_index);
+    borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
+    if (borrowed_name == NULL)
+        borrowed_name = semantic_addressable_boundary_root_name(arg_expr);
+
+    return target_param != NULL
+        && target_param->name != NULL
+        && borrowed_name != NULL
+        && strcmp(target_param->name, borrowed_name) == 0;
+}
+
 static bool
 semantic_call_arg_is_named_move_source(ASTNode *arg_expr,
                                        SemanticContext *ctx)
@@ -47,7 +80,9 @@ semantic_check_movable_call_argument(ASTNode *arg_expr,
         ctx, display_name, arg_index, &pmode);
     if (pmode == PARAM_MODE_REF
         && callee_decl != NULL
-        && ast_func_body(callee_decl) != NULL) {
+        && ast_func_body(callee_decl) != NULL
+        && !semantic_call_is_direct_sync_self_ref_reborrow(
+            ctx, callee_decl, arg_expr, arg_index, pmode)) {
         unsigned callee_mask;
         borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
         callee_mask = semantic_callable_param_escape_summary(
@@ -468,17 +503,20 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     if (borrowed_name == NULL && pmode == PARAM_MODE_REF)
         borrowed_name = semantic_addressable_boundary_root_name(arg_expr);
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
-        unsigned callee_mask =
-            semantic_callable_param_escape_summary(
-                callee_decl, arg_index, ctx);
-        if (semantic_param_summary_has_any_escape(callee_mask)
-            && borrowed_name != NULL) {
-            semantic_validate_borrowed_escape(
-                arg_expr, arg_expr, ctx, arg_type, borrowed_name,
-                OWNERSHIP_CONSUMER_HELPER_CALL, NULL,
-                display_name != NULL ? display_name : "<callee>",
-                NULL, true, NULL, local_fix_label);
-            return false;
+        if (!semantic_call_is_direct_sync_self_ref_reborrow(
+                ctx, callee_decl, arg_expr, arg_index, pmode)) {
+            unsigned callee_mask =
+                semantic_callable_param_escape_summary(
+                    callee_decl, arg_index, ctx);
+            if (semantic_param_summary_has_any_escape(callee_mask)
+                && borrowed_name != NULL) {
+                semantic_validate_borrowed_escape(
+                    arg_expr, arg_expr, ctx, arg_type, borrowed_name,
+                    OWNERSHIP_CONSUMER_HELPER_CALL, NULL,
+                    display_name != NULL ? display_name : "<callee>",
+                    NULL, true, NULL, local_fix_label);
+                return false;
+            }
         }
     }
 

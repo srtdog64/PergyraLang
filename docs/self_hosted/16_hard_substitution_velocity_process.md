@@ -217,6 +217,25 @@ emit byte-identical C and run-equal on logical and String-equality fixtures.
 This does not close the owner: compact-text-to-graph production must still move
 into the parser arena, and non-condition recursive expressions remain bridge.
 
+Eighteenth executable delta, 2026-07-15: scalar `Option<T>`
+reassignment now consumes `SemanticAstAssignmentTypeFacts.expected_type_names`
+and the semantic expression graph. The assignment emitter is ratcheted against
+environment-kind payload recovery, generic text rewriting, and `None` text
+inspection. Assignment and statement type rows travel through one borrowed
+body-type view so recursive emission does not copy compiler-scale facts.
+The language permits only direct synchronous same-parameter `ref` reborrowing;
+other helper, parameter, async, return, and channel escape paths remain closed.
+The semantic suite passed 2799/2799 and the compiler-scale HIR probe passed.
+A focused projection probe now imports the assignment emitter directly and
+proves `Option<Int>` and `Option<String>` `Some`/`None` reassignment output under
+C-built and LLVM-built binaries. Both binaries also reject a missing semantic
+expected type with the owned fail-closed diagnostic. The full 71-fixture
+codegen matrix was not rerun, and the released/default replacement percentage
+does not change. The broader runner no longer compiles the C codegen owner once
+for its fixture manifest and again for the C leg: a dedicated build leg keeps
+the manifest-producing binary live and reuses it only under an exact
+source-set/tool/compiler fingerprint.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

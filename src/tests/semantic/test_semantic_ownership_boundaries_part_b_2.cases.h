@@ -410,4 +410,58 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("direct synchronous recursion may reborrow the same ref parameter");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let items: Array<Int>;\n"
+            "}\n"
+            "func Visit(ref packet: Packet, depth: Int) -> Int {\n"
+            "    if depth <= 0 {\n"
+            "        return ArrayLength(packet.items);\n"
+            "    }\n"
+            "    return Visit(packet, depth - 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("direct recursive reborrow still cannot return borrowed provenance");
+    {
+        const char *source =
+            "class Packet {\n"
+            "    let items: Array<Int>;\n"
+            "}\n"
+            "func Leak(ref packet: Packet, depth: Int) -> Packet {\n"
+            "    if depth <= 0 {\n"
+            "        return packet;\n"
+            "    }\n"
+            "    return Leak(packet, depth - 1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through return"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }

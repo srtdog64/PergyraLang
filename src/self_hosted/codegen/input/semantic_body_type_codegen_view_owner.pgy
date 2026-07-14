@@ -1,0 +1,57 @@
+// Verified semantic body-type bundle consumed by codegen.
+//
+// Initializer and iteration facts are synthesized once. Assignment and
+// statement consumers receive the same verified body snapshot.
+
+import "../../semantic/ast_artifact_verdict_owner.pgy";
+import "../../semantic/ast_initializer_type_fact_owner.pgy";
+import "../../semantic/ast_iteration_type_fact_owner.pgy";
+import "semantic_assignment_codegen_view_owner.pgy";
+import "semantic_statement_codegen_view_owner.pgy";
+
+struct CodegenSemanticBodyTypeFacts {
+    assignment_types: SemanticAstAssignmentTypeFacts;
+    statement_types: SemanticAstStatementTypeFacts;
+}
+
+func CodegenSemanticBodyTypeFactsFromAnalysisOrDie(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis
+) -> CodegenSemanticBodyTypeFacts {
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, analysis.expression_surfaces
+        );
+    let iteration_types: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.expression_surfaces
+        );
+    let assignment_types: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.expression_surfaces, iteration_types,
+            analysis.assignments
+        );
+    let statement_types: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, iteration_types,
+            analysis.statements
+        );
+    if !CodegenSemanticAssignmentTypeFactsReady(
+        artifact, analysis.assignments, assignment_types
+    ) {
+        Die("codegen semantic assignment type facts are missing or invalid");
+    }
+    if !CodegenSemanticStatementTypeFactsReady(
+        artifact, analysis.statements, statement_types
+    ) {
+        Die("codegen semantic statement type facts are missing or invalid");
+    }
+    return CodegenSemanticBodyTypeFacts(assignment_types, statement_types);
+}

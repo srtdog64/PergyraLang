@@ -9,6 +9,7 @@ import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/ast_usage_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../input/semantic_assignment_codegen_view_owner.pgy";
+import "../input/semantic_body_type_codegen_view_owner.pgy";
 import "../input/semantic_statement_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
@@ -300,7 +301,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
 func GenerateCUnitFromSemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    ref statement_types: SemanticAstStatementTypeFacts,
+    ref body_types: CodegenSemanticBodyTypeFacts,
     require_entrypoint: Bool
 ) -> String {
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
@@ -319,9 +320,14 @@ func GenerateCUnitFromSemanticFacts(
         Die("codegen semantic evidence does not match AST artifact");
     }
     if !CodegenSemanticStatementTypeFactsReady(
-        artifact, semantic_analysis.statements, statement_types
+        artifact, semantic_analysis.statements, body_types.statement_types
     ) {
         Die("codegen statement type evidence does not match AST artifact");
+    }
+    if !CodegenSemanticAssignmentTypeFactsReady(
+        artifact, semantic_analysis.assignments, body_types.assignment_types
+    ) {
+        Die("codegen assignment type evidence does not match AST artifact");
     }
     let signatures: SemanticAstFunctionSignatureFacts =
         semantic_analysis.signatures;
@@ -395,7 +401,7 @@ func GenerateCUnitFromSemanticFacts(
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
-                        local_bindings, assignments, statements, statement_types,
+                        local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
                         cur, method_indent,
                         base_env, uses_args
@@ -413,7 +419,7 @@ func GenerateCUnitFromSemanticFacts(
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
                     let role_mdef: String = EmitFunction(
                         count, arena, signatures, semantic_analysis.roles,
-                        local_bindings, assignments, statements, statement_types,
+                        local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
                         cur, role_method_indent,
                         base_env, uses_args
@@ -427,7 +433,7 @@ func GenerateCUnitFromSemanticFacts(
             cur_indent == f_indent {
             let def: String = EmitFunction(
                 count, arena, signatures, semantic_analysis.roles,
-                local_bindings, assignments, statements, statement_types,
+                local_bindings, assignments, statements, body_types,
                 semantic_analysis.expression_surfaces,
                 cur, f_indent, base_env, uses_args
             );

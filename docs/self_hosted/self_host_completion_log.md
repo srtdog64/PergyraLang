@@ -6,6 +6,37 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-15 - Assignment type truth reaches scalar Option emission
+
+- Added one codegen body-type view that synthesizes initializer and iteration
+  facts once, then carries the verified assignment and statement type owners
+  together. Recursive statement emission borrows that view instead of copying
+  compiler-scale fact structures.
+- Repointed scalar `Option<T>` reassignment to the canonical assignment
+  expected-type row and semantic expression graph. The migrated consumer can no
+  longer recover payload kind from the codegen environment, trim `None` text,
+  or call the generic text rewriter as an assignment fallback.
+- Narrowed readonly recursive borrowing: a synchronous function may reborrow
+  its own `ref` parameter only into the same parameter position. The escape
+  summary treats that edge as a backedge, while return escape remains rejected.
+  The semantic suite passed 2799/2799, including positive and negative cases.
+- A compiler-scale HIR probe containing the recursive body-type view completed
+  with zero diagnostics. Production semantic C owners remain below 600 lines.
+- Added an owner-scoped projection probe that imports the assignment emitter
+  directly. C-built and LLVM-built probe binaries emit the committed
+  `Option<Int>` / `Option<String>` `Some` / `None` reassignment rows and both
+  reject a missing expected type with the owned fail-closed diagnostic. The
+  focused C/LLVM gate and assignment-owner static ratchets pass. The full
+  71-fixture codegen matrix was not rerun, so released/default substitution is
+  unchanged.
+- Split the codegen parity tool-build/manifest responsibility into its own leg.
+  The C tool that projects the fixture manifest is now reused by the C parity
+  leg instead of compiling the complete codegen twice. The main runner is 545
+  lines and the build leg is 143 lines. Reuse requires an exact fingerprint of
+  the complete self-host source set, tool source, backend, and compiler binary;
+  a binary or modification time alone cannot authorize reuse. This build-cost
+  reduction does not replace the scheduled full-matrix parity boundary.
+
 ## 2026-07-14 - Collection values have one expression-graph consumer
 
 - Deleted the text-based collection element emitter. Indexed assignment,

@@ -1,6 +1,8 @@
 func Main() -> Void {
-    let a: Option<String> = Some("ok");
-    let b: Option<String> = None;
+    let a: Option<String> = None;
+    a = Some("ok");
+    let b: Option<String> = Some("unused");
+    b = None();
     if IsSome(a) {
         Log(UnwrapOption(a));
     }

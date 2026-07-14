@@ -38,8 +38,8 @@ unsigned slot_analyze_escape_flags_in_program(ASTNode *node,
  * CFG/MIR facts; use this name only when the AST compatibility path is
  * intentionally accepted and smoke-gated.
  */
-unsigned slot_analyze_legacy_ast_param_summary_in_program(ASTNode *node,
-                                                          const char *slot_name,
+unsigned slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
+                                                          size_t param_index,
                                                           ASTNode *program_root);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */
