@@ -225,22 +225,6 @@ rir_find_matching_scope(const RIRMutableScopeInventory *inventory,
     return NULL;
 }
 
-/* The walk fills a scratch scope, but only its ops are wanted here. An
- * RIRScope owns four arrays, and the scratch one used to release just `ops`
- * -- so every block walked leaked the resource facts the walk recorded along
- * the way (448 bytes on the parallel-scheduler fixture, which the sanitizer
- * gate reported). Release everything the scratch scope owns; `ops` is the one
- * thing that leaves. */
-static void
-rir_release_scratch_scope(RIRScope *scope, bool keep_ops)
-{
-    free(scope->facts);
-    free(scope->state_summaries);
-    rir_free_flow_blocks(scope);
-    if (!keep_ops)
-        free(scope->ops);
-}
-
 static bool
 rir_collect_block_ops(const HIRBasicBlock *block, RIROp **ops_out, size_t *op_count_out)
 {
@@ -254,18 +238,16 @@ rir_collect_block_ops(const HIRBasicBlock *block, RIROp **ops_out, size_t *op_co
     memset(&temp_scope, 0, sizeof(temp_scope));
     for (size_t i = 0; i < block->statement_count; i++) {
         if (!rir_walk_block_node(&temp_scope, block->statements[i])) {
-            rir_release_scratch_scope(&temp_scope, false);
+            rir_scope_discard_storage(&temp_scope);
             return false;
         }
     }
     if (!rir_walk_block_node(&temp_scope, block->terminator_condition)
         || !rir_walk_block_node(&temp_scope, block->terminator_value)) {
-        rir_release_scratch_scope(&temp_scope, false);
+        rir_scope_discard_storage(&temp_scope);
         return false;
     }
-    *ops_out = temp_scope.ops;
-    *op_count_out = temp_scope.op_count;
-    rir_release_scratch_scope(&temp_scope, true);
+    rir_scope_take_ops_and_discard(&temp_scope, ops_out, op_count_out);
     return true;
 }
 

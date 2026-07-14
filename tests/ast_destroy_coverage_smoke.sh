@@ -28,7 +28,11 @@ for f in "$TYPES_H" "$DESTROY_C" "$DESTROY_DOMAIN_C"; do
 done
 
 # Kinds: the ASTNodeType enum body only (the file has other enums).
-mapfile -t KINDS < <(
+# Keep this collection loop compatible with the macOS system Bash 3.2.
+KINDS=()
+while IFS= read -r kind; do
+    [[ -n "$kind" ]] && KINDS+=("$kind")
+done < <(
     awk '/^typedef enum$/,/} ASTNodeType;/' "$TYPES_H" \
     | grep -oE '\bAST_[A-Z0-9_]+\b' \
     | sort -u

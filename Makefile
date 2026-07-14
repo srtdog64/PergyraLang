@@ -1667,7 +1667,7 @@ $(REPO_BIN_DIR)/pgy.exe: $(PGY) | $(REPO_BIN_DIR)
 endif
 
 # Lexer smoke-test (original main.c)
-$(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
+$(LEXER_TEST): $(BUILD_DIR)/common/arena.o $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
@@ -2394,7 +2394,7 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_assignment_projection_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
@@ -2504,7 +2504,7 @@ self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 
 self-host-codegen-assignment-projection-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_assignment_projection_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh

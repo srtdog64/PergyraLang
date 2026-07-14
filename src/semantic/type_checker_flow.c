@@ -18,8 +18,18 @@
 #include <windows.h>
 #endif
 
-static size_t g_stmt_visits_by_kind[512];
-static double g_stmt_seconds_by_kind[512];
+typedef struct
+{
+    size_t visits_by_kind[512];
+    double seconds_by_kind[512];
+} StmtVisitCensus;
+
+static StmtVisitCensus *
+stmt_visit_census(void)
+{
+    static _Thread_local StmtVisitCensus census;
+    return &census;
+}
 
 static double
 stmt_census_now(void)
@@ -39,7 +49,7 @@ stmt_census_now(void)
 static bool
 stmt_census_enabled(void)
 {
-    static int enabled = -1;
+    static _Thread_local int enabled = -1;
 
     if (enabled < 0)
         enabled = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL ? 1 : 0;
@@ -49,15 +59,17 @@ stmt_census_enabled(void)
 void
 type_check_stmt_debug_visit_report(void)
 {
+    StmtVisitCensus *census = stmt_visit_census();
+
     if (!stmt_census_enabled())
         return;
     for (size_t i = 0; i < 512; i++) {
-        if (g_stmt_visits_by_kind[i] > 5000
-            || g_stmt_seconds_by_kind[i] > 0.2) {
+        if (census->visits_by_kind[i] > 5000
+            || census->seconds_by_kind[i] > 0.2) {
             fprintf(stderr,
                     "[semantic timing]   stmt kind=%zu visits=%zu"
                     " inclusive=%.3fs\n",
-                    i, g_stmt_visits_by_kind[i], g_stmt_seconds_by_kind[i]);
+                    i, census->visits_by_kind[i], census->seconds_by_kind[i]);
         }
     }
 }
@@ -261,12 +273,14 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_FALLTHROUGH;
     if (!stmt_census_enabled())
         return type_check_statement_flow_dispatch(node, ctx, loop_flow);
+    StmtVisitCensus *census = stmt_visit_census();
+
     if ((size_t)node->type < 512)
-        g_stmt_visits_by_kind[(size_t)node->type]++;
+        census->visits_by_kind[(size_t)node->type]++;
     t0 = stmt_census_now();
     flags = type_check_statement_flow_dispatch(node, ctx, loop_flow);
     if ((size_t)node->type < 512)
-        g_stmt_seconds_by_kind[(size_t)node->type] += stmt_census_now() - t0;
+        census->seconds_by_kind[(size_t)node->type] += stmt_census_now() - t0;
     return flags;
 }
 

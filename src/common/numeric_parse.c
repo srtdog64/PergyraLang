@@ -51,8 +51,8 @@ pgy_parse_positive_int_strict(const char *text, int *out)
 }
 
 static bool
-pgy_parse_size_internal(const char *text, size_t *out, bool strict,
-                        bool allow_zero)
+pgy_parse_u64_internal(const char *text, uint64_t *out, bool strict,
+                       bool allow_zero)
 {
     char *end = NULL;
     const char *scan;
@@ -67,7 +67,7 @@ pgy_parse_size_internal(const char *text, size_t *out, bool strict,
         return false;
     errno = 0;
     parsed = strtoull(scan, &end, 10);
-    if (errno != 0 || end == scan || parsed > (unsigned long long)SIZE_MAX)
+    if (errno != 0 || end == scan || parsed > (unsigned long long)UINT64_MAX)
         return false;
     if (!allow_zero && parsed == 0)
         return false;
@@ -77,6 +77,21 @@ pgy_parse_size_internal(const char *text, size_t *out, bool strict,
                 return false;
             end++;
         }
+    }
+    *out = (uint64_t)parsed;
+    return true;
+}
+
+static bool
+pgy_parse_size_internal(const char *text, size_t *out, bool strict,
+                        bool allow_zero)
+{
+    uint64_t parsed;
+
+    if (out == NULL
+        || !pgy_parse_u64_internal(text, &parsed, strict, allow_zero)
+        || parsed > (uint64_t)SIZE_MAX) {
+        return false;
     }
     *out = (size_t)parsed;
     return true;
@@ -98,4 +113,10 @@ bool
 pgy_parse_size_strict_allow_zero(const char *text, size_t *out)
 {
     return pgy_parse_size_internal(text, out, true, true);
+}
+
+bool
+pgy_parse_u64_strict_allow_zero(const char *text, uint64_t *out)
+{
+    return pgy_parse_u64_internal(text, out, true, true);
 }

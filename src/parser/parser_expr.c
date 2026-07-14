@@ -1,5 +1,6 @@
 #include "parser_internal.h"
 #include "../common/match_variant_policy.h"
+#include "../common/numeric_parse.h"
 
 ASTNode* parse_pipe(Parser* parser);
 
@@ -512,8 +513,11 @@ ASTNode* parser_parse_primary(Parser* parser) {
                      * the exactly-representable integer range (2^53 ns,
                      * about 104 days) -- past it the literal would drift
                      * silently, so it fails closed instead. */
-                    uint64_t count = strtoull(num.text, NULL, 10);
-                    if (count > 9007199254740992ULL / mult) {
+                    uint64_t count = 0;
+                    if (!pgy_parse_u64_strict_allow_zero(num.text, &count)) {
+                        parser_error(parser,
+                            "duration literal count is outside the unsigned 64-bit range (docs/181 SS2.3)");
+                    } else if (count > 9007199254740992ULL / mult) {
                         parser_error(parser,
                             "duration literal exceeds the exactly-representable nanosecond range (docs/181 SS2.3)");
                     } else {

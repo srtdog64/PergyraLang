@@ -135,6 +135,45 @@ rir_free_flow_blocks(RIRScope *scope)
     scope->has_flow_sensitive_merge = false;
 }
 
+void
+rir_scope_discard_storage(RIRScope *scope)
+{
+    if (scope == NULL)
+        return;
+    free(scope->facts);
+    free(scope->ops);
+    free(scope->state_summaries);
+    rir_free_flow_blocks(scope);
+    scope->facts = NULL;
+    scope->fact_count = 0;
+    scope->fact_capacity = 0;
+    scope->ops = NULL;
+    scope->op_count = 0;
+    scope->op_capacity = 0;
+    scope->state_summaries = NULL;
+    scope->state_summary_count = 0;
+    scope->state_summary_capacity = 0;
+}
+
+void
+rir_scope_take_ops_and_discard(RIRScope *scope,
+                               RIROp **ops_out,
+                               size_t *op_count_out)
+{
+    if (ops_out == NULL || op_count_out == NULL)
+        return;
+    *ops_out = NULL;
+    *op_count_out = 0;
+    if (scope == NULL)
+        return;
+    *ops_out = scope->ops;
+    *op_count_out = scope->op_count;
+    scope->ops = NULL;
+    scope->op_count = 0;
+    scope->op_capacity = 0;
+    rir_scope_discard_storage(scope);
+}
+
 static bool
 scope_add_state_summary(RIRScope *scope, RIRStateSummary summary)
 {

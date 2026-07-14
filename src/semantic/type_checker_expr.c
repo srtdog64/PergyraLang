@@ -17,9 +17,19 @@
 #include <windows.h>
 #endif
 
-static size_t g_expr_visits_total;
-static size_t g_expr_visits_by_kind[512];
-static double g_expr_seconds_by_kind[512];
+typedef struct
+{
+    size_t visits_total;
+    size_t visits_by_kind[512];
+    double seconds_by_kind[512];
+} ExprVisitCensus;
+
+static ExprVisitCensus *
+expr_visit_census(void)
+{
+    static _Thread_local ExprVisitCensus census;
+    return &census;
+}
 
 static double
 expr_census_now(void)
@@ -39,7 +49,7 @@ expr_census_now(void)
 static bool
 expr_visit_census_enabled(void)
 {
-    static int enabled = -1;
+    static _Thread_local int enabled = -1;
 
     if (enabled < 0)
         enabled = getenv("PGY_DEBUG_SEMANTIC_TIMING") != NULL ? 1 : 0;
@@ -49,16 +59,18 @@ expr_visit_census_enabled(void)
 void
 type_check_expr_debug_visit_report(void)
 {
-    if (!expr_visit_census_enabled() || g_expr_visits_total == 0)
+    ExprVisitCensus *census = expr_visit_census();
+
+    if (!expr_visit_census_enabled() || census->visits_total == 0)
         return;
     fprintf(stderr, "[semantic timing] expr visits total=%zu\n",
-            g_expr_visits_total);
+            census->visits_total);
     for (size_t i = 0; i < 512; i++) {
-        if (g_expr_visits_by_kind[i] > 5000
-            || g_expr_seconds_by_kind[i] > 0.2) {
+        if (census->visits_by_kind[i] > 5000
+            || census->seconds_by_kind[i] > 0.2) {
             fprintf(stderr,
                     "[semantic timing]   kind=%zu visits=%zu inclusive=%.3fs\n",
-                    i, g_expr_visits_by_kind[i], g_expr_seconds_by_kind[i]);
+                    i, census->visits_by_kind[i], census->seconds_by_kind[i]);
         }
     }
 }
@@ -391,13 +403,15 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     if (!expr_visit_census_enabled())
         return type_check_expression_dispatch(expr, ctx);
-    g_expr_visits_total++;
+    ExprVisitCensus *census = expr_visit_census();
+
+    census->visits_total++;
     if ((size_t)expr->type < 512)
-        g_expr_visits_by_kind[(size_t)expr->type]++;
+        census->visits_by_kind[(size_t)expr->type]++;
     t0 = expr_census_now();
     result = type_check_expression_dispatch(expr, ctx);
     if ((size_t)expr->type < 512)
-        g_expr_seconds_by_kind[(size_t)expr->type] += expr_census_now() - t0;
+        census->seconds_by_kind[(size_t)expr->type] += expr_census_now() - t0;
     return result;
 }
 

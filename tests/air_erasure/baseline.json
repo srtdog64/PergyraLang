@@ -29,9 +29,9 @@
       "B_pol": 0,
       "C_unprov": 0,
       "phys_Axis": 0,
-      "phys_Sync_excess": 13,
+      "phys_Sync_excess": 14,
       "phys_Abort_excess": 0,
-      "reason": "Inherent concurrency and channel synchronization. AIR declares both boundary retain causes and the program-wide concurrency summary; the measured pthread residue is the primitive that remains after axis erasure and lane scheduling."
+      "reason": "Inherent concurrency and channel synchronization. AIR declares both boundary retain causes and the program-wide concurrency summary; the measured pthread residue is the primitive that remains after axis erasure and lane scheduling. The extra pthread_cond_timedwait symbol is the bounded wait quantum used to retire cancelled any-join losers (6d29fef9), not an undeclared semantic fallback."
     },
     "05_zone_intent": {
       "A_inh": 2,

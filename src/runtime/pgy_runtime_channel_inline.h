@@ -19,6 +19,7 @@
 #include "pgy_runtime_channel_status.h"
 #include "pgy_runtime_channel_lane_inline.h"
 #include "pgy_runtime_channel_lifecycle_inline.h"
+#include "pgy_runtime_channel_result_inline.h"
 #include "pgy_runtime_cancel_probe.h"
 
 /* Cancellable parked waits (docs/182 SS2.2): the unbounded blocking
@@ -38,7 +39,7 @@
  * data-carrying contract outcomes, and the *_result variants stay the
  * failure-as-data tier: their own guards return ERR before ever reaching
  * these raw operations. */
-#define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
+#define PGY_CHANNEL_CORE_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
 typedef struct \
 { \
     CType           *buf; \
@@ -502,114 +503,11 @@ pgy_channel_closed_##SuffixName(PgyChannel_##SuffixName *ch) \
     bool closed = ch->closed; \
     pthread_mutex_unlock(&ch->mutex); \
     return closed; \
-} \
-\
-PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
-pgy_channel_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
-{ \
-    PgyRuntimeChannel##SuffixName##Result result; \
-    CType out; \
-    memset(&out, 0, sizeof(CType)); \
-    if (ch == NULL) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "recv_" #SuffixName); \
-        return result; \
-    } \
-    if (ch->buf == NULL || ch->cap == 0) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "recv_" #SuffixName); \
-        return result; \
-    } \
-    if (!pgy_channel_recv_##SuffixName(ch, &out)) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY, "recv_" #SuffixName); \
-        return result; \
-    } \
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK; \
-    result.ok = out; \
-    return result; \
-} \
-\
-PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
-pgy_channel_try_recv_result_##SuffixName(PgyChannel_##SuffixName *ch) \
-{ \
-    PgyRuntimeChannel##SuffixName##Result result; \
-    CType out; \
-    memset(&out, 0, sizeof(CType)); \
-    if (ch == NULL) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "try_recv_" #SuffixName); \
-        return result; \
-    } \
-    if (ch->buf == NULL || ch->cap == 0) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "try_recv_" #SuffixName); \
-        return result; \
-    } \
-    if (!pgy_channel_try_recv_##SuffixName(ch, &out)) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            pgy_channel_closed_##SuffixName(ch) \
-                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY \
-                : PGY_RUNTIME_CHANNEL_STATUS_EMPTY, \
-            "try_recv_" #SuffixName); \
-        return result; \
-    } \
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK; \
-    result.ok = out; \
-    return result; \
-} \
-\
-PGY_CH_STORAGE PgyRuntimeChannel##SuffixName##Result \
-pgy_channel_recv_timeout_result_##SuffixName(PgyChannel_##SuffixName *ch, \
-                                             uint64_t timeout_ns) \
-{ \
-    PgyRuntimeChannel##SuffixName##Result result; \
-    CType out; \
-    memset(&out, 0, sizeof(CType)); \
-    if (ch == NULL) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, \
-            "recv_timeout_" #SuffixName); \
-        return result; \
-    } \
-    if (ch->buf == NULL || ch->cap == 0) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, \
-            "recv_timeout_" #SuffixName); \
-        return result; \
-    } \
-    if (!pgy_channel_recv_timeout_##SuffixName(ch, &out, timeout_ns)) { \
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR; \
-        result.err = pgy_runtime_channel_failure_from_status( \
-            pgy_channel_closed_##SuffixName(ch) \
-                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY \
-                : PGY_RUNTIME_CHANNEL_STATUS_TIMEOUT, \
-            "recv_timeout_" #SuffixName); \
-        return result; \
-    } \
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK; \
-    result.ok = out; \
-    return result; \
-} \
-\
-/* Blocking recv that returns the value (convenience wrapper). \
- * Returns zero-initialized value if channel closed and empty. */ \
-PGY_CH_STORAGE CType \
-pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
-{ \
-    PgyRuntimeChannel##SuffixName##Result result = \
-        pgy_channel_recv_result_##SuffixName(ch); \
-    return result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK \
-        ? result.ok : (CType)0; \
 }
+
+#define PGY_CHANNEL_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
+    PGY_CHANNEL_CORE_DEFINE(SuffixName, CType, PGY_CH_STORAGE) \
+    PGY_CHANNEL_RESULT_DEFINE(SuffixName, CType, PGY_CH_STORAGE)
 
 /* The LLVM-export twin (pgy_runtime_lib_channel_int_exports.h) includes this
  * header with PGY_CHANNEL_MACRO_ONLY defined to reuse the PGY_CHANNEL_DEFINE

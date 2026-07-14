@@ -7080,21 +7080,21 @@ require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'ProbeIndexedAssignment("Array<Int>")'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'args[0] == "--missing-target-type"'
-require_file "tests/self_hosted/parity/codegen_assignment_projection_parity.sh"
-require_max_lines "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" 599
-require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+require_file "tests/self_hosted/parity/assignment_projection_probe_parity.sh"
+require_max_lines "tests/self_hosted/parity/assignment_projection_probe_parity.sh" 599
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'pgy_selfhost_read_test_harness_manifest'
-require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'run_missing_type_negative "$backend" "missing-target-type"'
-require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'assert_llvm_leg_with_artifact_owner'
-require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     '"run_output"'
-reject_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+reject_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     '"option-assignment-projection"'
 require_make_target_text \
     "self-host-codegen-assignment-projection-parity-test-smoke" \
-    "tests/self_hosted/parity/codegen_assignment_projection_parity.sh"
+    "tests/self_hosted/parity/assignment_projection_probe_parity.sh"
 require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "target_type_names: Array<String>;"

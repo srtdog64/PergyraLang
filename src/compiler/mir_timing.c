@@ -15,7 +15,17 @@ static const char *const kMirTimingNames[MIR_TIMING_SLOT_COUNT] = {
     "  bb/phi_terminator",
 };
 
-static double g_mir_timing[MIR_TIMING_SLOT_COUNT];
+typedef struct
+{
+    double slots[MIR_TIMING_SLOT_COUNT];
+} MIRTimingState;
+
+static MIRTimingState *
+mir_timing_state(void)
+{
+    static _Thread_local MIRTimingState state;
+    return &state;
+}
 
 double
 mir_timing_now(void)
@@ -28,7 +38,7 @@ mir_timing_add(MIRTimingSlot slot, double elapsed_seconds)
 {
     if (slot < MIR_TIMING_RIR_MATCH || slot >= MIR_TIMING_SLOT_COUNT)
         return;
-    g_mir_timing[slot] += elapsed_seconds;
+    mir_timing_state()->slots[slot] += elapsed_seconds;
 }
 
 double
@@ -36,7 +46,7 @@ mir_timing_total(void)
 {
     double total = 0.0;
     for (int i = 0; i < MIR_TIMING_SLOT_COUNT; i++)
-        total += g_mir_timing[i];
+        total += mir_timing_state()->slots[i];
     return total;
 }
 
@@ -46,6 +56,6 @@ mir_timing_report(void)
     fprintf(stderr, "[mir timing] sub-stage totals:\n");
     for (int i = 0; i < MIR_TIMING_SLOT_COUNT; i++) {
         fprintf(stderr, "[mir timing]   %-22s %8.3fs\n",
-                kMirTimingNames[i], g_mir_timing[i]);
+                kMirTimingNames[i], mir_timing_state()->slots[i]);
     }
 }

@@ -890,19 +890,31 @@ if [ "$coq_proof_count" -eq 0 ]; then
     exit 1
 fi
 
-# A runner without coqc used to take a quiet skip branch and the gate still
+# Rocq 9 renamed the CLI: `rocq compile` replaces `coqc`. The Rocq Platform
+# installer still ships the legacy name, so a local run never notices -- but the
+# official rocq/rocq-prover image ships only the new one, while Ubuntu's apt
+# `coq` (8.x) ships only the legacy one. Detect instead of assuming, or this
+# gate fails on a prover that is sitting right there.
+coq_compile=""
+if command -v rocq >/dev/null 2>&1; then
+    coq_compile="rocq compile"
+elif command -v coqc >/dev/null 2>&1; then
+    coq_compile="coqc"
+fi
+
+# A runner with no prover used to take a quiet skip branch and the gate still
 # reported green -- macOS CI ships no Coq, so it has been skipping the whole
 # corpus while passing. A missing prover is now fatal; a runner that genuinely
 # has none must declare it with PGY_ALLOW_MISSING_COQ=1, and that skip is
 # announced with the count of proofs left unchecked.
-if ! command -v coqc >/dev/null 2>&1; then
+if [ -z "$coq_compile" ]; then
     if [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
-        echo "formal semantics Coq smoke: DECLARED SKIP -- coqc absent," \
-             "PGY_ALLOW_MISSING_COQ=1"
+        echo "formal semantics Coq smoke: DECLARED SKIP -- no prover" \
+             "(looked for rocq, coqc), PGY_ALLOW_MISSING_COQ=1"
         echo "  ${coq_proof_count} proofs were NOT machine-checked on this runner."
     else
-        echo "formal semantics Coq smoke: FAIL -- coqc not found;" \
-             "${coq_proof_count} proofs would go unchecked." >&2
+        echo "formal semantics Coq smoke: FAIL -- no prover found (looked for" \
+             "rocq, coqc); ${coq_proof_count} proofs would go unchecked." >&2
         echo "  Install Coq/Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare" \
              "the skip explicitly." >&2
         exit 1
@@ -911,10 +923,11 @@ else
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
     for coq_proof in $coq_proofs; do
         if command -v timeout >/dev/null 2>&1; then
-            (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
+            (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile "$coq_proof")
         else
-            (cd "$ROOT_DIR" && coqc "$coq_proof")
+            (cd "$ROOT_DIR" && $coq_compile "$coq_proof")
         fi
     done
-    echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs machine-checked)"
+    echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs machine-checked" \
+         "with '$coq_compile')"
 fi

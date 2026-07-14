@@ -41,39 +41,45 @@ typedef struct TypeRegistry
     size_t  capacity;
 } TypeRegistry;
 
-static TypeRegistry *g_active_registry = NULL;
+static TypeRegistry **
+type_registry_active_slot(void)
+{
+    static _Thread_local TypeRegistry *active_registry;
+    return &active_registry;
+}
 
 Type *
 type_alloc(void)
 {
     Type *type = calloc(1, sizeof(Type));
+    TypeRegistry *active_registry = *type_registry_active_slot();
 
     if (type == NULL)
         return NULL;
-    if (g_active_registry == NULL)
+    if (active_registry == NULL)
         return type;  /* singleton init, or an allocation outside an analysis */
 
-    if (g_active_registry->count == g_active_registry->capacity) {
-        size_t next = g_active_registry->capacity == 0
+    if (active_registry->count == active_registry->capacity) {
+        size_t next = active_registry->capacity == 0
             ? 64
-            : g_active_registry->capacity * 2;
+            : active_registry->capacity * 2;
         Type **grown;
 
         if (next > SIZE_MAX / sizeof(Type *)) {
             free(type);
             return NULL;
         }
-        grown = realloc(g_active_registry->types, next * sizeof(Type *));
+        grown = realloc(active_registry->types, next * sizeof(Type *));
         if (grown == NULL) {
             /* Losing the registry slot would leak this Type silently, which
              * is the very thing being fixed. Fail the allocation instead. */
             free(type);
             return NULL;
         }
-        g_active_registry->types = grown;
-        g_active_registry->capacity = next;
+        active_registry->types = grown;
+        active_registry->capacity = next;
     }
-    g_active_registry->types[g_active_registry->count++] = type;
+    active_registry->types[active_registry->count++] = type;
     return type;
 }
 
@@ -84,15 +90,15 @@ type_registry_begin(void)
 
     if (registry == NULL)
         return NULL;
-    g_active_registry = registry;
+    *type_registry_active_slot() = registry;
     return registry;
 }
 
 void
 type_registry_end(TypeRegistry *registry)
 {
-    if (g_active_registry == registry)
-        g_active_registry = NULL;
+    if (*type_registry_active_slot() == registry)
+        *type_registry_active_slot() = NULL;
 }
 
 static void
@@ -136,8 +142,8 @@ type_registry_destroy(TypeRegistry *registry)
 {
     if (registry == NULL)
         return;
-    if (g_active_registry == registry)
-        g_active_registry = NULL;
+    if (*type_registry_active_slot() == registry)
+        *type_registry_active_slot() = NULL;
     for (size_t i = 0; i < registry->count; i++)
         type_free_owned(registry->types[i]);
     free(registry->types);
@@ -210,8 +216,8 @@ type_system_init(void)
      * would not -- and neither did the AIR battery, which is where the
      * sanitizer caught it.) So step outside the registry explicitly.
      */
-    suspended = g_active_registry;
-    g_active_registry = NULL;
+    suspended = *type_registry_active_slot();
+    *type_registry_active_slot() = NULL;
 
     TYPE_INT    = type_create_primitive("Int",    4, true);
     TYPE_LONG   = type_create_primitive("Long",   8, true);
@@ -243,7 +249,7 @@ type_system_init(void)
     TYPE_RESULT = type_create_primitive("Result", 0, false);
     TYPE_OPTION = type_create_primitive("Option", 0, false);
 
-    g_active_registry = suspended;
+    *type_registry_active_slot() = suspended;
 }
 
 void
