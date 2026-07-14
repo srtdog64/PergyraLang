@@ -13,6 +13,22 @@ func SelfMirSimpleStatementKind(kind: Int) -> Bool {
         kind == TypedAstKindExitStmtTag();
 }
 
+func SelfMirSimpleStatementExpressionGraphLane(
+    kind: Int
+) -> Option<Int> {
+    if kind == TypedAstKindLogStmtTag() ||
+        kind == TypedAstKindBareCallStmtTag() {
+        return Some(AstExpressionLaneAtom());
+    }
+    if kind == TypedAstKindArrayPushStmtTag() {
+        return Some(AstExpressionLaneValue());
+    }
+    if kind == TypedAstKindArraySetStmtTag() {
+        return Some(AstExpressionLaneAuxiliary());
+    }
+    return None;
+}
+
 func SelfMirLowerSimpleStatement(
     build: SelfMirRoutineBuild,
     kind: Int,

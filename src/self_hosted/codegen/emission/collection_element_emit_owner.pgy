@@ -6,7 +6,7 @@ import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "struct_value_emit.pgy";
 
-// Array literal and ArraySet lanes remain explicit text bridges.
+// Array literal and indexed-assignment lanes remain explicit text bridges.
 func EmitCollectionElementValue(
     kind: String,
     value_expr: String,
@@ -23,7 +23,7 @@ func EmitCollectionElementValue(
     return IntEval(value_expr, env);
 }
 
-func EmitCollectionPushElementValue(
+func EmitCollectionGraphElementValue(
     value_expr: String,
     env: CodegenTypeEnv,
     kind_code: Int,

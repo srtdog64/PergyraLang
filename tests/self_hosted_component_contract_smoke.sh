@@ -3340,6 +3340,8 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "f
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAtomLaneRequired"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphValueLaneRequired"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindArrayPushStmtTag()"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionGraphAuxiliaryLaneRequired"
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "TypedAstKindArraySetStmtTag()"
 require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "arithmetic_graph.ok"
 require_file "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
@@ -3899,20 +3901,22 @@ require_text "src/self_hosted/parser/stmt_owner.pgy" \
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'expr_fact, "ArrayPush", 1'
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
-    'func ParserStatementArrayPushGraphContractReady()'
+    'expr_fact, "ArraySet", 2'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
-    'if kind == TypedAstKindArrayPushStmtTag() {'
+    'SelfMirSimpleStatementExpressionGraphLane(kind);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
-    'graph_lane = AstExpressionLaneValue();'
+    'node_id, UnwrapOption(graph_lane)'
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
+    'return Some(AstExpressionLaneAuxiliary());'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
-    'UnwrapOption(arg0) == "ArrayPush";'
+    'UnwrapOption(arg0) == "ArraySet";'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
-    'rows.arg0s[i] == "ArrayPush") &&'
+    'rows.arg0s[i] == "ArraySet") &&'
 reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
-    "func SelfMirLowerNodeSequence(" \
+    "func SelfMirLowerBlockFromArtifact(" \
     "SemanticAstExpressionGraphFromText(" \
     "SemanticAstExpressionGraphCompactBridge"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     "if kind == TypedAstKindLogStmtTag()"
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
     'rows.arg0s[i] == "Log"'
@@ -4241,14 +4245,25 @@ require_file "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy
 require_max_lines "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" 600
 require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionElementValue"
 require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "EmitStructValue(value_expr, elem_type, env)"
-require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionPushElementValue("
+require_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" "func EmitCollectionGraphElementValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let a_graph: SemanticExpressionGraphView"
 reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
-    "func EmitCollectionPushElementValue(" "EmitStructValue("
+    "func EmitCollectionGraphElementValue(" "EmitStructValue("
 reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
-    "func EmitCollectionPushElementValue(" "RewriteExpr("
+    "func EmitCollectionGraphElementValue(" "RewriteExpr("
 reject_function_text "src/self_hosted/codegen/emission/collection_element_emit_owner.pgy" \
-    "func EmitCollectionPushElementValue(" "StringTrim("
+    "func EmitCollectionGraphElementValue(" "StringTrim("
+require_file "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER'
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'MIR fixture filter must select exactly one row'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_collection_mutation_graph'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "AbiLayoutCStructTypeName(sname)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CompilerSymbolCFieldName(fld)"

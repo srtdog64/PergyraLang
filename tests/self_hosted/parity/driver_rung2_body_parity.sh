@@ -15,6 +15,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_ow
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -116,9 +117,23 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 25 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 25" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 26 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 26" >&2
     exit 1
+fi
+MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
+if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
+    filtered_mir_fixture_rows=()
+    for fixture_rel in "${mir_fixture_rows[@]}"; do
+        if [[ "$(basename "$fixture_rel" .pgy)" == "$MIR_FIXTURE_FILTER" ]]; then
+            filtered_mir_fixture_rows+=("$fixture_rel")
+        fi
+    done
+    if [[ "${#filtered_mir_fixture_rows[@]}" -ne 1 ]]; then
+        echo "[self-host-parity:driver-rung2] MIR fixture filter must select exactly one row: $MIR_FIXTURE_FILTER" >&2
+        exit 1
+    fi
+    mir_fixture_rows=("${filtered_mir_fixture_rows[@]}")
 fi
 
 pgy_selfhost_prepare_driver_rung2_mir_oracles

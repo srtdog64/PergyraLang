@@ -15,6 +15,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_assignment_emit.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_binding.h"
@@ -69,12 +70,14 @@ transpiler_mir_assignment_expected_type_name(
     ASTNode *target,
     MIRSourceLocalTypeScratch *scratch)
 {
-    if (ctx == NULL || ctx->mir == NULL || routine == NULL
+    const MIRProgram *mir = transpiler_active_mir_identity(ctx);
+
+    if (mir == NULL || routine == NULL
         || target == NULL || scratch == NULL) {
         return NULL;
     }
     return mir_source_local_expr_type_name(
-        ctx->mir, routine, scratch, target);
+        mir, routine, scratch, target);
 }
 
 static bool

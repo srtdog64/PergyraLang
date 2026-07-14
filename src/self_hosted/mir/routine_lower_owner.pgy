@@ -225,17 +225,13 @@ func SelfMirLowerBlockFromArtifact(
                 build = SelfMirLowerSimpleStatement(
                     build, kind, payload, value_payload, auxiliary_payload
                 );
-                let graph_lane: Int = AstExpressionLaneAtom();
-                if kind == TypedAstKindArrayPushStmtTag() {
-                    graph_lane = AstExpressionLaneValue();
-                }
-                if kind == TypedAstKindLogStmtTag() ||
-                    kind == TypedAstKindBareCallStmtTag() ||
-                    kind == TypedAstKindArrayPushStmtTag() {
+                let graph_lane: Option<Int> =
+                    SelfMirSimpleStatementExpressionGraphLane(kind);
+                if IsSome(graph_lane) {
                     build = SelfMirRoutineAttachLastExpressionGraph(
                         build, SemanticAstExpressionGraphForNode(
                             state.input.analysis.expression_surfaces,
-                            node_id, graph_lane
+                            node_id, UnwrapOption(graph_lane)
                         )
                     );
                 }

@@ -6,6 +6,25 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-14 - ArraySet consumes the semantic auxiliary graph
+
+- Required the auxiliary-lane semantic expression graph for every `ArraySet`
+  statement. The parser now captures argument two, self MIR carries that root,
+  and the MIR importer/verifier reject a missing or invalid graph.
+- Reused one collection graph-element emission owner for `ArrayPush` and
+  `ArraySet`. The migrated set path cannot call the legacy struct/text emitter
+  or reconstruct `CodegenAstTextNode(...)` from `expr0`.
+- Added `ast_node_array_set.pgy` as the twenty-sixth DRV-2 MIR fixture. Focused
+  C-built and LLVM-built driver legs each matched canonical MIR, emitted C, and
+  native execution; graph removal and an invalid root both failed closed.
+- Added a fail-loud single-fixture filter to the DRV-2 parity runner so a
+  reached seam can be checked without executing the complete matrix. The
+  default CI path remains the full inventory; the complete 26-case matrix was
+  not rerun in this slice.
+- Routed C assignment expected-type lookup through
+  `transpiler_active_mir_identity`; direct `ctx->mir` access remains confined
+  to the inventory owner allowlist.
+
 ## 2026-07-14 - ArrayPush consumes the semantic value graph
 
 - Required the value-lane semantic expression graph for every `ArrayPush`

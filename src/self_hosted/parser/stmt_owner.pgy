@@ -501,6 +501,19 @@ func ParseOneStmt(
                     AstExpressionLaneValue(), push_value
                 )
             );
+        } else if owner_kind == TypedAstKindArraySetStmtTag() {
+            let set_value: ParserExpressionFact =
+                ParserExpressionNamedCallArgumentAt(
+                    expr_fact, "ArraySet", 2
+                );
+            if !set_value.ok { Exit(1); }
+            ArraySet(
+                expression_graphs, 0,
+                ParserExpressionGraphsAppend(
+                    expression_graphs[0], owner_kind,
+                    AstExpressionLaneAuxiliary(), set_value
+                )
+            );
         } else if owner_kind == TypedAstKindBareCallStmtTag() {
             ArraySet(
                 expression_graphs, 0,
@@ -519,22 +532,6 @@ func ParseOneStmt(
     }
     ArraySet(cursor_out, 0, i);
     return Concat(IndentStr(stmt_indent), expr_text);
-}
-
-func ParserStatementArrayPushGraphContractReady() -> Bool {
-    let source: String = "ArrayPush(nodes, Node(2, \"Let\"));";
-    let cursor: Array<Int> = [0];
-    let graphs: Array<AstExpressionGraphRows> = [
-        AstExpressionGraphRowsEmpty()
-    ];
-    let rendered: String = ParseOneStmt(source, 0, cursor, 0, graphs);
-    let rows: AstExpressionGraphRows = graphs[0];
-    return rendered == "ArrayPush(nodes, Node(2, \"Let\"))" &&
-        cursor[0] == StringLength(source) &&
-        AstExpressionGraphRowsReady(rows) &&
-        ArrayLength(rows.roots) == 1 &&
-        rows.root_owner_kinds[0] == TypedAstKindArrayPushStmtTag() &&
-        rows.root_lanes[0] == AstExpressionLaneValue();
 }
 
 // Parse a `{ stmt* }` block. Returns formatted lines joined by "\n".

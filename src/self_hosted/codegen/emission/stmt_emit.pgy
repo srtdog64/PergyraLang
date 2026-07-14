@@ -323,10 +323,16 @@ func EmitStmtList(count: Int, arena: AstArena,
             let c_a_arr: String = CompilerSymbolCBindingName(a_arr);
             let a_idx: String = CodegenSemanticArraySetIndexOrDie(statements, idx);
             let a_val: String = CodegenSemanticArraySetValueOrDie(statements, idx);
+            let a_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAuxiliary()
+                );
             let a_kind: String = LookupKindType(env, a_arr, "v");
             let a_kind_code: Int = CollectionRuntimeKindCode(a_kind);
             let set_fn: String = CollectionRuntimeCSetFn(a_kind_code);
-            let a_rhs: String = EmitCollectionElementValue(a_kind, a_val, env, a_kind_code);
+            let a_rhs: String = EmitCollectionGraphElementValue(
+                a_val, env, a_kind_code, a_graph
+            );
             let set_stmt: String = Concat(set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(IntEval(a_idx, env), Concat(", ", Concat(a_rhs, ");")))))));
             ArrayPush(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
@@ -342,7 +348,7 @@ func EmitStmtList(count: Int, arena: AstArena,
             let p_kind: String = LookupKindType(env, p_arr, "v");
             let p_kind_code: Int = CollectionRuntimeKindCode(p_kind);
             let push_fn: String = CollectionRuntimeCPushFn(p_kind_code);
-            let p_rhs: String = EmitCollectionPushElementValue(
+            let p_rhs: String = EmitCollectionGraphElementValue(
                 p_val, env, p_kind_code, p_graph
             );
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(c_p_arr, Concat(", ", Concat(p_rhs, ");")))));

@@ -114,6 +114,8 @@ func SemanticAstExpressionGraphAuxiliaryLaneRequired(
 ) -> Bool {
     return TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindForStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindArraySetStmtTag()
     );
 }
 
