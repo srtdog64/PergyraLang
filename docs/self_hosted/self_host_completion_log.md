@@ -7298,3 +7298,34 @@ Released/default replacement remains 0%.
   migrated, `selfhost.statement_result_type` is `CLOSED`; remaining text-backed
   expression classification belongs to `selfhost.expression_surface`.
   Released/default replacement remains 0%.
+
+### 2026-07-15 -- semantic owners split below 600 lines
+
+- The native function checker no longer owns a second capability-name table.
+  `capability_analyze.c` renders the stable diagnostic vocabulary, leaving
+  `type_checker_func_decl.c` at 571 lines.
+- Resource snapshot capture/conflict analysis and snapshot restore/destruction
+  are separate responsibilities. The former is 538 lines; the new lifecycle
+  owner is 72 lines.
+- Self-host signature production/query (436 lines) is separate from reverse
+  artifact matching (168 lines). Expression graph facts (532 lines) are
+  separate from their compact-bridge executable contract (71 lines).
+- `test_inc_size_smoke.sh` now covers native semantic C/header owners and
+  self-host semantic Pergyra owners with a hard 599-line maximum. The gate
+  passed, and an executable owner-split contract compiled and printed
+  `owner-split-ok`.
+
+### 2026-07-15 -- indexed assignment type ownership landed, parity pending
+
+- `SemanticAstAssignmentTypeFacts` now owns the assignment target type and
+  index result type. The index type is projected from expression-graph handles;
+  codegen no longer recovers the collection kind through
+  `LookupKindType(env, arr_name, "v")`.
+- Missing target-type and expected-type rows fail closed in the focused
+  assignment projection probe. Static ratchets forbid payload retyping and the
+  removed codegen lookup.
+- This entry does not claim C/LLVM projection parity. Both the focused codegen
+  probe and a smaller assignment-type contract probe exceeded the five-minute
+  compile budget and were terminated with empty compile logs. Observed peak
+  working sets were about 291 MB and 186 MB, respectively, so this is currently
+  a self-host semantic CPU-time blocker rather than a memory-growth result.

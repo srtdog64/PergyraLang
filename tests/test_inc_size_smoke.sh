@@ -215,8 +215,12 @@ fi
 
 semantic_owner_violations="$(
     cd "$ROOT_DIR"
-    find src/semantic -maxdepth 1 -type f -name '*.c' -print0 \
-        | xargs -0 wc -l \
+    {
+        find src/semantic -maxdepth 1 -type f \
+            \( -name '*.c' -o -name '*.h' \) -exec wc -l {} +
+        find src/self_hosted/semantic -maxdepth 1 -type f \
+            -name '*.pgy' -exec wc -l {} +
+    } \
         | awk '$2 != "total" && $1 > 599 { print }'
 )"
 

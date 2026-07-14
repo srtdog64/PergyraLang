@@ -594,9 +594,12 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_active.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_universe.c \
                    $(SEMANTIC_DIR)/type_checker_flow_resources.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_snapshot_lifecycle.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loop_control.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loop_snapshot.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_loop_summary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
                    $(SEMANTIC_DIR)/parallel_capture_facts.c \
@@ -612,6 +615,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_access.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
+                   $(SEMANTIC_DIR)/function_param_flow_summary.c \
                    $(SEMANTIC_DIR)/lifecycle_state.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
@@ -2202,6 +2206,17 @@ cfg-body-dataflow-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/cfg_body_dataflow_smoke.sh
 
+loop-flow-summary-test-smoke:
+	$(MAKE) $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/loop_flow_summary_smoke.sh
+
+slot-analyzer-host-index-test-smoke:
+	"$(BASH)" tests/slot_analyzer_host_index_smoke.sh
+
+function-param-flow-summary-test-smoke:
+	$(MAKE) $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/function_param_flow_summary_smoke.sh
+
 ast-dispatch-test-smoke:
 	"$(BASH)" tests/ast_dispatch_partition_smoke.sh
 
@@ -2315,13 +2330,13 @@ verification-methodology-test-smoke:
 proof-spine-test-smoke:
 	"$(BASH)" tests/proof_spine_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
-	"$(BASH)" tests/sot_owner_spine_contract_smoke.sh
+	"$(BASH)" tests/sot_authority_edge_smoke.sh
 
 sot-authority-adequacy-test-smoke:
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 
-sot-owner-spine-test-smoke:
-	"$(BASH)" tests/sot_owner_spine_contract_smoke.sh
+sot-authority-edge-test-smoke:
+	"$(BASH)" tests/sot_authority_edge_smoke.sh
 
 self-host-preparation-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke
 
@@ -2334,7 +2349,7 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_hard_contract_smoke.sh
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
-	"$(BASH)" tests/sot_owner_spine_contract_smoke.sh
+	"$(BASH)" tests/sot_authority_edge_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
 	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
 	"$(BASH)" tests/self_host_source_scan_owner_smoke.sh
@@ -2379,7 +2394,7 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/completeness_impact_run_group_runner.sh
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_option_assignment_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_assignment_projection_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
@@ -2488,8 +2503,8 @@ self-host-codegen-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 
-self-host-codegen-option-assignment-parity-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_option_assignment_parity.sh
+self-host-codegen-assignment-projection-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_assignment_projection_parity.sh
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
@@ -3172,9 +3187,9 @@ lsp: $(PGY_LSP)
 
 .PHONY: all compiler dev-compiler all-with-tests clean clean-objects clean-scratch build-resource-report build-pressure-dev-compiler build-pressure-compiler clean-local-variant-artifacts clean-local-artifacts rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke ci-step-runner-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke agent-boundary-sentinel-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke grammar-examples-compile-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-abi-layout-row-parity-test-smoke self-host-runtime-call-abi-row-parity-test-smoke self-host-compatibility-evolution-parity-test-smoke self-host-compatibility-corpus-parity-test-smoke self-host-semantic-parity-test-smoke self-host-semantic-selfcheck-test-smoke self-host-completeness-smoke self-host-completeness-incremental-cache-parity-test-smoke self-host-completeness-impact-test-smoke self-host-completeness-impact-planner-test-smoke self-host-completeness-impact-runner-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-option-assignment-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-compiler-world-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke mir-param-carriage-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
-        example-hello example-slots llvm emit-llvm-% lsp post-selfhost-validation-manifest-test-smoke parallel-backpressure-stress-test-smoke
-.PHONY: self-host-driver-bootstrap-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-owner-spine-test-smoke self-host-compiler self-host-live-replacement-test-smoke
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke ci-step-runner-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke agent-boundary-sentinel-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke grammar-examples-compile-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-abi-layout-row-parity-test-smoke self-host-runtime-call-abi-row-parity-test-smoke self-host-compatibility-evolution-parity-test-smoke self-host-compatibility-corpus-parity-test-smoke self-host-semantic-parity-test-smoke self-host-semantic-selfcheck-test-smoke self-host-completeness-smoke self-host-completeness-incremental-cache-parity-test-smoke self-host-completeness-impact-test-smoke self-host-completeness-impact-planner-test-smoke self-host-completeness-impact-runner-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-assignment-projection-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-compiler-world-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke mir-param-carriage-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke loop-flow-summary-test-smoke slot-analyzer-host-index-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+        example-hello example-slots llvm emit-llvm-% lsp post-selfhost-validation-manifest-test-smoke parallel-backpressure-stress-test-smoke function-param-flow-summary-test-smoke
+.PHONY: self-host-driver-bootstrap-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-authority-edge-test-smoke self-host-compiler self-host-live-replacement-test-smoke
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke

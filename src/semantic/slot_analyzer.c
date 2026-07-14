@@ -210,9 +210,10 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     SlotEscapeEntry *escapes = NULL;
     size_t escape_count = 0;
     size_t escape_capacity = 0;
+    SlotFunctionLookup lookup = {sa->ctx, sa->program_root};
 
     collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
-        sa->program_root, 0, NULL);
+        &lookup, 0, NULL);
 
     for (size_t i = 0; i < after_count; i++) {
         Symbol *sym = live_after[i];
@@ -393,9 +394,10 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
     if (task_accesses == NULL || task_counts == NULL || task_caps == NULL)
         return false;
 
+    SlotFunctionLookup lookup = {sa->ctx, sa->program_root};
     for (size_t i = 0; i < n; i++)
         collect_slot_accesses(ast_parallel_task(parallel, i),
-            &task_accesses[i], &task_counts[i], &task_caps[i], sa->program_root);
+            &task_accesses[i], &task_counts[i], &task_caps[i], &lookup);
 
     for (size_t i = 0; i < n; i++) {
         for (size_t j = i + 1; j < n; j++) {
@@ -476,16 +478,19 @@ unsigned
 slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
                                      ASTNode *program_root)
 {
-    return slot_escape_mask_in_program(node, slot_name, program_root, 0, NULL);
+    SlotFunctionLookup lookup = {NULL, program_root};
+    return slot_escape_mask_in_program(node, slot_name, &lookup, 0, NULL);
 }
 
 unsigned
 slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
                                                  size_t param_index,
-                                                 ASTNode *program_root)
+                                                 ASTNode *program_root,
+                                                 SemanticContext *ctx)
 {
     FuncParam *param;
     SlotSummaryOrigin origin;
+    SlotFunctionLookup lookup = {ctx, program_root};
 
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
         || param_index >= ast_func_param_count(func_decl)) {
@@ -499,6 +504,9 @@ slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
     origin.function_decl = func_decl;
     origin.param_index = param_index;
     origin.param_name = param->name;
+    if (ctx != NULL)
+        return function_param_flow_summary_demand(
+            &lookup, func_decl, param_index);
     return slot_param_summary_in_program(ast_func_body(func_decl), param->name,
-        program_root, 0, &origin);
+        &lookup, 0, &origin);
 }

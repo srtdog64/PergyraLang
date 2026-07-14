@@ -1,6 +1,7 @@
 #include "diag_codes.h"
 #include "type_checker_flow_loops.h"
 #include "type_checker_flow_effects.h"
+#include "type_checker_flow_loop_summary.h"
 
 static size_t
 for_loop_known_iteration_cap(const ASTNode *node, bool *known)
@@ -44,6 +45,7 @@ destroy_loop_flow_state(LoopFlowState *loop_flow)
 FlowFlags
 type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
 {
+    size_t diagnostic_base = ctx->diagnostic_count;
     uint32_t effect_base = ctx->current_function_effects;
     uint32_t merged_effect_delta = EFFECT_NONE;
     uint32_t previous_iter_delta = EFFECT_NONE;
@@ -76,6 +78,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
 
     Symbol *loop_var = symbol_create_variable(
         ast_for_variable(node), var_type, node->line, node->column);
+    symbol_mark_declaration(loop_var, ast_node_stable_id(node), false);
     scope_declare(ctx->scope, loop_var);
 
     if (range_start != NULL) {
@@ -117,18 +120,31 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         return FLOW_FALLTHROUGH;
     }
 
+    FlowFlags cached_flags = FLOW_NONE;
+    if (loop_flow_summary_try_apply(ctx, node, &base, effect_base,
+                                    &cached_flags)) {
+        ctx->loop_depth--;
+        if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+            ctx->loop_labels[ctx->loop_depth] = NULL;
+        scope_exit(&ctx->scope);
+        destroy_resource_snapshot(&base);
+        destroy_resource_snapshot(&merged);
+        destroy_resource_snapshot(&entry);
+        return cached_flags;
+    }
+
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         FlowFlags body_flags = FLOW_NONE;
-        uint32_t previous_merged_effect_delta = merged_effect_delta;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
         ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
+        loop_flow_summary_note_body_check(ctx, node, "for");
         body_flags = type_check_block_flow(body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
         if (!dynamic_defer_rejected
@@ -181,9 +197,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
-        if (resource_snapshots_equal(&entry, &backedge)
-            && type_effect_mask_compare(previous_merged_effect_delta,
-                                        merged_effect_delta) == 0) {
+        if (resource_snapshot_availability_equal(&entry, &backedge)) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
@@ -191,6 +205,15 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
 
         destroy_resource_snapshot(&entry);
         entry = backedge;
+    }
+
+    FlowFlags result_flags = FLOW_FALLTHROUGH;
+    if (known_iterations && known_cap > 0 && !has_break_exit && body_must_return)
+        result_flags = FLOW_RETURN;
+    if (ctx->diagnostic_count == diagnostic_base) {
+        loop_flow_summary_record(ctx, node, &base, &merged,
+                                 effect_base, merged_effect_delta,
+                                 result_flags);
     }
 
     ctx->loop_depth--;
@@ -204,9 +227,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&merged);
     destroy_resource_snapshot(&entry);
-    if (known_iterations && known_cap > 0 && !has_break_exit && body_must_return)
-        return FLOW_RETURN;
-    return FLOW_FALLTHROUGH;
+    return result_flags;
 }
 
 bool
@@ -219,6 +240,7 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 FlowFlags
 type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
 {
+    size_t diagnostic_base = ctx->diagnostic_count;
     uint32_t effect_base = ctx->current_function_effects;
     uint32_t merged_effect_delta = EFFECT_NONE;
     uint32_t previous_iter_delta = EFFECT_NONE;
@@ -280,12 +302,24 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         return FLOW_FALLTHROUGH;
     }
 
+    FlowFlags cached_flags = FLOW_NONE;
+    if (loop_flow_summary_try_apply(ctx, node, &base, effect_base,
+                                    &cached_flags)) {
+        ctx->loop_depth--;
+        if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+            ctx->loop_labels[ctx->loop_depth] = NULL;
+        scope_exit(&ctx->scope);
+        destroy_resource_snapshot(&base);
+        destroy_resource_snapshot(&merged);
+        destroy_resource_snapshot(&entry);
+        return cached_flags;
+    }
+
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         FlowFlags body_flags = FLOW_NONE;
-        uint32_t previous_merged_effect_delta = merged_effect_delta;
         uint32_t iter_effect_delta = EFFECT_NONE;
 
         loop_flow.loop_scope = ctx->scope;
@@ -304,6 +338,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         }
 
         scope_enter(&ctx->scope, SCOPE_BLOCK);
+        loop_flow_summary_note_body_check(ctx, node, "while");
         body_flags = type_check_block_flow(ast_while_body(node), ctx, &loop_flow);
         scope_exit(&ctx->scope);
         if (!dynamic_defer_rejected
@@ -358,9 +393,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
-        if (resource_snapshots_equal(&entry, &backedge)
-            && type_effect_mask_compare(previous_merged_effect_delta,
-                                        merged_effect_delta) == 0) {
+        if (resource_snapshot_availability_equal(&entry, &backedge)) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
@@ -368,6 +401,15 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
 
         destroy_resource_snapshot(&entry);
         entry = backedge;
+    }
+
+    FlowFlags result_flags = FLOW_FALLTHROUGH;
+    if (!has_break_exit && condition_static_true && body_must_return)
+        result_flags = FLOW_RETURN;
+    if (ctx->diagnostic_count == diagnostic_base) {
+        loop_flow_summary_record(ctx, node, &base, &merged,
+                                 effect_base, merged_effect_delta,
+                                 result_flags);
     }
 
     ctx->loop_depth--;
@@ -380,11 +422,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&merged);
     destroy_resource_snapshot(&entry);
-    if (has_break_exit)
-        return FLOW_FALLTHROUGH;
-    if (condition_static_true && body_must_return)
-        return FLOW_RETURN;
-    return FLOW_FALLTHROUGH;
+    return result_flags;
 }
 
 bool

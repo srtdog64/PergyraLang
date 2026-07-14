@@ -12,6 +12,7 @@ static bool
 resource_snapshot_count_fits(size_t count)
 {
     return count <= SIZE_MAX / sizeof(Symbol *)
+        && count <= SIZE_MAX / sizeof(size_t)
         && count <= SIZE_MAX / sizeof(bool)
         && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
@@ -30,7 +31,12 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
     if (a->count != b->count)
         return false;
     for (size_t i = 0; i < a->count; i++) {
-        if (a->symbols[i] != b->symbols[i])
+        if (a->symbol_indices != NULL && b->symbol_indices != NULL
+            && a->symbol_indices[i] != (size_t)-1
+            && b->symbol_indices[i] != (size_t)-1) {
+            if (a->symbol_indices[i] != b->symbol_indices[i])
+                return false;
+        } else if (a->symbols[i] != b->symbols[i])
             return false;
         if (a->states[i] != b->states[i])
             return false;
@@ -44,6 +50,33 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
             return false;
         if (a->pool_ids[i] != b->pool_ids[i])
             return false;
+    }
+    return true;
+}
+
+bool
+resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
+                                     const ResourceConsumeSnapshot *b)
+{
+    if (a == NULL || b == NULL)
+        return a == b;
+    if (!a->valid || !b->valid || a->count != b->count)
+        return false;
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->symbol_indices != NULL && b->symbol_indices != NULL
+            && a->symbol_indices[i] != (size_t)-1
+            && b->symbol_indices[i] != (size_t)-1) {
+            if (a->symbol_indices[i] != b->symbol_indices[i])
+                return false;
+        } else if (a->symbols[i] != b->symbols[i]) {
+            return false;
+        }
+        if (a->states[i] != b->states[i]
+            || a->slot_states[i] != b->slot_states[i]
+            || a->sem_states[i] != b->sem_states[i]
+            || a->pool_ids[i] != b->pool_ids[i]) {
+            return false;
+        }
     }
     return true;
 }
@@ -65,13 +98,15 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     }
 
     dst.symbols = calloc(src->count, sizeof(Symbol *));
+    dst.symbol_indices = calloc(src->count, sizeof(size_t));
     dst.states = calloc(src->count, sizeof(bool));
     dst.used_states = calloc(src->count, sizeof(bool));
     dst.access_masks = calloc(src->count, sizeof(uint8_t));
     dst.slot_states = calloc(src->count, sizeof(SlotState));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
     dst.pool_ids = calloc(src->count, sizeof(int32_t));
-    if (dst.symbols == NULL || dst.states == NULL
+    if (dst.symbols == NULL || dst.symbol_indices == NULL
+        || dst.states == NULL
         || dst.used_states == NULL || dst.access_masks == NULL
         || dst.slot_states == NULL
         || dst.sem_states == NULL || dst.pool_ids == NULL) {
@@ -81,6 +116,8 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     }
 
     memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
+    memcpy(dst.symbol_indices, src->symbol_indices,
+           src->count * sizeof(size_t));
     memcpy(dst.states, src->states, src->count * sizeof(bool));
     memcpy(dst.used_states, src->used_states, src->count * sizeof(bool));
     memcpy(dst.access_masks, src->access_masks, src->count * sizeof(uint8_t));

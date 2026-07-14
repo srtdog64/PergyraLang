@@ -1,0 +1,82 @@
+// Focused executable proof for semantic-owned assignment projections.
+
+import "../../codegen/emission/assign_emit_owner.pgy";
+
+func ProbeAssignmentFacts(
+    target: String,
+    base_name: String,
+    is_indexed: Int,
+    index_text: String,
+    expression: String
+) -> SemanticAstAssignmentFacts {
+    return SemanticAstAssignmentFacts(
+        true, "", "", 1,
+        [0], [0], [0], [target], [base_name], [is_indexed],
+        [index_text], [expression]
+    );
+}
+
+func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
+    let built: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            SemanticExpressionGraphArenaEmpty(), expression
+        );
+    if !built.ok { Die("assignment projection probe graph build failed"); }
+    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [built.root_id], [true], built.arena
+    );
+    return SemanticExpressionGraphView(true, built.root_id, facts);
+}
+
+func ProbeOptionAssignment(
+    name: String,
+    expression: String,
+    expected_type: String
+) -> String {
+    let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
+        name, name, 0, "", expression
+    );
+    let graph: SemanticExpressionGraphView = ProbeExpressionGraph(expression);
+    let no_target_graph: SemanticExpressionGraphView =
+        SemanticExpressionGraphView(
+            false, 0, SemanticExpressionGraphFactsEmpty()
+        );
+    let env_state: Array<String> = ["|", "|"];
+    return EmitAssign(
+        assignments, 0, expected_type, expected_type,
+        env_state, graph, no_target_graph
+    );
+}
+
+func ProbeIndexedAssignment(target_type: String) -> String {
+    let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
+        "nums[1]", "nums", 1, "1", "9"
+    );
+    let value_graph: SemanticExpressionGraphView = ProbeExpressionGraph("9");
+    let target_graph: SemanticExpressionGraphView =
+        ProbeExpressionGraph("nums[1]");
+    let env_state: Array<String> = [
+        "|", "|nums=v:ArrayInt|nums=cbind:nums|"
+    ];
+    return EmitAssign(
+        assignments, 0, "Int", target_type,
+        env_state, value_graph, target_graph
+    );
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--missing-expected-type" {
+        Log(ProbeOptionAssignment("a", "Some(7)", ""));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--missing-target-type" {
+        Log(ProbeIndexedAssignment(""));
+        return;
+    }
+    Log(ProbeOptionAssignment("a", "Some(7)", "Option<Int>"));
+    Log(ProbeOptionAssignment("a", "None()", "Option<Int>"));
+    Log(ProbeOptionAssignment("s", "Some(\"ok\")", "Option<String>"));
+    Log(ProbeOptionAssignment("s", "None", "Option<String>"));
+    Log(ProbeIndexedAssignment("Array<Int>"));
+}

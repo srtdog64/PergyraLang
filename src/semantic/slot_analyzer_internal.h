@@ -33,6 +33,12 @@ typedef struct
     const char *param_name;
 } SlotSummaryOrigin;
 
+typedef struct
+{
+    SemanticContext *ctx;
+    ASTNode         *program_root;
+} SlotFunctionLookup;
+
 unsigned slot_builtin_access_mask(const char *name);
 bool slot_builtin_call_is_local_non_escape(const char *name);
 
@@ -41,22 +47,31 @@ void slot_access_record(SlotAccessEntry **entries, size_t *count,
 void slot_escape_record(SlotEscapeEntry **entries, size_t *count,
                         size_t *capacity, const char *name, unsigned mask);
 
-ASTNode *slot_analyzer_find_function_decl(ASTNode *program, const char *name);
+ASTNode *slot_analyzer_find_function_decl(const SlotFunctionLookup *lookup,
+                                          const char *name);
+unsigned function_param_flow_summary_demand(
+    const SlotFunctionLookup *lookup,
+    ASTNode *function_decl,
+    size_t param_index);
+void function_param_flow_summary_store_destroy(SemanticContext *ctx);
 unsigned slot_access_mask_for_named_symbol(ASTNode *node,
                                            const char *symbol_name,
-                                           ASTNode *program_root, int depth);
+                                           const SlotFunctionLookup *lookup,
+                                           int depth);
 unsigned slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
-                                     ASTNode *program_root, int depth,
+                                     const SlotFunctionLookup *lookup,
+                                     int depth,
                                      const SlotSummaryOrigin *origin);
 unsigned slot_param_summary_in_program(ASTNode *node, const char *slot_name,
-                                       ASTNode *program_root, int depth,
+                                       const SlotFunctionLookup *lookup,
+                                       int depth,
                                        const SlotSummaryOrigin *origin);
 void collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                           size_t *count, size_t *capacity,
-                          ASTNode *program_root, int depth,
+                          const SlotFunctionLookup *lookup, int depth,
                           const SlotSummaryOrigin *origin);
 void collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                            size_t *count, size_t *capacity,
-                           ASTNode *program_root);
+                           const SlotFunctionLookup *lookup);
 
 #endif /* PERGYRA_SLOT_ANALYZER_INTERNAL_H */

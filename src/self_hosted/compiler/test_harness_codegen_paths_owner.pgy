@@ -51,12 +51,12 @@ func CompilerHarnessCodegenEventRejectExpectedPath() -> String {
     return "src/self_hosted/codegen/reject_expected/event_decl_stdout.txt";
 }
 
-func CompilerHarnessOptionAssignmentProbeSourcePath() -> String {
-    return "src/self_hosted/tools/option_assignment_projection_probe/main.pgy";
+func CompilerHarnessAssignmentProjectionProbeSourcePath() -> String {
+    return "src/self_hosted/tools/assignment_projection_probe/main.pgy";
 }
 
-func CompilerHarnessOptionAssignmentProbeExpectedPath() -> String {
-    return "src/self_hosted/tools/option_assignment_projection_probe/expected.txt";
+func CompilerHarnessAssignmentProjectionProbeExpectedPath() -> String {
+    return "src/self_hosted/tools/assignment_projection_probe/expected.txt";
 }
 
 func CompilerHarnessCodegenPathCount() -> Int {
@@ -75,8 +75,8 @@ func CompilerHarnessCodegenPathAt(index: Int) -> String {
     if index == 8 { return CompilerHarnessCodegenRoleExpectedPath(); }
     if index == 9 { return CompilerHarnessCodegenEventRejectSourcePath(); }
     if index == 10 { return CompilerHarnessCodegenEventRejectExpectedPath(); }
-    if index == 11 { return CompilerHarnessOptionAssignmentProbeSourcePath(); }
-    if index == 12 { return CompilerHarnessOptionAssignmentProbeExpectedPath(); }
+    if index == 11 { return CompilerHarnessAssignmentProjectionProbeSourcePath(); }
+    if index == 12 { return CompilerHarnessAssignmentProjectionProbeExpectedPath(); }
     return "";
 }
 

@@ -1016,6 +1016,9 @@ Inductive SpineFact : Type :=
   | SFTokenStream
   | SFSyntaxProvenanceTree
   | SFSemanticSymbolTypeGraph
+  | SFResourceFlowUniverse
+  | SFLoopFlowSummary
+  | SFFunctionParamFlowSummary
   | SFHirTypedControlFlow
   | SFDirDomainGraph
   | SFRirResourceTransitionGraph
@@ -1033,6 +1036,10 @@ Inductive SpineFact : Type :=
   | SFNominalDeclarationRows
   | SFRoleDeclarationRows
   | SFExpressionSurface
+  | SFInitializerTypeVerdict
+  | SFIterationTypeVerdict
+  | SFAssignmentTypeVerdict
+  | SFCallTargetIdentity
   | SFTypeRuntimeUsageSurface
   | SFNodeKindSurface
   | SFEntrypointSelection
@@ -1047,6 +1054,9 @@ Inductive SpineOwner : Type :=
   | SOLexer
   | SOParserAst
   | SOSemanticAnalyzer
+  | SOResourceFlowUniverse
+  | SOLoopFlowSummary
+  | SOFunctionParamFlowSummary
   | SOHir
   | SODir
   | SORir
@@ -1065,6 +1075,10 @@ Inductive SpineOwner : Type :=
   | SOSemanticNominalConstructor
   | SOSemanticRole
   | SOSemanticExpressionSurface
+  | SOSemanticInitializerType
+  | SOSemanticIterationType
+  | SOSemanticAssignmentType
+  | SOSemanticCallTarget
   | SOSemanticTypeSurface
   | SOSemanticKindSurface
   | SOSemanticSignature
@@ -1077,6 +1091,9 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTokenStream => SOLexer
   | SFSyntaxProvenanceTree => SOParserAst
   | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer
+  | SFResourceFlowUniverse => SOResourceFlowUniverse
+  | SFLoopFlowSummary => SOLoopFlowSummary
+  | SFFunctionParamFlowSummary => SOFunctionParamFlowSummary
   | SFHirTypedControlFlow => SOHir
   | SFDirDomainGraph => SODir
   | SFRirResourceTransitionGraph => SORir
@@ -1094,6 +1111,10 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFNominalDeclarationRows => SOSemanticNominalConstructor
   | SFRoleDeclarationRows => SOSemanticRole
   | SFExpressionSurface => SOSemanticExpressionSurface
+  | SFInitializerTypeVerdict => SOSemanticInitializerType
+  | SFIterationTypeVerdict => SOSemanticIterationType
+  | SFAssignmentTypeVerdict => SOSemanticAssignmentType
+  | SFCallTargetIdentity => SOSemanticCallTarget
   | SFTypeRuntimeUsageSurface => SOSemanticTypeSurface
   | SFNodeKindSurface => SOSemanticKindSurface
   | SFEntrypointSelection => SOSemanticSignature

@@ -10,23 +10,25 @@
 
 #include <string.h>
 
+#include "../common/string_compat.h"
 #include "runtime/pgy_runtime_capability.h" /* PGY_CAP_* bits */
 
 typedef struct {
     uint32_t    bit;
     const char *name;
+    const char *diagnostic_name;
 } CapBitName;
 
 static const CapBitName k_cap_names[] = {
-    {PGY_CAP_IO_READ,  "IO_READ"},
-    {PGY_CAP_IO_WRITE, "IO_WRITE"},
-    {PGY_CAP_NETWORK,  "NETWORK"},
-    {PGY_CAP_CLOCK,    "CLOCK"},
-    {PGY_CAP_RANDOM,   "RANDOM"},
-    {PGY_CAP_ENV,      "ENV"},
-    {PGY_CAP_RENDER,   "RENDER"},
-    {PGY_CAP_AUDIO,    "AUDIO"},
-    {PGY_CAP_INPUT,    "INPUT"},
+    {PGY_CAP_IO_READ,  "IO_READ",  "io_read"},
+    {PGY_CAP_IO_WRITE, "IO_WRITE", "io_write"},
+    {PGY_CAP_NETWORK,  "NETWORK",  "network"},
+    {PGY_CAP_CLOCK,    "CLOCK",    "clock"},
+    {PGY_CAP_RANDOM,   "RANDOM",   "random"},
+    {PGY_CAP_ENV,      "ENV",      "env"},
+    {PGY_CAP_RENDER,   "RENDER",   "render"},
+    {PGY_CAP_AUDIO,    "AUDIO",    "audio"},
+    {PGY_CAP_INPUT,    "INPUT",    "input"},
 };
 
 /* Emit the used-capability names as a bare JSON array: ["IO_READ", "RANDOM"].
@@ -68,6 +70,29 @@ capability_bit_name(uint32_t bit)
             return k_cap_names[i].name;
     }
     return NULL;
+}
+
+void
+capability_mask_to_diagnostic_string(uint32_t mask,
+                                     char *buf,
+                                     size_t buf_size)
+{
+    size_t off = 0;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    buf[0] = '\0';
+    if (mask == 0u) {
+        snprintf(buf, buf_size, "none");
+        return;
+    }
+    for (size_t i = 0; i < sizeof(k_cap_names) / sizeof(k_cap_names[0]); i++) {
+        if ((mask & k_cap_names[i].bit) == 0)
+            continue;
+        off = pergyra_str_appendf(buf, buf_size, "%s%s",
+                                  off > 0 ? ", " : "",
+                                  k_cap_names[i].diagnostic_name);
+    }
 }
 
 void

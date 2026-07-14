@@ -2462,8 +2462,13 @@ require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func Sem
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeCompactBridge"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactAnalyzeTyped"
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "func SemanticAstArtifactVerdictContractReady"
+require_file "src/self_hosted/semantic/ast_signature_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_signature_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "struct SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/semantic/ast_signature_fact_owner.pgy" "func SemanticAstFunctionSignatureFactsFromArtifact"
+require_file "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" 599
+require_text "src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy" "func SemanticAstFunctionSignatureFactsMatchArtifact"
 require_file "src/self_hosted/semantic/ast_signature_contract_owner.pgy"
 require_text "src/self_hosted/semantic/ast_signature_contract_owner.pgy" "func SemanticAstFunctionSignatureFactsContractReady"
 require_max_lines "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" 600
@@ -2504,6 +2509,12 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "fun
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
+require_file "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" 200
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct SemanticAstBodyTypeBundle"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
 require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
@@ -2544,6 +2555,7 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "func 
 require_file "src/self_hosted/semantic/ast_body_verdict_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_verdict_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "func SemanticAstBodyVerdictFromFacts"
+reject_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "FactsFromArtifact("
 reject_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "CheckBody("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" '"entrypoint_cardinality"'
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" "SemanticAstFunctionNameAt(signatures, i)"
@@ -2751,11 +2763,12 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirFactGraphPayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "semantic_analysis.constructors"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyTypeBundleReady("
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstInitializerTypeFactsFromArtifact"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstIterationTypeFactsFromArtifact"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstAssignmentTypeFactsFromArtifact"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstStatementTypeFactsFromArtifact"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CanonicalizeMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromArtifact("
@@ -2874,6 +2887,12 @@ require_text "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_o
 require_file "src/self_hosted/mir_lower/fixture/option_struct_bad_field_type.pgy"
 require_file "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
+require_file "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" 599
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "func SemanticExpressionGraphScalarTypeName("
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "SemanticExpressionGraphScalarTypeContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
@@ -2948,7 +2967,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
+reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
 require_text "src/self_hosted/compiler/driver_rung2_main.pgy" "RunDriverRung2FromArgs(run_args)"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CheckProgram("
@@ -3267,9 +3286,12 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "l
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "logical_and_index: Int"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "equality_index: Int"
 require_file "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphView"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildCompactBridgeFromText"
+require_file "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" 599
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildFromText"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphFactsFromAstRows"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeAdd()"
@@ -3314,7 +3336,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "ParserExpressionStructLiteralGraphContractReady()"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     'import "try_expression_fact_owner.pgy";'
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" \
     "func SemanticExpressionGraphCompactBridgeTryContractReady("
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "SemanticExpressionGraphBuildTryCompactBridge("
@@ -3732,7 +3754,9 @@ require_file "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owne
 require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
     "struct CodegenSemanticBodyTypeFacts"
 require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
-    "func CodegenSemanticBodyTypeFactsFromAnalysisOrDie("
+    "func CodegenSemanticBodyTypeFactsFromBundleOrDie("
+reject_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "SemanticAstBodyTypeBundleFromAnalysis("
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementTypeFactsFromAnalysisOrDie("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"
@@ -3959,7 +3983,7 @@ reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
 reject_function_text "src/self_hosted/codegen/emission/log_emit_owner.pgy" \
     "func EmitLog(" "WithSemanticShape("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "statement_types: SemanticAstStatementTypeFacts;"
+    "body_types: SemanticAstBodyTypeBundle;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstStatementTypeQueryContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -4089,7 +4113,7 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
     "func SemanticMemberReceiverTypeFromGraph("
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "func SemanticExpressionGraphBuildParserCompactBridge("
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" \
     "func SemanticExpressionGraphParserBridgeContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionGraphParserBridgeContractReady()"
@@ -5678,13 +5702,13 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 13;"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
-    "CompilerHarnessOptionAssignmentProbeSourcePath"
+    "CompilerHarnessAssignmentProjectionProbeSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
-    "CompilerHarnessOptionAssignmentProbeExpectedPath"
+    "CompilerHarnessAssignmentProjectionProbeExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
-    'src/self_hosted/tools/option_assignment_projection_probe/main.pgy'
+    'src/self_hosted/tools/assignment_projection_probe/main.pgy'
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
-    'src/self_hosted/tools/option_assignment_projection_probe/expected.txt'
+    'src/self_hosted/tools/assignment_projection_probe/expected.txt'
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenPathAt"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenParityReady"
 require_file "tests/self_hosted/parity/codegen_reject_parity_leg.sh"
@@ -7043,34 +7067,45 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" \
     'if [[ "$backend" != "c" || "$C_TOOL_COMPILED" -ne 1 ]]; then'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'tool_manifest.exe'
 reject_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" 'tool_manifest.exe'
-require_file "src/self_hosted/tools/option_assignment_projection_probe/main.pgy"
-require_max_lines "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" 600
-require_file "src/self_hosted/tools/option_assignment_projection_probe/expected.txt"
+require_file "src/self_hosted/tools/assignment_projection_probe/main.pgy"
+require_max_lines "src/self_hosted/tools/assignment_projection_probe/main.pgy" 599
+require_file "src/self_hosted/tools/assignment_projection_probe/expected.txt"
 require_text "src/self_hosted/OWNERS.md" \
-    "src/self_hosted/tools/option_assignment_projection_probe/main.pgy"
-require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+    "src/self_hosted/tools/assignment_projection_probe/main.pgy"
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'import "../../codegen/emission/assign_emit_owner.pgy";'
-require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'ProbeOptionAssignment("a", "Some(7)", "Option<Int>")'
-require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
-    'ProbeOptionAssignment("s", "None", "Option<String>")'
-require_text "src/self_hosted/tools/option_assignment_projection_probe/main.pgy" \
-    'args[0] == "--missing-type"'
-require_file "tests/self_hosted/parity/codegen_option_assignment_parity.sh"
-require_max_lines "tests/self_hosted/parity/codegen_option_assignment_parity.sh" 600
-require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'ProbeIndexedAssignment("Array<Int>")'
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'args[0] == "--missing-target-type"'
+require_file "tests/self_hosted/parity/codegen_assignment_projection_parity.sh"
+require_max_lines "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" 599
+require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
     'pgy_selfhost_read_test_harness_manifest'
-require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
-    'run_missing_type_negative c'
-require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
+    'run_missing_type_negative "$backend" "missing-target-type"'
+require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
     'assert_llvm_leg_with_artifact_owner'
-require_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+require_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
     '"run_output"'
-reject_text "tests/self_hosted/parity/codegen_option_assignment_parity.sh" \
+reject_text "tests/self_hosted/parity/codegen_assignment_projection_parity.sh" \
     '"option-assignment-projection"'
 require_make_target_text \
-    "self-host-codegen-option-assignment-parity-test-smoke" \
-    "tests/self_hosted/parity/codegen_option_assignment_parity.sh"
+    "self-host-codegen-assignment-projection-parity-test-smoke" \
+    "tests/self_hosted/parity/codegen_assignment_projection_parity.sh"
+require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 599
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "target_type_names: Array<String>;"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "index_type_names: Array<String>;"
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticAstExpressionVerdictFromPayload("
+require_text "src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy" \
+    "func CodegenSemanticAssignmentTargetTypeOrDie("
+reject_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    'LookupKindType(env, arr_name, "v")'
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    hello"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "    seed_random"
 reject_text "tests/self_hosted/parity/codegen_parity.sh" 'TOOL_SOURCE="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'

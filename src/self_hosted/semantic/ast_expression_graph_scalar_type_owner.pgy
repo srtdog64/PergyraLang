@@ -1,0 +1,217 @@
+// Scalar result types projected from parser-owned expression graph nodes.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "callable_resolution_owner.pgy";
+import "expr_type_owner.pgy";
+import "env_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+
+func SemanticExpressionGraphLeafScalarTypeName(
+    text: String,
+    names: Array<String>,
+    types: Array<String>
+) -> String {
+    if text == "true" || text == "false" { return "Bool"; }
+    if text == "None" { return "Option<Unknown>"; }
+    if StringLength(text) > 0 && CharAt(text, 0) == "\"" {
+        return "String";
+    }
+    if IsIntLiteral(text) { return "Int"; }
+    if IsFloatLiteral(text) { return "Float"; }
+    if IsIdentText(text) {
+        let bound: String = EnvLookup(names, types, text);
+        if bound != "" { return bound; }
+    }
+    return "Unknown";
+}
+
+func SemanticExpressionGraphScalarTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> String {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, root_id
+    );
+    if !IsSome(kind_opt) { return "Unknown"; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeLeaf() {
+        let text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, root_id
+        );
+        if !IsSome(text) { return "Unknown"; }
+        return SemanticExpressionGraphLeafScalarTypeName(
+            UnwrapOption(text), names, types
+        );
+    }
+    if AstExpressionNodeIsCallSpine(kind) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, root_id
+        );
+        if !call.ok { return "Unknown"; }
+        let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, call.callee_node
+        );
+        let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call.callee_node
+        );
+        if !IsSome(callee_kind) ||
+            UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+            !IsSome(callee_text) {
+            return "Unknown";
+        }
+        let callee: String = UnwrapOption(callee_text);
+        if callee == "None" { return "Option<Unknown>"; }
+        if callee == "IsSome" || callee == "IsOk" || callee == "IsErr" {
+            return "Bool";
+        }
+        if callee == "Some" && ArrayLength(call.argument_nodes) == 1 {
+            let payload: String = SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[0], names, types,
+                function_names, function_returns
+            );
+            return Concat("Option<", Concat(payload, ">"));
+        }
+        if callee == "Ok" && ArrayLength(call.argument_nodes) == 1 {
+            let payload2: String = SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[0], names, types,
+                function_names, function_returns
+            );
+            return Concat("Result<", Concat(payload2, ">"));
+        }
+        if callee == "Err" { return "Result<Unknown>"; }
+        if (callee == "UnwrapOption" || callee == "Unwrap") &&
+            ArrayLength(call.argument_nodes) == 1 {
+            let wrapped: String = SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[0], names, types,
+                function_names, function_returns
+            );
+            if IsOptionType(wrapped) {
+                return Substring(wrapped, 7, StringLength(wrapped) - 8);
+            }
+            let result_payload: Option<String> = ResultPayloadTypeOpt(wrapped);
+            if IsSome(result_payload) { return UnwrapOption(result_payload); }
+            return "Unknown";
+        }
+        if callee == "UnwrapOr" && ArrayLength(call.argument_nodes) == 2 {
+            let wrapped2: String = SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[0], names, types,
+                function_names, function_returns
+            );
+            let result_payload2: Option<String> = ResultPayloadTypeOpt(wrapped2);
+            if IsSome(result_payload2) &&
+                UnwrapOption(result_payload2) != "Unknown" {
+                return UnwrapOption(result_payload2);
+            }
+            return SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[1], names, types,
+                function_names, function_returns
+            );
+        }
+        if (callee == "Abs" || callee == "Min" || callee == "Max" ||
+            callee == "Clamp") && ArrayLength(call.argument_nodes) > 0 {
+            return SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[0], names, types,
+                function_names, function_returns
+            );
+        }
+        let target: Option<Int> = SemanticCallableIndex(
+            function_names, callee
+        );
+        if IsSome(target) {
+            let resolved: String = function_returns[UnwrapOption(target)];
+            return resolved;
+        }
+        return "Unknown";
+    }
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, root_id
+    );
+    if !IsSome(left_opt) { return "Unknown"; }
+    let left: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(left_opt), names, types,
+        function_names, function_returns
+    );
+    if kind == AstExpressionNodeLogicalNot() {
+        if left == "Bool" { return "Bool"; }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeNegate() {
+        if left == "Int" || left == "Long" || left == "Float" {
+            return left;
+        }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeTry() {
+        if IsOptionType(left) {
+            return Substring(left, 7, StringLength(left) - 8);
+        }
+        let payload: Option<String> = ResultPayloadTypeOpt(left);
+        if IsSome(payload) { return UnwrapOption(payload); }
+        return "Unknown";
+    }
+    let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, root_id
+    );
+    if !IsSome(right_opt) { return "Unknown"; }
+    let right: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(right_opt), names, types,
+        function_names, function_returns
+    );
+    if kind == AstExpressionNodeLogicalAnd() ||
+        kind == AstExpressionNodeLogicalOr() {
+        if left == "Bool" && right == "Bool" { return "Bool"; }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() ||
+        kind == AstExpressionNodeLess() ||
+        kind == AstExpressionNodeLessEqual() ||
+        kind == AstExpressionNodeGreater() ||
+        kind == AstExpressionNodeGreaterEqual() {
+        if left != "Unknown" && left == right { return "Bool"; }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeAdd() ||
+        kind == AstExpressionNodeSubtract() ||
+        kind == AstExpressionNodeMultiply() ||
+        kind == AstExpressionNodeDivide() ||
+        kind == AstExpressionNodeModulo() {
+        if left == right && (left == "Int" || left == "Long" ||
+            left == "Float" ||
+            (kind == AstExpressionNodeAdd() && left == "String")) {
+            return left;
+        }
+        return "Unknown";
+    }
+    if kind == AstExpressionNodeIndex() && right == "Int" &&
+        StringLength(left) >= 8 &&
+        StartsWith(left, "Array<") &&
+        CharAt(left, StringLength(left) - 1) == ">" {
+        return Substring(left, 6, StringLength(left) - 7);
+    }
+    return "Unknown";
+}
+
+func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact("i + 1", 0, cursor);
+    if !fact.ok || cursor[0] != 5 { return false; }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [fact.root], fact.arena
+            ), [0], 1
+        );
+    let empty: Array<String> = [];
+    return SemanticExpressionGraphScalarTypeName(
+        graph, fact.root, ["i"], ["Int"], empty, empty
+    ) == "Int" && SemanticExpressionGraphScalarTypeName(
+        graph, fact.root, ["i"], ["String"], empty, empty
+    ) == "Unknown";
+}

@@ -1,0 +1,15 @@
+func Loop1(inout rows: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let outer: Int = 0;
+    while outer < n {
+        ArrayPush(rows, outer);
+        total = total + outer;
+        outer = outer + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [];
+    Log(Loop1(rows, 2));
+}

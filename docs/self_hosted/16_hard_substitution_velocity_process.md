@@ -245,15 +245,15 @@ owner-plus-fallback bridges are not closed. The source adequacy gate binds only
 those modeled rows to live files; future consumers require new bindings rather
 than inheriting a global proof claim.
 
-Whole-spine owner declaration, 2026-07-12: the 15 architectural fact families
-have stable owner identities in `docs/semantics/sot_owner_spine_registry.md`.
-The registry now carries 15 architectural rows plus thirteen bounded self-host
-closure rows and matching `SpineFact` / `SpineOwner` constructors in Coq. The
-single expression-surface row now covers runtime usage and expression shape
-instead of introducing an alias, so it is honestly split into
-`CLOSED=12 BRIDGE=7 ACTIVE=9`; only executable rung closure
-may promote a row. The registry replaces ad hoc top-level owner lists, while
-`src/self_hosted/OWNERS.md` remains only a physical module inventory.
+Whole-spine owner declaration, updated 2026-07-15: 36 authority rows have
+stable owner identities in `docs/semantics/sot_owner_spine_registry.md`, and 11
+self-host fact carriers are explicitly classified as derivatives rather than
+alternate authorities. Matching `SpineFact` / `SpineOwner` constructors remain
+a checked Coq projection. The current split is
+`CLOSED=14 BRIDGE=7 ACTIVE=15`; only executable rung closure may promote a row.
+`tests/sot_authority_edge_smoke.sh` consumes the registry without copying its
+owner list or status count. `src/self_hosted/OWNERS.md` remains only a physical
+module inventory.
 
 ## 7. Fifteen-Day Correction
 

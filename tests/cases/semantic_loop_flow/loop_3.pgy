@@ -1,0 +1,24 @@
+func Loop3(inout rows: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let outer: Int = 0;
+    while outer < n {
+        ArrayPush(rows, outer);
+        for i in 0..2 {
+            if i == 0 { continue; }
+            total = total + i;
+        }
+        let j: Int = 0;
+        while j < 2 {
+            j = j + 1;
+            if j == 1 { continue; }
+            total = total + j;
+        }
+        outer = outer + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [];
+    Log(Loop3(rows, 2));
+}

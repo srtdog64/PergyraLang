@@ -4,6 +4,7 @@
 // initializer type facts. Unknown types fail closed; no backend guesses them.
 
 import "ast_assignment_fact_owner.pgy";
+import "ast_signature_artifact_match_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
@@ -14,6 +15,7 @@ import "array_type_owner.pgy";
 import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
 
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
@@ -22,6 +24,8 @@ struct SemanticAstAssignmentTypeFacts {
     artifact_node_count: Int;
     node_ids: Array<Int>;
     target_texts: Array<String>;
+    target_type_names: Array<String>;
+    index_type_names: Array<String>;
     expected_type_names: Array<String>;
     inferred_type_names: Array<String>;
     verified: Array<Int>;
@@ -43,8 +47,8 @@ func SemanticAstAssignmentTypeStructuralError(
             "owner", "SemanticAstAssignmentTypeFacts"
         ),
         artifact.count,
-        empty_ints, empty_strings, empty_strings, empty_strings, empty_ints,
-        empty_strings, empty_strings
+        empty_ints, empty_strings, empty_strings, empty_strings,
+        empty_strings, empty_strings, empty_ints, empty_strings, empty_strings
     );
 }
 
@@ -90,6 +94,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
 
     let node_ids: Array<Int> = [];
     let target_texts: Array<String> = [];
+    let target_type_names: Array<String> = [];
+    let index_type_names: Array<String> = [];
     let expected_type_names: Array<String> = [];
     let inferred_type_names: Array<String> = [];
     let verified: Array<Int> = [];
@@ -131,6 +137,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         }
         let target_base: String = assignments.target_base_names[i];
         let expected: String = "";
+        let target_type: String = "";
+        let index_type: String = "";
         let inferred: String = "Unknown";
         let row_verified: Int = 0;
         let row_code: String = "";
@@ -141,20 +149,39 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 "undefined_symbol", "name", target_base
             );
         } else {
-            expected = EnvLookup(names, types, target_base);
+            target_type = EnvLookup(names, types, target_base);
+            expected = target_type;
             if assignments.target_is_indexed[i] == 1 {
                 let element_type_opt: Option<String> =
-                    SemanticArrayElementType(expected);
+                    SemanticArrayElementType(target_type);
+                let index_root: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        expression_surfaces, assignments.node_ids[i],
+                        AstExpressionLaneAuxiliary()
+                    );
+                if !IsSome(index_root) {
+                    return SemanticAstAssignmentTypeStructuralError(artifact);
+                }
                 let index_verdict: SemanticAstExpressionVerdict =
-                    SemanticAstExpressionVerdictFromPayload(
-                        assignments.target_index_texts[i], names, types, modes,
-                        function_names, function_returns, function_params
+                    SemanticAstExpressionVerdictFromGraph(
+                        assignments.target_index_texts[i],
+                        expression_surfaces.expression_graph,
+                        UnwrapOption(index_root), constructors,
+                        names, types, modes, function_names, function_returns,
+                        function_params, member_root_names
                     );
                 if !index_verdict.ok {
                     row_code = index_verdict.diagnostic_code;
                     row_message = index_verdict.diagnostic_message;
-                } else if !IsSome(element_type_opt) ||
-                    index_verdict.inferred_type_name != "Int" {
+                } else {
+                    index_type = SemanticExpressionGraphScalarTypeName(
+                        expression_surfaces.expression_graph,
+                        UnwrapOption(index_root), names, types,
+                        function_names, function_returns
+                    );
+                }
+                if row_code == "" && (!IsSome(element_type_opt) ||
+                    index_type != "Int") {
                     if IsSome(element_type_opt) {
                         expected = UnwrapOption(element_type_opt);
                     }
@@ -245,6 +272,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         }
         ArrayPush(node_ids, assignments.node_ids[i]);
         ArrayPush(target_texts, assignments.target_texts[i]);
+        ArrayPush(target_type_names, target_type);
+        ArrayPush(index_type_names, index_type);
         ArrayPush(expected_type_names, expected);
         ArrayPush(inferred_type_names, inferred);
         ArrayPush(verified, row_verified);
@@ -254,6 +283,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
     }
     return SemanticAstAssignmentTypeFacts(
         true, "", "", artifact.count, node_ids, target_texts,
+        target_type_names, index_type_names,
         expected_type_names, inferred_type_names, verified,
         diagnostic_codes, diagnostic_messages
     );
@@ -329,6 +359,8 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
         facts.artifact_node_count != artifact.count ||
         ArrayLength(rebuilt.node_ids) != n ||
         ArrayLength(facts.target_texts) != n ||
+        ArrayLength(facts.target_type_names) != n ||
+        ArrayLength(facts.index_type_names) != n ||
         ArrayLength(facts.expected_type_names) != n ||
         ArrayLength(facts.inferred_type_names) != n ||
         ArrayLength(facts.verified) != n ||
@@ -340,6 +372,8 @@ func SemanticAstAssignmentTypeFactsMatchArtifact(
     while i < n {
         if rebuilt.node_ids[i] != facts.node_ids[i] ||
             rebuilt.target_texts[i] != facts.target_texts[i] ||
+            rebuilt.target_type_names[i] != facts.target_type_names[i] ||
+            rebuilt.index_type_names[i] != facts.index_type_names[i] ||
             rebuilt.expected_type_names[i] != facts.expected_type_names[i] ||
             rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
             rebuilt.verified[i] != facts.verified[i] ||
@@ -387,6 +421,10 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         expression_surfaces, iterations, assignments, valid_facts
     ) || !SemanticAstAssignmentTypesAllVerified(valid_facts) ||
         ArrayLength(valid_facts.node_ids) != 2 ||
+        valid_facts.target_type_names[0] != "Int" ||
+        valid_facts.target_type_names[1] != "Array<Int>" ||
+        valid_facts.index_type_names[0] != "" ||
+        valid_facts.index_type_names[1] != "Int" ||
         valid_facts.expected_type_names[0] != "Int" ||
         valid_facts.expected_type_names[1] != "Int" {
         return false;

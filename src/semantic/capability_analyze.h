@@ -23,6 +23,7 @@
 #define PERGYRA_CAPABILITY_ANALYZE_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 
 /*
@@ -40,5 +41,10 @@ uint32_t capability_for_builtin(const char *name);
 
 /* The name of a single PGY_CAP_* bit, or NULL. */
 const char *capability_bit_name(uint32_t bit);
+
+/* Stable lower-case rendering used by semantic diagnostics. */
+void capability_mask_to_diagnostic_string(uint32_t mask,
+                                          char *buf,
+                                          size_t buf_size);
 
 #endif /* PERGYRA_CAPABILITY_ANALYZE_H */

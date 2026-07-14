@@ -509,6 +509,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *sym = symbol_create_variable(name, decl_type,
                                          node->line, node->column);
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
 
     if (type_is_constructed_named(decl_type, "DeviceSlot"))
         sym->slot_info.state = SLOT_STATE_CLAIMED;

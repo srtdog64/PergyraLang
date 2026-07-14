@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-10
+Last updated: 2026-07-15
 
 Anti-hype update: 2026-04-29
 
@@ -19,6 +19,8 @@ and follow-up debt over older design notes.
 | [`100d_beta_execution_log.md`](100d_beta_execution_log.md) | Immediate execution order and historical progress log |
 | [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) | Compiler source-of-truth ownership spine to stop A -> B -> A refactoring loops |
 | [`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md) | Current/target compiler graph, stable handle spine, movable ownership boundaries, migration protocol, and gate map |
+| [`184_legacy_slot_interprocedural_hash_lookup.md`](184_legacy_slot_interprocedural_hash_lookup.md) | Legacy slot interprocedural root cause, host-index and demanded-summary closure, measured self-host effect, research basis, and symbol-sparsification next rung |
+| [`185_sot_gate_catalog.md`](185_sot_gate_catalog.md) | Canonical SoT gate inventory, authority-edge rules, execution budgets, closure evidence, and next executable migrations |
 | [`152_validation_isolation_policy.md`](152_validation_isolation_policy.md) | Validation isolation policy: owner-impact decision, CI failure classification, and when not to run unrelated gates |
 | [`133_beta_completed_closure_archive.md`](133_beta_completed_closure_archive.md) | Completed beta-closure evidence moved out of the active checklist |
 | [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |
@@ -50,6 +52,8 @@ and follow-up debt over older design notes.
 | [`158_self_bootstrap_execution_blueprint.md`](158_self_bootstrap_execution_blueprint.md) | Self-eating bootstrap execution blueprint: M1 fixed-point, M2 whole-compiler path, critical rungs, and cost split |
 | [`160_m2_completeness_execution_plan.md`](160_m2_completeness_execution_plan.md) | Whole-compiler M2 completeness plan: source inventory, stage intersections, semantic rung map, typed-AST migration, and fixpoint expansion |
 | [`163_design_completeness_red_team_audit.md`](163_design_completeness_red_team_audit.md) | Red-team audit of design completeness across hard self-host, SoT closure, M2 ledger, runtime materialization, ABI, and backend parity |
+| [`post_selfhost_validation_milestone.md`](post_selfhost_validation_milestone.md) | Falsifiable post-self-host product validation criteria and generated V1 bug-class projection |
+| [`post_selfhost_validation_bug_classes.json`](post_selfhost_validation_bug_classes.json) | Frozen machine-readable V1 bug-class identities, claim counts, diagnostics, runtime observables, and fixture ownership |
 
 ## Historical Snapshots
 
@@ -180,6 +184,7 @@ and follow-up debt over older design notes.
 | [`149_external_review_2026_07.md`](149_external_review_2026_07.md) | External technical review judgment: accepted signals, rejected claims, and board routing |
 | [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |
 | [`166_production_bar_review_2026_07.md`](166_production_bar_review_2026_07.md) | Production-bar review contract: gate-less claims fail, partial coverage stays partial, and P0 production blockers are routed |
+| [`reviews/2026-07-12_architecture_review_checked.md`](reviews/2026-07-12_architecture_review_checked.md) | Current-head check of the 2026-07-11 architecture review: accepted, superseded, and still-open findings with executable evidence |
 | [`170_keyword_lineage_cs_application_map.md`](170_keyword_lineage_cs_application_map.md) | Keyword, influenced-language, computer-science, and implementation-owner routing map |
 | [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |
 

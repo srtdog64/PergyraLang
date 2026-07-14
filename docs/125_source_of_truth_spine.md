@@ -127,7 +127,16 @@ Current beta closure snapshot:
 - The remaining AST slot analyzer pass is explicitly named
   `semantic_run_legacy_slot_resource_analysis(...)` at the semantic entry point.
   It is a compatibility seam for conservative escape/leak provenance only;
-  CFG/MIR remains the body-safety source of truth.
+  CFG/MIR remains the body-safety source of truth. Its compiler-owned callee
+  lookup consumes `SemanticContext::host_decl_index` through
+  `semantic_host_index_find_decl_by_name(...)`; an indexed miss must not reopen
+  an `AST_PROGRAM` scan. The no-context standalone API is the only explicit
+  program-root compatibility boundary. Compiler-owned transitive access and
+  escape propagation consumes
+  `function_param_flow_summary_demand(...)`, keyed by stable function identity
+  and parameter index. Recursive callees are solved by monotone demanded fixed
+  point; access/escape consumers must not reopen a callee body or restore the
+  former depth-limited recursion path.
 - Interprocedural callable body-summary reads live in
   `src/semantic/type_checker_call_contract_helpers.c`. Consumers that need to
   prove absence or presence of callee body facts must use
@@ -1610,11 +1619,13 @@ When adding or moving code, classify the file/function before editing it. If the
 classification is unclear, do not refactor yet.
 
 The top-level fact-family classification is fixed in
-`docs/semantics/sot_owner_spine_registry.md`. Its 16 rows bind each compiler
-spine fact to a stable handle, Coq fact/owner constructor, authority path, last
-legitimate consumers, forbidden fallback family, enforcement gate, and honest
-closure status. This registry declares authority identity; detailed ownership
-moves remain in `boundary_migration_manifest.md`.
+`docs/semantics/sot_owner_spine_registry.md`. Its 36 authority rows bind each
+compiler spine fact to a stable handle, Coq fact/owner constructor, authority
+path, last legitimate consumers, forbidden fallback family, enforcement gate,
+and honest closure status. Eleven additional rows classify self-host fact
+carriers as projections, bridges, caches, or local views rather than alternate
+authority. This registry declares authority identity; detailed ownership moves
+remain in `boundary_migration_manifest.md`.
 
 ## 4. Beta Blocker Order
 

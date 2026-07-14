@@ -61,7 +61,7 @@ slot_call_is_non_escape_builtin(ASTNode *callee)
 
 unsigned
 slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
-                            ASTNode *program_root, int depth,
+                            const SlotFunctionLookup *program_root, int depth,
                             const SlotSummaryOrigin *origin)
 {
     SlotEscapeEntry *entries = NULL;
@@ -89,7 +89,7 @@ slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
 void
 collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                      size_t *count, size_t *capacity,
-                     ASTNode *program_root, int depth,
+                     const SlotFunctionLookup *program_root, int depth,
                      const SlotSummaryOrigin *origin)
 {
     if (node == NULL)
@@ -184,9 +184,8 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                                           origin->param_name) == 0;
                             unsigned callee_mask = direct_self_reborrow
                                 ? SLOT_PARAM_SUMMARY_NONE
-                                : slot_param_summary_in_program(
-                                    body, param->name, program_root,
-                                    depth + 1, origin);
+                                : function_param_flow_summary_demand(
+                                    program_root, callee_decl, i);
                             if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                 slot_escape_record(entries, count, capacity,
                                     ast_identifier_name(arg), SLOT_ESCAPE_RETURN);

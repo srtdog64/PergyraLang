@@ -24,6 +24,9 @@ The beta release candidate must keep these gates green:
 - `make llvm-campaign-projection-test-smoke`
 - `make llvm-dnd-campaign-test-smoke`
 - `make cfg-body-dataflow-test-smoke`
+- `make loop-flow-summary-test-smoke`
+- `make slot-analyzer-host-index-test-smoke`
+- `make function-param-flow-summary-test-smoke`
 - `make type-resolution-dag-test-smoke`
 - `make runtime-frontier-contract-test-smoke`
 - `make runtime-panic-contract-test-smoke`

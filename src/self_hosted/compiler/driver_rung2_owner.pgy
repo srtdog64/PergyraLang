@@ -12,7 +12,9 @@ import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_body_verdict_owner.pgy";
+import "../semantic/ast_body_type_bundle_owner.pgy";
 import "../semantic/ast_expression_surface_contract_owner.pgy";
+import "../semantic/ast_expression_graph_bridge_contract_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
@@ -33,10 +35,11 @@ func CompilerDriverRung2Ready() -> Bool {
         SemanticAstStatementFactsContractReady() &&
         SemanticAstExpressionVerdictContractReady() &&
         SemanticExpressionGraphIntrinsicTypeContractReady() &&
+        SemanticExpressionGraphScalarTypeContractReady() &&
         SemanticAstExpressionTypedBindingContractReady() &&
         SemanticAstStatementTypeFactsContractReady() &&
         SemanticAstStatementTypeQueryContractReady() &&
-        SemanticAstBodyVerdictContractReady() &&
+        SemanticAstBodyTypeBundleContractReady() &&
         ParserExpressionGraphContractReady() &&
         ParserExpressionPrecedenceGraphContractReady() &&
         ParserExpressionUnaryGraphContractReady() &&
@@ -150,10 +153,7 @@ func EmitDriverRung2MirFixtureManifest() -> Void {
 
 struct DriverRung2VerifiedFacts {
     analysis: SemanticAstArtifactAnalysis;
-    initializer_types: SemanticAstInitializerTypeFacts;
-    iteration_types: SemanticAstIterationTypeFacts;
-    assignment_types: SemanticAstAssignmentTypeFacts;
-    statement_types: SemanticAstStatementTypeFacts;
+    body_types: SemanticAstBodyTypeBundle;
 }
 
 func VerifyArtifactAnalysisForDriverRung2(
@@ -167,76 +167,15 @@ func VerifyArtifactAnalysisForDriverRung2(
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
-    let initializer_types: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsFromArtifact(
-            artifact,
-            semantic_analysis.signatures,
-            semantic_analysis.constructors,
-            semantic_analysis.local_bindings,
-            semantic_analysis.expression_surfaces
-        );
-    if !initializer_types.ok {
-        Log(initializer_types.diagnostic_message);
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+    if !SemanticAstBodyTypeBundleReady(
+        artifact, semantic_analysis, body_types
+    ) {
+        Log(body_types.verdict.diagnostic_message);
         Exit(1);
     }
-    let iteration_types: SemanticAstIterationTypeFacts =
-        SemanticAstIterationTypeFactsFromArtifact(
-            artifact,
-            semantic_analysis.signatures,
-            semantic_analysis.constructors,
-            semantic_analysis.local_bindings,
-            initializer_types,
-            semantic_analysis.statements,
-            semantic_analysis.expression_surfaces
-        );
-    if !iteration_types.ok {
-        Log(iteration_types.diagnostic_message);
-        Exit(1);
-    }
-    let assignment_types: SemanticAstAssignmentTypeFacts =
-        SemanticAstAssignmentTypeFactsFromArtifact(
-            artifact,
-            semantic_analysis.signatures,
-            semantic_analysis.constructors,
-            semantic_analysis.local_bindings,
-            initializer_types,
-            semantic_analysis.statements,
-            semantic_analysis.expression_surfaces,
-            iteration_types,
-            semantic_analysis.assignments
-        );
-    if !assignment_types.ok {
-        Log(assignment_types.diagnostic_message);
-        Exit(1);
-    }
-    let statement_types: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromArtifact(
-            artifact,
-            semantic_analysis.signatures,
-            semantic_analysis.constructors,
-            semantic_analysis.local_bindings,
-            initializer_types,
-            semantic_analysis.expression_surfaces,
-            iteration_types,
-            semantic_analysis.statements
-        );
-    if !statement_types.ok {
-        Log(statement_types.diagnostic_message);
-        Exit(1);
-    }
-    let body_verdict: SemanticAstBodyVerdict =
-        SemanticAstBodyVerdictFromFacts(
-            initializer_types, iteration_types, assignment_types,
-            statement_types
-        );
-    if !body_verdict.ok {
-        Log(body_verdict.diagnostic_message);
-        Exit(1);
-    }
-    return DriverRung2VerifiedFacts(
-        semantic_analysis, initializer_types, iteration_types,
-        assignment_types, statement_types
-    );
+    return DriverRung2VerifiedFacts(semantic_analysis, body_types);
 }
 
 func VerifyArtifactForMirProduction(
@@ -254,8 +193,8 @@ func CompileArtifactAnalysisToMirJsonVerified(
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
-        artifact, verified.analysis, verified.initializer_types,
-        verified.iteration_types
+        artifact, verified.analysis, verified.body_types.initializer_types,
+        verified.body_types.iteration_types
     );
     if !SelfMirProgramFactsReady(mir_facts) {
         Log(SelfMirProgramFactsValidationError(mir_facts));
@@ -315,9 +254,11 @@ func CompileMirJsonTextToCVerified(
         );
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
+    let semantic_body_types: SemanticAstBodyTypeBundle =
+        verified.body_types;
     let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFacts(
-            verified.assignment_types, verified.statement_types
+        CodegenSemanticBodyTypeFactsFromBundleOrDie(
+            artifact, verified.analysis, semantic_body_types
         );
     return CompilerEmissionArtifact(
         "emitted-c",

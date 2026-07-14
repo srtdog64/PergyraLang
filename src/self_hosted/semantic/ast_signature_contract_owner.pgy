@@ -1,6 +1,6 @@
 // Executable contract for parser-owned function signature facts.
 
-import "ast_signature_fact_owner.pgy";
+import "ast_signature_artifact_match_owner.pgy";
 
 func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(

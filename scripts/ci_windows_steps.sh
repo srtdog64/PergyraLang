@@ -69,6 +69,9 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     # (powershell + mingw nm), so ci-windows' runnable block is its CI home.
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" air-erasure-gate'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" cfg-body-dataflow-test-smoke'
+    run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" loop-flow-summary-test-smoke'
+    run 'make slot-analyzer-host-index-test-smoke'
+    run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" function-param-flow-summary-test-smoke'
     run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" semantic-fixture-isolation-test-smoke'
     run 'PGY_EXAMPLE_BACKENDS=c make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" example-test-smoke'
     run 'make test-inc-size-test-smoke'

@@ -9,7 +9,7 @@
 
 unsigned
 slot_param_summary_in_program(ASTNode *node, const char *slot_name,
-                              ASTNode *program_root, int depth,
+                              const SlotFunctionLookup *lookup, int depth,
                               const SlotSummaryOrigin *origin)
 {
     unsigned summary = SLOT_PARAM_SUMMARY_NONE;
@@ -20,9 +20,9 @@ slot_param_summary_in_program(ASTNode *node, const char *slot_name,
         return SLOT_PARAM_SUMMARY_NONE;
 
     access_mask = slot_access_mask_for_named_symbol(
-        node, slot_name, program_root, depth);
+        node, slot_name, lookup, depth);
     escape_mask = slot_escape_mask_in_program(
-        node, slot_name, program_root, depth, origin);
+        node, slot_name, lookup, depth, origin);
 
     if ((access_mask & SLOT_ACCESS_READ) != 0)
         summary |= SLOT_PARAM_SUMMARY_READ;
@@ -38,4 +38,3 @@ slot_param_summary_in_program(ASTNode *node, const char *slot_name,
         summary |= SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
     return summary;
 }
-

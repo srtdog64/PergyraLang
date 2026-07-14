@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "type_checker_flow_resources.h"
+#include "type_checker_flow_universe.h"
 #include "type_checker_ownership_internal.h"
 
 static bool
@@ -95,6 +96,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                     return snap;
                 }
                 Symbol **new_symbols = calloc(next_capacity, sizeof(Symbol *));
+                size_t *new_symbol_indices = calloc(next_capacity, sizeof(size_t));
                 bool *new_states = calloc(next_capacity, sizeof(bool));
                 bool *new_used_states = calloc(next_capacity, sizeof(bool));
                 uint8_t *new_access_masks = calloc(next_capacity,
@@ -103,11 +105,13 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 QubitSemanticState *new_sem = calloc(next_capacity,
                                                      sizeof(QubitSemanticState));
                 int32_t *new_pools = calloc(next_capacity, sizeof(int32_t));
-                if (new_symbols == NULL || new_states == NULL
+                if (new_symbols == NULL || new_symbol_indices == NULL
+                    || new_states == NULL
                     || new_used_states == NULL || new_access_masks == NULL
                     || new_slot_states == NULL
                     || new_sem == NULL || new_pools == NULL) {
                     free(new_symbols);
+                    free(new_symbol_indices);
                     free(new_states);
                     free(new_used_states);
                     free(new_access_masks);
@@ -120,6 +124,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 }
                 if (snap.count > 0) {
                     memcpy(new_symbols, snap.symbols, snap.count * sizeof(Symbol *));
+                    memcpy(new_symbol_indices, snap.symbol_indices,
+                           snap.count * sizeof(size_t));
                     memcpy(new_states, snap.states, snap.count * sizeof(bool));
                     memcpy(new_used_states, snap.used_states, snap.count * sizeof(bool));
                     memcpy(new_access_masks, snap.access_masks,
@@ -131,6 +137,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                     memcpy(new_pools, snap.pool_ids, snap.count * sizeof(int32_t));
                 }
                 free(snap.symbols);
+                free(snap.symbol_indices);
                 free(snap.states);
                 free(snap.used_states);
                 free(snap.access_masks);
@@ -138,6 +145,7 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 free(snap.sem_states);
                 free(snap.pool_ids);
                 snap.symbols = new_symbols;
+                snap.symbol_indices = new_symbol_indices;
                 snap.states = new_states;
                 snap.used_states = new_used_states;
                 snap.access_masks = new_access_masks;
@@ -146,7 +154,8 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 snap.pool_ids = new_pools;
                 snap.capacity = next_capacity;
             }
-            if (snap.symbols == NULL || snap.states == NULL
+            if (snap.symbols == NULL || snap.symbol_indices == NULL
+                || snap.states == NULL
                 || snap.used_states == NULL || snap.access_masks == NULL
                 || snap.slot_states == NULL
                 || snap.sem_states == NULL || snap.pool_ids == NULL) {
@@ -155,6 +164,15 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 return snap;
             }
             snap.symbols[snap.count] = sym;
+            snap.symbol_indices[snap.count] =
+                resource_flow_universe_bind(ctx, sym);
+            if (ctx != NULL && ctx->current_function_decl != NULL
+                && snap.symbol_indices[snap.count]
+                    == RESOURCE_FLOW_INDEX_NONE) {
+                destroy_resource_snapshot(&snap);
+                snap.valid = false;
+                return snap;
+            }
             snap.states[snap.count] = sym->is_consumed;
             snap.used_states[snap.count] = sym->is_used;
             snap.access_masks[snap.count] = sym->slot_flow_access_mask;
@@ -167,23 +185,6 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
     }
 
     return snap;
-}
-
-void
-restore_resource_states(const ResourceConsumeSnapshot *snap)
-{
-    if (snap == NULL || !snap->valid)
-        return;
-    for (size_t i = 0; i < snap->count; i++) {
-        if (snap->symbols[i] != NULL) {
-            snap->symbols[i]->is_consumed = snap->states[i];
-            snap->symbols[i]->is_used = snap->used_states[i];
-            snap->symbols[i]->slot_flow_access_mask = snap->access_masks[i];
-            snap->symbols[i]->slot_info.state = snap->slot_states[i];
-            snap->symbols[i]->qubit_info.semantic_state = snap->sem_states[i];
-            snap->symbols[i]->qubit_info.entangle_pool_id = snap->pool_ids[i];
-        }
-    }
 }
 
 ResourceConsumeSnapshot
@@ -534,28 +535,4 @@ resource_snapshot_has_parallel_race_risk(const ResourceConsumeSnapshot *base,
     }
 
     return false;
-}
-
-void
-destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
-{
-    if (snap == NULL)
-        return;
-    free(snap->symbols);
-    free(snap->states);
-    free(snap->used_states);
-    free(snap->access_masks);
-    free(snap->slot_states);
-    free(snap->sem_states);
-    free(snap->pool_ids);
-    snap->symbols = NULL;
-    snap->states = NULL;
-    snap->used_states = NULL;
-    snap->access_masks = NULL;
-    snap->slot_states = NULL;
-    snap->sem_states = NULL;
-    snap->pool_ids = NULL;
-    snap->count = 0;
-    snap->capacity = 0;
-    snap->valid = false;
 }

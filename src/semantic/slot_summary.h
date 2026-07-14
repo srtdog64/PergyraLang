@@ -8,6 +8,8 @@
 
 #include "../parser/ast.h"
 
+typedef struct SemanticContext SemanticContext;
+
 typedef enum
 {
     SLOT_ESCAPE_NONE    = 0,
@@ -24,7 +26,8 @@ typedef enum
     SLOT_PARAM_SUMMARY_RELEASE        = 1 << 2,
     SLOT_PARAM_SUMMARY_RETURN_ESCAPE  = 1 << 3,
     SLOT_PARAM_SUMMARY_CALL_ESCAPE    = 1 << 4,
-    SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE = 1 << 5
+    SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE = 1 << 5,
+    SLOT_PARAM_SUMMARY_ALL            = (1 << 6) - 1
 } SlotParamSummaryFlags;
 
 unsigned slot_analyze_escape_flags(ASTNode *node, const char *slot_name);
@@ -40,6 +43,7 @@ unsigned slot_analyze_escape_flags_in_program(ASTNode *node,
  */
 unsigned slot_analyze_legacy_ast_param_summary_in_program(ASTNode *func_decl,
                                                           size_t param_index,
-                                                          ASTNode *program_root);
+                                                          ASTNode *program_root,
+                                                          SemanticContext *ctx);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */

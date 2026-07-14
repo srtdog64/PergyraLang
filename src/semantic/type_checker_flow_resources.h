@@ -9,6 +9,7 @@
 typedef struct
 {
     Symbol              **symbols;
+    size_t               *symbol_indices;
     bool                 *states;
     bool                 *used_states;
     uint8_t              *access_masks;
@@ -24,6 +25,8 @@ ResourceConsumeSnapshot snapshot_resource_states_from_scope(Scope *scope,
                                                             SemanticContext *ctx);
 ResourceConsumeSnapshot snapshot_resource_states(SemanticContext *ctx);
 void restore_resource_states(const ResourceConsumeSnapshot *snap);
+void restore_resource_states_for_context(const ResourceConsumeSnapshot *snap,
+                                         SemanticContext *ctx);
 void merge_resource_states_or(ResourceConsumeSnapshot *dst,
                               const ResourceConsumeSnapshot *src);
 bool resource_snapshot_has_parallel_conflict(const ResourceConsumeSnapshot *base,

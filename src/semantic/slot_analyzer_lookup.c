@@ -8,11 +8,24 @@
 #include <string.h>
 
 #include "slot_analyzer_internal.h"
+#include "type_checker_internal.h"
 
 ASTNode *
-slot_analyzer_find_function_decl(ASTNode *program, const char *name)
+slot_analyzer_find_function_decl(const SlotFunctionLookup *lookup,
+                                 const char *name)
 {
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+    ASTNode *program;
+
+    if (lookup == NULL || name == NULL)
+        return NULL;
+
+    if (lookup->ctx != NULL) {
+        return semantic_host_index_find_decl_by_name(
+            lookup->ctx, AST_FUNC_DECL, name);
+    }
+
+    program = lookup->program_root;
+    if (program == NULL || program->type != AST_PROGRAM)
         return NULL;
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {

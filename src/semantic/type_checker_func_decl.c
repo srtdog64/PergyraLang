@@ -1,45 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-
-#include "../common/string_compat.h"
+#include "capability_analyze.h"
 #include "type_checker_internal.h"
+#include "type_checker_flow_loop_summary.h"
+#include "type_checker_flow_universe.h"
 #include "diag_codes.h"
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
-#include "runtime/pgy_runtime_capability.h"
-
-/* Render a PGY_CAP_* mask as a human-readable list for diagnostics. */
-static void
-caps_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
-{
-    static const struct { uint32_t bit; const char *name; } k_caps[] = {
-        { PGY_CAP_IO_READ,  "io_read" },
-        { PGY_CAP_IO_WRITE, "io_write" },
-        { PGY_CAP_NETWORK,  "network" },
-        { PGY_CAP_CLOCK,    "clock" },
-        { PGY_CAP_RANDOM,   "random" },
-        { PGY_CAP_ENV,      "env" },
-        { PGY_CAP_RENDER,   "render" },
-        { PGY_CAP_AUDIO,    "audio" },
-        { PGY_CAP_INPUT,    "input" },
-    };
-    size_t off = 0;
-
-    if (buf == NULL || buf_size == 0)
-        return;
-    buf[0] = '\0';
-    if (mask == 0u) {
-        snprintf(buf, buf_size, "none");
-        return;
-    }
-    for (size_t i = 0; i < sizeof(k_caps) / sizeof(k_caps[0]); i++) {
-        if ((mask & k_caps[i].bit) == 0)
-            continue;
-        off = pergyra_str_appendf(buf, buf_size, "%s%s",
-                                  off > 0 ? ", " : "", k_caps[i].name);
-    }
-}
 
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
@@ -219,6 +186,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
+    resource_flow_universe_begin(ctx);
+    loop_flow_summary_begin_function(ctx);
     if (node->origin_path != NULL)
         ctx->current_module_path = node->origin_path;
 
@@ -390,9 +359,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 char used_buf[160];
                 char missing_buf[160];
                 char declared_buf[160];
-                caps_mask_to_string(used_caps, used_buf, sizeof(used_buf));
-                caps_mask_to_string(missing_caps, missing_buf, sizeof(missing_buf));
-                caps_mask_to_string(declared_caps, declared_buf, sizeof(declared_buf));
+                capability_mask_to_diagnostic_string(
+                    used_caps, used_buf, sizeof(used_buf));
+                capability_mask_to_diagnostic_string(
+                    missing_caps, missing_buf, sizeof(missing_buf));
+                capability_mask_to_diagnostic_string(
+                    declared_caps, declared_buf, sizeof(declared_buf));
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_EFFECT_CONFLICT,
                     PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO, PGY_FIX_SPLIT_EFFECT_FAMILIES, node,
                     "Function '%s' is missing declared capabilities: %s (declared: %s, used by body: %s)",
@@ -413,10 +385,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 char excess_buf[160];
                 char used_buf[160];
                 char declared_buf[160];
-                caps_mask_to_string(excess_caps, excess_buf, sizeof(excess_buf));
-                caps_mask_to_string(used_caps, used_buf, sizeof(used_buf));
-                caps_mask_to_string(declared_caps, declared_buf,
-                    sizeof(declared_buf));
+                capability_mask_to_diagnostic_string(
+                    excess_caps, excess_buf, sizeof(excess_buf));
+                capability_mask_to_diagnostic_string(
+                    used_caps, used_buf, sizeof(used_buf));
+                capability_mask_to_diagnostic_string(
+                    declared_caps, declared_buf, sizeof(declared_buf));
                 semantic_advisory_with_hints(ctx,
                     PGY_CODE_SEM_CAPABILITY_OVER_DECLARED,
                     PGY_CAUSE_CAPABILITY_OVER_DECLARED,
@@ -590,6 +564,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->in_async_func = prev_async;
     ctx->current_module_path = prev_module_path;
     free(param_types);
+    loop_flow_summary_end_function(ctx);
+    resource_flow_universe_end(ctx);
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }

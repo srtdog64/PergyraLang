@@ -1,0 +1,37 @@
+enum LoopMode { Run, Stop }
+
+func Loop4(inout rows: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let outer: Int = 0;
+    while outer < n {
+        ArrayPush(rows, outer);
+        for i in 0..2 {
+            if i == 0 { continue; }
+            total = total + i;
+        }
+        let j: Int = 0;
+        while j < 2 {
+            j = j + 1;
+            if j == 1 { continue; }
+            total = total + j;
+        }
+        match Run {
+            case Run:
+                let k: Int = 0;
+                while k < 2 {
+                    k = k + 1;
+                    if k == 2 { break; }
+                    total = total + k;
+                }
+            case Stop:
+                total = total + 100;
+        }
+        outer = outer + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let rows: Array<Int> = [];
+    Log(Loop4(rows, 2));
+}

@@ -1,0 +1,78 @@
+// Canonical semantic assembly of body-level type facts.
+//
+// Driver and codegen consume this bundle. Neither may independently rebuild
+// initializer, iteration, assignment, or statement type rows.
+
+import "ast_artifact_verdict_owner.pgy";
+import "ast_body_verdict_owner.pgy";
+
+struct SemanticAstBodyTypeBundle {
+    verdict: SemanticAstBodyVerdict;
+    initializer_types: SemanticAstInitializerTypeFacts;
+    iteration_types: SemanticAstIterationTypeFacts;
+    assignment_types: SemanticAstAssignmentTypeFacts;
+    statement_types: SemanticAstStatementTypeFacts;
+}
+
+func SemanticAstBodyTypeBundleFromAnalysis(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis
+) -> SemanticAstBodyTypeBundle {
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, analysis.expression_surfaces
+        );
+    let iteration_types: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.expression_surfaces
+        );
+    let assignment_types: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.expression_surfaces, iteration_types,
+            analysis.assignments
+        );
+    let statement_types: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, initializer_types,
+            analysis.expression_surfaces, iteration_types,
+            analysis.statements
+        );
+    return SemanticAstBodyTypeBundle(
+        SemanticAstBodyVerdictFromFacts(
+            initializer_types, iteration_types, assignment_types,
+            statement_types
+        ),
+        initializer_types, iteration_types, assignment_types, statement_types
+    );
+}
+
+func SemanticAstBodyTypeBundleReady(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle
+) -> Bool {
+    return analysis.verdict.ok && bundle.verdict.ok &&
+        bundle.initializer_types.ok && bundle.iteration_types.ok &&
+        bundle.assignment_types.ok && bundle.statement_types.ok &&
+        bundle.initializer_types.artifact_node_count == artifact.count &&
+        bundle.iteration_types.artifact_node_count == artifact.count &&
+        bundle.assignment_types.artifact_node_count == artifact.count &&
+        bundle.statement_types.artifact_node_count == artifact.count;
+}
+
+func SemanticAstBodyTypeBundleContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return SemanticAstBodyTypeBundleReady(artifact, analysis, bundle);
+}

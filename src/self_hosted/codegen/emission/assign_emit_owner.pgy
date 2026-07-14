@@ -15,6 +15,7 @@ func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
     idx: Int,
     expected_type: String,
+    target_type: String,
     env_state: Array<String>,
     graph: SemanticExpressionGraphView,
     target_graph: SemanticExpressionGraphView
@@ -26,6 +27,9 @@ func EmitAssign(
         Die("assignment expected type is missing");
     }
     if CodegenSemanticAssignmentTargetIsIndex(assignments, idx) {
+        if target_type == "" {
+            Die("indexed assignment target type is missing");
+        }
         let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
             target_graph.graph, target_graph.root_id
         );
@@ -46,20 +50,13 @@ func EmitAssign(
         }
         let receiver_id: Int = UnwrapOption(receiver_opt);
         let index_id: Int = UnwrapOption(index_opt);
-        let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
-            target_graph.graph, receiver_id
-        );
-        if !IsSome(receiver_text) {
-            Die("indexed assignment receiver graph is missing");
-        }
-        let arr_name: String = UnwrapOption(receiver_text);
         let c_arr_name: String = RewriteExprFromSemanticGraph(
             target_graph.graph, receiver_id, env
         );
         let idx_expr: String = RewriteExprFromSemanticGraph(
             target_graph.graph, index_id, env
         );
-        let arr_kind: String = LookupKindType(env, arr_name, "v");
+        let arr_kind: String = CollectionRuntimeKindFromTypeName(target_type);
         let arr_kind_code: Int = CollectionRuntimeKindCode(arr_kind);
         let set_fn: String = CollectionRuntimeCSetFn(arr_kind_code);
         let rhs: String = EmitCollectionGraphElementValue(

@@ -38,6 +38,8 @@ void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        const char *control_kind);
 bool resource_snapshots_equal(const ResourceConsumeSnapshot *a,
                               const ResourceConsumeSnapshot *b);
+bool resource_snapshot_availability_equal(const ResourceConsumeSnapshot *a,
+                                          const ResourceConsumeSnapshot *b);
 ResourceConsumeSnapshot copy_resource_snapshot(
     const ResourceConsumeSnapshot *src);
 void merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,

@@ -52,6 +52,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                 ast_let_destructure_name(node, i),
                 elem != NULL ? elem : TYPE_UNKNOWN,
                 node->line, node->column);
+            symbol_mark_declaration(s, ast_node_stable_id(node), false);
             scope_declare(ctx->scope, s);
         }
         return true;
@@ -73,6 +74,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
         Symbol *s = symbol_create_variable(
             ast_let_destructure_name(node, i), elem_type,
             node->line, node->column);
+        symbol_mark_declaration(s, ast_node_stable_id(node), false);
         scope_declare(ctx->scope, s);
     }
 

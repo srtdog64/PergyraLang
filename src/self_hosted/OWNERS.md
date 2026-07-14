@@ -95,6 +95,9 @@ inventory must not become a second fact-family owner registry.
   function owner, name, parameter, mode, and return signature facts, including
   ordered function node/name identity for entrypoint cardinality, selection,
   and top-level function declaration routing.
+- `src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy` -- reverse
+  artifact validation for signature rows; production and query ownership stays
+  in the signature fact owner.
 - `src/self_hosted/semantic/ast_signature_contract_owner.pgy` -- executable
   freshness, duplicate-row, owner, and runtime-callability contract for those
   signature facts.
@@ -139,6 +142,8 @@ inventory must not become a second fact-family owner registry.
   -- nominal constructor field/cardinality/type verdicts over that graph view.
 - `src/self_hosted/semantic/ast_expression_graph_type_owner.pgy` -- intrinsic
   nominal result types carried by parser-owned expression graph nodes.
+- `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy` --
+  scalar result-type projection from parser-owned expression node handles.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
@@ -147,6 +152,9 @@ inventory must not become a second fact-family owner registry.
   node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
   verdict across initializer, iteration, assignment, and statement owners.
+- `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
+  one-pass assembly of initializer, iteration, assignment, and statement type
+  facts consumed by driver and codegen projections.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
@@ -177,6 +185,8 @@ inventory must not become a second fact-family owner registry.
   codegen projections; compact-text production remains an explicit bridge for
   non-migrated expression owners and legacy/native canonicalization, not an
   alternate hard-codegen authority.
+- `src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy` --
+  executable topology contracts for the temporary compact-text graph bridge.
 - `src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy` --
   canonical namespace-call target identity derived by callable resolution,
   carried by self MIR, and verified before hard codegen consumption.
@@ -300,7 +310,7 @@ inventory must not become a second fact-family owner registry.
   name/type rows.
 - `src/self_hosted/codegen/input/semantic_local_binding_codegen_view_owner.pgy` -- fail-closed codegen view over semantic local binding identity, name, and type facts, including `Let` routing.
 - `src/self_hosted/codegen/input/semantic_assignment_codegen_view_owner.pgy` -- fail-closed codegen view over semantic assignment identity, target/base/index/RHS rows, and verified expected-type facts, including `Assign` routing.
-- `src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy` -- one-shot initializer/iteration synthesis and verified assignment/statement type bundle consumed by C emission.
+- `src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy` -- fail-closed projection of the semantic-owned body type bundle consumed by C emission; it does not synthesize semantic facts.
 - `src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy` -- fail-closed codegen view over semantic statement kind/payload rows, including control-flow and collection routing.
 - `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
   -- fail-closed codegen view over semantic-owned expression shape and graph
@@ -402,9 +412,9 @@ inventory must not become a second fact-family owner registry.
   entrypoint.
 - `src/self_hosted/tools/backend_emitter_contract_checker/report_owner.pgy` --
   backend-emitter contract report schema, count rows, and finding shapes.
-- `src/self_hosted/tools/option_assignment_projection_probe/main.pgy` --
-  focused executable proof that scalar Option assignment consumes semantic
-  expected-type and expression-graph facts under C/LLVM projection parity.
+- `src/self_hosted/tools/assignment_projection_probe/main.pgy` -- focused
+  executable proof that scalar and indexed assignments consume semantic
+  expected, target, and expression-graph facts under C/LLVM parity.
 - `src/self_hosted/tools/compatibility_evolution_checker/main.pgy` --
   compatibility row analysis, fail-closed self-test modes, and checker
   entrypoint.

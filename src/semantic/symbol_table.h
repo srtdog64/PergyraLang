@@ -143,6 +143,11 @@ struct Symbol
      */
     const Type* flow_tracks_memo_type;
     uint8_t     flow_tracks_memo;
+
+    /* Cache of this symbol's function-local ResourceFlowUniverse identity.
+     * The epoch prevents an index from leaking across function analyses. */
+    size_t      flow_universe_epoch;
+    size_t      flow_universe_index;
 };
 
 /*

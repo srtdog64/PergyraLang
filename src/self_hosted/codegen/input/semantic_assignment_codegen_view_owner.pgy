@@ -13,6 +13,8 @@ func CodegenSemanticAssignmentTypeFactsReady(
         !SemanticAstAssignmentTypesAllVerified(facts) ||
         ArrayLength(facts.node_ids) != count ||
         ArrayLength(facts.target_texts) != count ||
+        ArrayLength(facts.target_type_names) != count ||
+        ArrayLength(facts.index_type_names) != count ||
         ArrayLength(facts.expected_type_names) != count {
         return false;
     }
@@ -20,12 +22,31 @@ func CodegenSemanticAssignmentTypeFactsReady(
     while i < count {
         if facts.node_ids[i] != assignments.node_ids[i] ||
             facts.target_texts[i] != assignments.target_texts[i] ||
+            facts.target_type_names[i] == "" ||
             facts.expected_type_names[i] == "" {
             return false;
         }
         i = i + 1;
     }
     return true;
+}
+
+func CodegenSemanticAssignmentTargetTypeOrDie(
+    ref facts: SemanticAstAssignmentTypeFacts,
+    node_id: Int
+) -> String {
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.node_ids[i] == node_id && facts.verified[i] == 1 &&
+            facts.target_type_names[i] != "" {
+            return facts.target_type_names[i];
+        }
+        i = i + 1;
+    }
+    Die(Concat(
+        "missing semantic assignment target type: ", ToString(node_id)
+    ));
+    return "";
 }
 
 func CodegenSemanticAssignmentIs(

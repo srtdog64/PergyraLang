@@ -51,7 +51,8 @@ static void
 slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
                                     SlotAccessEntry **entries,
                                     size_t *count, size_t *capacity,
-                                    ASTNode *program_root, int depth)
+                                    const SlotFunctionLookup *program_root,
+                                    int depth)
 {
     size_t param_count = 0;
     ASTNode *body = NULL;
@@ -76,8 +77,9 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
         if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
             continue;
 
-        mask = slot_param_summary_in_program(
-            body, param->name, program_root, depth + 1, NULL);
+        (void)depth;
+        mask = function_param_flow_summary_demand(
+            program_root, func_decl, i);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
             slot_access_record(entries, count, capacity,
                 ast_identifier_name(arg), SLOT_ACCESS_READ);
@@ -95,7 +97,8 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
 
 unsigned
 slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
-                                  ASTNode *program_root, int depth)
+                                  const SlotFunctionLookup *program_root,
+                                  int depth)
 {
     unsigned mask = 0;
 
@@ -220,14 +223,13 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
             } else if (program_root != NULL) {
                 ASTNode *callee_decl = slot_analyzer_find_function_decl(program_root, name);
                 size_t param_count = 0;
-                ASTNode *body = NULL;
                 if (callee_decl != NULL) {
                     param_count = ast_func_param_count(callee_decl);
-                    body = ast_func_body(callee_decl);
-                    if (body != NULL) {
+                    if (ast_func_body(callee_decl) != NULL) {
                         for (size_t i = 0; i < param_count && i < ast_call_arg_count(node); i++) {
                             FuncParam *param = ast_func_param(callee_decl, i);
                             ASTNode *arg = ast_call_argument(node, i);
+                            unsigned callee_mask;
                             if (param == NULL || param->name == NULL || arg == NULL
                                 || arg->type != AST_IDENTIFIER
                                 || ast_identifier_name(arg) == NULL
@@ -235,8 +237,14 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
                                 continue;
                             if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
                                 continue;
-                            mask |= slot_access_mask_for_named_symbol(
-                                body, param->name, program_root, depth + 1);
+                            callee_mask = function_param_flow_summary_demand(
+                                program_root, callee_decl, i);
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_READ) != 0)
+                                mask |= SLOT_ACCESS_READ;
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_WRITE) != 0)
+                                mask |= SLOT_ACCESS_WRITE;
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_RELEASE) != 0)
+                                mask |= SLOT_ACCESS_RELEASE;
                         }
                     }
                 }
@@ -289,7 +297,7 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
 void
 collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                       size_t *count, size_t *capacity,
-                      ASTNode *program_root)
+                      const SlotFunctionLookup *program_root)
 {
     if (node == NULL)
         return;

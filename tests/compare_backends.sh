@@ -1016,6 +1016,7 @@ main() {
         "tests/cases/backend_compare/while_loop_slot_read"
         "tests/cases/backend_compare/nested_while_slot_sum"
         "tests/cases/backend_compare/helper_ref_slot_in_while"
+        "tests/cases/backend_compare/loop_flow_summary"
         "tests/cases/backend_compare/if_else_in_while_slot"
         "tests/cases/backend_compare/match_slot_helper"
         "tests/cases/backend_compare/channel_send_in_while_slot"

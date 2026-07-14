@@ -2123,6 +2123,7 @@ raw_source_fields = (
 raw_source_allowed = {
     pathlib.Path("src/compiler/mir.c"),
     pathlib.Path("src/compiler/mir_public_surface.c"),
+    pathlib.Path("src/compiler/mir_source_provenance.c"),
     pathlib.Path("src/compiler/mir_source_shape.c"),
     pathlib.Path("src/compiler/mir_source_inventory_build.c"),
 }

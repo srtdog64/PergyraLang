@@ -32,6 +32,9 @@ typedef struct SemanticContext SemanticContext;
 typedef struct TypeResolutionNode TypeResolutionNode;
 typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
+typedef struct ResourceFlowUniverse ResourceFlowUniverse;
+typedef struct LoopFlowSummaryStore LoopFlowSummaryStore;
+typedef struct FunctionParamFlowSummaryStore FunctionParamFlowSummaryStore;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
@@ -120,6 +123,14 @@ struct SemanticContext
     int          transaction_depth; /* Inside transaction nesting (fail scope) */
     const char  *loop_labels[SEMANTIC_MAX_LOOP_DEPTH];
     int32_t      next_entangle_pool; /* Compile-time entangle pool counter */
+
+    /* Function-local flow identity and loop summaries.  These owners are
+     * reset at each function boundary; snapshots borrow stable symbol indices
+     * from the universe instead of treating allocation addresses as identity. */
+    ResourceFlowUniverse *resource_flow_universe;
+    LoopFlowSummaryStore *loop_flow_summaries;
+    FunctionParamFlowSummaryStore *function_param_flow_summaries;
+    size_t       resource_flow_epoch;
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;
@@ -212,6 +223,7 @@ struct SemanticContext
 
 SemanticContext* semantic_context_create(void);
 void             semantic_context_destroy(SemanticContext* ctx);
+void function_param_flow_summary_store_destroy(SemanticContext *ctx);
 
 /* -----------------------------------------------------------------
  * Error / warning emission

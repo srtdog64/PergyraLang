@@ -568,15 +568,25 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has a machine-gated 28-row owner declaration in
-`docs/semantics/sot_owner_spine_registry.md`: 15 architectural rows plus thirteen
-bounded self-host closure rows, with twelve `CLOSED`, seven `BRIDGE`, and nine
-`ACTIVE` rows. Each row names its stable handle, Coq fact/owner,
+The whole compiler skeleton now has 36 machine-gated authority rows and 11
+classified derived fact carriers in
+`docs/semantics/sot_owner_spine_registry.md`, with fourteen `CLOSED`, seven
+`BRIDGE`, and fifteen `ACTIVE` rows. Each authority row names its stable handle,
+Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
-reason. `tests/sot_owner_spine_contract_smoke.sh` validates the live bindings
-and mutation-rejects missing rows, duplicate ids, missing owners, Coq drift,
-invalid status, and dishonest `CLOSED` promotion. This defines the owner
+reason. `tests/sot_authority_edge_smoke.sh` consumes the registry without a
+copied owner list or status count, checks registry/Coq projection equality,
+producer uniqueness, CLOSED-consumer fallback absence, and complete
+classification of every self-host `*_fact_owner.pgy`. This defines the owner
 outline; it does not raise the released/default replacement percentage.
+
+The assignment type-verdict row is the first closure executed through this
+catalog. Driver paths now assemble one `SemanticAstBodyTypeBundle`; codegen
+receives an `own` bundle projection and cannot call the four body-type fact
+producers directly. A focused C/LLVM probe is output-equal and fails closed for
+missing assignment expected type and missing indexed-target type. This closes
+that owner/consumer seam only; initializer and iteration type-verdict rows
+remain `ACTIVE`.
 
 ## Headline Number
 

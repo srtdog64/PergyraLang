@@ -7,6 +7,7 @@
 import "../parser/program_parse_owner.pgy";
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_signature_contract_owner.pgy";
+import "../semantic/ast_body_type_bundle_owner.pgy";
 import "../codegen/emission/program_entry_owner.pgy";
 
 struct CompilerEmissionArtifact {
@@ -46,9 +47,17 @@ func CompileAstArtifactToC(
         Log(semantic_analysis.verdict.diagnostic_message);
         Exit(1);
     }
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+    let body_types: CodegenSemanticBodyTypeFacts =
+        CodegenSemanticBodyTypeFactsFromBundleOrDie(
+            artifact, semantic_analysis, bundle
+        );
     return CompilerEmissionArtifact(
         "emitted-c",
-        GenerateCFromSemanticArtifact(artifact, semantic_analysis)
+        GenerateCFromVerifiedSemanticArtifact(
+            artifact, semantic_analysis, body_types
+        )
     );
 }
 

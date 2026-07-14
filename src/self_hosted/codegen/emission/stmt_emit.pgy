@@ -242,6 +242,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                     assignments, idx,
                     CodegenSemanticAssignmentExpectedTypeOrDie(
                         body_types.assignment_types, idx
+                    ),
+                    CodegenSemanticAssignmentTargetTypeOrDie(
+                        body_types.assignment_types, idx
                     ), env_state, assign_graph,
                     assign_target_graph
                 ), "\n"

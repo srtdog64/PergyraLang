@@ -35,6 +35,13 @@ mutating slot state, so Move / DeviceSlot-release style helper paths cannot
 release a tracked resource without emitting a CFG access fact.
 The analyzer remains a named pre-CFG residual only for compatibility
 diagnostics; it must not be treated as the final body-safety source of truth.
+Its compiler-owned named-callee lookup consumes the semantic host-declaration
+hash index instead of rescanning `AST_PROGRAM`. Transitive access and escape
+propagation consume the demanded `(FunctionId, ParamIndex)` summary owner and
+solve recursive components to a monotone fixed point instead of reopening
+callee bodies to a depth limit. The measured cause, exact fallback boundary,
+research basis, and remaining symbol-sparsification rung are recorded in
+`docs/184_legacy_slot_interprocedural_hash_lookup.md`.
 
 ## Why CFG Is Necessary
 

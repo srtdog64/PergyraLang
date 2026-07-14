@@ -7,9 +7,11 @@ func GenerateCUnitFromSemanticArtifact(
     semantic_analysis: SemanticAstArtifactAnalysis,
     require_entrypoint: Bool
 ) -> String {
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
     let body_types: CodegenSemanticBodyTypeFacts =
-        CodegenSemanticBodyTypeFactsFromAnalysisOrDie(
-            artifact, semantic_analysis
+        CodegenSemanticBodyTypeFactsFromBundleOrDie(
+            artifact, semantic_analysis, bundle
         );
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, require_entrypoint
