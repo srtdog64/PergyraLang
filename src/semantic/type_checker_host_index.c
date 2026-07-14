@@ -118,6 +118,81 @@ host_decl_index_append(SemanticContext *ctx, ASTNode *decl)
     return true;
 }
 
+/* FNV-1a over the name, mixed with the decl type. Must be byte-identical
+ * between build and lookup. */
+static size_t
+host_decl_key_hash(ASTNodeType type, const char *name)
+{
+    size_t h = 1469598103934665603ULL;
+    const unsigned char *p;
+
+    for (p = (const unsigned char *)name; *p != '\0'; p++) {
+        h ^= (size_t)*p;
+        h *= 1099511628211ULL;
+    }
+    h ^= (size_t)type * 2654435761ULL;
+    return h;
+}
+
+static void
+host_decl_index_free_hash(SemanticContext *ctx)
+{
+    free(ctx->host_decl_index.hash);
+    ctx->host_decl_index.hash = NULL;
+    ctx->host_decl_index.hash_capacity = 0;
+}
+
+/* Best-effort: on OOM the hash stays NULL and lookups fall back to the linear
+ * scan, so failure here is slow, not wrong. Keeps the FIRST index for a given
+ * (type, name) to match the linear scan's first-match semantics. */
+static void
+host_decl_index_build_hash(SemanticContext *ctx)
+{
+    size_t count = ctx->host_decl_index.count;
+    size_t cap = 16;
+    size_t *hash;
+    size_t mask;
+
+    host_decl_index_free_hash(ctx);
+    if (count == 0)
+        return;
+    if (count > ((size_t)-1) / 4)
+        return;  /* pathological; keep linear */
+    while (cap < count * 2)
+        cap *= 2;
+    hash = calloc(cap, sizeof(size_t));
+    if (hash == NULL)
+        return;
+    mask = cap - 1;
+
+    for (size_t i = 0; i < count; i++) {
+        const char *nm = ctx->host_decl_index.names[i];
+        size_t slot;
+
+        if (nm == NULL)
+            continue;
+        slot = host_decl_key_hash(ctx->host_decl_index.types[i], nm) & mask;
+        for (size_t probe = 0; probe < cap; probe++) {
+            size_t entry = hash[slot];
+            size_t j;
+
+            if (entry == 0) {
+                hash[slot] = i + 1;
+                break;
+            }
+            j = entry - 1;
+            if (ctx->host_decl_index.types[j] == ctx->host_decl_index.types[i]
+                && ctx->host_decl_index.names[j] != NULL
+                && strcmp(ctx->host_decl_index.names[j], nm) == 0) {
+                break;  /* duplicate (type, name): keep the first index */
+            }
+            slot = (slot + 1) & mask;
+        }
+    }
+    ctx->host_decl_index.hash = hash;
+    ctx->host_decl_index.hash_capacity = cap;
+}
+
 bool
 semantic_build_host_decl_index(SemanticContext *ctx, ASTNode *program)
 {
@@ -129,6 +204,7 @@ semantic_build_host_decl_index(SemanticContext *ctx, ASTNode *program)
         if (!host_decl_index_append(ctx, ast_program_statement(program, i)))
             return false;
     }
+    host_decl_index_build_hash(ctx);
     return true;
 }
 
@@ -140,6 +216,30 @@ semantic_host_index_find_decl_by_name(SemanticContext *ctx,
     if (ctx == NULL || name == NULL || ctx->host_decl_index.count == 0)
         return NULL;
 
+    if (ctx->host_decl_index.hash != NULL
+        && ctx->host_decl_index.hash_capacity > 0) {
+        size_t mask = ctx->host_decl_index.hash_capacity - 1;
+        size_t slot = host_decl_key_hash(decl_type, name) & mask;
+
+        for (size_t probe = 0; probe < ctx->host_decl_index.hash_capacity;
+             probe++) {
+            size_t entry = ctx->host_decl_index.hash[slot];
+            size_t idx;
+
+            if (entry == 0)
+                return NULL;  /* empty slot: key absent */
+            idx = entry - 1;
+            if (ctx->host_decl_index.types[idx] == decl_type
+                && ctx->host_decl_index.names[idx] != NULL
+                && strcmp(ctx->host_decl_index.names[idx], name) == 0) {
+                return ctx->host_decl_index.decls[idx];
+            }
+            slot = (slot + 1) & mask;
+        }
+        return NULL;
+    }
+
+    /* Hash not built (OOM or empty): linear fallback. */
     for (size_t i = 0; i < ctx->host_decl_index.count; i++) {
         if (ctx->host_decl_index.types[i] == decl_type
             && ctx->host_decl_index.names[i] != NULL

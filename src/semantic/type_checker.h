@@ -170,6 +170,16 @@ struct SemanticContext
         ASTNodeType *types;
         size_t count;
         size_t capacity;
+        /* Open-addressing hash over (type, name) -> parallel-array index+1
+         * (0 = empty), so semantic_host_index_find_decl_by_name is O(1) rather
+         * than a linear scan. Host-decl lookup is called per type reference
+         * (once per let, per parameter, per annotation...), so the scan made
+         * whole-program semantic analysis O(references x host_decls) -- the
+         * super-linear blowup that stalled large self-host inputs. Rebuilt by
+         * semantic_build_host_decl_index; hash_capacity 0 means "not built,
+         * fall back to the linear scan". */
+        size_t *hash;
+        size_t hash_capacity;
     } host_decl_index;
 
     size_t type_resolution_metadata_hits;

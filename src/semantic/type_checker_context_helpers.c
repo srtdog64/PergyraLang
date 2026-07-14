@@ -227,6 +227,7 @@ semantic_context_destroy(SemanticContext *ctx)
     free(ctx->host_decl_index.decls);
     free(ctx->host_decl_index.names);
     free(ctx->host_decl_index.types);
+    free(ctx->host_decl_index.hash);
     semantic_parallel_capture_facts_clear(
         ctx->parallel_capture_boundaries,
         ctx->parallel_capture_boundary_count);
