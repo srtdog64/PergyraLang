@@ -136,3 +136,51 @@ DoS 모델. Slot/authority만으론 부족."
 등록하고 closure 중*이다. 위험한 건 약점의 존재가 아니라 약점을 *모르는* 것 —
 우리는 안다. 다만 등록 ≠ 닫힘이고, 마케팅을 그 숫자(83%, budget/DoS 0%)보다
 앞세우는 순간 이 리뷰가 치명타가 된다. **그래서 닫기 전엔 vision 라벨만.**
+
+---
+
+## 부록: 2차 외부 리뷰 (2026-07-13) — 카운트-기반, 질이 다름
+
+두 번째 외부 리뷰가 10항목으로 왔다(메모리/버퍼/재귀/임포트/C백엔드/에러처리/
+테스트/중복/보안/성능). 1차(위)와 **질이 다르다**: 1차는 개념적 반박이라
+R6 같은 새 축을 열었고, 2차는 **카운트를 성질의 대리물로 쓴** 오류 클래스가
+과반이다. 코드 대조 판정:
+
+**사실 오류 (코드로 반증)**:
+- "assert 0개" → 53곳(대부분 `_Static_assert`/테스트). 게다가 우리 불변식은
+  assert가 아니라 **릴리즈에서 사는 validator 패스**(hir/dir/rir/mir/air, 무조건
+  실행)로 구현 — assert는 NDEBUG에서 증발하므로 우리 쪽이 더 강한 규율.
+- "통합 테스트 없음" → `test-all` 14게이트 + backend_compare **909 케이스**
+  (C·LLVM 각 컴파일→실행→byte 비교). whole-compiler 테스트의 정의 그 자체.
+- "extern이 임의 C 주입" → 거짓. [parser_decl.c:664] extern 블록은 `func`
+  선언만 받고 타 토큰은 하드 에러. Rust `extern "C"` 동형 FFI 시그니처.
+- "unsafe 검증 미비" → 거짓. `EFFECT_UNSAFE` effect 축 1급 — interproc 전파 +
+  parallel 내 거절 + `forbids unsafe` zone 내 거절.
+- "토큰당 malloc이라 성능 바닥" → 측정 반증. lex=파이프라인 0.2%(docs/183 §1.3).
+- 분모 오류: "2,986 파일"은 .pgy/.md 포함 전체. 실 C/H = 1,726 파일 352k LOC.
+
+**설계를 결함으로 오독**: dual backend 중복=의도된 세금(parity 게이트가 회수,
+docs/119) / 파일 과분할=C namespace 부재, self-host 해결 결정 / "C컴파일러 없으면
+불능"=거짓(LLVM 백엔드가 gcc 없이 네이티브) / 순환임포트 fail-closed=결함 아닌
+교리(단, parse=first-error vs semantic=다중누적 비대칭은 LSP UX 잔가지).
+
+**진짜 유효 신호 3건 — 전부 이 세션에서 닫음**:
+1. **메모리 안전성이 Unknown이었다** (측정 없음). → **WO-SEC-2**: ASan+UBSan
+   게이트 신설(`make test-asan`, 커밋 b7bab578). **첫 실행이 실버그 3건 적발** —
+   배열 리터럴 서브트리 누수(ast_destroy 케이스 누락), Type 전량 미해제(LSP
+   무한증가), RIR scratch scope + namespace origin_path 누수. 등록부 도입이
+   낳은 싱글턴 UAF까지 게이트가 잡음(게이트를 먼저 지은 값). 이제 42소스
+   clean + 배터리 UAF/UB 0. R3("메모리 안전 언어 아님")에 **숫자로** 답: 정적
+   보증은 여전히 fail-closed지만, 컴파일러 자신의 메모리 위생은 이제 측정됨.
+2. **임시파일 PID-예측 심링크 레이스** → **WO-SEC-1**(커밋 2a84bd0f): 공유
+   tmp의 예측가능 이름 제거, mkdir 0700 원자 생성 안에 기록. fopen("w")가
+   심링크를 따라감을 실증하고 RED로 목격.
+3. **진단 무음 잘림** (§1.1 위반) → **WO-DIAG-1**(커밋 17d3b1d8): parser/import
+   heap-exact 전환 + LLVM/intent/reason은 잘림 선언. (LLVM 힙 전환 잔여는
+   error-state 불변식 위반 때문에 WO-SEC-2 이후로 미뤘고, 이제 ASAN이 backstop.)
+
+**메타 교훈**: 카운트(malloc 수·파일 수·assert 수·NULL 체크 수)는 성질의 대리물이
+아니다 — 600 LOC 사건(behavior-not-size)의 일반화. 그러나 **"카운트는 증거가
+아니다" ≠ "메모리 안전성이 확인됐다"**: 카운트 논증은 죽어도 *실제로 누수가
+있는가*는 살아 있었고, 그 답을 WO-SEC-2가 냈다(있었다 — 3건, 이제 닫힘). 다음
+grep-깊이 리뷰는 이 부록에서 튕긴다.
