@@ -15,6 +15,11 @@ pgy_selfhost_verify_driver_rung2_option_struct_value() {
         echo "[self-host-parity:driver-rung2] $backend Option<struct> call spine coverage drifted" >&2
         exit 1
     fi
+    grep -Fq '"expr0":"None","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"None"' \
+        "$self_mir_json" || {
+        echo "[self-host-parity:driver-rung2] $backend Option<struct> None assignment graph was lost" >&2
+        exit 1
+    }
     for carried_value in \
         '"expr0":"Some(Pair { left: base, right: (base + 1) })","expr0_graph"' \
         '"expr0":"Some(Pair { left: 1, right: 2 })","expr0_graph"' \
@@ -67,4 +72,17 @@ pgy_selfhost_verify_driver_rung2_option_struct_value() {
         echo "[self-host-parity:driver-rung2] native oracle accepted Option<struct> field type mismatch" >&2
         exit 1
     fi
+}
+
+pgy_selfhost_verify_driver_rung2_option_struct_emitted_c() {
+    local backend="$1"
+    local base="$2"
+    local emitted_c="$3"
+
+    [[ "$base" == "option_struct_value_flow" ]] || return 0
+
+    grep -Fq 'pgy_option_none_Pair()' "$emitted_c" || {
+        echo "[self-host-parity:driver-rung2] $backend Option<struct> None was not emitted from the MIR graph" >&2
+        exit 1
+    }
 }

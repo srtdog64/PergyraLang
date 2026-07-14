@@ -207,6 +207,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         fi
         tr -d '\r' <"$self_actual.raw" >"$self_actual"
         rm -f "$self_actual.raw"
+        pgy_selfhost_verify_driver_rung2_option_struct_emitted_c \
+            "$backend" "$base" "$self_actual"
         if grep -Fq '"expr0_graph":{' "$self_mir_json"; then
             missing_graph="$BUILD_DIR/${base}_${backend}.missing-graph.mir.json"
             sed 's/"expr0_graph"/"expr0_graph_removed"/g' \

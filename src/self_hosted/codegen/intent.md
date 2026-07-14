@@ -230,7 +230,11 @@ by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 initialization, assignment, and value return consume expected-type semantic
 graph facts. `emission/option_value_emit_owner.pgy` consumes the shared semantic
 call spine and expected-type ABI row for `Option<struct>` constructors and
-payloads in the `Some` lane. The semantic struct view first joins nominal field rows and rejects
+payloads in the `Some` lane. Contextual `None` initialization, reassignment,
+and return consume that same expected-type row; C and LLVM native consumers
+must obtain the type from MIR local facts, and the parity owner requires the
+typed struct-option `None` constructor in emitted C. The semantic struct view
+first joins nominal field rows and rejects
 unknown, duplicate, missing, or type-incompatible fields. The accepted subset is:
 
 - one or more `func` declarations with exactly one `Main`;

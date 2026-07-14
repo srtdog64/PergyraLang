@@ -572,8 +572,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 return;
             }
             {
-                LLVMValueRef assigned = llvm_emit_assignment_parts(inst->expr0,
-                    inst->expr0, inst->expr1, ctx);
+                LLVMValueRef assigned = llvm_emit_mir_assignment_parts(
+                    routine, inst, inst->expr0, inst->expr0,
+                    inst->expr1, ctx);
                 if (assigned == NULL) {
                     if (!ctx->has_error) {
                         llvm_set_mir_topology_invalid(ctx,

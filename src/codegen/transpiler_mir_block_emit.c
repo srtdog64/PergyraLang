@@ -354,7 +354,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 break;
             }
             if (!transpiler_emit_mir_assignment_expr_stmt(
-                    buf, block, inst, ctx, ssa_map_out,
+                    buf, mir_routine, block, inst, ctx, ssa_map_out,
                     reason, reason_cap)) {
                 ok = false;
                 break;

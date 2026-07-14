@@ -1242,6 +1242,7 @@ main() {
         "tests/cases/backend_compare/option_pair_combine"
         "tests/cases/backend_compare/option_returned_from_match"
         "tests/cases/backend_compare/option_returning_none_in_branch"
+        "tests/cases/backend_compare/option_struct_none_context"
         "tests/cases/backend_compare/option_validate_then_use"
         "tests/cases/backend_compare/option_var_then_match"
         "tests/cases/backend_compare/option_with_default_arg"

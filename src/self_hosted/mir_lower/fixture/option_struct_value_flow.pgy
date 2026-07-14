@@ -9,6 +9,7 @@ func BuildPair(base: Int) -> Option<Pair> {
 
 func Main() -> Void {
     let mut picked: Option<Pair> = Some(Pair { left: 1, right: 2 });
+    picked = None;
     picked = Some(Pair { left: 3, right: 4 });
     let pair: Pair = UnwrapOption(picked);
     Log(ToString(pair.left + pair.right));

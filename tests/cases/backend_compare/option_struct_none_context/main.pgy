@@ -1,0 +1,18 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func MissingPair() -> Option<Pair> {
+    return None;
+}
+
+func Main() -> Void {
+    let mut picked: Option<Pair> = None;
+    Log(ToString(IsNone(picked)));
+    picked = Some(Pair { left: 1, right: 2 });
+    picked = None;
+    Log(ToString(IsNone(picked)));
+    let returned: Option<Pair> = MissingPair();
+    Log(ToString(IsNone(returned)));
+}

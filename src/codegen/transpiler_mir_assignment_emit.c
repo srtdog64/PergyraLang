@@ -10,6 +10,7 @@
 #include "transpiler_format.h"
 #include <string.h>
 
+#include "../compiler/mir_source_local_expr_types.h"
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -38,19 +39,42 @@ static char *
 transpiler_mir_emit_assignment_parts_with_ssa_map(
     ASTNode *target,
     ASTNode *value,
+    const char *expected_type,
     TranspilerCtx *ctx,
     const TranspilerSSANameMap *ssa_map)
 {
     const void *saved_active_ssa_map;
+    const char *saved_expected_type;
     char *result;
 
     if (ctx == NULL)
         return NULL;
     saved_active_ssa_map = ctx->active_ssa_map;
+    saved_expected_type = ctx->expected_type;
     ctx->active_ssa_map = ssa_map;
+    if (expected_type != NULL && expected_type[0] != '\0'
+        && strcmp(expected_type, "Unknown") != 0) {
+        ctx->expected_type = expected_type;
+    }
     result = transpiler_emit_assignment_expression_parts(ctx, target, value);
+    ctx->expected_type = saved_expected_type;
     ctx->active_ssa_map = saved_active_ssa_map;
     return result;
+}
+
+static const char *
+transpiler_mir_assignment_expected_type_name(
+    TranspilerCtx *ctx,
+    const MIRRoutine *routine,
+    ASTNode *target,
+    MIRSourceLocalTypeScratch *scratch)
+{
+    if (ctx == NULL || ctx->mir == NULL || routine == NULL
+        || target == NULL || scratch == NULL) {
+        return NULL;
+    }
+    return mir_source_local_expr_type_name(
+        ctx->mir, routine, scratch, target);
 }
 
 static bool
@@ -110,6 +134,7 @@ transpiler_mir_assignment_target_is_local(const ASTNode *func_decl,
 
 bool
 transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
+                                         const MIRRoutine *mir_routine,
                                          const MIRBasicBlock *block,
                                          const MIRInstruction *inst,
                                          TranspilerCtx *ctx,
@@ -117,6 +142,8 @@ transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
                                          char *reason,
                                          size_t reason_cap)
 {
+    MIRSourceLocalTypeScratch type_scratch = {0};
+    const char *expected_type = NULL;
     char *expr = NULL;
 
     if (buf == NULL || block == NULL || inst == NULL
@@ -132,8 +159,10 @@ transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
         return false;
     }
 
+    expected_type = transpiler_mir_assignment_expected_type_name(
+        ctx, mir_routine, inst->expr0, &type_scratch);
     expr = transpiler_mir_emit_assignment_parts_with_ssa_map(
-        inst->expr0, inst->expr1, ctx, ssa_map_out);
+        inst->expr0, inst->expr1, expected_type, ctx, ssa_map_out);
     if (expr == NULL) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
@@ -221,6 +250,10 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     }
 
     if (target_is_field) {
+        MIRSourceLocalTypeScratch type_scratch = {0};
+        const char *expected_type =
+            transpiler_mir_assignment_expected_type_name(
+                ctx, mir_routine, target, &type_scratch);
         char *field_lhs = NULL;
         char *field_rhs = NULL;
 
@@ -270,8 +303,16 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                     target, ctx, ssa_map_out);
             }
         }
-        field_rhs = emit_expression_with_ssa_map(
-            value, ctx, ssa_map_out);
+        {
+            const char *saved_expected_type = ctx->expected_type;
+            if (expected_type != NULL && expected_type[0] != '\0'
+                && strcmp(expected_type, "Unknown") != 0) {
+                ctx->expected_type = expected_type;
+            }
+            field_rhs = emit_expression_with_ssa_map(
+                value, ctx, ssa_map_out);
+            ctx->expected_type = saved_expected_type;
+        }
         if (field_lhs == NULL || field_rhs == NULL) {
             free(field_lhs);
             free(field_rhs);
@@ -316,7 +357,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         assign_inst.expr0 = target;
         assign_inst.expr1 = value;
         if (!transpiler_emit_mir_assignment_expr_stmt(
-                buf, block, &assign_inst, ctx, ssa_map_out,
+                buf, mir_routine, block, &assign_inst, ctx, ssa_map_out,
                 reason, reason_cap)) {
             return TRANSPILE_MIR_ASSIGNMENT_FAILED;
         }
@@ -328,7 +369,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         assign_inst.expr0 = target;
         assign_inst.expr1 = value;
         if (!transpiler_emit_mir_assignment_expr_stmt(
-                buf, block, &assign_inst, ctx, ssa_map_out,
+                buf, mir_routine, block, &assign_inst, ctx, ssa_map_out,
                 reason, reason_cap)) {
             return TRANSPILE_MIR_ASSIGNMENT_FAILED;
         }
@@ -336,7 +377,19 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     }
 
     lhs = transpiler_render_ssa_name(ctx, inst->result_name);
-    rhs = emit_expression_with_ssa_map(value, ctx, ssa_map_out);
+    {
+        MIRSourceLocalTypeScratch type_scratch = {0};
+        const char *expected_type =
+            transpiler_mir_assignment_expected_type_name(
+                ctx, mir_routine, target, &type_scratch);
+        const char *saved_expected_type = ctx->expected_type;
+        if (expected_type != NULL && expected_type[0] != '\0'
+            && strcmp(expected_type, "Unknown") != 0) {
+            ctx->expected_type = expected_type;
+        }
+        rhs = emit_expression_with_ssa_map(value, ctx, ssa_map_out);
+        ctx->expected_type = saved_expected_type;
+    }
     if (rhs == NULL) {
         free(lhs);
         if (reason != NULL && reason_cap > 0) {

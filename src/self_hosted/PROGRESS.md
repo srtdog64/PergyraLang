@@ -144,8 +144,7 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, `Option<struct>` `None` native-oracle contextual emission,
-`CodegenAstTextNode` collection-value bridges,
+internals, `CodegenAstTextNode` collection-value bridges,
 borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
 
@@ -367,7 +366,12 @@ compact graph construction and non-struct result-type classification also
 remain open. Released/default replacement remains 0%.
 
 The twenty-fourth DRV-2 MIR fixture closes `Option<struct>` `Some` constructor and
-payload reparsing for local initialization, assignment, and value return. A
+payload reparsing for local initialization, assignment, and value return. It
+also carries contextual `None` through local initialization, reassignment, and
+value return: the native C assignment consumer obtains the expected option type
+from the MIR source-local expression-type fact, the LLVM consumer obtains it
+from the MIR local expected-type fact, and both fail closed instead of selecting
+an `Option<Int>` fallback. A
 shared semantic call-spine view owns the ordered `Some` argument handle, while
 the expected `Option<T>` type selects the MIR-owned scalar or struct runtime ABI
 row. Codegen emits the payload through the expected-type semantic graph
@@ -377,9 +381,11 @@ source and 24 MIR fixtures; the fixture prints `7` and `11`, and reclassifying
 its `Some(Pair { ... })` call-argument spine as a leaf is rejected as invalid
 MIR. The same graph view joins nominal constructor field rows before type
 inference: assigning `String` to `Pair.left: Int` is rejected by both the
-self-host driver and native oracle. `CodegenAstTextNode` collection elements, initial compact graph
-construction, non-struct result-type classification, and native-oracle
-contextual emission for `Option<struct>` `None` remain open.
+self-host driver and native oracle. The emitted-C ratchet requires the
+`pgy_option_none_Pair()` ABI constructor, and C-built and LLVM-built DRV-2
+drivers remain green across 20 source and 24 MIR fixtures.
+`CodegenAstTextNode` collection elements, initial compact graph construction,
+and non-struct result-type classification remain open.
 Released/default replacement remains 0%.
 
 The third executable delta deleted

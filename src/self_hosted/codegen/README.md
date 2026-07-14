@@ -241,8 +241,11 @@ semantic graph facts. `emission/option_value_emit_owner.pgy` consumes the same
 graph boundary for `Option<struct>` `Some` constructors and payloads, selecting
 constructor spellings only from the expected-type runtime ABI row. The shared
 semantic struct view validates field names, cardinality, and field value types
-against nominal constructor rows before emission. Native-oracle contextual
-emission for `Option<struct>` `None` remains outside this hard parity rung.
+against nominal constructor rows before emission. Contextual `None` local
+initialization, reassignment, and return use the same expected-type ABI row;
+the native C and LLVM assignment consumers obtain that expected type from MIR
+local facts, and the emitted-C parity ratchet requires
+`pgy_option_none_Pair()` rather than an `Option<Int>` fallback.
 `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
 payload-free enum variants, struct fields, source-to-C binding names, `inout`

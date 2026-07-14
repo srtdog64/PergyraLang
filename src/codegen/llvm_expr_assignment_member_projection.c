@@ -9,6 +9,7 @@
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_local_expected_type.h"
 #include "../compiler/mir_abi_layout.h"
 
 static LLVMValueRef
@@ -315,7 +316,11 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
     }
 
     {
-        LLVMValueRef val = llvm_emit_expression(value, ctx);
+        LLVMTypeRef saved_current_ret_type = ctx->current_ret_type;
+        LLVMValueRef val;
+        ctx->current_ret_type = var.type;
+        val = llvm_emit_expression(value, ctx);
+        ctx->current_ret_type = saved_current_ret_type;
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM assignment could not lower value expression");
@@ -323,6 +328,36 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         LLVMBuildStore(ctx->builder, val, var.alloca);
         return val;
     }
+}
+
+LLVMValueRef
+llvm_emit_mir_assignment_parts(const MIRRoutine *routine,
+                               const MIRInstruction *inst,
+                               ASTNode *diagnostic_anchor,
+                               ASTNode *target,
+                               ASTNode *value,
+                               LLVMGenCtx *ctx)
+{
+    const char *saved_expected_type_name;
+    LLVMTypeRef saved_current_ret_type;
+    const char *expected_type_name;
+    LLVMValueRef assigned;
+
+    if (ctx == NULL)
+        return NULL;
+    saved_expected_type_name = ctx->expected_type_name;
+    saved_current_ret_type = ctx->current_ret_type;
+    expected_type_name = llvm_mir_local_expected_type_name(
+        routine, inst, inst != NULL ? inst->arg0 : NULL);
+    if (expected_type_name != NULL && expected_type_name[0] != '\0') {
+        ctx->expected_type_name = expected_type_name;
+        ctx->current_ret_type = pergyra_type_to_llvm(ctx, expected_type_name);
+    }
+    assigned = llvm_emit_assignment_parts(
+        diagnostic_anchor, target, value, ctx);
+    ctx->current_ret_type = saved_current_ret_type;
+    ctx->expected_type_name = saved_expected_type_name;
+    return assigned;
 }
 
 LLVMValueRef

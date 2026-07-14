@@ -22,6 +22,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         size_t reason_cap);
 
 bool transpiler_emit_mir_assignment_expr_stmt(CodeBuf *buf,
+                                             const MIRRoutine *mir_routine,
                                              const MIRBasicBlock *block,
                                              const MIRInstruction *inst,
                                              TranspilerCtx *ctx,

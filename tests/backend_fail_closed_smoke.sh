@@ -78,6 +78,16 @@ grep -Fq "C backend slot registry exceeded MAX_SLOT_VARS" \
     "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 grep -Fq "C backend typed registry exceeded MAX_SLOT_VARS" \
     "$ROOT_DIR/src/codegen/transpiler_symbols.c"
+grep -Fq "mir_source_local_expr_type_name(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
+grep -Fq "llvm_mir_local_expected_type_name(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+if grep -F "Option<Int>" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c" >/dev/null; then
+    echo "[backend-fail-closed] assignment expected type must not default to Option<Int>" >&2
+    exit 1
+fi
 grep -Fq "C backend alias registry exceeded MAX_ALIAS_VARS" \
     "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 grep -Fq "C backend collection specialization registry exceeded MAX_COLLECTION_SPECIALIZATIONS" \
@@ -326,7 +336,7 @@ grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
     "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
 grep -Fq "mir_abi_resource_runtime_fn_by_kind(" \
-    "$ROOT_DIR/src/codegen/llvm_stmt.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_block.c"
 if grep -F 'is_secure ? "pgy_secure_read_%s" : "pgy_read_%s"' \
     "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c" >/dev/null; then
     echo "[backend-fail-closed] LLVM slot identifier auto-read must consume MIR ABI runtime rows" >&2
