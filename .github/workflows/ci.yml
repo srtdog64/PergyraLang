@@ -74,6 +74,15 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    # ci-windows runs the SoT-authority adequacy gate, which machine-checks
+    # SoTAuthority.v -- but this runner ships no Coq/Rocq. Those Coq checks are
+    # fail-closed on a missing prover (they used to skip quietly and still
+    # report green, so a green gate did not mean the model had been checked).
+    # The proofs are platform-independent and build-linux plus formal-proofs-
+    # rocq9 already machine-check them, so the skip is *declared* here rather
+    # than silent: the gate prints that the model went unchecked on this runner.
+    env:
+      PGY_ALLOW_MISSING_COQ: 1
     steps:
       - uses: actions/checkout@v6
 

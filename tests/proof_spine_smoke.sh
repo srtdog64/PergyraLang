@@ -97,7 +97,7 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fa
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem every_spine_fact_has_declared_authority"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_authority_unique"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=14 BRIDGE=7 ACTIVE=15"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=15 BRIDGE=7 ACTIVE=14"
 
 for term in \
     "Inductive ProofNode" \
@@ -153,16 +153,33 @@ require_text "docs/semantics/README.md" "proofs/ProofSpine.v"
 require_text "docs/semantics/16_language_contract_golden_spine.md" "Proof spine"
 require_text "tests/formal_semantics_smoke.sh" "docs/semantics/proofs/ProofSpine.v"
 
-if command -v coqc >/dev/null 2>&1; then
+# Rocq 9 renamed the CLI (`rocq compile` replaces coqc) and its official image
+# ships only the new name, while apt coq ships only the legacy one -- detect
+# rather than assume. And a runner with no prover used to skip this check while
+# the gate still reported green; that absence is now fatal unless declared.
+coq_compile=""
+if command -v rocq >/dev/null 2>&1; then
+    coq_compile="rocq compile"
+elif command -v coqc >/dev/null 2>&1; then
+    coq_compile="coqc"
+fi
+
+if [ -n "$coq_compile" ]; then
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
     if command -v timeout >/dev/null 2>&1; then
-        (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc docs/semantics/proofs/ProofSpine.v)
+        (cd "$ROOT_DIR" && timeout "$coq_timeout" $coq_compile docs/semantics/proofs/ProofSpine.v)
     else
-        (cd "$ROOT_DIR" && coqc docs/semantics/proofs/ProofSpine.v)
+        (cd "$ROOT_DIR" && $coq_compile docs/semantics/proofs/ProofSpine.v)
     fi
-    echo "[proof-spine] Coq spine ok"
+    echo "[proof-spine] Coq spine ok (checked with '$coq_compile')"
+elif [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
+    echo "[proof-spine] Coq spine DECLARED SKIP -- no prover (looked for rocq," \
+         "coqc), PGY_ALLOW_MISSING_COQ=1; the spine was NOT checked on this runner."
 else
-    echo "[proof-spine] Coq spine skipped (coqc not found)"
+    echo "[proof-spine] FAIL -- no prover found (looked for rocq, coqc); the Coq" \
+         "spine would go unchecked. Install Coq/Rocq, or set" \
+         "PGY_ALLOW_MISSING_COQ=1 to declare the skip." >&2
+    exit 1
 fi
 
 echo "[proof-spine] proof pack spine ok"
