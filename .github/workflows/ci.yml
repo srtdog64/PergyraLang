@@ -66,6 +66,15 @@ jobs:
 
   build-macos-c-only:
     runs-on: macos-latest
+    # ci-macos runs the formal-semantics gate, but the macOS runner ships no
+    # Coq/Rocq. That gate is fail-closed on a missing prover (it used to skip
+    # quietly and still report green, so a green gate did not mean the proofs
+    # had been checked). Installing a prover here would only re-check
+    # platform-independent proofs that build-linux already machine-checks, so
+    # the skip is *declared* rather than silent: the gate prints how many
+    # proofs went unchecked on this runner.
+    env:
+      PGY_ALLOW_MISSING_COQ: 1
     steps:
       - uses: actions/checkout@v4
 

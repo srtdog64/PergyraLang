@@ -824,47 +824,97 @@ TERMS
 
 echo "formal semantics smoke: ok"
 
-if command -v coqc >/dev/null 2>&1; then
+# Coq/Rocq machine-check.
+#
+# The proof list stays explicit rather than becoming a glob: several adequacy
+# smokes (proof-carrying, slot-calculus, ir-minimality, ...) pin specific proofs
+# into this file by literal text, so the registration is itself a checked
+# contract. The inventory check below closes the other half of that contract --
+# a .v on disk that nobody registered here would never be machine-checked while
+# this gate reported green.
+#
+# Keep the proof inventory compatible with the macOS system Bash 3.2.
+coq_proofs="\
+docs/semantics/proofs/SlotCalculus.v \
+docs/semantics/proofs/AxisOwnership.v \
+docs/semantics/proofs/IntentStepSoundness.v \
+docs/semantics/proofs/IRMinimality.v \
+docs/semantics/proofs/WitnessDataRace.v \
+docs/semantics/proofs/CheckedArith.v \
+docs/semantics/proofs/ProofCarryingIR.v \
+docs/semantics/proofs/ZoneCrossingCore.v \
+docs/semantics/proofs/EffectAuthorityCore.v \
+docs/semantics/proofs/SlotLifecycleCore.v \
+docs/semantics/proofs/AuthorityDelegationCore.v \
+docs/semantics/proofs/UnifiedCore.v \
+docs/semantics/proofs/CompensationCore.v \
+docs/semantics/proofs/CoordinationCore.v \
+docs/semantics/proofs/VerificationMethodology.v \
+docs/semantics/proofs/SoTAuthority.v \
+docs/semantics/proofs/ProofSpine.v \
+docs/semantics/proofs/GuardCalculus.v \
+docs/semantics/proofs/WholeProgramCore.v \
+docs/semantics/proofs/AIRBinding.v \
+docs/semantics/proofs/FormalKernel.v \
+docs/semantics/proofs/BasisCompleteness.v \
+docs/semantics/proofs/IntentObligations.v \
+docs/semantics/proofs/IntentSpine.v \
+docs/semantics/proofs/IntentConflict.v \
+docs/semantics/proofs/AuthorityIrreducibility.v \
+docs/semantics/proofs/OptionTry.v \
+docs/semantics/proofs/GenericAxisCarriage.v \
+docs/semantics/proofs/ReadingConfluence.v \
+docs/semantics/proofs/BinaryAdequacy.v \
+docs/semantics/proofs/GuardWitnessBinding.v"
+
+# Inventory: every proof on disk must be registered above, or it silently never
+# gets machine-checked.
+for coq_proof_abs in "$ROOT_DIR"/docs/semantics/proofs/*.v; do
+    coq_proof_rel="docs/semantics/proofs/$(basename "$coq_proof_abs")"
+    case " $coq_proofs " in
+        *" $coq_proof_rel "*) ;;
+        *)
+            echo "formal semantics Coq smoke: FAIL -- $coq_proof_rel exists but is" \
+                 "not registered in this script's proof list; it would never be" \
+                 "machine-checked." >&2
+            exit 1
+            ;;
+    esac
+done
+
+coq_proof_count=$(find "$ROOT_DIR/docs/semantics/proofs" -maxdepth 1 -name '*.v' \
+    | wc -l | tr -d '[:space:]')
+if [ "$coq_proof_count" -eq 0 ]; then
+    echo "formal semantics Coq smoke: FAIL -- no .v proofs found under" \
+         "docs/semantics/proofs (an empty corpus must not pass silently)" >&2
+    exit 1
+fi
+
+# A runner without coqc used to take a quiet skip branch and the gate still
+# reported green -- macOS CI ships no Coq, so it has been skipping the whole
+# corpus while passing. A missing prover is now fatal; a runner that genuinely
+# has none must declare it with PGY_ALLOW_MISSING_COQ=1, and that skip is
+# announced with the count of proofs left unchecked.
+if ! command -v coqc >/dev/null 2>&1; then
+    if [ "${PGY_ALLOW_MISSING_COQ:-0}" = "1" ]; then
+        echo "formal semantics Coq smoke: DECLARED SKIP -- coqc absent," \
+             "PGY_ALLOW_MISSING_COQ=1"
+        echo "  ${coq_proof_count} proofs were NOT machine-checked on this runner."
+    else
+        echo "formal semantics Coq smoke: FAIL -- coqc not found;" \
+             "${coq_proof_count} proofs would go unchecked." >&2
+        echo "  Install Coq/Rocq, or set PGY_ALLOW_MISSING_COQ=1 to declare" \
+             "the skip explicitly." >&2
+        exit 1
+    fi
+else
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    for coq_proof in \
-        docs/semantics/proofs/SlotCalculus.v \
-        docs/semantics/proofs/AxisOwnership.v \
-        docs/semantics/proofs/IntentStepSoundness.v \
-        docs/semantics/proofs/IRMinimality.v \
-        docs/semantics/proofs/WitnessDataRace.v \
-        docs/semantics/proofs/CheckedArith.v \
-        docs/semantics/proofs/ProofCarryingIR.v \
-        docs/semantics/proofs/ZoneCrossingCore.v \
-        docs/semantics/proofs/EffectAuthorityCore.v \
-        docs/semantics/proofs/SlotLifecycleCore.v \
-        docs/semantics/proofs/AuthorityDelegationCore.v \
-        docs/semantics/proofs/UnifiedCore.v \
-        docs/semantics/proofs/CompensationCore.v \
-        docs/semantics/proofs/CoordinationCore.v \
-        docs/semantics/proofs/VerificationMethodology.v \
-        docs/semantics/proofs/SoTAuthority.v \
-        docs/semantics/proofs/ProofSpine.v \
-        docs/semantics/proofs/GuardCalculus.v \
-        docs/semantics/proofs/WholeProgramCore.v \
-        docs/semantics/proofs/AIRBinding.v \
-        docs/semantics/proofs/FormalKernel.v \
-        docs/semantics/proofs/BasisCompleteness.v \
-        docs/semantics/proofs/IntentObligations.v \
-        docs/semantics/proofs/IntentSpine.v \
-        docs/semantics/proofs/IntentConflict.v \
-        docs/semantics/proofs/AuthorityIrreducibility.v \
-        docs/semantics/proofs/OptionTry.v \
-        docs/semantics/proofs/GenericAxisCarriage.v \
-        docs/semantics/proofs/ReadingConfluence.v \
-        docs/semantics/proofs/BinaryAdequacy.v \
-        docs/semantics/proofs/GuardWitnessBinding.v; do
+    for coq_proof in $coq_proofs; do
         if command -v timeout >/dev/null 2>&1; then
             (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
         else
             (cd "$ROOT_DIR" && coqc "$coq_proof")
         fi
     done
-    echo "formal semantics Coq smoke: ok"
-else
-    echo "formal semantics Coq smoke: skipped (coqc not found)"
+    echo "formal semantics Coq smoke: ok (${coq_proof_count} proofs machine-checked)"
 fi
