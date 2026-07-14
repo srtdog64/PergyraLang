@@ -18807,6 +18807,18 @@ non-profiler 경로), (c) type_resolution 카운터. **fix=안전필수 flow 수
 전체 진단 = [[project_semantic_termination_gap]] 4라운드. 임시 프로브 2파일 클린 리버트,
 semantic 2794/0.
 
+**WO-SEMPERF-3 5라운드 — 입력 이분으로 근본원인 확정 (2026-07-15, "계속 작업해";
+Vanguard가 gcc 차단 → 빌드 불필요한 pgy-only 이분이 적격)**: 클린 워크트리에서
+`EmitStmtList` 본문을 기계적으로 잘라가며(리빌드 0, 컷당 pgy `--hir` 25s 타임박스) 이분.
+결과: 최소 body=4s 종료 → hang은 분기 내용. 분기 1-13(For 포함)=7s, 1-14(+While)=hang.
+격리로 **loop 구문 개수**가 driver 확정 — **1 loop=3~4s / 2 loops=5~7s / 3 loops=22s /
+4 loops=hang**(명백한 ≈제곱급 super-linear). `EmitStmtList`=4 loops(바깥 while + For +
+While + Match 내부 while). **최종: O(n²)는 함수 body 내 loop 구문 개수에 대한 loop-flow
+분석의 super-linear 상호작용**(loops는 형제/비중첩인데도 개수 제곱급 → per-loop
+enclosing-state 처리가 다른 loops에 비례). 2R "cap=1도 hang"과 정합(fixpoint 횟수 아닌
+loop setup). fix 타깃 = `type_checker_flow_loops.c`/`type_checker_flow_branch.c`의 per-loop
+enclosing-state, **안전필수라 미착수**(정밀 타깃만 확보). 이분은 커밋 0(내 트리 무변경).
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
