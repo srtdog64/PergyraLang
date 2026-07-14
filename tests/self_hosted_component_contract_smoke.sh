@@ -897,7 +897,6 @@ require_file "src/self_hosted/hir/ast_text_arena_projection_owner.pgy"
 require_owner_surface codegen \
     "input/ast_input_owner.pgy" \
     "input/ast_arena_codegen_view_owner.pgy" \
-    "input/semantic_array_literal_codegen_view_owner.pgy" \
     "input/semantic_enum_codegen_view_owner.pgy" \
     "input/semantic_signature_codegen_view_owner.pgy" \
     "input/semantic_role_codegen_view_owner.pgy" \
@@ -3744,20 +3743,17 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLet
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaLetInitializerOrDie"
 require_text "src/self_hosted/hir/ast_text_row_fact_owner.pgy" 'let assign_sep: Option<Int> = FindTextFrom(payload, " = ", 0);'
 reject_file "src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy"
-require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetInitializerStartsArrayLiteral"
-require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetArrayLiteralElementCount"
-require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "func CodegenSemanticLetArrayLiteralElementAt"
-require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "SemanticAstLocalBindingArrayLiteralBodyAt("
-reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "StringTrim("
-reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "CharAt("
-reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "TypedAstArenaValueText"
-reject_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" "CodegenAstArenaValueOrDie"
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_array_bodies: Array<String>;"
-require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "func SemanticAstLocalBindingArrayLiteralBodyAt("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../input/semantic_array_literal_codegen_view_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetInitializerStartsArrayLiteral("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetArrayLiteralElementCount("
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetArrayLiteralElementAt("
+reject_file "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy"
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "initializer_array_bodies"
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "has_initializer_array_bodies"
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "SemanticAstInitializerArrayBody("
+reject_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "SemanticAstLocalBindingArrayLiteralBodyAt("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "AstExpressionNodeIsArrayLiteralSpine("
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "SemanticArrayLiteralViewFromGraph(graph.graph, graph.root_id)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "RewriteSemanticExpectedValue("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticLetArrayLiteral"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "SemanticAstLocalBindingArrayLiteralBodyAt("
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "ExprSequenceItem"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "FindTopLevelComma(rem)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenCharAt(ex"
 reject_text "src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy" "func CodegenAstArenaLetInitializerHasTry"
@@ -4264,6 +4260,14 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'MIR fixture filter must select exactly one row'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     'pgy_selfhost_verify_driver_rung2_collection_mutation_graph'
+require_file "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_array_literal_graph'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_array_literal_emitted_c'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "AbiLayoutCStructTypeName(sname)"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../../compiler/symbol_table_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CompilerSymbolCFieldName(fld)"
@@ -4306,7 +4310,6 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "UnwrapOption(en
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "UnwrapOption(enum_fact_opt).c_value"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemCount"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "func ExprSequenceItemAt"
-require_text "src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../text/expr_sequence_owner.pgy";'
 require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "struct StructLiteralCallFact"

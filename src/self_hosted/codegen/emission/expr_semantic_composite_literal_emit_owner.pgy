@@ -84,9 +84,6 @@ func RewriteSemanticArrayLiteralValue(
     let kind_code: Int = CollectionRuntimeKindCode(kind);
     let element_type: String =
         CollectionRuntimeElementTypeFromKindCode(kind_code);
-    if element_type == "CodegenAstTextNode" {
-        Die("inline Array<CodegenAstTextNode> values are outside the bootstrap subset");
-    }
     let c_type: String = AbiLayoutCValueType(expected_type, env);
     let temp: String = "_pgy_array_value";
     let out: String = Concat("({ ", Concat(c_type, Concat(" ",

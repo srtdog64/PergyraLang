@@ -193,9 +193,10 @@ the final typed/tagged AST owner.
 `../semantic/ast_artifact_verdict_owner.pgy` owns executable `Main`
 cardinality. Program emission accepts that verdict as evidence and is forbidden
 from recounting the entrypoint locally.
-`input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
-shape and top-level element facts so statement emission does not split array
-initializer text locally.
+`../parser/expression_graph_owner.pgy` owns array-literal roots and ordered
+element edges. `input/semantic_expression_codegen_view_owner.pgy` carries that
+graph and statement emission consumes each element by handle and expected
+element type; no local-binding body string or dedicated array view exists.
 `input/semantic_expression_codegen_view_owner.pgy` projects normalized
 expression shape by artifact node and payload lane. The first live consumer is
 `Log`: `emission/expr_semantic_shape_emit_owner.pgy` consumes the stored
@@ -216,8 +217,8 @@ splits text; the remaining transition is parser-to-semantic graph production.
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
-sequence facts used by array literals, call arguments, and struct literal field
-lists so emission participants do not reimplement list splitting.
+sequence facts used by remaining compact call and struct literal field bridges.
+Hard array-literal emission does not consume it.
 `text/struct_literal_call_owner.pgy` owns the legacy compact-expression struct
 call envelope for explicit non-graph lanes: `Name(...)` recognition plus the
 typed type-name/inner-payload fact row. Named struct literals in migrated call

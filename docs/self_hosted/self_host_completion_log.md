@@ -7173,3 +7173,20 @@ Released/default replacement remains 0%.
 - This is focused fixture evidence, not a refreshed full matrix. Array and
   struct literal argument bridges remain open; released/default replacement
   remains 0%.
+
+### 2026-07-14 -- DRV-2 array literals consume parser expression graphs
+
+- Added `ast_node_array_literal.pgy` as the twenty-seventh bounded MIR fixture.
+  Its `Array<CodegenAstTextNode>` initializer is represented by one
+  `array_literal` root, ordered `array_element` edges, and a constructor call
+  graph for the element value.
+- Hard `Let` emission consumes the parser-owned graph and the expected element
+  type. The semantic local-binding body-string rows and dedicated array-literal
+  codegen view are deleted; sequence splitting and struct-text recovery are
+  gate-forbidden in this consumer.
+- Focused C-built and LLVM-built drivers produced byte-identical canonical MIR
+  and generated C. Both emitted the typed array runtime push and rejected a
+  missing or invalid expression graph with the same fail-closed diagnostic.
+- The complete 27-case matrix was not rerun in this focused slice. Indexed
+  assignment RHS emission remains the next collection-value `BRIDGE`, and
+  released/default replacement remains 0%.

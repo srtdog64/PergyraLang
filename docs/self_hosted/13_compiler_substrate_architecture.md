@@ -406,16 +406,17 @@ The current transitional bridge has explicit fact owners:
   then consumed from `CodegenAstTextNode` fields.
 - `input/ast_arena_codegen_view_owner.pgy` owns only codegen fail-closed and
   routing predicates over the shared arena; it may not construct the arena.
-- `semantic/ast_local_binding_fact_owner.pgy` owns array-literal recognition
-  and body rows for `Let` initializers. Codegen consumes those rows through
-  `input/semantic_array_literal_codegen_view_owner.pgy`; it may partition the
-  owner-supplied body into elements but may not rediscover bracket shape.
+- `parser/expression_graph_owner.pgy` owns array-literal roots and ordered
+  element edges. The typed artifact carries the root through the semantic
+  expression graph view, and `emission/stmt_emit.pgy` emits each element from
+  that graph. Local-binding body strings, a dedicated array-literal codegen
+  view, and sequence splitting in the hard consumer are forbidden.
 - `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
   for call arguments and match cases so emission participants consume the env
   row rather than rebuilding enum keys or emitted symbols locally.
 - `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
-  sequence facts for array literals, call arguments, and struct literal field
-  lists while expression payloads are still string-backed.
+  sequence facts only for remaining compact call and struct-literal bridges.
+  Hard array-literal emission no longer consumes this text owner.
 - `text/struct_literal_call_owner.pgy` owns struct literal call-envelope facts:
   `Name(...)` recognition plus the typed type-name/inner-payload fact row.
 - `text/struct_literal_field_owner.pgy` owns the typed struct literal

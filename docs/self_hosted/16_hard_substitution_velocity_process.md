@@ -98,13 +98,13 @@ leave `typed ? text` dual-read authority.
 The first slice must replace a live expression consumer, fail closed on a
 missing typed row, and reject reintroduction of the removed text recovery.
 
-First executable delta, 2026-07-12: array-literal bracket recognition and body
-extraction moved from codegen into `SemanticAstLocalBindingFacts`. Codegen now
-consumes `SemanticAstLocalBindingArrayLiteralBodyAt`, the old AST-text codegen
-owner is deleted, and the negative ratchet forbids text/bracket recovery in the
-new view. C-built and LLVM-built codegen tools emitted byte-identical C for the
-focused array fixture. The active rung remains open for the other expression
-shapes.
+First executable delta, 2026-07-12, retired by the 2026-07-14 cutover:
+array-literal bracket recognition and body extraction first moved from codegen
+into `SemanticAstLocalBindingFacts`. That intermediate body-string accessor is
+now deleted. The parser expression graph owns array roots and ordered element
+edges, and hard statement emission consumes only those handles. C-built and
+LLVM-built DRV-2 drivers emit byte-identical MIR and C for the focused typed
+array fixture; missing or invalid graphs fail closed.
 
 Second executable delta, 2026-07-12: canonical try-expression shape moved to a
 semantic owner, local-binding facts capture the operand, and codegen consumes

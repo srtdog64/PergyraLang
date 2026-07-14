@@ -11,7 +11,7 @@
 *)
 
 Inductive Fact : Type :=
-  | FInitializerArrayBody
+  | FInitializerExpressionGraph
   | FInitializerTryOperand
   | FCollectionMutationParts
   | FEnumDeclarationRows
@@ -42,6 +42,7 @@ Inductive Owner : Type :=
   | OSemanticKindSurfaceFacts
   | OSemanticSignatureFacts
   | OSemanticAssignmentFacts
+  | OParserExpressionGraph
   | OAstArenaProvenance
   | OCodegenTextRecovery.
 
@@ -135,7 +136,7 @@ Qed.
 
 Definition current_fact_class (f : Fact) : FactClass :=
   match f with
-  | FInitializerArrayBody => SemanticFact
+  | FInitializerExpressionGraph => SemanticFact
   | FInitializerTryOperand => SemanticFact
   | FCollectionMutationParts => SemanticFact
   | FEnumDeclarationRows => SemanticFact
@@ -154,7 +155,7 @@ Definition current_fact_class (f : Fact) : FactClass :=
 
 Definition current_authority (f : Fact) : Owner :=
   match f with
-  | FInitializerArrayBody => OSemanticLocalBindingFacts
+  | FInitializerExpressionGraph => OParserExpressionGraph
   | FInitializerTryOperand => OSemanticLocalBindingFacts
   | FCollectionMutationParts => OSemanticStatementFacts
   | FEnumDeclarationRows => OSemanticEnumFacts
@@ -172,8 +173,8 @@ Definition current_authority (f : Fact) : Owner :=
   end.
 
 Inductive current_produces : Owner -> Fact -> Prop :=
-  | CurrentArrayBodyProducer :
-      current_produces OSemanticLocalBindingFacts FInitializerArrayBody
+  | CurrentArrayGraphProducer :
+      current_produces OParserExpressionGraph FInitializerExpressionGraph
   | CurrentTryOperandProducer :
       current_produces OSemanticLocalBindingFacts FInitializerTryOperand
   | CurrentCollectionMutationProducer :
@@ -205,13 +206,13 @@ Inductive current_produces : Owner -> Fact -> Prop :=
       current_produces OAstArenaProvenance FInitializerTextProvenance.
 
 Inductive current_requires : Consumer -> Fact -> Prop :=
-  | CurrentEmitterRequiresArrayBody :
-      current_requires CArrayLiteralEmitter FInitializerArrayBody.
+  | CurrentEmitterRequiresArrayGraph :
+      current_requires CArrayLiteralEmitter FInitializerExpressionGraph.
 
 Inductive current_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
-  | CurrentEmitterReadsArrayBody :
-      current_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
-        FInitializerArrayBody OwnedRead.
+  | CurrentEmitterReadsArrayGraph :
+      current_reads CArrayLiteralEmitter OParserExpressionGraph
+        FInitializerExpressionGraph OwnedRead.
 
 Definition current_model : AuthorityModel :=
   {| fact_class := current_fact_class;
@@ -942,11 +943,11 @@ Qed.
 
 Inductive bridge_reads : Consumer -> Owner -> Fact -> ReadKind -> Prop :=
   | BridgeOwnedRead :
-      bridge_reads CArrayLiteralEmitter OSemanticLocalBindingFacts
-        FInitializerArrayBody OwnedRead
+      bridge_reads CArrayLiteralEmitter OParserExpressionGraph
+        FInitializerExpressionGraph OwnedRead
   | BridgeFallbackRead :
       bridge_reads CArrayLiteralEmitter OCodegenTextRecovery
-        FInitializerArrayBody FallbackRead.
+        FInitializerExpressionGraph FallbackRead.
 
 Definition bridge_model : AuthorityModel :=
   {| fact_class := current_fact_class;
@@ -959,15 +960,15 @@ Theorem owned_plus_fallback_bridge_is_not_closed : ~ RungClosed bridge_model.
 Proof.
   intros [_ [_ [_ Hno_fallback]]].
   specialize (Hno_fallback CArrayLiteralEmitter OCodegenTextRecovery
-    FInitializerArrayBody FallbackRead BridgeFallbackRead eq_refl).
+    FInitializerExpressionGraph FallbackRead BridgeFallbackRead eq_refl).
   destruct Hno_fallback as [Howner _]. discriminate.
 Qed.
 
 Inductive duplicate_produces : Owner -> Fact -> Prop :=
   | DuplicateSemanticProducer :
-      duplicate_produces OSemanticLocalBindingFacts FInitializerArrayBody
+      duplicate_produces OParserExpressionGraph FInitializerExpressionGraph
   | DuplicateCodegenProducer :
-      duplicate_produces OCodegenTextRecovery FInitializerArrayBody
+      duplicate_produces OCodegenTextRecovery FInitializerExpressionGraph
   | DuplicateProvenanceProducer :
       duplicate_produces OAstArenaProvenance FInitializerTextProvenance.
 
@@ -982,7 +983,7 @@ Theorem duplicate_semantic_producer_is_not_closed :
   ~ RungClosed duplicate_owner_model.
 Proof.
   intros [_ [Hunique _]].
-  specialize (Hunique OCodegenTextRecovery FInitializerArrayBody
+  specialize (Hunique OCodegenTextRecovery FInitializerExpressionGraph
     DuplicateCodegenProducer).
   discriminate.
 Qed.
@@ -999,8 +1000,8 @@ Definition missing_fact_model : AuthorityModel :=
 Theorem missing_required_fact_is_not_closed : ~ RungClosed missing_fact_model.
 Proof.
   intros [Hcomplete _].
-  specialize (Hcomplete CArrayLiteralEmitter FInitializerArrayBody
-    CurrentEmitterRequiresArrayBody).
+  specialize (Hcomplete CArrayLiteralEmitter FInitializerExpressionGraph
+    CurrentEmitterRequiresArrayGraph).
   inversion Hcomplete.
 Qed.
 
@@ -1026,7 +1027,6 @@ Inductive SpineFact : Type :=
   | SFDiagnosticCatalog
   | SFBackendArtifact
   | SFCompatibilityEvolution
-  | SFInitializerExpressionShape
   | SFExpressionGraph
   | SFCollectionMutationStatement
   | SFEnumDeclarationRows
@@ -1086,7 +1086,6 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFDiagnosticCatalog => SODiagnosticCatalog
   | SFBackendArtifact => SOArtifactZone
   | SFCompatibilityEvolution => SOCompatibilityEvolution
-  | SFInitializerExpressionShape => SOSemanticLocalBinding
   | SFExpressionGraph => SOParserExpressionGraph
   | SFCollectionMutationStatement => SOSemanticStatement
   | SFEnumDeclarationRows => SOSemanticEnum

@@ -108,15 +108,12 @@ tables. The mixed-tree blocker remains ACTIVE because initializer expression
 body/use verdicts still consume transitional HIR payloads, and
 expression facts remain compact-text backed.
 
-Typed-expression delta, 2026-07-12: semantic local-binding facts now capture
-array-literal body rows beside initializer provenance. The codegen projection
-consumes that row and no longer recognizes or strips `[` / `]` from initializer
-text; the old `ast_text_array_literal_owner.pgy` is deleted and the component
-ratchet rejects bracket/text recovery in its replacement view. A focused
-`array_index_assign` fixture produced byte-identical C from C-built and
-LLVM-built codegen tools and ran equal to the committed oracle. This closes one
-live expression consumer, not the full mixed-tree blocker; try, operator,
-member, call, and statement expression payloads remain compact-text backed.
+Typed-expression delta, 2026-07-12, retired by the 2026-07-14 cutover:
+semantic local-binding facts temporarily captured array-literal body strings.
+That accessor and its codegen projection are now deleted; the later delta below
+records the parser expression graph as the only live owner. The focused
+`array_index_assign` evidence remains historical evidence for that intermediate
+step, not authority for the current hard path.
 
 Typed-expression delta, 2026-07-13: the semantic expression-surface owner now
 stores normalized payloads and compact top-level operator rows for atom, value,
@@ -458,12 +455,13 @@ inside the named compact bridge used to canonicalize legacy/native input into
 the same graph; hard codegen cannot consume its text result. The gate rejects
 the retired accessor, dedicated try view, and codegen text recovery.
 
-TypedAst delta, superseded 2026-07-12: the intermediate
-`ast_text_array_literal_owner.pgy` codegen shape seam is deleted. Array-literal
-recognition and body extraction now belong to semantic local-binding facts;
-`semantic_array_literal_codegen_view_owner.pgy` only partitions the supplied
-body into emission items. The component contract rejects bracket/text recovery
-in that view.
+TypedAst delta, superseded again 2026-07-14: the intermediate
+`ast_text_array_literal_owner.pgy`, semantic local-binding body rows, and
+`semantic_array_literal_codegen_view_owner.pgy` are deleted. The parser owns
+the array root and ordered element edges in the expression graph. Hard
+statement emission consumes those handles with the expected element type and
+rejects missing or invalid graphs. The component contract rejects body-string,
+sequence-item, and dedicated-view recovery.
 
 TypedAst delta, superseded 2026-07-13: the intermediate
 `ast_text_enum_variant_owner.pgy` is deleted. `SemanticAstEnumFacts` now travels

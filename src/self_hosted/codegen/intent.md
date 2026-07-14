@@ -159,8 +159,9 @@ signature/header facts, and cursor expectation checks.
 construction and parent/indent/child projection into the typed `AstArena`.
 `input/ast_arena_codegen_view_owner.pgy` owns the
 `CodegenTypedAstBridgeReady` fail-closed view consumed before emission.
-`input/semantic_array_literal_codegen_view_owner.pgy` consumes semantic-owned `Let` array literal
-shape and top-level element facts while expression payloads remain string-backed.
+`../parser/expression_graph_owner.pgy` owns array-literal roots and ordered
+element edges. The semantic expression codegen view carries that graph and
+statement emission consumes each element handle fail-closed.
 `../semantic/ast_enum_fact_owner.pgy` owns enum names, ordered variants, and
 payload arity. `input/semantic_enum_codegen_view_owner.pgy` projects the
 payload-free subset fail-closed; codegen does not read or split enum aux text.

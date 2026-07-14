@@ -74,6 +74,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_option_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_collection_mutation_graph "$backend" "$base" "$self_mir_json"
+        pgy_selfhost_verify_driver_rung2_array_literal_graph "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "indexed_assignment" ]]; then
             grep -Fq '"expr1":"values[i]"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend indexed target fact was lost" >&2
@@ -209,6 +210,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         tr -d '\r' <"$self_actual.raw" >"$self_actual"
         rm -f "$self_actual.raw"
         pgy_selfhost_verify_driver_rung2_option_struct_emitted_c \
+            "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_array_literal_emitted_c \
             "$backend" "$base" "$self_actual"
         if grep -Fq '"expr0_graph":{' "$self_mir_json"; then
             missing_graph="$BUILD_DIR/${base}_${backend}.missing-graph.mir.json"

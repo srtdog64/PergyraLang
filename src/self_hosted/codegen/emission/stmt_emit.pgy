@@ -6,7 +6,6 @@ import "../text/text_owner.pgy";
 import "../text/enum_literal_owner.pgy";
 import "../text/expr_scan.pgy";
 import "../type_facts/type_env.pgy";
-import "../input/semantic_array_literal_codegen_view_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_local_binding_codegen_view_owner.pgy";
 import "../input/semantic_assignment_codegen_view_owner.pgy";
@@ -86,26 +85,38 @@ func EmitLet(
         let c_type: String = AbiLayoutCLocalType(type_name, env);
         let new_fn: String = CollectionRuntimeCNewFn(array_kind_code);
         let push_fn: String = CollectionRuntimeCPushFn(array_kind_code);
+        let element_type: String =
+            CollectionRuntimeElementTypeFromKindCode(array_kind_code);
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, array_kind, c_name
         );
+        if !graph.ok {
+            Die("array initializer expression graph is missing");
+        }
+        let graph_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph.graph, graph.root_id
+        );
+        if !IsSome(graph_kind) {
+            Die("array initializer expression graph is invalid");
+        }
         // Non-literal initializer (e.g. `Args()` or an array-returning call):
         // bind the array value directly.
-        if !CodegenSemanticLetInitializerStartsArrayLiteral(local_bindings, idx) {
+        if !AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(graph_kind)) {
             return Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
         }
+        let literal: SemanticArrayLiteralView =
+            SemanticArrayLiteralViewFromGraph(graph.graph, graph.root_id);
+        if !literal.ok {
+            Die("array initializer expression graph is invalid");
+        }
         let out: String = Concat(c_type, Concat(" ", Concat(c_name, Concat(" = ", Concat(new_fn, "();")))));
-        let element_count: Int = CodegenSemanticLetArrayLiteralElementCount(local_bindings, idx);
         let element_index: Int = 0;
-        while element_index < element_count {
-            let elem_opt: Option<String> =
-                CodegenSemanticLetArrayLiteralElementAt(
-                    local_bindings, idx, element_index
-                );
-            if IsSome(elem_opt) {
-                let ev: String = EmitCollectionElementValue(array_kind, UnwrapOption(elem_opt), env, array_kind_code);
-                out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(c_name, Concat(", ", Concat(ev, ");")))))));
-            }
+        while element_index < ArrayLength(literal.element_nodes) {
+            let ev: String = RewriteSemanticExpectedValue(
+                graph.graph, literal.element_nodes[element_index],
+                element_type, env
+            );
+            out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(c_name, Concat(", ", Concat(ev, ");")))))));
             element_index = element_index + 1;
         }
         return out;

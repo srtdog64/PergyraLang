@@ -15,7 +15,7 @@ substitution rung requires:
 The model proves the generic consequences of `RungClosed` and instantiates the
 first live bounded bindings for semantic-to-codegen facts:
 
-- fact: `FInitializerArrayBody`;
+- fact: `FInitializerExpressionGraph`;
 - fact: `FInitializerTryOperand`;
 - fact: `FCollectionMutationParts`;
 - fact: `FEnumDeclarationRows`;
@@ -27,7 +27,7 @@ first live bounded bindings for semantic-to-codegen facts:
 - fact: `FFunctionDeclarationRows`;
 - facts: `FLocalBindingStatementRouting`, `FAssignmentStatementRouting`, and
   `FStatementKindRouting`;
-- authorities: `OSemanticLocalBindingFacts`, `OSemanticStatementFacts`;
+- authorities: `OParserExpressionGraph`, `OSemanticStatementFacts`;
 - authority: `OSemanticEnumFacts`;
 - authorities: `OSemanticNominalConstructorFacts`, `OSemanticRoleFacts`,
   `OSemanticExpressionSurfaceFacts`, `OSemanticTypeSurfaceFacts`, and
@@ -58,10 +58,13 @@ fallback consumers are gone.
 
 `tests/sot_authority_adequacy_smoke.sh` binds the model to the current source:
 
-- `src/self_hosted/semantic/ast_local_binding_fact_owner.pgy` produces and
-  exposes the array-literal body row;
-- `src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy`
-  consumes that accessor;
+- `src/self_hosted/parser/expression_graph_owner.pgy` produces the array
+  literal root and ordered element edges;
+- `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`
+  carries that graph and `src/self_hosted/codegen/emission/stmt_emit.pgy`
+  consumes every element through its graph handle. Local-binding array-body
+  strings, the retired dedicated view, and sequence splitting in the hard
+  consumer are forbidden;
 - `src/self_hosted/parser/expr_postfix_owner.pgy` produces postfix try as an
   `AstExpressionNodeTry` plus its operand edge;
 - `src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy`

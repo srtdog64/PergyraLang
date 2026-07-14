@@ -16,7 +16,8 @@ EXPRESSION_SURFACE_OWNER="src/self_hosted/semantic/ast_expression_surface_fact_o
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
-ARRAY_CONSUMER="src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy"
+ARRAY_GRAPH_OWNER="src/self_hosted/parser/expression_graph_owner.pgy"
+ARRAY_CONSUMER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 EXPRESSION_GRAPH_OWNER="src/self_hosted/hir/ast_expression_graph_owner.pgy"
 TRY_PRODUCER="src/self_hosted/parser/expr_postfix_owner.pgy"
 TRY_COMPACT_BRIDGE="src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
@@ -63,13 +64,21 @@ reject_text() {
     fi
 }
 
-check_owner_copy() {
+check_array_graph_owner_copy() {
     local path="$1"
-    grep -Fq -- "initializer_array_bodies: Array<String>;" "$path" &&
-    grep -Fq -- "has_initializer_array_bodies: Array<Int>;" "$path" &&
-    grep -Fq -- "func SemanticAstLocalBindingArrayLiteralBodyAt(" "$path" &&
-    ! grep -Fq -- "initializer_try_operands" "$path" &&
-    ! grep -Fq -- "SemanticAstLocalBindingTryOperandAt(" "$path"
+    grep -Fq -- "func ParserExpressionArrayLiteral(" "$path" &&
+    grep -Fq -- "func ParserExpressionArrayElement(" "$path" &&
+    grep -Fq -- "func ParserExpressionArrayLiteralGraphContractReady()" "$path"
+}
+
+check_array_consumer_copy() {
+    local path="$1"
+    grep -Fq -- "SemanticArrayLiteralViewFromGraph(graph.graph, graph.root_id)" "$path" &&
+    grep -Fq -- "RewriteSemanticExpectedValue(" "$path" &&
+    grep -Fq -- "AstExpressionNodeIsArrayLiteralSpine(" "$path" &&
+    ! grep -Fq -- "CodegenSemanticLetArrayLiteral" "$path" &&
+    ! grep -Fq -- "SemanticAstLocalBindingArrayLiteralBodyAt(" "$path" &&
+    ! grep -Fq -- "ExprSequenceItem" "$path"
 }
 
 check_try_graph_owner_copy() {
@@ -215,6 +224,7 @@ require_file "$EXPRESSION_SURFACE_OWNER"
 require_file "$TYPE_SURFACE_OWNER"
 require_file "$KIND_SURFACE_OWNER"
 require_file "$SIGNATURE_OWNER"
+require_file "$ARRAY_GRAPH_OWNER"
 require_file "$ARRAY_CONSUMER"
 require_file "$TRY_CONSUMER"
 require_file "$COLLECTION_CONSUMER"
@@ -235,6 +245,8 @@ require_file "$STATEMENT_ROUTING_CONSUMER"
 require_file "$STATEMENT_EMITTER"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_array_literal_owner.pgy" ]] ||
     fail "retired AST-text array-literal owner returned"
+[[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/semantic_array_literal_codegen_view_owner.pgy" ]] ||
+    fail "retired semantic array-body view returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_try_let_owner.pgy" ]] ||
     fail "retired AST-text try-let owner returned"
 [[ ! -e "$ROOT_DIR/src/self_hosted/codegen/input/ast_text_collection_stmt_owner.pgy" ]] ||
@@ -283,7 +295,7 @@ for term in \
     require_text "$PROOF" "$term"
 done
 
-require_text "$PROOF" "FInitializerArrayBody"
+require_text "$PROOF" "FInitializerExpressionGraph"
 require_text "$PROOF" "FInitializerTryOperand"
 require_text "$PROOF" "FCollectionMutationParts"
 require_text "$PROOF" "FEnumDeclarationRows"
@@ -298,6 +310,7 @@ require_text "$PROOF" "FLocalBindingStatementRouting"
 require_text "$PROOF" "FAssignmentStatementRouting"
 require_text "$PROOF" "FStatementKindRouting"
 require_text "$PROOF" "OSemanticLocalBindingFacts"
+require_text "$PROOF" "OParserExpressionGraph"
 require_text "$PROOF" "OSemanticStatementFacts"
 require_text "$PROOF" "OSemanticEnumFacts"
 require_text "$PROOF" "OSemanticNominalConstructorFacts"
@@ -319,8 +332,8 @@ require_text "$PROOF" "CDeclarationRoutingEmitter"
 require_text "$PROOF" "CStatementRoutingEmitter"
 require_text "$PROOF" "OCodegenTextRecovery"
 
-check_owner_copy "$ROOT_DIR/$OWNER" ||
-    fail "live semantic owner does not provide the modeled array body fact"
+check_array_graph_owner_copy "$ROOT_DIR/$ARRAY_GRAPH_OWNER" ||
+    fail "live parser owner does not provide the modeled array graph fact"
 check_statement_owner_copy "$ROOT_DIR/$STATEMENT_OWNER" ||
     fail "live semantic statement owner does not provide collection facts"
 check_local_routing_owner_copy "$ROOT_DIR/$OWNER" ||
@@ -343,9 +356,14 @@ check_kind_surface_owner_copy "$ROOT_DIR/$KIND_SURFACE_OWNER" ||
     fail "live semantic kind-surface owner does not provide usage rows"
 check_signature_owner_copy "$ROOT_DIR/$SIGNATURE_OWNER" ||
     fail "live semantic signature owner does not provide entrypoint rows"
-check_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" \
-    "SemanticAstLocalBindingArrayLiteralBodyAt(" ||
+check_array_consumer_copy "$ROOT_DIR/$ARRAY_CONSUMER" ||
     fail "live array codegen consumer reopened text recovery"
+reject_text "$OWNER" "initializer_array_bodies"
+reject_text "$OWNER" "has_initializer_array_bodies"
+reject_text "$OWNER" "SemanticAstInitializerArrayBody("
+reject_text "$OWNER" "SemanticAstLocalBindingArrayLiteralBodyAt("
+reject_text "$OWNER" "initializer_try_operands"
+reject_text "$OWNER" "SemanticAstLocalBindingTryOperandAt("
 check_try_graph_owner_copy "$ROOT_DIR/$EXPRESSION_GRAPH_OWNER" ||
     fail "live try graph owner is incomplete"
 require_text "$TRY_PRODUCER" "AstExpressionNodeTry(),"
@@ -413,7 +431,7 @@ require_text "$STATEMENT_EMITTER" "CodegenSemanticLocalBindingIs(local_bindings,
 require_text "$STATEMENT_EMITTER" "CodegenSemanticAssignmentIs(assignments, idx)"
 require_text "$STATEMENT_EMITTER" "CodegenSemanticStatementIs("
 
-for consumer in "$ARRAY_CONSUMER" "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_CONSUMER"; do
+for consumer in "$TRY_CONSUMER" "$COLLECTION_CONSUMER" "$ENUM_CONSUMER"; do
     reject_text "$consumer" "StringTrim("
     reject_text "$consumer" "CharAt("
     reject_text "$consumer" "TypedAstArenaAtomText"
@@ -525,12 +543,12 @@ done
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/pgy-sot-authority.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-cp "$ROOT_DIR/$OWNER" "$tmp_dir/owner_missing.pgy"
-sed 's/func SemanticAstLocalBindingArrayLiteralBodyAt(/func RemovedArrayLiteralBodyAt(/' \
-    "$tmp_dir/owner_missing.pgy" >"$tmp_dir/owner_missing.next"
-mv "$tmp_dir/owner_missing.next" "$tmp_dir/owner_missing.pgy"
-if check_owner_copy "$tmp_dir/owner_missing.pgy"; then
-    fail "missing-owner mutation was not rejected"
+cp "$ROOT_DIR/$ARRAY_GRAPH_OWNER" "$tmp_dir/array_graph_owner_missing.pgy"
+sed 's/func ParserExpressionArrayElement(/func RemovedParserExpressionArrayElement(/' \
+    "$tmp_dir/array_graph_owner_missing.pgy" >"$tmp_dir/array_graph_owner_missing.next"
+mv "$tmp_dir/array_graph_owner_missing.next" "$tmp_dir/array_graph_owner_missing.pgy"
+if check_array_graph_owner_copy "$tmp_dir/array_graph_owner_missing.pgy"; then
+    fail "missing array-graph owner mutation was not rejected"
 fi
 
 cp "$ROOT_DIR/$STATEMENT_OWNER" "$tmp_dir/statement_owner_missing.pgy"

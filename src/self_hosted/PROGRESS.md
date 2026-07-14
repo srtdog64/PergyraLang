@@ -144,7 +144,7 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, the `CodegenAstTextNode` array-literal collection-value bridge,
+internals, indexed-assignment collection-element values,
 borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
 
@@ -157,9 +157,14 @@ A `CodegenAstTextNode(...)` element is emitted through one graph-element owner
 and the expected collection element type; neither mutator may rebuild it from
 expression text. Focused C-built and LLVM-built DRV-2 legs each matched the
 native MIR/C/execution oracle, and missing or invalid graphs failed closed.
-Array-literal element emission remains the next explicit collection-value
-bridge. The committed DRV-2 MIR inventory is now 26; this focused slice did not
-rerun the complete 26-case matrix.
+Array-literal element emission now consumes the parser-owned array root and
+ordered element graph handles. The old local-binding body rows and dedicated
+codegen view are deleted, and the static gate rejects sequence splitting in
+the hard `Let` consumer. `ast_node_array_literal.pgy` is the twenty-seventh
+DRV-2 MIR fixture. C-built and LLVM-built drivers produced byte-identical
+canonical MIR and C for that fixture, and both rejected missing or invalid
+graphs. This focused slice did not rerun the complete 27-case matrix. Indexed
+assignment RHS emission is the next explicit collection-value bridge.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR
@@ -550,7 +555,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 26 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures; the latest two collection-mutator fixtures passed focused C/LLVM-built driver legs, while the complete 26-case matrix was not rerun in this slice | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 27 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures; collection-mutator and typed array-literal fixtures passed focused C/LLVM-built driver legs, while the complete 27-case matrix was not rerun in this slice | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

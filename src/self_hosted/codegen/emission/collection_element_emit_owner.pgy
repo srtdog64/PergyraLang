@@ -6,7 +6,8 @@ import "expr_rewrite.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 import "struct_value_emit.pgy";
 
-// Array literal and indexed-assignment lanes remain explicit text bridges.
+// Indexed assignment remains an explicit text bridge. Collection mutators and
+// array literals consume semantic expression graph nodes.
 func EmitCollectionElementValue(
     kind: String,
     value_expr: String,

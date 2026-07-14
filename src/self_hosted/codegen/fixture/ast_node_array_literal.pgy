@@ -1,0 +1,13 @@
+struct CodegenAstTextNode {
+    indent: Int;
+    text: String;
+    parent: Int;
+    kind: Int;
+}
+
+func Main() -> Void {
+    let nodes: Array<CodegenAstTextNode> = [
+        CodegenAstTextNode(2, "Let", 0, 8)
+    ];
+    Log(ToString(ArrayLength(nodes)));
+}
