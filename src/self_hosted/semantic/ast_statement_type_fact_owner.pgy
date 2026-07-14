@@ -503,7 +503,7 @@ func SemanticAstStatementTypeFactsMatchArtifact(
 
 func SemanticAstStatementTypeFactsContractReady() -> Bool {
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Return: x\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Match: x\n          Case: 1\n            Block:\n              Log(x)\n        Return: x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(valid);
@@ -533,9 +533,10 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         valid, signatures, constructors, locals, initializers,
         expression_surfaces, iterations, statements, facts
     ) || !SemanticAstStatementTypesAllVerified(facts) ||
-        ArrayLength(facts.node_ids) != 3 ||
+        ArrayLength(facts.node_ids) != 6 ||
         facts.expected_type_names[0] != "Bool" ||
-        facts.expected_type_names[2] != "Int" {
+        facts.inferred_type_names[2] != "Int" ||
+        facts.expected_type_names[5] != "Int" {
         return false;
     }
     let bad: AstTreeArtifact = AstTreeArtifactFromText(

@@ -495,7 +495,10 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindMatchStmtTag()) {
             let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx);
-            let match_subject_type: String = ExprKind(match_subject, env);
+            let match_subject_type: String =
+                CodegenSemanticStatementInferredTypeOrDie(
+                    statement_types, idx, TypedAstKindMatchStmtTag()
+                );
             let match_tmp: String = CompilerSymbolCMatchTempName(idx);
             let match_tmp_type: String = AbiLayoutCLocalType("Int", env);
             let match_tmp_cast: String = AbiLayoutCValueType("Int", env);

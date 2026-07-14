@@ -7248,3 +7248,22 @@ Released/default replacement remains 0%.
   718 MB. It was terminated, so this entry does not claim full-driver C/LLVM
   parity. The remaining broad expression result-type classification is still
   `BRIDGE`; released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 Match consumes statement subject type facts
+
+- Hard Match emission now resolves the subject type through
+  `SemanticAstStatementTypeFacts` at the Match node handle. The previous
+  `ExprKind(match_subject, env)` text classifier is deleted and gate-forbidden.
+- The statement-type owner contract now contains a real Match row and requires
+  the subject `x: Int` to infer as `Int`; wrong-kind, unverified, `Unknown`, and
+  missing rows still fail through the shared query owner.
+- The owner contract compiled and ran under C and LLVM with byte-equal output,
+  and the component contract passed. AST production for the integrated codegen
+  source also passed.
+- Rebuilding the complete self-host codegen tool did not yield usable parity
+  evidence: native `pgy` terminated without a diagnostic during the later
+  compiler stages. This entry therefore claims the producer contract and hard
+  consumer ratchet, not full codegen-tool C/LLVM parity. With Log and Match
+  migrated, `selfhost.statement_result_type` is `CLOSED`; remaining text-backed
+  expression classification belongs to `selfhost.expression_surface`.
+  Released/default replacement remains 0%.

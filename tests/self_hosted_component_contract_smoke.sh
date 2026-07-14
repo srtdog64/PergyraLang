@@ -3871,6 +3871,8 @@ require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeRowsReady("
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeQueryContractReady("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    'facts.inferred_type_names[2] != "Int"'
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementInferredTypeOrDie("
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
@@ -4182,6 +4184,10 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatch
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchDefaultStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareCallStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "let match_subject_type: String ="
+reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func EmitStmtList(" "ExprKind(match_subject, env)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let case_pattern: String = CodegenSemanticMatchCasePatternOrDie(statements, cur[0])"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let log_inner: String = CodegenAstArenaAtomOrDie(arena, idx)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenAstArenaAtomOrDie(arena, idx)"

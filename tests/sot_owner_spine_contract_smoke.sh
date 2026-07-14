@@ -34,7 +34,7 @@ coq_path = root / "docs/semantics/proofs/SoTAuthority.v"
 begin = "<!-- BEGIN sot-owner-spine-registry -->"
 end = "<!-- END sot-owner-spine-registry -->"
 statuses = {"ACTIVE", "BRIDGE", "CLOSED"}
-expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 8, "CLOSED": 12})
+expected_status_counts = Counter({"ACTIVE": 9, "BRIDGE": 7, "CLOSED": 13})
 expected_pairs = {
     "source.module_graph": ("SFSourceModuleGraph", "SOModuleLoader"),
     "lexer.token_stream": ("SFTokenStream", "SOLexer"),
@@ -222,6 +222,6 @@ must_reject(
 
 print(
     "[sot-owner-spine] 29 owner rows locked "
-    "(CLOSED=12 BRIDGE=8 ACTIVE=9); mutations rejected"
+    "(CLOSED=13 BRIDGE=7 ACTIVE=9); mutations rejected"
 )
 PY

@@ -185,9 +185,12 @@ runtime-alias C form. Hard `Log` formatting now consumes the verified
 `SemanticAstStatementTypeFacts` row carried by `DriverRung2VerifiedFacts`;
 `EmitLog` no longer calls `ExprKind` or reclassifies the source payload. The
 node-handle query rejects wrong-kind, unverified, `Unknown`, and missing rows.
-Other expression result-type classification beyond the graph-owned nominal
-struct-literal row remains a separate text-backed seam and is not claimed
-closed by this statement-type consumer delta.
+Hard `match` emission consumes the same row for its subject type, so enum case
+projection no longer calls `ExprKind(match_subject, env)`. The owner contract
+contains a real Match row and verifies its inferred `Int` type under both C and
+LLVM. This closes the statement-result-type owner row. Other expression
+result-type classification beyond the graph-owned nominal struct-literal row
+belongs to the separate `selfhost.expression_surface` bridge.
 
 The bare-call statement lane now classifies direct calls through the canonical
 `TypedAstCallStatementKindForCallee` owner, carries the complete parser call
