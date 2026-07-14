@@ -32,6 +32,66 @@ cleanup:
 }
 
 static int
+run_ast_program_splice_take_test(void)
+{
+    ASTNode *program = ast_create_program();
+    ASTNode *replacement = ast_create_program();
+    ASTNode *empty = ast_create_program();
+    ASTNode *import_node = ast_create_import_declaration("part.pgy");
+    ASTNode *tail = ast_create_identifier("tail");
+    ASTNode *first = ast_create_identifier("first");
+    ASTNode *second = ast_create_identifier("second");
+    int failed = 0;
+
+    printf("\n=== Test: AST Program Splice Ownership ===\n");
+
+    if (program == NULL || replacement == NULL || empty == NULL
+        || import_node == NULL || tail == NULL || first == NULL
+        || second == NULL
+        || !ast_program_append_statement(program, import_node)
+        || !ast_program_append_statement(program, tail)
+        || !ast_program_append_statement(replacement, first)
+        || !ast_program_append_statement(replacement, second)) {
+        printf("[FAIL] failed to build splice fixture\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast_program_splice_take(program, 9, replacement)
+        || ast_program_statement_count(program) != 2
+        || ast_program_statement_count(replacement) != 2) {
+        printf("[FAIL] rejected splice mutated either owner\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_program_splice_take(program, 0, replacement)
+        || ast_program_statement_count(program) != 3
+        || ast_program_statement_count(replacement) != 0
+        || ast_program_statement(program, 0) != first
+        || ast_program_statement(program, 1) != second
+        || ast_program_statement(program, 2) != tail) {
+        printf("[FAIL] replacement statements were not transferred in order\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_program_splice_take(program, 1, empty)
+        || ast_program_statement_count(program) != 2
+        || ast_program_statement(program, 0) != first
+        || ast_program_statement(program, 1) != tail) {
+        printf("[FAIL] empty replacement did not remove one statement\n");
+        failed = 1;
+    }
+
+cleanup:
+    ast_destroy(program);
+    ast_destroy(replacement);
+    ast_destroy(empty);
+    return failed;
+}
+
+static int
 run_reserved_slice_expression_diagnostic_test(void)
 {
     const char *code =

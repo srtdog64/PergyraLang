@@ -109,6 +109,66 @@ ast_program_detach_statement(ASTNode* node, size_t index)
 }
 
 bool
+ast_program_splice_take(ASTNode* node,
+                        size_t index,
+                        ASTNode* replacement_program)
+{
+    ASTNode **merged = NULL;
+    ASTNode **old_statements;
+    ASTNode **replacement_statements;
+    ASTNode *removed;
+    size_t old_count;
+    size_t replacement_count;
+    size_t merged_count;
+
+    if (node == NULL || node->type != AST_PROGRAM
+        || replacement_program == NULL
+        || replacement_program->type != AST_PROGRAM
+        || node == replacement_program
+        || index >= node->data.program.count
+        || node->data.program.statements[index] == replacement_program) {
+        return false;
+    }
+
+    old_count = node->data.program.count;
+    replacement_count = replacement_program->data.program.count;
+    if (replacement_count > SIZE_MAX - (old_count - 1))
+        return false;
+    merged_count = old_count - 1 + replacement_count;
+    if (merged_count > SIZE_MAX / sizeof(ASTNode *))
+        return false;
+
+    if (merged_count > 0) {
+        merged = malloc(merged_count * sizeof(ASTNode *));
+        if (merged == NULL)
+            return false;
+    }
+
+    old_statements = node->data.program.statements;
+    replacement_statements = replacement_program->data.program.statements;
+    removed = old_statements[index];
+
+    for (size_t i = 0; i < index; i++)
+        merged[i] = old_statements[i];
+    for (size_t i = 0; i < replacement_count; i++)
+        merged[index + i] = replacement_statements[i];
+    for (size_t i = index + 1; i < old_count; i++)
+        merged[i - 1 + replacement_count] = old_statements[i];
+
+    node->data.program.statements = merged;
+    node->data.program.count = merged_count;
+    node->data.program.capacity = merged_count;
+    replacement_program->data.program.statements = NULL;
+    replacement_program->data.program.count = 0;
+    replacement_program->data.program.capacity = 0;
+
+    free(old_statements);
+    free(replacement_statements);
+    ast_destroy(removed);
+    return true;
+}
+
+bool
 ast_program_replace_statements(ASTNode* node,
                                ASTNode** statements,
                                size_t count,

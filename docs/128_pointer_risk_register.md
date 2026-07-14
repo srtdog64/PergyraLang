@@ -20,6 +20,11 @@ that crosses a stable ABI boundary must be classified as one of:
 
 Any pointer not fitting one of these classes is beta debt.
 
+Using both arenas and individually owned heap allocations is not itself a
+defect. Scratch batches and persistent graph objects have different lifetimes.
+The defect is an allocation whose owner, transfer point, or destruction rule
+changes outside the API that owns that lifetime class.
+
 ## 1. Closed And Gated
 
 | Risk | Current contract | Gate |
@@ -28,6 +33,7 @@ Any pointer not fitting one of these classes is beta debt.
 | Intent last-history lifecycle | inline and runtime-lib exits clear every previous `PgyIntentHistoryStep` field through the step-clear owner before replacing the snapshot; partial field frees are forbidden | `runtime-intent-observability-contract-test-smoke` |
 | String helpers | `result-owned string` | `runtime-abi-lifetime-test-smoke` |
 | Lexer token text | `scratch` storage owned by one parse-lifetime arena; speculative lexer cursors share that owner, while AST operator tokens retain kind/span facts and clear the text pointer | `memory-string-safety-test-smoke` + `test-parser` + `test-semantic` |
+| AST program import splice | `persistent heap` child arrays are owned by the AST program; `ast_program_splice_take` atomically transfers replacement children and empties the source program shell, while the import resolver cannot allocate or detach those arrays itself | `memory-string-safety-test-smoke` + `test-parser` + `package-module-resolver-test-smoke` |
 | `Substring` / `StringReplace` sizing | reject strings beyond the `Int` index range and count replacements with `size_t` before result allocation | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | `StringSplit` / `MapKeys` arrays | `result-owned array` with copied string payloads | `runtime-abi-lifetime-test-smoke` |
 | File descriptors | `runtime-owned handle` table, released by close | `runtime-abi-lifetime-test-smoke` |

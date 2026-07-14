@@ -18,6 +18,11 @@ ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);
 ASTNode* ast_program_statement(const ASTNode* node, size_t index);
 bool ast_program_append_statement(ASTNode* node, ASTNode* statement);
 ASTNode* ast_program_detach_statement(ASTNode* node, size_t index);
+/* Replaces one destination statement with every statement from replacement.
+ * On success the replacement program is empty and remains caller-owned. */
+bool ast_program_splice_take(ASTNode* node,
+                             size_t index,
+                             ASTNode* replacement_program);
 bool ast_program_replace_statements(ASTNode* node,
                                     ASTNode** statements,
                                     size_t count,

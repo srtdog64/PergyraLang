@@ -95,6 +95,16 @@ require_literal "src/lexer/lexer.c" \
     "pgy_arena_destroy(&lexer->token_text_owner->arena)"
 reject_literal "src/lexer/lexer.c" \
     "token.text = pergyra_strndup(start, length)"
+require_literal "src/parser/ast_api.h" \
+    "bool ast_program_splice_take(ASTNode* node,"
+require_literal "src/parser/ast.c" \
+    "replacement_program->data.program.statements = NULL;"
+require_literal "src/compiler/import_resolver.c" \
+    "if (!ast_program_splice_take(ast, i, imp_ast))"
+reject_literal "src/compiler/import_resolver.c" \
+    "ast_program_replace_statements("
+reject_literal "src/compiler/import_resolver.c" \
+    "ASTNode **new_stmts"
 reject_literal "src/parser/parser_expr_lambda.c" \
     "free(next.text)"
 require_literal "src/parser/ast_constructors.c" \

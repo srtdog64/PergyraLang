@@ -213,81 +213,15 @@ import_resolver_load_internal(const char *source_path,
             goto fail;
 
         size_t imp_count = ast_program_statement_count(imp_ast);
-        if (imp_count > 0) {
-            size_t old_count = ast_program_statement_count(ast);
-            ASTNode **old_statements = ast_program_statements(ast, NULL);
-            ASTNode **imported_statements = ast_program_statements(imp_ast, NULL);
-            ASTNode *import_stmt = ast_program_statement(ast, i);
-            size_t new_count;
-            if (old_count == 0 || imp_count > SIZE_MAX - (old_count - 1)) {
-                ast_destroy(imp_ast);
-                set_error(error_message, "import merge statement count overflow");
-                goto fail;
-            }
-            new_count = old_count - 1 + imp_count;
-            if (new_count > SIZE_MAX / sizeof(ASTNode *)) {
-                ast_destroy(imp_ast);
-                set_error(error_message, "import merge allocation size overflow");
-                goto fail;
-            }
-            ASTNode **new_stmts = malloc(new_count * sizeof(ASTNode *));
-            if (new_stmts == NULL) {
-                ast_destroy(imp_ast);
-                set_error(error_message, "out of memory while merging imports");
-                goto fail;
-            }
-
-            for (size_t j = 0; j < i; j++)
-                new_stmts[j] = old_statements[j];
-            for (size_t j = 0; j < imp_count; j++)
-                new_stmts[i + j] = imported_statements[j];
-            for (size_t j = i + 1; j < old_count; j++)
-                new_stmts[j - 1 + imp_count] = old_statements[j];
-
-            if (!ast_program_replace_statements(ast,
-                                                new_stmts,
-                                                new_count,
-                                                new_count)) {
-                free(new_stmts);
-                ast_destroy(imp_ast);
-                set_error(error_message, "failed to replace import statements");
-                goto fail;
-            }
-            ast_destroy(import_stmt);
-
-            (void)ast_program_replace_statements(imp_ast, NULL, 0, 0);
-            i += imp_count - 1;
-        } else {
-            size_t old_count = ast_program_statement_count(ast);
-            ASTNode **old_statements = ast_program_statements(ast, NULL);
-            ASTNode *import_stmt = ast_program_statement(ast, i);
-            size_t new_count = old_count > 0 ? old_count - 1 : 0;
-            ASTNode **new_stmts = NULL;
-            if (new_count > 0) {
-                new_stmts = malloc(new_count * sizeof(ASTNode *));
-                if (new_stmts == NULL) {
-                    ast_destroy(imp_ast);
-                    set_error(error_message,
-                              "out of memory while removing import");
-                    goto fail;
-                }
-                for (size_t j = 0; j < i; j++)
-                    new_stmts[j] = old_statements[j];
-                for (size_t j = i + 1; j < old_count; j++)
-                    new_stmts[j - 1] = old_statements[j];
-            }
-            if (!ast_program_replace_statements(ast,
-                                                new_stmts,
-                                                new_count,
-                                                new_count)) {
-                free(new_stmts);
-                ast_destroy(imp_ast);
-                set_error(error_message, "failed to remove import statement");
-                goto fail;
-            }
-            ast_destroy(import_stmt);
-            i--;
+        if (!ast_program_splice_take(ast, i, imp_ast)) {
+            ast_destroy(imp_ast);
+            set_error(error_message, "failed to splice imported statements");
+            goto fail;
         }
+        if (imp_count > 0)
+            i += imp_count - 1;
+        else
+            i--;
 
         ast_destroy(imp_ast);
     }
