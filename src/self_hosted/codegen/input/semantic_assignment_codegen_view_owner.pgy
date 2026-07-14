@@ -51,31 +51,3 @@ func CodegenSemanticAssignmentTargetIsIndex(
         CodegenSemanticAssignmentIndexOrDie(facts, node_id)
     ] == 1;
 }
-
-func CodegenSemanticAssignmentIndexReceiverOrDie(
-    facts: SemanticAstAssignmentFacts,
-    node_id: Int
-) -> String {
-    let index: Int = CodegenSemanticAssignmentIndexOrDie(facts, node_id);
-    if facts.target_is_indexed[index] != 1 {
-        Die(Concat(
-            "expected indexed semantic assignment fact for AST node: ",
-            ToString(node_id)
-        ));
-    }
-    return facts.target_base_names[index];
-}
-
-func CodegenSemanticAssignmentIndexExprOrDie(
-    facts: SemanticAstAssignmentFacts,
-    node_id: Int
-) -> String {
-    let index: Int = CodegenSemanticAssignmentIndexOrDie(facts, node_id);
-    if facts.target_is_indexed[index] != 1 {
-        Die(Concat(
-            "expected indexed semantic assignment fact for AST node: ",
-            ToString(node_id)
-        ));
-    }
-    return facts.target_index_texts[index];
-}

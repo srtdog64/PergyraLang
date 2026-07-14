@@ -175,6 +175,16 @@ func CodegenAstTextAuxValueFactFor(input: CodegenAstTextRowFactInput) -> String 
     if kind == TypedAstKindEnumDeclTag() {
         return input.aux_payload;
     }
+    if kind == TypedAstKindAssignStmtTag() {
+        let target: String = CodegenAstTextNameFactFor(input);
+        let open: Int = StringIndexOf(target, "[");
+        let n: Int = StringLength(target);
+        if open > 0 && open + 1 < n &&
+            CodegenCharCodeAt(target, n, n - 1) == 93 {
+            return target;
+        }
+        return "";
+    }
     if kind == TypedAstKindArraySetStmtTag() {
         let comma: Option<Int> = FindTopLevelComma(payload);
         if IsSome(comma) {

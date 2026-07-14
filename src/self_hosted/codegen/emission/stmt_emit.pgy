@@ -170,15 +170,46 @@ func EmitAssign(
     assignments: SemanticAstAssignmentFacts,
     idx: Int,
     env_state: Array<String>,
-    graph: SemanticExpressionGraphView
+    graph: SemanticExpressionGraphView,
+    target_graph: SemanticExpressionGraphView
 ) -> String {
     let env: CodegenTypeEnv = CodegenTypeEnvStateView(env_state);
     let name: String = CodegenSemanticAssignmentTargetOrDie(assignments, idx);
     let expr: String = CodegenSemanticAssignmentValueOrDie(assignments, idx);
     if CodegenSemanticAssignmentTargetIsIndex(assignments, idx) {
-        let arr_name: String = CodegenSemanticAssignmentIndexReceiverOrDie(assignments, idx);
-        let c_arr_name: String = CompilerSymbolCBindingName(arr_name);
-        let idx_expr: String = CodegenSemanticAssignmentIndexExprOrDie(assignments, idx);
+        let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            target_graph.graph, target_graph.root_id
+        );
+        let target_text: Option<String> = SemanticExpressionGraphNodeText(
+            target_graph.graph, target_graph.root_id
+        );
+        let receiver_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+            target_graph.graph, target_graph.root_id
+        );
+        let index_opt: Option<Int> = SemanticExpressionGraphRightChild(
+            target_graph.graph, target_graph.root_id
+        );
+        if !target_graph.ok || !IsSome(target_kind) ||
+            UnwrapOption(target_kind) != AstExpressionNodeIndex() ||
+            !IsSome(target_text) || UnwrapOption(target_text) != name ||
+            !IsSome(receiver_opt) || !IsSome(index_opt) {
+            Die("indexed assignment target graph is missing or invalid");
+        }
+        let receiver_id: Int = UnwrapOption(receiver_opt);
+        let index_id: Int = UnwrapOption(index_opt);
+        let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+            target_graph.graph, receiver_id
+        );
+        if !IsSome(receiver_text) {
+            Die("indexed assignment receiver graph is missing");
+        }
+        let arr_name: String = UnwrapOption(receiver_text);
+        let c_arr_name: String = RewriteExprFromSemanticGraph(
+            target_graph.graph, receiver_id, env
+        );
+        let idx_expr: String = RewriteExprFromSemanticGraph(
+            target_graph.graph, index_id, env
+        );
         let arr_kind: String = LookupKindType(env, arr_name, "v");
         let arr_kind_code: Int = CollectionRuntimeKindCode(arr_kind);
         let set_fn: String = CollectionRuntimeCSetFn(arr_kind_code);
@@ -186,7 +217,7 @@ func EmitAssign(
             expr, env, arr_kind_code, graph
         );
         return Concat(set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
-            Concat(IntEval(idx_expr, env), Concat(", ", Concat(rhs, ");")))))));
+            Concat(idx_expr, Concat(", ", Concat(rhs, ");")))))));
     }
     let c_name: String = CompilerSymbolCBindingName(name);
     let vt: String = LookupKindType(env, name, "v");
@@ -284,8 +315,20 @@ func EmitStmtList(count: Int, arena: AstArena,
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneValue()
                 );
+            let assign_target_graph: SemanticExpressionGraphView =
+                SemanticExpressionGraphView(
+                    false, 0, assign_graph.graph
+                );
+            if CodegenSemanticAssignmentTargetIsIndex(assignments, idx) {
+                assign_target_graph = CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAuxiliary()
+                );
+            }
             ArrayPush(result, Concat(pad, Concat(
-                EmitAssign(assignments, idx, env_state, assign_graph), "\n"
+                EmitAssign(
+                    assignments, idx, env_state, assign_graph,
+                    assign_target_graph
+                ), "\n"
             )));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) {

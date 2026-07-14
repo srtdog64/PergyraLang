@@ -29,7 +29,7 @@ pgy_selfhost_verify_driver_rung2_collection_mutation_graph() {
             exit 1
         }
     else
-        return
+        return 0
     fi
 
     if [[ "$base" != "str_array" ]]; then

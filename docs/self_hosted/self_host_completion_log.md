@@ -7206,3 +7206,24 @@ Released/default replacement remains 0%.
 - The complete 27-case matrix was not rerun in this focused slice. Indexed
   assignment RHS emission remains the next collection-value `BRIDGE`, and
   released/default replacement remains 0%.
+
+### 2026-07-14 -- DRV-2 indexed assignment consumes target graphs
+
+- The parser now records an indexed assignment's complete left-hand expression
+  in the assignment auxiliary lane. Self MIR owns that tree as `expr1_graph`
+  beside the RHS `expr0_graph`; the JSON importer preserves the same lane order.
+- Hard collection-set emission recursively consumes the receiver and index node
+  handles. `CodegenSemanticAssignmentIndexExprOrDie` and the
+  `IntEval(idx_expr, env)` text-recovery path are deleted and gate-forbidden.
+- C-built and LLVM-built focused drivers emitted byte-identical 3,819-byte self
+  MIR for `indexed_assignment.pgy`. Native and self canonical MIR were
+  byte-identical, and both generated programs printed `2`.
+- Renaming `expr1_graph` made both drivers fail closed with
+  `MIR instruction expression graph is missing or invalid`. The complete
+  28-case matrix was not rerun in this focused slice; released/default
+  replacement remains 0%.
+- Two fixture-specific verifier helpers returned the preceding failed base-name
+  comparison for non-target fixtures, so `set -e` aborted filtered runs before
+  the selected MIR case. Their non-target exits now return success explicitly;
+  the official focused C and LLVM gates each completed with 20 shared body
+  fixtures and exactly one indexed-assignment MIR fixture.

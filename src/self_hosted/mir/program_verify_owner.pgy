@@ -38,17 +38,26 @@ func SelfMirIndexedAssignmentUseReady(
         return true;
     }
     let target: String = rows.expr1s[instruction_index];
-    if target == "" {
+    let base_name: String = rows.arg0s[instruction_index];
+    if target == "" || base_name == "" {
         return false;
     }
-    let index_open: Int = StringIndexOf(target, "[");
-    if index_open < 0 {
-        return true;
+    if target == base_name {
+        return rows.expr1_graphs.has_roots[instruction_index] == 0;
     }
-    let base_name: String = StringTrim(Substring(target, 0, index_open));
-    return base_name != "" && SelfMirInstructionUsesLocalVersion(
-        rows, instruction_index, base_name
-    );
+    if rows.expr1_graphs.has_roots[instruction_index] != 1 {
+        return false;
+    }
+    let root: Int = rows.expr1_graphs.roots[instruction_index];
+    if rows.expr1_graphs.node_kinds[root] != AstExpressionNodeIndex() ||
+        rows.expr1_graphs.node_texts[root] != target {
+        return false;
+    }
+    let receiver: Int = rows.expr1_graphs.left_children[root];
+    return rows.expr1_graphs.node_texts[receiver] == base_name &&
+        SelfMirInstructionUsesLocalVersion(
+            rows, instruction_index, base_name
+        );
 }
 
 func SelfMirDeclarationRowsReady(rows: SelfMirDeclarationRows) -> Bool {
@@ -114,7 +123,8 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         !SelfMirParallelStringCount(count, rows.source_types) ||
         !SelfMirParallelCount(count, rows.use_starts) ||
         !SelfMirParallelCount(count, rows.use_counts) ||
-        !SelfMirExpressionGraphRowsReady(rows.expression_graphs, count) {
+        !SelfMirExpressionGraphRowsReady(rows.expr0_graphs, count) ||
+        !SelfMirExpressionGraphRowsReady(rows.expr1_graphs, count) {
         return false;
     }
     let use_cursor: Int = 0;
@@ -129,7 +139,7 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         if kind == "branch" && rows.names[i] == "branch" &&
             rows.arg0s[i] == "" &&
             rows.source_types[i] != "AST_MATCH_CASE" &&
-            rows.expression_graphs.has_roots[i] != 1 {
+            rows.expr0_graphs.has_roots[i] != 1 {
             return false;
         }
         if kind == "stmt" &&
@@ -137,7 +147,7 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
              rows.arg0s[i] == "ArrayPush" ||
              rows.arg0s[i] == "ArraySet") &&
             rows.source_types[i] == "AST_CALL" &&
-            rows.expression_graphs.has_roots[i] != 1 {
+            rows.expr0_graphs.has_roots[i] != 1 {
             return false;
         }
         if (kind == "def" &&
@@ -166,19 +176,40 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
 }
 
 func SelfMirIndexedAssignmentUseContractReady() -> Bool {
+    let value_graph: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["values[j]"],
+            [0], [0], [SemanticCallTargetNone()], [""]
+        );
+    let target_graph: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [2], [0], [3],
+            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+             AstExpressionNodeIndex()],
+            ["values", "i", "values[i]"], [0, 0, 0], [0, 0, 1],
+            [SemanticCallTargetNone(), SemanticCallTargetNone(),
+             SemanticCallTargetNone()], ["", "", ""]
+        );
     let valid: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
         ["values.1", "i.1", "j.1"],
-        SelfMirExpressionGraphRowsForInstructionCount(1)
+        value_graph, target_graph
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [2],
-        ["i.1", "j.1"], SelfMirExpressionGraphRowsForInstructionCount(1)
+        ["i.1", "j.1"], value_graph, target_graph
+    );
+    let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
+        ["values.1", "i.1", "j.1"], value_graph,
+        SelfMirExpressionGraphRowsForInstructionCount(1)
     );
     return SelfMirInstructionRowsReady(valid) &&
-        !SelfMirInstructionRowsReady(missing_base_use);
+        !SelfMirInstructionRowsReady(missing_base_use) &&
+        !SelfMirInstructionRowsReady(missing_target_graph);
 }
 
 func SelfMirBlockRowsValidationError(

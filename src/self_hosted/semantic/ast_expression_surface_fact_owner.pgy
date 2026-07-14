@@ -116,6 +116,9 @@ func SemanticAstExpressionGraphAuxiliaryLaneRequired(
         artifact.arena, node_id, TypedAstKindForStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindArraySetStmtTag()
+    ) || (TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindAssignStmtTag()
+    ) && IsSome(TypedAstArenaAuxValueText(artifact.arena, node_id))
     );
 }
 

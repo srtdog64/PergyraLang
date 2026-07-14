@@ -144,8 +144,7 @@ to upgrade legacy native MIR text; it cannot feed the hard consumer, which
 still requires `expr0_graph`. Namespace-qualified calls now carry a canonical
 callable target in each call-node row; direct hard-MIR consumption validates
 that target against semantic signature ownership before codegen. Object-init
-internals, indexed-assignment target-index expressions,
-borrow/receive/spawn/await unary forms, and expression result-type
+internals, borrow/receive/spawn/await unary forms, and expression result-type
 classification beyond graph-owned struct literals remain `BRIDGE` work.
 
 The focused codegen rung requires expression graphs for both collection
@@ -165,9 +164,15 @@ codegen view are deleted, and the static gate rejects sequence splitting in
 the hard `Let` consumer. `ast_node_array_literal.pgy` is the twenty-seventh
 DRV-2 MIR fixture. C-built and LLVM-built drivers produced byte-identical
 canonical MIR and C for that fixture, and both rejected missing or invalid
-graphs. `str_array.pgy` is the twenty-eighth DRV-2 MIR fixture. This focused
-slice did not rerun the complete 28-case matrix. The indexed-assignment target
-index still uses its semantic row as text and is the next collection bridge.
+graphs. `str_array.pgy` is the twenty-eighth DRV-2 MIR fixture. Indexed
+assignment now carries the parser-owned target/index tree in the assignment
+auxiliary lane and projects it as instruction-owned `expr1_graph`. The hard
+emitter recursively consumes the receiver and index handles; the old
+target-index text accessor and `IntEval(idx_expr, env)` recovery are deleted.
+C-built and LLVM-built focused drivers emitted byte-identical self MIR, matched
+the native canonical MIR, generated programs that printed `2`, and rejected a
+missing target graph with the same fail-closed diagnostic. This focused slice
+did not rerun the complete 28-case matrix.
 
 The Log statement lane now extracts its single argument subtree from the
 parser-owned call spine, requires that atom-lane root in semantic and MIR

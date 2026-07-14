@@ -453,6 +453,16 @@ func ParseOneStmt(
                 AstExpressionLaneValue(), rhs_fact
             )
         );
+        if lhs_fact.arena.node_kinds[lhs_fact.root] ==
+            AstExpressionNodeIndex() {
+            ArraySet(
+                expression_graphs, 0,
+                ParserExpressionGraphsAppend(
+                    expression_graphs[0], TypedAstKindAssignStmtTag(),
+                    AstExpressionLaneAuxiliary(), lhs_fact
+                )
+            );
+        }
         let rhs: String = rhs_fact.text;
         i = cursor_out[0];
         i = ConsumeStmtTerminator(content, i);

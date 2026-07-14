@@ -176,10 +176,15 @@ func SelfMirAppendCfg(
         ArrayPush(uses, source.instructions.uses[use_i]);
         use_i = use_i + 1;
     }
-    let expression_graphs: SelfMirExpressionGraphRows =
+    let expr0_graphs: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRowsAppendRows(
-            target.instructions.expression_graphs,
-            source.instructions.expression_graphs
+            target.instructions.expr0_graphs,
+            source.instructions.expr0_graphs
+        );
+    let expr1_graphs: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRowsAppendRows(
+            target.instructions.expr1_graphs,
+            source.instructions.expr1_graphs
         );
     return SelfMirCfgRows(
         SelfMirBlockRows(
@@ -188,7 +193,8 @@ func SelfMirAppendCfg(
         ),
         SelfMirInstructionRows(
             ids, kinds, names, results, arg0s, arg1s, expr0s, expr1s,
-            source_types, use_starts, use_counts, uses, expression_graphs
+            source_types, use_starts, use_counts, uses,
+            expr0_graphs, expr1_graphs
         )
     );
 }
@@ -338,7 +344,7 @@ func SelfMirCanonicalInstructionIds(
                 instructions.expr0s, instructions.expr1s,
                 instructions.source_types, instructions.use_starts,
                 instructions.use_counts, instructions.uses,
-                instructions.expression_graphs
+                instructions.expr0_graphs, instructions.expr1_graphs
             )
         )
     );
