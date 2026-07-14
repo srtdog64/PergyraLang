@@ -29,6 +29,23 @@ llvm_result_alloc(void)
     return res;
 }
 
+/*
+ * The one place the backend's error text is stored. ctx->error_msg is still a
+ * fixed buffer -- unlike the parser's, it is speculatively saved/restored by
+ * the match-payload probe, and llvm_stmt_type_infer clears has_error without
+ * clearing the message, so making it an owned pointer changes error-state
+ * lifetime in ways only a leak/UAF checker can settle (blocked on the ASAN
+ * gate). Until then the message may still not fit -- but it must say so
+ * rather than hand back a clipped text that reads as complete.
+ */
+static void
+llvm_store_error_message(LLVMGenCtx *ctx, const char *fmt, va_list args)
+{
+    int needed = vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+
+    pergyra_str_mark_clipped(ctx->error_msg, sizeof(ctx->error_msg), needed);
+}
+
 void
 llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...)
 {
@@ -40,7 +57,7 @@ llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -61,7 +78,7 @@ llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -76,7 +93,7 @@ llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -94,7 +111,7 @@ llvm_set_error_at_with_code(LLVMGenCtx *ctx, ASTNode *node, const char *code,
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -122,7 +139,7 @@ llvm_set_error_with_hints(LLVMGenCtx *ctx, const char *code,
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -145,7 +162,7 @@ llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node, const char *code,
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -163,7 +180,7 @@ llvm_set_mir_inventory_missing(LLVMGenCtx *ctx, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -181,7 +198,7 @@ llvm_set_mir_topology_invalid(LLVMGenCtx *ctx, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -199,7 +216,7 @@ llvm_set_mir_intent_carrier_missing(LLVMGenCtx *ctx, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 
@@ -217,7 +234,7 @@ llvm_set_mir_memory_exhausted(LLVMGenCtx *ctx, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    llvm_store_error_message(ctx, fmt, args);
     va_end(args);
 }
 

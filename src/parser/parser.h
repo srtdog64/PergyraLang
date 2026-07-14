@@ -42,7 +42,12 @@ typedef struct
     Token   current_token;
     Token   previous_token;
     bool    has_error;
-    char    error_msg[512];
+    /* Owned, heap-exact. A diagnostic is the compiler's product, so it must
+     * not be silently clipped: the previous fixed 512-byte buffer dropped
+     * the tail of any message carrying a long identifier or literal, with
+     * nothing in the output saying so. Read it through parser_get_error(),
+     * which is total (never NULL). */
+    char   *error_msg;
     
     /* Parsing context */
     bool    in_parallel_block;

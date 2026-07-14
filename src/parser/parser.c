@@ -49,6 +49,7 @@ Parser* parser_create(Lexer* lexer) {
 
     parser->lexer = lexer;
     parser->has_error = false;
+    parser->error_msg = NULL;
     parser->scope_depth = 0;
     parser->in_parallel_block = false;
     parser->in_with_statement = false;
@@ -72,6 +73,7 @@ Parser* parser_create(Lexer* lexer) {
 // 파서 소멸
 void parser_destroy(Parser* parser) {
     if (parser) {
+        free(parser->error_msg);
         ast_destroy_structured_comment(parser->pending_doc_comment);
         if (parser->decl_hint_names != NULL) {
             for (size_t i = 0; i < parser->decl_hint_count; i++)
@@ -143,6 +145,9 @@ void parser_consume_statement_terminator(Parser* parser, const char* message) {
 
 // 에러 처리
 void parser_error(Parser* parser, const char* format, ...) {
+    va_list args;
+    char *message;
+
     if (parser == NULL)
         return;
     if (parser->has_error)
@@ -150,31 +155,31 @@ void parser_error(Parser* parser, const char* format, ...) {
 
     parser->has_error = true;
 
-    char message[384];
-    va_list args;
+    /* Heap-exact throughout: the rendered text is what the user (and the
+     * code-prefix router in driver_diag) actually consumes, so no stage of
+     * it may be clipped without saying so. The byte layout below is the
+     * same one the old fixed-buffer path produced. */
     va_start(args, format);
-    vsnprintf(message, sizeof(message), format, args);
+    message = pergyra_strdup_vprintf(format, args);
     va_end(args);
 
-    // 에러 위치 정보 추가
-    char location[256];
-    snprintf(location, sizeof(location), " at line %d, column %d",
-             parser->current_token.line, parser->current_token.column);
+    free(parser->error_msg);
     if (parser->current_token.type == TOKEN_ERROR && parser->lexer != NULL) {
         const char *lex_error = lexer_get_error(parser->lexer);
-        snprintf(parser->error_msg, sizeof(parser->error_msg), "%s%s",
-                 lex_error != NULL ? lex_error : "Lexer error",
-                 location);
-        return;
+        parser->error_msg = pergyra_strdup_printf(
+            "%s at line %d, column %d",
+            lex_error != NULL ? lex_error : "Lexer error",
+            parser->current_token.line, parser->current_token.column);
+    } else {
+        parser->error_msg = pergyra_strdup_printf(
+            "%s\nCode: %s\nReason: %s\nFix: %s at line %d, column %d",
+            message != NULL ? message : "parse error",
+            PGY_CODE_PARSE_SYNTAX,
+            PGY_CAUSE_PARSE_UNEXPECTED_TOKEN,
+            PGY_FIX_CHECK_SYNTAX,
+            parser->current_token.line, parser->current_token.column);
     }
-    snprintf(parser->error_msg, sizeof(parser->error_msg), "%s", message);
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nCode: ");
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_CODE_PARSE_SYNTAX);
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nReason: ");
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_CAUSE_PARSE_UNEXPECTED_TOKEN);
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nFix: ");
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_FIX_CHECK_SYNTAX);
-    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), location);
+    free(message);
 }
 
 // 에러 복구 - 다음 문장까지 건너뛰기
@@ -248,7 +253,16 @@ bool parser_has_error(const Parser* parser) {
 
 // 에러 메시지 가져오기
 const char* parser_get_error(const Parser* parser) {
-    return parser->error_msg;
+    if (parser == NULL)
+        return "";
+    if (parser->error_msg != NULL)
+        return parser->error_msg;
+    /* has_error with no text can only mean the diagnostic allocation itself
+     * failed. Say that, rather than handing back NULL to callers that %s it
+     * -- an OOM must stay a distinguishable message, not a crash. */
+    return parser->has_error
+        ? "parse error (diagnostic allocation failed)"
+        : "";
 }
 
 ASTNode *

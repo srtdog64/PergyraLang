@@ -6,6 +6,8 @@
  */
 
 #include "type_checker_internal.h"
+
+#include "../common/string_compat.h"
 #include "type_checker_decls_a_helpers_internal.h"
 #include "type_checker_intent_helpers_internal.h"
 
@@ -103,6 +105,11 @@ intent_step_summary_append(char *buffer, size_t buffer_size, size_t *used,
         return;
 
     if ((size_t)written >= remaining) {
+        /* This summary is pasted straight into a semantic diagnostic, so a
+         * clipped contract listing would read as the whole contract. Say
+         * what was lost. */
+        pergyra_str_mark_clipped(buffer, buffer_size,
+                                 (int)(*used + (size_t)written));
         *used = buffer_size - 1;
         return;
     }

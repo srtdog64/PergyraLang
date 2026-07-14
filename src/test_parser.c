@@ -13,9 +13,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/string_compat.h"
 #include "lexer/lexer.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
+#include "semantic/diag_codes.h"
 #include "semantic/type_system.h"
 
 #if defined(_WIN32)
@@ -238,6 +240,10 @@ main(void)
     failures += run_lexical_zone_context_test();
     printf("\n");
     failures += run_parser_reentry_cleanup_test();
+    printf("\n");
+    failures += run_parser_error_no_silent_truncation_test();
+    printf("\n");
+    failures += run_fixed_sink_announces_clipping_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

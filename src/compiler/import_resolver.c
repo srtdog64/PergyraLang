@@ -21,18 +21,22 @@
 static void
 set_error(char **error_message, const char *fmt, ...)
 {
-    char buffer[1024];
     va_list args;
+    char *formatted;
 
     if (error_message == NULL)
         return;
 
+    /* Heap-exact: these messages nest a full parser diagnostic inside a
+     * module path, so a fixed buffer would silently drop the tail of the
+     * very thing the reader needs. NULL only on OOM, which every caller
+     * already renders as its own generic fallback. */
     va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    formatted = pergyra_strdup_vprintf(fmt, args);
     va_end(args);
 
     free(*error_message);
-    *error_message = pergyra_strdup(buffer);
+    *error_message = formatted;
 }
 
 /* read_file_text, path_dirname_dup, path_join_dup are now in path_utils.h */

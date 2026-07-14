@@ -5,6 +5,8 @@
 
 #include "transpiler_mir_reason.h"
 
+#include "../common/string_compat.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -20,6 +22,11 @@ transpiler_mir_reasonf(char *reason, size_t reason_cap,
     va_start(ap, fmt);
     written = vsnprintf(reason, reason_cap, fmt, ap);
     va_end(ap);
-    if (written < 0)
+    if (written < 0) {
         reason[0] = '\0';
+        return;
+    }
+    /* The reason text is the "why" half of a codegen refusal; a clipped one
+     * that does not admit it sends the reader after the wrong cause. */
+    pergyra_str_mark_clipped(reason, reason_cap, written);
 }

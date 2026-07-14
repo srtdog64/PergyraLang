@@ -166,4 +166,34 @@ pergyra_str_appendf(char *dst, size_t dst_cap, const char *fmt, ...)
     return used;
 }
 
+/*
+ * Stamp a fixed-capacity buffer that could not hold its formatted text.
+ * `needed` is what vsnprintf reported it wanted (excluding the NUL).
+ *
+ * Diagnostics that own a heap string should just be heap-exact
+ * (pergyra_strdup_vprintf). This exists for the sinks that still cannot --
+ * a clipped message must not be indistinguishable from a whole one, because
+ * a reader who cannot see the loss will debug the wrong thing. No-op when
+ * the text fit.
+ */
+static inline void
+pergyra_str_mark_clipped(char *dst, size_t dst_cap, int needed)
+{
+    char suffix[48];
+    int suffix_len;
+
+    if (dst == NULL || dst_cap < 8 || needed < 0)
+        return;
+    if ((size_t)needed < dst_cap)
+        return;
+
+    suffix_len = snprintf(suffix, sizeof(suffix), " ...[+%d bytes clipped]",
+                          needed - (int)dst_cap + 1);
+    if (suffix_len < 0 || (size_t)suffix_len >= dst_cap)
+        return;
+
+    memcpy(dst + dst_cap - 1 - (size_t)suffix_len, suffix, (size_t)suffix_len);
+    dst[dst_cap - 1] = '\0';
+}
+
 #endif
