@@ -80,22 +80,28 @@ func AstExpressionNodeIsCallableCallee(kind: Int) -> Bool {
         kind == AstExpressionNodeMemberAccess();
 }
 
-func AstExpressionNodeArity(kind: Int) -> Int {
-    if !AstExpressionNodeKindKnown(kind) {
-        Log("TYPED AST INVARIANT ERROR: unknown expression node kind");
-        Exit(1);
-    }
+func AstExpressionNodeArityOpt(kind: Int) -> Option<Int> {
+    if !AstExpressionNodeKindKnown(kind) { return None; }
     if kind == AstExpressionNodeLeaf() ||
         kind == AstExpressionNodeStructFieldName() ||
         kind == AstExpressionNodeArrayLiteral() {
-        return 0;
+        return Some(0);
     }
     if AstExpressionNodeIsUnaryOperator(kind) ||
         kind == AstExpressionNodeCall() ||
         kind == AstExpressionNodeStructLiteral() {
-        return 1;
+        return Some(1);
     }
-    return 2;
+    return Some(2);
+}
+
+func AstExpressionNodeArity(kind: Int) -> Int {
+    let arity: Option<Int> = AstExpressionNodeArityOpt(kind);
+    if !IsSome(arity) {
+        Log("TYPED AST INVARIANT ERROR: unknown expression node kind");
+        Exit(1);
+    }
+    return UnwrapOption(arity);
 }
 
 func AstExpressionArenaEmpty() -> AstExpressionArena {

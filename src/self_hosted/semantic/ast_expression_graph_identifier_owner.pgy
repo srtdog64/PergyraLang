@@ -24,21 +24,6 @@ func SemanticExpressionGraphIdentifierUndefined(
     return SemanticExpressionGraphIdentifierFact(true, true, name);
 }
 
-func SemanticExpressionGraphIdentifierNodeArity(kind: Int) -> Int {
-    if !AstExpressionNodeKindKnown(kind) { return -1; }
-    if kind == AstExpressionNodeLeaf() ||
-        kind == AstExpressionNodeStructFieldName() ||
-        kind == AstExpressionNodeArrayLiteral() {
-        return 0;
-    }
-    if AstExpressionNodeIsUnaryOperator(kind) ||
-        kind == AstExpressionNodeCall() ||
-        kind == AstExpressionNodeStructLiteral() {
-        return 1;
-    }
-    return 2;
-}
-
 func SemanticExpressionGraphIdentifierEvidence(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
@@ -109,10 +94,11 @@ func SemanticExpressionGraphIdentifierEvidence(
             ArrayPush(pending, graph.arena.right_children[node_id]);
             continue;
         }
-        let arity: Int = SemanticExpressionGraphIdentifierNodeArity(kind);
-        if arity < 0 {
+        let arity_opt: Option<Int> = AstExpressionNodeArityOpt(kind);
+        if !IsSome(arity_opt) {
             return SemanticExpressionGraphIdentifierInvalid();
         }
+        let arity: Int = UnwrapOption(arity_opt);
         if arity >= 1 {
             ArrayPush(pending, graph.arena.left_children[node_id]);
         }

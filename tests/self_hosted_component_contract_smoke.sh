@@ -2518,6 +2518,10 @@ require_file "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" 200
 require_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" \
     "func SemanticExpressionGraphIdentifierEvidence("
+reject_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" \
+    "func SemanticExpressionGraphIdentifierNodeArity("
+reject_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" \
+    "return -1"
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "func SemanticAstExpressionVerdictFromGraph("
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
@@ -3268,6 +3272,7 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCallArgument()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMemberAccess()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArityOpt("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArity("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" 'Log("TYPED AST INVARIANT ERROR: unknown expression node kind")'
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "Exit(1);"
