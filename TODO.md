@@ -18729,6 +18729,20 @@ fail-closed(PGY_C_RUNNER_TMPDIR_UNAVAILABLE). 목격자 RED실증(구코드 공�
 이미 충족→영구보류(재개=clang LLVM+ASAN 게이트 선행).** 잔여: WO-SEC-2 게이트 CI
 배선(ci_linux_steps 동시세션 잠금) + LLVM+ASAN 게이트(clang, 힙전환 재개 시).
 
+**WO-SEC-2 게이트 flaky 교정 + semantic 무한루프 발견 (2026-07-14, 커밋 02b49db1)**:
+test-asan 백그라운드 방치가 37분 hang → 진단. 범인 = `sanitizer_compile_smoke.sh`가
+**동시 세션이 계속 편집하는 live 파일**(driver_rung2_owner.pgy)을 하드코딩 →
+그 세션의 미완성 중간 상태가 **pgy를 semantic 단계 무한루프**에 빠뜨림(non-ASAN
+Windows pgy로 재현: 90s CPU 89.6s). **frozen 사본(WO-SEMPERF 스냅샷)은 현재 pgy로
+정상**(12MB 출력) → 내 컴파일러 변경 무죄(memo/registry는 종료성 중립, 순수 추가).
+교정: 게이트를 committed backend_compare 코퍼스만 쓰게 + per-source `timeout`(hang을
+HANG finding으로 보고). 재실행 clean(40소스+3배터리). **★2건 잔여 견고성 갭**:
+(1) 게이트가 timeout 없이 백그라운드 방치되면 무한 hang — [[feedback_gate_runtime_discipline]]
+위반 재발(무거운 게이트는 timeout+포그라운드). (2) **pgy semantic에 종료 보장 없음** —
+파서엔 depth guard(400) 있으나 semantic_analyze는 어떤 입력(동시세션 미완성 .pgy)에서
+무한루프. 원인 격리는 입력이 moving target(동시세션 미커밋)이라 보류, semantic guard
+추가는 별도 대작업.
+
 ## 진행 노트 — 병렬 캡스톤 fixture (2026-07-11, BDFL "모든 병렬 문법 + OS 스케줄링 예시")
 
 `parallel_scheduler_showcase` 착지 — 언어 수준·난이도·정적 워크플로우를
