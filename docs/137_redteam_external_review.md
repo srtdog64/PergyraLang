@@ -176,8 +176,21 @@ docs/119) / 파일 과분할=C namespace 부재, self-host 해결 결정 / "C컴
    tmp의 예측가능 이름 제거, mkdir 0700 원자 생성 안에 기록. fopen("w")가
    심링크를 따라감을 실증하고 RED로 목격.
 3. **진단 무음 잘림** (§1.1 위반) → **WO-DIAG-1**(커밋 17d3b1d8): parser/import
-   heap-exact 전환 + LLVM/intent/reason은 잘림 선언. (LLVM 힙 전환 잔여는
-   error-state 불변식 위반 때문에 WO-SEC-2 이후로 미뤘고, 이제 ASAN이 backstop.)
+   heap-exact 전환 + LLVM/intent/reason은 잘림 선언(`mark_clipped`)으로 §1.1 충족.
+
+**★ WO-DIAG-1 LLVM 힙 전환 시도→되돌림 (2026-07-14, 정직 기록):** WO-DIAG-1에서
+"ASAN 이후로 미룬" LLVM error_msg 힙 전환을 WO-SEC-2 완료 후 시도했다가 **되돌렸다.**
+발견 2건: (1) **backstop이 실제로 없다** — `llvm_mir_match_condition.c` 등은
+`#ifdef PGY_LLVM_ENABLED` 전용인데 ASAN 게이트는 `LLVM_ENABLED=0`(WSL은 llvm-c
+헤더 부재)이고 Windows는 gcc libasan 부재 → **어느 ASAN도 이 LLVM-전용 코드를
+안 밟는다.** WO-DIAG-1의 "ASAN이 backstop" 전제가 틀렸다. (2) match-payload 투기
+롤백의 소유권 전환 중 **5 exit 중 2개 leak을 놓쳤다**(내가 "3 exit"이라 빠르게 단정
+→ §7.1 위반, 실제 5). backstop 없이 검증-불가한 메모리 수술은 정확히 WO-DIAG-1이
+경계한 "무음 잘림 없애려 무음 메모리 버그 심기"이고, 놓친 2 leak이 그 실증.
+`mark_clipped`가 §1.1을 이미 충족했으니 힙 전환은 순수 일관성이고, §9(안전 최우선)상
+검증 불가 수술로 우아함을 사는 건 역전. **결정: mark_clipped 유지, 힙 전환 영구
+보류.** 재개 선행조건 = clang(Windows, ASAN 런타임 보유 확인됨)으로 LLVM+ASAN 빌드
+게이트 신설.
 
 **메타 교훈**: 카운트(malloc 수·파일 수·assert 수·NULL 체크 수)는 성질의 대리물이
 아니다 — 600 LOC 사건(behavior-not-size)의 일반화. 그러나 **"카운트는 증거가
