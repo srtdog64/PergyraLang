@@ -901,6 +901,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_source_lifecycle_shape.c \
                    $(COMPILER_DIR)/mir_source_node_name.c \
                    $(COMPILER_DIR)/mir_source_local_types.c \
+                   $(COMPILER_DIR)/mir_source_local_type_shape.c \
+                   $(COMPILER_DIR)/mir_source_local_expr_binding_facts.c \
                    $(COMPILER_DIR)/mir_source_local_expr_call_facts.c \
                    $(COMPILER_DIR)/mir_source_local_expr_types.c \
                    $(COMPILER_DIR)/mir_speculation_facts.c \
@@ -1416,6 +1418,8 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_type_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_expr_binding_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_call_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
@@ -1450,6 +1454,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_source_lifecycle_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_type_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_expr_binding_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_call_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_types.o \
                    $(BUILD_DIR)/compiler/mir_source_inventory_build.o \

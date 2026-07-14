@@ -3949,25 +3949,29 @@ require_term "src/compiler/mir_source_local_types.h" \
     "mir_source_local_type_name_in_ast"
 require_term "Makefile" \
     "\$(COMPILER_DIR)/mir_source_local_expr_types.c"
+require_term "Makefile" \
+    "\$(COMPILER_DIR)/mir_source_local_type_shape.c"
+require_term "Makefile" \
+    "\$(COMPILER_DIR)/mir_source_local_expr_binding_facts.c"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_capture_node"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_builtin_call_type_name"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "case AST_ARRAY_LITERAL"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_type_scratch_format(scratch, \"Array\""
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "mir_source_local_decl_header_is_constructor_type"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "case AST_ZONE_DECL"
-require_term "src/compiler/mir_source_local_expr_types.c" \
-    "mir_source_local_decl_header(program, callee_name)"
-require_term "src/compiler/mir_source_local_expr_types.c" \
-    "callee_header->ast_type == AST_INTENT_DECL"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
+    "mir_source_local_decl_call_type_name(program, callee_name)"
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
+    "header->ast_type == AST_INTENT_DECL"
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "return \"Bool\""
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_call_return_type_name"
 require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_generic_actual_type_name"
@@ -3981,11 +3985,11 @@ require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
     "MIR captures generic spawn and await source-local types"
 require_term "src/tests/mir/test_mir_lowering_part_c_3.cases.h" \
     "MIR captures extern call source-local types"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_read_call_type_name"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_view_call_type_name"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "mir_source_local_routine_owner_name"
 if ! awk '
     /transpiler_mir_ssa_local_find_versioned_type_name\(/ { in_fn = 1 }
@@ -4003,15 +4007,15 @@ if ! awk '
 ' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_local_facts.c"; then
     fail "C MIR SSA local declarations must consume MIR source-local type facts before initializer AST inference"
 fi
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "routine->hir_routine->owner_name"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_binding_facts.c" \
     "mir_source_local_owner_method_return_type_name"
-require_each_following_term "src/compiler/mir_source_local_expr_types.c" \
+require_each_following_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_owner_method_return_type_name(program," \
     "routine, callee_name" \
     5
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_builtin_returns_first_arg_type"
 for term in \
     "strcmp(callee_name, \"Clamp\") == 0" \
@@ -4021,7 +4025,7 @@ for term in \
     "strcmp(callee_name, \"Read\") == 0" \
     "strcmp(callee_name, \"ViewRead\") == 0" \
     "strcmp(callee_name, \"ViewWrite\") == 0"; do
-    require_term "src/compiler/mir_source_local_expr_types.c" "$term"
+    require_term "src/compiler/mir_source_local_expr_call_facts.c" "$term"
 done
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures builtin call return types for source locals"
@@ -4039,18 +4043,28 @@ require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR captures select receive source-local types"
 require_term "src/compiler/mir_source_local_types.c" \
     "case AST_SELECT_STMT:"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_type_shape.c" \
     "mir_source_local_unwrap_channel_type"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "case AST_CHANNEL_RECV:"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "mir_source_local_for_loop_variable_type_name"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "mir_source_local_call_return_type_name"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "strcmp(member_name, \"Slice\") == 0"
-require_term "src/compiler/mir_source_local_expr_types.c" \
+require_term "src/compiler/mir_source_local_expr_call_facts.c" \
     "strcmp(callee_name, \"SliceCopy\") == 0"
+for owner in \
+    "src/compiler/mir_source_local_type_shape.c" \
+    "src/compiler/mir_source_local_expr_binding_facts.c" \
+    "src/compiler/mir_source_local_expr_call_facts.c" \
+    "src/compiler/mir_source_local_expr_types.c"; do
+    owner_lines="$(wc -l < "$ROOT_DIR/$owner")"
+    if (( owner_lines >= 600 )); then
+        fail "$owner is ${owner_lines} LOC; source-local type owners must stay below 600"
+    fi
+done
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_name_in_ast(ASTNode *body"
 require_term "src/compiler/mir.c" \

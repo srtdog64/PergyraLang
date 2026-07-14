@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mir_source_local_expr_binding_facts.h"
 #include "mir_type_helpers.h"
+#include "../common/pgy_builtin_type_table.h"
 #include "../parser/ast_api.h"
 
 static const char *
@@ -80,7 +82,7 @@ mir_source_local_generic_actual_type_name(const MIRProgram *program,
     return NULL;
 }
 
-const char *
+static const char *
 mir_source_local_call_return_type_name(const MIRProgram *program,
                                        const MIRRoutine *caller_routine,
                                        MIRSourceLocalTypeScratch *scratch,
@@ -124,7 +126,7 @@ mir_source_local_extern_function_decl(const MIRProgram *program,
     return NULL;
 }
 
-const char *
+static const char *
 mir_source_local_extern_return_type_name(const MIRProgram *program,
                                          MIRSourceLocalTypeScratch *scratch,
                                          const char *name)
@@ -134,4 +136,193 @@ mir_source_local_extern_return_type_name(const MIRProgram *program,
         ? mir_source_local_capture_type_to_scratch(scratch,
             ast_func_return_type(decl))
         : NULL;
+}
+
+static bool
+mir_source_local_builtin_returns_first_arg_type(const char *callee_name)
+{
+    return callee_name != NULL
+        && (strcmp(callee_name, "Abs") == 0
+            || strcmp(callee_name, "Clamp") == 0
+            || strcmp(callee_name, "Clone") == 0
+            || strcmp(callee_name, "Max") == 0
+            || strcmp(callee_name, "Min") == 0);
+}
+
+static const char *
+mir_source_local_builtin_fixed_return_type_name(const char *callee_name)
+{
+    const char *type_name;
+
+    if (callee_name == NULL)
+        return NULL;
+    type_name = pgy_builtin_simple_return_type(callee_name);
+    return type_name != NULL && strcmp(type_name, "Void") != 0
+        ? type_name
+        : NULL;
+}
+
+static const char *
+mir_source_local_read_call_type_name(const MIRProgram *program,
+                                     const MIRRoutine *routine,
+                                     MIRSourceLocalTypeScratch *scratch,
+                                     ASTNode *expr)
+{
+    const char *slot_type;
+    char *inner;
+
+    if (ast_call_arg_count(expr) < 1)
+        return NULL;
+    slot_type = mir_source_local_expr_type_name(program, routine, scratch,
+        ast_call_argument(expr, 0));
+    inner = mir_source_local_type_scratch_next(scratch);
+    if (inner == NULL
+        || !mir_source_local_unwrap_slot_like_type(slot_type, inner,
+            MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE)) {
+        return NULL;
+    }
+    return inner;
+}
+
+static const char *
+mir_source_local_view_call_type_name(const MIRProgram *program,
+                                     const MIRRoutine *routine,
+                                     MIRSourceLocalTypeScratch *scratch,
+                                     ASTNode *expr,
+                                     const char *view_type_name)
+{
+    const char *slot_type;
+    char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+
+    if (ast_call_arg_count(expr) < 1)
+        return NULL;
+    slot_type = mir_source_local_expr_type_name(program, routine, scratch,
+        ast_call_argument(expr, 0));
+    if (!mir_source_local_unwrap_slot_like_type(slot_type, inner,
+            sizeof(inner))) {
+        return NULL;
+    }
+    return mir_source_local_type_scratch_format(scratch, view_type_name,
+        inner);
+}
+
+static const char *
+mir_source_local_builtin_call_type_name(const MIRProgram *program,
+                                        const MIRRoutine *routine,
+                                        MIRSourceLocalTypeScratch *scratch,
+                                        ASTNode *expr,
+                                        const char *callee_name)
+{
+    const char *fixed_return;
+
+    if (callee_name != NULL
+        && (strcmp(callee_name, "Read") == 0
+            || strcmp(callee_name, "DeviceRead") == 0)) {
+        return mir_source_local_read_call_type_name(program, routine,
+            scratch, expr);
+    }
+    if (callee_name != NULL && strcmp(callee_name, "ViewRead") == 0) {
+        return mir_source_local_view_call_type_name(program, routine, scratch,
+            expr, "ReadView");
+    }
+    if (callee_name != NULL && strcmp(callee_name, "ViewWrite") == 0) {
+        return mir_source_local_view_call_type_name(program, routine, scratch,
+            expr, "WriteView");
+    }
+    if (callee_name != NULL && strcmp(callee_name, "SliceCopy") == 0
+        && ast_call_arg_count(expr) >= 1) {
+        const char *slice_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (slice_type != NULL
+            && strncmp(slice_type, "Slice<", 6) == 0
+            && mir_source_local_unwrap_array_or_slice_type(slice_type,
+                inner, sizeof(inner))) {
+            return mir_source_local_type_scratch_format(scratch, "Array",
+                inner);
+        }
+        return NULL;
+    }
+    fixed_return = mir_source_local_builtin_fixed_return_type_name(callee_name);
+    if (fixed_return != NULL)
+        return fixed_return;
+    if (!mir_source_local_builtin_returns_first_arg_type(callee_name))
+        return NULL;
+    if (ast_call_arg_count(expr) >= 1) {
+        const char *arg_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        if (arg_type != NULL)
+            return arg_type;
+    }
+    return "Int";
+}
+
+static const char *
+mir_source_local_member_call_type_name(const MIRProgram *program,
+                                       const MIRRoutine *routine,
+                                       MIRSourceLocalTypeScratch *scratch,
+                                       ASTNode *callee)
+{
+    const char *member_name = ast_member_name(callee);
+    const char *receiver_type = mir_source_local_expr_type_name(program,
+        routine, scratch, ast_member_object(callee));
+
+    if (member_name != NULL && strcmp(member_name, "Slice") == 0) {
+        char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        if (mir_source_local_unwrap_array_or_slice_type(receiver_type,
+                inner, sizeof(inner))) {
+            return mir_source_local_type_scratch_format(scratch, "Slice",
+                inner);
+        }
+        return NULL;
+    }
+    return mir_source_local_member_method_return_type_name(program,
+        receiver_type, member_name);
+}
+
+static const char *
+mir_source_local_named_call_type_name(const MIRProgram *program,
+                                      const MIRRoutine *routine,
+                                      MIRSourceLocalTypeScratch *scratch,
+                                      ASTNode *expr,
+                                      const char *callee_name)
+{
+    const char *type_name =
+        mir_source_local_decl_call_type_name(program, callee_name);
+
+    if (type_name != NULL)
+        return type_name;
+    type_name = mir_source_local_call_return_type_name(program, routine,
+        scratch, expr, callee_name);
+    if (type_name != NULL)
+        return type_name;
+    type_name = mir_source_local_extern_return_type_name(program, scratch,
+        callee_name);
+    if (type_name != NULL)
+        return type_name;
+    type_name = mir_source_local_owner_method_return_type_name(program,
+        routine, callee_name);
+    if (type_name != NULL)
+        return type_name;
+    return mir_source_local_builtin_call_type_name(program, routine, scratch,
+        expr, callee_name);
+}
+
+const char *
+mir_source_local_call_expr_type_name(const MIRProgram *program,
+                                     const MIRRoutine *routine,
+                                     MIRSourceLocalTypeScratch *scratch,
+                                     ASTNode *expr)
+{
+    ASTNode *callee = ast_call_callee(expr);
+
+    if (callee != NULL && callee->type == AST_MEMBER_ACCESS) {
+        return mir_source_local_member_call_type_name(program, routine,
+            scratch, callee);
+    }
+    if (callee != NULL && callee->type == AST_IDENTIFIER) {
+        return mir_source_local_named_call_type_name(program, routine,
+            scratch, expr, ast_identifier_name(callee));
+    }
+    return NULL;
 }

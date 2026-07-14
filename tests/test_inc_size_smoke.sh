@@ -226,6 +226,26 @@ if [[ -n "$semantic_owner_violations" ]]; then
     exit 1
 fi
 
+type_system_owners=(
+    "src/compiler/mir_source_local_types.c"
+    "src/compiler/mir_source_local_type_shape.c"
+    "src/compiler/mir_source_local_expr_binding_facts.c"
+    "src/compiler/mir_source_local_expr_call_facts.c"
+    "src/compiler/mir_source_local_expr_types.c"
+)
+
+type_system_owner_violations="$(
+    cd "$ROOT_DIR"
+    wc -l "${type_system_owners[@]}" \
+        | awk '$2 != "total" && $1 > 599 { print }'
+)"
+
+if [[ -n "$type_system_owner_violations" ]]; then
+    echo "type-system owner size violations; limit is 599 LOC:" >&2
+    echo "$type_system_owner_violations" >&2
+    exit 1
+fi
+
 helper_violations="$(
     cd "$ROOT_DIR"
     find src -type f \( -name '*helper*.c' -o -name '*helper*.h' \) \
@@ -243,4 +263,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC hard cap; semantic and source-local type owners <= 599 LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
