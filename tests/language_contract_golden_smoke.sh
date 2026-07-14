@@ -118,9 +118,19 @@ require_text "docs/semantics/19_theoretical_foundations.md" "RustBelt"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "delete-required-fact"
 require_text "tests/proof_carrying_pipeline_smoke.sh" "negative certificate deletion was accepted"
 
-# Proof/refinement anchors: Coq must type-check when available, and adequacy
-# smokes must bind the small models back to live compiler/runtime symbols.
-require_text "tests/formal_semantics_smoke.sh" 'coqc "$coq_proof"'
+# Proof/refinement anchors: the formal gate must actually run a prover over
+# every registered proof, and adequacy smokes must bind the small models back to
+# live compiler/runtime symbols.
+#
+# This used to pin the literal `coqc "$coq_proof"`. Two things changed. Rocq 9
+# renamed the CLI (`rocq compile` replaces coqc) and its official image ships
+# only the new name, so the invocation is resolved into $coq_compile instead of
+# hardcoding one binary. And "type-check when available" turned out to mean the
+# gate passed green on runners with no prover at all (macOS CI was skipping the
+# whole corpus), so the absence of a prover is now fatal unless the skip is
+# declared -- that stronger contract is pinned here too.
+require_text "tests/formal_semantics_smoke.sh" '$coq_compile "$coq_proof"'
+require_text "tests/formal_semantics_smoke.sh" "PGY_ALLOW_MISSING_COQ"
 require_text "tests/slot_calculus_adequacy_smoke.sh" "SlotCalculus.v model <-> slot_manager.h runtime consistent"
 require_text "tests/axis_keyword_adequacy_smoke.sh" "Coq keyword_axis (AxisOwnership.v section 8) = docs/42 axis"
 require_text "tests/ir_minimality_adequacy_smoke.sh" "Coq reads-from model is bound to live compiler dependency shape"
