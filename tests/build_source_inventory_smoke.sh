@@ -513,6 +513,13 @@ if ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK ?= 1' "$ROOT_DIR/Makefile" \
     echo "[build-source-inventory] backend compare precheck must remain overrideable and default-on" >&2
     missing=1
 fi
+if ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS ?= auto' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS="$(PGY_BACKEND_COMPARE_JOBS)"' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'make PGY_BACKEND_COMPARE_JOBS=1 ci-linux' "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_JOBS=1' "$ROOT_DIR/.github/workflows/ci.yml"; then
+    echo "[build-source-inventory] sharded GitHub compare must not add an inner compiler worker pool" >&2
+    missing=1
+fi
 if ! grep -Fq 'PGY_BACKEND_COMPARE_START_INDEX' "$ROOT_DIR/tests/compare_backends.sh" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_MAX_CASES' "$ROOT_DIR/tests/compare_backends.sh" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)"' "$ROOT_DIR/Makefile" \
