@@ -44,14 +44,12 @@ while IFS= read -r case_main; do
 done < <(find "$ROOT_DIR/tests/cases/backend_compare" -mindepth 2 -maxdepth 2 \
              -name main.pgy | LC_ALL=C sort | head -n "${PGY_ASAN_CASES:-40}")
 
-# The self-hosted compiler is the largest, densest source we own -- it walks
-# paths a hand-written fixture never reaches.
-for owner in \
-    "$ROOT_DIR/src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "$ROOT_DIR/src/self_hosted/parser/stmt_owner.pgy"
-do
-    [[ -f "$owner" ]] && SOURCES+=("$owner")
-done
+# Only committed fixtures. The gate used to also compile the largest
+# self-hosted sources (driver_rung2_owner.pgy et al.) for their density, but
+# those are edited live by a parallel workstream: an unfinished intermediate
+# once sent pgy into an infinite loop, and a gate that reads another session's
+# in-progress files is flaky by construction. The backend_compare corpus is
+# committed and stable, and exercises the same allocators.
 
 if (( ${#SOURCES[@]} == 0 )); then
     echo "[sanitizer-compile] found no sources to compile" >&2
@@ -63,6 +61,13 @@ log_dir="$ROOT_DIR/.tmp/sanitizer-compile"
 mkdir -p "$log_dir"
 failed=()
 checked=0
+# Per-source ceiling: a sanitized compile of a fixture is seconds, so a run
+# that blows past this is a hang (a real compiler bug on that input), and the
+# gate must report it rather than wedge -- an unbounded gate that never
+# returns is worse than a failing one.
+timeout_s="${PGY_ASAN_TIMEOUT:-120}"
+have_timeout=0
+command -v timeout >/dev/null 2>&1 && have_timeout=1
 
 for src in "${SOURCES[@]}"; do
     name="$(basename "$(dirname "$src")")_$(basename "$src" .pgy)"
@@ -71,9 +76,18 @@ for src in "${SOURCES[@]}"; do
     # memory behaviour, not the C compiler it would shell out to. A source that
     # does not typecheck standalone still exercises parse+semantic, and its
     # nonzero exit is not a sanitizer finding -- only a report is.
-    "$PGY" "$src" --mir > /dev/null 2> "$log"
+    if (( have_timeout )); then
+        timeout "$timeout_s" "$PGY" "$src" --mir > /dev/null 2> "$log"
+        rc=$?
+    else
+        "$PGY" "$src" --mir > /dev/null 2> "$log"
+        rc=$?
+    fi
     checked=$((checked + 1))
-    if grep -qE 'ERROR: (Address|Leak)Sanitizer|runtime error:|SUMMARY: (Address|Undefined)' "$log"; then
+    if (( rc == 124 )); then
+        failed+=("$src")
+        echo "[sanitizer-compile] HANG in $src (exceeded ${timeout_s}s -- pgy did not terminate)" >&2
+    elif grep -qE 'ERROR: (Address|Leak)Sanitizer|runtime error:|SUMMARY: (Address|Undefined)' "$log"; then
         failed+=("$src")
         echo "[sanitizer-compile] FINDING in $src" >&2
         grep -E 'ERROR:|SUMMARY:|runtime error:' "$log" | head -3 >&2
