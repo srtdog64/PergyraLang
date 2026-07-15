@@ -132,6 +132,15 @@ Mechanized artifacts:
   soundness and the affine-safety theorem `no_op_after_release` (use-after-release
   and double-release are not derivable). Complements the runtime-invariant
   `SlotCalculus.v` by modeling the slot as a composing Step form.
+- [proofs/MachineContactCore.v](proofs/MachineContactCore.v): Coq proof for the
+  layer BELOW the slot -- the machine-contact span (`Region`: base + extent +
+  access-mode + grant-rooted provenance) grounded in a DECLARED machine `Grant`,
+  the systems-language answer to the raw pointer. Keystone `place_grounds_slot`:
+  placing a typed slot on a valid region yields a slot traced to a real grant (no
+  wild slot); plus allocator carve validity/disjointness, access-mode discipline
+  (a data slot fails closed on volatile/MMIO/atomic), fail-closed placement,
+  no-alias, and the metal capability gate. 0 admits / 0 axioms. Design record and
+  implementation roadmap: [proofs/MachineContactCore.md](proofs/MachineContactCore.md).
 - [proofs/AuthorityDelegationCore.v](proofs/AuthorityDelegationCore.v): Coq proof
   sketch for the FOURTH core-calculus corner -- the authority-check step
   (delegation, authorization-logic/ocap lineage). `delegation_requires_holding`
