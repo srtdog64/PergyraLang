@@ -156,7 +156,8 @@ require_max_lines "src/self_hosted/codegen/input/semantic_local_binding_codegen_
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../parser/program_parse_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_artifact_verdict_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../semantic/ast_signature_contract_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_entry_owner.pgy";'
+forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" 'import "../codegen/emission/program_emit.pgy";'
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompilerDriverPipelineReady"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParserAstTreePayloadContractReady()"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "TypedAstArenaPayloadContractReady()"
@@ -168,7 +169,7 @@ require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileS
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "ParseRootProgramArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAstArtifactToC"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
-require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromSemanticArtifact(artifact, semantic_analysis)"
+require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "GenerateCFromVerifiedSemanticArtifact("
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "CompileSourceToAstArtifact(source_path)"
 require_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "return CompilerEmissionArtifact("
