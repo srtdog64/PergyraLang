@@ -1,9 +1,13 @@
 // Receiver types projected from expression handles and nominal field facts.
 
 import "ast_expression_graph_member_view_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "array_type_shape_owner.pgy";
+import "callable_resolution_owner.pgy";
 import "env_owner.pgy";
+import "wrapper_type_owner.pgy";
 
 func SemanticExpressionGraphReceiverTypeName(
     ref graph: SemanticExpressionGraphFacts,
@@ -46,4 +50,94 @@ func SemanticExpressionGraphReceiverTypeName(
         constructors, receiver_fact.nominal_base_name,
         UnwrapOption(field_name)
     );
+}
+
+func SemanticExpressionGraphValueReceiverTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        return SemanticExpressionGraphReceiverTypeName(
+            graph, node_id, constructors, names, types
+        );
+    }
+    if UnwrapOption(kind) == AstExpressionNodeMemberAccess() {
+        let member: SemanticMemberAccessView =
+            SemanticMemberAccessViewFromGraph(graph, node_id);
+        if !member.ok { return None; }
+        let receiver_type: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, member.receiver_node, constructors, names, types,
+                function_names, function_returns
+            );
+        let field_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, member.member_node
+        );
+        if !IsSome(receiver_type) || !IsSome(field_name) { return None; }
+        let receiver_fact: SemanticCanonicalTypeNameFact =
+            SemanticCanonicalTypeNameFactFrom(UnwrapOption(receiver_type));
+        return SemanticAstNominalFieldType(
+            constructors, receiver_fact.nominal_base_name,
+            UnwrapOption(field_name)
+        );
+    }
+    if UnwrapOption(kind) == AstExpressionNodeIndex() {
+        let receiver_node: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        if !IsSome(receiver_node) { return None; }
+        let collection_type: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, UnwrapOption(receiver_node), constructors, names, types,
+                function_names, function_returns
+            );
+        if !IsSome(collection_type) { return None; }
+        return SemanticArrayElementType(UnwrapOption(collection_type));
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok || ArrayLength(function_names) !=
+            ArrayLength(function_returns) {
+        return None;
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || UnwrapOption(callee_kind) !=
+            AstExpressionNodeLeaf() || !IsSome(callee_name) {
+        return None;
+    }
+    if (UnwrapOption(callee_name) == "UnwrapOption" ||
+        UnwrapOption(callee_name) == "Unwrap") &&
+        ArrayLength(call.argument_nodes) == 1 {
+        let wrapped: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, call.argument_nodes[0], constructors, names, types,
+                function_names, function_returns
+            );
+        if !IsSome(wrapped) { return None; }
+        let option_payload: Option<String> = OptionPayloadTypeOpt(
+            UnwrapOption(wrapped)
+        );
+        if IsSome(option_payload) { return option_payload; }
+        return ResultPayloadTypeOpt(UnwrapOption(wrapped));
+    }
+    let target: Option<Int> = SemanticCallableIndex(
+        function_names, UnwrapOption(callee_name)
+    );
+    if !IsSome(target) { return None; }
+    let return_type: String = function_returns[UnwrapOption(target)];
+    if return_type == "" || return_type == "Unknown" { return None; }
+    return Some(return_type);
 }

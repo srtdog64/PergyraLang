@@ -212,6 +212,8 @@ func SemanticAstExpressionVerdictFromGraph(
         IsSome(root_kind) && SemanticExpressionGraphScalarOperatorKind(
             UnwrapOption(root_kind)
         );
+    let member_value_owned: Bool = IsSome(root_kind) &&
+        UnwrapOption(root_kind) == AstExpressionNodeMemberAccess();
     let operand_error: String = "";
     if !concrete_scalar_value_owned {
         operand_error = CheckLogicalOperands(
@@ -234,6 +236,11 @@ func SemanticAstExpressionVerdictFromGraph(
     } else if graph_owned_intrinsic {
         inferred = UnwrapOption(intrinsic);
     } else if scalar_operator_owned {
+        inferred = SemanticExpressionGraphScalarTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    } else if member_value_owned {
         inferred = SemanticExpressionGraphScalarTypeName(
             graph, root_id, constructors, names, types,
             function_names, function_returns

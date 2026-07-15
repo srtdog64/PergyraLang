@@ -231,7 +231,7 @@ func SemanticVerdictPayloadPathEndsWith(path: String, suffix: String) -> Bool {
 
 func SemanticVerdictPayloadBaseName(path: String, suffix: String) -> Option<String> {
     if !SemanticVerdictPayloadPathEndsWith(path, suffix) {
-        return None();
+        return None;
     }
     let last_slash: Int = -1;
     let i: Int = 0;
@@ -244,7 +244,7 @@ func SemanticVerdictPayloadBaseName(path: String, suffix: String) -> Option<Stri
     let start: Int = last_slash + 1;
     let len: Int = StringLength(path) - start - StringLength(suffix);
     if len <= 0 {
-        return None();
+        return None;
     }
     return Some(Substring(path, start, len));
 }
@@ -256,7 +256,7 @@ func SemanticVerdictPayloadExpectedPath(base: String) -> String {
 func SemanticVerdictPayloadExpectedStatus(base: String) -> Option<String> {
     let expected_path: String = SemanticVerdictPayloadExpectedPath(base);
     if !FileExists(expected_path) {
-        return None();
+        return None;
     }
     let content: String = ReadFile(expected_path);
     if StringIndexOf(content, "Status: ok") >= 0 {
@@ -265,7 +265,7 @@ func SemanticVerdictPayloadExpectedStatus(base: String) -> Option<String> {
     if StringIndexOf(content, "Status: error") >= 0 {
         return Some("error");
     }
-    return None();
+    return None;
 }
 
 func SemanticDiagnosticLineStartsWith(line: String, prefix: String) -> Bool {
@@ -278,7 +278,7 @@ func SemanticDiagnosticLineStartsWith(line: String, prefix: String) -> Bool {
 func SemanticExpectedDiagnosticCode(base: String) -> Option<String> {
     let expected_path: String = SemanticVerdictPayloadExpectedPath(base);
     if !FileExists(expected_path) {
-        return None();
+        return None;
     }
     let lines: Array<String> = Split(ReadFile(expected_path), "\n");
     let prefix: String = "Code: ";
@@ -294,7 +294,7 @@ func SemanticExpectedDiagnosticCode(base: String) -> Option<String> {
         }
         i = i + 1;
     }
-    return None();
+    return None;
 }
 
 func SemanticVerdictPayloadFixtureManifestRow(base: String, status: String) -> String {
@@ -382,7 +382,7 @@ func SemanticDiagnosticCodeFromMessage(message: String) -> Option<String> {
         }
         i = i + 1;
     }
-    return None();
+    return None;
 }
 
 func EmitSemanticDiagnosticVocabularyManifest() -> Void {
@@ -540,11 +540,11 @@ func SemanticOracleJsonRootFact(content: String) -> JsonObjectFactTable {
 func SemanticOracleJsonCodeFromContent(content: String) -> Option<String> {
     let root: JsonObjectFactTable = SemanticOracleJsonRootFact(content);
     if !JsonObjectFactTableReady(root) {
-        return None();
+        return None;
     }
     let code_opt: Option<String> = JsonObjectFactStringFieldOpt(root, "code");
     if !IsSome(code_opt) {
-        return None();
+        return None;
     }
     return code_opt;
 }

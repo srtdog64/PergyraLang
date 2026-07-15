@@ -36,6 +36,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SemanticAstStatementFactsContractReady() { return "statement_facts"; }
     if !SemanticAstExpressionVerdictContractReady() { return "expression_verdict"; }
     if !SemanticExpressionGraphIntrinsicTypeContractReady() { return "graph_intrinsic_type"; }
+    if !SemanticArrayTypeShapeContractReady() { return "array_type_shape"; }
     if !SemanticExpressionGraphScalarTypeContractReady() { return "graph_scalar_type"; }
     if !SemanticExpressionGraphWrapperValueContractReady() { return "graph_wrapper_value"; }
     if !SemanticExpressionGraphCollectionMutationContractReady() { return "graph_collection_mutation"; }

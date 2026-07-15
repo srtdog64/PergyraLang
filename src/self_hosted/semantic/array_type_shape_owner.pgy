@@ -1,0 +1,17 @@
+// Canonical Array<T> shape facts without expression-verdict dependencies.
+
+import "../lib/source_scan_owner.pgy";
+
+func SemanticArrayElementType(type_name: String) -> Option<String> {
+    if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
+        SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
+        return Some(Substring(type_name, 6, StringLength(type_name) - 7));
+    }
+    return None;
+}
+
+func SemanticArrayTypeShapeContractReady() -> Bool {
+    let element: Option<String> = SemanticArrayElementType("Array<Int>");
+    return IsSome(element) && UnwrapOption(element) == "Int" &&
+        !IsSome(SemanticArrayElementType("Int"));
+}

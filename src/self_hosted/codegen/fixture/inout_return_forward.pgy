@@ -1,0 +1,14 @@
+func PushAndCount(inout values: Array<Int>) -> Int {
+    ArrayPush(values, 7);
+    return ArrayLength(values);
+}
+
+func ForwardPush(inout values: Array<Int>) -> Int {
+    return PushAndCount(values);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [];
+    Log(ForwardPush(values));
+    Log(ArrayLength(values));
+}

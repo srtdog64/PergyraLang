@@ -11,7 +11,7 @@ func ProbeAssignmentFacts(
 ) -> SemanticAstAssignmentFacts {
     return SemanticAstAssignmentFacts(
         true, "", "", 1,
-        [0], [0], [0], [target], [base_name], [is_indexed],
+        [0], [0], [0], [target], [base_name], [base_name], [is_indexed],
         [index_text], [expression]
     );
 }
@@ -48,14 +48,11 @@ func ProbeOptionAssignment(
         name, name, 0, "", expression
     );
     let graph: SemanticExpressionGraphView = ProbeExpressionGraph(expression);
-    let no_target_graph: SemanticExpressionGraphView =
-        SemanticExpressionGraphView(
-            false, 0, SemanticExpressionGraphFactsEmpty()
-        );
+    let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(name);
     let env_state: Array<String> = ["|", "|"];
     return EmitAssign(
         assignments, 0, expected_type, expected_type,
-        env_state, graph, no_target_graph
+        env_state, graph, target_graph
     );
 }
 

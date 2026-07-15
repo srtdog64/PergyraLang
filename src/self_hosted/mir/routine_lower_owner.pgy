@@ -57,7 +57,7 @@ func SelfMirLowerBlockFromArtifact(
             }
             let assignment_index: Int = UnwrapOption(assignment_index_opt);
             let target: String =
-                state.input.analysis.assignments.target_base_names[assignment_index];
+                state.input.analysis.assignments.target_root_names[assignment_index];
             let target_text: String =
                 state.input.analysis.assignments.target_texts[assignment_index];
             let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);

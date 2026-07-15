@@ -51,7 +51,12 @@ cheap.
 The current codegen-only owner slice is materially cheaper: single-pass
 runtime-call rewriting plus `TextBuilder` measures 956.1-956.5 MB and
 15.792-15.877 seconds on the pinned 1,289,598-byte artifact with byte-identical
-output. A separate integrated-driver probe moved complete typed-arena row-shape
+output in the historical 2026-07-12 series. A fresh 2026-07-16 semantic-bundle
+series measures 665.9-670.2 MB and 12.185-12.338 seconds on a distinct
+1,367,585-byte artifact, with byte-identical output across both runs and a
+26,227-line gen2/gen3 byte-identical fixed point. These are
+separate input series, not a direct A/B comparison. A separate integrated-driver
+probe moved complete typed-arena row-shape
 validation back to the artifact boundary and made readers validate only their
 consumed rows. That reduced peak private memory from 223.4 MB to
 159.4-161.0 MB with identical generated output, but did not improve the
@@ -1301,9 +1306,11 @@ The realistic incremental path toward genuine self-host:
    KiB while preserving 69-fixture C parity. TextBuilder rung 2 owns final
    C-unit assembly and binding-reference rewriting. Runtime builtin projection
    now uses one identifier scan instead of one full scan per builtin. Two-run
-   same-input sampling lowers the codegen-only path from
-   3,347.3-3,394.5 MB to 956.1-956.5 MB with byte-identical output; the latest
-   green codegen fixed point is 14,673 lines. Remaining integrated-driver
+    same-input sampling lowers the codegen-only path from
+    3,347.3-3,394.5 MB to 956.1-956.5 MB with byte-identical output; the latest
+    fresh semantic-bundle series is 665.9-670.2 MB with byte-identical output
+    on its current input. The latest measured codegen fixed point is 26,227
+    lines. Remaining integrated-driver
    parser/semantic/MIR text lifetime is tracked separately. Next rungs:
    scope reclamation, block scoping, typed AST-node facts replacing text rows,
    then round-trip

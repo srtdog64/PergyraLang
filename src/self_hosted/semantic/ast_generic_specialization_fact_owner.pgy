@@ -219,6 +219,18 @@ func SemanticAstGenericSpecializationFactsFromBody(
         expression_surfaces
     ) {
         let use_node_id: Int = expression_surfaces.node_ids[surface_index];
+        let has_body_graph: Bool = false;
+        let root_lane: Int = AstExpressionLaneAtom();
+        while root_lane <= AstExpressionLaneAuxiliary() && !has_body_graph {
+            has_body_graph = IsSome(SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, use_node_id, root_lane
+            ));
+            root_lane = root_lane + 1;
+        }
+        if !has_body_graph {
+            surface_index = surface_index + 1;
+            continue;
+        }
         let function_node: Option<Int> =
             SemanticAstExpressionFunctionNodeForUse(
                 artifact, signatures, use_node_id
@@ -226,9 +238,10 @@ func SemanticAstGenericSpecializationFactsFromBody(
         if !IsSome(function_node) {
             return SemanticAstGenericSpecializationError(
                 "ast_artifact_invalid",
-                SemanticError1(
+                SemanticError2(
                     "ast_artifact_invalid", "owner",
-                    "generic_function_scope"
+                    "generic_function_scope", "node_id",
+                    ToString(use_node_id)
                 ),
                 call_node_ids, signature_indexes, actual_starts,
                 actual_counts, actual_type_names

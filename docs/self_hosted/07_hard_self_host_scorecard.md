@@ -203,7 +203,12 @@ explicitly destroyed through the same C/LLVM value surface. The first typed
 Runtime builtin call projection consumes one identifier scan rather than a
 per-builtin whole-expression scan. Same-input measurement lowers codegen-only
 peak private memory to 956.1-956.5 MB with byte-identical output and a green
-14,673-line codegen fixed point. Integrated parser/semantic/MIR text lifetime
+14,673-line codegen fixed point in the historical series. A separate current
+semantic-bundle input measures 665.9-670.2 MB across two byte-identical runs
+and reaches a 26,227-line gen2/gen3 byte-identical fixed point;
+the evidence gate keeps the input and owner hashes distinct rather than treating
+different input sizes as an A/B optimization result. Integrated
+parser/semantic/MIR text lifetime
 and most ordinary `String` transforms remain active ownership gaps. Typed-arena
 access now seals full parallel-row shape once at the artifact boundary and
 checks only consumed rows in hot readers; the integrated-driver probe fell from

@@ -5,6 +5,7 @@
 
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "text_scan_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
@@ -21,6 +22,7 @@ struct SemanticAstAssignmentFacts {
     scope_node_ids: Array<Int>;
     target_texts: Array<String>;
     target_base_names: Array<String>;
+    target_root_names: Array<String>;
     target_is_indexed: Array<Int>;
     target_index_texts: Array<String>;
     value_texts: Array<String>;
@@ -43,7 +45,7 @@ func SemanticAstAssignmentStructuralError(
         ),
         artifact.count,
         empty_ints, empty_ints, empty_ints, empty_strings, empty_strings,
-        empty_ints, empty_strings, empty_strings
+        empty_strings, empty_ints, empty_strings, empty_strings
     );
 }
 
@@ -54,6 +56,15 @@ func SemanticAstAssignmentIndexOpen(target: String) -> Option<Int> {
         return None;
     }
     return Some(open);
+}
+
+func SemanticAstAssignmentRootName(target_base: String) -> Option<String> {
+    let dot: Int = StringIndexOf(target_base, ".");
+    let root: String = target_base;
+    if dot == 0 { return None; }
+    if dot > 0 { root = Substring(target_base, 0, dot); }
+    if root == "" || !IsIdentifier(root) { return None; }
+    return Some(root);
 }
 
 func SemanticAstAssignmentFactsFromArtifact(
@@ -71,6 +82,7 @@ func SemanticAstAssignmentFactsFromArtifact(
     let scope_node_ids: Array<Int> = [];
     let target_texts: Array<String> = [];
     let target_base_names: Array<String> = [];
+    let target_root_names: Array<String> = [];
     let target_is_indexed: Array<Int> = [];
     let target_index_texts: Array<String> = [];
     let value_texts: Array<String> = [];
@@ -146,11 +158,19 @@ func SemanticAstAssignmentFactsFromArtifact(
             }
             is_indexed = 1;
         }
+        let root_name_opt: Option<String> =
+            SemanticAstAssignmentRootName(base_name);
+        if !IsSome(root_name_opt) {
+            return SemanticAstAssignmentStructuralError(
+                artifact, node_id, "target_root"
+            );
+        }
         ArrayPush(node_ids, node_id);
         ArrayPush(function_node_ids, UnwrapOption(function_opt));
         ArrayPush(scope_node_ids, UnwrapOption(scope_opt));
         ArrayPush(target_texts, target);
         ArrayPush(target_base_names, base_name);
+        ArrayPush(target_root_names, UnwrapOption(root_name_opt));
         ArrayPush(target_is_indexed, is_indexed);
         ArrayPush(target_index_texts, index_text);
         ArrayPush(value_texts, UnwrapOption(value_opt));
@@ -158,8 +178,8 @@ func SemanticAstAssignmentFactsFromArtifact(
     }
     return SemanticAstAssignmentFacts(
         true, "", "", artifact.count, node_ids, function_node_ids,
-        scope_node_ids, target_texts, target_base_names, target_is_indexed,
-        target_index_texts, value_texts
+        scope_node_ids, target_texts, target_base_names, target_root_names,
+        target_is_indexed, target_index_texts, value_texts
     );
 }
 
@@ -196,6 +216,7 @@ func SemanticAstAssignmentFactsMatchArtifact(
         ArrayLength(facts.scope_node_ids) != n ||
         ArrayLength(facts.target_texts) != n ||
         ArrayLength(facts.target_base_names) != n ||
+        ArrayLength(facts.target_root_names) != n ||
         ArrayLength(facts.target_is_indexed) != n ||
         ArrayLength(facts.target_index_texts) != n ||
         ArrayLength(facts.value_texts) != n {
@@ -208,6 +229,7 @@ func SemanticAstAssignmentFactsMatchArtifact(
             rebuilt.scope_node_ids[i] != facts.scope_node_ids[i] ||
             rebuilt.target_texts[i] != facts.target_texts[i] ||
             rebuilt.target_base_names[i] != facts.target_base_names[i] ||
+            rebuilt.target_root_names[i] != facts.target_root_names[i] ||
             rebuilt.target_is_indexed[i] != facts.target_is_indexed[i] ||
             rebuilt.target_index_texts[i] != facts.target_index_texts[i] ||
             rebuilt.value_texts[i] != facts.value_texts[i] {
@@ -220,7 +242,7 @@ func SemanticAstAssignmentFactsMatchArtifact(
 
 func SemanticAstAssignmentFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Let: xs : Array<Int> = [1]\n        Assign: xs[0] = x\n"
+        "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Let: xs : Array<Int> = [1]\n        Assign: xs[0] = x\n        Let: box : Box = Box(1)\n        Assign: box.value = x\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
@@ -228,11 +250,17 @@ func SemanticAstAssignmentFactsContractReady() -> Bool {
         SemanticAstAssignmentFactsFromArtifact(artifact, signatures);
     return SemanticAstAssignmentFactsMatchArtifact(
         artifact, signatures, facts
-    ) && SemanticAstAssignmentCount(facts) == 2 &&
+    ) && SemanticAstAssignmentCount(facts) == 3 &&
         facts.target_texts[0] == "x" && facts.value_texts[0] == "x + 1" &&
+        facts.target_root_names[0] == "x" &&
         facts.target_is_indexed[0] == 0 &&
         facts.target_texts[1] == "xs[0]" &&
         facts.target_base_names[1] == "xs" &&
+        facts.target_root_names[1] == "xs" &&
         facts.target_is_indexed[1] == 1 &&
-        facts.target_index_texts[1] == "0" && facts.value_texts[1] == "x";
+        facts.target_index_texts[1] == "0" && facts.value_texts[1] == "x" &&
+        facts.target_texts[2] == "box.value" &&
+        facts.target_base_names[2] == "box.value" &&
+        facts.target_root_names[2] == "box" &&
+        facts.target_is_indexed[2] == 0;
 }

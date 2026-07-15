@@ -238,6 +238,17 @@ was built from the active rung-2 source.
 
 All six emitted artifacts have SHA-256
 `CC3460FAA069352C50FE5739194C80A759691A247AE9BDA200338F9672D90BAC`.
+That table is the historical 2026-07-12 series and is not reused as evidence
+for later owner revisions. The 2026-07-16 semantic-bundle series uses a fresh
+1,367,585-byte AST artifact. Two release-profile runs measured 665.9 MB and
+670.2 MB peak private memory in 12,185 ms and 12,338 ms, and both emitted the
+same normalized 1,357,754-byte C artifact with SHA-256
+`50FB9D3B333FA2BD98A1070CFC48507F251594E856184F465BE1277608DDB039`.
+The generated compiler also reaches a 26,227-line gen2/gen3 byte-identical
+fixed point at that hash.
+The gate binds that current series to its owner-set hash and 1.25 GiB ceiling;
+it does not compare the two differently sized input series as if they were an
+optimization A/B pair.
 This closes the first measured assembly owner, not compiler text lifetime as a
 whole. The current codegen-only path is below 1 GiB, but parser/semantic/MIR
 composition and other expression/statement transforms still allocate ordinary

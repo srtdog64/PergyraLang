@@ -73,6 +73,10 @@ require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
     '"all_four_runs_byte_identical": true'
 require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
     '"llvm_candidate_byte_identical": true'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"all_two_runs_byte_identical": true'
+require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
+    '"gen2_gen3_byte_identical": true'
 
 EVIDENCE="benchmarks/selfhost_codegen_text_builder_evidence.json"
 owner_hash="$({
@@ -88,7 +92,18 @@ owner_hash="$({
         git hash-object "$file"
     done
 } | sha256sum | awk '{ print toupper($1) }')"
-require_text "$EVIDENCE" "\"owner_set_sha256\": \"$owner_hash\""
+current_region="$(sed -n '/"current_semantic_bundle"/,/^  }/p' "$EVIDENCE")"
+grep -Fq "\"owner_set_sha256\": \"$owner_hash\"" <<<"$current_region" || {
+    echo "[self-host-text-builder] current semantic-bundle owner hash drifted" >&2
+    exit 1
+}
+current_max="$(sed -n '/"current_semantic_bundle"/,/^  }/s/.*"max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+current_required_max="$(sed -n '/"current_semantic_bundle"/,/^  }/s/.*"required_max_peak_private_mb": \([0-9.]*\).*/\1/p' "$EVIDENCE")"
+awk -v sample="$current_max" -v required="$current_required_max" \
+    'BEGIN { exit !(sample > 0 && sample <= required) }' || {
+    echo "[self-host-text-builder] current semantic-bundle evidence exceeded its ceiling" >&2
+    exit 1
+}
 
 baseline_max="$(sed -n '/"baseline"/,/}/s/.*"peak_private_mb": \[\(.*\)\].*/\1/p' "$EVIDENCE" |
     tr ',' '\n' | awk 'BEGIN { max = 0 } { gsub(/ /, ""); if ($1 + 0 > max) max = $1 + 0 } END { print max }')"

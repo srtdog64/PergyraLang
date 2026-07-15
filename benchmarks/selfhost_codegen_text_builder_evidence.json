@@ -1,6 +1,6 @@
 {
   "schema": "pgy.benchmark.selfhost-codegen-text-builder.v2",
-  "measured_at": "2026-07-12",
+  "measured_at": "2026-07-16",
   "platform": "windows-x86_64",
   "sampler": {
     "owner": "scripts/measure_build_pressure.ps1",
@@ -52,6 +52,21 @@
     "required_max_peak_private_mb": 1250.0,
     "all_four_runs_byte_identical": true,
     "llvm_candidate_byte_identical": true
+  },
+  "current_semantic_bundle": {
+    "owner_set_sha256": "89B9FD88A36F77E3E548E8917511D38D9A74CF8244422328D031A7CD586FBA68",
+    "input_artifact": ".tmp/self_hosted/codegen/benchmark_codegen_final.ast.txt",
+    "input_bytes": 1367585,
+    "input_sha256": "18F0F1AE351AE917CAEB93E8F1553F8989514E5BE6A941A2DB71A470234CD906",
+    "peak_private_mb": [665.9, 670.2],
+    "elapsed_ms": [12185, 12338],
+    "max_peak_private_mb": 670.2,
+    "required_max_peak_private_mb": 1250.0,
+    "output_bytes": 1357754,
+    "output_sha256": "50FB9D3B333FA2BD98A1070CFC48507F251594E856184F465BE1277608DDB039",
+    "fixed_point_lines": 26227,
+    "gen2_gen3_byte_identical": true,
+    "all_two_runs_byte_identical": true
   },
   "output": {
     "bytes": 1191490,

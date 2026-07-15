@@ -23,6 +23,12 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     if !IsSome(kind_opt) { return false; }
     let kind: Int = UnwrapOption(kind_opt);
     if kind == AstExpressionNodeLeaf() { return true; }
+    if kind == AstExpressionNodeMemberAccess() {
+        return IsSome(SemanticExpressionGraphValueReceiverTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        ));
+    }
     if SemanticExpressionGraphScalarOperatorKind(kind) {
         let left: Option<Int> = SemanticExpressionGraphLeftChild(
             graph, node_id
@@ -115,6 +121,15 @@ func SemanticExpressionGraphConcreteScalarValueError(
     }
     let kind: Int = UnwrapOption(kind_opt);
     if kind == AstExpressionNodeLeaf() { return ""; }
+    if kind == AstExpressionNodeMemberAccess() {
+        if IsSome(SemanticExpressionGraphValueReceiverTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        )) { return ""; }
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "member_type"
+        );
+    }
     if SemanticExpressionGraphScalarOperatorKind(kind) {
         let left: Option<Int> = SemanticExpressionGraphLeftChild(
             graph, node_id

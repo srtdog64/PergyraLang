@@ -230,9 +230,11 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         let rejected_expression_surface: SemanticAstArtifactVerdict =
             SemanticAstArtifactVerdictError(
                 "ast_artifact_invalid",
-                SemanticError1(
-                    "ast_artifact_invalid", "owner",
-                    "SemanticAstExpressionSurfaceFacts"
+                SemanticError3(
+                    "ast_artifact_invalid",
+                    "owner", "SemanticAstExpressionSurfaceFacts",
+                    "node", ToString(expression_surfaces.failure_node_id),
+                    "lane", expression_surfaces.failure_lane
                 ),
                 artifact.count, 0, requires_entrypoint
             );

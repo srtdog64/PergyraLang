@@ -4,6 +4,7 @@ import "ast_expression_graph_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_resolved_call_type_owner.pgy";
+import "ast_expression_graph_receiver_type_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "expr_type_owner.pgy";
 import "env_owner.pgy";
@@ -107,6 +108,15 @@ func SemanticExpressionGraphScalarTypeName(
         return SemanticExpressionGraphLeafScalarTypeName(
             UnwrapOption(text), names, types
         );
+    }
+    if kind == AstExpressionNodeMemberAccess() {
+        let member_type: Option<String> =
+            SemanticExpressionGraphValueReceiverTypeName(
+                graph, root_id, constructors, names, types,
+                function_names, function_returns
+            );
+        if IsSome(member_type) { return UnwrapOption(member_type); }
+        return "Unknown";
     }
     if AstExpressionNodeIsCallSpine(kind) {
         let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
@@ -252,7 +262,7 @@ func SemanticExpressionGraphScalarTypeName(
 
 func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+        "Program:\n  Struct: Inner\n    Fields:\n      values: Array<Int>\n  Struct: Outer\n    Fields:\n      inner: Inner\n      root: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
     );
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
@@ -266,10 +276,79 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
                 [AstExpressionLaneAuxiliary()], [fact.root], fact.arena
             ), [0], 1
         );
+    let member_cursor: Array<Int> = [0];
+    let member_fact: ParserExpressionFact = ParseExprFact(
+        "fact.inner.values[fact.root]", 0, member_cursor
+    );
+    let member_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [member_fact.root],
+                member_fact.arena
+            ), [0], 1
+        );
+    let call_member_cursor: Array<Int> = [0];
+    let call_member_fact: ParserExpressionFact = ParseExprFact(
+        "MakeOuter().root", 0, call_member_cursor
+    );
+    let call_member_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [call_member_fact.root],
+                call_member_fact.arena
+            ), [0], 1
+        );
+    let indexed_member_text: String = "nodes[active[0]].root";
+    let indexed_member_cursor: Array<Int> = [0];
+    let indexed_member_fact: ParserExpressionFact = ParseExprFact(
+        indexed_member_text, 0, indexed_member_cursor
+    );
+    let indexed_member_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [indexed_member_fact.root],
+                indexed_member_fact.arena
+            ), [0], 1
+        );
+    let wrapper_member_text: String = "UnwrapOption(owner).root";
+    let wrapper_member_cursor: Array<Int> = [0];
+    let wrapper_member_fact: ParserExpressionFact = ParseExprFact(
+        wrapper_member_text, 0, wrapper_member_cursor
+    );
+    let wrapper_member_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [wrapper_member_fact.root],
+                wrapper_member_fact.arena
+            ), [0], 1
+        );
     let empty: Array<String> = [];
-    return SemanticExpressionGraphScalarTypeName(
-        graph, fact.root, constructors, ["i"], ["Int"], empty, empty
-    ) == "Int" && SemanticExpressionGraphScalarTypeName(
-        graph, fact.root, constructors, ["i"], ["String"], empty, empty
-    ) == "Unknown";
+    return member_fact.ok && member_cursor[0] == 28 &&
+        call_member_fact.ok && call_member_cursor[0] == 16 &&
+        indexed_member_fact.ok && indexed_member_cursor[0] ==
+            StringLength(indexed_member_text) &&
+        wrapper_member_fact.ok && wrapper_member_cursor[0] ==
+            StringLength(wrapper_member_text) &&
+        SemanticExpressionGraphScalarTypeName(
+            member_graph, member_fact.root, constructors,
+            ["fact"], ["Outer"], empty, empty
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
+            call_member_graph, call_member_fact.root, constructors,
+            empty, empty, ["MakeOuter"], ["Outer"]
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
+            indexed_member_graph, indexed_member_fact.root, constructors,
+            ["nodes", "active"], ["Array<Outer>", "Array<Int>"],
+            empty, empty
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
+            wrapper_member_graph, wrapper_member_fact.root, constructors,
+            ["owner"], ["Option<Outer>"], empty, empty
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
+            graph, fact.root, constructors, ["i"], ["Int"], empty, empty
+        ) == "Int" && SemanticExpressionGraphScalarTypeName(
+            graph, fact.root, constructors, ["i"], ["String"], empty, empty
+        ) == "Unknown";
 }

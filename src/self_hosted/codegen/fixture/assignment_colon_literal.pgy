@@ -1,0 +1,9 @@
+func Summary() -> String {
+    return "tail";
+}
+
+func Main() -> Void {
+    let output: String = "";
+    output = Concat("head:", Summary());
+    Log(output);
+}

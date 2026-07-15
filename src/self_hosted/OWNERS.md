@@ -206,7 +206,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/delimited_range_fact_owner.pgy` -- trimmed nested
   comma and flat signature ranges shared by call and type facts.
 - `src/self_hosted/semantic/array_type_owner.pgy` -- canonical `Array<T>`
-  element and direct index-access facts.
+  direct index-access verdicts.
+- `src/self_hosted/semantic/array_type_shape_owner.pgy` -- dependency-light
+  canonical `Array<T>` element projection shared by semantic and codegen views.
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum
   declaration identity and variant facts for expression typing and codegen
   routing.

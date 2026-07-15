@@ -2999,6 +2999,10 @@ require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pg
     "func SemanticExpressionGraphScalarTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "SemanticExpressionGraphScalarTypeContractReady()"
+require_file "src/self_hosted/semantic/array_type_shape_owner.pgy"
+require_max_lines "src/self_hosted/semantic/array_type_shape_owner.pgy" 80
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticArrayTypeShapeContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \
@@ -4100,11 +4104,22 @@ require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owne
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAtomText"
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaValueText"
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "TypedAstArenaAuxValueText"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "AstExpressionLaneAtom()"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticValueExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_graph)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_graph: SemanticExpressionGraphView"
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "func EmitReturnWithCleanup("
+require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "_pgy_return_value_"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "let return_cleanup: String"
+require_file "src/self_hosted/codegen/fixture/inout_return_forward.pgy"
+require_file "src/self_hosted/codegen/expected/inout_return_forward_stdout.txt"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "assign_target_graph"
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
@@ -4264,6 +4279,8 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func CodegenMemberReceiverTypeFromGraph("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func SemanticMemberReceiverTypeFromGraph("
 require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     "func SemanticExpressionGraphBuildParserCompactBridge("
@@ -4310,7 +4327,7 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess(" "FindMatchingParen("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "func SemanticMemberReceiverTypeFromGraph(" "ExprMemberFieldType("
+    "func CodegenMemberReceiverTypeFromGraph(" "ExprMemberFieldType("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" "RewriteMemberCalls("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -4348,7 +4365,8 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBareR
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindValueReturnStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let return_graph: SemanticExpressionGraphView"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitReturn(rexpr, cur_fn_ret, env, return_graph)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "EmitReturnWithCleanup("
 require_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" "WrapExprWithSemanticGraph(rexpr, env, graph)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let return_shape: SemanticAstExpressionShapeFact"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindDeferStmtTag()"
@@ -7139,10 +7157,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 71 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 71"
-[[ "$codegen_expected_count" -eq 71 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 71"
+[[ "$codegen_fixture_count" -eq 73 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 73"
+[[ "$codegen_expected_count" -eq 73 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 73"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"

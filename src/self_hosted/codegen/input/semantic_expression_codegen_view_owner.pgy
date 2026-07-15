@@ -38,9 +38,12 @@ func CodegenSemanticExpressionGraphOrDie(
     let graph: SemanticExpressionGraphView =
         SemanticAstExpressionGraphForNode(
             facts, node_id, lane
-        );
+    );
     if !graph.ok {
-        Die("self-host codegen requires a semantic expression graph");
+        Die(Concat(
+            "self-host codegen requires a semantic expression graph: node=",
+            Concat(ToString(node_id), Concat(" lane=", ToString(lane)))
+        ));
     }
     let graph_text: Option<String> = SemanticExpressionGraphNodeText(
         graph.graph, graph.root_id

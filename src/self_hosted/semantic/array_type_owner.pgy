@@ -5,14 +5,7 @@ import "text_scan_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "env_owner.pgy";
-
-func SemanticArrayElementType(type_name: String) -> Option<String> {
-    if StringLength(type_name) >= 8 && StartsWith(type_name, "Array<") &&
-        SourceCharAt(type_name, StringLength(type_name) - 1) == ">" {
-        return Some(Substring(type_name, 6, StringLength(type_name) - 7));
-    }
-    return None;
-}
+import "array_type_shape_owner.pgy";
 
 func SemanticArrayAccessExpressionType(
     expression: String,

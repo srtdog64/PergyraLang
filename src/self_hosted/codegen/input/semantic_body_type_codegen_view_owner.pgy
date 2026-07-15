@@ -19,7 +19,12 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     own bundle: SemanticAstBodyTypeBundle
 ) -> CodegenSemanticBodyTypeFacts {
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
-        Die("codegen semantic body type bundle is missing or invalid");
+        Die(Concat(
+            "codegen semantic body type bundle is missing or invalid: ",
+            SemanticAstBodyTypeBundleReadinessError(
+                artifact, analysis, bundle
+            )
+        ));
     }
     if !CodegenSemanticAssignmentTypeFactsReady(
         artifact, analysis.assignments, bundle.assignment_types

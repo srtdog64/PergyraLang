@@ -227,7 +227,7 @@ func SelfMirLoopAssignedLocal(
 ) -> Bool {
     let i: Int = 0;
     while i < SemanticAstAssignmentCount(input.analysis.assignments) {
-        if input.analysis.assignments.target_base_names[i] == local_name &&
+        if input.analysis.assignments.target_root_names[i] == local_name &&
             SelfMirNodeDescendsFrom(
                 input.artifact.arena,
                 input.analysis.assignments.node_ids[i], body_node_id

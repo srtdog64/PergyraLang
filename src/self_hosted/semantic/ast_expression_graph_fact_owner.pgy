@@ -230,6 +230,43 @@ func SemanticExpressionGraphFactsReady(
     return true;
 }
 
+func SemanticExpressionGraphFactsReadinessSummary(
+    ref facts: SemanticExpressionGraphFacts,
+    expected_root_count: Int
+) -> String {
+    let arena_count: Int = SemanticExpressionGraphArenaNodeCount(facts.arena);
+    let status: String = "false";
+    if facts.ok { status = "true"; }
+    return Concat(
+        Concat(
+            Concat(
+                Concat(
+                    Concat(
+                        Concat(
+                            Concat(
+                                Concat(
+                                    Concat("facts_ok=", status),
+                                    Concat(";roots=", ToString(ArrayLength(facts.roots)))
+                                ),
+                                Concat(";expected=", ToString(expected_root_count))
+                            ),
+                            Concat(";has_roots=", ToString(ArrayLength(facts.has_roots)))
+                        ),
+                        Concat(";nodes=", ToString(arena_count))
+                    ),
+                    Concat(";texts=", ToString(ArrayLength(facts.arena.node_texts)))
+                ),
+                Concat(";left=", ToString(ArrayLength(facts.arena.left_children)))
+            ),
+            Concat(";right=", ToString(ArrayLength(facts.arena.right_children)))
+        ),
+        Concat(
+            Concat(";target_kinds=", ToString(ArrayLength(facts.arena.call_target_kinds))),
+            Concat(";target_names=", ToString(ArrayLength(facts.arena.call_target_names)))
+        )
+    );
+}
+
 func SemanticExpressionGraphViewAt(
     facts: SemanticExpressionGraphFacts,
     surface_index: Int,

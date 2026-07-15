@@ -24,6 +24,8 @@ struct SemanticAstExpressionShapeFact {
 
 struct SemanticAstExpressionSurfaceFacts {
     ok: Bool;
+    failure_node_id: Int;
+    failure_lane: String;
     artifact_node_count: Int;
     node_ids: Array<Int>;
     has_atoms: Array<Bool>;
@@ -90,6 +92,8 @@ func SemanticAstExpressionGraphAtomLaneRequired(
         artifact.arena, node_id, TypedAstKindLogStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindBareCallStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindAssignStmtTag()
     );
 }
 
@@ -116,9 +120,6 @@ func SemanticAstExpressionGraphAuxiliaryLaneRequired(
         artifact.arena, node_id, TypedAstKindForStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindArraySetStmtTag()
-    ) || (TypedAstArenaNodeKindIs(
-        artifact.arena, node_id, TypedAstKindAssignStmtTag()
-    ) && IsSome(TypedAstArenaAuxValueText(artifact.arena, node_id))
     );
 }
 
@@ -146,6 +147,8 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let graph_call_target_kinds: Array<Int> = [];
     let graph_call_target_names: Array<String> = [];
     let graph_ok: Bool = true;
+    let failure_node_id: Int = -1;
+    let failure_lane: String = "";
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -200,27 +203,42 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
                 SemanticAstExpressionGraphAuxiliaryLaneRequired(
                     artifact, node_id
                 );
-            graph_ok = SemanticExpressionGraphAppendLaneRows(
+            let atom_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
                 graph_roots, graph_has_roots, graph_node_kinds,
                 graph_node_texts, graph_left_children, graph_right_children,
                 graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_atom,
                 normalized_atom
             );
-            graph_ok = SemanticExpressionGraphAppendLaneRows(
+            if graph_ok && !atom_graph_ok {
+                failure_node_id = node_id;
+                failure_lane = "atom";
+            }
+            graph_ok = atom_graph_ok;
+            let value_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
                 graph_roots, graph_has_roots, graph_node_kinds,
                 graph_node_texts, graph_left_children, graph_right_children,
                 graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_value,
                 normalized_value
             );
-            graph_ok = SemanticExpressionGraphAppendLaneRows(
+            if graph_ok && !value_graph_ok {
+                failure_node_id = node_id;
+                failure_lane = "value";
+            }
+            graph_ok = value_graph_ok;
+            let auxiliary_graph_ok: Bool = SemanticExpressionGraphAppendLaneRows(
                 graph_roots, graph_has_roots, graph_node_kinds,
                 graph_node_texts, graph_left_children, graph_right_children,
                 graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_auxiliary,
                 normalized_auxiliary
             );
+            if graph_ok && !auxiliary_graph_ok {
+                failure_node_id = node_id;
+                failure_lane = "auxiliary";
+            }
+            graph_ok = auxiliary_graph_ok;
         }
         node_id = node_id + 1;
     }
@@ -234,7 +252,8 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
             )
         );
     return SemanticAstExpressionSurfaceFacts(
-        ok && graph_ok, artifact.count, node_ids, has_atoms, atoms,
+        ok && graph_ok, failure_node_id, failure_lane,
+        artifact.count, node_ids, has_atoms, atoms,
         has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
         normalized_values, normalized_auxiliary_values, operator_rows,
@@ -255,7 +274,7 @@ func SemanticAstExpressionSurfaceRowsFromArtifact(
 }
 
 func SemanticAstExpressionSurfaceCount(
-    facts: SemanticAstExpressionSurfaceFacts
+    ref facts: SemanticAstExpressionSurfaceFacts
 ) -> Int {
     return ArrayLength(facts.node_ids);
 }
@@ -395,10 +414,20 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     facts: SemanticAstExpressionSurfaceFacts,
     graph: SemanticExpressionGraphFacts
 ) -> SemanticAstExpressionSurfaceFacts {
+    let failure_node_id: Int = facts.failure_node_id;
+    let failure_lane: String = facts.failure_lane;
     let valid: Bool = facts.ok &&
         SemanticExpressionGraphFactsReady(
             graph, SemanticAstExpressionSurfaceCount(facts) * 3
         );
+    if facts.ok && !valid && failure_lane == "" {
+        failure_lane = Concat(
+            "graph_shape|",
+            SemanticExpressionGraphFactsReadinessSummary(
+                graph, SemanticAstExpressionSurfaceCount(facts) * 3
+            )
+        );
+    }
     let migrated_root_count: Int = 0;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) && valid {
@@ -429,9 +458,17 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 !SemanticAstExpressionGraphRootSpellingMatches(
                     graph, atom_view.root_id, facts.normalized_atoms[i]
                 ) {
+                if failure_lane == "" {
+                    failure_node_id = node_id;
+                    failure_lane = "atom";
+                }
                 valid = false;
             }
         } else if atom_view.ok {
+            if failure_lane == "" {
+                failure_node_id = node_id;
+                failure_lane = "atom_unexpected";
+            }
             valid = false;
         }
         if migrated_value {
@@ -440,9 +477,17 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                 !SemanticAstExpressionGraphRootSpellingMatches(
                     graph, value_view.root_id, facts.normalized_values[i]
                 ) {
+                if failure_lane == "" {
+                    failure_node_id = node_id;
+                    failure_lane = "value";
+                }
                 valid = false;
             }
         } else if value_view.ok {
+            if failure_lane == "" {
+                failure_node_id = node_id;
+                failure_lane = "value_unexpected";
+            }
             valid = false;
         }
         if migrated_auxiliary {
@@ -452,19 +497,29 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
                     graph, auxiliary_view.root_id,
                     facts.normalized_auxiliary_values[i]
                 ) {
+                if failure_lane == "" {
+                    failure_node_id = node_id;
+                    failure_lane = "auxiliary";
+                }
                 valid = false;
             }
         } else if auxiliary_view.ok {
+            if failure_lane == "" {
+                failure_node_id = node_id;
+                failure_lane = "auxiliary_unexpected";
+            }
             valid = false;
         }
         i = i + 1;
     }
     if migrated_root_count == 0 &&
         SemanticExpressionGraphArenaNodeCount(graph.arena) != 0 {
+        if failure_lane == "" { failure_lane = "orphan_graph"; }
         valid = false;
     }
     return SemanticAstExpressionSurfaceFacts(
-        valid, facts.artifact_node_count, facts.node_ids,
+        valid, failure_node_id, failure_lane,
+        facts.artifact_node_count, facts.node_ids,
         facts.has_atoms, facts.atoms, facts.has_values, facts.values,
         facts.has_auxiliary_values, facts.auxiliary_values,
         facts.normalized_atoms, facts.normalized_values,

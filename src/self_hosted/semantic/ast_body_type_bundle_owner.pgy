@@ -84,31 +84,16 @@ func SemanticAstBodyTypeBundleReady(
     ref analysis: SemanticAstArtifactAnalysis,
     ref bundle: SemanticAstBodyTypeBundle
 ) -> Bool {
-    return analysis.verdict.ok && bundle.verdict.ok &&
-        SemanticAstExpressionSurfaceBorrowReady(
-            artifact, analysis.expression_surfaces
-        ) && SemanticExpressionGraphCarriedCallTargetsReady(
-            analysis.expression_surfaces.expression_graph
-        ) &&
-        bundle.initializer_types.ok && bundle.iteration_types.ok &&
-        bundle.assignment_types.ok && bundle.statement_types.ok &&
-        SemanticAstGenericSpecializationFactsReady(
-            bundle.generic_specializations
-        ) &&
-        bundle.initializer_types.artifact_node_count == artifact.count &&
-        bundle.iteration_types.artifact_node_count == artifact.count &&
-        bundle.assignment_types.artifact_node_count == artifact.count &&
-        bundle.statement_types.artifact_node_count == artifact.count;
+    return SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle
+    ) == "";
 }
 
-func SemanticAstBodyTypeBundleContractError() -> String {
-    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
-    );
-    let analysis: SemanticAstArtifactAnalysis =
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
-    let bundle: SemanticAstBodyTypeBundle =
-        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+func SemanticAstBodyTypeBundleReadinessError(
+    artifact: AstTreeArtifact,
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref bundle: SemanticAstBodyTypeBundle
+) -> String {
     if !analysis.verdict.ok {
         return Concat(
             "analysis_verdict:", Concat(
@@ -118,7 +103,15 @@ func SemanticAstBodyTypeBundleContractError() -> String {
         );
     }
     if !bundle.verdict.ok {
-        return Concat("bundle_verdict:", bundle.verdict.diagnostic_code);
+        return Concat(
+            "bundle_verdict:", Concat(
+                bundle.verdict.diagnostic_code,
+                Concat(":node=", Concat(
+                    ToString(bundle.verdict.first_node_id),
+                    Concat(":", bundle.verdict.diagnostic_message)
+                ))
+            )
+        );
     }
     if !SemanticAstExpressionSurfaceBorrowReady(
         artifact, analysis.expression_surfaces
@@ -130,6 +123,9 @@ func SemanticAstBodyTypeBundleContractError() -> String {
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
+    if !SemanticAstGenericSpecializationFactsReady(
+        bundle.generic_specializations
+    ) { return "generic_specializations"; }
     if bundle.initializer_types.artifact_node_count != artifact.count {
         return "initializer_node_count";
     }
@@ -143,6 +139,19 @@ func SemanticAstBodyTypeBundleContractError() -> String {
         return "statement_node_count";
     }
     return "";
+}
+
+func SemanticAstBodyTypeBundleContractError() -> String {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Assign: x = x + 1\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle
+    );
 }
 
 func SemanticAstBodyTypeBundleContractReady() -> Bool {

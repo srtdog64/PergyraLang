@@ -5,6 +5,7 @@ import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
 import "expr_rewrite.pgy";
 
 func RewriteSemanticCallArgument(
@@ -113,7 +114,7 @@ func RewriteSemanticCallArguments(
     return args;
 }
 
-func SemanticMemberReceiverTypeFromGraph(
+func CodegenMemberReceiverTypeFromGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
     env: CodegenTypeEnv
@@ -137,6 +138,57 @@ func SemanticMemberReceiverTypeFromGraph(
         }
         return Some(value_type);
     }
+    if UnwrapOption(kind) == AstExpressionNodeIndex() {
+        let receiver_node: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        if !IsSome(receiver_node) { return None; }
+        let collection_type: Option<String> =
+            CodegenMemberReceiverTypeFromGraph(
+                graph, UnwrapOption(receiver_node), env
+            );
+        if !IsSome(collection_type) { return None; }
+        let element_type: String = ExprCollectionElementKind(
+            UnwrapOption(collection_type)
+        );
+        if element_type == "" { return None; }
+        return Some(element_type);
+    }
+    if AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, node_id
+        );
+        if !call.ok { return None; }
+        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+            graph, call.call_node
+        );
+        if !IsSome(target_name) { return None; }
+        let source_name: String = UnwrapOption(target_name);
+        if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
+            ArrayLength(call.argument_nodes) == 1 {
+            let wrapped: Option<String> = CodegenMemberReceiverTypeFromGraph(
+                graph, call.argument_nodes[0], env
+            );
+            if !IsSome(wrapped) { return None; }
+            let option_payload: Option<String> = OptionPayloadTypeOpt(
+                UnwrapOption(wrapped)
+            );
+            if IsSome(option_payload) { return option_payload; }
+            return ResultPayloadTypeOpt(UnwrapOption(wrapped));
+        }
+        let call_symbol: String = source_name;
+        let alias: String = LookupKindType(env, source_name, "call");
+        if alias != "" { call_symbol = alias; }
+        let carried_specialization: String = LookupKindType(
+            env, CodegenGenericCallNodeKey(call.call_node), "call"
+        );
+        if carried_specialization != "" {
+            call_symbol = carried_specialization;
+        }
+        let return_type: String = LookupKindType(env, call_symbol, "f");
+        if return_type == "" { return None; }
+        return Some(return_type);
+    }
     if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
         return None;
     }
@@ -148,7 +200,7 @@ func SemanticMemberReceiverTypeFromGraph(
     let member_text: Option<String> = SemanticExpressionGraphNodeText(
         graph, view.member_node
     );
-    let receiver_type: Option<String> = SemanticMemberReceiverTypeFromGraph(
+    let receiver_type: Option<String> = CodegenMemberReceiverTypeFromGraph(
         graph, view.receiver_node, env
     );
     if !IsSome(member_text) ||
@@ -198,12 +250,33 @@ func RewriteSemanticMemberAccess(
         );
         if enum_value != "" { return enum_value; }
     }
-    let receiver_type: Option<String> = SemanticMemberReceiverTypeFromGraph(
+    let receiver_type: Option<String> = CodegenMemberReceiverTypeFromGraph(
         graph, view.receiver_node, env
     );
-    if !IsSome(receiver_type) ||
-        LookupFieldType(env, UnwrapOption(receiver_type), member_name) == "" {
-        Die("semantic member-access field fact is missing");
+    if !IsSome(receiver_type) {
+        let missing_receiver: String = "<unknown>";
+        if IsSome(receiver_text) {
+            missing_receiver = UnwrapOption(receiver_text);
+        }
+        Die(Concat(
+            "semantic member-access receiver type fact is missing: node=",
+            Concat(ToString(node_id), Concat(
+                " receiver=", Concat(missing_receiver, Concat(
+                    " member=", member_name
+                ))
+            ))
+        ));
+    }
+    let receiver_type_name: String = UnwrapOption(receiver_type);
+    if LookupFieldType(env, receiver_type_name, member_name) == "" {
+        Die(Concat(
+            "semantic member-access field fact is missing: receiver_type=",
+            Concat(receiver_type_name, Concat(
+                " member=", Concat(member_name, Concat(
+                    " node=", ToString(node_id)
+                ))
+            ))
+        ));
     }
     let receiver: String = RewriteExprFromSemanticGraph(
         graph, view.receiver_node, env
@@ -321,6 +394,21 @@ func RewriteSemanticDirectCall(
                 ExprKind(UnwrapOption(payload_text), env)
             )
         );
+    } else if source_name == "ToString" {
+        if ArrayLength(view.argument_nodes) != 1 {
+            Die("ToString call requires exactly one argument graph");
+        }
+        let argument_node: Int = view.argument_nodes[0];
+        let argument_type: Option<String> =
+            CodegenMemberReceiverTypeFromGraph(graph, argument_node, env);
+        if IsSome(argument_type) && UnwrapOption(argument_type) == "String" {
+            return RewriteExprFromSemanticGraph(graph, argument_node, env);
+        }
+        let tostring_symbol: Option<String> = RuntimeCallCName(source_name);
+        if !IsSome(tostring_symbol) {
+            Die("ToString runtime ABI row is missing");
+        }
+        call_symbol = UnwrapOption(tostring_symbol);
     } else if source_name == "ArrayLength" {
         if ArrayLength(view.argument_nodes) != 1 {
             Die("ArrayLength call requires exactly one argument graph");
