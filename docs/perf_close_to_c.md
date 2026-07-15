@@ -30,12 +30,28 @@ borrow model, optimizer, ABI, or compiler maturity matches Rust.
 
 ## Method
 
-Micro-benchmarks in `benchmarks/` are compiled three ways and timed best-of-3
-(wall clock, compile time excluded):
+Micro-benchmarks in `benchmarks/` are compiled up to five ways and timed
+best-of-3 (wall clock, compile time excluded):
 
-- hand-C baseline, `gcc -O2`
+- hand-C baseline, `gcc -O2 -fwrapv`
+- hand-C++ baseline, `g++ -O2 -fwrapv -std=c++17` (idiomatic: `std::array`,
+  range-`for`, bounds-checked `.at()`) — run when `g++` is present
+- Rust baseline, `rustc -O` (idiomatic: fixed arrays, iterators, bounds-checked
+  indexing, `match`) — run when `rustc` is present (or `PGY_RUSTC`)
 - Pergyra C backend (`pgy --backend=c`, which transpiles to C then `gcc`)
 - Pergyra LLVM backend (`pgy --backend=llvm`)
+
+The gated micro-benchmark set is `arith`, `fib`, `forloop`, `array`, `match`,
+`branchmix`, `nestloop` — scalar loops, recursion, array iteration,
+bounds-checked indexing, dispatch, branch-heavy control flow, and nested loops;
+`generic` stays a backend-equality construct check. Correctness is
+**cross-language output equality**: every present binary for a benchmark must
+print the same line or the run is a hard FAIL, so a baseline typo and a pgy
+codegen regression are equally caught. C++/Rust are optional reference
+toolchains and are not gated (they ride their own optimizers); the
+pgy-C-vs-hand-C ratio is the drift gate. Run `perf_close_to_c_smoke.sh` to emit
+the per-benchmark comparison row; the C++/Rust columns populate whenever `g++` /
+`rustc` are available.
 
 The Rust comparison numbers in this document come from two sources:
 
@@ -153,15 +169,20 @@ generalize; real self-hosted code runs at near-C speed on both backends.
 
 `tests/perf_close_to_c_smoke.sh`:
 
-- compiles each benchmark on both backends plus a `gcc -O2` baseline,
-- times best-of-3,
-- FAILS if `pgy-C > PERF_C_MAX_RATIO` x hand-C (default 2.0x) - this is the
-  "don't drift from C" guard,
+- compiles each benchmark across every toolchain present — hand-C (`gcc`),
+  hand-C++ (`g++`), Rust (`rustc`), pgy-C, pgy-LLVM — with inline baselines,
+- asserts **cross-language output equality** (every present binary prints the
+  same line; a mismatch is a hard FAIL),
+- times best-of-3 and prints a per-benchmark row,
+- FAILS if `pgy-C > PERF_C_MAX_RATIO` x hand-C (default 2.0x) - the "don't drift
+  from C" guard,
 - WARNS if `pgy-LLVM > PERF_LLVM_MAX_RATIO` x hand-C (default 4.0x).
 
-Skips cleanly when `pgy`, `gcc`, or `bc` are absent, so it is safe in any CI
-lane. Wire it into the Makefile alongside the other `*-test-smoke` targets (it
-expects `PGY` / `BIN_DIR` like the example smoke tests).
+`g++` and `rustc` are optional (skipped cleanly when absent; point `PGY_RUSTC`
+at `rustc` when it is installed but not on `PATH`, as it is here — Rust is not a
+build dependency). The gate also skips cleanly when `pgy`, `gcc`, or `bc` are
+absent, so it is safe in any CI lane. It expects `PGY` / `BIN_DIR` like the other
+smoke tests.
 
 Timing tests are environment-sensitive, hence best-of-3 and generous factors:
 the gate is meant to catch large regressions (boxing, accidental indirection, a
@@ -169,11 +190,15 @@ broken optimization), not micro-noise.
 
 ## Extending
 
-Add a benchmark by dropping `benchmarks/perf_<name>.pgy` and a matching hand-C
-baseline (currently the baselines are inline in the test script; move them to
-`benchmarks/baseline_<name>.c` if the set grows). Good next probes: array
-build+sum (allocation/bounds), pattern `match` dispatch, and a parallel block
-(to measure the threading runtime overhead vs serial C).
+Add a benchmark by dropping `benchmarks/<name>.pgy` and, in
+`tests/perf_close_to_c_smoke.sh`, adding a `pgy_src` mapping plus a
+`write_sources` case with the C / Rust (and, when the idiom differs, C++)
+baselines — each must print the same line the `.pgy` does, which the
+cross-language equality check enforces. `branchmix` (branch-heavy control flow)
+and `nestloop` (nested loops) were added this way, alongside promoting
+`forloop` / `array` / `match` into the external multi-language comparison. Good
+next probes: array build+sum (allocation/bounds) and a parallel block (threading
+runtime overhead vs serial C/C++/Rust threads).
 
 ## LLVM backend optimization work
 

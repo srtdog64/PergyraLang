@@ -1,0 +1,17 @@
+// perf_branchmix.pgy - branch-heavy loop. A data-dependent taken/not-taken
+// branch the optimizer cannot fold, exercising control flow / branch prediction.
+// Every iteration adds 1; when the 3-cycle counter is at 0 it adds 1 more.
+// Over 60,000,000 iters: 60,000,000 + 20,000,000 = 80,000,000.
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    let k: Int = 0;
+    while i < 60000000 {
+        total = total + 1;
+        if k == 0 { total = total + 1; }
+        k = k + 1;
+        if k >= 3 { k = 0; }
+        i = i + 1;
+    }
+    Log("branch=" + ToString(total));
+}

@@ -1,0 +1,17 @@
+// perf_nestloop.pgy - nested loops. An inner counter accumulation the optimizer
+// must keep (data-dependent), exercising loop setup/teardown at both levels.
+// 8000 * 8000 = 64,000,000.
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    let j: Int = 0;
+    while i < 8000 {
+        j = 0;
+        while j < 8000 {
+            total = total + 1;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    Log("nest=" + ToString(total));
+}
