@@ -212,8 +212,16 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     size_t escape_capacity = 0;
     SlotFunctionLookup lookup = {sa->ctx, sa->program_root};
 
-    collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
-        &lookup, 0, NULL);
+    bool escape_collection_failed = false;
+    if (!collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity,
+            &lookup, 0, NULL, &escape_collection_failed)) {
+        free(live_before);
+        free(live_after);
+        free(escapes);
+        semantic_error(sa->ctx, func,
+            "Slot escape analysis failed closed while collecting ownership facts");
+        return false;
+    }
 
     for (size_t i = 0; i < after_count; i++) {
         Symbol *sym = live_after[i];
@@ -395,9 +403,18 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
         return false;
 
     SlotFunctionLookup lookup = {sa->ctx, sa->program_root};
-    for (size_t i = 0; i < n; i++)
-        collect_slot_accesses(ast_parallel_task(parallel, i),
-            &task_accesses[i], &task_counts[i], &task_caps[i], &lookup);
+    for (size_t i = 0; i < n; i++) {
+        bool access_collection_failed = false;
+        if (!collect_slot_accesses(ast_parallel_task(parallel, i),
+                &task_accesses[i], &task_counts[i], &task_caps[i], &lookup,
+                &access_collection_failed)) {
+            semantic_error(sa->ctx, parallel,
+                "Slot access analysis failed closed while collecting ownership facts");
+            for (size_t k = 0; k < n; k++)
+                free(task_accesses[k]);
+            return false;
+        }
+    }
 
     for (size_t i = 0; i < n; i++) {
         for (size_t j = i + 1; j < n; j++) {
@@ -479,7 +496,7 @@ slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
                                      ASTNode *program_root)
 {
     SlotFunctionLookup lookup = {NULL, program_root};
-    return slot_escape_mask_in_program(node, slot_name, &lookup, 0, NULL);
+    return slot_escape_mask_in_program(node, slot_name, &lookup, 0, NULL, NULL);
 }
 
 unsigned

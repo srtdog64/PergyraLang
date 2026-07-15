@@ -11,17 +11,17 @@
 
 #include "slot_analyzer_internal.h"
 
-void
+bool
 slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
                    const char *name, unsigned mask)
 {
     if (name == NULL || entries == NULL || count == NULL || capacity == NULL)
-        return;
+        return false;
 
     for (size_t i = 0; i < *count; i++) {
         if (strcmp((*entries)[i].name, name) == 0) {
             (*entries)[i].mask |= mask;
-            return;
+            return true;
         }
     }
 
@@ -29,15 +29,15 @@ slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
         size_t new_cap = 8;
         if (*capacity != 0) {
             if (*capacity > SIZE_MAX / 2)
-                return;
+                return false;
             new_cap = *capacity * 2;
         }
         if (new_cap > SIZE_MAX / sizeof(SlotAccessEntry))
-            return;
+            return false;
         SlotAccessEntry *new_entries = realloc(*entries,
             new_cap * sizeof(SlotAccessEntry));
         if (new_entries == NULL)
-            return;
+            return false;
         *entries = new_entries;
         *capacity = new_cap;
     }
@@ -45,9 +45,10 @@ slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
     (*entries)[*count].name = name;
     (*entries)[*count].mask = mask;
     (*count)++;
+    return true;
 }
 
-static void
+static bool
 slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
                                     SlotAccessEntry **entries,
                                     size_t *count, size_t *capacity,
@@ -58,13 +59,13 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
     ASTNode *body = NULL;
 
     if (call == NULL || func_decl == NULL)
-        return;
+        return true;
 
     param_count = ast_func_param_count(func_decl);
     body = ast_func_body(func_decl);
 
     if (body == NULL)
-        return;
+        return true;
 
     for (size_t i = 0; i < param_count && i < ast_call_arg_count(call); i++) {
         FuncParam *param = ast_func_param(func_decl, i);
@@ -81,18 +82,22 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
         mask = function_param_flow_summary_demand(
             program_root, func_decl, i);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
-            slot_access_record(entries, count, capacity,
-                ast_identifier_name(arg), SLOT_ACCESS_READ);
+            if (!slot_access_record(entries, count, capacity,
+                    ast_identifier_name(arg), SLOT_ACCESS_READ))
+                return false;
         }
         if ((mask & SLOT_PARAM_SUMMARY_WRITE) != 0) {
-            slot_access_record(entries, count, capacity,
-                ast_identifier_name(arg), SLOT_ACCESS_WRITE);
+            if (!slot_access_record(entries, count, capacity,
+                    ast_identifier_name(arg), SLOT_ACCESS_WRITE))
+                return false;
         }
         if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) {
-            slot_access_record(entries, count, capacity,
-                ast_identifier_name(arg), SLOT_ACCESS_RELEASE);
+            if (!slot_access_record(entries, count, capacity,
+                    ast_identifier_name(arg), SLOT_ACCESS_RELEASE))
+                return false;
         }
     }
+    return true;
 }
 
 unsigned
@@ -294,87 +299,107 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
     return mask;
 }
 
-void
+bool
 collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                       size_t *count, size_t *capacity,
-                      const SlotFunctionLookup *program_root)
+                      const SlotFunctionLookup *program_root,
+                      bool *failed_out)
 {
     if (node == NULL)
-        return;
+        return true;
 
     switch (node->type) {
     case AST_BLOCK:
         for (size_t i = 0; i < ast_block_statement_count(node); i++)
-            collect_slot_accesses(ast_block_statement(node, i), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_block_statement(node, i), entries,
+                    count, capacity, program_root, failed_out))
+                return false;
         break;
 
     case AST_LET_DECL:
-        collect_slot_accesses(ast_let_initializer(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_let_initializer(node), entries, count,
+                capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_IF_STMT:
-        collect_slot_accesses(ast_if_condition(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_if_then_branch(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_if_else_branch(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_if_condition(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_if_then_branch(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_if_else_branch(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_WITH_STMT:
-        collect_slot_accesses(ast_with_slot_type(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_with_body(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_with_slot_type(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_with_body(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_FOR_LOOP:
-        collect_slot_accesses(ast_for_range_start(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_for_range_end(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_for_body(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_for_range_start(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_for_range_end(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_for_body(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_WHILE_LOOP:
-        collect_slot_accesses(ast_while_condition(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_while_body(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_while_condition(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_while_body(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_ASYNC_BLOCK:
         for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
-            collect_slot_accesses(ast_async_block_statement(node, i), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_async_block_statement(node, i), entries, count, capacity, program_root, failed_out))
+                return false;
         break;
 
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < ast_parallel_task_count(node); i++)
-            collect_slot_accesses(ast_parallel_task(node, i), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_parallel_task(node, i), entries, count, capacity, program_root, failed_out))
+                return false;
         break;
 
     case AST_SELECT_STMT:
         for (size_t i = 0; i < ast_select_case_count(node); i++)
-            collect_slot_accesses(ast_select_case(node, i), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_select_default_case(node), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_select_case(node, i), entries, count, capacity, program_root, failed_out))
+                return false;
+        if (!collect_slot_accesses(ast_select_default_case(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_MATCH_STMT:
-        collect_slot_accesses(ast_match_subject(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_match_subject(node), entries, count, capacity, program_root, failed_out))
+            return false;
         for (size_t i = 0; i < ast_match_case_count(node); i++)
-            collect_slot_accesses(ast_match_case_at(node, i), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_match_default_body(node), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_match_case_at(node, i), entries, count, capacity, program_root, failed_out))
+                return false;
+        if (!collect_slot_accesses(ast_match_default_body(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_MATCH_CASE:
-        collect_slot_accesses(ast_match_case_pattern(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_match_case_guard(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_match_case_body(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_match_case_pattern(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_match_case_guard(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_match_case_body(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_ASSIGNMENT:
-        collect_slot_accesses(ast_assignment_target(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_assignment_value(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_assignment_target(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_assignment_value(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_BINARY:
-        collect_slot_accesses(ast_binary_left(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_binary_right(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_binary_left(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_binary_right(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_UNARY:
-        collect_slot_accesses(ast_unary_operand(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_unary_operand(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_CALL:
@@ -387,9 +412,10 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                 && ast_call_argument(node, 0) != NULL
                 && ast_call_argument(node, 0)->type == AST_IDENTIFIER
                 && ast_identifier_name(ast_call_argument(node, 0)) != NULL) {
-                slot_access_record(entries, count, capacity,
-                    ast_identifier_name(ast_call_argument(node, 0)),
-                    access_mask);
+                if (!slot_access_record(entries, count, capacity,
+                        ast_identifier_name(ast_call_argument(node, 0)),
+                        access_mask))
+                    return false;
             }
         }
         if (ast_call_callee(node) != NULL
@@ -398,38 +424,48 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
             ASTNode *callee_decl = slot_analyzer_find_function_decl(
                 program_root, ast_identifier_name(ast_call_callee(node)));
             if (callee_decl != NULL) {
-                slot_access_record_function_aliases(node, callee_decl,
-                    entries, count, capacity, program_root, 0);
+                if (!slot_access_record_function_aliases(node, callee_decl,
+                        entries, count, capacity, program_root, 0))
+                    return false;
             }
         }
-        collect_slot_accesses(ast_call_callee(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_call_callee(node), entries, count, capacity, program_root, failed_out))
+            return false;
         for (size_t i = 0; i < ast_call_arg_count(node); i++)
-            collect_slot_accesses(ast_call_argument(node, i), entries, count, capacity, program_root);
+            if (!collect_slot_accesses(ast_call_argument(node, i), entries, count, capacity, program_root, failed_out))
+                return false;
         break;
 
     case AST_MEMBER_ACCESS:
-        collect_slot_accesses(ast_member_object(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_member_object(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_ARRAY_ACCESS:
-        collect_slot_accesses(ast_array_access_array(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_array_access_index(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_array_access_array(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_array_access_index(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_CHANNEL_SEND:
-        collect_slot_accesses(ast_channel_send_channel(node), entries, count, capacity, program_root);
-        collect_slot_accesses(ast_channel_send_value(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_channel_send_channel(node), entries, count, capacity, program_root, failed_out)
+            || !collect_slot_accesses(ast_channel_send_value(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_CHANNEL_RECV:
-        collect_slot_accesses(ast_channel_recv_channel(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_channel_recv_channel(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     case AST_RETURN:
-        collect_slot_accesses(ast_return_value(node), entries, count, capacity, program_root);
+        if (!collect_slot_accesses(ast_return_value(node), entries, count, capacity, program_root, failed_out))
+            return false;
         break;
 
     default:
         break;
     }
+    (void)failed_out;
+    return true;
 }

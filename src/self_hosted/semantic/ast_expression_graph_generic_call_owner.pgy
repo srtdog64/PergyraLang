@@ -15,19 +15,25 @@ struct SemanticExpressionGraphGenericCallFact {
     diagnostic_code: String;
     diagnostic_message: String;
     return_type_name: String;
+    signature_index: Int;
+    actual_type_names: Array<String>;
 }
 
 func SemanticExpressionGraphGenericCallNotApplicable(
 ) -> SemanticExpressionGraphGenericCallFact {
-    return SemanticExpressionGraphGenericCallFact(false, true, "", "", "");
+    let actuals: Array<String> = [];
+    return SemanticExpressionGraphGenericCallFact(
+        false, true, "", "", "", -1, actuals
+    );
 }
 
 func SemanticExpressionGraphGenericCallError(
     code: String,
     message: String
 ) -> SemanticExpressionGraphGenericCallFact {
+    let actuals: Array<String> = [];
     return SemanticExpressionGraphGenericCallFact(
-        true, false, code, message, ""
+        true, false, code, message, "", -1, actuals
     );
 }
 
@@ -87,15 +93,26 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         return SemanticExpressionGraphGenericCallNotApplicable();
     }
     let generic_start: Int = signatures.generic_starts[signature_index];
-    if !SemanticAstSignatureReturnTypeHasFormalAt(
-        signatures.type_expressions, signature_index,
-        generic_start, UnwrapOption(generic_count), signatures.generic_names
-    ) {
-        return SemanticExpressionGraphGenericCallNotApplicable();
-    }
     let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
         graph, root_id
     );
+    if call.ok && ArrayLength(call.generic_actual_type_names) > 0 &&
+        ArrayLength(call.generic_actual_type_names) !=
+            UnwrapOption(generic_count) {
+        return SemanticExpressionGraphGenericCallError(
+            "generic_argument_count_mismatch",
+            SemanticError3(
+                "generic_argument_count_mismatch", "func", target.name,
+                "expected", ToString(UnwrapOption(generic_count)),
+                "actual", ToString(
+                    ArrayLength(call.generic_actual_type_names)
+                )
+            )
+        );
+    }
+    if UnwrapOption(generic_count) == 0 {
+        return SemanticExpressionGraphGenericCallNotApplicable();
+    }
     let param_count: Option<Int> = SemanticAstFunctionParamCountAt(
         signatures, signature_index
     );
@@ -125,19 +142,6 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         i = i + 1;
     }
     if ArrayLength(call.generic_actual_type_names) > 0 {
-        if ArrayLength(call.generic_actual_type_names) !=
-            UnwrapOption(generic_count) {
-            return SemanticExpressionGraphGenericCallError(
-                "generic_argument_count_mismatch",
-                SemanticError3(
-                    "generic_argument_count_mismatch", "func", target.name,
-                    "expected", ToString(UnwrapOption(generic_count)),
-                    "actual", ToString(
-                        ArrayLength(call.generic_actual_type_names)
-                    )
-                )
-            );
-        }
         i = 0;
         while i < ArrayLength(call.generic_actual_type_names) {
             let explicit_actual: String = SemanticCanonicalTypeName(
@@ -232,6 +236,19 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         }
         i = i + 1;
     }
+    i = 0;
+    while i < ArrayLength(bindings) {
+        if bindings[i] == "" {
+            return SemanticExpressionGraphGenericCallError(
+                "generic_argument_type_invalid",
+                SemanticError2(
+                    "generic_argument_type_invalid", "func", target.name,
+                    "actual_index", ToString(i)
+                )
+            );
+        }
+        i = i + 1;
+    }
     let resolved_return: Option<String> =
         SemanticAstSignatureReturnTypeResolveAt(
             signatures.type_expressions, signature_index,
@@ -248,6 +265,7 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
         );
     }
     return SemanticExpressionGraphGenericCallFact(
-        true, true, "", "", UnwrapOption(resolved_return)
+        true, true, "", "", UnwrapOption(resolved_return),
+        signature_index, bindings
     );
 }

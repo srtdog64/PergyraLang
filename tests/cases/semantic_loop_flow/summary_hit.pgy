@@ -1,0 +1,19 @@
+func Main() -> Void {
+    let a: QubitSlot = ClaimQubit();
+    let b: QubitSlot = ClaimQubit();
+    let total: Int = 0;
+    let outer: Int = 0;
+    while outer < 3 {
+        Measure(a);
+        Measure(b);
+        let inner: Int = 0;
+        while inner < 1 {
+            total = total + inner;
+            inner = inner + 1;
+        }
+        outer = outer + 1;
+    }
+    Log(total);
+    ReleaseQubit(a);
+    ReleaseQubit(b);
+}

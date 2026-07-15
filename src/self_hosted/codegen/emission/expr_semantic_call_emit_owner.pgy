@@ -1,6 +1,7 @@
 // Call and member emission from parser-owned expression graph nodes.
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
@@ -295,10 +296,13 @@ func RewriteSemanticDirectCall(
     let call_symbol: String = source_name;
     let alias: String = LookupKindType(env, source_name, "call");
     if alias != "" { call_symbol = alias; }
-    if ArrayLength(view.generic_actual_type_names) > 0 {
-        call_symbol = CompilerSymbolCGenericSpecializationName(
-            call_symbol, view.generic_actual_type_names
-        );
+    let carried_specialization: String = LookupKindType(
+        env, CodegenGenericCallNodeKey(view.call_node), "call"
+    );
+    if carried_specialization != "" {
+        call_symbol = carried_specialization;
+    } else if ArrayLength(view.generic_actual_type_names) > 0 {
+        Die("semantic generic specialization call fact is missing");
     }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");

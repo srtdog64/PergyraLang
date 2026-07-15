@@ -4,7 +4,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: a : Slot<Int: Int> = ClaimSlot()
+        Let: a : Slot<Int: Int> = ClaimSlot<Int>()
         Write(a, 42)
         Release(a)
 

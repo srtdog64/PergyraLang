@@ -1,0 +1,16 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func Identity<T>(value: T) -> T {
+    return value;
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair {
+        left: Identity(41),
+        right: Identity(1)
+    };
+    Log(ToString(pair.left + pair.right));
+}

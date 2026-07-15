@@ -5,7 +5,7 @@ Program:
     Body:
       Block:
         Let: ch : Channel<Int: Int> = Channel(4)
-        Let: result : Slot<Int: Int> = ClaimSlot()
+        Let: result : Slot<Int: Int> = ClaimSlot<Int>()
         Parallel:
           ChannelSend: ch <- 77
           Write(result, <-ch)

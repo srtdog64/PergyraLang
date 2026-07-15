@@ -12,6 +12,8 @@
 #include "slot_analyzer_internal.h"
 #include "type_checker_internal.h"
 
+#define FUNCTION_PARAM_FLOW_WORK_BUDGET 4096u
+
 typedef enum
 {
     FUNCTION_PARAM_FLOW_UNSEEN = 0,
@@ -47,6 +49,8 @@ struct FunctionParamFlowSummaryStore
     size_t cache_hits;
     size_t recursion_hits;
     size_t fixed_point_passes;
+    size_t work_units;
+    size_t work_budget;
 };
 
 static size_t
@@ -247,6 +251,8 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
 
     if (store == NULL || index >= store->count)
         return SLOT_PARAM_SUMMARY_ALL;
+    if (store->failed)
+        return SLOT_PARAM_SUMMARY_ALL;
     if (store->entries[index].state == FUNCTION_PARAM_FLOW_COMPUTING) {
         store->active_had_recursion = true;
         store->recursion_hits++;
@@ -257,12 +263,24 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
         return store->entries[index].mask;
     }
 
+    if (store->work_units >= store->work_budget) {
+        function_param_flow_fail(store, store->entries[index].function_decl,
+            "recursive summary work budget exceeded");
+        store->entries[index].mask = SLOT_PARAM_SUMMARY_ALL;
+        store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    store->work_units++;
+
     function_decl = store->entries[index].function_decl;
     param = ast_func_param(function_decl, store->entries[index].param_index);
     if (param == NULL || param->name == NULL
         || ast_func_body(function_decl) == NULL) {
+        function_param_flow_fail(store, function_decl,
+            "function parameter or body identity is missing");
+        store->entries[index].mask = SLOT_PARAM_SUMMARY_ALL;
         store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
-        return store->entries[index].mask;
+        return SLOT_PARAM_SUMMARY_ALL;
     }
 
     store->entries[index].state = FUNCTION_PARAM_FLOW_COMPUTING;
@@ -305,6 +323,7 @@ function_param_flow_store_get(const SlotFunctionLookup *lookup)
     }
     store->ctx = ctx;
     store->program_root = lookup->program_root;
+    store->work_budget = FUNCTION_PARAM_FLOW_WORK_BUDGET;
     ctx->function_param_flow_summaries = store;
     return store;
 }
@@ -327,6 +346,8 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     }
     store = function_param_flow_store_get(lookup);
     if (store == NULL)
+        return SLOT_PARAM_SUMMARY_ALL;
+    if (store->failed)
         return SLOT_PARAM_SUMMARY_ALL;
     if (store->program_root != lookup->program_root) {
         function_param_flow_fail(store, function_decl,
@@ -371,6 +392,8 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
             (void)function_param_flow_evaluate(store, i);
         passes++;
         store->fixed_point_passes++;
+        if (store->failed)
+            break;
         if (passes > (store->count - store->active_start + 1) * 6 + 1) {
             function_param_flow_fail(store, function_decl,
                 "recursive summary fixed point did not converge");
@@ -380,9 +403,15 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
         }
     } while (store->active_had_recursion && store->changed);
 
+    if (store->failed) {
+        for (size_t i = store->active_start; i < store->count; i++)
+            store->entries[i].mask = SLOT_PARAM_SUMMARY_ALL;
+    }
     for (size_t i = store->active_start; i < store->count; i++)
         store->entries[i].state = FUNCTION_PARAM_FLOW_COMPLETE;
     store->solving = false;
+    if (store->failed)
+        return SLOT_PARAM_SUMMARY_ALL;
     return store->entries[root_index].mask;
 }
 

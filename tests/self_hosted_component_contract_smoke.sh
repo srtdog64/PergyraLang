@@ -34,18 +34,18 @@ require_dir() {
     [[ -d "$ROOT_DIR/$rel" ]] || fail "missing directory $rel"
 }
 
-declare -A TEXT_CACHE=()
+TEXT_CACHE_REL=""
 TEXT_CACHE_CONTENT=""
 
 load_text_cache() {
     local rel="$1"
 
-    if [[ ! -v "TEXT_CACHE[$rel]" ]]; then
+    if [[ "$rel" != "$TEXT_CACHE_REL" ]]; then
         [[ -f "$ROOT_DIR/$rel" ]] || fail "missing text input: $rel"
-        TEXT_CACHE["$rel"]="$(<"$ROOT_DIR/$rel")" ||
+        TEXT_CACHE_CONTENT="$(<"$ROOT_DIR/$rel")" ||
             fail "could not read text input: $rel"
+        TEXT_CACHE_REL="$rel"
     fi
-    TEXT_CACHE_CONTENT="${TEXT_CACHE[$rel]}"
 }
 
 require_text() {
@@ -220,10 +220,9 @@ require_stage_world_binding() {
 require_max_lines() {
     local rel="$1"
     local cap="$2"
-    local -a lines=()
+    local count
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing line-count input: $rel"
-    mapfile -t lines <"$ROOT_DIR/$rel"
-    local count="${#lines[@]}"
+    count="$(awk 'END { print NR }' "$ROOT_DIR/$rel")"
     [[ "$count" -le "$cap" ]] ||
         fail "$rel has $count lines; cap is $cap"
 }
@@ -1299,7 +1298,9 @@ reject_text "src/self_hosted/compiler/symbol_table_owner.pgy" 'CompilerSymbolPro
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCQualifiedName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/ast_arena_codegen_view_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int, arena: AstArena,"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "specializations: CodegenGenericSpecializationFacts"
+reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "struct CodegenTypeEnv"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "global_rows: String;"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "local_rows: String;"
@@ -2528,6 +2529,14 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct S
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
+require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 599
+require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "struct SemanticAstGenericSpecializationFacts"
+require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromBody("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "generic_specializations: SemanticAstGenericSpecializationFacts"
 require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 160
 require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" "func SemanticAstAnalysisResolveCallTargetsFromBody"
@@ -2905,6 +2914,22 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_struct_value'
 require_text "tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh" \
     'malformed struct value was accepted'
+require_file "tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_generic_struct_value'
+require_text "tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh" \
+    'missing generic formal was accepted'
+require_file "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_inferred_generic_value'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    'inferred actual drift was accepted'
 require_file "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
@@ -3626,7 +3651,8 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "CodegenAstTextI
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "StringIndexOf(ast,"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "texts["
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "indents["
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts)"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "specializations: CodegenGenericSpecializationFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "roles: SemanticAstRoleFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs("
@@ -3863,8 +3889,22 @@ require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owne
     "struct CodegenSemanticBodyTypeFacts"
 require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
     "func CodegenSemanticBodyTypeFactsFromBundleOrDie("
+require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "generic_specializations: SemanticAstGenericSpecializationFacts"
 reject_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
     "SemanticAstBodyTypeBundleFromAnalysis("
+require_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
+    "semantic_facts: SemanticAstGenericSpecializationFacts"
+require_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
+    "func CodegenGenericCallNodeKey("
+reject_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
+    "SemanticCallSpineViewFromGraph("
+reject_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
+    "generic call requires explicit actuals"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CodegenGenericCallNodeKey(view.call_node)"
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CompilerSymbolCGenericSpecializationName("
 reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementTypeFactsFromAnalysisOrDie("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "assignments: SemanticAstAssignmentFacts"

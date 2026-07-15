@@ -191,6 +191,9 @@ inventory must not become a second fact-family owner registry.
   facts plus readiness diagnostics consumed by driver and codegen projections.
 - `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
   body-fixpoint resolution of canonical expression call-target rows.
+- `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
+  semantic-owned direct generic call bindings keyed by expression call node;
+  explicit calls and bounded inferred initializer calls share these rows.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
@@ -377,6 +380,9 @@ inventory must not become a second fact-family owner registry.
   fail-closed codegen view over semantic function signature facts, including
   selected entrypoint or library function-node projection without an arena
   name scan.
+- `src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy`
+  -- ordered C specialization rows projected from semantic generic binding
+  facts; codegen does not reopen expression graphs to infer type actuals.
 - `src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy` --
   fail-closed role name, target-type, and method-identity projection from
   semantic role facts.
@@ -443,6 +449,8 @@ inventory must not become a second fact-family owner registry.
   collection element value emission; graph-owned `ArrayPush` projection is
   separated from the still-explicit array-literal and `ArraySet` text bridges.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
+- `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
+  generic-template suppression and concrete specialization emission.
 - `src/self_hosted/codegen/emission/literal_rewrite.pgy` -- source literal lowering.
 - `src/self_hosted/codegen/emission/program_emit.pgy` -- program emission and prepasses.
 - `src/self_hosted/codegen/emission/program_entry_owner.pgy` -- public source,

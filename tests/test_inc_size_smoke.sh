@@ -232,6 +232,7 @@ fi
 
 type_system_owners=(
     "src/compiler/mir.h"
+    "src/compiler/mir_types.h"
     "src/compiler/mir_source_shape.c"
     "src/compiler/mir_source_provenance.c"
     "src/compiler/mir_source_local_types.c"

@@ -1,11 +1,7 @@
-// Concrete generic-function specializations carried by expression graph facts.
+// Codegen projection of semantic-owned concrete generic call bindings.
 
 import "../../compiler/symbol_table_owner.pgy";
-import "../../semantic/ast_expression_call_target_fact_owner.pgy";
-import "../../semantic/ast_expression_graph_call_view_owner.pgy";
-import "../../semantic/ast_expression_graph_generic_call_owner.pgy";
-import "../../semantic/ast_expression_surface_fact_owner.pgy";
-import "../../semantic/ast_type_name_canonical_owner.pgy";
+import "../../semantic/ast_generic_specialization_fact_owner.pgy";
 import "semantic_signature_codegen_view_owner.pgy";
 
 struct CodegenGenericSpecializationFacts {
@@ -16,6 +12,8 @@ struct CodegenGenericSpecializationFacts {
     actual_starts: Array<Int>;
     actual_counts: Array<Int>;
     actual_type_names: Array<String>;
+    call_node_ids: Array<Int>;
+    call_c_names: Array<String>;
 }
 
 func CodegenGenericSpecializationFactsEmpty(
@@ -25,152 +23,96 @@ func CodegenGenericSpecializationFactsEmpty(
     let actual_starts: Array<Int> = [];
     let actual_counts: Array<Int> = [];
     let actual_type_names: Array<String> = [];
+    let call_node_ids: Array<Int> = [];
+    let call_c_names: Array<String> = [];
     return CodegenGenericSpecializationFacts(
         true, "", signature_indexes, c_names, actual_starts, actual_counts,
-        actual_type_names
+        actual_type_names, call_node_ids, call_c_names
     );
 }
 
 func CodegenGenericSpecializationFactsFromSemantic(
     signatures: SemanticAstFunctionSignatureFacts,
-    expression_surfaces: SemanticAstExpressionSurfaceFacts
+    semantic_facts: SemanticAstGenericSpecializationFacts
 ) -> CodegenGenericSpecializationFacts {
-    let facts: CodegenGenericSpecializationFacts =
-        CodegenGenericSpecializationFactsEmpty();
-    let graph: SemanticExpressionGraphFacts =
-        expression_surfaces.expression_graph;
-    let node_id: Int = 0;
-    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
+    let signature_indexes: Array<Int> = [];
+    let c_names: Array<String> = [];
+    let actual_starts: Array<Int> = [];
+    let actual_counts: Array<Int> = [];
+    let actual_type_names: Array<String> = [];
+    let call_node_ids: Array<Int> = [];
+    let call_c_names: Array<String> = [];
+    if !SemanticAstGenericSpecializationFactsReady(semantic_facts) {
+        return CodegenGenericSpecializationFacts(
+            false, "semantic generic specialization facts are incomplete",
+            signature_indexes, c_names, actual_starts, actual_counts,
+            actual_type_names, call_node_ids, call_c_names
         );
-        if view.ok && ArrayLength(view.generic_actual_type_names) > 0 {
-            let target_kind: Option<Int> =
-                SemanticExpressionGraphCallTargetKind(graph, view.call_node);
-            let target_name: Option<String> =
-                SemanticExpressionGraphCallTargetName(graph, view.call_node);
-            if IsSome(target_kind) && IsSome(target_name) &&
-                UnwrapOption(target_kind) == SemanticCallTargetDirect() {
-                let signature_index_opt: Option<Int> =
-                    SemanticGenericCallSignatureIndex(
-                        signatures, UnwrapOption(target_name)
-                    );
-                if IsSome(signature_index_opt) {
-                    let signature_index: Int =
-                        UnwrapOption(signature_index_opt);
-                    let generic_count_opt: Option<Int> =
-                        SemanticAstFunctionGenericCountAt(
-                            signatures, signature_index
-                        );
-                    if !IsSome(generic_count_opt) ||
-                        UnwrapOption(generic_count_opt) !=
-                            ArrayLength(view.generic_actual_type_names) {
-                        return CodegenGenericSpecializationFacts(
-                            false, "generic actual count does not match signature",
-                            facts.signature_indexes, facts.c_names,
-                            facts.actual_starts, facts.actual_counts,
-                            facts.actual_type_names
-                        );
-                    }
-                    let actuals: Array<String> = [];
-                    let actual_i: Int = 0;
-                    while actual_i <
-                        ArrayLength(view.generic_actual_type_names) {
-                        let actual: String = SemanticCanonicalTypeName(
-                            view.generic_actual_type_names[actual_i]
-                        );
-                        if actual == "" {
-                            return CodegenGenericSpecializationFacts(
-                                false, "generic actual type is invalid",
-                                facts.signature_indexes, facts.c_names,
-                                facts.actual_starts, facts.actual_counts,
-                                facts.actual_type_names
-                            );
-                        }
-                        ArrayPush(actuals, actual);
-                        actual_i = actual_i + 1;
-                    }
-                    let owner: String = CodegenSemanticFunctionOwnerOrDie(
-                        signatures, signature_index
-                    );
-                    let name: String = CodegenSemanticFunctionNameOrDie(
-                        signatures, signature_index
-                    );
-                    let base_c_name: String =
-                        CompilerSymbolCQualifiedName(owner, name);
-                    let c_name: String =
-                        CompilerSymbolCGenericSpecializationName(
-                            base_c_name, actuals
-                        );
-                    let existing: Int = -1;
-                    let spec_i: Int = 0;
-                    while spec_i < ArrayLength(facts.c_names) {
-                        if facts.c_names[spec_i] == c_name {
-                            existing = spec_i;
-                        }
-                        spec_i = spec_i + 1;
-                    }
-                    if existing < 0 {
-                        ArrayPush(facts.signature_indexes, signature_index);
-                        ArrayPush(facts.c_names, c_name);
-                        ArrayPush(
-                            facts.actual_starts,
-                            ArrayLength(facts.actual_type_names)
-                        );
-                        ArrayPush(facts.actual_counts, ArrayLength(actuals));
-                        actual_i = 0;
-                        while actual_i < ArrayLength(actuals) {
-                            ArrayPush(
-                                facts.actual_type_names, actuals[actual_i]
-                            );
-                            actual_i = actual_i + 1;
-                        }
-                    } else if facts.signature_indexes[existing] !=
-                        signature_index {
-                        return CodegenGenericSpecializationFacts(
-                            false, "generic specialization symbol collision",
-                            facts.signature_indexes, facts.c_names,
-                            facts.actual_starts, facts.actual_counts,
-                            facts.actual_type_names
-                        );
-                    }
-                }
-            }
-        }
-        node_id = node_id + 1;
     }
-    node_id = 0;
-    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
+    let row: Int = 0;
+    while row < SemanticAstGenericSpecializationCount(semantic_facts) {
+        let signature_index: Int = semantic_facts.signature_indexes[row];
+        let actuals: Array<String> =
+            SemanticAstGenericSpecializationActuals(semantic_facts, row);
+        let owner: String = CodegenSemanticFunctionOwnerOrDie(
+            signatures, signature_index
         );
-        if view.ok && ArrayLength(view.generic_actual_type_names) == 0 {
-            let target_kind: Option<Int> =
-                SemanticExpressionGraphCallTargetKind(graph, view.call_node);
-            let target_name: Option<String> =
-                SemanticExpressionGraphCallTargetName(graph, view.call_node);
-            if IsSome(target_kind) && IsSome(target_name) &&
-                UnwrapOption(target_kind) == SemanticCallTargetDirect() {
-                let signature_index: Option<Int> =
-                    SemanticGenericCallSignatureIndex(
-                        signatures, UnwrapOption(target_name)
-                    );
-                if IsSome(signature_index) &&
-                    CodegenSemanticFunctionGenericCountOrDie(
-                        signatures, UnwrapOption(signature_index)
-                    ) > 0 {
-                    return CodegenGenericSpecializationFacts(
-                        false, "generic call requires explicit actuals in the bounded self-host emitter",
-                        facts.signature_indexes, facts.c_names,
-                        facts.actual_starts, facts.actual_counts,
-                        facts.actual_type_names
-                    );
-                }
-            }
+        let name: String = CodegenSemanticFunctionNameOrDie(
+            signatures, signature_index
+        );
+        let c_name: String = CompilerSymbolCGenericSpecializationName(
+            CompilerSymbolCQualifiedName(owner, name), actuals
+        );
+        let existing: Int = -1;
+        let spec_i: Int = 0;
+        while spec_i < ArrayLength(c_names) {
+            if c_names[spec_i] == c_name { existing = spec_i; }
+            spec_i = spec_i + 1;
         }
-        node_id = node_id + 1;
+        if existing < 0 {
+            ArrayPush(signature_indexes, signature_index);
+            ArrayPush(c_names, c_name);
+            ArrayPush(actual_starts, ArrayLength(actual_type_names));
+            ArrayPush(actual_counts, ArrayLength(actuals));
+            let actual_i: Int = 0;
+            while actual_i < ArrayLength(actuals) {
+                ArrayPush(actual_type_names, actuals[actual_i]);
+                actual_i = actual_i + 1;
+            }
+        } else if signature_indexes[existing] != signature_index {
+            return CodegenGenericSpecializationFacts(
+                false, "generic specialization symbol collision",
+                signature_indexes, c_names, actual_starts, actual_counts,
+                actual_type_names, call_node_ids, call_c_names
+            );
+        }
+        ArrayPush(call_node_ids, semantic_facts.call_node_ids[row]);
+        ArrayPush(call_c_names, c_name);
+        row = row + 1;
     }
-    return facts;
+    return CodegenGenericSpecializationFacts(
+        true, "", signature_indexes, c_names, actual_starts, actual_counts,
+        actual_type_names, call_node_ids, call_c_names
+    );
+}
+
+func CodegenGenericCallNodeKey(call_node_id: Int) -> String {
+    return Concat("$generic_call_node_", ToString(call_node_id));
+}
+
+func CodegenGenericSpecializationCallEnvRows(
+    facts: CodegenGenericSpecializationFacts
+) -> String {
+    let rows: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(facts.call_node_ids) {
+        ArrayPush(rows, Concat(
+            CodegenGenericCallNodeKey(facts.call_node_ids[i]),
+            Concat("=call:", Concat(facts.call_c_names[i], "|"))
+        ));
+        i = i + 1;
+    }
+    return StringJoin(rows, "");
 }
 
 func CodegenGenericSpecializationCount(

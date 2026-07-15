@@ -10,6 +10,7 @@ import "semantic_statement_codegen_view_owner.pgy";
 struct CodegenSemanticBodyTypeFacts {
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
+    generic_specializations: SemanticAstGenericSpecializationFacts;
 }
 
 func CodegenSemanticBodyTypeFactsFromBundleOrDie(
@@ -31,6 +32,7 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
         Die("codegen semantic statement type facts are missing or invalid");
     }
     return CodegenSemanticBodyTypeFacts(
-        bundle.assignment_types, bundle.statement_types
+        bundle.assignment_types, bundle.statement_types,
+        bundle.generic_specializations
     );
 }

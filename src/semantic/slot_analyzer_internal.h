@@ -42,9 +42,9 @@ typedef struct
 unsigned slot_builtin_access_mask(const char *name);
 bool slot_builtin_call_is_local_non_escape(const char *name);
 
-void slot_access_record(SlotAccessEntry **entries, size_t *count,
+bool slot_access_record(SlotAccessEntry **entries, size_t *count,
                         size_t *capacity, const char *name, unsigned mask);
-void slot_escape_record(SlotEscapeEntry **entries, size_t *count,
+bool slot_escape_record(SlotEscapeEntry **entries, size_t *count,
                         size_t *capacity, const char *name, unsigned mask);
 
 ASTNode *slot_analyzer_find_function_decl(const SlotFunctionLookup *lookup,
@@ -61,17 +61,20 @@ unsigned slot_access_mask_for_named_symbol(ASTNode *node,
 unsigned slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
                                      const SlotFunctionLookup *lookup,
                                      int depth,
-                                     const SlotSummaryOrigin *origin);
+                                     const SlotSummaryOrigin *origin,
+                                     bool *failed_out);
 unsigned slot_param_summary_in_program(ASTNode *node, const char *slot_name,
                                        const SlotFunctionLookup *lookup,
                                        int depth,
                                        const SlotSummaryOrigin *origin);
-void collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
+bool collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                           size_t *count, size_t *capacity,
                           const SlotFunctionLookup *lookup, int depth,
-                          const SlotSummaryOrigin *origin);
-void collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
+                          const SlotSummaryOrigin *origin,
+                          bool *failed_out);
+bool collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
                            size_t *count, size_t *capacity,
-                           const SlotFunctionLookup *lookup);
+                           const SlotFunctionLookup *lookup,
+                           bool *failed_out);
 
 #endif /* PERGYRA_SLOT_ANALYZER_INTERNAL_H */

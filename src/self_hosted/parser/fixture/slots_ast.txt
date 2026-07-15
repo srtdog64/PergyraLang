@@ -5,7 +5,7 @@ Program:
     Returns: Int
     Body:
       Block:
-        Let: acc : Slot<Int: Int> = ClaimSlot()
+        Let: acc : Slot<Int: Int> = ClaimSlot<Int>()
         Write(acc, 0)
         For: i in 0..limit
           Block:
@@ -28,8 +28,8 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: a : Slot<Int: Int> = ClaimSlot()
-        Let: b : Slot<Int: Int> = ClaimSlot()
+        Let: a : Slot<Int: Int> = ClaimSlot<Int>()
+        Let: b : Slot<Int: Int> = ClaimSlot<Int>()
         Parallel:
           Write(a, 10)
           Write(b, 20)

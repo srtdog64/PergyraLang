@@ -7671,3 +7671,46 @@ Released/default replacement remains 0%.
 - Generic/member aggregate field values and broader object initializer policy
   remain bridged. The remaining 27 MIR fixtures and broader integration matrix
   were not run; released/default substitution remains 0%.
+
+### 2026-07-15 -- explicit generic aggregate values reach hard DRV-2
+
+- Added `generic_struct_field_value_flow.pgy` as the twenty-ninth MIR fixture.
+  Routine generic formals, ordered explicit actuals, and canonical
+  `Identity<Int>` expression text survive native MIR, self MIR, and
+  canonicalization.
+- Removed the competing semantic top-level operator reconstruction from the
+  compact expression bridge. Canonical prefix-try remains an explicit
+  normalization; all other supported topology now comes from the parser graph.
+- Aggregate verdicts consume graph-owned intrinsic and generic return types
+  before legacy text inference. Codegen emits `Identity_Int` and does not emit
+  an unspecialized `Identity` template.
+- C-built and LLVM-built hard drivers pass the full 20-source battery and the
+  selected generic MIR fixture. Mutating away `generics:["T"]` produces
+  `generic_argument_count_mismatch`; corrupting `generic_type_actual` is
+  rejected as an invalid MIR expression graph.
+- This closes only explicit top-level actuals used by aggregate fields.
+  Inferred actuals, member generic calls, nested generic locals, the remaining
+  28 MIR fixtures, and released/default substitution remain open.
+
+### 2026-07-15 -- inferred generic initializer actuals become semantic facts
+
+- Added `generic_struct_field_inferred_value_flow.pgy` as the thirtieth MIR
+  fixture. Its `Identity(41)` and `Identity(1)` calls contain no explicit
+  generic actual syntax.
+- Added `SemanticAstGenericSpecializationFacts` as the call-node keyed owner of
+  resolved signature indexes and ordered actual type names. The owner derives
+  inferred direct-call actuals under local initializer roots from typed graph
+  and local-environment facts and fails closed when such a call escapes the
+  bounded producer coverage.
+- Repointed codegen specialization and direct-call emission to that semantic
+  owner. Codegen no longer scans expression-graph nodes or reconstructs a
+  specialization name from the direct callee spelling.
+- C-built and LLVM-built hard drivers pass the full 20-source battery and the
+  selected inferred-generic MIR fixture. Both emit and call `Identity_Int`.
+  Mutating only the graph argument type while preserving source text fails as
+  `call_arg_type_mismatch`.
+- Component, hard-substitution, and owner-size contracts pass. This closes only
+  inferred direct generic calls under local initializer roots. Return- and
+  assignment-rooted inferred calls, member generic calls, nested generic
+  locals, the other 29 MIR fixtures, and released/default substitution remain
+  open.

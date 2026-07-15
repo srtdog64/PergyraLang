@@ -31,6 +31,9 @@ required_owner_terms = (
     "function_param_flow_key_hash",
     "FUNCTION_PARAM_FLOW_COMPUTING",
     "FUNCTION_PARAM_FLOW_COMPLETE",
+    "FUNCTION_PARAM_FLOW_WORK_BUDGET",
+    "work_units",
+    "recursive summary work budget exceeded",
     "function_param_flow_summary_demand",
 )
 for term in required_owner_terms:
@@ -100,5 +103,24 @@ print(
     f"recursion_hits={recursion_hits} passes={passes}"
 )
 PY
+
+ESCAPE_FIXTURE="$ROOT_DIR/tests/cases/function_param_flow_summary/escape_negative.pgy"
+ESCAPE_ERR="${TMPDIR:-$ROOT_DIR/.tmp}/function_param_flow_escape_negative.err"
+mkdir -p "$(dirname "$ESCAPE_ERR")"
+if "$PGY_BIN" --hir "$ESCAPE_FIXTURE" >/dev/null 2>"$ESCAPE_ERR"; then
+    echo "escape-negative fixture unexpectedly passed" >&2
+    cat "$ESCAPE_ERR" >&2
+    exit 1
+fi
+for expected in \
+    "Borrowed ref slot handle (anchored) 'slot' cannot escape through return" \
+    "Borrowed ref slot handle (anchored) 'slot' cannot escape through channel send" \
+    "Borrowed ref slot handle (anchored) 'slot' cannot escape through helper/function call"; do
+    if ! grep -Fq "$expected" "$ESCAPE_ERR"; then
+        echo "escape-negative fixture missed diagnostic: $expected" >&2
+        cat "$ESCAPE_ERR" >&2
+        exit 1
+    fi
+done
 
 echo "[function-param-flow-summary] demanded recursive fixed point and no-reopen gates passed"

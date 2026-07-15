@@ -92,7 +92,10 @@ component recursive and returns the current conservative approximation. The
 component is then revisited until no may-bit grows. There is no diagnostic-
 affecting depth cutoff; allocation, missing stable identity, or non-convergence
 emits a structured semantic failure and returns the all-bits conservative
-summary.
+summary. A fixed work budget (`4096` body evaluations per semantic context)
+also bounds adversarial recursive demand; exhausting it emits the same
+fail-closed diagnostic and returns the all-bits conservative summary rather
+than silently accepting an under-approximated fact.
 
 Both access propagation and escape propagation now consume this owner. The
 standalone no-context compatibility API may still summarize its one explicitly

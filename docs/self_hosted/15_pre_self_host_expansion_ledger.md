@@ -152,9 +152,10 @@ edge. Member-access rows carry receiver/member edges. Call-argument rows carry
 the prior call spine plus one argument; malformed shape fails verification.
 DRV-2 carries required roots through branch, definition, return, Log, and
 collection-value `expr0_graph` rows and rejects text-created artifacts or MIR
-instructions that lack them. The inventory contains 20 source and 28 MIR
-fixtures; the latest collection slice used focused C/LLVM legs rather than
-rerunning the full matrix. Index codegen consumes
+instructions that lack them. The inventory contains 20 source and 30 MIR
+fixtures. The latest inferred-generic aggregate slice ran the complete source
+battery plus the selected `generic_struct_field_inferred_value_flow` MIR
+fixture through C and LLVM; the remaining 29 MIR fixtures were not rerun. Index codegen consumes
 the receiver/index child handles and collection runtime ABI owner without the
 legacy index scanner. Logical-not and numeric-negate emit from the operand
 handle without reparsing the unary root. Direct identifier calls consume the

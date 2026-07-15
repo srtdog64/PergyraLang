@@ -77,7 +77,8 @@ if not any(
     raise SystemExit("missing structured read-only ref write diagnostic")
 PY
 
-grep -Fq "MIRParamAbiFact   *param_abi_facts" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "MIRParamAbiFact   *param_abi_facts" \
+    "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "records parameters without carriage facts" \
     "$ROOT_DIR/src/compiler/mir_program_validate.c"
 grep -Fq "mir_routine_param_carriage" \

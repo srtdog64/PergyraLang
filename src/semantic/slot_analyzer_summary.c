@@ -22,7 +22,7 @@ slot_param_summary_in_program(ASTNode *node, const char *slot_name,
     access_mask = slot_access_mask_for_named_symbol(
         node, slot_name, lookup, depth);
     escape_mask = slot_escape_mask_in_program(
-        node, slot_name, lookup, depth, origin);
+        node, slot_name, lookup, depth, origin, NULL);
 
     if ((access_mask & SLOT_ACCESS_READ) != 0)
         summary |= SLOT_PARAM_SUMMARY_READ;

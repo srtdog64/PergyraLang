@@ -11,17 +11,17 @@
 
 #include "slot_analyzer_internal.h"
 
-void
+bool
 slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
                    const char *name, unsigned mask)
 {
     if (name == NULL || entries == NULL || count == NULL || capacity == NULL)
-        return;
+        return false;
 
     for (size_t i = 0; i < *count; i++) {
         if (strcmp((*entries)[i].name, name) == 0) {
             (*entries)[i].mask |= mask;
-            return;
+            return true;
         }
     }
 
@@ -29,15 +29,15 @@ slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
         size_t new_cap = 8;
         if (*capacity != 0) {
             if (*capacity > SIZE_MAX / 2)
-                return;
+                return false;
             new_cap = *capacity * 2;
         }
         if (new_cap > SIZE_MAX / sizeof(SlotEscapeEntry))
-            return;
+            return false;
         SlotEscapeEntry *new_entries = realloc(*entries,
             new_cap * sizeof(SlotEscapeEntry));
         if (new_entries == NULL)
-            return;
+            return false;
         *entries = new_entries;
         *capacity = new_cap;
     }
@@ -45,6 +45,7 @@ slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
     (*entries)[*count].name = name;
     (*entries)[*count].mask = mask;
     (*count)++;
+    return true;
 }
 
 static bool
@@ -62,7 +63,8 @@ slot_call_is_non_escape_builtin(ASTNode *callee)
 unsigned
 slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
                             const SlotFunctionLookup *program_root, int depth,
-                            const SlotSummaryOrigin *origin)
+                            const SlotSummaryOrigin *origin,
+                            bool *failed_out)
 {
     SlotEscapeEntry *entries = NULL;
     size_t count = 0;
@@ -74,8 +76,13 @@ slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
     if (depth > 6)
         return SLOT_ESCAPE_CALL;
 
-    collect_slot_escapes(node, &entries, &count, &capacity, program_root,
-        depth, origin);
+    if (!collect_slot_escapes(node, &entries, &count, &capacity, program_root,
+            depth, origin, failed_out)) {
+        free(entries);
+        if (failed_out != NULL)
+            *failed_out = true;
+        return SLOT_ESCAPE_RETURN | SLOT_ESCAPE_CALL | SLOT_ESCAPE_CHANNEL;
+    }
     for (size_t i = 0; i < count; i++) {
         if (strcmp(entries[i].name, slot_name) == 0) {
             mask = entries[i].mask;
@@ -86,63 +93,72 @@ slot_escape_mask_in_program(ASTNode *node, const char *slot_name,
     return mask;
 }
 
-void
+bool
 collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                      size_t *count, size_t *capacity,
                      const SlotFunctionLookup *program_root, int depth,
-                     const SlotSummaryOrigin *origin)
+                     const SlotSummaryOrigin *origin,
+                     bool *failed_out)
 {
     if (node == NULL)
-        return;
+        return true;
 
     switch (node->type) {
     case AST_BLOCK:
         for (size_t i = 0; i < ast_block_statement_count(node); i++)
-            collect_slot_escapes(ast_block_statement(node, i), entries,
-                count, capacity, program_root, depth, origin);
+            if (!collect_slot_escapes(ast_block_statement(node, i), entries,
+                    count, capacity, program_root, depth, origin, failed_out))
+                return false;
         break;
     case AST_IF_STMT:
-        collect_slot_escapes(ast_if_condition(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_if_then_branch(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_if_else_branch(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_if_condition(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_if_then_branch(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_if_else_branch(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_WITH_STMT:
-        collect_slot_escapes(ast_with_body(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_with_body(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_FOR_LOOP:
-        collect_slot_escapes(ast_for_range_start(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_for_range_end(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_for_iterable(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_for_body(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_for_range_start(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_for_range_end(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_for_iterable(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_for_body(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_WHILE_LOOP:
-        collect_slot_escapes(ast_while_condition(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_while_body(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_while_condition(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_while_body(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_PARALLEL_BLOCK:
         for (size_t i = 0; i < ast_parallel_task_count(node); i++)
-            collect_slot_escapes(ast_parallel_task(node, i), entries, count,
-                capacity, program_root, depth, origin);
+            if (!collect_slot_escapes(ast_parallel_task(node, i), entries, count,
+                    capacity, program_root, depth, origin, failed_out))
+                return false;
         break;
     case AST_LET_DECL:
-        collect_slot_escapes(ast_let_initializer(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_let_initializer(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_ASSIGNMENT:
-        collect_slot_escapes(ast_assignment_target(node), entries, count,
-            capacity, program_root, depth, origin);
-        collect_slot_escapes(ast_assignment_value(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_assignment_target(node), entries, count,
+                capacity, program_root, depth, origin, failed_out)
+            || !collect_slot_escapes(ast_assignment_value(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_CALL: {
         ASTNode *callee_decl = NULL;
@@ -150,8 +166,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
         ASTNode *body = NULL;
         ASTNode *callee = ast_call_callee(node);
 
-        collect_slot_escapes(callee, entries, count, capacity,
-            program_root, depth, origin);
+        if (!collect_slot_escapes(callee, entries, count, capacity,
+                program_root, depth, origin, failed_out))
+            return false;
         if (callee != NULL
             && callee->type == AST_IDENTIFIER
             && ast_identifier_name(callee) != NULL
@@ -187,61 +204,73 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                                 : function_param_flow_summary_demand(
                                     program_root, callee_decl, i);
                             if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
-                                slot_escape_record(entries, count, capacity,
-                                    ast_identifier_name(arg), SLOT_ESCAPE_RETURN);
+                                if (!slot_escape_record(entries, count, capacity,
+                                        ast_identifier_name(arg), SLOT_ESCAPE_RETURN))
+                                    return false;
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
-                                slot_escape_record(entries, count, capacity,
-                                    ast_identifier_name(arg), SLOT_ESCAPE_CHANNEL);
+                                if (!slot_escape_record(entries, count, capacity,
+                                        ast_identifier_name(arg), SLOT_ESCAPE_CHANNEL))
+                                    return false;
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
-                                slot_escape_record(entries, count, capacity,
-                                    ast_identifier_name(arg), SLOT_ESCAPE_CALL);
+                                if (!slot_escape_record(entries, count, capacity,
+                                        ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                                    return false;
                             }
                             handled = true;
                         } else if (param->mode == PARAM_MODE_OWN) {
-                            slot_escape_record(entries, count, capacity,
-                                ast_identifier_name(arg), SLOT_ESCAPE_CALL);
+                            if (!slot_escape_record(entries, count, capacity,
+                                    ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                                return false;
                             handled = true;
                         }
                     }
                 }
 
                 if (!handled) {
-                    slot_escape_record(entries, count, capacity,
-                        ast_identifier_name(arg), SLOT_ESCAPE_CALL);
+                    if (!slot_escape_record(entries, count, capacity,
+                            ast_identifier_name(arg), SLOT_ESCAPE_CALL))
+                        return false;
                 }
             }
-            collect_slot_escapes(arg, entries, count, capacity, program_root,
-                depth, origin);
+            if (!collect_slot_escapes(arg, entries, count, capacity, program_root,
+                    depth, origin, failed_out))
+                return false;
         }
         break;
     }
     case AST_CHANNEL_SEND:
-        collect_slot_escapes(ast_channel_send_channel(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_channel_send_channel(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         if (ast_channel_send_value(node) != NULL
             && ast_channel_send_value(node)->type == AST_IDENTIFIER
             && ast_identifier_name(ast_channel_send_value(node)) != NULL) {
-            slot_escape_record(entries, count, capacity,
-                ast_identifier_name(ast_channel_send_value(node)),
-                SLOT_ESCAPE_CHANNEL);
+            if (!slot_escape_record(entries, count, capacity,
+                    ast_identifier_name(ast_channel_send_value(node)),
+                    SLOT_ESCAPE_CHANNEL))
+                return false;
         }
-        collect_slot_escapes(ast_channel_send_value(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_channel_send_value(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     case AST_RETURN:
         if (ast_return_value(node) != NULL
             && ast_return_value(node)->type == AST_IDENTIFIER
             && ast_identifier_name(ast_return_value(node)) != NULL) {
-            slot_escape_record(entries, count, capacity,
-                ast_identifier_name(ast_return_value(node)),
-                SLOT_ESCAPE_RETURN);
+            if (!slot_escape_record(entries, count, capacity,
+                    ast_identifier_name(ast_return_value(node)),
+                    SLOT_ESCAPE_RETURN))
+                return false;
         }
-        collect_slot_escapes(ast_return_value(node), entries, count,
-            capacity, program_root, depth, origin);
+        if (!collect_slot_escapes(ast_return_value(node), entries, count,
+                capacity, program_root, depth, origin, failed_out))
+            return false;
         break;
     default:
         break;
     }
+    return true;
 }

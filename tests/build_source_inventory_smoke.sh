@@ -803,6 +803,7 @@ done
 for header in \
     src/compiler/compiler_process.h \
     src/compiler/mir.h \
+    src/compiler/mir_types.h \
     src/parser/ast_types.h \
     src/runtime/slot_manager.h
 do

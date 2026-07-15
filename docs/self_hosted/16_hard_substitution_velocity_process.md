@@ -471,6 +471,34 @@ owner failure into one opaque Bool.
 Generic/member aggregate field values, object initializers, and special unary
 forms remain bridged. Released/default replacement stays 0%.
 
+Thirty-ninth executable active-rung delta, 2026-07-15: explicit top-level
+generic calls used as aggregate field values are carried through the hard
+DRV-2 path. Native MIR records routine generic formals and canonical call
+actuals; the parser graph preserves both `generic_callee` edges and canonical
+`Identity<Int>` text. Semantic aggregate validation consumes the graph-owned
+generic return fact before legacy text type inference, and codegen emits only
+the concrete `Identity_Int` specialization. The specialization producer fills
+local row arrays before constructing its immutable fact bundle, preserving C
+and LLVM ABI parity. C- and LLVM-built drivers pass all 20 source fixtures plus
+the selected generic MIR fixture, including canonical MIR and run-output
+parity. Removing the formal or corrupting a generic actual fails closed.
+Inferred actuals, member generic calls, nested generic locals, and the other 28
+MIR fixtures remain outside this bounded proof. Released/default replacement
+stays 0%.
+
+Fortieth executable active-rung delta, 2026-07-15: direct generic calls below
+a local initializer root no longer require an explicit `<...>` actual to reach
+hard DRV-2. `SemanticAstGenericSpecializationFacts` owns the call-node key,
+signature index, and ordered actual type names derived from the typed expression
+graph and local semantic environment. Codegen projects only concrete C names
+and ABI rows from that fact; it may not rescan the expression graph or infer a
+specialization from source spelling. C- and LLVM-built drivers pass all 20
+source fixtures plus the selected thirtieth MIR fixture, emit `Identity_Int`,
+and reject a graph-only argument-type mutation as `call_arg_type_mismatch`.
+Inferred generic calls rooted in returns or assignments, member generic calls,
+nested generic locals, and the other 29 MIR fixtures remain outside this
+bounded proof. Released/default replacement stays 0%.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

@@ -121,8 +121,7 @@ func SemanticAstExpressionVerdictFromGraph(
     if StringLength(struct_type_error) > 0 {
         return SemanticAstExpressionVerdictError(text, struct_type_error);
     }
-    let graph_owned_struct_option: Bool = IsSome(intrinsic) &&
-        StartsWith(UnwrapOption(intrinsic), "Option<") &&
+    let graph_owned_intrinsic: Bool = IsSome(intrinsic) &&
         UnwrapOption(intrinsic) != "Option<Unknown>";
     let wrapper: SemanticExpressionGraphWrapperValueFact =
         SemanticExpressionGraphWrapperValueFactFromGraph(
@@ -172,7 +171,7 @@ func SemanticAstExpressionVerdictFromGraph(
             graph, root_id, constructors, names, types,
             function_names, function_returns, function_params
         );
-    } else if !graph_owned_struct_option && !generic_call.applies &&
+    } else if !graph_owned_intrinsic && !generic_call.applies &&
         !wrapper.applies {
         call_error = CheckCallFromGraphIdentifiers(
             text, names, types, modes,
@@ -232,6 +231,8 @@ func SemanticAstExpressionVerdictFromGraph(
         inferred = wrapper.type_name;
     } else if generic_call.applies {
         inferred = generic_call.return_type_name;
+    } else if graph_owned_intrinsic {
+        inferred = UnwrapOption(intrinsic);
     } else if scalar_operator_owned {
         inferred = SemanticExpressionGraphScalarTypeName(
             graph, root_id, constructors, names, types,

@@ -177,6 +177,8 @@ loop_flow_summary_record(SemanticContext *ctx,
         return;
     for (size_t i = 0; i < store->summary_count; i++) {
         if (store->summaries[i].node == node
+            && type_effect_mask_compare(store->summaries[i].effect_base,
+                                        effect_base) == 0
             && resource_snapshots_equal(&store->summaries[i].entry, entry))
             return;
     }

@@ -107,8 +107,8 @@ func SemanticExpressionGraphBuildTryCompactBridge(
     );
 }
 
-// Transitional producer: operator discovery still consumes compact parser
-// payload text. The resulting graph, not that text scan, is the consumer API.
+// Transitional producer: canonical prefix-try text is normalized explicitly;
+// every other supported expression topology is owned by the parser graph.
 func SemanticExpressionGraphBuildCompactBridgeFromText(
     inout node_kinds: Array<Int>,
     inout node_texts: Array<String>,

@@ -21,8 +21,19 @@ func ParserExpressionGenericCalleeActual(
     ) {
         return ParserExpressionInvalid();
     }
+    let rendered: String = Concat(
+        callee.text, Concat("<", Concat(type_name, ">"))
+    );
+    if callee.arena.node_kinds[callee.root] ==
+            AstExpressionNodeGenericCallee() &&
+        ParserCharAt(callee.text, StringLength(callee.text) - 1) == ">" {
+        rendered = Concat(
+            Substring(callee.text, 0, StringLength(callee.text) - 1),
+            Concat(", ", Concat(type_name, ">"))
+        );
+    }
     return ParserExpressionBinary(
-        AstExpressionNodeGenericCallee(), callee.text, callee,
+        AstExpressionNodeGenericCallee(), rendered, callee,
         ParserExpressionGenericTypeActual(type_name)
     );
 }

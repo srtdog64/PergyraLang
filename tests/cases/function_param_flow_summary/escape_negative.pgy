@@ -1,0 +1,14 @@
+func ReturnEscape(ref slot: Slot<Int>) -> Slot<Int> {
+    return slot;
+}
+
+func Publish(ch: Channel<Slot<Int>>, ref slot: Slot<Int>) -> Void {
+    ch <- slot;
+}
+
+func Consume(own slot: Slot<Int>) -> Void {
+}
+
+func Forward(ref slot: Slot<Int>) -> Void {
+    Consume(slot);
+}

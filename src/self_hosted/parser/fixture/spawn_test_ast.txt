@@ -11,7 +11,7 @@ Program:
     Returns: Void
     Body:
       Block:
-        Let: result : Slot<Int: Int> = ClaimSlot()
+        Let: result : Slot<Int: Int> = ClaimSlot<Int>()
         Parallel:
           Write(result, 42)
         Log(Read(result))

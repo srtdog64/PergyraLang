@@ -365,7 +365,7 @@ func GenerateCUnitFromSemanticFacts(
     }
     let specializations: CodegenGenericSpecializationFacts =
         CodegenGenericSpecializationFactsFromSemantic(
-            signatures, semantic_analysis.expression_surfaces
+            signatures, body_types.generic_specializations
         );
     if !specializations.ok {
         Die(Concat(

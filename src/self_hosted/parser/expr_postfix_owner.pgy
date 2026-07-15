@@ -361,6 +361,7 @@ func ParserExpressionExplicitGenericCallGraphContractReady() -> Bool {
     let cursor: Array<Int> = [0];
     let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
     if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.text != "Pair<Array<Int: Int>, String>(values)" ||
         fact.arena.node_kinds[fact.root] !=
             AstExpressionNodeCallArgument() {
         return false;

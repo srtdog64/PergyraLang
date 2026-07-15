@@ -51,7 +51,7 @@ for rel in \
     "src/codegen/transpiler_mir_pin_emit.h" \
     "src/codegen/transpiler_mir_resource_hook_emit.c" \
     "src/codegen/transpiler_block_emit.h" \
-    "src/compiler/mir.h" \
+    "src/compiler/mir_types.h" \
     "src/compiler/mir_lower_population.c" \
     "src/codegen/llvm_runtime.c" \
     "src/codegen/llvm_expr_allocator_calls.c" \
@@ -428,8 +428,8 @@ reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_secure_pin_%s_%s"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
 reject_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_secure_unpin_%s(&%s);"
-require_term "src/compiler/mir.h" "resource_owner_slot_anchor"
-require_term "src/compiler/mir.h" "resource_owner_requires_metadata"
+require_term "src/compiler/mir_types.h" "resource_owner_slot_anchor"
+require_term "src/compiler/mir_types.h" "resource_owner_requires_metadata"
 require_term "src/compiler/mir_lower_population.c" "MIRResourceBorrowLoweringFact"
 require_term "src/compiler/mir_lower_population.c" "mir_resource_record_borrow_fact"
 require_term "src/compiler/mir_lower_population.c" "inst.resource_owner_requires_metadata = resource_owner_slot_anchor != NULL"

@@ -355,6 +355,7 @@ func BuildFunctionEnv(
         ));
         i = i + 1;
     }
+    ArrayPush(rows, CodegenGenericSpecializationCallEnvRows(specializations));
     return StringJoin(rows, "");
 }
 
