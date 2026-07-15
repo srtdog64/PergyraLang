@@ -127,6 +127,17 @@ validate_utf8_files() {
 required_files=(
     "README.md"
     "docs/INDEX.md"
+    "docs/Main.md"
+    "docs/language/Main.md"
+    "docs/compiler/Main.md"
+    "docs/runtime/Main.md"
+    "docs/concurrency/Main.md"
+    "docs/semantics/Main.md"
+    "docs/security/Main.md"
+    "docs/self_hosted/Main.md"
+    "docs/stdlib/Main.md"
+    "docs/tooling/Main.md"
+    "docs/release/Main.md"
     "docs/00_vision.md"
     "docs/19_design_philosophy.md"
     "docs/116_documentation_quality_audit.md"
@@ -256,9 +267,29 @@ index_terms=(
     "135_backend_wasm_pointer_closure.md"
     "139_golden_adt_verification_methodology.md"
     "180_compiler_logical_spine_handles_gates.md"
+    "Main.md"
+    "\`Main.md\` pages are facades over the canonical documents"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
+done
+
+facade_terms=(
+    "Numbered documents remain the canonical owners"
+    "language/Main.md"
+    "compiler/Main.md"
+    "runtime/Main.md"
+    "concurrency/Main.md"
+    "semantics/Main.md"
+    "security/Main.md"
+    "self_hosted/Main.md"
+    "stdlib/Main.md"
+    "tooling/Main.md"
+    "release/Main.md"
+    "Do not move a canonical numbered document merely to improve browsing."
+)
+for term in "${facade_terms[@]}"; do
+    require_text "docs/Main.md" "$term"
 done
 
 verification_method_terms=(

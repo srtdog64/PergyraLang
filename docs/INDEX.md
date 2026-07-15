@@ -8,6 +8,10 @@ This index is the human entry point for the current beta-closure documentation.
 It intentionally prioritizes the frozen beta contract, implementation evidence,
 and follow-up debt over older design notes.
 
+For task-oriented navigation, start at [`Main.md`](Main.md). The functional
+`Main.md` pages are facades over the canonical documents listed here; they do
+not own status, decisions, or completion claims.
+
 ## Beta Closure Source Of Truth
 
 | Document | Purpose |
