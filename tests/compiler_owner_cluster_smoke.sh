@@ -19,6 +19,10 @@ awk -F '\t' 'NR > 1 { if (seen_id[$1]++ || seen_source[$3]++) exit 1 }' "$MANIFE
 row_count=0
 while IFS=$'\t' read -r cluster_id root source header responsibility status; do
     [[ "$cluster_id" == "cluster_id" ]] && continue
+    # actions/checkout may materialize this TSV with CRLF on Windows. Bash
+    # `read` retains the final carriage return even though MSYS `head` does
+    # not, so normalize only the record terminator before interpreting status.
+    status="${status%$'\r'}"
     row_count=$((row_count + 1))
     [[ -n "$cluster_id" && -n "$responsibility" ]] || fail "empty owner row"
     [[ "$status" == "landed" ]] || fail "$cluster_id is not a landed cluster"

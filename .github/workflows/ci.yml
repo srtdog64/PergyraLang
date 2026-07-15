@@ -37,12 +37,11 @@ jobs:
     # inductive cannot slip in behind a green gate.
     #
     # The image runs as a non-root user, so actions/checkout cannot write the
-    # workspace; --user root fixes that, and HOME=/home/rocq keeps opam able to
-    # find its switch (root would otherwise look under /root and the prover
-    # would vanish). Both were verified against this exact image.
+    # workspace; --user root fixes that. The invocation below pins the
+    # image-owned opam root instead of depending on the runner's HOME.
     container:
       image: rocq/rocq-prover:9.0.1
-      options: --user root -e HOME=/home/rocq
+      options: --user root
     steps:
       - uses: actions/checkout@v6
 
@@ -51,11 +50,12 @@ jobs:
         # container step runs without the image's `opam exec --` entrypoint and
         # without a login shell, so rocq/rocqchk are NOT on PATH -- the gate
         # fail-closes with "no prover found" even though the prover is right
-        # there. `opam exec --` (bare opam is on PATH at /usr/local/bin) replays
-        # the entrypoint and puts both on PATH. Verified against this exact
-        # image: all 31 proofs compile, "Set is predicative", and the axiom
-        # budget (SlotCalculus.MaxSlotId, verify_token) matches under Rocq 9.0.1.
-        run: opam exec -- bash tests/coq_kernel_check.sh
+        # there. GitHub Actions overrides HOME, so bare `opam exec --` searches
+        # an uninitialised runner home. Pinning `/home/rocq/.opam` replays the
+        # image entrypoint against the image-owned switch and puts both tools
+        # on PATH. coq_kernel_check.sh then fail-closes on a missing prover,
+        # proof compile failure, kernel-check failure, or axiom-budget drift.
+        run: opam --root=/home/rocq/.opam exec -- bash tests/coq_kernel_check.sh
 
   backend-compare-linux:
     runs-on: ubuntu-latest
