@@ -36,13 +36,13 @@ func SemanticAstGenericSpecializationError(
 func SemanticAstGenericSpecializationIndexForCall(
     call_node_ids: Array<Int>,
     call_node_id: Int
-) -> Int {
+) -> Option<Int> {
     let i: Int = 0;
     while i < ArrayLength(call_node_ids) {
-        if call_node_ids[i] == call_node_id { return i; }
+        if call_node_ids[i] == call_node_id { return Some(i); }
         i = i + 1;
     }
-    return -1;
+    return None;
 }
 
 func SemanticAstGenericSpecializationAppend(
@@ -55,17 +55,19 @@ func SemanticAstGenericSpecializationAppend(
     signature_index: Int,
     actuals: Array<String>
 ) -> Bool {
-    let existing: Int = SemanticAstGenericSpecializationIndexForCall(
+    let existing: Option<Int> = SemanticAstGenericSpecializationIndexForCall(
         call_node_ids, call_node_id
     );
-    if existing >= 0 {
-        if signature_indexes[existing] != signature_index ||
-            actual_counts[existing] != ArrayLength(actuals) {
+    if IsSome(existing) {
+        let existing_index: Int = UnwrapOption(existing);
+        if signature_indexes[existing_index] != signature_index ||
+            actual_counts[existing_index] != ArrayLength(actuals) {
             return false;
         }
         let i: Int = 0;
         while i < ArrayLength(actuals) {
-            if actual_type_names[actual_starts[existing] + i] != actuals[i] {
+            if actual_type_names[actual_starts[existing_index] + i] !=
+                actuals[i] {
                 return false;
             }
             i = i + 1;
@@ -124,9 +126,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
             expression_surfaces.expression_graph, node_id
         );
         if view.ok && ArrayLength(view.generic_actual_type_names) > 0 &&
-            SemanticAstGenericSpecializationIndexForCall(
+            !IsSome(SemanticAstGenericSpecializationIndexForCall(
                 call_node_ids, view.call_node
-            ) < 0 {
+            )) {
             let target_kind: Option<Int> =
                 SemanticExpressionGraphCallTargetKind(
                     expression_surfaces.expression_graph, view.call_node
@@ -266,9 +268,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
                         );
                     if view.ok &&
                         ArrayLength(view.generic_actual_type_names) == 0 &&
-                        SemanticAstGenericSpecializationIndexForCall(
+                        !IsSome(SemanticAstGenericSpecializationIndexForCall(
                             call_node_ids, view.call_node
-                        ) < 0 {
+                        )) {
                         let generic: SemanticExpressionGraphGenericCallFact =
                             SemanticExpressionGraphGenericCallFactFromGraph(
                                 expression_surfaces.expression_graph, current,
@@ -345,9 +347,9 @@ func SemanticAstGenericSpecializationFactsFromBody(
             expression_surfaces.expression_graph, node_id
         );
         if view.ok && ArrayLength(view.generic_actual_type_names) == 0 &&
-            SemanticAstGenericSpecializationIndexForCall(
+            !IsSome(SemanticAstGenericSpecializationIndexForCall(
                 call_node_ids, view.call_node
-            ) < 0 {
+            )) {
             let target_kind: Option<Int> =
                 SemanticExpressionGraphCallTargetKind(
                     expression_surfaces.expression_graph, view.call_node
