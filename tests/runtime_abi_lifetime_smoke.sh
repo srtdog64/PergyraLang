@@ -870,9 +870,6 @@ for term in \
     "used = (ch->count <= ch->cap)" \
     "pgy_channel_try_send_status_" \
     "pgy_channel_send_timeout_status_" \
-    "pgy_channel_recv_result_" \
-    "pgy_channel_try_recv_result_" \
-    "pgy_channel_recv_timeout_result_" \
     "pgy_channel_ready_" \
     "pgy_channel_space_" \
     "pgy_channel_string_inline_dup" \
@@ -881,6 +878,17 @@ for term in \
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
         "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
         fail "inline Channel initialized/range guard missing: $term"
+done
+# The Result-returning recv family (recv_result / try_recv_result /
+# recv_timeout_result) moved to the dedicated result-inline header when the
+# channel runtime was split into result/lane owners; assert the guard there
+# rather than in the generic inline pair, where it no longer lives.
+for term in \
+    "pgy_channel_recv_result_" \
+    "pgy_channel_try_recv_result_" \
+    "pgy_channel_recv_timeout_result_"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_result_inline.h" ||
+        fail "result-inline Channel recv guard missing: $term"
 done
 for term in \
     "pgy_runtime_rng_mutex" \
