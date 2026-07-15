@@ -7,7 +7,7 @@
     "source": "src/self_hosted/mir_lower/main.pgy"
   },
   "owner": {
-    "owner_set_sha256": "9E5747B02A354208D2ABE900535C0629D5A6FED88105B60AB8AE7010F0984813",
+    "owner_set_sha256": "789FC2F1222B2EC790C246258F9BF3086D4E932B3A6FA5D476837408678B9AEC",
     "paths": [
       "src/self_hosted/lib/source_scan_owner.pgy",
       "src/self_hosted/parser/cursor_owner.pgy",
@@ -26,7 +26,7 @@
   },
   "semantic_operator_fact_owner": {
     "source_commit": "b0a81826",
-    "owner_set_sha256": "C2395481F3586A826F0CEBFBDA7DA05EAFDDCCED7E4261097DFA0CD3E18929F9",
+    "owner_set_sha256": "8CFD51DF95FE006291735A350E67BFD2D8968EAB691ED1534915246CCB0B5F41",
     "elapsed_ms": [37273, 37002],
     "peak_private_mb": [170.4, 88.1],
     "required_max_elapsed_ms": 38000,
@@ -40,7 +40,7 @@
   },
   "semantic_callable_byte_range": {
     "source_commit": "abb71511",
-    "owner_set_sha256": "E1C67E82EAECE93A9ABD2C6D97CC976A767FD5618A76CB8A4FC8AFBD3FA0FED4",
+    "owner_set_sha256": "6B087EBA09AC37A966FC906C7AFE83A4888740F27FAB44B0977B0C35CC49A055",
     "elapsed_ms": [40236, 39823],
     "same_window_control_elapsed_ms": 40686,
     "peak_private_mb": [141.6, 83.6],
@@ -52,7 +52,7 @@
   },
   "semantic_delimited_range_facts": {
     "source_commit": "0f4938e0",
-    "owner_set_sha256": "86256F587AF26293A42920AB2EF71A611D0252D701C78995F226628B7653DE84",
+    "owner_set_sha256": "E1FDB249667DFE8C2DCA0D76DC88701CE79D76030159E000D3F7CC44F7CAA12B",
     "elapsed_ms": [36854, 36927],
     "same_window_control_elapsed_ms": 37029,
     "peak_private_mb": [165.7, 104.1],
@@ -66,7 +66,7 @@
   },
   "semantic_type_canonical_ranges": {
     "source_commit": "3a6cb537",
-    "owner_set_sha256": "0EFD19EA493120993102AFD77A9BF2F7E040180A25BE9C5409154CCD076DC3F4",
+    "owner_set_sha256": "358FF1A24B52F2655C4258CBA9251E00E3EEF523FDC88B651D37E4A62C3230EE",
     "elapsed_ms": [36743, 36432],
     "same_window_control_elapsed_ms": 36528,
     "peak_private_mb": [88.3, 95.4],

@@ -415,12 +415,12 @@ Theorem delegation_distinguishes
 Theorem authority_beyond_cap_zone
 TERMS
 
-# The machine-contact corner (docs/19, layer BELOW the slot): a raw span carrying
+# The machine-layer corner (docs/19, layer BELOW the slot): a raw span carrying
 # extent/mode/provenance, grounded in a declared machine grant. Keystone:
 # place : Region -> Slot preserves the safety chain (every slot traces to a grant).
-MACHINE_CONTACT_COQ="$PROOF_DIR/proofs/MachineContactCore.v"
-require_file "$MACHINE_CONTACT_COQ" "docs/semantics/proofs/MachineContactCore.v"
-require_terms "$MACHINE_CONTACT_COQ" "docs/semantics/proofs/MachineContactCore.v" <<'TERMS'
+MACHINE_LAYER_COQ="$PROOF_DIR/proofs/MachineLayerCore.v"
+require_file "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v"
+require_terms "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v" <<'TERMS'
 Theorem grant_yields_valid_region
 Theorem carve_preserves_validity
 Theorem carve_disjoint
@@ -865,7 +865,7 @@ docs/semantics/proofs/ProofCarryingIR.v \
 docs/semantics/proofs/ZoneCrossingCore.v \
 docs/semantics/proofs/EffectAuthorityCore.v \
 docs/semantics/proofs/SlotLifecycleCore.v \
-docs/semantics/proofs/MachineContactCore.v \
+docs/semantics/proofs/MachineLayerCore.v \
 docs/semantics/proofs/AuthorityDelegationCore.v \
 docs/semantics/proofs/UnifiedCore.v \
 docs/semantics/proofs/CompensationCore.v \

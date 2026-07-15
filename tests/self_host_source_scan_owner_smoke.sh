@@ -125,53 +125,44 @@ if grep -Fq "CharAt(" "$TYPE_CANONICAL"; then
 fi
 
 EVIDENCE="benchmarks/selfhost_source_scan_owner_evidence.json"
-owner_hash="$({
-    for file in \
+owner_set_sha256() {
+    {
+        for file in "$@"; do
+            printf '%s:' "$file"
+            sed 's/\r$//' "$file" | sha256sum | awk '{ print toupper($1) }'
+        done
+    } | sha256sum | awk '{ print toupper($1) }'
+}
+owner_hash="$(owner_set_sha256 \
         "$SOURCE_OWNER" \
         "$PARSER_CURSOR" \
-        "$SEMANTIC_SCAN"; do
-        printf '%s:' "$file"
-        git hash-object "$file"
-    done
-} | sha256sum | awk '{ print toupper($1) }')"
+        "$SEMANTIC_SCAN")"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$owner_hash\""
 require_text "$EVIDENCE" '"parser_fixtures": 188'
 require_text "$EVIDENCE" '"semantic_fixtures": 111'
 require_text "$EVIDENCE" '"integrated_driver_c_llvm_byte_identical": true'
 
-operator_owner_hash="$({
-    printf '%s:' "$OPERATOR_FACTS"
-    git hash-object "$OPERATOR_FACTS"
-} | sha256sum | awk '{ print toupper($1) }')"
+operator_owner_hash="$(owner_set_sha256 "$OPERATOR_FACTS")"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$operator_owner_hash\""
 require_text "$EVIDENCE" '"char_at_reduction_percent": 60.4'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-neutral-allocation-surface-reduction"'
 
-callable_owner_hash="$({
-    printf '%s:' "$CALLABLE_RESOLUTION"
-    git hash-object "$CALLABLE_RESOLUTION"
-} | sha256sum | awk '{ print toupper($1) }')"
+callable_owner_hash="$(owner_set_sha256 "$CALLABLE_RESOLUTION")"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$callable_owner_hash\""
 require_text "$EVIDENCE" '"char_at_calls_after": 776073'
 require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 72.8'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-inconclusive-allocation-surface-reduction"'
 
-delimited_owner_hash="$({
-    printf '%s:' "$DELIMITED_FACTS"
-    git hash-object "$DELIMITED_FACTS"
-} | sha256sum | awk '{ print toupper($1) }')"
+delimited_owner_hash="$(owner_set_sha256 "$DELIMITED_FACTS")"
 require_text "$EVIDENCE" "\"owner_set_sha256\": \"$delimited_owner_hash\""
 require_text "$EVIDENCE" '"char_at_calls_after": 424152'
 require_text "$EVIDENCE" '"cumulative_char_at_reduction_percent": 85.1'
 require_text "$EVIDENCE" \
     '"performance_verdict": "cpu-neutral-shared-range-facts"'
 
-type_canonical_owner_hash="$({
-    printf '%s:' "$TYPE_CANONICAL"
-    git hash-object "$TYPE_CANONICAL"
-} | sha256sum | awk '{ print toupper($1) }')"
+type_canonical_owner_hash="$(owner_set_sha256 "$TYPE_CANONICAL")"
 require_text "$EVIDENCE" \
     "\"owner_set_sha256\": \"$type_canonical_owner_hash\""
 require_text "$EVIDENCE" '"char_at_calls_after": 337974'

@@ -238,7 +238,9 @@ SENTINEL_MAX=0
 # target/receiver and statement verdict failures as structured facts.
 # 1795 -> 1814 (2026-07-15): aggregate field and rung-readiness owners keep
 # graph absence and contract failure explicit while removing AST fallback.
-RESULT_USE_MIN=1814
+# 1814 -> 1886 (2026-07-16): typed assignment/return facts preserve missing
+# semantic facts as Result/Option values through the executable self-host rung.
+RESULT_USE_MIN=1886
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

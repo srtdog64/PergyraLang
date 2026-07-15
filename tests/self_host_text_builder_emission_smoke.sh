@@ -79,19 +79,22 @@ require_text "benchmarks/selfhost_codegen_text_builder_evidence.json" \
     '"gen2_gen3_byte_identical": true'
 
 EVIDENCE="benchmarks/selfhost_codegen_text_builder_evidence.json"
-owner_hash="$({
-    for file in \
+owner_set_sha256() {
+    {
+        for file in "$@"; do
+            printf '%s:' "$file"
+            sed 's/\r$//' "$file" | sha256sum | awk '{ print toupper($1) }'
+        done
+    } | sha256sum | awk '{ print toupper($1) }'
+}
+owner_hash="$(owner_set_sha256 \
         src/self_hosted/codegen/emission/program_emit.pgy \
         src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy \
         src/self_hosted/codegen/text/expr_scan.pgy \
         src/self_hosted/codegen/emission/expr_rewrite.pgy \
         src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy \
         src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy \
-        src/runtime/pgy_runtime_text_builder_inline.h; do
-        printf '%s:' "$file"
-        git hash-object "$file"
-    done
-} | sha256sum | awk '{ print toupper($1) }')"
+        src/runtime/pgy_runtime_text_builder_inline.h)"
 current_region="$(sed -n '/"current_semantic_bundle"/,/^  }/p' "$EVIDENCE")"
 grep -Fq "\"owner_set_sha256\": \"$owner_hash\"" <<<"$current_region" || {
     echo "[self-host-text-builder] current semantic-bundle owner hash drifted" >&2
