@@ -47,7 +47,15 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Kernel-check the proof corpus with Rocq 9
-        run: bash tests/coq_kernel_check.sh
+        # The prover lives in an opam switch under /home/rocq/.opam. A GHA
+        # container step runs without the image's `opam exec --` entrypoint and
+        # without a login shell, so rocq/rocqchk are NOT on PATH -- the gate
+        # fail-closes with "no prover found" even though the prover is right
+        # there. `opam exec --` (bare opam is on PATH at /usr/local/bin) replays
+        # the entrypoint and puts both on PATH. Verified against this exact
+        # image: all 31 proofs compile, "Set is predicative", and the axiom
+        # budget (SlotCalculus.MaxSlotId, verify_token) matches under Rocq 9.0.1.
+        run: opam exec -- bash tests/coq_kernel_check.sh
 
   backend-compare-linux:
     runs-on: ubuntu-latest
