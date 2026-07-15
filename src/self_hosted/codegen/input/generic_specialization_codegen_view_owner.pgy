@@ -2,6 +2,7 @@
 
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_generic_specialization_fact_owner.pgy";
+import "../text/text_owner.pgy";
 import "semantic_signature_codegen_view_owner.pgy";
 
 struct CodegenGenericSpecializationFacts {

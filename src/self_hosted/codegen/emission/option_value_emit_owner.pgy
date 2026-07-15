@@ -1,6 +1,7 @@
 // Expected-type Option value emission from semantic graph facts.
 
 import "../type_facts/type_env.pgy";
+import "../text/text_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 

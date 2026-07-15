@@ -1,6 +1,8 @@
 // Expression emission that consumes semantic-owned top-level shape facts.
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
+import "expr_rewrite.pgy";
 
 func RewriteBoolWithSemanticShape(
     e: String,

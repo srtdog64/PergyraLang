@@ -511,6 +511,40 @@ func RewriteTokens(e: String, env: CodegenTypeEnv) -> String {
     return RewriteLongLiteralSuffixes(RewriteBoolLiterals(optioned_runtime_calls));
 }
 
+func EmitArrayLiteralValue(
+    expr: String,
+    expected_type: String,
+    env: CodegenTypeEnv
+) -> String {
+    let literal: String = StringTrim(expr);
+    if StringLength(literal) < 2 || CodegenCharAt(literal, 0) != "[" ||
+        CodegenCharAt(literal, StringLength(literal) - 1) != "]" {
+        Die(Concat("expected array literal for type: ", expected_type));
+    }
+    let kind_code: Int = CollectionRuntimeKindCode(
+        CollectionRuntimeKindFromTypeName(expected_type)
+    );
+    let element_type: String =
+        CollectionRuntimeElementTypeFromKindCode(kind_code);
+    let inner: String = StringTrim(Substring(
+        literal, 1, StringLength(literal) - 2
+    ));
+    let item_values: Array<String> = [];
+    let index: Int = 0;
+    while index < ExprSequenceItemCount(inner) {
+        let item: Option<String> = ExprSequenceItemAt(inner, index);
+        if !IsSome(item) { Die("array literal item fact is missing"); }
+        let item_expr: String = UnwrapOption(item);
+        let value: String = IntEval(item_expr, env);
+        if element_type == "String" { value = StrEval(item_expr, env); }
+        ArrayPush(item_values, value);
+        index = index + 1;
+    }
+    return EmitArrayLiteralFromRenderedItems(
+        expected_type, env, item_values
+    );
+}
+
 func IntEval(expr: String, env: CodegenTypeEnv) -> String {
     return RewriteExpr(expr, env);
 }

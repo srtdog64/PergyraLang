@@ -38,7 +38,6 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ToString^String^Unknown",
         "ToLower^String^Unknown",
         "ToUpper^String^Unknown",
-        "Trim^String^String",
         "Upper^String^Unknown",
         "StringReplace^String^Unknown|Unknown|Unknown",
         "StringContains^Bool^String|String",
@@ -54,12 +53,6 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "Log^Unknown^Unknown",
         "Print^Unknown^Unknown",
         "Exit^Unknown^Unknown",
-        "Die^Void^String",
-        "SelfHostDiagnostic_RenderOk^String^String",
-        "SelfHostDiagnostic_RenderError^String^String|String|String|String|String|String|String|String",
-        "SelfHostDiagnostic_Fact1^String^String|String",
-        "SelfHostDiagnostic_Fact2^String^String|String|String|String",
-        "SelfHostDiagnostic_Fact3^String^String|String|String|String|String|String",
         "StringJoin^String^Array<String>|String",
         "Join^String^Array<String>|String",
         "Split^Array<String>^String|String",
@@ -67,7 +60,6 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "DirWalk^Array<String>^String",
         "StringTrim^String^Unknown",
         "CharCode^Int^String|Int|Int",
-        "CharAt^String^String|Int",
         "CharAtN^String^String|Int|Int",
         "Some^Unknown^Unknown",
         "None^Option<Unknown>^none",
@@ -118,12 +110,11 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let returns: Array<String> = [];
     let params: Array<String> = [];
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 83 && ArrayLength(returns) == 83 &&
-        ArrayLength(params) == 83 && names[0] == "StringLength" &&
+        ArrayLength(names) == 75 && ArrayLength(returns) == 75 &&
+        ArrayLength(params) == 75 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
-        names[48] == "Args" && params[48] == "" &&
-        names[52] == "Die" && returns[52] == "Void" &&
-        params[52] == "String" &&
-        names[77] == "AllocatorResult" && returns[77] == "Allocator" &&
-        names[82] == "TextBuilderDrop" && params[82] == "TextBuilder";
+        names[47] == "Args" && params[47] == "" &&
+        names[51] == "StringJoin" &&
+        names[69] == "AllocatorResult" && returns[69] == "Allocator" &&
+        names[74] == "TextBuilderDrop" && params[74] == "TextBuilder";
 }

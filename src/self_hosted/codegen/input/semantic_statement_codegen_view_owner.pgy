@@ -3,6 +3,7 @@
 import "../../semantic/ast_statement_fact_owner.pgy";
 import "../../semantic/ast_statement_type_fact_owner.pgy";
 import "../../semantic/ast_statement_type_query_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticStatementTypeFactsReady(
     artifact: AstTreeArtifact,

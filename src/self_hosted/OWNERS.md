@@ -430,7 +430,9 @@ inventory must not become a second fact-family owner registry.
   rescanning the source payload.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
   recursive expression emission from semantic node handles and child edges;
-  codegen does not split migrated payloads to rediscover precedence.
+  codegen does not split migrated payloads to rediscover precedence. It is the
+  semantic-check cluster root for the mutually recursive call and composite
+  literal projection owners below.
 - `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
   expected-type array and named-struct literal emission from semantic graph
   handles and field edges.
@@ -446,7 +448,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy` --
   single-pass source builtin call recognition projected through runtime symbol
   owners; string literals remain opaque.
-- `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- expected-type array literal value emission.
+- `src/self_hosted/codegen/emission/array_value_emit_owner.pgy` -- C aggregate
+  emission from already-rendered array items; recursive expression evaluation
+  remains owned by `expr_rewrite.pgy`.
 - `src/self_hosted/codegen/emission/collection_element_emit_owner.pgy` --
   collection element value emission; graph-owned `ArrayPush` projection is
   separated from the still-explicit array-literal and `ArraySet` text bridges.

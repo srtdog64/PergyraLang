@@ -137,6 +137,11 @@ func CompilerCompletenessIsProductionSource(path: String) -> Bool {
     if path == "src/self_hosted/tools/linter/fixture_structural.pgy" {
         return false;
     }
+    if CompilerCompletenessPathContains(path, "/tools/") &&
+        CompilerCompletenessPathContains(path, "_probe/") &&
+        !CompilerCompletenessPathEndsWith(path, "/main.pgy") {
+        return false;
+    }
     return true;
 }
 
@@ -204,6 +209,9 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
     if path == "src/self_hosted/parser/expr_string_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
     }
+    if path == "src/self_hosted/parser/expression_graph_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/parser/expr_owner.pgy");
+    }
     if path == "src/self_hosted/parser/stmt_if_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/parser/stmt_owner.pgy");
     }
@@ -218,6 +226,12 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
     }
     if path == "src/self_hosted/codegen/text/expr_scan.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_rewrite.pgy");
+    }
+    if path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
+    }
+    if path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }
     return CompilerCompletenessCheckTarget(path);
 }

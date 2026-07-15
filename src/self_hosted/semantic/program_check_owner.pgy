@@ -4,6 +4,7 @@ import "text_scan_owner.pgy";
 import "expr_type_owner.pgy";
 import "body_check_owner.pgy";
 import "builtin_signature_owner.pgy";
+import "callable_resolution_owner.pgy";
 
 func NominalDeclKeywordLength(content: String, start: Int) -> Int {
     if SemanticMatchKeyword(content, start, "struct") {
@@ -25,6 +26,30 @@ func NominalDeclKeywordLength(content: String, start: Int) -> Int {
         return 6;
     }
     return 0;
+}
+
+func FindNominalFieldEnd(content: String, start: Int, limit: Int) -> Int {
+    let i: Int = start;
+    let depth: Int = 0;
+    while i < limit {
+        let c: Int = SourceByteAt(content, limit, i);
+        if c == SourceByteOf("\"") {
+            i = SkipQuotedString(content, i, limit);
+            continue;
+        }
+        if c == SourceByteOf("<") || c == SourceByteOf("(") ||
+            c == SourceByteOf("[") {
+            depth = depth + 1;
+        } else if c == SourceByteOf(">") || c == SourceByteOf(")") ||
+            c == SourceByteOf("]") {
+            if depth > 0 { depth = depth - 1; }
+        } else if depth == 0 &&
+            (c == SourceByteOf(",") || c == SourceByteOf(";")) {
+            return i;
+        }
+        i = i + 1;
+    }
+    return limit;
 }
 
 func NominalConstructorParams(content: String, body_open: Int, body_close: Int, inout cursor: Array<Int>) -> String {
@@ -64,7 +89,8 @@ func NominalConstructorParams(content: String, body_open: Int, body_close: Int, 
         i = cursor[0];
         i = SkipWhitespaceAndComments(content, i);
         if StringLength(field_name) == 0 || CharAt(content, i) != ":" {
-            let bad_field_end: Int = FindStatementEnd(content, i, body_close);
+            let bad_field_end: Int =
+                FindNominalFieldEnd(content, i, body_close);
             i = bad_field_end + 1;
             continue;
         }
@@ -76,7 +102,7 @@ func NominalConstructorParams(content: String, body_open: Int, body_close: Int, 
             }
             params = Concat(params, field_type);
         }
-        let field_end: Int = FindStatementEnd(content, i, body_close);
+        let field_end: Int = FindNominalFieldEnd(content, i, body_close);
         i = field_end + 1;
     }
     return params;
@@ -119,34 +145,58 @@ func SeedNominalConstructors(content: String, inout func_names: Array<String>, i
     }
 }
 
-func CheckProgram(content: String) -> String {
+func SeedDeclaredFunctionSignatures(
+    content: String,
+    start: Int,
+    end: Int,
+    owner_name: String,
+    inout func_names: Array<String>,
+    inout func_rets: Array<String>,
+    inout func_params: Array<String>
+) -> Void {
     let cursor: Array<Int> = [0];
-    let func_names: Array<String> = [];
-    let func_rets: Array<String> = [];
-    let func_params: Array<String> = [];
-    if !SeedSemanticBuiltinSignatures(func_names, func_rets, func_params) {
-        return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
-    }
-    SeedNominalConstructors(content, func_names, func_rets, func_params);
-    let n: Int = StringLength(content);
-    let scan: Int = 0;
-    while scan < n {
+    let scan: Int = start;
+    while scan < end {
         scan = SkipWhitespaceAndComments(content, scan);
-        if scan >= n {
+        if scan >= end {
             break;
         }
         if CharAt(content, scan) == "\"" {
-            scan = SkipQuotedString(content, scan, n);
+            scan = SkipQuotedString(content, scan, end);
+            continue;
+        }
+        if SemanticMatchKeyword(content, scan, "namespace") {
+            let namespace_name: String =
+                SemanticReadIdent(content, scan + 9, cursor);
+            let after_namespace: Int = cursor[0];
+            let body_open: Int =
+                FindBlockOpen(content, after_namespace, end);
+            if StringLength(namespace_name) == 0 || body_open >= end ||
+                CharAt(content, body_open) != "{" {
+                scan = scan + 9;
+                continue;
+            }
+            let body_close: Int =
+                FindMatchingBraceWithin(content, body_open, end);
+            SeedDeclaredFunctionSignatures(
+                content, body_open + 1, body_close,
+                SemanticCallableCanonicalDeclaredName(
+                    owner_name, namespace_name
+                ),
+                func_names, func_rets, func_params
+            );
+            scan = body_close + 1;
             continue;
         }
         if !SemanticMatchKeyword(content, scan, "func") {
             scan = scan + 1;
             continue;
         }
-        let name_pos: Int = scan + 4;
-        let fn_name: String = SemanticReadIdent(content, name_pos, cursor);
+        let fn_name: String =
+            SemanticReadIdent(content, scan + 4, cursor);
         let after_name: Int = cursor[0];
-        let open_match: Option<Int> = ExpectLiteral(content, after_name, "(");
+        let open_match: Option<Int> =
+            ExpectLiteral(content, after_name, "(");
         if !IsSome(open_match) || StringLength(fn_name) == 0 {
             scan = scan + 4;
             continue;
@@ -154,7 +204,7 @@ func CheckProgram(content: String) -> String {
         let open: Int = UnwrapOption(open_match);
         let depth: Int = 1;
         let k: Int = open;
-        while k < n && depth > 0 {
+        while k < end && depth > 0 {
             let c: String = CharAt(content, k);
             if c == "(" {
                 depth = depth + 1;
@@ -170,16 +220,37 @@ func CheckProgram(content: String) -> String {
             ret = ReadTypeName(content, k + 2, cursor);
             k = cursor[0];
         }
-        ArrayPush(func_names, fn_name);
+        ArrayPush(
+            func_names,
+            SemanticCallableCanonicalDeclaredName(owner_name, fn_name)
+        );
         ArrayPush(func_rets, ret);
         ArrayPush(func_params, ParamTypes(param_src));
-        let body_open: Int = FindBlockOpen(content, k, n);
-        if body_open < n && CharAt(content, body_open) == "{" {
-            scan = FindMatchingBraceWithin(content, body_open, n) + 1;
+        let function_body_open: Int = FindBlockOpen(content, k, end);
+        if function_body_open < end &&
+            CharAt(content, function_body_open) == "{" {
+            scan = FindMatchingBraceWithin(
+                content, function_body_open, end
+            ) + 1;
             continue;
         }
         scan = k;
     }
+}
+
+func CheckProgram(content: String) -> String {
+    let cursor: Array<Int> = [0];
+    let func_names: Array<String> = [];
+    let func_rets: Array<String> = [];
+    let func_params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(func_names, func_rets, func_params) {
+        return SemanticError1("function_signature_invalid", "owner", "SemanticBuiltinSignatureRows");
+    }
+    SeedNominalConstructors(content, func_names, func_rets, func_params);
+    let n: Int = StringLength(content);
+    SeedDeclaredFunctionSignatures(
+        content, 0, n, "", func_names, func_rets, func_params
+    );
     let root_marker: String = "/*PGY_SEMANTIC_ROOT_START*/";
     let root_pos: Int = StringIndexOf(content, root_marker);
     let i: Int = 0;

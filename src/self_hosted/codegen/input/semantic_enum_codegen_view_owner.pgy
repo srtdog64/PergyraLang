@@ -1,6 +1,7 @@
 // Fail-closed codegen view over semantic-owned enum declaration facts.
 
 import "../../semantic/ast_enum_fact_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticEnumIs(
     facts: SemanticAstEnumFacts,

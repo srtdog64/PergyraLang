@@ -1,6 +1,7 @@
 // Recursive expression emission from semantic-owned node handles.
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
+import "../text/text_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";

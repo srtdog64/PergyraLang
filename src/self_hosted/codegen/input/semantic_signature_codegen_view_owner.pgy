@@ -1,6 +1,7 @@
 // Codegen fail-closed view over semantic function signature facts.
 
 import "../../semantic/ast_signature_fact_owner.pgy";
+import "../text/text_owner.pgy";
 import "ast_arena_codegen_view_owner.pgy";
 
 func CodegenSemanticFunctionIs(

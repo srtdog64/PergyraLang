@@ -4,6 +4,7 @@
 // emission participants while struct literal payloads are still text-backed.
 
 import "../type_facts/type_env.pgy";
+import "text_owner.pgy";
 
 struct StructLiteralFieldEntryFact {
     let field_name: String;

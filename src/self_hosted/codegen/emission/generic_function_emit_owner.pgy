@@ -1,5 +1,6 @@
 // Emit concrete definitions for generic function specialization facts.
 
+import "../text/text_owner.pgy";
 import "function_emit.pgy";
 
 func EmitFunctionSet(

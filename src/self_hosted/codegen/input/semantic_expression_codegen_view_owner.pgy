@@ -1,6 +1,7 @@
 // Approved codegen view over semantic-owned expression shape rows.
 
 import "../../semantic/ast_expression_surface_fact_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticAtomExpressionShapeOrDie(
     facts: SemanticAstExpressionSurfaceFacts,

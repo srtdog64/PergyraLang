@@ -1,6 +1,7 @@
 // Fail-closed codegen view over semantic-owned nominal declaration rows.
 
 import "../../semantic/ast_nominal_constructor_fact_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticNominalIs(
     facts: SemanticAstNominalConstructorFacts,

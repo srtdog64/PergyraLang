@@ -2,6 +2,7 @@
 
 import "../../semantic/ast_assignment_fact_owner.pgy";
 import "../../semantic/ast_assignment_type_fact_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticAssignmentTypeFactsReady(
     artifact: AstTreeArtifact,

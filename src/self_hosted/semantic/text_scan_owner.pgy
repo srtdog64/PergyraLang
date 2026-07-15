@@ -99,7 +99,8 @@ func ReadTypeName(content: String, start: Int, inout cursor_out: Array<Int>) -> 
                 break;
             }
             if c == SourceByteOf(",") || c == SourceByteOf(")") ||
-                c == SourceByteOf("{") || c == SourceByteOf(";") ||
+                c == SourceByteOf("{") || c == SourceByteOf("}") ||
+                c == SourceByteOf(";") ||
                 c == SourceByteOf("=") {
                 break;
             }

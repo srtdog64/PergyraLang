@@ -4,6 +4,7 @@
 // that prepared bundle; it may not invoke any semantic fact producer.
 
 import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";
 

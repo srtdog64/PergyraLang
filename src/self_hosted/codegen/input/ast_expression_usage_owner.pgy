@@ -6,6 +6,7 @@
 // runtime/header usage can consume a fact row instead of reopening payloads.
 
 import "../../semantic/ast_expression_surface_query_owner.pgy";
+import "../text/text_owner.pgy";
 
 struct CodegenExpressionUsageFacts {
     let has_args: Bool;

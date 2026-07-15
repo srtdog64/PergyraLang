@@ -760,6 +760,32 @@ require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SeedSemanticBuiltinSignatures"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SemanticBuiltinSignatureContractReady"
+require_text "src/self_hosted/codegen/text/text_owner.pgy" "func Die(msg: String) -> Void"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func Trim(content: String) -> String"
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func CharAt(s: String, i: Int) -> String"
+require_text "src/self_hosted/lib/diagnostic.pgy" "export func RenderOk(schema: String) -> String"
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Die^'
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Trim^'
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"CharAt^'
+reject_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"SelfHostDiagnostic_'
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" 'import "../text/text_owner.pgy";'
+while IFS= read -r die_consumer; do
+    if [[ "$die_consumer" == "$ROOT_DIR/src/self_hosted/codegen/text/text_owner.pgy" ]]; then
+        continue
+    fi
+    if ! grep -Fq 'text_owner.pgy";' "$die_consumer"; then
+        fail "direct codegen Die consumer must import text_owner: ${die_consumer#"$ROOT_DIR/"}"
+    fi
+done < <(grep -RIl -E --include='*.pgy' '(^|[^A-Za-z0-9_])Die[[:space:]]*\(' "$ROOT_DIR/src/self_hosted/codegen")
+require_text "src/self_hosted/semantic/program_check_owner.pgy" "func SeedDeclaredFunctionSignatures("
+require_text "src/self_hosted/semantic/program_check_owner.pgy" "func FindNominalFieldEnd("
+require_text "src/self_hosted/semantic/text_scan_owner.pgy" 'c == SourceByteOf("}")'
+require_text "src/self_hosted/semantic/program_check_owner.pgy" "SemanticCallableCanonicalDeclaredName("
+require_text "src/self_hosted/mir/routine_iteration_owner.pgy" 'import "expression_fact_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" 'import "../parser/expr_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" 'import "ast_expression_call_target_fact_owner.pgy";'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessPathContains(path, "_probe/")'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/parser/expression_graph_owner.pgy"'
 require_text "src/self_hosted/semantic/program_check_owner.pgy" "SeedSemanticBuiltinSignatures(func_names, func_rets, func_params)"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "SeedSemanticBuiltinSignatures(names, returns, params)"
 reject_text "src/self_hosted/semantic/program_check_owner.pgy" 'ArrayPush(func_names, "StringLength")'
@@ -4183,6 +4209,7 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) == "Log"'
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteExprWithSemanticShape("
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteBoolWithSemanticShape("
+require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'import "expr_rewrite.pgy";'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \
     "func RewriteExprWithSemanticShape(" "FindTopLevelPlus"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \
@@ -4192,6 +4219,9 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pg
 require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "call_graph.graph, call_graph.root_id, env"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "RewriteExpr(call_expr, env)"
@@ -4683,8 +4713,12 @@ require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_bool || usage.uses_array ||"
 require_file "src/self_hosted/codegen/emission/array_value_emit_owner.pgy"
 require_file "src/self_hosted/codegen/emission/value_return_emit_owner.pgy"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func EmitArrayLiteralValue("
+require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "func EmitArrayLiteralFromRenderedItems("
 require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCNewFn(kind_code)"
 require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCPushFn(kind_code)"
+reject_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "IntEval("
+reject_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "StrEval("
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "array struct initializer field must consume a named array value"
 require_text "src/self_hosted/codegen/text/struct_literal_field_owner.pgy" "func StructLiteralTopLevelFieldColon"
@@ -7130,7 +7164,6 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Atan2^Floa
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Log2^Float^Float"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Join^String^Array<String>|String"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"StringSplit^Array<String>^String|String"'
-require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"CharAt^String^String|Int"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Unknown^Unknown"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipBlockComment"

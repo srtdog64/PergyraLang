@@ -1,6 +1,7 @@
 // Fail-closed codegen view over semantic-owned role declaration rows.
 
 import "../../semantic/ast_role_fact_owner.pgy";
+import "../text/text_owner.pgy";
 
 func CodegenSemanticRoleIs(
     facts: SemanticAstRoleFacts,
