@@ -1,0 +1,40 @@
+// Stable MIR JSON names for parser-owned expression graph node kinds.
+
+import "../hir/ast_expression_graph_owner.pgy";
+
+func SelfMirExpressionGraphKindName(kind: Int) -> String {
+    if kind == AstExpressionNodeLeaf() { return "leaf"; }
+    if kind == AstExpressionNodeLogicalOr() { return "logical_or"; }
+    if kind == AstExpressionNodeLogicalAnd() { return "logical_and"; }
+    if kind == AstExpressionNodeEquality() { return "equality"; }
+    if kind == AstExpressionNodeInequality() { return "inequality"; }
+    if kind == AstExpressionNodeLess() { return "less"; }
+    if kind == AstExpressionNodeLessEqual() { return "less_equal"; }
+    if kind == AstExpressionNodeGreater() { return "greater"; }
+    if kind == AstExpressionNodeGreaterEqual() { return "greater_equal"; }
+    if kind == AstExpressionNodeAdd() { return "add"; }
+    if kind == AstExpressionNodeSubtract() { return "subtract"; }
+    if kind == AstExpressionNodeMultiply() { return "multiply"; }
+    if kind == AstExpressionNodeDivide() { return "divide"; }
+    if kind == AstExpressionNodeModulo() { return "modulo"; }
+    if kind == AstExpressionNodeIndex() { return "index"; }
+    if kind == AstExpressionNodeLogicalNot() { return "logical_not"; }
+    if kind == AstExpressionNodeNegate() { return "negate"; }
+    if kind == AstExpressionNodeCall() { return "call"; }
+    if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
+    if kind == AstExpressionNodeMemberAccess() { return "member_access"; }
+    if kind == AstExpressionNodeTry() { return "try"; }
+    if kind == AstExpressionNodeArrayLiteral() { return "array_literal"; }
+    if kind == AstExpressionNodeArrayElement() { return "array_element"; }
+    if kind == AstExpressionNodeStructLiteral() { return "struct_literal"; }
+    if kind == AstExpressionNodeStructFieldBinding() {
+        return "struct_field_binding";
+    }
+    if kind == AstExpressionNodeStructField() { return "struct_field"; }
+    if kind == AstExpressionNodeStructFieldName() { return "struct_field_name"; }
+    if kind == AstExpressionNodeGenericTypeActual() {
+        return "generic_type_actual";
+    }
+    if kind == AstExpressionNodeGenericCallee() { return "generic_callee"; }
+    return "";
+}

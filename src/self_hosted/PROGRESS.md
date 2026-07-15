@@ -438,6 +438,129 @@ percentage or close the active expression-surface row because the full
 reuses its manifest-producing C tool for the C parity leg only when the full
 self-host source-set, tool-source, backend, and compiler fingerprints match.
 
+The initializer type-fact rung projects semantic initializer rows into MIR
+routine input. `let seed: Int = 1; let x = seed + 2;` now lowers `x` as an `Int`
+local without requiring a source annotation, source-text reclassification, or
+a backend default. The initializer owner may rebuild its own facts for its
+contract, but iteration, assignment, statement, and MIR consumers only check
+and consume the projection. Focused C and LLVM probes are output-equal; both
+reject a missing initializer row and a present row with no inferred type. This
+closes `selfhost.initializer_type_verdict`. For fully graph-owned scalar
+operator trees, semantic result typing now consumes graph nodes instead of
+calling `ExprType` on the preserved source text. A graph-leaf-only corruption
+is rejected as `undefined_symbol` under both backends, while changing the same
+leaf to a String produces `binop_type_mismatch` from graph child types. The
+unchanged source/root text cannot recover either result. The mixed expression
+bridge remains ACTIVE for call/member/composite trees outside the declared
+scalar capability subset. Direct named calls with concrete scalar returns now
+consume the graph callee and canonical callable return table. Keeping
+`ToIntValue(2)` and its root text unchanged while changing only the graph
+callee to `ToTextValue(Int) -> String` fails as `let_type_mismatch` under both
+backends; the positive call projects `x: Int` into MIR identically. Call
+arguments, member/namespace calls, generic/aggregate returns, and composite
+typing remain the explicit bridge. Direct calls whose parameter rows and
+argument nodes are graph-owned scalar trees now also validate operand
+diagnostics, arity, and argument types from graph handles. Keeping
+`ToIntValue(2)` unchanged while replacing only its graph argument leaf with a
+String fails as `call_arg_type_mismatch`; `ToIntValue(1 + (2 * 3))` projects
+`x: Int` under C and LLVM, while changing only the nested graph leaf to a
+String fails as `binop_type_mismatch`. Parser-canonical root spelling is
+verified by the same compact parser owner rather than accepted as an alternate
+text authority. Concrete nested direct calls recurse over graph call-spine
+handles. `ToIntValue(ToIntValue(2))` projects `x: Int` under C and LLVM;
+changing only the inner graph callee to a String-returning function fails at
+the outer call as `call_arg_type_mismatch` under both backends. The same single
+concrete-scalar capability now composes operator and call nodes:
+`1 + ToIntValue(2)` projects `x: Int` under C and LLVM, while changing only
+the graph callee to a String-returning function fails as
+`binop_type_mismatch`. The former direct-call-only verdict owner and names were
+deleted rather than retained as aliases.
+Namespace-qualified static calls now consume the canonical target already
+carried on the semantic call node. `Math.Add(2)` resolves through `Math_Add`
+under C/LLVM parity; changing only that carried target to the String-returning
+`ToTextValue` fails as `let_type_mismatch`. The direct-leaf-only type owner and
+names were deleted rather than retained as aliases.
+Receiver-bound scalar member calls now resolve through one semantic target
+fact. The callable table preserves method ownership as `Owner_Method`, the
+member graph supplies receiver/member handles, and the lexical environment
+supplies the receiver type. `box.Get()` consumes the implicit `self: Box`
+parameter through target offset one; changing only the graph member handle to
+the String-returning `Box_Text` fails as `let_type_mismatch` under C and LLVM.
+That same bounded target is now stored as `(member, Box_Get)` on the semantic
+graph, copied into self MIR, and consumed by hard codegen as `Box_Get(box)`.
+Codegen no longer joins receiver type and member spelling. Removing only the
+carried target row fails at MIR production under C and LLVM. Compact graph
+construction threads row arrays instead of passing the enlarged graph arena as
+an `inout` aggregate; this fixes the LLVM-only crash and is gate-ratcheted.
+Generic receiver locals now consume the typed canonical type-name fact:
+`Box<Int>.Count()` carries `member/Box_Count` through self MIR and emits
+`Box_Count(box)` under C/LLVM parity. Removing only that generic target row
+fails at MIR production. Chained field receivers now consume nominal field
+facts from graph handles: `holder.box.Count()` carries the same target and
+emits `Box_Count(holder.box)` under C/LLVM parity. Direct calls now carry a
+mandatory `direct` target through semantic analysis and self MIR; hard codegen
+consumes that canonical name and cannot recover identity from the callee leaf.
+Removing the direct row fails before emission under C and LLVM. The bounded
+call-target identity row is closed, while generic substitution, collection,
+Option/Result, and composite aggregate validation remain bridged.
+Released/default replacement is still 0%.
+
+Nominal aggregate call returns now consume that closed target identity and the
+canonical signature return row. `MakeBox() -> Box` projects a `Box` local and
+hard codegen emits `MakeBox()` under C/LLVM parity. A source-preserving target
+mutation to `ToTextValue() -> String` fails as `let_type_mismatch`; the scalar
+graph consumer no longer indexes the return array independently. Generic
+substitution for exact-formal direct calls is also executable: the typed HIR
+generic-parameter row feeds ordered signature facts, and
+`Identity<T>(value: T) -> T` projects `Identity(2)` as `Int` under C/LLVM.
+Changing only the carried target to `ToTextValue(Int) -> String` fails as
+`let_type_mismatch`. Signature capture now owns one flat parameter/return
+type-expression arena. The same structural owner projects
+`Wrap<T>(value: T) -> Option<T>` as `Option<Int>` and
+`First<T>(values: Array<T>) -> T` as `Int` for an `Array<Int>` argument. An
+`Int` argument to the structured `Array<T>` parameter is rejected. No
+call-site type text is reparsed or replaced. The postfix parser now preserves
+ordered explicit actuals as graph nodes. The typed-artifact path projects
+`PickSecond<Int, String>(2, "value")` as `String`, while changing only the
+first actual to `String` rejects the `Int` argument as
+`call_arg_type_mismatch` under C/LLVM parity. The compact text bridge is not an
+accepted path because it erases the actual rows. Collection/Option/Result
+policy and composite aggregate validation remain bridged. The next executable
+slice closes scalar Option/Result builtin policy on the typed graph path:
+initial target capture now includes builtin signatures, and
+`SemanticExpressionGraphWrapperValueFact` consumes that target plus graph
+arguments without `ExprType` or `CheckCall`. Native C-oracle, C-built, and
+LLVM-built probes agree for `Some`/`UnwrapOption`/`Ok`/`UnwrapOr` and reject
+non-concrete Option, non-wrapper arguments, and carried-target drift. Collection
+result/element typing and uncovered aggregate wrapper payloads remain bridged.
+
+The next executable slice closes caller-visible collection mutation admission
+without claiming collection typing as a whole. One canonical policy owner is
+consumed by specialized array statements and by general graph calls. The graph
+path requires a carried direct target and receiver node, and the source call
+checker no longer replays that mutation decision for graph-owned calls. Native
+C-oracle, C-built, and LLVM-built probes accept local/`inout` mutation, reject
+default-parameter mutation, and reject carried-target drift. Collection
+result/element typing and aggregate payload validation remain bridged.
+
+Aggregate field validation is now graph-owned for the active scalar/direct
+nominal capability. A dedicated field type owner projects scalar operators,
+direct returns, nested struct values, `Some(struct)`, wrapper unknowns, and
+structural integer-literal widening. The struct verdict no longer calls
+`ExprType` or source-text `ExpressionAssignableTo`. Native C-oracle, C-built,
+and LLVM-built probes reject a bad field, a source-preserving leaf type drift,
+and a missing child fact. Generic/member aggregate field values remain bridged.
+The actual C-built and LLVM-built rung-2 drivers also pass all 20 body fixtures
+and the selected `option_struct_value_flow` MIR fixture. The remaining MIR and
+integration matrix is not implied by this bounded result.
+
+The Pergyra-owned gate dashboard exposes twelve active proof gates with their
+Make targets, tiers, budgets, declared states, and owner facts. Run state comes
+only from a separately validated result artifact: absent results stay
+`NOT_RUN`, unknown/duplicate IDs fail closed, and the process bridge enforces
+the manifest budget through the portable timeout owner. The dashboard is
+operational evidence, not substitution progress.
+
 The third executable delta deleted
 `codegen/input/ast_text_collection_stmt_owner.pgy`. The parser-owned artifact
 was already captured by `SemanticAstStatementFacts`; `ArrayPush` target/value
@@ -568,10 +691,10 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has 36 machine-gated authority rows and 11
+The whole compiler skeleton now has 36 machine-gated authority rows and 13
 classified derived fact carriers in
-`docs/semantics/sot_owner_spine_registry.md`, with fourteen `CLOSED`, seven
-`BRIDGE`, and fifteen `ACTIVE` rows. Each authority row names its stable handle,
+`docs/semantics/sot_owner_spine_registry.md`, with sixteen `CLOSED`, seven
+`BRIDGE`, and thirteen `ACTIVE` rows. Each authority row names its stable handle,
 Coq fact/owner,
 authority implementation, last consumers, forbidden fallbacks, gate, and open
 reason. `tests/sot_authority_edge_smoke.sh` consumes the registry without a

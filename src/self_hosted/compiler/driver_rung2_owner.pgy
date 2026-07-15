@@ -15,6 +15,7 @@ import "../semantic/ast_body_verdict_owner.pgy";
 import "../semantic/ast_body_type_bundle_owner.pgy";
 import "../semantic/ast_expression_surface_contract_owner.pgy";
 import "../semantic/ast_expression_graph_bridge_contract_owner.pgy";
+import "../semantic/ast_expression_call_target_contract_owner.pgy";
 import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
@@ -22,43 +23,58 @@ import "../mir_lower/expression_graph_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 
+func CompilerDriverRung2ReadinessError() -> String {
+    if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
+    if !SemanticBuiltinSignatureContractReady() { return "builtin_signature"; }
+    if !SemanticCallableResolutionContractReady() { return "callable_resolution"; }
+    if !SemanticExpressionNormalizationContractReady() { return "expression_normalization"; }
+    if !SemanticAstExpressionEnvironmentContractReady() { return "expression_environment"; }
+    if !SemanticAstInitializerTypeFactsContractReady() { return "initializer_type_facts"; }
+    if !SemanticAstIterationTypeFactsContractReady() { return "iteration_type_facts"; }
+    if !SemanticAstAssignmentFactsContractReady() { return "assignment_facts"; }
+    if !SemanticAstAssignmentTypeFactsContractReady() { return "assignment_type_facts"; }
+    if !SemanticAstStatementFactsContractReady() { return "statement_facts"; }
+    if !SemanticAstExpressionVerdictContractReady() { return "expression_verdict"; }
+    if !SemanticExpressionGraphIntrinsicTypeContractReady() { return "graph_intrinsic_type"; }
+    if !SemanticExpressionGraphScalarTypeContractReady() { return "graph_scalar_type"; }
+    if !SemanticExpressionGraphWrapperValueContractReady() { return "graph_wrapper_value"; }
+    if !SemanticExpressionGraphCollectionMutationContractReady() { return "graph_collection_mutation"; }
+    if !SemanticExpressionGraphFieldTypeContractReady() { return "graph_field_type"; }
+    if !SemanticAstExpressionTypedBindingContractReady() { return "expression_typed_binding"; }
+    if !SemanticAstStatementTypeFactsContractReady() { return "statement_type_facts"; }
+    if !SemanticAstStatementTypeQueryContractReady() { return "statement_type_query"; }
+    if !SemanticAstBodyTypeBundleContractReady() {
+        return Concat(
+            "body_type_bundle:", SemanticAstBodyTypeBundleContractError()
+        );
+    }
+    if !ParserExpressionGraphContractReady() { return "parser_expression_graph"; }
+    if !ParserExpressionPrecedenceGraphContractReady() { return "parser_precedence_graph"; }
+    if !ParserExpressionUnaryGraphContractReady() { return "parser_unary_graph"; }
+    if !ParserExpressionPipeGraphContractReady() { return "parser_pipe_graph"; }
+    if !ParserExpressionPostfixGraphContractReady() { return "parser_postfix_graph"; }
+    if !ParserExpressionTryGraphContractReady() { return "parser_try_graph"; }
+    if !ParserExpressionArrayLiteralGraphContractReady() { return "parser_array_literal_graph"; }
+    if !ParserExpressionStructLiteralGraphContractReady() { return "parser_struct_literal_graph"; }
+    if !SemanticExpressionGraphParserBridgeContractReady() { return "graph_parser_bridge"; }
+    if !SemanticExpressionGraphCompactBridgeTryContractReady() { return "graph_compact_try_bridge"; }
+    if !ParserExpressionCallGraphContractReady() { return "parser_call_graph"; }
+    if !ParserExpressionExplicitGenericCallGraphContractReady() { return "parser_generic_call_graph"; }
+    if !ParserExpressionNamedSingleCallArgumentContractReady() { return "parser_named_single_arg"; }
+    if !ParserExpressionNamedCallArgumentAtContractReady() { return "parser_named_arg"; }
+    if !ParserExpressionDirectCallCalleeContractReady() { return "parser_direct_callee"; }
+    if !SemanticExpressionCallTargetFactContractReady() { return "call_target_fact"; }
+    if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
+    if !SelfMirIndexedAssignmentUseContractReady() { return "mir_indexed_assignment"; }
+    if !MirFactGraphPayloadContractReady() { return "mir_fact_graph_payload"; }
+    if TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) != "class" {
+        return "typed_ast_nominal_subkind";
+    }
+    return "";
+}
+
 func CompilerDriverRung2Ready() -> Bool {
-    return CompilerDriverPipelineReady() &&
-        SemanticBuiltinSignatureContractReady() &&
-        SemanticCallableResolutionContractReady() &&
-        SemanticExpressionNormalizationContractReady() &&
-        SemanticAstExpressionEnvironmentContractReady() &&
-        SemanticAstInitializerTypeFactsContractReady() &&
-        SemanticAstIterationTypeFactsContractReady() &&
-        SemanticAstAssignmentFactsContractReady() &&
-        SemanticAstAssignmentTypeFactsContractReady() &&
-        SemanticAstStatementFactsContractReady() &&
-        SemanticAstExpressionVerdictContractReady() &&
-        SemanticExpressionGraphIntrinsicTypeContractReady() &&
-        SemanticExpressionGraphScalarTypeContractReady() &&
-        SemanticAstExpressionTypedBindingContractReady() &&
-        SemanticAstStatementTypeFactsContractReady() &&
-        SemanticAstStatementTypeQueryContractReady() &&
-        SemanticAstBodyTypeBundleContractReady() &&
-        ParserExpressionGraphContractReady() &&
-        ParserExpressionPrecedenceGraphContractReady() &&
-        ParserExpressionUnaryGraphContractReady() &&
-        ParserExpressionPipeGraphContractReady() &&
-        ParserExpressionPostfixGraphContractReady() &&
-        ParserExpressionTryGraphContractReady() &&
-        ParserExpressionArrayLiteralGraphContractReady() &&
-        ParserExpressionStructLiteralGraphContractReady() &&
-        SemanticExpressionGraphParserBridgeContractReady() &&
-        SemanticExpressionGraphCompactBridgeTryContractReady() &&
-        ParserExpressionCallGraphContractReady() &&
-        ParserExpressionNamedSingleCallArgumentContractReady() &&
-        ParserExpressionNamedCallArgumentAtContractReady() &&
-        ParserExpressionDirectCallCalleeContractReady() &&
-        SemanticExpressionCallTargetFactContractReady() &&
-        SelfMirExpressionGraphRowsContractReady() &&
-        SelfMirIndexedAssignmentUseContractReady() &&
-        MirFactGraphPayloadContractReady() &&
-        TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class";
+    return CompilerDriverRung2ReadinessError() == "";
 }
 
 func DriverRung2FixtureRows() -> Array<String> {
@@ -112,6 +128,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/array_literal_call_argument.pgy",
         "src/self_hosted/mir_lower/fixture/struct_literal_call_argument.pgy",
         "src/self_hosted/mir_lower/fixture/struct_literal_value_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy",
         "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy",
         "src/self_hosted/codegen/fixture/ast_node_array_push.pgy",
         "src/self_hosted/mir_lower/fixture/ast_node_array_set.pgy",
@@ -124,7 +141,7 @@ func DriverRung2MirFixtureRows() -> Array<String> {
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 28;
+    return 29;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -160,8 +177,9 @@ func VerifyArtifactAnalysisForDriverRung2(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis
 ) -> DriverRung2VerifiedFacts {
-    if !CompilerDriverRung2Ready() {
-        Die("driver rung-2 semantic facts are not ready");
+    let readiness_error: String = CompilerDriverRung2ReadinessError();
+    if readiness_error != "" {
+        Die(Concat("driver rung-2 semantic facts are not ready: ", readiness_error));
     }
     if !semantic_analysis.verdict.ok {
         Log(semantic_analysis.verdict.diagnostic_message);

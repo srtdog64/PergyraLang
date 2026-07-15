@@ -22,7 +22,7 @@ import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
-import "function_emit.pgy";
+import "generic_function_emit_owner.pgy";
 
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
@@ -153,6 +153,7 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         signatures, signature_index
     );
     ArraySet(cur, 0, cur[0] + 1);
+    CodegenAstArenaSkipGenericParams(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
     while cur[0] < count && CodegenAstArenaIndentOrDie(arena, cur[0]) == f_indent + 4 {
         let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
@@ -362,7 +363,19 @@ func GenerateCUnitFromSemanticFacts(
     if IsSome(first_fn) {
         f_indent = CodegenAstArenaIndentOrDie(arena, UnwrapOption(first_fn));
     }
-    let env_acc: Array<String> = [BuildFunctionEnv(signatures)];
+    let specializations: CodegenGenericSpecializationFacts =
+        CodegenGenericSpecializationFactsFromSemantic(
+            signatures, semantic_analysis.expression_surfaces
+        );
+    if !specializations.ok {
+        Die(Concat(
+            "generic specialization facts are incomplete: ",
+            specializations.diagnostic_message
+        ));
+    }
+    let env_acc: Array<String> = [BuildFunctionEnv(
+        signatures, specializations
+    )];
     let enum_block: String = CollectEnums(semantic_analysis.enums, env_acc);
     let typedef_block: String = CollectStructs(
         semantic_analysis.constructors, env_acc
@@ -399,10 +412,11 @@ func GenerateCUnitFromSemanticFacts(
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], owner_node) {
                 if CodegenSemanticFunctionIs(signatures, cur[0]) {
                     let method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let mdef: String = EmitFunction(
+                    let mdef: String = EmitFunctionSet(
                         count, arena, signatures, semantic_analysis.roles,
                         local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
+                        specializations,
                         cur, method_indent,
                         base_env, uses_args
                     );
@@ -417,10 +431,11 @@ func GenerateCUnitFromSemanticFacts(
             while cur[0] < count && CodegenAstArenaIsDescendantOf(arena, cur[0], role_owner_node) {
                 if CodegenSemanticFunctionIs(signatures, cur[0]) {
                     let role_method_indent: Int = CodegenAstArenaIndentOrDie(arena, cur[0]);
-                    let role_mdef: String = EmitFunction(
+                    let role_mdef: String = EmitFunctionSet(
                         count, arena, signatures, semantic_analysis.roles,
                         local_bindings, assignments, statements, body_types,
                         semantic_analysis.expression_surfaces,
+                        specializations,
                         cur, role_method_indent,
                         base_env, uses_args
                     );
@@ -431,10 +446,11 @@ func GenerateCUnitFromSemanticFacts(
             }
         } else if CodegenSemanticFunctionIs(signatures, cur[0]) &&
             cur_indent == f_indent {
-            let def: String = EmitFunction(
+            let def: String = EmitFunctionSet(
                 count, arena, signatures, semantic_analysis.roles,
                 local_bindings, assignments, statements, body_types,
                 semantic_analysis.expression_surfaces,
+                specializations,
                 cur, f_indent, base_env, uses_args
             );
             ArrayPush(defs, Concat(def, "\n"));
@@ -445,7 +461,7 @@ func GenerateCUnitFromSemanticFacts(
 
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(
-        signatures, semantic_analysis.roles, base_env
+        signatures, semantic_analysis.roles, base_env, specializations
     );
     let option_struct_block_fact: OptionStructDefinitionBlockFact =
         OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows);

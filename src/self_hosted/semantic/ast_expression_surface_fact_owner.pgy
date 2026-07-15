@@ -4,7 +4,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
-import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_build_owner.pgy";
 
 struct SemanticAstExpressionShapeFact {
     ok: Bool;
@@ -137,8 +137,15 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let normalized_values: Array<String> = [];
     let normalized_auxiliary_values: Array<String> = [];
     let operator_rows: Array<Int> = [];
-    let expression_graph: SemanticExpressionGraphFacts =
-        SemanticExpressionGraphFactsEmpty();
+    let graph_roots: Array<Int> = [];
+    let graph_has_roots: Array<Bool> = [];
+    let graph_node_kinds: Array<Int> = [];
+    let graph_node_texts: Array<String> = [];
+    let graph_left_children: Array<Int> = [];
+    let graph_right_children: Array<Int> = [];
+    let graph_call_target_kinds: Array<Int> = [];
+    let graph_call_target_names: Array<String> = [];
+    let graph_ok: Bool = true;
     let ok: Bool = AstTreeArtifactReady(artifact);
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
@@ -193,26 +200,42 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
                 SemanticAstExpressionGraphAuxiliaryLaneRequired(
                     artifact, node_id
                 );
-            expression_graph = SemanticExpressionGraphFactsAppendLane(
-                expression_graph,
+            graph_ok = SemanticExpressionGraphAppendLaneRows(
+                graph_roots, graph_has_roots, graph_node_kinds,
+                graph_node_texts, graph_left_children, graph_right_children,
+                graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_atom,
                 normalized_atom
             );
-            expression_graph = SemanticExpressionGraphFactsAppendLane(
-                expression_graph,
+            graph_ok = SemanticExpressionGraphAppendLaneRows(
+                graph_roots, graph_has_roots, graph_node_kinds,
+                graph_node_texts, graph_left_children, graph_right_children,
+                graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_value,
                 normalized_value
             );
-            expression_graph = SemanticExpressionGraphFactsAppendLane(
-                expression_graph,
+            graph_ok = SemanticExpressionGraphAppendLaneRows(
+                graph_roots, graph_has_roots, graph_node_kinds,
+                graph_node_texts, graph_left_children, graph_right_children,
+                graph_call_target_kinds, graph_call_target_names, graph_ok,
                 derive_compact_graph && migrated_auxiliary,
                 normalized_auxiliary
             );
         }
         node_id = node_id + 1;
     }
+    let expression_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph_ok, graph_roots, graph_has_roots,
+            SemanticExpressionGraphArena(
+                graph_node_kinds, graph_node_texts, graph_left_children,
+                graph_right_children, graph_call_target_kinds,
+                graph_call_target_names
+            )
+        );
     return SemanticAstExpressionSurfaceFacts(
-        ok, artifact.count, node_ids, has_atoms, atoms, has_values, values,
+        ok && graph_ok, artifact.count, node_ids, has_atoms, atoms,
+        has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
         normalized_values, normalized_auxiliary_values, operator_rows,
         expression_graph
@@ -341,6 +364,32 @@ func SemanticAstExpressionGraphForNode(
     );
 }
 
+func SemanticAstExpressionGraphRootSpellingMatches(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    surface_text: String
+) -> Bool {
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, root_id
+    );
+    if !IsSome(root_text) { return false; }
+    if UnwrapOption(root_text) == surface_text { return true; }
+    let node_kinds: Array<Int> = [];
+    let node_texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let call_target_kinds: Array<Int> = [];
+    let call_target_names: Array<String> = [];
+    let canonical: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, surface_text
+        );
+    return canonical.ok &&
+        node_texts[canonical.root_id] ==
+            UnwrapOption(root_text);
+}
+
 func SemanticAstExpressionSurfaceFactsWithGraph(
     artifact: AstTreeArtifact,
     facts: SemanticAstExpressionSurfaceFacts,
@@ -373,15 +422,13 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         let auxiliary_view: SemanticExpressionGraphView =
             SemanticExpressionGraphViewAt(
                 graph, i, AstExpressionLaneAuxiliary()
-            );
+        );
         if migrated_atom {
             migrated_root_count = migrated_root_count + 1;
-            let root_text: Option<String> =
-                SemanticExpressionGraphNodeText(
-                    graph, atom_view.root_id
-                );
-            if !atom_view.ok || !IsSome(root_text) ||
-                UnwrapOption(root_text) != facts.normalized_atoms[i] {
+            if !atom_view.ok ||
+                !SemanticAstExpressionGraphRootSpellingMatches(
+                    graph, atom_view.root_id, facts.normalized_atoms[i]
+                ) {
                 valid = false;
             }
         } else if atom_view.ok {
@@ -389,12 +436,10 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         }
         if migrated_value {
             migrated_root_count = migrated_root_count + 1;
-            let root_text: Option<String> =
-                SemanticExpressionGraphNodeText(
-                    graph, value_view.root_id
-                );
-            if !value_view.ok || !IsSome(root_text) ||
-                UnwrapOption(root_text) != facts.normalized_values[i] {
+            if !value_view.ok ||
+                !SemanticAstExpressionGraphRootSpellingMatches(
+                    graph, value_view.root_id, facts.normalized_values[i]
+                ) {
                 valid = false;
             }
         } else if value_view.ok {
@@ -402,13 +447,11 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         }
         if migrated_auxiliary {
             migrated_root_count = migrated_root_count + 1;
-            let root_text3: Option<String> =
-                SemanticExpressionGraphNodeText(
-                    graph, auxiliary_view.root_id
-                );
-            if !auxiliary_view.ok || !IsSome(root_text3) ||
-                UnwrapOption(root_text3) !=
-                    facts.normalized_auxiliary_values[i] {
+            if !auxiliary_view.ok ||
+                !SemanticAstExpressionGraphRootSpellingMatches(
+                    graph, auxiliary_view.root_id,
+                    facts.normalized_auxiliary_values[i]
+                ) {
                 valid = false;
             }
         } else if auxiliary_view.ok {
@@ -427,95 +470,6 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
         facts.normalized_atoms, facts.normalized_values,
         facts.normalized_auxiliary_values, facts.operator_rows, graph
     );
-}
-
-func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
-    return SourceByteIsAlphaNum(c) || c == SourceByteOf("_");
-}
-
-func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
-    let n: Int = StringLength(text);
-    let m: Int = StringLength(token);
-    let i: Int = 0;
-    let in_string: Bool = false;
-    while i < n {
-        let c: Int = SourceByteAt(text, n, i);
-        if in_string {
-            if c == SourceByteOf("\\") { i = i + 2; continue; }
-            if c == SourceByteOf("\"") { in_string = false; }
-            i = i + 1;
-            continue;
-        }
-        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
-        if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, token) {
-            let before_ok: Bool = i == 0 || !SemanticExpressionSurfaceIdentifierByte(
-                SourceByteAt(text, n, i - 1)
-            );
-            let after: Int = i + m;
-            let after_ok: Bool = after >= n || !SemanticExpressionSurfaceIdentifierByte(
-                SourceByteAt(text, n, after)
-            );
-            if before_ok && after_ok { return true; }
-        }
-        i = i + 1;
-    }
-    return false;
-}
-
-func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
-    let n: Int = StringLength(text);
-    let needle: String = Concat(callee, "(");
-    let m: Int = StringLength(needle);
-    let i: Int = 0;
-    let in_string: Bool = false;
-    while i < n {
-        let c: Int = SourceByteAt(text, n, i);
-        if in_string {
-            if c == SourceByteOf("\\") { i = i + 2; continue; }
-            if c == SourceByteOf("\"") { in_string = false; }
-            i = i + 1;
-            continue;
-        }
-        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
-        if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, needle) &&
-            (i == 0 || !SemanticExpressionSurfaceIdentifierByte(
-                SourceByteAt(text, n, i - 1)
-            )) { return true; }
-        i = i + 1;
-    }
-    return false;
-}
-
-func SemanticAstExpressionSurfaceTokenPresent(
-    facts: SemanticAstExpressionSurfaceFacts,
-    token: String
-) -> Bool {
-    let i: Int = 0;
-    while i < SemanticAstExpressionSurfaceCount(facts) {
-        if (facts.has_atoms[i] && SemanticExpressionSurfaceHasToken(facts.atoms[i], token)) ||
-            (facts.has_values[i] && SemanticExpressionSurfaceHasToken(facts.values[i], token)) ||
-            (facts.has_auxiliary_values[i] && SemanticExpressionSurfaceHasToken(
-                facts.auxiliary_values[i], token
-            )) { return true; }
-        i = i + 1;
-    }
-    return false;
-}
-
-func SemanticAstExpressionSurfaceCallPresent(
-    facts: SemanticAstExpressionSurfaceFacts,
-    callee: String
-) -> Bool {
-    let i: Int = 0;
-    while i < SemanticAstExpressionSurfaceCount(facts) {
-        if (facts.has_atoms[i] && SemanticExpressionSurfaceCalls(facts.atoms[i], callee)) ||
-            (facts.has_values[i] && SemanticExpressionSurfaceCalls(facts.values[i], callee)) ||
-            (facts.has_auxiliary_values[i] && SemanticExpressionSurfaceCalls(
-                facts.auxiliary_values[i], callee
-            )) { return true; }
-        i = i + 1;
-    }
-    return false;
 }
 
 func SemanticAstExpressionSurfaceFactsMatchArtifact(

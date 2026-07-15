@@ -1,0 +1,119 @@
+// Collection mutation verdicts over carried call targets and receiver nodes.
+
+import "ast_expression_graph_call_view_owner.pgy";
+import "collection_mutation_policy_owner.pgy";
+
+struct SemanticExpressionGraphCollectionMutationFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+}
+
+func SemanticExpressionGraphCollectionMutationNotApplicable(
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(
+        false, true, "", ""
+    );
+}
+
+func SemanticExpressionGraphCollectionMutationOk(
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(true, true, "", "");
+}
+
+func SemanticExpressionGraphCollectionMutationError(
+    code: String,
+    message: String
+) -> SemanticExpressionGraphCollectionMutationFact {
+    return SemanticExpressionGraphCollectionMutationFact(
+        true, false, code, message
+    );
+}
+
+func SemanticExpressionGraphCollectionMutationFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>
+) -> SemanticExpressionGraphCollectionMutationFact {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok {
+        return SemanticExpressionGraphCollectionMutationNotApplicable();
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || !IsSome(callee_text) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !SemanticCollectionMutatorName(UnwrapOption(callee_text)) {
+        return SemanticExpressionGraphCollectionMutationNotApplicable();
+    }
+    let callee: String = UnwrapOption(callee_text);
+    if ArrayLength(names) != ArrayLength(types) ||
+        ArrayLength(names) != ArrayLength(modes) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_environment"
+            )
+        );
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) != callee {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_call_target"
+            )
+        );
+    }
+    if ArrayLength(call.argument_nodes) == 0 {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    let receiver_node: Int = call.argument_nodes[0];
+    let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, receiver_node
+    );
+    let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, receiver_node
+    );
+    if !IsSome(receiver_kind) || !IsSome(receiver_text) {
+        return SemanticExpressionGraphCollectionMutationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "collection_receiver"
+            )
+        );
+    }
+    if UnwrapOption(receiver_kind) != AstExpressionNodeLeaf() ||
+        !IsIdentText(UnwrapOption(receiver_text)) {
+        return SemanticExpressionGraphCollectionMutationOk();
+    }
+    let message: String = SemanticCollectionMutationError(
+        callee, UnwrapOption(receiver_text), names, types, modes
+    );
+    if StringLength(message) > 0 {
+        return SemanticExpressionGraphCollectionMutationError(
+            "value_param_collection_mutation", message
+        );
+    }
+    return SemanticExpressionGraphCollectionMutationOk();
+}
+
+func SemanticExpressionGraphCollectionMutationContractReady() -> Bool {
+    return SemanticCollectionMutationPolicyContractReady();
+}

@@ -1,0 +1,75 @@
+// Semantic initializer projection -> MIR local declaration lowering.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+
+func SelfMirLowerLetFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int
+) -> SelfMirRoutineBuild {
+    let local_index: Option<Int> = SemanticAstLocalBindingIndexForNode(
+        input.analysis.local_bindings, node_id
+    );
+    if !IsSome(local_index) {
+        return SelfMirRoutineBuildError(
+            build, "MIR let is missing semantic local facts"
+        );
+    }
+    let initializer_index: Option<Int> = SelfMirInitializerIndexForNode(
+        input.initializers, node_id
+    );
+    if !IsSome(initializer_index) {
+        return SelfMirRoutineBuildError(
+            build, "MIR let is missing semantic initializer type facts"
+        );
+    }
+    let local_row: Int = UnwrapOption(local_index);
+    let initializer_row: Int = UnwrapOption(initializer_index);
+    let local_name: String = input.analysis.local_bindings.names[local_row];
+    let local_type: String = input.initializers.inferred_type_names[
+        initializer_row
+    ];
+    if input.analysis.local_bindings.has_declared_types[local_row] == 1 {
+        local_type = input.analysis.local_bindings.declared_type_names[
+            local_row
+        ];
+    } else if input.analysis.local_bindings.has_declared_types[local_row] != 0 {
+        return SelfMirRoutineBuildError(
+            build, "MIR local declared-type presence fact is invalid"
+        );
+    }
+    if local_type == "" || local_type == "Unknown" {
+        return SelfMirRoutineBuildError(
+            build, "MIR let initializer type fact is unresolved"
+        );
+    }
+    let expression: String = input.analysis.local_bindings.initializer_texts[
+        local_row
+    ];
+    let initializer_uses: Array<String> = SelfMirExpressionUses(
+        build, expression
+    );
+    build = SelfMirRoutineAddLocal(build, local_name, local_type, 1);
+    let added_local: Option<Int> = SelfMirRoutineLocalIndex(build, local_name);
+    if !IsSome(added_local) {
+        return SelfMirRoutineBuildError(
+            build, "MIR local registration did not produce an identity"
+        );
+    }
+    let local_version: Int = build.local_versions[UnwrapOption(added_local)];
+    let nominal_type: String = "";
+    if SelfMirTypeIsNominal(input, local_type) { nominal_type = local_type; }
+    build = SelfMirRoutineAddInstruction(
+        build, "def", "ssa-def", SelfMirSsaName(local_name, local_version),
+        local_name, nominal_type, expression, local_type,
+        "AST_LET_DECL", initializer_uses
+    );
+    return SelfMirRoutineAttachLastExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        )
+    );
+}

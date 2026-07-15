@@ -1,7 +1,6 @@
 // MIR instruction-owned normalized expression graph rows.
 import "../semantic/ast_expression_graph_fact_owner.pgy";
 import "../semantic/ast_expression_call_target_fact_owner.pgy";
-
 struct SelfMirExpressionGraphRows {
     has_roots: Array<Int>;
     roots: Array<Int>;
@@ -14,18 +13,14 @@ struct SelfMirExpressionGraphRows {
     call_target_kinds: Array<Int>;
     call_target_names: Array<String>;
 }
-
 func SelfMirExpressionGraphRowsEmpty() -> SelfMirExpressionGraphRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfMirExpressionGraphRows(
-        ints, ints, ints, ints, ints, strings, ints, ints, ints, strings
-    );
+        ints, ints, ints, ints, ints, strings, ints, ints, ints, strings);
 }
 
-func SelfMirExpressionGraphNodeCount(
-    ref rows: SelfMirExpressionGraphRows
-) -> Int {
+func SelfMirExpressionGraphNodeCount(ref rows: SelfMirExpressionGraphRows) -> Int {
     return ArrayLength(rows.node_kinds);
 }
 
@@ -48,9 +43,7 @@ func SelfMirExpressionGraphAppendInstruction(
     );
 }
 
-func SelfMirExpressionGraphRowsForInstructionCount(
-    count: Int
-) -> SelfMirExpressionGraphRows {
+func SelfMirExpressionGraphRowsForInstructionCount(count: Int) -> SelfMirExpressionGraphRows {
     let rows: SelfMirExpressionGraphRows = SelfMirExpressionGraphRowsEmpty();
     let i: Int = 0;
     while i < count {
@@ -332,8 +325,12 @@ func SelfMirExpressionGraphRowsReady(
             let target_kind: Int = rows.call_target_kinds[node_i];
             let target_name: String = rows.call_target_names[node_i];
             if target_kind == SemanticCallTargetNone() {
-                if target_name != "" { return false; }
-            } else if target_kind == SemanticCallTargetNamespace() {
+                if target_name != "" || kind == AstExpressionNodeCall() {
+                    return false;
+                }
+            } else if target_kind == SemanticCallTargetDirect() ||
+                target_kind == SemanticCallTargetNamespace() ||
+                target_kind == SemanticCallTargetMember() {
                 if kind != AstExpressionNodeCall() || target_name == "" {
                     return false;
                 }
@@ -370,6 +367,13 @@ func SelfMirExpressionGraphRowsReady(
                     AstExpressionNodeLeaf() {
                 return false;
             }
+            if kind == AstExpressionNodeGenericCallee() &&
+                (!AstExpressionNodeIsCallableCallee(
+                    rows.node_kinds[rows.left_children[node_i]]
+                ) || rows.node_kinds[rows.right_children[node_i]] !=
+                    AstExpressionNodeGenericTypeActual()) {
+                return false;
+            }
             if kind == AstExpressionNodeArrayElement() &&
                 !AstExpressionNodeIsArrayLiteralSpine(
                     rows.node_kinds[rows.left_children[node_i]]
@@ -399,42 +403,11 @@ func SelfMirExpressionGraphRowsReady(
     return expected_start == node_count;
 }
 
-func SelfMirExpressionGraphKindName(kind: Int) -> String {
-    if kind == AstExpressionNodeLeaf() { return "leaf"; }
-    if kind == AstExpressionNodeLogicalOr() { return "logical_or"; }
-    if kind == AstExpressionNodeLogicalAnd() { return "logical_and"; }
-    if kind == AstExpressionNodeEquality() { return "equality"; }
-    if kind == AstExpressionNodeInequality() { return "inequality"; }
-    if kind == AstExpressionNodeLess() { return "less"; }
-    if kind == AstExpressionNodeLessEqual() { return "less_equal"; }
-    if kind == AstExpressionNodeGreater() { return "greater"; }
-    if kind == AstExpressionNodeGreaterEqual() { return "greater_equal"; }
-    if kind == AstExpressionNodeAdd() { return "add"; }
-    if kind == AstExpressionNodeSubtract() { return "subtract"; }
-    if kind == AstExpressionNodeMultiply() { return "multiply"; }
-    if kind == AstExpressionNodeDivide() { return "divide"; }
-    if kind == AstExpressionNodeModulo() { return "modulo"; }
-    if kind == AstExpressionNodeIndex() { return "index"; }
-    if kind == AstExpressionNodeLogicalNot() { return "logical_not"; }
-    if kind == AstExpressionNodeNegate() { return "negate"; }
-    if kind == AstExpressionNodeCall() { return "call"; }
-    if kind == AstExpressionNodeCallArgument() { return "call_argument"; }
-    if kind == AstExpressionNodeMemberAccess() { return "member_access"; }
-    if kind == AstExpressionNodeTry() { return "try"; }
-    if kind == AstExpressionNodeArrayLiteral() { return "array_literal"; }
-    if kind == AstExpressionNodeArrayElement() { return "array_element"; }
-    if kind == AstExpressionNodeStructLiteral() { return "struct_literal"; }
-    if kind == AstExpressionNodeStructFieldBinding() {
-        return "struct_field_binding";
-    }
-    if kind == AstExpressionNodeStructField() { return "struct_field"; }
-    if kind == AstExpressionNodeStructFieldName() { return "struct_field_name"; }
-    return "";
-}
-
 func SelfMirExpressionCallTargetKindName(kind: Int) -> String {
     if kind == SemanticCallTargetNone() { return "none"; }
+    if kind == SemanticCallTargetDirect() { return "direct"; }
     if kind == SemanticCallTargetNamespace() { return "namespace"; }
+    if kind == SemanticCallTargetMember() { return "member"; }
     return "";
 }
 
@@ -492,7 +465,8 @@ func SelfMirExpressionGraphRowsContractReady() -> Bool {
             ],
             ["Pick", "Pick()", "1", "Pick(1)"],
             [0, 0, 0, 1], [0, 0, 0, 2],
-            [0, 0, 0, 0], ["", "", "", ""]
+            [0, SemanticCallTargetDirect(), 0, 0],
+            ["", "Pick", "", ""]
         );
     let malformed_call: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRows(

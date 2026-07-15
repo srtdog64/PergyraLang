@@ -6,6 +6,7 @@
 #include "mir_decl_headers.h"
 #include "mir_type_helpers.h"
 #include "../parser/ast_api.h"
+#include "../common/string_compat.h"
 
 MIRParamCarriage
 mir_param_carriage_from_source_mode(ParamMode mode)
@@ -103,6 +104,12 @@ mir_routine_signature_metadata_clear(MIRRoutine *routine)
     routine->param_abi_facts = NULL;
     free(routine->return_type_name);
     routine->return_type_name = NULL;
+    if (routine->generic_param_names != NULL) {
+        for (size_t i = 0; i < routine->generic_param_count; i++)
+            free(routine->generic_param_names[i]);
+        free(routine->generic_param_names);
+        routine->generic_param_names = NULL;
+    }
     if (routine->param_callable_sigs != NULL) {
         for (size_t i = 0; i < routine->param_count; i++)
             mir_callable_sig_clear(&routine->param_callable_sigs[i]);
@@ -118,6 +125,31 @@ mir_routine_signature_metadata_capture(const MIRProgram *program,
 {
     if (routine == NULL || !routine->has_signature)
         return true;
+
+    if (routine->generic_param_count > 0) {
+        GenericParams *generic_params = routine->ast != NULL
+            ? ast_declaration_generic_params(routine->ast)
+            : NULL;
+        if (generic_params == NULL
+            || ast_generic_param_count(generic_params)
+                != routine->generic_param_count
+            || routine->generic_param_count > SIZE_MAX / sizeof(char *)) {
+            return false;
+        }
+        routine->generic_param_names = calloc(
+            routine->generic_param_count, sizeof(char *));
+        if (routine->generic_param_names == NULL)
+            return false;
+        for (size_t i = 0; i < routine->generic_param_count; i++) {
+            GenericParam *param = ast_generic_param_at(generic_params, i);
+            const char *name = ast_generic_param_name(param);
+            if (name == NULL)
+                return false;
+            routine->generic_param_names[i] = pergyra_strdup(name);
+            if (routine->generic_param_names[i] == NULL)
+                return false;
+        }
+    }
 
     if (routine->param_count > 0) {
         if (routine->param_count > SIZE_MAX / sizeof(char *)

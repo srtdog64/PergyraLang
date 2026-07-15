@@ -236,6 +236,241 @@ for its fixture manifest and again for the C leg: a dedicated build leg keeps
 the manifest-producing binary live and reuses it only under an exact
 source-set/tool/compiler fingerprint.
 
+Nineteenth executable active-rung delta, 2026-07-15: fully graph-owned scalar
+operator trees now derive their result type from
+`SemanticExpressionGraphFacts`. `SemanticAstExpressionVerdictFromGraph`
+does not invoke `ExprType(text, ...)` for that capability subset. The focused
+initializer-to-MIR probe lowers `seed + 2` identically under C-built and
+LLVM-built tools. Its negative preserves the source expression and graph-root
+text while replacing only the `2` leaf; both tools reject the canonical graph
+identifier fact as `undefined_symbol`, so source text cannot silently restore
+the result type. Changing that same leaf to a String produces the canonical
+`binop_type_mismatch` from graph child types under both tools. Result typing and
+operand diagnostics are therefore graph-owned for this declared scalar
+capability subset. Call/member/composite trees remain the explicit text bridge.
+This delta does not raise the released/default replacement percentage.
+
+Twentieth executable active-rung delta, 2026-07-15: direct named calls with a
+concrete scalar return now derive that return from the graph-owned callee and
+canonical callable return table. The initializer-to-MIR probe keeps
+`ToIntValue(2)` and its root text unchanged, changes only the graph callee to
+the equally shaped `ToTextValue(Int) -> String`, and both C-built and
+LLVM-built tools reject the declared `Int` initializer as `let_type_mismatch`.
+The positive mode projects `x: Int` into the MIR local row identically under
+both backends. Call-argument validation, member/namespace calls, generic and
+aggregate return typing, and other composite expressions remain the explicit
+text bridge. The expression owner stays `BRIDGE`, and released/default
+replacement remains 0%.
+
+Twenty-first executable active-rung delta, 2026-07-15: direct calls whose
+return, parameter rows, and argument nodes are concrete scalar leaves now
+validate arity and argument types from graph handles. The focused negative
+keeps `ToIntValue(2)` and its root text unchanged while replacing only the
+graph argument leaf with a String; C-built and LLVM-built tools both emit
+`call_arg_type_mismatch`. Unsupported nested, generic, collection,
+Option/Result, member, and namespace calls still use the explicit bridge. The
+expression owner remains `BRIDGE`, and released/default replacement stays 0%.
+
+Twenty-second executable active-rung delta, 2026-07-15: the same direct-call
+consumer now accepts fully graph-owned scalar operator trees as arguments.
+Operand diagnostics walk the parser arena's postorder subtree and do not
+re-parse source text. The positive `ToIntValue(1 + (2 * 3))` path projects
+`x: Int` to MIR identically under C-built and LLVM-built probes; changing only
+the graph's `2` leaf to a String fails as `binop_type_mismatch`.
+Parser-canonical root spelling is checked against the surface by
+the same compact parser owner instead of being treated as a second semantic
+spelling. Arguments containing nested calls, generic/aggregate signatures,
+collection or Option/Result policy, and member/namespace calls remain bridged.
+The expression owner remains `BRIDGE`, and released/default replacement stays
+0%.
+
+Twenty-third executable active-rung delta, 2026-07-15: a concrete direct call
+may now consume another concrete direct call as a scalar argument. The
+capability and verdict recurse over graph call-spine handles; they do not invoke
+the source call parser. `ToIntValue(ToIntValue(2))` projects `x: Int` under
+C/LLVM parity. Keeping that source unchanged while changing only the inner
+graph callee to `ToTextValue(Int) -> String` fails at the outer call as
+`call_arg_type_mismatch` under both backends. Scalar operators containing call
+nodes, generic/aggregate signatures, collection or Option/Result policy, and
+member/namespace calls remain bridged. The expression owner remains `BRIDGE`,
+and released/default replacement stays 0%.
+
+Twenty-fourth executable active-rung delta, 2026-07-15: one concrete scalar
+graph capability now composes leaves, scalar operators, and concrete direct
+calls. `1 + ToIntValue(2)` projects `x: Int` under C/LLVM parity without
+calling source-text call, binary, or result-type recovery. Keeping the source
+unchanged while changing only the graph callee to `ToTextValue(Int) -> String`
+fails as `binop_type_mismatch` under both backends. The former direct-call-only
+verdict owner and names were deleted rather than retained as aliases.
+Generic/aggregate signatures, collection or Option/Result policy, and
+member/namespace calls remain bridged. The expression owner remains `BRIDGE`,
+and released/default replacement stays 0%.
+
+Twenty-fifth executable active-rung delta, 2026-07-15: namespace-qualified
+static calls now consume the canonical target already carried on the semantic
+call node. `Math.Add(2)` resolves through `Math_Add` and projects `x: Int`
+identically under C/LLVM. Keeping source and member graph unchanged while
+changing only the carried target to the String-returning `ToTextValue` fails as
+`let_type_mismatch` under both backends. The direct-leaf-only type owner and
+names were deleted; namespace spelling is not re-flattened by the consumer.
+Receiver-bound member calls, generic/aggregate signatures, and collection or
+Option/Result policy remain bridged. The expression owner remains `BRIDGE`, and
+released/default replacement stays 0%.
+
+Twenty-sixth executable active-rung delta, 2026-07-15: receiver-bound member
+calls now resolve their semantic target from the parser-owned member graph,
+the lexical receiver type, and owner-qualified callable rows. `box.Get()`
+resolves to `Box_Get`; its implicit `self: Box` parameter is represented by
+the resolved target's parameter offset rather than counted as a source
+argument. Keeping source text unchanged while replacing only the member-node
+handle with `Text` resolves `Box_Text() -> String` and fails the declared
+`Int` initializer as `let_type_mismatch` under C and LLVM. The callable table
+now preserves declaration ownership as `Owner_Method`, and the former
+static-call-only type owner/name and codegen-local member view were deleted
+instead of retained as aliases. MIR/backend receiver-target carriage,
+generic/aggregate signatures, and collection or Option/Result policy remain
+bridged. The expression owner remains `BRIDGE`, and released/default
+replacement stays 0%.
+
+Twenty-seventh executable active-rung delta, 2026-07-15: the bounded
+receiver-member target is now one carried fact from semantic analysis through
+self MIR into hard C emission. The expression graph stores target kind and
+canonical owner-qualified name together; `box.Get()` carries
+`member/Box_Get`, and hard codegen emits `Box_Get(box)` without rebuilding the
+name from receiver type plus member spelling. Removing only that carried row
+fails at MIR production under C and LLVM. Extending the graph arena exposed an
+LLVM-only aggregate `inout` crash, so compact graph construction was split
+from fact verification and now threads the six row arrays directly. A static
+ratchet forbids `SemanticExpressionGraphArena` or graph-fact aggregates from
+returning to that mutable boundary. Generic or chained receivers remain
+active, so `selfhost.call_target_identity` is not marked closed. Released and
+default replacement stay 0%.
+
+Twenty-eighth executable active-rung delta, 2026-07-15: generic receiver
+locals now reuse a typed canonical type-name fact before call-target lookup.
+`Box<Int>.Count()` resolves to `member/Box_Count`, reaches self MIR, and hard
+codegen emits `Box_Count(box)` without parsing generic spelling or rebuilding
+the owner-qualified target. Removing only the carried generic target fails at
+MIR production under C and LLVM. The call-target row remains `ACTIVE` because
+chained field receivers still require nominal field facts at this consumer;
+no string-to-string nominal helper, fallback, or second target owner was added. Released and default replacement
+stay 0%.
+
+Twenty-ninth executable active-rung delta, 2026-07-15: chained field receivers
+now resolve through expression handles and `SemanticAstNominalConstructorFacts`.
+`holder.box.Count()` consumes `Holder.box: Box`, carries
+`member/Box_Count` through self MIR, and hard codegen emits
+`Box_Count(holder.box)`. Removing only the carried chained target fails before
+emission under C and LLVM. Nominal count and field lookup are read-only `ref`
+queries, so the aggregate is neither copied nor allowed to escape through a
+value helper. Receiver target resolution is now covered for leaf, generic-local,
+and chained-field forms. `selfhost.call_target_identity` remains `ACTIVE`
+because direct calls still recover final identity from the callee leaf instead
+of a carried target row. Released/default replacement stays 0%.
+
+Thirtieth executable active-rung delta, 2026-07-15: direct call targets now
+join namespace and receiver targets as mandatory semantic facts. Signature
+capture writes `direct/ToIntValue`; constructor and receiver targets are
+completed by the semantic body fixpoint after their inventories exist. Self
+MIR serializes the target kind as `direct`, the importer validates the same
+row, and hard codegen emits from the carried canonical name without reading
+the callee leaf. Removing only the direct target fails before emission under C
+and LLVM. The focused gate also rejects a `callee_text` recovery in hard
+codegen. `selfhost.call_target_identity` is therefore `CLOSED` for the active
+self-host expression rung. Generic/aggregate result policy and the wider
+expression surface remain bridged; released/default replacement stays 0%.
+
+Thirty-first executable active-rung delta, 2026-07-15: nominal aggregate call
+returns now consume the carried target and canonical signature return row.
+`MakeBox() -> Box` projects `box: Box` into self MIR and hard codegen emits
+`MakeBox()` under C/LLVM parity. Keeping source text unchanged while replacing
+only the carried target with `ToTextValue() -> String` fails as
+`let_type_mismatch`. The former ambiguous resolved-call type function was
+deleted; one broad return owner now feeds an explicit concrete-scalar filter,
+and the scalar graph consumer may not index `function_returns` independently.
+Generic substitution, collection/Option/Result policy, and composite aggregate
+validation remain bridged. Released/default replacement stays 0%.
+
+Thirty-second executable active-rung delta, 2026-07-15: exact-formal generic
+return substitution now consumes typed signature rows. `Generic params: <T>`
+is a dedicated HIR node kind, and `SemanticAstFunctionSignatureFacts` owns
+ordered generic starts, counts, and names. `Identity<T>(value: T) -> T` binds
+`T` from the expression-graph argument type and projects `Identity(2)` as
+`Int` under C/LLVM parity. A negative keeps source text unchanged and changes
+only the carried call target to `ToTextValue(Int) -> String`; both backends
+reject the declared `Int` initializer as `let_type_mismatch`. The generic
+consumer is gate-forbidden from calling `ExprType` or reparsing provenance.
+Nested/composite generic substitution, explicit generic actuals, collections,
+and Option/Result remain bridged. Released/default replacement stays 0%.
+
+Thirty-third executable active-rung delta, 2026-07-15: signature capture now
+owns a flat parameter/return type-expression arena. The generic call consumer applies
+the already inferred exact-formal bindings to that arena, so
+`Wrap<T>(value: T) -> Option<T>` projects `Wrap(2)` as `Option<Int>` without
+call-site type-text parsing or replacement. The existing exact return and
+carried-target negative remain C/LLVM equal. Nested generic parameter
+inference, explicit generic actuals, builtin collection/Option/Result policy,
+and aggregate validation remain bridged. Released/default replacement stays
+0%.
+
+Thirty-fourth executable active-rung delta, 2026-07-15: nested generic
+parameter inference now uses the same signature type-expression arena as
+return materialization. `First<T>(values: Array<T>) -> T` unifies an
+`Array<Int>` graph argument, binds `T=Int`, and projects an `Int` initializer
+under C/LLVM parity. The executable negative presents `Int` to the structured
+`Array<T>` parameter and requires `call_arg_type_mismatch`. Exact and nested
+forms therefore share one owner and one binding path. Explicit generic actual
+carriage, builtin collection/Option/Result policy, and aggregate validation
+remain bridged. Released/default replacement stays 0%.
+
+Thirty-fifth executable active-rung delta, 2026-07-15: explicit generic call
+actuals are parser-owned graph nodes, not skipped punctuation or call-text
+payload. The ordered actual list reaches the same signature binding owner used
+by inferred exact and nested parameters. A C/LLVM executable pair accepts
+`PickSecond<Int, String>(2, "value")` as `String` and rejects
+`PickSecond<String, String>(2, "value")` at the argument boundary. The probe
+must use `SemanticAstArtifactAnalyzeTyped`; routing through the compact bridge
+is a falsifying regression because it drops the generic actual rows. Builtin
+collection/Option/Result policy and aggregate validation remain bridged.
+Released/default replacement stays 0%.
+
+Thirty-sixth executable active-rung delta, 2026-07-15: scalar Option/Result
+builtin calls are graph-policy facts. Initial call-target capture now projects
+canonical builtin signatures before initializer typing; the final expression
+verdict consumes that carried target, graph argument handles, and the builtin
+signature table. The native C oracle and C/LLVM-built Pergyra probes agree for
+`Some`, `UnwrapOption`, `Ok`, `UnwrapOr`, `IsSome`, and `IsOk`. Non-concrete
+`None`, non-wrapper arguments, and a carried-target mutation fail closed. The
+graph owner is gate-forbidden from calling `ExprType` or `CheckCall`.
+Collection policy, unknown/aggregate wrapper payloads outside this capability,
+and composite aggregate validation remain bridged. Released/default
+replacement stays 0%.
+
+Thirty-seventh executable active-rung delta, 2026-07-15: caller-visible
+collection mutation admission has one policy owner. Specialized
+`ArrayPush`/`ArraySet`/`ArrayPop` statement facts consume it without rebuilding
+a call, and general mutator calls consume carried target identity plus the
+graph receiver node. The graph call checker is configured not to replay the
+source receiver policy. Native C-oracle, C-built, and LLVM-built probes accept
+local and `inout` mutation, reject default-parameter mutation, and reject a
+carried-target mutation. Collection result/element typing, unknown/aggregate
+wrapper payloads, and composite aggregate validation remain bridged.
+Released/default replacement stays 0%.
+
+Thirty-eighth executable active-rung delta, 2026-07-15: aggregate field type
+validation consumes graph facts. A dedicated field owner projects scalar
+operators, direct nominal returns, nested struct values, `Some(struct)`,
+wrapper unknowns, and structural `Int`-literal-to-`Long` widening. The struct
+verdict no longer calls source `ExprType` or `ExpressionAssignableTo`. Native
+C-oracle, C-built, and LLVM-built probes agree on valid and invalid fields and
+reject source-preserving leaf type drift plus a missing child fact.
+The actual rung-2 driver, built once with C and once with LLVM, also passes all
+20 body fixtures and the selected `option_struct_value_flow` MIR fixture. Its
+readiness owner names the first failed contract instead of collapsing every
+owner failure into one opaque Bool.
+Generic/member aggregate field values, object initializers, and special unary
+forms remain bridged. Released/default replacement stays 0%.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,
@@ -246,11 +481,11 @@ those modeled rows to live files; future consumers require new bindings rather
 than inheriting a global proof claim.
 
 Whole-spine owner declaration, updated 2026-07-15: 36 authority rows have
-stable owner identities in `docs/semantics/sot_owner_spine_registry.md`, and 11
+stable owner identities in `docs/semantics/sot_owner_spine_registry.md`, and 13
 self-host fact carriers are explicitly classified as derivatives rather than
 alternate authorities. Matching `SpineFact` / `SpineOwner` constructors remain
 a checked Coq projection. The current split is
-`CLOSED=14 BRIDGE=7 ACTIVE=15`; only executable rung closure may promote a row.
+`CLOSED=16 BRIDGE=7 ACTIVE=13`; only executable rung closure may promote a row.
 `tests/sot_authority_edge_smoke.sh` consumes the registry without copying its
 owner list or status count. `src/self_hosted/OWNERS.md` remains only a physical
 module inventory.

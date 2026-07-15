@@ -67,6 +67,13 @@ func CodegenAstArenaExpectParameters(arena: AstArena, count: Int, inout cur: Arr
     CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindParametersTag(), "Parameters:");
 }
 
+func CodegenAstArenaSkipGenericParams(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
+    if cur[0] < count &&
+        TypedAstArenaNodeKindIs(arena, cur[0], TypedAstKindGenericParamsTag()) {
+        ArraySet(cur, 0, cur[0] + 1);
+    }
+}
+
 func CodegenAstArenaExpectBody(arena: AstArena, count: Int, inout cur: Array<Int>) -> Void {
     CodegenAstArenaExpectKind(arena, count, cur, TypedAstKindBodyTag(), "Body:");
 }

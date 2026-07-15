@@ -82,14 +82,22 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "struct_field_name" {
         return Some(AstExpressionNodeStructFieldName());
     }
+    if kind == "generic_type_actual" {
+        return Some(AstExpressionNodeGenericTypeActual());
+    }
+    if kind == "generic_callee" {
+        return Some(AstExpressionNodeGenericCallee());
+    }
     return None;
 }
 
 func MirExpressionCallTargetKindCode(kind: String) -> Option<Int> {
     if kind == "none" { return Some(SemanticCallTargetNone()); }
+    if kind == "direct" { return Some(SemanticCallTargetDirect()); }
     if kind == "namespace" {
         return Some(SemanticCallTargetNamespace());
     }
+    if kind == "member" { return Some(SemanticCallTargetMember()); }
     return None;
 }
 
@@ -151,6 +159,8 @@ func MirExpressionGraphSequenceAppend(
     let texts: Array<String> = sequence.arena.node_texts;
     let left_children: Array<Int> = sequence.arena.left_children;
     let right_children: Array<Int> = sequence.arena.right_children;
+    let call_target_kinds: Array<Int> =
+        sequence.arena.call_target_kinds;
     let call_target_names: Array<String> = sequence.arena.call_target_names;
     let offset: Int = ArrayLength(kinds);
     let i: Int = 0;
@@ -185,7 +195,9 @@ func MirExpressionGraphSequenceAppend(
         let target_kind: Int = UnwrapOption(target_kind_opt);
         if (target_kind == SemanticCallTargetNone() &&
                 UnwrapOption(target_name) != "") ||
-            (target_kind == SemanticCallTargetNamespace() &&
+            ((target_kind == SemanticCallTargetDirect() ||
+                target_kind == SemanticCallTargetNamespace() ||
+                target_kind == SemanticCallTargetMember()) &&
                 UnwrapOption(target_name) == "") {
             return MirExpressionGraphSequenceError(sequence);
         }
@@ -230,6 +242,7 @@ func MirExpressionGraphSequenceAppend(
         ArrayPush(texts, UnwrapOption(text));
         ArrayPush(left_children, left);
         ArrayPush(right_children, right);
+        ArrayPush(call_target_kinds, target_kind);
         ArrayPush(call_target_names, UnwrapOption(target_name));
         i = i + 1;
     }
@@ -237,7 +250,7 @@ func MirExpressionGraphSequenceAppend(
     ArrayPush(roots, offset + local_root);
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
         kinds, texts, left_children, right_children,
-        call_target_names
+        call_target_kinds, call_target_names
     );
     if !SemanticExpressionGraphArenaReady(arena) ||
         !MirExpressionGraphRangeReachable(

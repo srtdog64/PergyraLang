@@ -117,18 +117,15 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
 
     if (target->type == AST_ARRAY_ACCESS) {
         ASTNode *array_node = ast_array_access_array(target);
-        if (array_node == NULL || array_node->type != AST_IDENTIFIER)
+        if (array_node == NULL)
             return llvm_assignment_error(ctx, node,
-                "LLVM indexed array assignment requires an identifier receiver");
+                "LLVM indexed array assignment requires a receiver");
         {
-            const char *name = ast_identifier_name(array_node);
-            LLVMVarEntry arr_var;
-            bool has_arr_var =
-                llvm_scope_lookup_snapshot(ctx, name, &arr_var);
-            LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
-            LLVMTypeRef elem_type = entry != NULL
-                ? entry->elem_type
-                : llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL);
+            LLVMValueRef array_ptr = NULL;
+            LLVMTypeRef array_type = NULL;
+            LLVMTypeRef elem_type = NULL;
+            const char *recv_struct = NULL;
+            bool recv_is_slice = false;
             LLVMValueRef idx = llvm_emit_expression(
                 ast_array_access_index(target), ctx);
             LLVMValueRef val = llvm_emit_expression(value, ctx);
@@ -137,9 +134,39 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
             LLVMFuncEntry *fn;
             LLVMValueRef index64;
 
-            if (!has_arr_var || elem_type == NULL)
+            if (array_node->type == AST_IDENTIFIER) {
+                const char *name = ast_identifier_name(array_node);
+                LLVMVarEntry arr_var;
+                LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
+                if (llvm_scope_lookup_snapshot(ctx, name, &arr_var)) {
+                    array_ptr = arr_var.alloca;
+                    array_type = arr_var.type;
+                }
+                elem_type = entry != NULL
+                    ? entry->elem_type
+                    : llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL);
+            } else if (array_node->type == AST_MEMBER_ACCESS) {
+                array_ptr = llvm_emit_member_lvalue_ptr(
+                    array_node, ctx, &array_type);
+            } else {
                 return llvm_assignment_error(ctx, node,
-                    "LLVM indexed array assignment requires concrete Array<T> local metadata");
+                    "LLVM indexed array assignment requires an identifier or member receiver");
+            }
+            if (array_type != NULL
+                && LLVMGetTypeKind(array_type) == LLVMStructTypeKind) {
+                recv_struct = LLVMGetStructName(array_type);
+            }
+            if (recv_struct != NULL
+                && (strncmp(recv_struct, "PgyArray_", 9) == 0
+                    || strncmp(recv_struct, "PgySlice_", 9) == 0)) {
+                recv_is_slice = strncmp(recv_struct, "PgySlice_", 9) == 0;
+                if (elem_type == NULL)
+                    elem_type = pergyra_type_to_llvm(ctx, recv_struct + 9);
+            }
+
+            if (array_ptr == NULL || elem_type == NULL)
+                return llvm_assignment_error(ctx, node,
+                    "LLVM indexed array assignment requires concrete Array<T> receiver metadata");
             if (idx == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment could not lower index expression");
@@ -171,26 +198,14 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                         elem_type, llvm_tmp_name(ctx));
                 }
             }
-            {
-                /* Slice receivers write through the view into the backing
-                 * array; dispatch on the local's struct name the same way
-                 * the indexed read path does. */
-                const char *recv_struct =
-                    arr_var.type != NULL
-                        && LLVMGetTypeKind(arr_var.type) == LLVMStructTypeKind
-                    ? LLVMGetStructName(arr_var.type)
-                    : NULL;
-                bool recv_is_slice = recv_struct != NULL
-                    && strncmp(recv_struct, "PgySlice_", 9) == 0;
-                snprintf(fn_name, sizeof(fn_name),
-                    recv_is_slice ? "pgy_slice_set_%s" : "pgy_array_set_%s",
-                    suffix);
-                fn = llvm_required_runtime_function(ctx, node,
-                    recv_is_slice
-                        ? "indexed slice assignment"
-                        : "indexed array assignment",
-                    recv_is_slice ? "SliceSet" : "ArraySet", fn_name);
-            }
+            snprintf(fn_name, sizeof(fn_name),
+                recv_is_slice ? "pgy_slice_set_%s" : "pgy_array_set_%s",
+                suffix);
+            fn = llvm_required_runtime_function(ctx, node,
+                recv_is_slice
+                    ? "indexed slice assignment"
+                    : "indexed array assignment",
+                recv_is_slice ? "SliceSet" : "ArraySet", fn_name);
             if (fn == NULL)
                 return NULL;
             index64 = idx;
@@ -198,7 +213,7 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                 index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
                     ctx->type_i64, llvm_tmp_name(ctx));
             }
-            LLVMValueRef args[] = { arr_var.alloca, index64, val };
+            LLVMValueRef args[] = { array_ptr, index64, val };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
             return val;
         }

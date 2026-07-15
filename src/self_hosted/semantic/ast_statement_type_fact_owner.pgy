@@ -9,6 +9,7 @@ import "ast_iteration_type_fact_owner.pgy";
 import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
+import "collection_mutation_policy_owner.pgy";
 
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
@@ -91,9 +92,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "local");
     }
-    if !SemanticAstInitializerTypeFactsMatchArtifact(
-        artifact, signatures, constructors, locals,
-        expression_surfaces, initializer_types
+    if !SemanticAstInitializerTypeFactsReadyProjection(
+        artifact, locals, initializer_types
     ) {
         return SemanticAstStatementTypeStructuralError(artifact, "initializer");
     }
@@ -202,7 +202,7 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 expression_verdict = SemanticAstExpressionVerdictFromGraph(
                     statements.payload_texts[i],
                     expression_surfaces.expression_graph,
-                    UnwrapOption(graph_root), constructors,
+                    UnwrapOption(graph_root), constructors, signatures,
                     names, types, modes,
                     function_names, function_returns, function_params,
                     member_root_names
@@ -238,6 +238,26 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 if IsSome(member_type) {
                     inferred = UnwrapOption(member_type);
                 }
+            }
+        }
+        if row_verified == 1 &&
+            (kind == TypedAstKindArrayPopStmtTag() ||
+             kind == TypedAstKindArraySetStmtTag() ||
+             kind == TypedAstKindArrayPushStmtTag()) {
+            let mutator_name: String = "ArrayPop";
+            if kind == TypedAstKindArraySetStmtTag() {
+                mutator_name = "ArraySet";
+            } else if kind == TypedAstKindArrayPushStmtTag() {
+                mutator_name = "ArrayPush";
+            }
+            let mutation_error: String = SemanticCollectionMutationError(
+                mutator_name, statements.payload_texts[i],
+                names, types, modes
+            );
+            if StringLength(mutation_error) > 0 {
+                row_verified = 0;
+                row_code = "value_param_collection_mutation";
+                row_message = mutation_error;
             }
         }
         if row_verified == 1 &&

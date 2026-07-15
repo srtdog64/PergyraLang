@@ -6,6 +6,7 @@ import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
+import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
@@ -81,7 +82,7 @@ func CodegenFunctionLocalEnvRows(
 
 // Emit one function definition starting at the `Function: <Name>` line at
 // cur[0]. `base_env` carries the global function return-type bindings.
-func EmitFunction(count: Int, arena: AstArena,
+func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
@@ -90,7 +91,9 @@ func EmitFunction(count: Int, arena: AstArena,
                    ref body_types: CodegenSemanticBodyTypeFacts,
                    expression_surfaces: SemanticAstExpressionSurfaceFacts,
                    inout cur: Array<Int>, f_indent: Int,
-                   base_env: CodegenTypeEnv, uses_args: Bool) -> String {
+                   base_env: CodegenTypeEnv, uses_args: Bool,
+                   specialized_name: String,
+                   generic_actuals: Array<String>) -> String {
     let function_node_id: Int = cur[0];
     let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
         signatures, function_node_id
@@ -102,8 +105,10 @@ func EmitFunction(count: Int, arena: AstArena,
         signatures, signature_index
     );
     let c_name: String = CompilerSymbolCQualifiedName(owner_name, name);
+    if specialized_name != "" { c_name = specialized_name; }
     ArraySet(cur, 0, cur[0] + 1);
 
+    CodegenAstArenaSkipGenericParams(arena, count, cur);
     CodegenAstArenaExpectParameters(arena, count, cur);
     let params: String = "";
     let param_n: Int = 0;
@@ -122,8 +127,8 @@ func EmitFunction(count: Int, arena: AstArena,
             signatures, signature_index, param_n, cur[0]
         );
         let c_p_name: String = CompilerSymbolCBindingName(p_name);
-        let p_type: String = CodegenSemanticFunctionParamTypeOrDie(
-            signatures, signature_index, param_n
+        let p_type: String = CodegenGenericResolvedParamTypeOrDie(
+            signatures, signature_index, param_n, generic_actuals
         );
         if p_name == "self" {
             let role_receiver: Option<String> = CodegenSemanticRoleReceiverType(
@@ -184,8 +189,8 @@ func EmitFunction(count: Int, arena: AstArena,
     ArraySet(
         env_state, 1, Concat("|", StringJoin(function_env_rows, ""))
     );
-    let ret_type: String = CodegenSemanticFunctionReturnTypeOrDie(
-        signatures, signature_index
+    let ret_type: String = CodegenGenericResolvedReturnTypeOrDie(
+        signatures, signature_index, generic_actuals
     );
     ArraySet(cur, 0, cur[0] + 1);
 
@@ -230,8 +235,29 @@ func EmitFunction(count: Int, arena: AstArena,
     return Concat(signature, Concat("\n{\n", Concat(body_full, tail)));
 }
 
+func EmitFunction(count: Int, arena: AstArena,
+                   signatures: SemanticAstFunctionSignatureFacts,
+                   roles: SemanticAstRoleFacts,
+                   local_bindings: SemanticAstLocalBindingFacts,
+                   assignments: SemanticAstAssignmentFacts,
+                   statements: SemanticAstStatementFacts,
+                   ref body_types: CodegenSemanticBodyTypeFacts,
+                   expression_surfaces: SemanticAstExpressionSurfaceFacts,
+                   inout cur: Array<Int>, f_indent: Int,
+                   base_env: CodegenTypeEnv, uses_args: Bool) -> String {
+    let no_actuals: Array<String> = [];
+    return EmitFunctionWithSpecialization(
+        count, arena, signatures, roles, local_bindings, assignments,
+        statements, body_types, expression_surfaces, cur, f_indent,
+        base_env, uses_args, "", no_actuals
+    );
+}
+
 // Project semantic signature facts into the C emitter's compact type env.
-func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
+func BuildFunctionEnv(
+    signatures: SemanticAstFunctionSignatureFacts,
+    specializations: CodegenGenericSpecializationFacts
+) -> String {
     let rows: Array<String> = ["|"];
     ArrayPush(rows, Concat("AllocatorResult=call:", Concat(TextBuilderRuntimeCAllocatorResultFn(), "|")));
     ArrayPush(rows, Concat("AllocatorDestroy=call:", Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "|")));
@@ -249,7 +275,8 @@ func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
     ArrayPush(rows, Concat(TextBuilderRuntimeCDropFn(), "=pt:TextBuilder|"));
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
-        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
+        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
+            CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
             i = i + 1;
             continue;
         }
@@ -288,6 +315,44 @@ func BuildFunctionEnv(signatures: SemanticAstFunctionSignatureFacts) -> String {
             local_alias != fname && local_alias != public_alias {
             ArrayPush(rows, Concat(local_alias, Concat("=call:", Concat(cname, "|"))));
         }
+        i = i + 1;
+    }
+    i = 0;
+    while i < CodegenGenericSpecializationCount(specializations) {
+        let signature_index: Int = specializations.signature_indexes[i];
+        let c_name: String = specializations.c_names[i];
+        let actuals: Array<String> =
+            CodegenGenericSpecializationActuals(specializations, i);
+        let modes: String = "";
+        let param_types: String = "";
+        let p: Int = 0;
+        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+            signatures, signature_index
+        );
+        while p < param_count {
+            modes = ParamModeCsvAppend(
+                modes, CodegenSemanticFunctionParamModeOrDie(
+                    signatures, signature_index, p
+                )
+            );
+            param_types = ParamTypeCsvAppend(
+                param_types, CodegenGenericResolvedParamTypeOrDie(
+                    signatures, signature_index, p, actuals
+                )
+            );
+            p = p + 1;
+        }
+        ArrayPush(rows, Concat(c_name, Concat("=pm:", Concat(modes, "|"))));
+        ArrayPush(rows, Concat(
+            c_name, Concat("=pt:", Concat(param_types, "|"))
+        ));
+        ArrayPush(rows, Concat(
+            c_name, Concat("=f:", Concat(
+                CodegenGenericResolvedReturnTypeOrDie(
+                    signatures, signature_index, actuals
+                ), "|"
+            ))
+        ));
         i = i + 1;
     }
     return StringJoin(rows, "");
@@ -409,11 +474,13 @@ func CollectEnums(
 // `protos`. Emitting prototypes here makes forward references compile.)
 func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
                    roles: SemanticAstRoleFacts,
-                   struct_env: CodegenTypeEnv) -> String {
+                   struct_env: CodegenTypeEnv,
+                   specializations: CodegenGenericSpecializationFacts) -> String {
     let rows: Array<String> = [];
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
-        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) {
+        if !CodegenSemanticFunctionRuntimeCallableOrDie(signatures, i) ||
+            CodegenSemanticFunctionGenericCountOrDie(signatures, i) > 0 {
             i = i + 1;
             continue;
         }
@@ -475,6 +542,54 @@ func CollectProtos(signatures: SemanticAstFunctionSignatureFacts,
             let sig: String = Concat(AbiLayoutCReturnType(rtype, struct_env), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ")")))));
             ArrayPush(rows, Concat(sig, ";\n"));
         }
+        i = i + 1;
+    }
+    i = 0;
+    while i < CodegenGenericSpecializationCount(specializations) {
+        let signature_index: Int = specializations.signature_indexes[i];
+        let c_name: String = specializations.c_names[i];
+        let actuals: Array<String> =
+            CodegenGenericSpecializationActuals(specializations, i);
+        let params: String = "";
+        let pn: Int = 0;
+        let param_count: Int = CodegenSemanticFunctionParamCountOrDie(
+            signatures, signature_index
+        );
+        while pn < param_count {
+            let p_mode: Int = CodegenSemanticFunctionParamModeOrDie(
+                signatures, signature_index, pn
+            );
+            let p_name: String = CodegenSemanticFunctionParamNameOrDie(
+                signatures, signature_index, pn
+            );
+            let c_p_name: String = CompilerSymbolCBindingName(p_name);
+            let p_type: String = CodegenGenericResolvedParamTypeOrDie(
+                signatures, signature_index, pn, actuals
+            );
+            let cpt: String = AbiLayoutCParamType(p_type, struct_env);
+            let cp: String = Concat(cpt, Concat(" ", c_p_name));
+            if p_mode == 1 {
+                cp = Concat(cpt, Concat(
+                    " *", CompilerSymbolCInoutParamName(p_name)
+                ));
+            } else if p_mode == 3 {
+                cp = Concat("const ", Concat(cpt, Concat(
+                    " *", CompilerSymbolCReadonlyRefParamName(p_name)
+                )));
+            }
+            if pn == 0 { params = cp; }
+            else { params = Concat(params, Concat(", ", cp)); }
+            pn = pn + 1;
+        }
+        let plist: String = params;
+        if pn == 0 { plist = AbiLayoutCEmptyParameterList(); }
+        ArrayPush(rows, Concat(
+            AbiLayoutCReturnType(
+                CodegenGenericResolvedReturnTypeOrDie(
+                    signatures, signature_index, actuals
+                ), struct_env
+            ), Concat(" ", Concat(c_name, Concat("(", Concat(plist, ");\n"))))
+        ));
         i = i + 1;
     }
     if ArrayLength(rows) > 0 {

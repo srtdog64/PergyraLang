@@ -1,0 +1,3 @@
+schema=pgy.selfhost.gate-results.v1
+sot_authority_edge	PASS	1	first
+sot_authority_edge	PASS	2	duplicate

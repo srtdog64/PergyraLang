@@ -1,0 +1,180 @@
+// Executable proof for graph-owned Option/Result builtin policy.
+
+import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../semantic/ast_expression_graph_wrapper_value_owner.pgy";
+import "../../parser/program_parse_owner.pgy";
+
+func WrapperPolicyProbeBundle(
+    source_path: String
+) -> SemanticAstBodyTypeBundle {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return bundle;
+}
+
+func WrapperPolicyProbeVerifiedTypeCount(
+    ref facts: SemanticAstInitializerTypeFacts,
+    type_name: String
+) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(facts.node_ids) {
+        if facts.verified[i] == 1 &&
+            facts.inferred_type_names[i] == type_name {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func WrapperPolicyProbeRejected(
+    source_path: String,
+    expected_code: String
+) -> Bool {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(bundle.initializer_types) {
+        if bundle.initializer_types.verified[i] != 1 &&
+            bundle.initializer_types.diagnostic_codes[i] == expected_code {
+            Log(expected_code);
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func WrapperPolicyProbeRejectsTargetDrift() -> Bool {
+    let source_path: String =
+        "src/self_hosted/tools/wrapper_policy_probe/valid.pgy";
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
+        return false;
+    }
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let call_node: Int = -1;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCall() &&
+            graph.arena.call_target_names[i] == "UnwrapOption" {
+            call_node = i;
+            break;
+        }
+        i = i + 1;
+    }
+    if call_node < 0 { return false; }
+    graph.arena.call_target_names[call_node] = "Log";
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        analysis.signatures, analysis.constructors,
+        function_names, function_returns, function_params
+    ) {
+        return false;
+    }
+    let fact: SemanticExpressionGraphWrapperValueFact =
+        SemanticExpressionGraphWrapperValueFactFromGraph(
+            graph, call_node, analysis.constructors,
+            ["some"], ["Option<Int>"], function_names, function_returns,
+            function_params
+        );
+    return fact.applies && !fact.ok &&
+        fact.diagnostic_code == "ast_artifact_invalid";
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    let mode: String = "";
+    if ArrayLength(args) > 0 { mode = args[0]; }
+    if mode == "--bad-option" {
+        if WrapperPolicyProbeRejected(
+            "src/self_hosted/tools/wrapper_policy_probe/bad_option.pgy",
+            "option_concrete_type_required"
+        ) {
+            Exit(1);
+        }
+        Log("bad Option builtin was accepted");
+        Exit(2);
+        return;
+    }
+    if mode == "--bad-unwrap" {
+        if WrapperPolicyProbeRejected(
+            "src/self_hosted/tools/wrapper_policy_probe/bad_unwrap.pgy",
+            "builtin_arg_type_mismatch"
+        ) {
+            Exit(1);
+        }
+        Log("bad Result/Option unwrap was accepted");
+        Exit(2);
+        return;
+    }
+
+    let wrapper_bundle: SemanticAstBodyTypeBundle = WrapperPolicyProbeBundle(
+        "src/self_hosted/tools/wrapper_policy_probe/valid.pgy"
+    );
+    if !wrapper_bundle.verdict.ok {
+        Log(Concat("wrapper-verdict=", wrapper_bundle.verdict.diagnostic_code));
+        Log(wrapper_bundle.verdict.diagnostic_message);
+        let debug_index: Int = 0;
+        while debug_index < ArrayLength(
+            wrapper_bundle.initializer_types.node_ids
+        ) {
+            Log(Concat(
+                Concat(
+                    Concat(
+                        ToString(wrapper_bundle.initializer_types.verified[debug_index]),
+                        ":"
+                    ),
+                    wrapper_bundle.initializer_types.inferred_type_names[debug_index]
+                ),
+                Concat(
+                    ":",
+                    wrapper_bundle.initializer_types.diagnostic_codes[debug_index]
+                )
+            ));
+            debug_index = debug_index + 1;
+        }
+        Exit(1);
+        return;
+    }
+    if WrapperPolicyProbeVerifiedTypeCount(
+        wrapper_bundle.initializer_types, "Option<Int>"
+    ) < 1 || WrapperPolicyProbeVerifiedTypeCount(
+        wrapper_bundle.initializer_types, "Int"
+    ) < 1 {
+        Log("option-wrapper-types=missing");
+        Exit(1);
+        return;
+    }
+    if WrapperPolicyProbeVerifiedTypeCount(
+        wrapper_bundle.initializer_types, "Result<Int>"
+    ) < 1 || WrapperPolicyProbeVerifiedTypeCount(
+        wrapper_bundle.initializer_types, "Int"
+    ) < 2 {
+        Log("result-wrapper-types=missing");
+        Exit(1);
+        return;
+    }
+    if !WrapperPolicyProbeRejectsTargetDrift() {
+        Log("target-drift=accepted");
+        Exit(1);
+        return;
+    }
+    Log("option-wrapper=graph");
+    Log("result-wrapper=graph");
+    Log("target-drift=reject");
+}

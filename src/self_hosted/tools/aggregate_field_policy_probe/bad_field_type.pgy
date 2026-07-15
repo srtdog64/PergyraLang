@@ -1,0 +1,8 @@
+struct Pair {
+    left: Int;
+    right: Long;
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair { left: "bad", right: 2 };
+}

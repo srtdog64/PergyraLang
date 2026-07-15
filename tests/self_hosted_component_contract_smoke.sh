@@ -34,17 +34,18 @@ require_dir() {
     [[ -d "$ROOT_DIR/$rel" ]] || fail "missing directory $rel"
 }
 
-TEXT_CACHE_REL=""
+declare -A TEXT_CACHE=()
 TEXT_CACHE_CONTENT=""
 
 load_text_cache() {
     local rel="$1"
 
-    if [[ "$TEXT_CACHE_REL" != "$rel" ]]; then
+    if [[ ! -v "TEXT_CACHE[$rel]" ]]; then
         [[ -f "$ROOT_DIR/$rel" ]] || fail "missing text input: $rel"
-        TEXT_CACHE_CONTENT="$(<"$ROOT_DIR/$rel")" || fail "could not read text input: $rel"
-        TEXT_CACHE_REL="$rel"
+        TEXT_CACHE["$rel"]="$(<"$ROOT_DIR/$rel")" ||
+            fail "could not read text input: $rel"
     fi
+    TEXT_CACHE_CONTENT="${TEXT_CACHE[$rel]}"
 }
 
 require_text() {
@@ -109,17 +110,13 @@ reject_regex() {
 reject_regex_under() {
     local rel_dir="$1"
     local pattern="$2"
-    local file
-    local rel
     local matches
 
     [[ -d "$ROOT_DIR/$rel_dir" ]] || fail "missing regex input directory: $rel_dir"
-    while IFS= read -r file; do
-        rel="${file#"$ROOT_DIR/"}"
-        matches="$(grep -En "$pattern" "$file" || true)"
-        [[ -z "$matches" ]] ||
-            fail "$rel must not match retired regex: $pattern :: $matches"
-    done < <(find "$ROOT_DIR/$rel_dir" -type f -name '*.pgy' | sort)
+    matches="$(grep -REn --include='*.pgy' "$pattern" \
+        "$ROOT_DIR/$rel_dir" || true)"
+    [[ -z "$matches" ]] ||
+        fail "$rel_dir must not match retired regex: $pattern :: $matches"
 }
 
 require_make_target_recipe_line() {
@@ -220,19 +217,13 @@ require_stage_world_binding() {
     require_text "$rel" "- **manifest_binding**: \`$stage|$zone|$actor|$intent|$payload\`"
 }
 
-line_count() {
-    local count
-
-    count="$(wc -l <"$1")"
-    count="${count//[[:space:]]/}"
-    printf '%s\n' "$count"
-}
-
 require_max_lines() {
     local rel="$1"
     local cap="$2"
-    local count
-    count="$(line_count "$ROOT_DIR/$rel")"
+    local -a lines=()
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing line-count input: $rel"
+    mapfile -t lines <"$ROOT_DIR/$rel"
+    local count="${#lines[@]}"
     [[ "$count" -le "$cap" ]] ||
         fail "$rel has $count lines; cap is $cap"
 }
@@ -714,6 +705,28 @@ require_file "src/self_hosted/semantic/source_bundle_owner.pgy"
 require_file "src/self_hosted/semantic/diagnostic_owner.pgy"
 require_file "src/self_hosted/semantic/env_owner.pgy"
 require_file "src/self_hosted/semantic/expr_type_owner.pgy"
+require_file "src/self_hosted/semantic/wrapper_type_owner.pgy"
+require_max_lines "src/self_hosted/semantic/wrapper_type_owner.pgy" 300
+require_file "src/self_hosted/semantic/collection_mutation_policy_owner.pgy"
+require_max_lines "src/self_hosted/semantic/collection_mutation_policy_owner.pgy" 300
+require_text "src/self_hosted/semantic/call_check_owner.pgy" \
+    'import "collection_mutation_policy_owner.pgy";'
+reject_text "src/self_hosted/semantic/call_check_owner.pgy" \
+    "func IsCollectionMutator("
+reject_text "src/self_hosted/semantic/call_check_owner.pgy" \
+    "func IsCollectionTypeName("
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    'import "wrapper_type_owner.pgy";'
+reject_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    "func IsOptionType("
+reject_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    "func IsResultType("
+require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
+    "func OptionPayloadTypeOpt("
+require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
+    "func ResultPayloadTypeOpt("
+reject_text "src/self_hosted/semantic/wrapper_type_owner.pgy" \
+    "StartsWith("
 require_file "src/self_hosted/semantic/expr_validation_owner.pgy"
 require_file "src/self_hosted/semantic/try_expression_fact_owner.pgy"
 require_file "src/self_hosted/semantic/expression_operator_fact_owner.pgy"
@@ -2515,6 +2528,9 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct S
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
+require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" 160
+require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" "func SemanticAstAnalysisResolveCallTargetsFromBody"
 require_file "src/self_hosted/semantic/ast_assignment_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_assignment_fact_owner.pgy" "func SemanticAstAssignmentFactsMatchArtifact"
@@ -2595,6 +2611,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpression
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionCallGraphContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionExplicitGenericCallGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstExpressionTypedBindingContractReady()"
 for expression_graph_transport_owner in \
     decl_ability_owner.pgy decl_dispatch_owner.pgy decl_nominal_owner.pgy \
@@ -2623,6 +2640,8 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionGraphBuildFromText"
 require_file "src/self_hosted/mir/expression_graph_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir/expression_graph_fact_owner.pgy" 600
+require_file "src/self_hosted/mir/expression_graph_kind_name_owner.pgy"
+require_max_lines "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" 300
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
     "struct SelfMirExpressionGraphRows"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -2637,14 +2656,22 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SelfMirExpressionGraphRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" 300
+require_file "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" 300
+require_file "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" 300
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "call_target_names: Array<String>;"
-require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "func SemanticExpressionGraphCallTargetsFromSignatures("
-require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticCallableIndex("
+reject_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+    "func SemanticExpressionGraphCallTargetsFromSignatures("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
     "require_carried_call_targets"
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    "func SemanticExpressionCallTargetFactContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionCallTargetFactContractReady()"
 reject_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
@@ -2661,7 +2688,11 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"call_target_name"'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "MIR shadowed local type changed"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_file "src/self_hosted/mir/routine_let_owner.pgy"
+require_max_lines "src/self_hosted/mir/routine_let_owner.pgy" 500
+require_text "src/self_hosted/mir/routine_let_owner.pgy" \
+    "let initializer_uses: Array<String>"
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "let initializer_uses: Array<String>"
 require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "function signature is missing for MIR parameter seeding"
@@ -2889,6 +2920,56 @@ require_file "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_type_owner.pgy" 160
 require_file "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" 599
+require_file "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" 599
+require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    "func SemanticExpressionGraphWrapperValueFactFromGraph("
+require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    '"wrapper_call_target"'
+reject_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    "ExprType("
+reject_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    "CheckCall("
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "SemanticExpressionGraphWrapperValueFactFromGraph("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphWrapperValueContractReady()"
+require_file "src/self_hosted/tools/wrapper_policy_probe/main.pgy"
+require_max_lines "src/self_hosted/tools/wrapper_policy_probe/main.pgy" 300
+require_text "src/self_hosted/tools/wrapper_policy_probe/main.pgy" \
+    "SemanticAstArtifactAnalyzeTyped("
+require_text "src/self_hosted/tools/wrapper_policy_probe/main.pgy" \
+    '"target-drift=reject"'
+require_file "tests/self_hosted/parity/wrapper_policy_probe_parity.sh"
+require_max_lines "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" 300
+require_text "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
+    "PGY_C_TYPE_UNSUPPORTED"
+require_text "tests/self_hosted/parity/wrapper_policy_probe_parity.sh" \
+    "PGY_SEM_BUILTIN_ARGS_INVALID"
+require_text "Makefile" "self-host-wrapper-policy-parity-test-smoke:"
+require_text "Makefile" "tests/self_hosted/parity/wrapper_policy_probe_parity.sh"
+require_file "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" 300
+reject_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" \
+    "ExprType("
+reject_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" \
+    "CheckCall("
+reject_text "src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy" \
+    "FirstArg"
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "SemanticExpressionGraphCollectionMutationFactFromGraph("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "SemanticCollectionMutationError("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphCollectionMutationContractReady()"
+require_file "src/self_hosted/tools/collection_policy_probe/main.pgy"
+require_max_lines "src/self_hosted/tools/collection_policy_probe/main.pgy" 300
+require_file "tests/self_hosted/parity/collection_policy_probe_parity.sh"
+require_max_lines "tests/self_hosted/parity/collection_policy_probe_parity.sh" 300
+require_text "tests/self_hosted/parity/collection_policy_probe_parity.sh" \
+    "PGY_SEM_BUILTIN_ARGS_INVALID"
+require_text "Makefile" "self-host-collection-policy-parity-test-smoke:"
+require_text "Makefile" "tests/self_hosted/parity/collection_policy_probe_parity.sh"
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "func SemanticExpressionGraphScalarTypeName("
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
@@ -2901,10 +2982,32 @@ require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pg
     "func SemanticStructLiteralViewFromGraph("
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" 180
+require_file "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" 180
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
     "func SemanticExpressionGraphStructValueTypeError("
+require_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
+    "SemanticExpressionGraphFieldValueTypeName("
+require_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
+    "SemanticExpressionGraphFieldValueAssignableTo("
+reject_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
+    "ExprType("
+reject_text "src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy" \
+    "ExpressionAssignableTo("
+reject_text "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" \
+    "ExprType("
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "SemanticExpressionGraphStructValueTypeError("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticExpressionGraphFieldTypeContractReady()"
+require_file "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy"
+require_max_lines "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" 300
+require_file "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
+require_max_lines "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" 300
+require_text "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh" \
+    "PGY_SEM_CLASS_CONTRACT_INVALID"
+require_text "Makefile" "self-host-aggregate-field-policy-parity-test-smoke:"
+require_text "Makefile" "tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh"
 require_file "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_view_owner.pgy" 100
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
@@ -2965,7 +3068,8 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstruction
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
-require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
+require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsReadyForMirProjection("
+reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "SemanticAstIterationTypeFactsMatchArtifact("
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "MIR producer requires verified iteration type rows"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticAstBodyVerdictFromFacts"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func RunDriverRung2FromArgs"
@@ -3269,14 +3373,16 @@ require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "let has_aux_value: Bool"
 require_file "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" 600
+require_file "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 600
 require_file "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy" "func SemanticAstExpressionSurfaceFactsContractReady()"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "struct SemanticAstExpressionSurfaceFacts"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge("
 reject_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromArtifact("
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceCallPresent"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceTokenPresent"
+require_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" "func SemanticAstExpressionSurfaceCallPresent"
+require_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" "func SemanticAstExpressionSurfaceTokenPresent"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionSurfaceFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "struct SemanticAstExpressionShapeFact"
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "func SemanticAstExpressionShapeForNode"
@@ -3287,9 +3393,11 @@ require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "l
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "equality_index: Int"
 require_file "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" 599
+require_file "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphFacts"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "struct SemanticExpressionGraphView"
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildCompactBridgeFromText"
+require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" "func SemanticExpressionGraphBuildCompactBridgeFromText"
 require_file "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" 599
 reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" "func SemanticExpressionGraphBuildFromText"
@@ -3334,11 +3442,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "ParserExpressionTryGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "ParserExpressionStructLiteralGraphContractReady()"
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     'import "try_expression_fact_owner.pgy";'
 require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" \
     "func SemanticExpressionGraphCompactBridgeTryContractReady("
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     "SemanticExpressionGraphBuildTryCompactBridge("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionGraphCompactBridgeTryContractReady()"
@@ -3353,7 +3461,7 @@ grep -Fq "ParserExpressionUnary(" <<<"$try_postfix_block" ||
 if grep -Fq "ParserExpressionLeaf(" <<<"$try_postfix_block"; then
     fail "postfix try producer reopened leaf collapse"
 fi
-require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeTry() { return "try"; }'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'kind == "try"'
@@ -4063,7 +4171,13 @@ reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
     "struct SemanticCallSpineView"
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func SemanticCallSpineViewFromGraph("
+require_file "src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy" 500
+require_text "src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy" \
+    "struct SemanticMemberAccessView"
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    'import "../../semantic/ast_expression_graph_member_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "struct SemanticMemberAccessView"
 require_file "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 300
@@ -4093,9 +4207,9 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeStructField() -> Int"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "func AstExpressionNodeStructFieldName() -> Int"
-require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeArrayElement() { return "array_element"; }'
-require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStructField() { return "struct_field"; }'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if kind == "array_element" {'
@@ -4111,7 +4225,9 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
     "func RewriteSemanticMemberAccess("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func SemanticMemberReceiverTypeFromGraph("
-require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
+    "func SemanticExpressionGraphBuildParserCompactBridge("
+reject_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "func SemanticExpressionGraphBuildParserCompactBridge("
 require_text "src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy" \
     "func SemanticExpressionGraphParserBridgeContractReady("
@@ -4519,7 +4635,10 @@ require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func CodegenCharCode
 require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "c == 40 || c == 91 || c == 123"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "SubEqualsWithLen(text, n, i, m, needle)"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "Substring(text, i, m) == needle"
-require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
+require_file "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" 500
+require_text "src/self_hosted/semantic/ast_expression_surface_query_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
+reject_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" "SubEqualsWithLen(text, n, i, m, token)"
 reject_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "Substring(text, i, m) == token"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "SubIndexOfWithLen("
 reject_text "src/self_hosted/codegen/type_facts/type_env.pgy" "let rest: String = Substring(env, start"

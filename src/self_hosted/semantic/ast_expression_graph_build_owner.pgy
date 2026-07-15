@@ -1,0 +1,162 @@
+// Compact expression graph construction.
+//
+// The six row arrays cross recursive build boundaries independently. Passing
+// SemanticExpressionGraphArena as inout would copy a compiler-scale aggregate
+// at every edge and has a different LLVM ABI shape from the C backend.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "try_expression_fact_owner.pgy";
+import "../parser/expr_owner.pgy";
+
+func SemanticExpressionGraphInvalidBuild() -> SemanticExpressionGraphBuild {
+    return SemanticExpressionGraphBuild(false, 0);
+}
+
+func SemanticExpressionGraphAppendNode(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    kind: Int,
+    text: String,
+    left: Int,
+    right: Int
+) -> SemanticExpressionGraphBuild {
+    let root_id: Int = ArrayLength(node_kinds);
+    if ArrayLength(node_texts) != root_id ||
+        ArrayLength(left_children) != root_id ||
+        ArrayLength(right_children) != root_id ||
+        ArrayLength(call_target_kinds) != root_id ||
+        ArrayLength(call_target_names) != root_id || text == "" ||
+        !AstExpressionNodeKindKnown(kind) {
+        return SemanticExpressionGraphInvalidBuild();
+    }
+    let arity: Int = AstExpressionNodeArity(kind);
+    if (arity == 0 && (left != 0 || right != 0)) ||
+        (arity >= 1 && (left < 0 || left >= root_id)) ||
+        (arity == 1 && right != 0) ||
+        (arity == 2 && (right < 0 || right >= root_id)) {
+        return SemanticExpressionGraphInvalidBuild();
+    }
+    ArrayPush(node_kinds, kind);
+    ArrayPush(node_texts, text);
+    ArrayPush(left_children, left);
+    ArrayPush(right_children, right);
+    ArrayPush(call_target_kinds, SemanticCallTargetNone());
+    ArrayPush(call_target_names, "");
+    return SemanticExpressionGraphBuild(true, root_id);
+}
+
+func SemanticExpressionGraphBuildParserCompactBridge(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    text: String
+) -> SemanticExpressionGraphBuild {
+    let cursor: Array<Int> = [0];
+    let parsed: ParserExpressionFact = ParseExprFact(text, 0, cursor);
+    if !parsed.ok || cursor[0] != StringLength(text) {
+        return SemanticExpressionGraphInvalidBuild();
+    }
+    let offset: Int = ArrayLength(node_kinds);
+    let i: Int = 0;
+    while i < AstExpressionArenaNodeCount(parsed.arena) {
+        let kind: Int = parsed.arena.node_kinds[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        let left: Int = 0;
+        let right: Int = 0;
+        if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
+        if arity == 2 { right = offset + parsed.arena.right_children[i]; }
+        let appended: SemanticExpressionGraphBuild =
+            SemanticExpressionGraphAppendNode(
+                node_kinds, node_texts, left_children, right_children,
+                call_target_kinds, call_target_names, kind,
+                SemanticStripOuterParens(parsed.arena.node_texts[i]),
+                left, right
+            );
+        if !appended.ok { return appended; }
+        i = i + 1;
+    }
+    return SemanticExpressionGraphBuild(true, offset + parsed.root);
+}
+
+func SemanticExpressionGraphBuildTryCompactBridge(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    operand: String
+) -> SemanticExpressionGraphBuild {
+    let child: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, operand
+        );
+    if !child.ok { return child; }
+    return SemanticExpressionGraphAppendNode(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names, AstExpressionNodeTry(),
+        Concat("?", operand), child.root_id, 0
+    );
+}
+
+// Transitional producer: operator discovery still consumes compact parser
+// payload text. The resulting graph, not that text scan, is the consumer API.
+func SemanticExpressionGraphBuildCompactBridgeFromText(
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    expression: String
+) -> SemanticExpressionGraphBuild {
+    let text: String = SemanticStripOuterParens(expression);
+    if text == "" { return SemanticExpressionGraphInvalidBuild(); }
+    let prefix_try: Option<String> = SemanticTryOperand(text);
+    if CharAt(text, 0) == "?" && IsSome(prefix_try) {
+        return SemanticExpressionGraphBuildTryCompactBridge(
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, UnwrapOption(prefix_try)
+        );
+    }
+    return SemanticExpressionGraphBuildParserCompactBridge(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names, text
+    );
+}
+
+func SemanticExpressionGraphAppendLaneRows(
+    inout roots: Array<Int>,
+    inout has_roots: Array<Bool>,
+    inout node_kinds: Array<Int>,
+    inout node_texts: Array<String>,
+    inout left_children: Array<Int>,
+    inout right_children: Array<Int>,
+    inout call_target_kinds: Array<Int>,
+    inout call_target_names: Array<String>,
+    graph_ok: Bool,
+    present: Bool,
+    expression: String
+) -> Bool {
+    if !graph_ok || !present {
+        ArrayPush(roots, 0);
+        ArrayPush(has_roots, false);
+        return graph_ok;
+    }
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, expression
+        );
+    ArrayPush(roots, build.root_id);
+    ArrayPush(has_roots, build.ok);
+    return build.ok;
+}

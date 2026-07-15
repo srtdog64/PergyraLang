@@ -1,0 +1,694 @@
+// Executable proof that MIR consumes semantic initializer type rows.
+
+import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../mir/artifact_lower_owner.pgy";
+import "../../mir/program_verify_owner.pgy";
+import "../../codegen/emission/expr_semantic_graph_emit_owner.pgy";
+
+func ProbeInitializerFactsWithoutRows(
+    facts: SemanticAstInitializerTypeFacts
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFacts(
+        true, "", "", facts.artifact_node_count,
+        empty_ints, empty_strings, empty_strings, empty_ints,
+        empty_strings, empty_strings
+    );
+}
+
+func ProbeInitializerFactsWithoutType(
+    facts: SemanticAstInitializerTypeFacts
+) -> SemanticAstInitializerTypeFacts {
+    let inferred_types: Array<String> = facts.inferred_type_names;
+    ArraySet(inferred_types, 0, "");
+    return SemanticAstInitializerTypeFacts(
+        facts.ok, facts.diagnostic_code, facts.diagnostic_message,
+        facts.artifact_node_count, facts.node_ids, facts.expression_texts,
+        inferred_types, facts.verified, facts.diagnostic_codes,
+        facts.diagnostic_messages
+    );
+}
+
+func ProbeInitializerFacts(
+    body_types: SemanticAstBodyTypeBundle,
+    mode: String
+) -> SemanticAstInitializerTypeFacts {
+    if mode == "--missing-initializer-row" {
+        return ProbeInitializerFactsWithoutRows(body_types.initializer_types);
+    }
+    if mode == "--missing-inferred-type" {
+        return ProbeInitializerFactsWithoutType(body_types.initializer_types);
+    }
+    return body_types.initializer_types;
+}
+
+func ProbeExpressionSurfacesWithScalarOperand(
+    artifact: AstTreeArtifact,
+    surfaces: SemanticAstExpressionSurfaceFacts,
+    replacement: String
+) -> SemanticAstExpressionSurfaceFacts {
+    let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
+    let texts: Array<String> = graph.arena.node_texts;
+    let changed: Bool = false;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+            texts[i] == "2" {
+            ArraySet(texts, i, replacement);
+            changed = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !changed { return surfaces; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, texts, graph.arena.left_children,
+        graph.arena.right_children, graph.arena.call_target_kinds,
+        graph.arena.call_target_names
+    );
+    let damaged: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph.ok, graph.roots, graph.has_roots, arena
+        );
+    return SemanticAstExpressionSurfaceFactsWithGraph(
+        artifact, surfaces, damaged
+    );
+}
+
+func ProbeExpressionSurfacesWithCallCallee(
+    artifact: AstTreeArtifact,
+    surfaces: SemanticAstExpressionSurfaceFacts,
+    replacement: String,
+    from_end: Bool
+) -> SemanticAstExpressionSurfaceFacts {
+    let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
+    let texts: Array<String> = graph.arena.node_texts;
+    let changed: Bool = false;
+    let i: Int = 0;
+    let step: Int = 1;
+    let limit: Int = SemanticExpressionGraphArenaNodeCount(graph.arena);
+    if from_end {
+        i = limit - 1;
+        step = -1;
+    }
+    while i >= 0 && i < limit {
+        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+            texts[i] == "ToIntValue" {
+            ArraySet(texts, i, replacement);
+            changed = true;
+            break;
+        }
+        i = i + step;
+    }
+    if !changed { return surfaces; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, texts, graph.arena.left_children,
+        graph.arena.right_children, graph.arena.call_target_kinds,
+        graph.arena.call_target_names
+    );
+    let damaged: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph.ok, graph.roots, graph.has_roots, arena
+        );
+    return SemanticAstExpressionSurfaceFactsWithGraph(
+        artifact, surfaces, damaged
+    );
+}
+
+func ProbeAnalysisWithCallTarget(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    expected: String,
+    replacement: String
+) -> SemanticAstArtifactAnalysis {
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let targets: Array<String> = graph.arena.call_target_names;
+    let changed: Bool = false;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCall() &&
+            targets[i] == expected {
+            ArraySet(targets, i, replacement);
+            changed = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !changed { return analysis; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, graph.arena.node_texts,
+        graph.arena.left_children, graph.arena.right_children,
+        graph.arena.call_target_kinds, targets
+    );
+    let damaged_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph.ok, graph.roots, graph.has_roots, arena
+        );
+    let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, damaged_graph
+        );
+    return SemanticAstArtifactAnalysis(
+        analysis.verdict, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, analysis.assignments, analysis.statements,
+        analysis.enums, analysis.roles, damaged_surfaces,
+        analysis.type_surfaces, analysis.kind_surfaces
+    );
+}
+
+func ProbeExpressionSurfacesWithMemberName(
+    artifact: AstTreeArtifact,
+    surfaces: SemanticAstExpressionSurfaceFacts,
+    replacement: String
+) -> SemanticAstExpressionSurfaceFacts {
+    let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
+    let texts: Array<String> = graph.arena.node_texts;
+    let changed: Bool = false;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+            texts[i] == "Get" {
+            ArraySet(texts, i, replacement);
+            changed = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !changed { return surfaces; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, texts, graph.arena.left_children,
+        graph.arena.right_children, graph.arena.call_target_kinds,
+        graph.arena.call_target_names
+    );
+    let damaged: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph.ok, graph.roots, graph.has_roots, arena
+        );
+    return SemanticAstExpressionSurfaceFactsWithGraph(
+        artifact, surfaces, damaged
+    );
+}
+
+func ProbeAnalysisWithoutCallTarget(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    target_kind: Int
+) -> SemanticAstArtifactAnalysis {
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    let target_names: Array<String> = graph.arena.call_target_names;
+    let changed: Bool = false;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if target_kinds[i] == target_kind {
+            ArraySet(target_kinds, i, SemanticCallTargetNone());
+            ArraySet(target_names, i, "");
+            changed = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !changed { return analysis; }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, graph.arena.node_texts,
+        graph.arena.left_children, graph.arena.right_children,
+        target_kinds, target_names
+    );
+    let damaged_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            SemanticExpressionGraphArenaReady(arena),
+            graph.roots, graph.has_roots, arena
+        );
+    let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, damaged_graph
+        );
+    return SemanticAstArtifactAnalysis(
+        analysis.verdict, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, analysis.assignments, analysis.statements,
+        analysis.enums, analysis.roles, damaged_surfaces,
+        analysis.type_surfaces, analysis.kind_surfaces
+    );
+}
+
+func ProbeMirCarriesCallTarget(
+    ref facts: SelfMirProgramFacts,
+    expected_kind: Int,
+    expected_name: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(facts.cfg.instructions.expr0_graphs.call_target_kinds) {
+        if facts.cfg.instructions.expr0_graphs.call_target_kinds[i] ==
+                expected_kind &&
+            facts.cfg.instructions.expr0_graphs.call_target_names[i] ==
+                expected_name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ProbeCodegenConsumesDirectTarget(
+    ref analysis: SemanticAstArtifactAnalysis,
+    expected_name: String,
+    return_type: String,
+    parameter_types: String,
+    expected_expression: String
+) -> Bool {
+    let rows: String = Concat(
+        "|", Concat(expected_name, Concat(
+            Concat("=f:", Concat(return_type, "|")),
+            Concat(expected_name, Concat(
+                "=pm:default|", Concat(expected_name, Concat(
+                    "=pt:", Concat(parameter_types, "|")
+                ))
+            ))
+        ))
+    );
+    let env: CodegenTypeEnv = CodegenTypeEnv(rows, "");
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        if analysis.expression_surfaces.expression_graph.arena
+                .call_target_kinds[i] == SemanticCallTargetDirect() &&
+            analysis.expression_surfaces.expression_graph.arena
+                .call_target_names[i] == expected_name {
+            let root_id: Int = i;
+            let candidate: Int = i;
+            while candidate < SemanticExpressionGraphArenaNodeCount(
+                analysis.expression_surfaces.expression_graph.arena
+            ) {
+                let view: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+                    analysis.expression_surfaces.expression_graph, candidate
+                );
+                if view.ok && view.call_node == i { root_id = candidate; }
+                candidate = candidate + 1;
+            }
+            let rendered: String = RewriteSemanticCall(
+                analysis.expression_surfaces.expression_graph, root_id, env
+            );
+            if rendered != expected_expression {
+                Log(Concat("direct-codegen-rendered=", rendered));
+                return false;
+            }
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ProbeCodegenConsumesMemberTarget(
+    ref analysis: SemanticAstArtifactAnalysis,
+    expected_name: String,
+    receiver_expression: String,
+    value_rows: String
+) -> Bool {
+    let function_rows: String = Concat(
+        "|", Concat(expected_name, Concat(
+            "=f:Int|", Concat(expected_name, Concat(
+                "=pm:default|", Concat(expected_name, "=pt:Box|")
+            ))
+        ))
+    );
+    let env: CodegenTypeEnv = CodegenTypeEnv(
+        function_rows, value_rows
+    );
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        if analysis.expression_surfaces.expression_graph.arena
+                .call_target_kinds[i] == SemanticCallTargetMember() &&
+            analysis.expression_surfaces.expression_graph.arena
+                .call_target_names[i] == expected_name {
+            return RewriteSemanticCall(
+                analysis.expression_surfaces.expression_graph, i, env
+            ) == Concat(
+                expected_name, Concat("(", Concat(receiver_expression, ")"))
+            );
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func ProbeResolvedCallProjection(mode: String) -> Bool {
+    let initializer: String = "2";
+    let initializer_expression: String = "";
+    if mode == "--direct-call-nested-positive" ||
+        mode == "--direct-call-nested-mismatch" {
+        initializer = "1 + (2 * 3)";
+    } else if mode == "--direct-call-nested-call-positive" ||
+        mode == "--direct-call-nested-call-mismatch" {
+        initializer = "ToIntValue(2)";
+    }
+    initializer_expression = Concat(
+        "ToIntValue(", Concat(initializer, ")")
+    );
+    if mode == "--scalar-call-positive" ||
+        mode == "--scalar-call-mismatch" {
+        initializer_expression = "1 + ToIntValue(2)";
+    } else if mode == "--namespace-call-positive" ||
+        mode == "--namespace-call-target-mismatch" {
+        initializer_expression = "Math.Add(2)";
+    } else if mode == "--member-call-positive" ||
+        mode == "--member-call-target-mismatch" ||
+        mode == "--missing-carried-member-target" {
+        initializer_expression = "box.Get()";
+    }
+    let artifact_text: String = Concat(
+            "Program:\n  Function: ToIntValue\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: ToTextValue\n    Parameters:\n      value: Int\n    Returns: String\n    Body:\n      Block:\n        Return: \"text\"\n  Function: Math_Add\n    Parameters:\n      value: Int\n    Returns: Int\n    Body:\n      Block:\n        Return: value\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = ",
+            Concat(initializer_expression, "\n        Return: x\n")
+    );
+    if mode == "--member-call-positive" ||
+        mode == "--member-call-target-mismatch" ||
+        mode == "--missing-carried-member-target" {
+        artifact_text =
+            "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: 1\n      Function: Text\n        Parameters:\n          self\n        Returns: String\n        Body:\n          Block:\n            Return: \"text\"\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: box : Box = Box(1)\n        Let: x : Int = box.Get()\n        Return: x\n";
+    } else if mode == "--generic-member-call-positive" ||
+        mode == "--missing-carried-generic-member-target" {
+        artifact_text =
+            "Program:\n  Class: Box\n    Generic params: <T>\n    Fields:\n      value: T\n    Methods:\n      Function: Count\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: 1\n  Function: Main\n    Parameters:\n      box: Box<Int: Int>\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = box.Count()\n        Return: x\n";
+    } else if mode == "--chained-member-call-positive" ||
+        mode == "--missing-carried-chained-member-target" {
+        artifact_text =
+            "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Count\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: 1\n  Class: Holder\n    Fields:\n      box: Box\n    Methods:\n  Function: Main\n    Parameters:\n      holder: Holder\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = holder.box.Count()\n        Return: x\n";
+    }
+    if mode == "--nominal-return-call-positive" ||
+        mode == "--nominal-return-call-target-mismatch" {
+        artifact_text =
+            "Program:\n  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: 1\n  Function: MakeBox\n    Parameters:\n    Returns: Box\n    Body:\n      Block:\n        Return: Box(1)\n  Function: ToTextValue\n    Parameters:\n    Returns: String\n    Body:\n      Block:\n        Return: \"text\"\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: box : Box = MakeBox()\n        Let: x : Int = box.Get()\n        Return: x\n";
+    }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(artifact_text);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if mode == "--direct-call-callee-mismatch" {
+        let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
+            ProbeExpressionSurfacesWithCallCallee(
+                artifact, analysis.expression_surfaces, "ToTextValue", false
+            );
+        analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+            artifact, true, damaged_surfaces, false
+        );
+    } else if mode == "--direct-call-nested-call-mismatch" ||
+        mode == "--scalar-call-mismatch" {
+        let damaged_nested_call: SemanticAstExpressionSurfaceFacts =
+            ProbeExpressionSurfacesWithCallCallee(
+                artifact, analysis.expression_surfaces, "ToTextValue", true
+            );
+        analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+            artifact, true, damaged_nested_call, false
+        );
+    } else if mode == "--direct-call-argument-mismatch" ||
+        mode == "--direct-call-nested-mismatch" {
+        let damaged_arguments: SemanticAstExpressionSurfaceFacts =
+            ProbeExpressionSurfacesWithScalarOperand(
+                artifact, analysis.expression_surfaces, "\"bad\""
+            );
+        analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+            artifact, true, damaged_arguments, false
+        );
+    } else if mode == "--namespace-call-target-mismatch" {
+        analysis = ProbeAnalysisWithCallTarget(
+            artifact, analysis, "Math_Add", "ToTextValue"
+        );
+    } else if mode == "--nominal-return-call-target-mismatch" {
+        analysis = ProbeAnalysisWithCallTarget(
+            artifact, analysis, "MakeBox", "ToTextValue"
+        );
+    } else if mode == "--member-call-target-mismatch" {
+        let damaged_member: SemanticAstExpressionSurfaceFacts =
+            ProbeExpressionSurfacesWithMemberName(
+                artifact, analysis.expression_surfaces, "Text"
+            );
+        analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+            artifact, true, damaged_member, false
+        );
+    }
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "--direct-call-callee-mismatch" ||
+        mode == "--direct-call-argument-mismatch" ||
+        mode == "--direct-call-nested-mismatch" ||
+        mode == "--direct-call-nested-call-mismatch" ||
+        mode == "--scalar-call-mismatch" ||
+        mode == "--namespace-call-target-mismatch" ||
+        mode == "--member-call-target-mismatch" ||
+        mode == "--nominal-return-call-target-mismatch" {
+        let expected_code: String = "let_type_mismatch";
+        if mode == "--direct-call-argument-mismatch" {
+            expected_code = "call_arg_type_mismatch";
+        } else if mode == "--direct-call-nested-mismatch" {
+            expected_code = "binop_type_mismatch";
+        } else if mode == "--direct-call-nested-call-mismatch" {
+            expected_code = "call_arg_type_mismatch";
+        } else if mode == "--scalar-call-mismatch" {
+            expected_code = "binop_type_mismatch";
+        } else if mode == "--namespace-call-target-mismatch" {
+            expected_code = "let_type_mismatch";
+        } else if mode == "--member-call-target-mismatch" {
+            expected_code = "let_type_mismatch";
+        } else if mode == "--nominal-return-call-target-mismatch" {
+            expected_code = "let_type_mismatch";
+        }
+        let i: Int = 0;
+        while i < SemanticAstInitializerTypeCount(
+            body_types.initializer_types
+        ) {
+            if body_types.initializer_types.verified[i] != 1 &&
+                body_types.initializer_types.diagnostic_codes[i] ==
+                    expected_code {
+                Log(Concat(
+                    body_types.initializer_types.diagnostic_codes[i],
+                    Concat(": ", body_types.initializer_types.diagnostic_messages[i])
+                ));
+                return false;
+            }
+            i = i + 1;
+        }
+        Log("concrete scalar graph damage did not reach initializer type owner");
+        return true;
+    }
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) {
+        Log(body_types.verdict.diagnostic_message);
+        return false;
+    }
+    if mode == "--missing-carried-direct-target" {
+        analysis = ProbeAnalysisWithoutCallTarget(
+            artifact, analysis, SemanticCallTargetDirect()
+        );
+    } else if mode == "--missing-carried-member-target" ||
+        mode == "--missing-carried-generic-member-target" ||
+        mode == "--missing-carried-chained-member-target" {
+        analysis = ProbeAnalysisWithoutCallTarget(
+            artifact, analysis, SemanticCallTargetMember()
+        );
+    }
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
+        artifact, analysis, body_types.initializer_types,
+        body_types.iteration_types
+    );
+    if !SelfMirProgramFactsReady(facts) {
+        Log(SelfMirProgramFactsValidationError(facts));
+        return false;
+    }
+    if mode == "--direct-call-positive" {
+        if !ProbeMirCarriesCallTarget(
+            facts, SemanticCallTargetDirect(), "ToIntValue"
+        ) {
+            Log("MIR direct-call target row is missing");
+            return false;
+        }
+        if !ProbeCodegenConsumesDirectTarget(
+            analysis, "ToIntValue", "Int", "Int", "ToIntValue(2)"
+        ) {
+            Log("codegen direct-call target row was not consumed");
+            return false;
+        }
+    } else if mode == "--nominal-return-call-positive" {
+        if !ProbeMirCarriesCallTarget(
+            facts, SemanticCallTargetDirect(), "MakeBox"
+        ) {
+            Log("MIR nominal-return call target row is missing");
+            return false;
+        }
+        if !ProbeCodegenConsumesDirectTarget(
+            analysis, "MakeBox", "Box", "", "MakeBox()"
+        ) {
+            Log("codegen nominal-return call target row was not consumed");
+            return false;
+        }
+    } else if mode == "--member-call-positive" {
+        if !ProbeMirCarriesCallTarget(
+            facts, SemanticCallTargetMember(), "Box_Get"
+        ) {
+            Log("MIR member-call target row is missing");
+            return false;
+        }
+        if !ProbeCodegenConsumesMemberTarget(
+            analysis, "Box_Get", "box", "|box=v:Box|box=cbind:box|"
+        ) {
+            Log("codegen member-call target row was not consumed");
+            return false;
+        }
+    } else if mode == "--generic-member-call-positive" {
+        if !ProbeMirCarriesCallTarget(
+            facts, SemanticCallTargetMember(), "Box_Count"
+        ) {
+            Log("MIR generic member-call target row is missing");
+            return false;
+        }
+        if !ProbeCodegenConsumesMemberTarget(
+            analysis, "Box_Count", "box", "|box=v:Box|box=cbind:box|"
+        ) {
+            Log("codegen generic member-call target row was not consumed");
+            return false;
+        }
+    } else if mode == "--chained-member-call-positive" {
+        if !ProbeMirCarriesCallTarget(
+            facts, SemanticCallTargetMember(), "Box_Count"
+        ) {
+            Log("MIR chained member-call target row is missing");
+            return false;
+        }
+        if !ProbeCodegenConsumesMemberTarget(
+            analysis, "Box_Count", "holder.box",
+            "|holder=v:Holder|holder=cbind:holder|Holder.box=field:Box|"
+        ) {
+            Log("codegen chained member-call target row was not consumed");
+            return false;
+        }
+    }
+    let expected_local: String = "x";
+    let expected_type: String = "Int";
+    let expected_log: String = "call-local=x type=Int";
+    if mode == "--nominal-return-call-positive" {
+        expected_local = "box";
+        expected_type = "Box";
+        expected_log = "call-local=box type=Box";
+    }
+    let i2: Int = 0;
+    while i2 < ArrayLength(facts.routines.local_names) {
+        if facts.routines.local_names[i2] == expected_local &&
+            facts.routines.local_types[i2] == expected_type {
+            Log(expected_log);
+            return true;
+        }
+        i2 = i2 + 1;
+    }
+    Log("concrete scalar projection probe observed invalid MIR rows");
+    return false;
+}
+
+func Main() -> Void with caps env {
+    let args: Array<String> = Args();
+    let mode: String = "";
+    if ArrayLength(args) > 0 { mode = args[0]; }
+    if mode == "--direct-call-positive" ||
+        mode == "--direct-call-nested-positive" ||
+        mode == "--direct-call-nested-call-positive" ||
+        mode == "--scalar-call-positive" ||
+        mode == "--namespace-call-positive" ||
+        mode == "--member-call-positive" ||
+        mode == "--generic-member-call-positive" ||
+        mode == "--chained-member-call-positive" ||
+        mode == "--nominal-return-call-positive" ||
+        mode == "--direct-call-callee-mismatch" ||
+        mode == "--direct-call-argument-mismatch" ||
+        mode == "--direct-call-nested-mismatch" ||
+        mode == "--direct-call-nested-call-mismatch" ||
+        mode == "--scalar-call-mismatch" ||
+        mode == "--namespace-call-target-mismatch" ||
+        mode == "--member-call-target-mismatch" ||
+        mode == "--nominal-return-call-target-mismatch" ||
+        mode == "--missing-carried-direct-target" ||
+        mode == "--missing-carried-member-target" ||
+        mode == "--missing-carried-generic-member-target" ||
+        mode == "--missing-carried-chained-member-target" {
+        if !ProbeResolvedCallProjection(mode) { Exit(1); }
+        return;
+    }
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: seed : Int = 1\n        Let: x = seed + 2\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if mode == "--unknown-scalar-operand" ||
+        mode == "--scalar-type-mismatch" {
+        let replacement: String = "missing_scalar_operand";
+        if mode == "--scalar-type-mismatch" {
+            replacement = "\"bad\"";
+        }
+        let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
+            ProbeExpressionSurfacesWithScalarOperand(
+                artifact, analysis.expression_surfaces, replacement
+            );
+        analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
+            artifact, true, damaged_surfaces, false
+        );
+    }
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "--unknown-scalar-operand" ||
+        mode == "--scalar-type-mismatch" {
+        let expected_code: String = "undefined_symbol";
+        if mode == "--scalar-type-mismatch" {
+            expected_code = "binop_type_mismatch";
+        }
+        let scalar_rejected: Bool = false;
+        let scalar_i: Int = 0;
+        while scalar_i < SemanticAstInitializerTypeCount(
+            body_types.initializer_types
+        ) {
+            if body_types.initializer_types.verified[scalar_i] != 1 &&
+                body_types.initializer_types.diagnostic_codes[scalar_i] ==
+                    expected_code {
+                scalar_rejected = true;
+                Log(Concat(
+                    body_types.initializer_types.diagnostic_codes[scalar_i],
+                    Concat(": ", body_types.initializer_types.diagnostic_messages[
+                        scalar_i
+                    ])
+                ));
+                break;
+            }
+            scalar_i = scalar_i + 1;
+        }
+        if !scalar_rejected {
+            Log("scalar graph damage did not reach initializer type owner");
+        }
+        Exit(1);
+        return;
+    }
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) {
+        Log(body_types.verdict.diagnostic_message);
+        Exit(1);
+        return;
+    }
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        ProbeInitializerFacts(body_types, mode);
+    let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
+        artifact, analysis, initializer_types, body_types.iteration_types
+    );
+    if !SelfMirProgramFactsReady(facts) {
+        Log(SelfMirProgramFactsValidationError(facts));
+        Exit(1);
+        return;
+    }
+    if ArrayLength(facts.routines.local_names) != 2 ||
+        facts.routines.local_names[1] != "x" ||
+        facts.routines.local_types[1] != "Int" ||
+        ArrayLength(facts.cfg.instructions.source_types) < 2 ||
+        facts.cfg.instructions.source_types[1] != "AST_LET_DECL" {
+        Log("initializer projection probe observed invalid MIR rows");
+        Exit(1);
+        return;
+    }
+    Log("local=x type=Int source=AST_LET_DECL");
+}

@@ -1,6 +1,6 @@
 // Executable contract for semantic expression surface and compact bridge rows.
 
-import "ast_expression_surface_fact_owner.pgy";
+import "ast_expression_surface_query_owner.pgy";
 
 func SemanticAstExpressionSurfaceFactsContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(

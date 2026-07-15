@@ -1,0 +1,116 @@
+// Canonical return types for semantically resolved graph calls.
+
+import "ast_expression_call_target_fact_owner.pgy";
+import "callable_resolution_owner.pgy";
+
+func SemanticResolvedCallConcreteScalarType(type_name: String) -> Bool {
+    return type_name == "Bool" || type_name == "Int" ||
+        type_name == "Long" || type_name == "Float" ||
+        type_name == "String";
+}
+
+func SemanticExpressionGraphResolvedCallReturnTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    if ArrayLength(function_names) != ArrayLength(function_returns) {
+        return None;
+    }
+    let target: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, root_id, constructors, names, types, function_names
+        );
+    if !target.ok { return None; }
+    let target_index: Option<Int> = SemanticCallableIndex(
+        function_names, target.name
+    );
+    if !IsSome(target_index) { return None; }
+    let type_name: String = function_returns[UnwrapOption(target_index)];
+    if type_name == "" || type_name == "Unknown" { return None; }
+    return Some(type_name);
+}
+
+func SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let type_name: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    if !IsSome(type_name) ||
+        !SemanticResolvedCallConcreteScalarType(UnwrapOption(type_name)) {
+        return None;
+    }
+    return type_name;
+}
+
+func SemanticExpressionGraphResolvedCallTypeContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let direct_cursor: Array<Int> = [0];
+    let direct_fact: ParserExpressionFact = ParseExprFact(
+        "ToInt(1)", 0, direct_cursor
+    );
+    let member_cursor: Array<Int> = [0];
+    let member_fact: ParserExpressionFact = ParseExprFact(
+        "box.Get()", 0, member_cursor
+    );
+    if !direct_fact.ok || direct_cursor[0] != 8 ||
+        !member_fact.ok || member_cursor[0] != 9 {
+        return false;
+    }
+    let direct_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
+                [direct_fact.root], direct_fact.arena
+            ), [0], 1
+        );
+    let member_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()], [AstExpressionLaneAtom()],
+                [member_fact.root], member_fact.arena
+            ), [0], 1
+        );
+    let empty: Array<String> = [];
+    let resolved: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            direct_graph, direct_fact.root, constructors, empty, empty,
+            ["ToInt"], ["Int"]
+        );
+    let member: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            member_graph, member_fact.root, constructors, ["box"], ["Box"],
+            ["Box_Get"], ["String"]
+        );
+    let deferred: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            direct_graph, direct_fact.root, constructors, empty, empty,
+            ["ToInt"], ["Option<Int>"]
+        );
+    let deferred_scalar: Option<String> =
+        SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
+            direct_graph, direct_fact.root, constructors, empty, empty,
+            ["ToInt"], ["Option<Int>"]
+        );
+    return IsSome(resolved) && UnwrapOption(resolved) == "Int" &&
+        IsSome(member) && UnwrapOption(member) == "String" &&
+        IsSome(deferred) && UnwrapOption(deferred) == "Option<Int>" &&
+        !IsSome(deferred_scalar);
+}

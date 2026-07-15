@@ -1,0 +1,3 @@
+func Main() -> Void {
+    let value: Bool = IsSome(None());
+}

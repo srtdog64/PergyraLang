@@ -126,7 +126,7 @@ func SemanticAstInitializerTypeFactsFromArtifact(
             SemanticAstExpressionVerdictFromGraph(
                 expression, expression_surfaces.expression_graph,
                 UnwrapOption(graph_root),
-                constructors,
+                constructors, signatures,
                 names, types, modes,
                 function_names, function_returns, function_params,
                 member_root_names
@@ -221,6 +221,45 @@ func SemanticAstInitializerTypesAllVerified(
     let i: Int = 0;
     while i < SemanticAstInitializerTypeCount(facts) {
         if facts.verified[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstInitializerTypeFactsReadyProjection(
+    artifact: AstTreeArtifact,
+    locals: SemanticAstLocalBindingFacts,
+    facts: SemanticAstInitializerTypeFacts
+) -> Bool {
+    let count: Int = SemanticAstInitializerTypeCount(facts);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        count != SemanticAstLocalBindingCount(locals) ||
+        ArrayLength(facts.expression_texts) != count ||
+        ArrayLength(facts.inferred_type_names) != count ||
+        ArrayLength(facts.verified) != count ||
+        ArrayLength(facts.diagnostic_codes) != count ||
+        ArrayLength(facts.diagnostic_messages) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if facts.node_ids[i] != locals.node_ids[i] ||
+            facts.expression_texts[i] != locals.initializer_texts[i] ||
+            (facts.verified[i] != 0 && facts.verified[i] != 1) {
+            return false;
+        }
+        if facts.verified[i] == 1 &&
+            (facts.inferred_type_names[i] == "" ||
+             facts.inferred_type_names[i] == "Unknown" ||
+             facts.diagnostic_codes[i] != "" ||
+             facts.diagnostic_messages[i] != "") {
+            return false;
+        }
+        if facts.verified[i] == 0 &&
+            (facts.diagnostic_codes[i] == "" ||
+             facts.diagnostic_messages[i] == "") {
             return false;
         }
         i = i + 1;
@@ -344,7 +383,9 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
             mismatch, mismatch_signatures, mismatch_constructors,
             mismatch_locals, mismatch_expression_surfaces
         );
-    if SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
+    if !SemanticAstInitializerTypeFactsReadyProjection(
+        mismatch, mismatch_locals, mismatch_facts
+    ) || SemanticAstInitializerTypesAllVerified(mismatch_facts) ||
         SemanticAstInitializerFirstDiagnosticCode(mismatch_facts) !=
             "let_type_mismatch" {
         return false;
@@ -366,7 +407,9 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
             unknown, unknown_signatures, unknown_constructors, unknown_locals,
             unknown_expression_surfaces
         );
-    return !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
+    return SemanticAstInitializerTypeFactsReadyProjection(
+            unknown, unknown_locals, unknown_facts
+        ) && !SemanticAstInitializerTypesAllVerified(unknown_facts) &&
         SemanticAstInitializerFirstDiagnosticCode(unknown_facts) ==
             "undefined_function";
 }

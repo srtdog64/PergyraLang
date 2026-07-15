@@ -37,9 +37,7 @@ func ParserExpressionStructFieldName(text: String) -> ParserExpressionFact {
 }
 
 func ParserExpressionUnary(
-    kind: Int,
-    text: String,
-    operand: ParserExpressionFact
+    kind: Int, text: String, operand: ParserExpressionFact
 ) -> ParserExpressionFact {
     if !operand.ok || text == "" ||
         !AstExpressionNodeIsUnaryOperator(kind) {
@@ -424,6 +422,10 @@ func ParserExpressionNamedCallArgumentAt(
         return ParserExpressionInvalid();
     }
     let callee: Int = fact.arena.left_children[call];
+    while fact.arena.node_kinds[callee] ==
+        AstExpressionNodeGenericCallee() {
+        callee = fact.arena.left_children[callee];
+    }
     if fact.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
         fact.arena.node_texts[callee] != expected_callee {
         return ParserExpressionInvalid();
@@ -460,6 +462,10 @@ func ParserExpressionDirectCallCalleeName(
         return None;
     }
     let callee: Int = fact.arena.left_children[node];
+    while fact.arena.node_kinds[callee] ==
+        AstExpressionNodeGenericCallee() {
+        callee = fact.arena.left_children[callee];
+    }
     if fact.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
         !IsIdentifier(fact.arena.node_texts[callee]) {
         return None;

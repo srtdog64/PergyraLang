@@ -1,0 +1,15 @@
+struct Pair {
+    left: Int;
+    right: Long;
+}
+
+func Identity<T>(value: T) -> T {
+    return value;
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair {
+        left: Identity<String>("bad"),
+        right: 2
+    };
+}

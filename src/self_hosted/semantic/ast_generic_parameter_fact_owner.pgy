@@ -1,0 +1,61 @@
+// Canonical formal-generic rows captured from a typed AST generic list node.
+
+import "../hir/typed_ast_arena_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+import "../hir/ast_text_scan_owner.pgy";
+import "../hir/ast_text_arena_projection_owner.pgy";
+
+func SemanticAstGenericParameterRowsFromNode(
+    arena: AstArena,
+    node_id: Int,
+    inout names: Array<String>
+) -> Bool {
+    if !TypedAstArenaNodeKindIs(
+        arena, node_id, TypedAstKindGenericParamsTag()
+    ) {
+        return false;
+    }
+    let atom: Option<String> = TypedAstArenaAtomText(arena, node_id);
+    if !IsSome(atom) {
+        return false;
+    }
+    let row: String = UnwrapOption(atom);
+    let n: Int = StringLength(row);
+    if n < 3 || CharAt(row, 0) != "<" || CharAt(row, n - 1) != ">" {
+        return false;
+    }
+    let payload: String = Substring(row, 1, n - 2);
+    let parts: Array<String> = Split(payload, ",");
+    if ArrayLength(parts) == 0 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(parts) {
+        let name: String = StringTrim(parts[i]);
+        if !IsIdentifier(name) {
+            return false;
+        }
+        let previous: Int = 0;
+        while previous < i {
+            if StringTrim(parts[previous]) == name {
+                return false;
+            }
+            previous = previous + 1;
+        }
+        ArrayPush(names, name);
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstGenericParameterFactContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Identity\n    Generic params: <T, U>\n" +
+        "    Parameters:\n    Returns: T\n    Body:\n      Block:\n"
+    );
+    let node: Option<Int> = TypedAstArenaChildAt(artifact.arena, 1, 0);
+    let names: Array<String> = [];
+    return IsSome(node) && SemanticAstGenericParameterRowsFromNode(
+        artifact.arena, UnwrapOption(node), names
+    ) && ArrayLength(names) == 2 && names[0] == "T" && names[1] == "U";
+}

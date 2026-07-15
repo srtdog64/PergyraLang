@@ -211,6 +211,9 @@ func SelfMirAppendRoutine(
     let kinds: Array<String> = rows.kinds;
     let owners: Array<String> = rows.owners;
     let return_types: Array<String> = rows.return_types;
+    let generic_starts: Array<Int> = rows.generic_starts;
+    let generic_counts: Array<Int> = rows.generic_counts;
+    let generic_names: Array<String> = rows.generic_names;
     let param_starts: Array<Int> = rows.param_starts;
     let param_counts: Array<Int> = rows.param_counts;
     let param_names: Array<String> = rows.param_names;
@@ -232,6 +235,19 @@ func SelfMirAppendRoutine(
         ArrayPush(kinds, "method");
     }
     ArrayPush(return_types, analysis.signatures.return_types[signature_index]);
+    ArrayPush(generic_starts, ArrayLength(generic_names));
+    ArrayPush(
+        generic_counts, analysis.signatures.generic_counts[signature_index]
+    );
+    let generic_i: Int = 0;
+    let generic_start: Int = analysis.signatures.generic_starts[signature_index];
+    while generic_i < analysis.signatures.generic_counts[signature_index] {
+        ArrayPush(
+            generic_names,
+            analysis.signatures.generic_names[generic_start + generic_i]
+        );
+        generic_i = generic_i + 1;
+    }
     ArrayPush(param_starts, ArrayLength(param_names));
     ArrayPush(param_counts, analysis.signatures.param_counts[signature_index]);
     let param_i: Int = 0;
@@ -279,6 +295,7 @@ func SelfMirAppendRoutine(
         facts.artifact_node_count, facts.declarations, facts.parallel_captures,
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, return_types,
+            generic_starts, generic_counts, generic_names,
             param_starts, param_counts, param_names, param_types,
             param_abi_kinds,
             block_starts, block_counts, local_starts, local_counts,
@@ -363,18 +380,16 @@ func SelfMirProgramFactsFromArtifact(
             "MIR producer requires matching semantic artifact facts"
         );
     }
-    if !SemanticAstInitializerTypeFactsMatchArtifact(
-        artifact, analysis.signatures, analysis.constructors,
-        analysis.local_bindings, analysis.expression_surfaces,
-        initializer_types
-    ) || !SemanticAstIterationTypeFactsMatchArtifact(
-        artifact, analysis.signatures, analysis.constructors,
-        analysis.local_bindings, initializer_types, analysis.statements,
-        analysis.expression_surfaces, iteration_types
+    if !SemanticExpressionGraphCarriedCallTargetsReady(
+        analysis.expression_surfaces.expression_graph
+    ) || !SemanticAstInitializerTypeFactsReadyProjection(
+        artifact, analysis.local_bindings, initializer_types
+    ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
+        artifact, analysis.statements, iteration_types
     ) {
         return SelfMirProgramFactsError(
             facts, "mir_artifact_invalid",
-            "MIR producer requires matching iteration type facts"
+            "MIR producer requires matching initializer and iteration type facts"
         );
     }
     let iteration_i: Int = 0;
@@ -408,6 +423,7 @@ func SelfMirProgramFactsFromArtifact(
     );
     let input: SelfMirRoutineInput = SelfMirRoutineInput(
         artifact, analysis,
+        SelfMirInitializerRowsFromSemantic(initializer_types),
         SelfMirIterationRowsFromSemantic(iteration_types)
     );
     let i: Int = 0;

@@ -1,0 +1,220 @@
+// Executable proof for exact and composite generic return substitution.
+
+import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../parser/program_parse_owner.pgy";
+
+func GenericReturnProbeExplicitAccepted(source_path: String) -> Bool {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) &&
+        SemanticAstInitializerTypeCount(body_types.initializer_types) == 1 &&
+        body_types.initializer_types.verified[0] == 1 &&
+        body_types.initializer_types.inferred_type_names[0] == "String";
+}
+
+func GenericReturnProbeExplicitRejected(
+    source_path: String,
+    expected_code: String
+) -> Bool {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    return GenericReturnProbeRejected(body_types, expected_code);
+}
+
+func GenericReturnProbeArtifact() -> AstTreeArtifact {
+    return AstTreeArtifactFromText(
+        "Program:\n  Function: Identity\n    Generic params: <T>\n" +
+        "    Parameters:\n      value: T\n    Returns: T\n" +
+        "    Body:\n      Block:\n        Return: value\n" +
+        "  Function: Wrap\n    Generic params: <T>\n" +
+        "    Parameters:\n      value: T\n    Returns: Option<T>\n" +
+        "    Body:\n      Block:\n        Return: None\n" +
+        "  Function: First\n    Generic params: <T>\n" +
+        "    Parameters:\n      values: Array<T>\n    Returns: T\n" +
+        "    Body:\n      Block:\n        Return: values[0]\n" +
+        "  Function: ToTextValue\n    Parameters:\n      value: Int\n" +
+        "    Returns: String\n    Body:\n      Block:\n" +
+        "        Return: \"text\"\n" +
+        "  Function: Main\n    Parameters:\n    Returns: Int\n" +
+        "    Body:\n      Block:\n        Let: x : Int = Identity(2)\n" +
+        "        Let: wrapped : Option<Int> = Wrap(2)\n" +
+        "        Let: values : Array<Int> = [2]\n" +
+        "        Let: first : Int = First(values)\n" +
+        "        Return: x\n"
+    );
+}
+
+func GenericReturnProbeWithTarget(
+    artifact: AstTreeArtifact,
+    analysis: SemanticAstArtifactAnalysis,
+    replacement: String
+) -> SemanticAstArtifactAnalysis {
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let targets: Array<String> = graph.arena.call_target_names;
+    let changed: Bool = false;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCall() &&
+            targets[i] == "Identity" {
+            ArraySet(targets, i, replacement);
+            changed = true;
+            break;
+        }
+        i = i + 1;
+    }
+    if !changed {
+        return analysis;
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, graph.arena.node_texts,
+        graph.arena.left_children, graph.arena.right_children,
+        graph.arena.call_target_kinds, targets
+    );
+    let damaged_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            graph.ok, graph.roots, graph.has_roots, arena
+        );
+    let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsWithGraph(
+            artifact, analysis.expression_surfaces, damaged_graph
+        );
+    return SemanticAstArtifactAnalysis(
+        analysis.verdict, analysis.signatures, analysis.constructors,
+        analysis.local_bindings, analysis.assignments, analysis.statements,
+        analysis.enums, analysis.roles, damaged_surfaces,
+        analysis.type_surfaces, analysis.kind_surfaces
+    );
+}
+
+func GenericReturnProbeNestedMismatchRejected(
+    signatures: SemanticAstFunctionSignatureFacts
+) -> Bool {
+    let signature_index: Int = -1;
+    let i: Int = 0;
+    while i < SemanticAstFunctionSignatureCount(signatures) {
+        let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
+        if IsSome(name) && UnwrapOption(name) == "First" {
+            signature_index = i;
+            break;
+        }
+        i = i + 1;
+    }
+    if signature_index < 0 {
+        return false;
+    }
+    let generic_count: Option<Int> = SemanticAstFunctionGenericCountAt(
+        signatures, signature_index
+    );
+    let parameter: Option<Int> = SemanticAstFunctionParamFlatIndex(
+        signatures, signature_index, 0
+    );
+    if !IsSome(generic_count) || !IsSome(parameter) {
+        return false;
+    }
+    let bindings: Array<String> = [];
+    i = 0;
+    while i < UnwrapOption(generic_count) {
+        ArrayPush(bindings, "");
+        i = i + 1;
+    }
+    if SemanticAstSignatureParameterTypeBindAt(
+        signatures.type_expressions, UnwrapOption(parameter),
+        signatures.generic_starts[signature_index],
+        UnwrapOption(generic_count), signatures.generic_names,
+        "Int", bindings
+    ) {
+        return false;
+    }
+    Log("call_arg_type_mismatch");
+    return true;
+}
+
+func GenericReturnProbeRejected(
+    body_types: SemanticAstBodyTypeBundle,
+    expected_code: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstInitializerTypeCount(
+        body_types.initializer_types
+    ) {
+        if body_types.initializer_types.verified[i] != 1 &&
+            body_types.initializer_types.diagnostic_codes[i] == expected_code {
+            Log(expected_code);
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    let mode: String = "";
+    if ArrayLength(args) > 0 {
+        mode = args[0];
+    }
+    if mode == "--explicit-mismatch" {
+        if GenericReturnProbeExplicitRejected(
+            "src/self_hosted/tools/generic_return_probe/explicit_mismatch.pgy",
+            "call_arg_type_mismatch"
+        ) {
+            Exit(1);
+        }
+        Log("explicit generic mismatch was not rejected");
+        Exit(2);
+        return;
+    }
+    let artifact: AstTreeArtifact = GenericReturnProbeArtifact();
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    if mode == "--target-mismatch" {
+        analysis = GenericReturnProbeWithTarget(
+            artifact, analysis, "ToTextValue"
+        );
+    }
+    let body_types: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "--target-mismatch" {
+        if GenericReturnProbeRejected(body_types, "let_type_mismatch") {
+            Exit(1);
+        }
+        Log("generic target mismatch was not rejected");
+        Exit(2);
+        return;
+    } else if mode == "--nested-mismatch" {
+        if GenericReturnProbeNestedMismatchRejected(analysis.signatures) {
+            Exit(1);
+        }
+        Log("nested generic mismatch was not rejected");
+        Exit(2);
+        return;
+    }
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, body_types) ||
+        SemanticAstInitializerTypeCount(body_types.initializer_types) != 4 ||
+        body_types.initializer_types.verified[0] != 1 ||
+        body_types.initializer_types.inferred_type_names[0] != "Int" ||
+        body_types.initializer_types.verified[1] != 1 ||
+        body_types.initializer_types.inferred_type_names[1] != "Option<Int>" ||
+        body_types.initializer_types.verified[2] != 1 ||
+        body_types.initializer_types.inferred_type_names[2] != "Array<Int>" ||
+        body_types.initializer_types.verified[3] != 1 ||
+        body_types.initializer_types.inferred_type_names[3] != "Int" ||
+        !GenericReturnProbeExplicitAccepted(
+            "src/self_hosted/tools/generic_return_probe/explicit_ok.pgy"
+        ) {
+        Log("generic return substitution did not reach initializer facts");
+        Exit(1);
+        return;
+    }
+    Log("generic-call=x type=Int");
+    Log("generic-call=wrapped type=Option<Int>");
+    Log("generic-call=first type=Int");
+    Log("generic-call=explicit type=String");
+}

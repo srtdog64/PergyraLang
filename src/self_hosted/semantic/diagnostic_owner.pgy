@@ -76,6 +76,8 @@ func SemanticReason(code: String) -> String {
     if code == "call_arity_mismatch" {
         return "call argument count does not match the callee parameter count";
     }
+    if code == "generic_argument_count_mismatch" { return "explicit generic argument count does not match the callable generic parameters"; }
+    if code == "generic_argument_type_invalid" { return "explicit generic argument is missing or malformed"; }
     if code == "let_type_mismatch" {
         return "let initializer type does not match the declared local type";
     }
@@ -151,6 +153,8 @@ func SemanticFix(code: String) -> String {
     if code == "call_arity_mismatch" {
         return "pass the declared number of arguments";
     }
+    if code == "generic_argument_count_mismatch" { return "pass one explicit type argument for each generic parameter"; }
+    if code == "generic_argument_type_invalid" { return "replace the malformed generic argument with a concrete type"; }
     if code == "let_type_mismatch" {
         return "change the initializer or the declared local type";
     }

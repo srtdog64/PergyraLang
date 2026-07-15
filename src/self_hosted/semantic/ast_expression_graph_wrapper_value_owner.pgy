@@ -1,0 +1,261 @@
+// Option/Result builtin verdicts over parser-owned expression graphs.
+
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
+import "delimited_range_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+import "wrapper_type_owner.pgy";
+
+struct SemanticExpressionGraphWrapperValueFact {
+    applies: Bool;
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    type_name: String;
+}
+
+func SemanticExpressionGraphWrapperNotApplicable(
+) -> SemanticExpressionGraphWrapperValueFact {
+    return SemanticExpressionGraphWrapperValueFact(
+        false, true, "", "", "Unknown"
+    );
+}
+
+func SemanticExpressionGraphWrapperOk(
+    type_name: String
+) -> SemanticExpressionGraphWrapperValueFact {
+    return SemanticExpressionGraphWrapperValueFact(
+        true, true, "", "", type_name
+    );
+}
+
+func SemanticExpressionGraphWrapperError(
+    code: String,
+    message: String
+) -> SemanticExpressionGraphWrapperValueFact {
+    return SemanticExpressionGraphWrapperValueFact(
+        true, false, code, message, "Unknown"
+    );
+}
+
+func SemanticWrapperBuiltinName(name: String) -> Bool {
+    return name == "Some" || name == "None" || name == "IsSome" ||
+        name == "UnwrapOption" || name == "Ok" || name == "Err" ||
+        name == "IsOk" || name == "IsErr" || name == "Unwrap" ||
+        name == "UnwrapOr";
+}
+
+func SemanticWrapperBuiltinTypeMismatch(
+    name: String,
+    expected: String,
+    actual: String
+) -> SemanticExpressionGraphWrapperValueFact {
+    return SemanticExpressionGraphWrapperError(
+        "builtin_arg_type_mismatch",
+        SemanticError3(
+            "builtin_arg_type_mismatch", "func", name,
+            "expected", expected, "actual", actual
+        )
+    );
+}
+
+func SemanticExpressionGraphWrapperValueFactFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> SemanticExpressionGraphWrapperValueFact {
+    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, root_id
+    );
+    let root_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, root_id
+    );
+    if IsSome(root_kind) && IsSome(root_text) &&
+        UnwrapOption(root_kind) == AstExpressionNodeLeaf() &&
+        UnwrapOption(root_text) == "None" {
+        return SemanticExpressionGraphWrapperOk("Option<Unknown>");
+    }
+
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, root_id
+    );
+    if !call.ok { return SemanticExpressionGraphWrapperNotApplicable(); }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) || !IsSome(callee_text) ||
+        UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
+        !SemanticWrapperBuiltinName(UnwrapOption(callee_text)) {
+        return SemanticExpressionGraphWrapperNotApplicable();
+    }
+    let name: String = UnwrapOption(callee_text);
+    if ArrayLength(function_names) != ArrayLength(function_returns) ||
+        ArrayLength(function_names) != ArrayLength(function_params) {
+        return SemanticExpressionGraphWrapperError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "wrapper_function_table"
+            )
+        );
+    }
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, call.call_node
+    );
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) != name {
+        return SemanticExpressionGraphWrapperError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "wrapper_call_target"
+            )
+        );
+    }
+    let signature_index: Option<Int> = SemanticCallableIndex(
+        function_names, name
+    );
+    if !IsSome(signature_index) {
+        return SemanticExpressionGraphWrapperError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "wrapper_signature"
+            )
+        );
+    }
+    let signature_text: String = function_params[UnwrapOption(signature_index)];
+    let signature_facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(signature_text);
+    let expected_count: Int = SemanticDelimitedRangeCount(signature_facts);
+    let actual_count: Int = ArrayLength(call.argument_nodes);
+    if expected_count != actual_count {
+        return SemanticExpressionGraphWrapperError(
+            "call_arity_mismatch",
+            SemanticError3(
+                "call_arity_mismatch", "func", name,
+                "expected", ToString(expected_count),
+                "actual", ToString(actual_count)
+            )
+        );
+    }
+
+    let actual_types: Array<String> = [];
+    let i: Int = 0;
+    while i < actual_count {
+        let actual: String = SemanticExpressionGraphScalarTypeName(
+            graph, call.argument_nodes[i], constructors, names, types,
+            function_names, function_returns
+        );
+        let expected: String = SemanticDelimitedRangeText(
+            signature_facts, signature_text, i
+        );
+        if expected == "" {
+            return SemanticExpressionGraphWrapperError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner", "wrapper_parameter"
+                )
+            );
+        }
+        if expected != "Unknown" && actual != "Unknown" &&
+            expected != actual {
+            return SemanticWrapperBuiltinTypeMismatch(
+                name, expected, actual
+            );
+        }
+        ArrayPush(actual_types, actual);
+        i = i + 1;
+    }
+
+    if name == "None" { return SemanticExpressionGraphWrapperOk("Option<Unknown>"); }
+    if name == "Some" {
+        if actual_types[0] != "Unknown" {
+            return SemanticExpressionGraphWrapperOk(
+                Concat("Option<", Concat(actual_types[0], ">"))
+            );
+        }
+        let intrinsic: Option<String> = SemanticExpressionGraphIntrinsicTypeName(
+            graph, root_id, function_names, function_returns
+        );
+        if IsSome(intrinsic) {
+            return SemanticExpressionGraphWrapperOk(UnwrapOption(intrinsic));
+        }
+        return SemanticExpressionGraphWrapperNotApplicable();
+    }
+    if name == "Ok" {
+        if actual_types[0] == "Unknown" {
+            return SemanticExpressionGraphWrapperNotApplicable();
+        }
+        return SemanticExpressionGraphWrapperOk(
+            Concat("Result<", Concat(actual_types[0], ">"))
+        );
+    }
+    if name == "Err" { return SemanticExpressionGraphWrapperOk("Result<Unknown>"); }
+
+    let wrapped: String = actual_types[0];
+    if name == "IsSome" || name == "UnwrapOption" {
+        if wrapped == "Unknown" {
+            return SemanticExpressionGraphWrapperNotApplicable();
+        }
+        if wrapped == "Option<Unknown>" {
+            return SemanticExpressionGraphWrapperError(
+                "option_concrete_type_required",
+                SemanticError3(
+                    "option_concrete_type_required", "func", name,
+                    "expected", "Option<T>", "actual", wrapped
+                )
+            );
+        }
+        let option_payload: Option<String> = OptionPayloadTypeOpt(wrapped);
+        if !IsSome(option_payload) {
+            return SemanticWrapperBuiltinTypeMismatch(name, "Option<T>", wrapped);
+        }
+        if name == "IsSome" { return SemanticExpressionGraphWrapperOk("Bool"); }
+        return SemanticExpressionGraphWrapperOk(UnwrapOption(option_payload));
+    }
+
+    if wrapped == "Unknown" {
+        return SemanticExpressionGraphWrapperNotApplicable();
+    }
+    let result_payload: Option<String> = ResultPayloadTypeOpt(wrapped);
+    if !IsSome(result_payload) {
+        return SemanticWrapperBuiltinTypeMismatch(name, "Result<T>", wrapped);
+    }
+    if name == "IsOk" || name == "IsErr" {
+        return SemanticExpressionGraphWrapperOk("Bool");
+    }
+    if name == "Unwrap" {
+        return SemanticExpressionGraphWrapperOk(UnwrapOption(result_payload));
+    }
+    let fallback: String = actual_types[1];
+    if UnwrapOption(result_payload) != "Unknown" && fallback != "Unknown" &&
+        UnwrapOption(result_payload) != fallback {
+        return SemanticWrapperBuiltinTypeMismatch(
+            name, UnwrapOption(result_payload), fallback
+        );
+    }
+    if UnwrapOption(result_payload) != "Unknown" {
+        return SemanticExpressionGraphWrapperOk(UnwrapOption(result_payload));
+    }
+    if fallback != "Unknown" {
+        return SemanticExpressionGraphWrapperOk(fallback);
+    }
+    return SemanticExpressionGraphWrapperNotApplicable();
+}
+
+func SemanticExpressionGraphWrapperValueContractReady() -> Bool {
+    return SemanticWrapperBuiltinName("Some") &&
+        SemanticWrapperBuiltinName("UnwrapOr") &&
+        !SemanticWrapperBuiltinName("ArrayPush") &&
+        SemanticWrapperTypePolicyContractReady();
+}

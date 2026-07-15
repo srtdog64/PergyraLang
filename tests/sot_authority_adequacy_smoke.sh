@@ -13,6 +13,7 @@ ENUM_OWNER="src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 NOMINAL_OWNER="src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy"
 ROLE_OWNER="src/self_hosted/semantic/ast_role_fact_owner.pgy"
 EXPRESSION_SURFACE_OWNER="src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy"
+EXPRESSION_SURFACE_QUERY_OWNER="src/self_hosted/semantic/ast_expression_surface_query_owner.pgy"
 TYPE_SURFACE_OWNER="src/self_hosted/semantic/ast_type_surface_fact_owner.pgy"
 KIND_SURFACE_OWNER="src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy"
 SIGNATURE_OWNER="src/self_hosted/semantic/ast_signature_fact_owner.pgy"
@@ -20,7 +21,7 @@ ARRAY_GRAPH_OWNER="src/self_hosted/parser/expression_graph_owner.pgy"
 ARRAY_CONSUMER="src/self_hosted/codegen/emission/stmt_emit.pgy"
 EXPRESSION_GRAPH_OWNER="src/self_hosted/hir/ast_expression_graph_owner.pgy"
 TRY_PRODUCER="src/self_hosted/parser/expr_postfix_owner.pgy"
-TRY_COMPACT_BRIDGE="src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy"
+TRY_COMPACT_BRIDGE="src/self_hosted/semantic/ast_expression_graph_build_owner.pgy"
 TRY_VIEW="src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
 TRY_CONSUMER="src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
 COLLECTION_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
@@ -179,9 +180,13 @@ check_expression_surface_owner_copy() {
         grep -Eq -- '^    atoms: Array<String>;$' "$path" &&
         grep -Eq -- '^    values: Array<String>;$' "$path" &&
         grep -Eq -- '^    auxiliary_values: Array<String>;$' "$path" &&
-        grep -Fq -- "func SemanticAstExpressionSurfaceCallPresent(" "$path" &&
-        grep -Fq -- "func SemanticAstExpressionSurfaceTokenPresent(" "$path" &&
         grep -Fq -- "func SemanticAstExpressionSurfaceFactsMatchArtifact(" "$path"
+}
+
+check_expression_surface_query_owner() {
+    local path="$1"
+    grep -Fq -- "func SemanticAstExpressionSurfaceCallPresent(" "$path" &&
+        grep -Fq -- "func SemanticAstExpressionSurfaceTokenPresent(" "$path"
 }
 
 check_type_surface_owner_copy() {
@@ -350,6 +355,9 @@ check_role_owner_copy "$ROOT_DIR/$ROLE_OWNER" ||
     fail "live semantic role owner does not provide declaration rows"
 check_expression_surface_owner_copy "$ROOT_DIR/$EXPRESSION_SURFACE_OWNER" ||
     fail "live semantic expression-surface owner does not provide usage rows"
+check_expression_surface_query_owner \
+    "$ROOT_DIR/$EXPRESSION_SURFACE_QUERY_OWNER" ||
+    fail "live semantic expression-surface query owner is incomplete"
 check_type_surface_owner_copy "$ROOT_DIR/$TYPE_SURFACE_OWNER" ||
     fail "live semantic type-surface owner does not provide usage rows"
 check_kind_surface_owner_copy "$ROOT_DIR/$KIND_SURFACE_OWNER" ||

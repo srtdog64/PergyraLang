@@ -1,0 +1,72 @@
+// Emit concrete definitions for generic function specialization facts.
+
+import "function_emit.pgy";
+
+func EmitFunctionSet(
+    count: Int,
+    arena: AstArena,
+    signatures: SemanticAstFunctionSignatureFacts,
+    roles: SemanticAstRoleFacts,
+    local_bindings: SemanticAstLocalBindingFacts,
+    assignments: SemanticAstAssignmentFacts,
+    statements: SemanticAstStatementFacts,
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    specializations: CodegenGenericSpecializationFacts,
+    inout cur: Array<Int>,
+    f_indent: Int,
+    base_env: CodegenTypeEnv,
+    uses_args: Bool
+) -> String {
+    let function_node: Int = cur[0];
+    let signature_index: Int = CodegenSemanticSignatureIndexOrDie(
+        signatures, function_node
+    );
+    if CodegenSemanticFunctionGenericCountOrDie(
+        signatures, signature_index
+    ) == 0 {
+        return EmitFunction(
+            count, arena, signatures, roles, local_bindings, assignments,
+            statements, body_types, expression_surfaces, cur, f_indent,
+            base_env, uses_args
+        );
+    }
+
+    let definitions: Array<String> = [];
+    let after_function: Int = -1;
+    let specialization_index: Int = 0;
+    while specialization_index <
+        CodegenGenericSpecializationCount(specializations) {
+        if specializations.signature_indexes[specialization_index] ==
+            signature_index {
+            let local_cur: Array<Int> = [function_node];
+            let actuals: Array<String> =
+                CodegenGenericSpecializationActuals(
+                    specializations, specialization_index
+                );
+            let definition: String = EmitFunctionWithSpecialization(
+                count, arena, signatures, roles, local_bindings,
+                assignments, statements, body_types, expression_surfaces,
+                local_cur, f_indent, base_env, uses_args,
+                specializations.c_names[specialization_index], actuals
+            );
+            if after_function < 0 { after_function = local_cur[0]; }
+            else if after_function != local_cur[0] {
+                Die("generic specialization traversal diverged");
+            }
+            ArrayPush(definitions, definition);
+        }
+        specialization_index = specialization_index + 1;
+    }
+
+    if after_function < 0 {
+        ArraySet(cur, 0, function_node + 1);
+        while cur[0] < count &&
+            CodegenAstArenaIsDescendantOf(arena, cur[0], function_node) {
+            ArraySet(cur, 0, cur[0] + 1);
+        }
+        return "";
+    }
+    ArraySet(cur, 0, after_function);
+    return StringJoin(definitions, "\n");
+}

@@ -1,0 +1,55 @@
+// Executable contract for canonical callable target carriage.
+
+import "ast_expression_call_target_capture_owner.pgy";
+import "ast_expression_graph_build_owner.pgy";
+
+func SemanticExpressionCallTargetFactContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let node_kinds: Array<Int> = [];
+    let node_texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let call_target_kinds: Array<Int> = [];
+    let call_target_names: Array<String> = [];
+    let build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, "Math.Add()"
+        );
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names
+    );
+    let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        build.ok, [build.root_id], [build.ok], arena
+    );
+    let carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            source, signatures, false
+        );
+    if !carried.ok ||
+        carried.arena.call_target_names[build.root_id] != "Math_Add" ||
+        !SemanticExpressionGraphCallTargetsFromSignatures(
+            carried, signatures, true
+        ).ok {
+        return false;
+    }
+    let missing_names: Array<String> = carried.arena.call_target_names;
+    ArraySet(missing_names, build.root_id, "");
+    let missing_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            carried.arena.node_kinds, carried.arena.node_texts,
+            carried.arena.left_children, carried.arena.right_children,
+            carried.arena.call_target_kinds, missing_names
+        );
+    let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, carried.roots, carried.has_roots, missing_arena
+    );
+    return !SemanticExpressionGraphCallTargetsFromSignatures(
+        missing, signatures, true
+    ).ok;
+}

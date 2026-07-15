@@ -5,17 +5,15 @@
 // production can replace that bridge without changing semantic/codegen views.
 
 import "expression_normalization_owner.pgy";
-import "expression_operator_fact_owner.pgy";
-import "try_expression_fact_owner.pgy";
 import "../hir/ast_expression_graph_owner.pgy";
-import "../parser/expr_owner.pgy";
 
 struct SemanticExpressionGraphArena {
     node_kinds: Array<Int>;
     node_texts: Array<String>;
     left_children: Array<Int>;
     right_children: Array<Int>;
-    // Empty means no semantic target; otherwise this is the canonical callable.
+    // These rows jointly carry the canonical callable identity.
+    call_target_kinds: Array<Int>;
     call_target_names: Array<String>;
 }
 
@@ -29,7 +27,6 @@ struct SemanticExpressionGraphFacts {
 struct SemanticExpressionGraphBuild {
     ok: Bool;
     root_id: Int;
-    arena: SemanticExpressionGraphArena;
 }
 
 struct SemanticExpressionGraphView {
@@ -43,15 +40,18 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
     let right_children: Array<Int> = [];
+    let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
     return SemanticExpressionGraphArena(
         node_kinds, node_texts, left_children, right_children,
-        call_target_names
+        call_target_kinds, call_target_names
     );
 }
 
 func SemanticCallTargetNone() -> Int { return 0; }
 func SemanticCallTargetNamespace() -> Int { return 1; }
+func SemanticCallTargetMember() -> Int { return 2; }
+func SemanticCallTargetDirect() -> Int { return 3; }
 
 func SemanticExpressionGraphFactsEmpty() -> SemanticExpressionGraphFacts {
     let roots: Array<Int> = [];
@@ -72,6 +72,7 @@ func SemanticExpressionGraphFactsFromAstRows(
     let texts: Array<String> = [];
     let left_children: Array<Int> = [];
     let right_children: Array<Int> = [];
+    let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
     let ok: Bool = expected_root_count >= 0 &&
         AstExpressionGraphRowsReady(rows) &&
@@ -88,6 +89,7 @@ func SemanticExpressionGraphFactsFromAstRows(
         ArrayPush(texts, SemanticStripOuterParens(rows.arena.node_texts[i]));
         ArrayPush(left_children, rows.arena.left_children[i]);
         ArrayPush(right_children, rows.arena.right_children[i]);
+        ArrayPush(call_target_kinds, SemanticCallTargetNone());
         ArrayPush(call_target_names, "");
         i = i + 1;
     }
@@ -104,7 +106,7 @@ func SemanticExpressionGraphFactsFromAstRows(
     }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
         kinds, texts, left_children, right_children,
-        call_target_names
+        call_target_kinds, call_target_names
     );
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         ok, roots, has_roots, arena
@@ -128,6 +130,7 @@ func SemanticExpressionGraphArenaReady(
     if ArrayLength(arena.node_texts) != count ||
         ArrayLength(arena.left_children) != count ||
         ArrayLength(arena.right_children) != count ||
+        ArrayLength(arena.call_target_kinds) != count ||
         ArrayLength(arena.call_target_names) != count {
         return false;
     }
@@ -140,8 +143,17 @@ func SemanticExpressionGraphArenaReady(
             !AstExpressionNodeKindKnown(kind) {
             return false;
         }
+        let call_target_kind: Int = arena.call_target_kinds[i];
         let call_target_name: String = arena.call_target_names[i];
-        if call_target_name != "" && kind != AstExpressionNodeCall() {
+        if call_target_kind == SemanticCallTargetNone() {
+            if call_target_name != "" { return false; }
+        } else if call_target_kind == SemanticCallTargetDirect() ||
+            call_target_kind == SemanticCallTargetNamespace() ||
+            call_target_kind == SemanticCallTargetMember() {
+            if call_target_name == "" || kind != AstExpressionNodeCall() {
+                return false;
+            }
+        } else {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);
@@ -164,6 +176,12 @@ func SemanticExpressionGraphArenaReady(
         }
         if kind == AstExpressionNodeMemberAccess() &&
             arena.node_kinds[right] != AstExpressionNodeLeaf() {
+            return false;
+        }
+        if kind == AstExpressionNodeGenericCallee() &&
+            (!AstExpressionNodeIsCallableCallee(arena.node_kinds[left]) ||
+                arena.node_kinds[right] !=
+                    AstExpressionNodeGenericTypeActual()) {
             return false;
         }
         if kind == AstExpressionNodeArrayElement() &&
@@ -189,233 +207,6 @@ func SemanticExpressionGraphArenaReady(
         i = i + 1;
     }
     return true;
-}
-
-func SemanticExpressionGraphAppendNode(
-    arena: SemanticExpressionGraphArena,
-    kind: Int,
-    text: String,
-    left: Int,
-    right: Int
-) -> SemanticExpressionGraphBuild {
-    let kinds: Array<Int> = arena.node_kinds;
-    let texts: Array<String> = arena.node_texts;
-    let left_children: Array<Int> = arena.left_children;
-    let right_children: Array<Int> = arena.right_children;
-    let call_target_names: Array<String> = arena.call_target_names;
-    let root_id: Int = ArrayLength(kinds);
-    ArrayPush(kinds, kind);
-    ArrayPush(texts, text);
-    ArrayPush(left_children, left);
-    ArrayPush(right_children, right);
-    ArrayPush(call_target_names, "");
-    let next: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, left_children, right_children,
-        call_target_names
-    );
-    return SemanticExpressionGraphBuild(
-        SemanticExpressionGraphArenaReady(next), root_id, next
-    );
-}
-
-func SemanticExpressionGraphInvalidBuild(
-    arena: SemanticExpressionGraphArena
-) -> SemanticExpressionGraphBuild {
-    return SemanticExpressionGraphBuild(false, 0, arena);
-}
-
-func SemanticExpressionGraphBuildParserCompactBridge(
-    arena: SemanticExpressionGraphArena,
-    text: String
-) -> SemanticExpressionGraphBuild {
-    let cursor: Array<Int> = [0];
-    let parsed: ParserExpressionFact = ParseExprFact(text, 0, cursor);
-    if !parsed.ok || cursor[0] != StringLength(text) {
-        return SemanticExpressionGraphInvalidBuild(arena);
-    }
-    let offset: Int = SemanticExpressionGraphArenaNodeCount(arena);
-    let i: Int = 0;
-    while i < AstExpressionArenaNodeCount(parsed.arena) {
-        let kind: Int = parsed.arena.node_kinds[i];
-        let arity: Int = AstExpressionNodeArity(kind);
-        let left: Int = 0;
-        let right: Int = 0;
-        if arity >= 1 { left = offset + parsed.arena.left_children[i]; }
-        if arity == 2 { right = offset + parsed.arena.right_children[i]; }
-        let appended: SemanticExpressionGraphBuild =
-            SemanticExpressionGraphAppendNode(
-                arena, kind,
-                SemanticStripOuterParens(parsed.arena.node_texts[i]),
-                left, right
-            );
-        if !appended.ok { return appended; }
-        arena = appended.arena;
-        i = i + 1;
-    }
-    return SemanticExpressionGraphBuild(
-        true, offset + parsed.root, arena
-    );
-}
-
-func SemanticExpressionGraphBuildTryCompactBridge(
-    arena: SemanticExpressionGraphArena,
-    operand: String
-) -> SemanticExpressionGraphBuild {
-    let child: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(arena, operand);
-    if !child.ok {
-        return child;
-    }
-    return SemanticExpressionGraphAppendNode(
-        child.arena, AstExpressionNodeTry(), Concat("?", operand),
-        child.root_id, 0
-    );
-}
-
-// Transitional producer: operator discovery still consumes compact parser
-// payload text. The resulting graph, not that text scan, is the consumer API.
-func SemanticExpressionGraphBuildCompactBridgeFromText(
-    arena: SemanticExpressionGraphArena,
-    expression: String
-) -> SemanticExpressionGraphBuild {
-    let text: String = SemanticStripOuterParens(expression);
-    if text == "" {
-        return SemanticExpressionGraphInvalidBuild(arena);
-    }
-    let prefix_try: Option<String> = SemanticTryOperand(text);
-    if CharAt(text, 0) == "?" && IsSome(prefix_try) {
-        return SemanticExpressionGraphBuildTryCompactBridge(
-            arena, UnwrapOption(prefix_try)
-        );
-    }
-    let operators: SemanticTopLevelOperatorFacts =
-        SemanticTopLevelOperatorFactsFromExpression(text);
-    let kind: Int = AstExpressionNodeLeaf();
-    let operator_index: Option<Int> = None;
-    let operator_width: Int = 0;
-    if operators.logical_or_index >= 0 {
-        kind = AstExpressionNodeLogicalOr();
-        operator_index = Some(operators.logical_or_index);
-        operator_width = 2;
-    } else if operators.logical_and_index >= 0 {
-        kind = AstExpressionNodeLogicalAnd();
-        operator_index = Some(operators.logical_and_index);
-        operator_width = 2;
-    } else if operators.comparison_index >= 0 {
-        let c0: Int = SourceByteAt(
-            text, StringLength(text), operators.comparison_index
-        );
-        let c1: Int = SourceByteAt(
-            text, StringLength(text), operators.comparison_index + 1
-        );
-        if c0 == SourceByteOf("=") {
-            kind = AstExpressionNodeEquality();
-        } else if c0 == SourceByteOf("!") {
-            kind = AstExpressionNodeInequality();
-        } else if c0 == SourceByteOf("<") && c1 == SourceByteOf("=") {
-            kind = AstExpressionNodeLessEqual();
-        } else if c0 == SourceByteOf(">") && c1 == SourceByteOf("=") {
-            kind = AstExpressionNodeGreaterEqual();
-        } else if c0 == SourceByteOf("<") {
-            kind = AstExpressionNodeLess();
-        } else if c0 == SourceByteOf(">") {
-            kind = AstExpressionNodeGreater();
-        }
-        operator_index = Some(operators.comparison_index);
-        operator_width = operators.comparison_length;
-    } else if operators.additive_index >= 0 {
-        let c: Int = SourceByteAt(
-            text, StringLength(text), operators.additive_index
-        );
-        kind = AstExpressionNodeAdd();
-        if c == SourceByteOf("-") {
-            kind = AstExpressionNodeSubtract();
-        }
-        operator_index = Some(operators.additive_index);
-        operator_width = 1;
-    } else if operators.multiplicative_index >= 0 {
-        let c: Int = SourceByteAt(
-            text, StringLength(text), operators.multiplicative_index
-        );
-        kind = AstExpressionNodeMultiply();
-        if c == SourceByteOf("/") {
-            kind = AstExpressionNodeDivide();
-        } else if c == SourceByteOf("%") {
-            kind = AstExpressionNodeModulo();
-        }
-        operator_index = Some(operators.multiplicative_index);
-        operator_width = 1;
-    }
-    if kind == AstExpressionNodeLeaf() {
-        let postfix_try: Option<String> = SemanticTryOperand(text);
-        if IsSome(postfix_try) {
-            return SemanticExpressionGraphBuildTryCompactBridge(
-                arena, UnwrapOption(postfix_try)
-            );
-        }
-        let parser_bridge: SemanticExpressionGraphBuild =
-            SemanticExpressionGraphBuildParserCompactBridge(arena, text);
-        if parser_bridge.ok { return parser_bridge; }
-        return SemanticExpressionGraphAppendNode(arena, kind, text, 0, 0);
-    }
-    if !IsSome(operator_index) || operator_width <= 0 {
-        return SemanticExpressionGraphInvalidBuild(arena);
-    }
-    let operator_offset: Int = UnwrapOption(operator_index);
-    let lhs: String = Trim(Substring(text, 0, operator_offset));
-    let rhs: String = Trim(Substring(
-        text, operator_offset + operator_width,
-        StringLength(text) - (operator_offset + operator_width)
-    ));
-    if lhs == "" || rhs == "" {
-        return SemanticExpressionGraphInvalidBuild(arena);
-    }
-    let left_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(arena, lhs);
-    if !left_build.ok {
-        return left_build;
-    }
-    let right_build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(left_build.arena, rhs);
-    if !right_build.ok {
-        return right_build;
-    }
-    return SemanticExpressionGraphAppendNode(
-        right_build.arena, kind, text,
-        left_build.root_id, right_build.root_id
-    );
-}
-
-func SemanticExpressionGraphFactsAppendLane(
-    facts: SemanticExpressionGraphFacts,
-    present: Bool,
-    expression: String
-) -> SemanticExpressionGraphFacts {
-    let roots: Array<Int> = facts.roots;
-    let has_roots: Array<Bool> = facts.has_roots;
-    if !facts.ok {
-        ArrayPush(roots, 0);
-        ArrayPush(has_roots, false);
-        return SemanticExpressionGraphFacts(
-            false, roots, has_roots, facts.arena
-        );
-    }
-    if !present {
-        ArrayPush(roots, 0);
-        ArrayPush(has_roots, false);
-        return SemanticExpressionGraphFacts(
-            true, roots, has_roots, facts.arena
-        );
-    }
-    let build: SemanticExpressionGraphBuild =
-        SemanticExpressionGraphBuildCompactBridgeFromText(
-            facts.arena, expression
-        );
-    ArrayPush(roots, build.root_id);
-    ArrayPush(has_roots, build.ok);
-    return SemanticExpressionGraphFacts(
-        build.ok, roots, has_roots, build.arena
-    );
 }
 
 func SemanticExpressionGraphFactsReady(
@@ -522,6 +313,8 @@ func SemanticExpressionGraphFactsEqual(
             left.arena.node_texts[i] != right.arena.node_texts[i] ||
             left.arena.left_children[i] != right.arena.left_children[i] ||
             left.arena.right_children[i] != right.arena.right_children[i] ||
+            left.arena.call_target_kinds[i] !=
+                right.arena.call_target_kinds[i] ||
             left.arena.call_target_names[i] !=
                 right.arena.call_target_names[i] {
             return false;

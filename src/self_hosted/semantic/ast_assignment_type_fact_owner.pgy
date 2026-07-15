@@ -70,9 +70,8 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, constructors
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
-        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, constructors, locals,
-            expression_surfaces, initializer_types
+        ) || !SemanticAstInitializerTypeFactsReadyProjection(
+            artifact, locals, initializer_types
         ) || !SemanticAstIterationTypeFactsMatchArtifact(
             artifact, signatures, constructors, locals, initializer_types,
             statements, expression_surfaces, iteration_types
@@ -166,7 +165,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         assignments.target_index_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(index_root), constructors,
+                        UnwrapOption(index_root), constructors, signatures,
                         names, types, modes, function_names, function_returns,
                         function_params, member_root_names
                     );
@@ -176,7 +175,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 } else {
                     index_type = SemanticExpressionGraphScalarTypeName(
                         expression_surfaces.expression_graph,
-                        UnwrapOption(index_root), names, types,
+                        UnwrapOption(index_root), constructors, names, types,
                         function_names, function_returns
                     );
                 }
@@ -208,7 +207,7 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     SemanticAstExpressionVerdictFromGraph(
                         assignments.value_texts[i],
                         expression_surfaces.expression_graph,
-                        UnwrapOption(value_root), constructors,
+                        UnwrapOption(value_root), constructors, signatures,
                         names, types, modes,
                         function_names, function_returns, function_params,
                         member_root_names

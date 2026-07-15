@@ -1,0 +1,240 @@
+// Capability and diagnostics for concrete scalar graph trees.
+
+import "ast_expression_graph_resolved_call_type_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_scalar_verdict_owner.pgy";
+import "delimited_range_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+import "expr_type_owner.pgy";
+
+func SemanticExpressionGraphConcreteScalarValueOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> Bool {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) { return false; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeLeaf() { return true; }
+    if SemanticExpressionGraphScalarOperatorKind(kind) {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        if !IsSome(left) ||
+            !SemanticExpressionGraphConcreteScalarValueOwned(
+                graph, UnwrapOption(left), constructors, names, types, function_names,
+                function_returns, function_params
+            ) {
+            return false;
+        }
+        if AstExpressionNodeArity(kind) == 1 { return true; }
+        let right: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node_id
+        );
+        return IsSome(right) &&
+            SemanticExpressionGraphConcreteScalarValueOwned(
+                graph, UnwrapOption(right), constructors, names, types, function_names,
+                function_returns, function_params
+            );
+    }
+    if ArrayLength(function_names) != ArrayLength(function_params) ||
+        !IsSome(SemanticExpressionGraphResolvedCallConcreteScalarTypeName(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        )) {
+        return false;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok { return false; }
+    let target_fact: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, node_id, constructors, names, types, function_names
+        );
+    if !target_fact.ok { return false; }
+    let target: Option<Int> = SemanticCallableIndex(
+        function_names, target_fact.name
+    );
+    if !IsSome(target) { return false; }
+    let signature: String = function_params[UnwrapOption(target)];
+    let signature_facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(signature);
+    let signature_count: Int = 0;
+    if signature != "" {
+        signature_count = SemanticDelimitedRangeCount(signature_facts);
+    }
+    if signature_count < target_fact.parameter_offset { return false; }
+    let expected_count: Int = signature_count - target_fact.parameter_offset;
+    let i: Int = target_fact.parameter_offset;
+    while i < signature_count {
+        let expected: String = SemanticDelimitedRangeText(
+            signature_facts, signature, i
+        );
+        if !SemanticResolvedCallConcreteScalarType(expected) { return false; }
+        i = i + 1;
+    }
+    if expected_count != ArrayLength(call.argument_nodes) { return false; }
+    i = 0;
+    while i < ArrayLength(call.argument_nodes) {
+        if !SemanticExpressionGraphConcreteScalarValueOwned(
+            graph, call.argument_nodes[i], constructors, names, types, function_names,
+            function_returns, function_params
+        ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphConcreteScalarValueError(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>,
+    function_params: Array<String>
+) -> String {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "expression_graph"
+        );
+    }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeLeaf() { return ""; }
+    if SemanticExpressionGraphScalarOperatorKind(kind) {
+        let left: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        if !IsSome(left) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "expression_graph"
+            );
+        }
+        let child_error: String =
+            SemanticExpressionGraphConcreteScalarValueError(
+                graph, UnwrapOption(left), constructors, names, types,
+                function_names, function_returns, function_params
+            );
+        if StringLength(child_error) > 0 { return child_error; }
+        if AstExpressionNodeArity(kind) == 2 {
+            let right: Option<Int> = SemanticExpressionGraphRightChild(
+                graph, node_id
+            );
+            if !IsSome(right) {
+                return SemanticError1(
+                    "ast_artifact_invalid", "owner", "expression_graph"
+                );
+            }
+            let right_error: String =
+                SemanticExpressionGraphConcreteScalarValueError(
+                    graph, UnwrapOption(right), constructors, names, types,
+                    function_names, function_returns, function_params
+                );
+            if StringLength(right_error) > 0 { return right_error; }
+        }
+        return SemanticExpressionGraphScalarOperatorError(
+            graph, node_id, constructors, names, types,
+            function_names, function_returns
+        );
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "expression_graph"
+        );
+    }
+    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_text) {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "expression_graph"
+        );
+    }
+    let callee: String = UnwrapOption(callee_text);
+    let target_fact: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            graph, node_id, constructors, names, types, function_names
+        );
+    if !target_fact.ok {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "call_target"
+        );
+    }
+    let target: Option<Int> = SemanticCallableIndex(
+        function_names, target_fact.name
+    );
+    if !IsSome(target) {
+        return SemanticError1("undefined_function", "func", callee);
+    }
+    let signature: String = function_params[UnwrapOption(target)];
+    let signature_facts: SemanticDelimitedRangeFacts =
+        SemanticSignatureRangeFactsFromSource(signature);
+    let signature_count: Int = 0;
+    if signature != "" {
+        signature_count = SemanticDelimitedRangeCount(signature_facts);
+    }
+    if signature_count < target_fact.parameter_offset {
+        return SemanticError1(
+            "ast_artifact_invalid", "owner", "call_signature"
+        );
+    }
+    let expected_count: Int = signature_count - target_fact.parameter_offset;
+    let actual_count: Int = ArrayLength(call.argument_nodes);
+    if expected_count != actual_count {
+        return SemanticError3(
+            "call_arity_mismatch", "func", callee,
+            "expected", ToString(expected_count),
+            "actual", ToString(actual_count)
+        );
+    }
+    let i: Int = 0;
+    while i < actual_count {
+        let expected: String = SemanticDelimitedRangeText(
+            signature_facts, signature, i + target_fact.parameter_offset
+        );
+        let argument: Int = call.argument_nodes[i];
+        let argument_error: String =
+            SemanticExpressionGraphConcreteScalarValueError(
+                graph, argument, constructors, names, types,
+                function_names, function_returns, function_params
+            );
+        if StringLength(argument_error) > 0 { return argument_error; }
+        let actual: String = SemanticExpressionGraphScalarTypeName(
+            graph, argument, constructors, names, types,
+            function_names, function_returns
+        );
+        let argument_text: Option<String> =
+            SemanticExpressionGraphNodeText(graph, argument);
+        let assignable: Bool = expected == actual;
+        if IsSome(argument_text) {
+            assignable = ExpressionAssignableTo(
+                expected, actual, UnwrapOption(argument_text)
+            );
+        }
+        if expected != "Unknown" && actual != "Unknown" && !assignable {
+            return SemanticError3(
+                "call_arg_type_mismatch", "func", callee,
+                "expected", expected, "actual", actual
+            );
+        }
+        i = i + 1;
+    }
+    return "";
+}

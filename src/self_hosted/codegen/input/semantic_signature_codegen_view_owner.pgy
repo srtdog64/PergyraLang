@@ -120,6 +120,19 @@ func CodegenSemanticFunctionParamCountOrDie(
     return UnwrapOption(count);
 }
 
+func CodegenSemanticFunctionGenericCountOrDie(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Int {
+    let count: Option<Int> = SemanticAstFunctionGenericCountAt(
+        facts, signature_index
+    );
+    if !IsSome(count) {
+        Die("semantic signature facts missing generic parameter count");
+    }
+    return UnwrapOption(count);
+}
+
 func CodegenSemanticFunctionParamNodeOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,

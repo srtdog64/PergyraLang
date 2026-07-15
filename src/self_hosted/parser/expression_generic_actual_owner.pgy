@@ -1,0 +1,28 @@
+// Parser-owned explicit generic actual expression graph production.
+
+import "expression_graph_owner.pgy";
+
+func ParserExpressionGenericTypeActual(type_name: String) -> ParserExpressionFact {
+    if type_name == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeGenericTypeActual()];
+    let texts: Array<String> = [type_name];
+    let children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, type_name, 0,
+        AstExpressionArena(kinds, texts, children, children)
+    );
+}
+
+func ParserExpressionGenericCalleeActual(
+    callee: ParserExpressionFact, type_name: String
+) -> ParserExpressionFact {
+    if !callee.ok || !AstExpressionNodeIsCallableCallee(
+        callee.arena.node_kinds[callee.root]
+    ) {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeGenericCallee(), callee.text, callee,
+        ParserExpressionGenericTypeActual(type_name)
+    );
+}

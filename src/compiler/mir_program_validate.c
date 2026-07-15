@@ -121,6 +121,30 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
             }
             return false;
         }
+        if (routine->has_signature && routine->generic_param_count > 0
+            && routine->generic_param_names == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' records generic parameters without name facts",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            return false;
+        }
+        for (size_t j = 0;
+             routine->has_signature && j < routine->generic_param_count; j++) {
+            if (routine->generic_param_names[j] == NULL
+                || routine->generic_param_names[j][0] == '\0') {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' generic parameter[%zu] has no name fact",
+                        routine->name != NULL
+                            ? routine->name
+                            : "(anonymous)",
+                        j);
+                }
+                return false;
+            }
+        }
         for (size_t j = 0;
              routine->has_signature && j < routine->param_count; j++) {
             MIRParamCarriage carriage = routine->param_abi_facts[j].carriage;

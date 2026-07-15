@@ -1,0 +1,13 @@
+schema=pgy.selfhost.gate-results.v1
+sot_authority_edge	PASS	12	registry clean
+sot_authority_adequacy	PASS	18	bounded facts clean
+hard_self_host_contract	PASS	9	hard contract clean
+substitution_velocity	PASS	7	velocity policy clean
+assignment_type_projection	PASS	101	assignment projection equal
+initializer_type_projection	PASS	113	initializer projection equal
+generic_return_projection	PASS	109	explicit generic projection equal
+wrapper_policy_projection	PASS	121	Option Result graph policy equal
+collection_policy_projection	PASS	118	collection mutation policy equal
+aggregate_field_policy_projection	PASS	123	aggregate field policy equal
+self_host_contract_cluster	PASS	250	contract cluster clean
+self_host_parity_cluster	PASS	700	parity cluster clean

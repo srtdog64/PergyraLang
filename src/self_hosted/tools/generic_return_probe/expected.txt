@@ -1,0 +1,4 @@
+generic-call=x type=Int
+generic-call=wrapped type=Option<Int>
+generic-call=first type=Int
+generic-call=explicit type=String

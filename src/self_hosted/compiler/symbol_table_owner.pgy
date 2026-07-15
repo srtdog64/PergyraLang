@@ -175,6 +175,40 @@ func CompilerSymbolCLocalCallName(c_symbol: String) -> String {
 func CompilerSymbolCTypeName(type_name: String) -> String {
     return CompilerSymbolCIdentifier(type_name);
 }
+func CompilerSymbolCMangledTypeName(type_name: String) -> String {
+    let out: String = "";
+    let wrote: Bool = false;
+    let i: Int = 0;
+    while i < StringLength(type_name) {
+        let c: String = CompilerSymbolCharAt(type_name, i);
+        if StringIndexOf(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", c
+        ) >= 0 {
+            out = Concat(out, c);
+            wrote = true;
+        } else if wrote &&
+            CompilerSymbolCharAt(out, StringLength(out) - 1) != "_" {
+            out = Concat(out, "_");
+        }
+        i = i + 1;
+    }
+    if !wrote { return "Type"; }
+    return out;
+}
+func CompilerSymbolCGenericSpecializationName(
+    base_name: String,
+    actual_type_names: Array<String>
+) -> String {
+    let out: String = CompilerSymbolCIdentifier(base_name);
+    let i: Int = 0;
+    while i < ArrayLength(actual_type_names) {
+        out = Concat(out, Concat(
+            "_", CompilerSymbolCMangledTypeName(actual_type_names[i])
+        ));
+        i = i + 1;
+    }
+    return out;
+}
 func CompilerSymbolCFieldName(field_name: String) -> String {
     return CompilerSymbolCIdentifier(field_name);
 }

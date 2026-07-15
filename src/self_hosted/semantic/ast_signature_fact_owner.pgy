@@ -3,6 +3,8 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_generic_parameter_fact_owner.pgy";
+import "ast_signature_type_expression_fact_owner.pgy";
 struct SemanticAstFunctionSignatureFacts {
     ok: Bool;
     diagnostic_code: String;
@@ -14,6 +16,10 @@ struct SemanticAstFunctionSignatureFacts {
     runtime_callables: Array<Bool>;
     names: Array<String>;
     return_types: Array<String>;
+    type_expressions: SemanticAstSignatureTypeExpressionFacts;
+    generic_starts: Array<Int>;
+    generic_counts: Array<Int>;
+    generic_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_node_ids: Array<Int>;
@@ -77,6 +83,9 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
     let runtime_callables: Array<Bool> = [];
     let names: Array<String> = [];
     let return_types: Array<String> = [];
+    let generic_starts: Array<Int> = [];
+    let generic_counts: Array<Int> = [];
+    let generic_names: Array<String> = [];
     let param_starts: Array<Int> = [];
     let param_counts: Array<Int> = [];
     let param_node_ids: Array<Int> = [];
@@ -124,9 +133,11 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
             continue;
         }
 
+        let saw_generic_params: Bool = false;
         let saw_parameters: Bool = false;
         let saw_returns: Bool = false;
         let return_type: String = "";
+        let generic_start: Int = ArrayLength(generic_names);
         let param_start: Int = ArrayLength(param_node_ids);
         let child_index: Int = 0;
         let child: Option<Int> = TypedAstArenaChildAt(
@@ -135,6 +146,22 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         while IsSome(child) && ok {
             let child_id: Int = UnwrapOption(child);
             if TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindGenericParamsTag()
+            ) {
+                if saw_generic_params ||
+                    !SemanticAstGenericParameterRowsFromNode(
+                        artifact.arena, child_id, generic_names
+                    ) {
+                    ok = false;
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "function_signature_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "generic_parameter_rows"
+                    );
+                    continue;
+                }
+                saw_generic_params = true;
+            } else if TypedAstArenaNodeKindIs(
                 artifact.arena, child_id, TypedAstKindParametersTag()
             ) {
                 if saw_parameters {
@@ -274,16 +301,34 @@ func SemanticAstFunctionSignatureFactsFromArtifact(
         ArrayPush(runtime_callables, UnwrapOption(owner).runtime_callable);
         ArrayPush(names, UnwrapOption(name));
         ArrayPush(return_types, return_type);
+        ArrayPush(generic_starts, generic_start);
+        ArrayPush(
+            generic_counts, ArrayLength(generic_names) - generic_start
+        );
         ArrayPush(param_starts, param_start);
         ArrayPush(param_counts, ArrayLength(param_node_ids) - param_start);
         node_id = node_id + 1;
     }
 
+    let type_expressions: SemanticAstSignatureTypeExpressionFacts =
+        SemanticAstSignatureTypeExpressionFactsFromRows(
+            return_types, param_types
+        );
+    if ok && !type_expressions.ok {
+        ok = false;
+        diagnostic_fact = SemanticDiagnosticMessageFact2(
+            "function_signature_invalid",
+            "owner", "SemanticAstSignatureTypeExpressionFacts",
+            "missing_fact", "signature_type_expression"
+        );
+    }
     return SemanticAstFunctionSignatureFacts(
         ok, diagnostic_fact.code,
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count,
         function_node_ids, owner_names, runtime_callables, names, return_types,
+        type_expressions,
+        generic_starts, generic_counts, generic_names,
         param_starts, param_counts, param_node_ids, param_names,
         param_types, param_modes
     );
@@ -352,6 +397,33 @@ func SemanticAstFunctionReturnTypeAt(
         return None;
     }
     return Some(facts.return_types[signature_index]);
+}
+
+func SemanticAstFunctionGenericCountAt(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int
+) -> Option<Int> {
+    if signature_index < 0 ||
+        signature_index >= SemanticAstFunctionSignatureCount(facts) {
+        return None;
+    }
+    return Some(facts.generic_counts[signature_index]);
+}
+
+func SemanticAstFunctionGenericNameAt(
+    facts: SemanticAstFunctionSignatureFacts,
+    signature_index: Int,
+    generic_index: Int
+) -> Option<String> {
+    if signature_index < 0 ||
+        signature_index >= SemanticAstFunctionSignatureCount(facts) ||
+        generic_index < 0 ||
+        generic_index >= facts.generic_counts[signature_index] {
+        return None;
+    }
+    return Some(facts.generic_names[
+        facts.generic_starts[signature_index] + generic_index
+    ]);
 }
 
 func SemanticAstFunctionParamCountAt(

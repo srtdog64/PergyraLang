@@ -1,0 +1,37 @@
+// Member-access shape projected from parser-owned expression graph nodes.
+
+import "ast_expression_graph_fact_owner.pgy";
+
+struct SemanticMemberAccessView {
+    ok: Bool;
+    receiver_node: Int;
+    member_node: Int;
+}
+
+func SemanticMemberAccessViewFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> SemanticMemberAccessView {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    let member: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(kind) || UnwrapOption(kind) !=
+            AstExpressionNodeMemberAccess() ||
+        !IsSome(receiver) || !IsSome(member) {
+        return SemanticMemberAccessView(false, 0, 0);
+    }
+    let member_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, UnwrapOption(member)
+    );
+    if !IsSome(member_kind) || UnwrapOption(member_kind) !=
+        AstExpressionNodeLeaf() {
+        return SemanticMemberAccessView(false, 0, 0);
+    }
+    return SemanticMemberAccessView(
+        true, UnwrapOption(receiver), UnwrapOption(member)
+    );
+}

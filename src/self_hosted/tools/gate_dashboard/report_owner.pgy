@@ -1,0 +1,168 @@
+// Stable JSON projection for declared gate rows and optional run results.
+
+import "../../lib/json_emit.pgy";
+import "result_owner.pgy";
+
+func GateDashboardRunStateAt(
+    results: GateDashboardResults, gate_id: String
+) -> String {
+    let index: Option<Int> = GateDashboardResultIndex(results, gate_id);
+    if !IsSome(index) { return "NOT_RUN"; }
+    return results.run_states[UnwrapOption(index)];
+}
+
+func GateDashboardDurationAt(
+    results: GateDashboardResults, gate_id: String
+) -> String {
+    let index: Option<Int> = GateDashboardResultIndex(results, gate_id);
+    if !IsSome(index) { return "null"; }
+    return ToString(results.duration_ms[UnwrapOption(index)]);
+}
+
+func GateDashboardDetailAt(
+    results: GateDashboardResults, gate_id: String
+) -> String {
+    let index: Option<Int> = GateDashboardResultIndex(results, gate_id);
+    if !IsSome(index) { return ""; }
+    return results.details[UnwrapOption(index)];
+}
+
+func GateDashboardSummaryField(
+    results: GateDashboardResults, wanted: String
+) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(results.run_states) {
+        if results.run_states[i] == wanted { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func GateDashboardHealthy(
+    manifest: CompilerGateDashboardManifest,
+    results: GateDashboardResults
+) -> Bool {
+    let i: Int = 0;
+    while i < CompilerGateDashboardCount(manifest) {
+        if manifest.blocking[i] == 1 &&
+            GateDashboardRunStateAt(results, manifest.ids[i]) != "PASS" {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func GateDashboardOverBudget(
+    manifest: CompilerGateDashboardManifest,
+    results: GateDashboardResults,
+    gate_index: Int
+) -> Bool {
+    let result_index: Option<Int> = GateDashboardResultIndex(
+        results, manifest.ids[gate_index]
+    );
+    if !IsSome(result_index) { return false; }
+    return results.duration_ms[UnwrapOption(result_index)] >
+        manifest.budget_seconds[gate_index] * 1000;
+}
+
+func GateDashboardOverBudgetCount(
+    manifest: CompilerGateDashboardManifest,
+    results: GateDashboardResults
+) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < CompilerGateDashboardCount(manifest) {
+        if GateDashboardOverBudget(manifest, results, i) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func GateDashboardJson(
+    manifest: CompilerGateDashboardManifest,
+    results: GateDashboardResults
+) -> String {
+    if !CompilerGateDashboardManifestReady(manifest) || !results.ok {
+        return GateDashboardErrorJson(
+            "gate_projection_invalid",
+            "gate dashboard projection requires valid owner facts"
+        );
+    }
+    let gates: Array<String> = [];
+    let not_run: Int = 0;
+    let i: Int = 0;
+    while i < CompilerGateDashboardCount(manifest) {
+        let run_state: String = GateDashboardRunStateAt(
+            results, manifest.ids[i]
+        );
+        if run_state == "NOT_RUN" { not_run = not_run + 1; }
+        ArrayPush(gates, JsonEmitObject([
+            JsonEmitFieldString("id", manifest.ids[i]),
+            JsonEmitFieldString("make_target", manifest.make_targets[i]),
+            JsonEmitFieldString("tier", manifest.tiers[i]),
+            JsonEmitFieldNumber(
+                "budget_seconds", ToString(manifest.budget_seconds[i])
+            ),
+            JsonEmitFieldString(
+                "declared_state", manifest.declared_states[i]
+            ),
+            JsonEmitFieldBool("blocking", manifest.blocking[i] == 1),
+            JsonEmitFieldString("owner_fact", manifest.owner_facts[i]),
+            JsonEmitFieldString("run_state", run_state),
+            JsonEmitFieldRaw(
+                "duration_ms",
+                GateDashboardDurationAt(results, manifest.ids[i])
+            ),
+            JsonEmitFieldBool(
+                "over_budget", GateDashboardOverBudget(manifest, results, i)
+            ),
+            JsonEmitFieldString(
+                "detail", GateDashboardDetailAt(results, manifest.ids[i])
+            )
+        ]));
+        i = i + 1;
+    }
+    let summary: String = JsonEmitObject([
+        JsonEmitFieldNumber(
+            "total", ToString(CompilerGateDashboardCount(manifest))
+        ),
+        JsonEmitFieldNumber(
+            "passed", ToString(GateDashboardSummaryField(results, "PASS"))
+        ),
+        JsonEmitFieldNumber(
+            "failed", ToString(GateDashboardSummaryField(results, "FAIL"))
+        ),
+        JsonEmitFieldNumber(
+            "skipped", ToString(GateDashboardSummaryField(results, "SKIP"))
+        ),
+        JsonEmitFieldNumber("not_run", ToString(not_run)),
+        JsonEmitFieldNumber(
+            "over_budget",
+            ToString(GateDashboardOverBudgetCount(manifest, results))
+        )
+    ]);
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerGateDashboardSchema()),
+        JsonEmitFieldString("result_schema", CompilerGateResultSchema()),
+        JsonEmitFieldBool(
+            "healthy", GateDashboardHealthy(manifest, results)
+        ),
+        JsonEmitFieldRaw("summary", summary),
+        JsonEmitFieldRaw("gates", JsonEmitArray(gates))
+    ]);
+}
+
+func GateDashboardErrorJson(
+    code: String, message: String
+) -> String {
+    return JsonEmitObject([
+        JsonEmitFieldString("schema", CompilerGateDashboardSchema()),
+        JsonEmitFieldBool("healthy", false),
+        JsonEmitFieldString("diagnostic_code", code),
+        JsonEmitFieldString("diagnostic_message", message)
+    ]);
+}

@@ -1,0 +1,23 @@
+struct Pair {
+    left: Int;
+    right: Long;
+}
+
+func Identity<T>(value: T) -> T {
+    return value;
+}
+
+func Build(base: Int) -> Pair {
+    return Pair { left: base + 1, right: -2 };
+}
+
+func Main() -> Void {
+    let pair: Pair = Pair { left: 1 + 2, right: 3 };
+    let generic_pair: Pair = Pair {
+        left: Identity<Int>(7),
+        right: 8
+    };
+    let wrapped: Option<Pair> = Some(Pair { left: 4, right: -5 });
+    let built: Pair = Build(pair.left);
+    Log(ToString(built.left + generic_pair.left));
+}

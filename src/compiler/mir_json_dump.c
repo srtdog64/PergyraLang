@@ -378,7 +378,14 @@ mir_json_emit_routine_signature(FILE *out, const MIRRoutine *routine)
 {
     if (!mir_routine_has_signature(routine))
         return;
-    fputs(",\"params\":[", out);
+    fputs(",\"generics\":[", out);
+    for (size_t g = 0; g < mir_routine_generic_param_count(routine); g++) {
+        if (g > 0)
+            fputc(',', out);
+        mir_json_emit_str_or_null(out,
+            mir_routine_generic_param_name(routine, g));
+    }
+    fputs("],\"params\":[", out);
     for (size_t p = 0; p < mir_routine_param_count(routine); p++) {
         FuncParam *fp = mir_routine_param(routine, p);
         if (p > 0)

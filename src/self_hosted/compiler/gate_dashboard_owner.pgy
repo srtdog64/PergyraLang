@@ -1,0 +1,165 @@
+// Canonical operational rows for the hard self-host gate dashboard.
+//
+// Semantic fact ownership remains in sot_owner_spine_registry.md. This owner
+// only owns which executable gates represent the active self-host frontier.
+
+struct CompilerGateDashboardManifest {
+    ids: Array<String>;
+    make_targets: Array<String>;
+    tiers: Array<String>;
+    budget_seconds: Array<Int>;
+    declared_states: Array<String>;
+    blocking: Array<Int>;
+    owner_facts: Array<String>;
+}
+
+func CompilerGateDashboardSchema() -> String {
+    return "pgy.selfhost.gate-dashboard.v1";
+}
+
+func CompilerGateResultSchema() -> String {
+    return "pgy.selfhost.gate-results.v1";
+}
+
+func CompilerGateDashboardManifestCurrent() -> CompilerGateDashboardManifest {
+    return CompilerGateDashboardManifest(
+        [
+            "sot_authority_edge",
+            "sot_authority_adequacy",
+            "hard_self_host_contract",
+            "substitution_velocity",
+            "assignment_type_projection",
+            "initializer_type_projection",
+            "generic_return_projection",
+            "wrapper_policy_projection",
+            "collection_policy_projection",
+            "aggregate_field_policy_projection",
+            "self_host_contract_cluster",
+            "self_host_parity_cluster"
+        ],
+        [
+            "sot-authority-edge-test-smoke",
+            "sot-authority-adequacy-test-smoke",
+            "self-host-hard-contract-test-smoke",
+            "self-host-substitution-velocity-test-smoke",
+            "self-host-codegen-assignment-projection-parity-test-smoke",
+            "self-host-initializer-projection-parity-test-smoke",
+            "self-host-generic-return-parity-test-smoke",
+            "self-host-wrapper-policy-parity-test-smoke",
+            "self-host-collection-policy-parity-test-smoke",
+            "self-host-aggregate-field-policy-parity-test-smoke",
+            "self-host-preparation-contract-test-smoke",
+            "self-host-preparation-parity-test-smoke"
+        ],
+        [
+            "static", "static", "static", "static",
+            "focused", "focused", "focused", "focused", "focused",
+            "focused",
+            "integration", "integration"
+        ],
+        [60, 60, 60, 60, 300, 300, 300, 300, 300, 300, 1800, 1800],
+        [
+            "LANDED", "LANDED", "LANDED", "LANDED",
+            "LANDED", "LANDED", "LANDED", "LANDED", "LANDED", "LANDED",
+            "PARTIAL", "PARTIAL"
+        ],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [
+            "sot.registry.authority_edges",
+            "selfhost.typed_expression_adequacy",
+            "selfhost.hard_substitution_contract",
+            "selfhost.substitution_velocity",
+            "selfhost.assignment_type_verdict",
+            "selfhost.initializer_type_verdict",
+            "selfhost.expression_surface.explicit_generic_signature",
+            "selfhost.expression_surface.wrapper_policy",
+            "selfhost.expression_surface.collection_mutation_policy",
+            "selfhost.expression_surface.aggregate_field_policy",
+            "selfhost.contract_cluster",
+            "selfhost.parity_cluster"
+        ]
+    );
+}
+
+func CompilerGateDashboardCount(
+    manifest: CompilerGateDashboardManifest
+) -> Int {
+    return ArrayLength(manifest.ids);
+}
+
+func CompilerGateDashboardTierKnown(tier: String) -> Bool {
+    return tier == "static" || tier == "focused" || tier == "integration";
+}
+
+func CompilerGateDashboardDeclaredStateKnown(state: String) -> Bool {
+    return state == "LANDED" || state == "PARTIAL" || state == "NEXT";
+}
+
+func CompilerGateDashboardManifestReady(
+    manifest: CompilerGateDashboardManifest
+) -> Bool {
+    let count: Int = CompilerGateDashboardCount(manifest);
+    if count == 0 || ArrayLength(manifest.make_targets) != count ||
+        ArrayLength(manifest.tiers) != count ||
+        ArrayLength(manifest.budget_seconds) != count ||
+        ArrayLength(manifest.declared_states) != count ||
+        ArrayLength(manifest.blocking) != count ||
+        ArrayLength(manifest.owner_facts) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if manifest.ids[i] == "" || manifest.make_targets[i] == "" ||
+            !CompilerGateDashboardTierKnown(manifest.tiers[i]) ||
+            manifest.budget_seconds[i] <= 0 ||
+            !CompilerGateDashboardDeclaredStateKnown(
+                manifest.declared_states[i]
+            ) || (manifest.blocking[i] != 0 && manifest.blocking[i] != 1) ||
+            manifest.owner_facts[i] == "" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if manifest.ids[prior] == manifest.ids[i] ||
+                manifest.make_targets[prior] == manifest.make_targets[i] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func CompilerGateDashboardIndex(
+    manifest: CompilerGateDashboardManifest,
+    gate_id: String
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < CompilerGateDashboardCount(manifest) {
+        if manifest.ids[i] == gate_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func CompilerGateDashboardManifestText(
+    manifest: CompilerGateDashboardManifest
+) -> String {
+    if !CompilerGateDashboardManifestReady(manifest) { return ""; }
+    let rows: Array<String> = [
+        Concat("schema=", CompilerGateDashboardSchema())
+    ];
+    let i: Int = 0;
+    while i < CompilerGateDashboardCount(manifest) {
+        let fields: Array<String> = [
+            manifest.ids[i], manifest.make_targets[i], manifest.tiers[i],
+            ToString(manifest.budget_seconds[i]),
+            manifest.declared_states[i], ToString(manifest.blocking[i]),
+            manifest.owner_facts[i]
+        ];
+        ArrayPush(rows, StringJoin(fields, "\t"));
+        i = i + 1;
+    }
+    return StringJoin(rows, "\n");
+}

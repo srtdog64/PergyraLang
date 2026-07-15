@@ -1,6 +1,7 @@
 // pgy.mir.v1 JSON projection from verified self-host MIR fact rows.
 
 import "program_verify_owner.pgy";
+import "expression_graph_kind_name_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirOptionalString(value: String) -> Option<String> {
@@ -191,6 +192,13 @@ func SelfMirJsonRoutine(
     routine_index: Int
 ) -> String {
     let rows: SelfMirRoutineRows = facts.routines;
+    let generics: Array<String> = [];
+    let generic_i: Int = 0;
+    while generic_i < rows.generic_counts[routine_index] {
+        let generic_row: Int = rows.generic_starts[routine_index] + generic_i;
+        ArrayPush(generics, JsonStringLiteral(rows.generic_names[generic_row]));
+        generic_i = generic_i + 1;
+    }
     let params: Array<String> = [];
     let param_i: Int = 0;
     while param_i < rows.param_counts[routine_index] {
@@ -242,6 +250,7 @@ func SelfMirJsonRoutine(
     if rows.owners[routine_index] != "" {
         ArrayPush(fields3, JsonEmitFieldString("owner", rows.owners[routine_index]));
     }
+    ArrayPush(fields3, JsonEmitFieldRaw("generics", JsonEmitArray(generics)));
     ArrayPush(fields3, JsonEmitFieldRaw("params", JsonEmitArray(params)));
     ArrayPush(fields3, JsonEmitFieldString("return", rows.return_types[routine_index]));
     ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));

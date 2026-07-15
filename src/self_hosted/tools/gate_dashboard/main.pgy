@@ -1,0 +1,53 @@
+// Pergyra-owned hard self-host gate dashboard.
+
+import "report_owner.pgy";
+
+func Main() -> Void with caps io_read, env {
+    let manifest: CompilerGateDashboardManifest =
+        CompilerGateDashboardManifestCurrent();
+    let args: Array<String> = Args();
+    if !CompilerGateDashboardManifestReady(manifest) {
+        Log(GateDashboardErrorJson(
+            "gate_manifest_invalid", "gate dashboard manifest is invalid"
+        ));
+        Exit(1);
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--manifest" {
+        if ArrayLength(args) != 1 {
+            Log(GateDashboardErrorJson(
+                "gate_cli_invalid", "gate dashboard --manifest takes no value"
+            ));
+            Exit(1);
+            return;
+        }
+        Log(CompilerGateDashboardManifestText(manifest));
+        return;
+    }
+    let results: GateDashboardResults = GateDashboardResultsEmpty();
+    if ArrayLength(args) > 0 {
+        if ArrayLength(args) != 2 || args[0] != "--results" {
+            Log(GateDashboardErrorJson(
+                "gate_cli_invalid",
+                "usage: gate_dashboard [--manifest|--results PATH]"
+            ));
+            Exit(1);
+            return;
+        }
+        results = GateDashboardResultsFromText(
+            manifest, ReadFile(args[1])
+        );
+    }
+    if !results.ok {
+        Log(GateDashboardErrorJson(
+            results.diagnostic_code, results.diagnostic_message
+        ));
+        Exit(1);
+        return;
+    }
+    Log(GateDashboardJson(manifest, results));
+    if GateDashboardSummaryField(results, "FAIL") > 0 ||
+        GateDashboardOverBudgetCount(manifest, results) > 0 {
+        Exit(1);
+    }
+}

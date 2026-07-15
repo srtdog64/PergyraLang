@@ -1,0 +1,49 @@
+// Receiver types projected from expression handles and nominal field facts.
+
+import "ast_expression_graph_member_view_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "ast_type_name_canonical_owner.pgy";
+import "env_owner.pgy";
+
+func SemanticExpressionGraphReceiverTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, node_id
+        );
+        if !IsSome(name) { return None; }
+        let type_name: String = EnvLookup(names, types, UnwrapOption(name));
+        if type_name == "" { return None; }
+        return Some(type_name);
+    }
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
+        return None;
+    }
+    let member: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !member.ok || member.receiver_node < 0 ||
+        member.receiver_node >= node_id {
+        return None;
+    }
+    let receiver_type: Option<String> =
+        SemanticExpressionGraphReceiverTypeName(
+            graph, member.receiver_node, constructors, names, types
+        );
+    let field_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, member.member_node
+    );
+    if !IsSome(receiver_type) || !IsSome(field_name) { return None; }
+    let receiver_fact: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom(UnwrapOption(receiver_type));
+    return SemanticAstNominalFieldType(
+        constructors, receiver_fact.nominal_base_name,
+        UnwrapOption(field_name)
+    );
+}

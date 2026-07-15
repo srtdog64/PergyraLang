@@ -16,6 +16,8 @@ func SemanticDiagnosticCodes() -> Array<String> {
         "value_param_collection_mutation",
         "undefined_function",
         "call_arity_mismatch",
+        "generic_argument_count_mismatch",
+        "generic_argument_type_invalid",
         "let_type_mismatch",
         "return_type_mismatch",
         "condition_not_bool",
@@ -82,6 +84,10 @@ func SemanticDiagnosticOracleCode(code: String) -> String {
     }
     if code == "call_arity_mismatch" {
         return "PGY_SEM_BUILTIN_ARGS_INVALID";
+    }
+    if code == "generic_argument_count_mismatch" ||
+        code == "generic_argument_type_invalid" {
+        return "PGY_SEM_INFER_GENERIC";
     }
     if code == "let_type_mismatch" {
         return "PGY_SEM_TYPE_MISMATCH";

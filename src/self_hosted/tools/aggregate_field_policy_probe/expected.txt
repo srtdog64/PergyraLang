@@ -1,0 +1,4 @@
+aggregate-field=graph
+leaf-type-drift=reject
+child-fact-missing=reject
+generic-leaf-type-drift=reject

@@ -29,8 +29,10 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
         return false;
     }
 
+    let saw_generic_params: Bool = false;
     let saw_parameters: Bool = false;
     let saw_returns: Bool = false;
+    let generic_count: Int = 0;
     let parameter_count: Int = 0;
     let child_index: Int = 0;
     let child: Option<Int> = TypedAstArenaChildAt(
@@ -39,6 +41,31 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
     while IsSome(child) {
         let child_id: Int = UnwrapOption(child);
         if TypedAstArenaNodeKindIs(
+            artifact.arena, child_id, TypedAstKindGenericParamsTag()
+        ) {
+            if saw_generic_params {
+                return false;
+            }
+            let generic_names: Array<String> = [];
+            if !SemanticAstGenericParameterRowsFromNode(
+                artifact.arena, child_id, generic_names
+            ) || ArrayLength(generic_names) !=
+                facts.generic_counts[signature_index] {
+                return false;
+            }
+            let generic_index: Int = 0;
+            while generic_index < ArrayLength(generic_names) {
+                let flat_generic: Int =
+                    facts.generic_starts[signature_index] + generic_index;
+                if facts.generic_names[flat_generic] !=
+                    generic_names[generic_index] {
+                    return false;
+                }
+                generic_index = generic_index + 1;
+            }
+            generic_count = ArrayLength(generic_names);
+            saw_generic_params = true;
+        } else if TypedAstArenaNodeKindIs(
             artifact.arena, child_id, TypedAstKindParametersTag()
         ) {
             if saw_parameters {
@@ -114,6 +141,7 @@ func SemanticAstFunctionSignatureRowMatchesArtifact(
         );
     }
     return saw_parameters && saw_returns &&
+        generic_count == facts.generic_counts[signature_index] &&
         parameter_count == facts.param_counts[signature_index];
 }
 
@@ -122,6 +150,7 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
     facts: SemanticAstFunctionSignatureFacts
 ) -> Bool {
     let n: Int = SemanticAstFunctionSignatureCount(facts);
+    let gn: Int = ArrayLength(facts.generic_names);
     let pn: Int = ArrayLength(facts.param_node_ids);
     if !AstTreeArtifactReady(artifact) || !facts.ok ||
         facts.artifact_node_count != artifact.count ||
@@ -129,6 +158,11 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         ArrayLength(facts.runtime_callables) != n ||
         ArrayLength(facts.names) != n ||
         ArrayLength(facts.return_types) != n ||
+        !SemanticAstSignatureTypeExpressionFactsMatchRows(
+            facts.type_expressions, facts.return_types, facts.param_types
+        ) ||
+        ArrayLength(facts.generic_starts) != n ||
+        ArrayLength(facts.generic_counts) != n ||
         ArrayLength(facts.param_starts) != n ||
         ArrayLength(facts.param_counts) != n ||
         ArrayLength(facts.param_names) != pn ||
@@ -137,9 +171,13 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
         return false;
     }
     let i: Int = 0;
+    let next_generic_start: Int = 0;
     let next_param_start: Int = 0;
     while i < n {
-        if facts.param_starts[i] != next_param_start ||
+        if facts.generic_starts[i] != next_generic_start ||
+            facts.generic_counts[i] < 0 ||
+            facts.generic_starts[i] + facts.generic_counts[i] > gn ||
+            facts.param_starts[i] != next_param_start ||
             facts.param_counts[i] < 0 ||
             facts.param_starts[i] + facts.param_counts[i] > pn ||
             (i > 0 && facts.function_node_ids[i] <= facts.function_node_ids[i - 1]) ||
@@ -148,10 +186,11 @@ func SemanticAstFunctionSignatureFactsMatchArtifact(
             ) {
             return false;
         }
+        next_generic_start = next_generic_start + facts.generic_counts[i];
         next_param_start = next_param_start + facts.param_counts[i];
         i = i + 1;
     }
-    if next_param_start != pn {
+    if next_generic_start != gn || next_param_start != pn {
         return false;
     }
     let function_count: Int = 0;

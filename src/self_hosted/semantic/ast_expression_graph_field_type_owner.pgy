@@ -1,0 +1,67 @@
+// Aggregate field value typing and assignability over expression graph facts.
+
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
+import "wrapper_type_owner.pgy";
+
+func SemanticExpressionGraphFieldValueTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let scalar: String = SemanticExpressionGraphScalarTypeName(
+        graph, node_id, constructors, names, types,
+        function_names, function_returns
+    );
+    if scalar != "" && scalar != "Unknown" {
+        return Some(scalar);
+    }
+    return SemanticExpressionGraphIntrinsicTypeName(
+        graph, node_id, function_names, function_returns
+    );
+}
+
+func SemanticExpressionGraphIntLiteral(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    let text: Option<String> = SemanticExpressionGraphNodeText(graph, node_id);
+    if !IsSome(kind) || !IsSome(text) { return false; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        return IsIntLiteral(UnwrapOption(text));
+    }
+    if UnwrapOption(kind) != AstExpressionNodeNegate() { return false; }
+    let child: Option<Int> = SemanticExpressionGraphLeftChild(graph, node_id);
+    if !IsSome(child) { return false; }
+    let child_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, UnwrapOption(child)
+    );
+    let child_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, UnwrapOption(child)
+    );
+    return IsSome(child_kind) && IsSome(child_text) &&
+        UnwrapOption(child_kind) == AstExpressionNodeLeaf() &&
+        IsIntLiteral(UnwrapOption(child_text));
+}
+
+func SemanticExpressionGraphFieldValueAssignableTo(
+    expected: String,
+    actual: String,
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Bool {
+    if expected == actual { return true; }
+    if IsOptionType(expected) && actual == "Option<Unknown>" { return true; }
+    if IsResultType(expected) && actual == "Result<Unknown>" { return true; }
+    return expected == "Long" && actual == "Int" &&
+        SemanticExpressionGraphIntLiteral(graph, node_id);
+}
+
+func SemanticExpressionGraphFieldTypeContractReady() -> Bool {
+    return SemanticWrapperTypePolicyContractReady();
+}

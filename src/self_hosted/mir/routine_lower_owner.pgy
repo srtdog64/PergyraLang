@@ -5,6 +5,7 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "routine_iteration_owner.pgy";
+import "routine_let_owner.pgy";
 import "routine_statement_owner.pgy";
 struct SelfMirRoutineState {
     input: SelfMirRoutineInput;
@@ -39,60 +40,8 @@ func SelfMirLowerBlockFromArtifact(
         }
         let kind: Int = UnwrapOption(kind_opt);
         if kind == TypedAstKindLetStmtTag() {
-            let local_index_opt: Option<Int> =
-                SemanticAstLocalBindingIndexForNode(
-                    state.input.analysis.local_bindings, node_id
-                );
-            if !IsSome(local_index_opt) {
-                return SelfMirRoutineState(
-                    state.input, SelfMirRoutineBuildError(
-                        build, "MIR let is missing semantic local facts"
-                    )
-                );
-            }
-            let local_index: Int = UnwrapOption(local_index_opt);
-            if state.input.analysis.local_bindings.has_declared_types[local_index] != 1 {
-                return SelfMirRoutineState(
-                    state.input, SelfMirRoutineBuildError(
-                        build, "bounded MIR producer requires a local type fact"
-                    )
-                );
-            }
-            let local_name: String = state.input.analysis.local_bindings.names[local_index];
-            let local_type: String =
-                state.input.analysis.local_bindings.declared_type_names[local_index];
-            let expression: String =
-                state.input.analysis.local_bindings.initializer_texts[local_index];
-            let initializer_uses: Array<String> =
-                SelfMirExpressionUses(build, expression);
-            build = SelfMirRoutineAddLocal(build, local_name, local_type, 1);
-            let added_local_opt: Option<Int> =
-                SelfMirRoutineLocalIndex(build, local_name);
-            if !IsSome(added_local_opt) {
-                return SelfMirRoutineState(
-                    state.input, SelfMirRoutineBuildError(
-                        build, "MIR local registration did not produce an identity"
-                    )
-                );
-            }
-            let local_version: Int = build.local_versions[
-                UnwrapOption(added_local_opt)
-            ];
-            let arg1: String = "";
-            if SelfMirTypeIsNominal(state.input, local_type) {
-                arg1 = local_type;
-            }
-            build = SelfMirRoutineAddInstruction(
-                build, "def", "ssa-def",
-                SelfMirSsaName(local_name, local_version),
-                local_name, arg1, expression, local_type,
-                "AST_LET_DECL", initializer_uses
-            );
-            build = SelfMirRoutineAttachLastExpressionGraph(
-                build, SemanticAstExpressionGraphForNode(
-                    state.input.analysis.expression_surfaces,
-                    node_id, AstExpressionLaneValue()
-                )
+            build = SelfMirLowerLetFromArtifact(
+                state.input, build, node_id
             );
         } else if kind == TypedAstKindAssignStmtTag() {
             let assignment_index_opt: Option<Int> =
@@ -532,7 +481,7 @@ func SelfMirLowerBlockFromArtifact(
                 if !iteration.is_foreach {
                     build = SelfMirRoutineAttachLastExpressionGraph(
                         build, SemanticAstExpressionGraphForNode(
-                            state.input.analysis.expression_surfaces,
+                        state.input.analysis.expression_surfaces,
                             node_id, AstExpressionLaneAuxiliary()
                         )
                     );

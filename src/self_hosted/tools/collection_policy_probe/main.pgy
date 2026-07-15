@@ -1,0 +1,139 @@
+// Executable proof for owner-directed collection mutation policy.
+
+import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../semantic/ast_expression_graph_collection_mutation_owner.pgy";
+import "../../parser/program_parse_owner.pgy";
+
+func CollectionPolicyProbeBundle(
+    source_path: String
+) -> SemanticAstBodyTypeBundle {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    return SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+}
+
+func CollectionPolicyProbeRejected(
+    source_path: String,
+    expected_code: String
+) -> Bool {
+    let bundle: SemanticAstBodyTypeBundle = CollectionPolicyProbeBundle(
+        source_path
+    );
+    let i: Int = 0;
+    while i < ArrayLength(bundle.statement_types.node_ids) {
+        if bundle.statement_types.verified[i] != 1 &&
+            bundle.statement_types.diagnostic_codes[i] == expected_code {
+            Log(expected_code);
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CollectionPolicyProbeGraphFacts(
+) -> SemanticExpressionGraphFacts {
+    let cursor: Array<Int> = [0];
+    let parsed: ParserExpressionFact = ParseExprFact(
+        "ArrayPush(xs, 1)", 0, cursor
+    );
+    let rows: AstExpressionGraphRows = AstExpressionGraphRows(
+        parsed.ok, [TypedAstKindBareCallStmtTag()],
+        [AstExpressionLaneAtom()], [parsed.root], parsed.arena
+    );
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(rows, [0], 1);
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCall() {
+            graph.arena.call_target_kinds[i] = SemanticCallTargetDirect();
+            graph.arena.call_target_names[i] = "ArrayPush";
+        }
+        i = i + 1;
+    }
+    return graph;
+}
+
+func CollectionPolicyProbeGraphOwned() -> Bool {
+    let graph: SemanticExpressionGraphFacts =
+        CollectionPolicyProbeGraphFacts();
+    if !graph.ok || ArrayLength(graph.roots) != 1 ||
+        !graph.has_roots[0] {
+        return false;
+    }
+    let root_id: Int = graph.roots[0];
+    let rejected: SemanticExpressionGraphCollectionMutationFact =
+        SemanticExpressionGraphCollectionMutationFactFromGraph(
+            graph, root_id, ["xs"], ["Array<Int>"], ["default_param"]
+        );
+    let admitted: SemanticExpressionGraphCollectionMutationFact =
+        SemanticExpressionGraphCollectionMutationFactFromGraph(
+            graph, root_id, ["xs"], ["Array<Int>"], ["inout_param"]
+        );
+    return rejected.applies && !rejected.ok &&
+        rejected.diagnostic_code == "value_param_collection_mutation" &&
+        admitted.applies && admitted.ok;
+}
+
+func CollectionPolicyProbeRejectsTargetDrift() -> Bool {
+    let graph: SemanticExpressionGraphFacts =
+        CollectionPolicyProbeGraphFacts();
+    if !graph.ok || !graph.has_roots[0] { return false; }
+    let call_node: Int = -1;
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCall() {
+            call_node = i;
+            break;
+        }
+        i = i + 1;
+    }
+    if call_node < 0 { return false; }
+    graph.arena.call_target_names[call_node] = "Log";
+    let fact: SemanticExpressionGraphCollectionMutationFact =
+        SemanticExpressionGraphCollectionMutationFactFromGraph(
+            graph, graph.roots[0], ["xs"], ["Array<Int>"],
+            ["default_param"]
+        );
+    return fact.applies && !fact.ok &&
+        fact.diagnostic_code == "ast_artifact_invalid";
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--bad-value-param" {
+        if CollectionPolicyProbeRejected(
+            "src/self_hosted/tools/collection_policy_probe/bad_value_param.pgy",
+            "value_param_collection_mutation"
+        ) {
+            Exit(1);
+        }
+        Log("value parameter collection mutation was accepted");
+        Exit(2);
+        return;
+    }
+
+    let valid: SemanticAstBodyTypeBundle = CollectionPolicyProbeBundle(
+        "src/self_hosted/tools/collection_policy_probe/valid.pgy"
+    );
+    if !valid.verdict.ok {
+        Log(valid.verdict.diagnostic_code);
+        Log(valid.verdict.diagnostic_message);
+        Exit(1);
+        return;
+    }
+    if !CollectionPolicyProbeGraphOwned() {
+        Log("call-policy=unowned");
+        Exit(1);
+        return;
+    }
+    if !CollectionPolicyProbeRejectsTargetDrift() {
+        Log("target-drift=accepted");
+        Exit(1);
+        return;
+    }
+    Log("statement-policy=owner");
+    Log("call-policy=graph");
+    Log("target-drift=reject");
+}

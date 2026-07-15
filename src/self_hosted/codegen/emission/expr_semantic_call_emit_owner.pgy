@@ -3,41 +3,8 @@
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "expr_rewrite.pgy";
-
-struct SemanticMemberAccessView {
-    ok: Bool;
-    receiver_node: Int;
-    member_node: Int;
-}
-
-func SemanticMemberAccessViewFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int
-) -> SemanticMemberAccessView {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
-    let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
-        graph, node_id
-    );
-    let member: Option<Int> = SemanticExpressionGraphRightChild(
-        graph, node_id
-    );
-    if !IsSome(kind) || UnwrapOption(kind) !=
-            AstExpressionNodeMemberAccess() ||
-        !IsSome(receiver) || !IsSome(member) {
-        return SemanticMemberAccessView(false, 0, 0);
-    }
-    let member_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, UnwrapOption(member)
-    );
-    if !IsSome(member_kind) || UnwrapOption(member_kind) !=
-        AstExpressionNodeLeaf() {
-        return SemanticMemberAccessView(false, 0, 0);
-    }
-    return SemanticMemberAccessView(
-        true, UnwrapOption(receiver), UnwrapOption(member)
-    );
-}
 
 func RewriteSemanticCallArgument(
     graph: SemanticExpressionGraphFacts,
@@ -275,28 +242,11 @@ func RewriteSemanticMemberCall(
         if LookupKindType(env, call_symbol, "f") == "" {
             Die("semantic qualified-call function fact is missing");
         }
-    } else {
-        if UnwrapOption(target_kind) != SemanticCallTargetNone() {
-            Die("semantic member-call target kind is unsupported");
+    } else if UnwrapOption(target_kind) == SemanticCallTargetMember() {
+        if UnwrapOption(target_name) == "" {
+            Die("semantic member-call target fact is missing");
         }
-        let member_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, member.member_node
-        );
-        if !IsSome(member_text) ||
-            !IsIdentifier(UnwrapOption(member_text)) {
-            Die("semantic member-call edge fact is missing");
-        }
-        let method_name: String = UnwrapOption(member_text);
-        let receiver_type: Option<String> =
-            SemanticMemberReceiverTypeFromGraph(
-                graph, member.receiver_node, env
-            );
-        if !IsSome(receiver_type) {
-            Die("semantic member-call receiver type fact is missing");
-        }
-        call_symbol = CompilerSymbolCQualifiedName(
-            UnwrapOption(receiver_type), method_name
-        );
+        call_symbol = CompilerSymbolCIdentifier(UnwrapOption(target_name));
         if LookupKindType(env, call_symbol, "f") == "" {
             Die("semantic member-call method fact is missing");
         }
@@ -304,6 +254,8 @@ func RewriteSemanticMemberCall(
         prefix_argument = RewriteExprFromSemanticGraph(
             graph, member.receiver_node, env
         );
+    } else {
+        Die("semantic member-call target fact is missing");
     }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");
@@ -325,19 +277,29 @@ func RewriteSemanticDirectCall(
     if !view.ok {
         Die("semantic direct-call spine is missing or malformed");
     }
-    let callee_text: Option<String> = SemanticExpressionGraphNodeText(
-        graph, view.callee_node
+    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+        graph, view.call_node
     );
-    if !IsSome(callee_text) || !IsIdentifier(UnwrapOption(callee_text)) {
-        Die("semantic direct-call callee is not an identifier");
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, view.call_node
+    );
+    if !IsSome(target_kind) || !IsSome(target_name) ||
+        UnwrapOption(target_kind) != SemanticCallTargetDirect() ||
+        UnwrapOption(target_name) == "" {
+        Die("semantic direct-call target fact is missing");
     }
-    let source_name: String = UnwrapOption(callee_text);
+    let source_name: String = UnwrapOption(target_name);
     if LookupKindType(env, source_name, "s") == "struct" {
         return RewriteSemanticStructCall(graph, view, source_name, env);
     }
     let call_symbol: String = source_name;
     let alias: String = LookupKindType(env, source_name, "call");
     if alias != "" { call_symbol = alias; }
+    if ArrayLength(view.generic_actual_type_names) > 0 {
+        call_symbol = CompilerSymbolCGenericSpecializationName(
+            call_symbol, view.generic_actual_type_names
+        );
+    }
     let modes: String = LookupKindType(env, call_symbol, "pm");
     let param_types: String = LookupKindType(env, call_symbol, "pt");
     if source_name == "Some" {

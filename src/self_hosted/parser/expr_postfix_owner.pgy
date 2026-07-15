@@ -2,6 +2,8 @@
 
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
+import "expression_generic_actual_owner.pgy";
+import "type_name_owner.pgy";
 
 func ParserExpressionCallableCallee(
     fact: ParserExpressionFact
@@ -12,7 +14,9 @@ func ParserExpressionCallableCallee(
         return false;
     }
     if fact.arena.node_kinds[fact.root] ==
-        AstExpressionNodeMemberAccess() {
+            AstExpressionNodeMemberAccess() ||
+        fact.arena.node_kinds[fact.root] ==
+            AstExpressionNodeGenericCallee() {
         return true;
     }
     if fact.text == "" || !IsAlpha(ParserCharAt(fact.text, 0)) {
@@ -36,14 +40,13 @@ func ApplyPostfixFact(
     let i: Int = after_base;
 
     // Postfix loop: call, indexing, try, member access, object init, and a
-    // leading turbofish that is consumed only when it belongs to a call.
+    // leading turbofish whose ordered type actuals belong to the call graph.
     while true {
         let after_ws: Int = SkipWhitespaceAndComments(content, i);
         let nc: String = ParserCharAt(content, after_ws);
         if nc == "<" {
-            // Tentatively skip a nested `<...>` type-argument list and only
-            // commit if the char after the matching `>` is `(`. Otherwise
-            // leave `<` for comparison parsing.
+            // First prove this is a call suffix. Comparison `<` remains owned
+            // by precedence parsing and is never consumed here.
             let tf: Int = after_ws + 1;
             let tf_depth: Int = 1;
             let tf_ok: Bool = false;
@@ -63,6 +66,40 @@ func ApplyPostfixFact(
                 }
             }
             if tf_ok {
+                let actual_cursor: Int = after_ws + 1;
+                let actual_count: Int = 0;
+                let generic_callee: ParserExpressionFact = base;
+                while true {
+                    actual_cursor = SkipWhitespaceAndComments(
+                        content, actual_cursor
+                    );
+                    ArraySet(cursor_out, 0, actual_cursor);
+                    let actual_type: String = ReadType(
+                        content, actual_cursor, cursor_out
+                    );
+                    actual_cursor = cursor_out[0];
+                    if actual_type == "" {
+                        Exit(1);
+                    }
+                    generic_callee = ParserExpressionGenericCalleeActual(
+                        generic_callee, actual_type
+                    );
+                    if !generic_callee.ok { Exit(1); }
+                    actual_count = actual_count + 1;
+                    actual_cursor = SkipWhitespaceAndComments(
+                        content, actual_cursor
+                    );
+                    if ParserCharAt(content, actual_cursor) == "," {
+                        actual_cursor = actual_cursor + 1;
+                        continue;
+                    }
+                    break;
+                }
+                if actual_count == 0 ||
+                    ParserCharAt(content, actual_cursor) != ">" {
+                    Exit(1);
+                }
+                base = generic_callee;
                 continue;
             }
             ArraySet(cursor_out, 0, i);
@@ -317,6 +354,42 @@ func ParserExpressionCallGraphContractReady() -> Bool {
     let callee: Int = fact.arena.left_children[call];
     return fact.arena.node_kinds[callee] == AstExpressionNodeLeaf() &&
         fact.arena.node_texts[callee] == "Pick";
+}
+
+func ParserExpressionExplicitGenericCallGraphContractReady() -> Bool {
+    let source: String = "Pair<Array<Int>, String>(values)";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) ||
+        fact.arena.node_kinds[fact.root] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let call: Int = fact.arena.left_children[fact.root];
+    if fact.arena.node_kinds[call] != AstExpressionNodeCall() {
+        return false;
+    }
+    let second_callee: Int = fact.arena.left_children[call];
+    if fact.arena.node_kinds[second_callee] !=
+            AstExpressionNodeGenericCallee() {
+        return false;
+    }
+    let first_callee: Int = fact.arena.left_children[second_callee];
+    let second_actual: Int = fact.arena.right_children[second_callee];
+    if fact.arena.node_kinds[first_callee] !=
+            AstExpressionNodeGenericCallee() {
+        return false;
+    }
+    let callee: Int = fact.arena.left_children[first_callee];
+    let first_actual: Int = fact.arena.right_children[first_callee];
+    return fact.arena.node_kinds[callee] == AstExpressionNodeLeaf() &&
+        fact.arena.node_texts[callee] == "Pair" &&
+        fact.arena.node_kinds[first_actual] ==
+            AstExpressionNodeGenericTypeActual() &&
+        fact.arena.node_texts[first_actual] == "Array<Int: Int>" &&
+        fact.arena.node_kinds[second_actual] ==
+            AstExpressionNodeGenericTypeActual() &&
+        fact.arena.node_texts[second_actual] == "String";
 }
 
 func ParserExpressionMemberGraphContractReady() -> Bool {

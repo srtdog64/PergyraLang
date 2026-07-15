@@ -64,6 +64,9 @@ struct SelfMirRoutineRows {
     kinds: Array<String>;
     owners: Array<String>;
     return_types: Array<String>;
+    generic_starts: Array<Int>;
+    generic_counts: Array<Int>;
+    generic_names: Array<String>;
     param_starts: Array<Int>;
     param_counts: Array<Int>;
     param_names: Array<String>;
@@ -134,7 +137,8 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
     let ints: Array<Int> = [];
     let strings: Array<String> = [];
     return SelfMirRoutineRows(
-        ints, strings, strings, strings, strings, ints, ints, strings,
+        ints, strings, strings, strings, strings,
+        ints, ints, strings, ints, ints, strings,
         strings, ints, ints, ints, ints, ints, strings, strings
     );
 }

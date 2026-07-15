@@ -6,6 +6,7 @@ import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 import "try_expression_fact_owner.pgy";
+import "wrapper_type_owner.pgy";
 
 func IsIdentText(text: String) -> Bool {
     if StringLength(text) == 0 {
@@ -256,26 +257,6 @@ func ArithmeticResultType(expr: String, names: Array<String>, types: Array<Strin
         }
     }
     return "Int";
-}
-func IsOptionType(type_name: String) -> Bool {
-    let n: Int = StringLength(type_name);
-    if n < 9 {
-        return false;
-    }
-    return Substring(type_name, 0, 7) == "Option<" && CharAt(type_name, n - 1) == ">";
-}
-func IsResultType(type_name: String) -> Bool {
-    let n: Int = StringLength(type_name);
-    if n < 9 {
-        return false;
-    }
-    return Substring(type_name, 0, 7) == "Result<" && CharAt(type_name, n - 1) == ">";
-}
-func ResultPayloadTypeOpt(type_name: String) -> Option<String> {
-    if IsResultType(type_name) {
-        return Some(Substring(type_name, 7, StringLength(type_name) - 8));
-    }
-    return None;
 }
 func OptionCallReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(text);

@@ -127,6 +127,17 @@ mir_routine_generic_param_count(const MIRRoutine *routine)
         : 0;
 }
 
+const char *
+mir_routine_generic_param_name(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine)
+        || routine->generic_param_names == NULL
+        || index >= routine->generic_param_count) {
+        return NULL;
+    }
+    return routine->generic_param_names[index];
+}
+
 size_t
 mir_routine_param_count(const MIRRoutine *routine)
 {

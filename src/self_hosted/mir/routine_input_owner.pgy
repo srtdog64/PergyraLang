@@ -3,6 +3,11 @@
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 
+struct SelfMirInitializerRows {
+    node_ids: Array<Int>;
+    inferred_type_names: Array<String>;
+}
+
 struct SelfMirIterationRows {
     node_ids: Array<Int>;
     binding_type_names: Array<String>;
@@ -13,7 +18,48 @@ struct SelfMirIterationRows {
 struct SelfMirRoutineInput {
     artifact: AstTreeArtifact;
     analysis: SemanticAstArtifactAnalysis;
+    initializers: SelfMirInitializerRows;
     iterations: SelfMirIterationRows;
+}
+
+func SelfMirInitializerRowsFromSemantic(
+    facts: SemanticAstInitializerTypeFacts
+) -> SelfMirInitializerRows {
+    return SelfMirInitializerRows(
+        facts.node_ids, facts.inferred_type_names
+    );
+}
+
+func SelfMirInitializerRowsReady(rows: SelfMirInitializerRows) -> Bool {
+    let count: Int = ArrayLength(rows.node_ids);
+    if ArrayLength(rows.inferred_type_names) != count { return false; }
+    let i: Int = 0;
+    while i < count {
+        if rows.node_ids[i] < 0 || rows.inferred_type_names[i] == "" ||
+            rows.inferred_type_names[i] == "Unknown" {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if rows.node_ids[prior] == rows.node_ids[i] { return false; }
+            prior = prior + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirInitializerIndexForNode(
+    rows: SelfMirInitializerRows,
+    node_id: Int
+) -> Option<Int> {
+    if !SelfMirInitializerRowsReady(rows) { return None; }
+    let i: Int = 0;
+    while i < ArrayLength(rows.node_ids) {
+        if rows.node_ids[i] == node_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
 }
 
 func SelfMirIterationRowsFromSemantic(

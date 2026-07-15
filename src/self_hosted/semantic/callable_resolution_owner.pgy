@@ -57,6 +57,14 @@ func SemanticCallableCanonicalLookupName(source_name: String) -> String {
     return StringReplace(source_name, ".", "_");
 }
 
+func SemanticCallableCanonicalDeclaredName(
+    owner_name: String,
+    local_name: String
+) -> String {
+    if owner_name == "" { return local_name; }
+    return Concat(owner_name, Concat("_", local_name));
+}
+
 func SemanticCallableHasLocalSuffix(
     declared_name: String,
     local_name: String
@@ -129,7 +137,10 @@ func SemanticCallableResolutionContractReady() -> Bool {
         names, "SelfHostPath.JoinRelativePath"
     );
     let ambiguous_names: Array<String> = ["A_Run", "B_Run"];
-    return IsSome(exact) && UnwrapOption(exact) == 2 &&
+    return SemanticCallableCanonicalDeclaredName("Box", "Get") ==
+            "Box_Get" &&
+        SemanticCallableCanonicalDeclaredName("", "Main") == "Main" &&
+        IsSome(exact) && UnwrapOption(exact) == 2 &&
         IsSome(local_match) && UnwrapOption(local_match) == 0 &&
         IsSome(qualified) && UnwrapOption(qualified) == 1 &&
         !IsSome(SemanticCallableIndex(ambiguous_names, "Run"));

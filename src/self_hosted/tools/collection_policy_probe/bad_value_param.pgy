@@ -1,0 +1,8 @@
+func Grow(xs: Array<Int>) -> Void {
+    ArrayPush(xs, 9);
+}
+
+func Main() -> Void {
+    let values: Array<Int> = [1, 2];
+    Grow(values);
+}

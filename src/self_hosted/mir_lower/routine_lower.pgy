@@ -315,6 +315,32 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
     let item_pad: String = Concat(routine_indent, "    ");
     let chunks: Array<String> = [Concat(routine_indent, Concat("Function: ", Concat(routine, "\n")))];
 
+    let generic_count: Int = RoutineGenericCount(json, rpos, header_end);
+    if generic_count > 0 {
+        let generic_text: String = "";
+        let generic_i: Int = 0;
+        while generic_i < generic_count {
+            let generic_name: String = RoutineGenericNameAt(
+                json, rpos, header_end, generic_i
+            );
+            if generic_name == "" {
+                MirLowerFailClosed(Concat(
+                    "routine generic parameter is missing name fact: ", routine
+                ));
+            }
+            if generic_i > 0 {
+                generic_text = Concat(generic_text, ", ");
+            }
+            generic_text = Concat(generic_text, generic_name);
+            generic_i = generic_i + 1;
+        }
+        ArrayPush(
+            chunks,
+            Concat(ppad, Concat(
+                "Generic params: <", Concat(generic_text, ">\n")
+            ))
+        );
+    }
     ArrayPush(chunks, Concat(ppad, "Parameters:\n"));
     let param_count: Int = RoutineParamCount(json, rpos, header_end);
     let param_row: Int = 0;

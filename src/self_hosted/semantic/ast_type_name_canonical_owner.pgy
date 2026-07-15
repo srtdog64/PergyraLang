@@ -7,6 +7,11 @@
 import "text_scan_owner.pgy";
 import "delimited_range_fact_owner.pgy";
 
+struct SemanticCanonicalTypeNameFact {
+    canonical_name: String,
+    nominal_base_name: String
+}
+
 func SemanticTypeNameTopLevelColon(text: String) -> Option<Int> {
     let n: Int = StringLength(text);
     let open_angle: Int = SourceByteOf("<");
@@ -81,8 +86,24 @@ func SemanticCanonicalTypeName(type_name: String) -> String {
     return Concat(result, ">");
 }
 
+func SemanticCanonicalTypeNameFactFrom(
+    type_name: String
+) -> SemanticCanonicalTypeNameFact {
+    let canonical: String = SemanticCanonicalTypeName(type_name);
+    let open: Int = StringIndexOf(canonical, "<");
+    let nominal_base: String = canonical;
+    if open >= 0 {
+        nominal_base = Trim(Substring(canonical, 0, open));
+    }
+    return SemanticCanonicalTypeNameFact(canonical, nominal_base);
+}
+
 func SemanticAstTypeNameCanonicalContractReady() -> Bool {
-    return SemanticCanonicalTypeName("Option<Int: Int>") == "Option<Int>" &&
+    let box: SemanticCanonicalTypeNameFact =
+        SemanticCanonicalTypeNameFactFrom("Box<T: Int>");
+    return box.canonical_name == "Box<Int>" &&
+        box.nominal_base_name == "Box" &&
+        SemanticCanonicalTypeName("Option<Int: Int>") == "Option<Int>" &&
         SemanticCanonicalTypeName("Array<Int: Int>") == "Array<Int>" &&
         SemanticCanonicalTypeName(
             "HashMap<K: String, V: Option<Int: Int>>"

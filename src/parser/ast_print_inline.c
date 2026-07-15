@@ -188,6 +188,28 @@ print_generic_params_inline(GenericParams* params)
     inline_emitf(">");
 }
 
+static void
+print_call_type_arguments_inline(GenericParams *params)
+{
+    if (params == NULL || params->count == 0)
+        return;
+
+    inline_emitf("<");
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam *param = params->params[i];
+        if (i > 0)
+            inline_emitf(", ");
+        if (param == NULL) {
+            inline_emitf("?");
+        } else if (param->constraint != NULL) {
+            ast_print_inline(param->constraint);
+        } else {
+            inline_emitf("%s", param->name != NULL ? param->name : "?");
+        }
+    }
+    inline_emitf(">");
+}
+
 void
 print_where_clause_inline(WhereClause* clause)
 {
@@ -266,6 +288,7 @@ ast_print_compact(ASTNode* node)
 
         case AST_CALL:
             ast_print_compact(node->data.call.callee);
+            print_call_type_arguments_inline(node->data.call.generic_args);
             inline_emitf(ast_call_uses_braced_initializer_syntax(node)
                 ? " { " : "(");
             for (size_t i = 0; i < node->data.call.arg_count; i++) {

@@ -1,0 +1,244 @@
+// Executable proof for graph-owned aggregate field type validation.
+
+import "../../semantic/ast_body_type_bundle_owner.pgy";
+import "../../semantic/ast_expression_graph_struct_type_verdict_owner.pgy";
+import "../../parser/program_parse_owner.pgy";
+
+func AggregateFieldProbeAnalysis(
+    source_path: String
+) -> SemanticAstArtifactAnalysis {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    return SemanticAstArtifactAnalyzeTyped(artifact, true);
+}
+
+func AggregateFieldProbeBundle(
+    source_path: String
+) -> SemanticAstBodyTypeBundle {
+    let artifact: AstTreeArtifact = ParseRootProgramArtifact(source_path);
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, true);
+    return SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+}
+
+func AggregateFieldProbeRejected(
+    source_path: String,
+    expected_code: String
+) -> Bool {
+    let bundle: SemanticAstBodyTypeBundle = AggregateFieldProbeBundle(
+        source_path
+    );
+    let i: Int = 0;
+    while i < ArrayLength(bundle.initializer_types.node_ids) {
+        if bundle.initializer_types.verified[i] != 1 &&
+            bundle.initializer_types.diagnostic_codes[i] == expected_code {
+            Log(expected_code);
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func AggregateFieldProbeRoot(
+    ref graph: SemanticExpressionGraphFacts
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(graph.roots) {
+        if graph.has_roots[i] {
+            let root_id: Int = graph.roots[i];
+            let struct_root: Option<Int> =
+                SemanticExpressionGraphStructValueRoot(graph, root_id);
+            if IsSome(struct_root) {
+                let view: SemanticStructLiteralView =
+                    SemanticStructLiteralViewFromGraph(
+                        graph, UnwrapOption(struct_root)
+                    );
+                if view.ok && ArrayLength(view.value_nodes) == 2 {
+                    let first_text: Option<String> =
+                        SemanticExpressionGraphNodeText(
+                            graph, view.value_nodes[0]
+                        );
+                    if IsSome(first_text) &&
+                        UnwrapOption(first_text) == "1 + 2" {
+                        return Some(root_id);
+                    }
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func AggregateFieldProbeMutationRejected(missing_child: Bool) -> Bool {
+    let analysis: SemanticAstArtifactAnalysis = AggregateFieldProbeAnalysis(
+        "src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
+    );
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let root_opt: Option<Int> = AggregateFieldProbeRoot(graph);
+    if !analysis.verdict.ok || !IsSome(root_opt) { return false; }
+    let root_id: Int = UnwrapOption(root_opt);
+    let struct_root: Option<Int> =
+        SemanticExpressionGraphStructValueRoot(graph, root_id);
+    if !IsSome(struct_root) { return false; }
+    let view: SemanticStructLiteralView = SemanticStructLiteralViewFromGraph(
+        graph, UnwrapOption(struct_root)
+    );
+    if !view.ok { return false; }
+    let value_node: Int = view.value_nodes[0];
+    let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, value_node
+    );
+    if !IsSome(left_opt) { return false; }
+    if missing_child {
+        graph.arena.left_children[value_node] = -1;
+    } else {
+        graph.arena.node_texts[UnwrapOption(left_opt)] = "\"bad\"";
+    }
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        analysis.signatures, analysis.constructors,
+        function_names, function_returns, function_params
+    ) {
+        return false;
+    }
+    let empty_names: Array<String> = [];
+    let empty_types: Array<String> = [];
+    let error: String = SemanticExpressionGraphStructValueTypeError(
+        graph, root_id, analysis.constructors, analysis.signatures,
+        empty_names, empty_types,
+        function_names, function_returns
+    );
+    let code: Option<String> = SemanticDiagnosticCodeFromMessage(error);
+    return IsSome(code) && UnwrapOption(code) == "call_arg_type_mismatch";
+}
+
+func AggregateFieldProbeGenericMutationRejected() -> Bool {
+    let analysis: SemanticAstArtifactAnalysis = AggregateFieldProbeAnalysis(
+        "src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
+    );
+    let graph: SemanticExpressionGraphFacts =
+        analysis.expression_surfaces.expression_graph;
+    let generic_root: Option<Int> = None;
+    let generic_value: Int = -1;
+    let i: Int = 0;
+    while i < ArrayLength(graph.roots) && !IsSome(generic_root) {
+        if graph.has_roots[i] {
+            let root_id: Int = graph.roots[i];
+            let struct_root: Option<Int> =
+                SemanticExpressionGraphStructValueRoot(graph, root_id);
+            if IsSome(struct_root) {
+                let view: SemanticStructLiteralView =
+                    SemanticStructLiteralViewFromGraph(
+                        graph, UnwrapOption(struct_root)
+                    );
+                let j: Int = 0;
+                while view.ok && j < ArrayLength(view.value_nodes) &&
+                    !IsSome(generic_root) {
+                    let call: SemanticCallSpineView =
+                        SemanticCallSpineViewFromGraph(
+                            graph, view.value_nodes[j]
+                        );
+                    let callee: Option<String> = None;
+                    if call.ok {
+                        callee = SemanticExpressionGraphNodeText(
+                            graph, call.callee_node
+                        );
+                    }
+                    if call.ok && IsSome(callee) &&
+                        UnwrapOption(callee) == "Identity" &&
+                        ArrayLength(call.argument_nodes) == 1 &&
+                        ArrayLength(call.generic_actual_type_names) == 1 {
+                        generic_root = Some(root_id);
+                        generic_value = view.value_nodes[j];
+                    }
+                    j = j + 1;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    if !analysis.verdict.ok || !IsSome(generic_root) || generic_value < 0 {
+        return false;
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, generic_value
+    );
+    if !call.ok || ArrayLength(call.argument_nodes) != 1 { return false; }
+    graph.arena.node_texts[call.argument_nodes[0]] = "\"bad\"";
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        analysis.signatures, analysis.constructors,
+        function_names, function_returns, function_params
+    ) {
+        return false;
+    }
+    let empty_names: Array<String> = [];
+    let empty_types: Array<String> = [];
+    let error: String = SemanticExpressionGraphStructValueTypeError(
+        graph, UnwrapOption(generic_root), analysis.constructors,
+        analysis.signatures, empty_names, empty_types,
+        function_names, function_returns
+    );
+    let code: Option<String> = SemanticDiagnosticCodeFromMessage(error);
+    return IsSome(code) && UnwrapOption(code) == "call_arg_type_mismatch";
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--bad-field" {
+        if AggregateFieldProbeRejected(
+            "src/self_hosted/tools/aggregate_field_policy_probe/bad_field_type.pgy",
+            "call_arg_type_mismatch"
+        ) {
+            Exit(1);
+        }
+        Log("bad aggregate field was accepted");
+        Exit(2);
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--bad-generic-field" {
+        if AggregateFieldProbeRejected(
+            "src/self_hosted/tools/aggregate_field_policy_probe/bad_generic_field_type.pgy",
+            "call_arg_type_mismatch"
+        ) {
+            Exit(1);
+        }
+        Log("bad generic aggregate field was accepted");
+        Exit(2);
+        return;
+    }
+    let bundle: SemanticAstBodyTypeBundle = AggregateFieldProbeBundle(
+        "src/self_hosted/tools/aggregate_field_policy_probe/valid.pgy"
+    );
+    if !bundle.verdict.ok {
+        Log(bundle.verdict.diagnostic_code);
+        Log(bundle.verdict.diagnostic_message);
+        Exit(1);
+        return;
+    }
+    if !AggregateFieldProbeMutationRejected(false) {
+        Log("leaf-type-drift=accepted");
+        Exit(1);
+        return;
+    }
+    if !AggregateFieldProbeMutationRejected(true) {
+        Log("child-fact-missing=accepted");
+        Exit(1);
+        return;
+    }
+    if !AggregateFieldProbeGenericMutationRejected() {
+        Log("generic-leaf-type-drift=accepted");
+        Exit(1);
+        return;
+    }
+    Log("aggregate-field=graph");
+    Log("leaf-type-drift=reject");
+    Log("child-fact-missing=reject");
+    Log("generic-leaf-type-drift=reject");
+}

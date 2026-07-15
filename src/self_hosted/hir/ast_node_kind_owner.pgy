@@ -36,6 +36,7 @@ func TypedAstKindThenTag() -> Int { return 33; }
 func TypedAstKindMatchStmtTag() -> Int { return 34; }
 func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
+func TypedAstKindGenericParamsTag() -> Int { return 37; }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
     if callee == "Log" { return TypedAstKindLogStmtTag(); }
@@ -84,14 +85,14 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindBareCallStmtTag(), TypedAstKindProgramTag(),
         TypedAstKindBodyTag(), TypedAstKindBlockTag(), TypedAstKindThenTag(),
         TypedAstKindMatchStmtTag(), TypedAstKindMatchCaseStmtTag(),
-        TypedAstKindMatchDefaultStmtTag()
+        TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 36 {
+    if ArrayLength(tags) != 37 {
         return false;
     }
     let i: Int = 0;

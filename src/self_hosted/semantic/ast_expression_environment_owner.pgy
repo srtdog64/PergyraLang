@@ -9,6 +9,7 @@ import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
 import "builtin_signature_owner.pgy";
+import "callable_resolution_owner.pgy";
 
 func SemanticAstExpressionMemberRootNames(
     constructors: SemanticAstNominalConstructorFacts,
@@ -69,6 +70,30 @@ func SemanticAstExpressionScopeVisible(
     return false;
 }
 
+func SemanticAstExpressionFunctionNodeForUse(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    use_node_id: Int
+) -> Option<Int> {
+    if !AstTreeArtifactReady(artifact) || !signatures.ok ||
+        use_node_id < 0 || use_node_id >= artifact.count {
+        return None;
+    }
+    let cursor: Option<Int> = Some(use_node_id);
+    let remaining: Int = artifact.count + 1;
+    while IsSome(cursor) && remaining > 0 {
+        let node_id: Int = UnwrapOption(cursor);
+        if IsSome(SemanticAstFunctionSignatureIndexForNode(
+            signatures, node_id
+        )) {
+            return Some(node_id);
+        }
+        cursor = TypedAstArenaParentId(artifact.arena, node_id);
+        remaining = remaining - 1;
+    }
+    return None;
+}
+
 func SemanticAstExpressionFunctionTables(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -110,12 +135,18 @@ func SemanticAstExpressionFunctionTables(
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(signatures) {
         let name: Option<String> = SemanticAstFunctionNameAt(signatures, i);
+        let owner: Option<String> = SemanticAstFunctionOwnerNameAt(
+            signatures, i
+        );
         let return_type: Option<String> = SemanticAstFunctionReturnTypeAt(
             signatures, i
         );
-        if !IsSome(name) || !IsSome(return_type) {
+        if !IsSome(name) || !IsSome(owner) || !IsSome(return_type) {
             return false;
         }
+        let declared_name: String = SemanticCallableCanonicalDeclaredName(
+            UnwrapOption(owner), UnwrapOption(name)
+        );
         let param_row: String = "";
         let param_count_opt: Option<Int> =
             SemanticAstFunctionParamCountAt(signatures, i);
@@ -136,7 +167,7 @@ func SemanticAstExpressionFunctionTables(
             p = p + 1;
         }
         let existing: Int = SemanticAstExpressionFunctionRowIndex(
-            names, UnwrapOption(name)
+            names, declared_name
         );
         if existing >= 0 {
             if returns[existing] != UnwrapOption(return_type) ||
@@ -144,7 +175,7 @@ func SemanticAstExpressionFunctionTables(
                 return false;
             }
         } else {
-            ArrayPush(names, UnwrapOption(name));
+            ArrayPush(names, declared_name);
             ArrayPush(returns, UnwrapOption(return_type));
             ArrayPush(params, param_row);
         }

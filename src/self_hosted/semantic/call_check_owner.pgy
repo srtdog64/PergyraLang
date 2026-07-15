@@ -6,6 +6,7 @@ import "env_owner.pgy";
 import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "delimited_range_fact_owner.pgy";
+import "collection_mutation_policy_owner.pgy";
 
 func CompareCallArgs(
     ref argument_facts: SemanticDelimitedRangeFacts,
@@ -133,27 +134,6 @@ func FirstArg(args_src: String) -> String {
         SemanticNestedCommaRangeFactsFromSource(args_src);
     return FirstArgFromFacts(facts, args_src);
 }
-func IsCollectionMutator(callee: String) -> Bool {
-    return callee == "ArrayPush"
-        || callee == "ArraySet"
-        || callee == "ArrayPop"
-        || callee == "ListPush"
-        || callee == "ListSet"
-        || callee == "ListRemove"
-        || callee == "SetAdd"
-        || callee == "SetRemove"
-        || callee == "QueuePush"
-        || callee == "QueuePop"
-        || callee == "MapSet"
-        || callee == "MapRemove";
-}
-func IsCollectionTypeName(type_name: String) -> Bool {
-    return StringContains(type_name, "Array<")
-        || StringContains(type_name, "List<")
-        || StringContains(type_name, "Set<")
-        || StringContains(type_name, "Queue<")
-        || StringContains(type_name, "HashMap<");
-}
 func CheckCollectionMutatorReceiver(
     ref argument_facts: SemanticDelimitedRangeFacts,
     callee: String,
@@ -162,21 +142,10 @@ func CheckCollectionMutatorReceiver(
     types: Array<String>,
     modes: Array<String>
 ) -> String {
-    if !IsCollectionMutator(callee) {
-        return "";
-    }
     let receiver: String = FirstArgFromFacts(argument_facts, args_src);
-    if !IsIdentText(receiver) {
-        return "";
-    }
-    if EnvMode(names, modes, receiver) != "default_param" {
-        return "";
-    }
-    let receiver_type: String = EnvLookup(names, types, receiver);
-    if !IsCollectionTypeName(receiver_type) {
-        return "";
-    }
-    return SemanticError3("value_param_collection_mutation", "func", callee, "param", receiver, "mode", "default");
+    return SemanticCollectionMutationError(
+        callee, receiver, names, types, modes
+    );
 }
 func CheckOptionBuiltinArgs(
     ref argument_facts: SemanticDelimitedRangeFacts,
@@ -213,7 +182,8 @@ func CheckCallWithIdentifierOwner(
     func_names: Array<String>,
     func_rets: Array<String>,
     func_params: Array<String>,
-    check_argument_identifiers: Bool
+    check_argument_identifiers: Bool,
+    check_collection_mutation: Bool
 ) -> String {
     let trimmed: String = Trim(text);
     let tn: Int = StringLength(trimmed);
@@ -245,9 +215,12 @@ func CheckCallWithIdentifierOwner(
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
     let argument_facts: SemanticDelimitedRangeFacts =
         SemanticNestedCommaRangeFactsFromSource(args_src);
-    let receiver_error: String = CheckCollectionMutatorReceiver(
-        argument_facts, callee, args_src, names, types, modes
-    );
+    let receiver_error: String = "";
+    if check_collection_mutation {
+        receiver_error = CheckCollectionMutatorReceiver(
+            argument_facts, callee, args_src, names, types, modes
+        );
+    }
     if StringLength(receiver_error) > 0 {
         return receiver_error;
     }
@@ -291,7 +264,8 @@ func CheckCall(
     func_params: Array<String>
 ) -> String {
     return CheckCallWithIdentifierOwner(
-        text, names, types, modes, func_names, func_rets, func_params, true
+        text, names, types, modes, func_names, func_rets, func_params,
+        true, true
     );
 }
 
@@ -305,7 +279,8 @@ func CheckCallFromGraphIdentifiers(
     func_params: Array<String>
 ) -> String {
     return CheckCallWithIdentifierOwner(
-        text, names, types, modes, func_names, func_rets, func_params, false
+        text, names, types, modes, func_names, func_rets, func_params,
+        false, false
     );
 }
 import "callable_resolution_owner.pgy";

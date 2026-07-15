@@ -7315,7 +7315,7 @@ Released/default replacement remains 0%.
   passed, and an executable owner-split contract compiled and printed
   `owner-split-ok`.
 
-### 2026-07-15 -- indexed assignment type ownership landed, parity pending
+### 2026-07-15 -- indexed assignment type ownership closed
 
 - `SemanticAstAssignmentTypeFacts` now owns the assignment target type and
   index result type. The index type is projected from expression-graph handles;
@@ -7324,8 +7324,350 @@ Released/default replacement remains 0%.
 - Missing target-type and expected-type rows fail closed in the focused
   assignment projection probe. Static ratchets forbid payload retyping and the
   removed codegen lookup.
-- This entry does not claim C/LLVM projection parity. Both the focused codegen
-  probe and a smaller assignment-type contract probe exceeded the five-minute
-  compile budget and were terminated with empty compile logs. Observed peak
-  working sets were about 291 MB and 186 MB, respectively, so this is currently
-  a self-host semantic CPU-time blocker rather than a memory-growth result.
+- The focused projection probe is now byte-equal under C and LLVM. Both legs
+  reject missing expected and indexed-target type rows, so the registry row is
+  `CLOSED`. The earlier timeout remains useful historical performance evidence,
+  but it is no longer the current correctness status.
+
+### 2026-07-15 -- initializer type projection and gate dashboard landed
+
+- MIR routine input now carries semantic initializer NodeId/type rows. Local
+  declaration lowering consumes those rows, allowing an unannotated local to
+  inherit its verified initializer type without a source or backend guess.
+- Semantic downstream consumers no longer rebuild initializer inference. A
+  focused C/LLVM probe rejects both a missing row and a row with no type.
+- `gate_dashboard` is written in Pergyra. Its manifest owns nine active gate
+  targets, tiers, budgets, states, and owner facts; result artifacts reject
+  unknown and duplicate IDs. The thin process bridge consumes the manifest
+  budget through the portable timeout owner, and over-budget results fail.
+  This is evidence infrastructure and does not count as a compiler-path
+  substitution delta.
+
+### 2026-07-15 -- scalar operator result typing consumes expression graph
+
+- Fully graph-owned scalar operator trees derive result types from semantic
+  graph nodes. Their verdict path no longer calls `ExprType` on source text.
+- The initializer-to-MIR probe lowers `seed + 2` identically under C-built and
+  LLVM-built tools. Keeping its source/root text unchanged while corrupting
+  only the `2` graph leaf fails as `undefined_symbol` under both tools. Replacing
+  that leaf with a String fails as `binop_type_mismatch` from graph child types.
+- This is an executable closure delta inside the active mixed-expression rung.
+  Call/member/composite trees remain bridged, so released/default replacement
+  remains 0%.
+- The likeness gate now builds one path-tagged, comment-stripped source corpus
+  and reuses it for every metric instead of reading the full tree five times.
+  The same Windows checkout dropped from 116.3 seconds to 56.3 seconds, inside
+  the 60-second static-gate budget. This is process evidence, not substitution.
+
+### 2026-07-15 -- direct scalar call returns consume graph callees
+
+- Direct named calls with concrete `Bool`, `Int`, `Long`, `Float`, or `String`
+  returns now derive their result from the expression-graph callee and the
+  canonical callable return table. Their verdict path does not call
+  `ExprType(text, ...)` for that declared capability.
+- The existing initializer-to-MIR probe gained a positive direct-call mode and
+  a source-preserving negative. Changing only the graph callee from
+  `ToIntValue(Int) -> Int` to `ToTextValue(Int) -> String` produces
+  `let_type_mismatch`; C-built and LLVM-built tools agree on the positive MIR
+  row and every negative diagnostic.
+- Call-argument validation, member/namespace calls, generic/aggregate returns,
+  and composite expressions remain bridge-owned. This slice does not close the
+  expression surface or raise released/default replacement.
+
+### 2026-07-15 -- direct scalar-leaf call arguments consume graph handles
+
+- Direct calls with concrete scalar return/parameter rows and scalar-leaf
+  arguments now validate arity and argument types from the call-spine view.
+  This declared capability does not invoke the source-text call parser.
+- The source expression and root remain `ToIntValue(2)` while the negative
+  mutates only the graph argument leaf to a String. C-built and LLVM-built
+  probes agree on `call_arg_type_mismatch`; all prior initializer negatives
+  remain green.
+- Nested argument expressions, generic and aggregate signatures, collection
+  and Option/Result policy, and member/namespace calls remain explicit bridges.
+
+### 2026-07-15 -- direct scalar call arguments consume expression trees
+
+- Expanded the active initializer-to-MIR rung from scalar-leaf direct-call
+  arguments to graph-owned scalar operator trees. The call consumer validates
+  operand diagnostics, arity, and parameter assignment from node handles.
+- Kept `ToIntValue(1 + (2 * 3))` unchanged in the fixture while mutating only
+  the nested graph's `2` leaf to a String. C-built and LLVM-built probes both
+  fail closed with `binop_type_mismatch`; the unchanged positive projects
+  `x: Int` to MIR with byte-identical output.
+- Fixed the expression-surface verification boundary for parser-canonical
+  spelling. Exact spelling is the fast path; a mismatch is accepted only when
+  the same compact parser owner produces that canonical root. No source type
+  reconstruction or alternate callable owner was added.
+- The expression surface remains `BRIDGE`. Nested call expressions in an
+  argument, generic/aggregate signatures, collection and Option/Result policy,
+  and member/namespace calls remain outside this executable subset. The full
+  codegen matrix was not rerun and released/default substitution remains 0%.
+
+### 2026-07-15 -- nested direct scalar calls consume graph handles
+
+- Extended the same concrete scalar call capability to nested direct calls.
+  Call capability and argument verdicts recurse over parser-owned call-spine
+  handles and do not invoke the source call parser.
+- `ToIntValue(ToIntValue(2))` projects `x: Int` identically under C-built and
+  LLVM-built probes. Keeping the source unchanged while changing only the inner
+  graph callee to `ToTextValue(Int) -> String` fails at the outer call as
+  `call_arg_type_mismatch` under both backends.
+- The expression surface remains `BRIDGE`. Scalar operators containing call
+  nodes, member/namespace calls, generic/aggregate signatures, and collection
+  or Option/Result policy remain outside this executable subset. The full
+  codegen matrix was not rerun and released/default substitution remains 0%.
+
+### 2026-07-15 -- scalar operators and direct calls share one graph verdict
+
+- Replaced the direct-call-only verdict owner with one concrete scalar graph
+  owner. It composes leaf, scalar-operator, and concrete direct-call nodes;
+  operator diagnostics remain owned by the existing node-level scalar verdict.
+  No compatibility alias for the retired owner or function names remains.
+- `1 + ToIntValue(2)` projects `x: Int` identically under C-built and
+  LLVM-built probes. Keeping the source unchanged while changing only the graph
+  callee to `ToTextValue(Int) -> String` fails as `binop_type_mismatch` under
+  both backends.
+- The expression surface remains `BRIDGE`. Member/namespace calls,
+  generic/aggregate signatures, and collection or Option/Result policy remain
+  outside this executable subset. The full codegen matrix was not rerun and
+  released/default substitution remains 0%.
+
+### 2026-07-15 -- namespace calls consume carried static targets
+
+- Replaced the direct-leaf-only call type owner with a static-call owner. It
+  consumes `SemanticExpressionCallTargetFact`; namespace consumers do not
+  rebuild `Math_Add` from `Math.Add` source spelling. No compatibility alias
+  for the retired owner or function names remains.
+- `Math.Add(2)` projects `x: Int` identically under C-built and LLVM-built
+  probes. Keeping the source/member graph unchanged while changing only the
+  carried call target to the String-returning `ToTextValue` fails as
+  `let_type_mismatch` under both backends.
+- The expression surface remains `BRIDGE`. Receiver-bound member calls,
+  generic/aggregate signatures, and collection or Option/Result policy remain
+  outside this executable subset. The full codegen matrix was not rerun and
+  released/default substitution remains 0%.
+
+### 2026-07-15 -- receiver calls consume semantic owner-qualified targets
+
+- Moved `SemanticMemberAccessView` out of the codegen emitter into the
+  semantic expression-graph owner. The callable environment now retains
+  declaration ownership as `Owner_Method` instead of collapsing methods with
+  the same local name into one flat row.
+- Replaced the static-call-only result owner with one resolved-call owner.
+  Direct and namespace calls keep parameter offset zero; a bounded
+  receiver-leaf member call resolves from its lexical type and consumes offset
+  one for the implicit `self` parameter.
+- `box.Get()` projects `x: Int` identically under C-built and LLVM-built
+  probes. With source text unchanged, changing only the graph member handle to
+  `Text` selects `Box_Text() -> String` and fails as `let_type_mismatch` under
+  both backends. The self-host codegen entrypoint also compiles after consuming
+  the moved semantic member view.
+- This does not claim receiver-target carriage in MIR or hard codegen. The
+  emitter still derives the instance method target from its codegen type
+  environment, so `selfhost.call_target_identity` remains `ACTIVE`; the next
+  executable delta must carry and consume that same target. The full codegen
+  matrix was not run and released/default substitution remains 0%.
+
+### 2026-07-15 -- receiver call target reaches MIR and hard codegen
+
+- Extended the existing expression-graph target row from name-only carriage
+  to canonical `(kind, name)` carriage. The body-type fixpoint writes
+  `member/Box_Get` after initializer types make the receiver binding known.
+- Self MIR copies the target row. Hard codegen consumes `Box_Get` directly and
+  emits `Box_Get(box)`; it no longer reconstructs the target from receiver type
+  plus member spelling. A missing target fails at MIR production.
+- The focused probe reaches semantic analysis, MIR, and hard codegen. C-built
+  and LLVM-built probes agree on all positive modes and source-preserving
+  negative diagnostics, including the missing-target case.
+- Growing the graph arena from four to six arrays exposed an LLVM-only crash
+  at an aggregate `inout` boundary. Graph facts and compact construction are
+  now separate responsibilities; recursive construction carries six row
+  arrays and the gate rejects reintroduced graph-aggregate mutation. Surface
+  token/call queries were also split from the 522-line fact owner.
+- Generic or chained receiver resolution remains active. This entry does not
+  close the complete call-target row, run the full matrix, or raise released
+  substitution above 0%.
+
+### 2026-07-15 -- generic receiver calls consume canonical carried targets
+
+- Added `SemanticCanonicalTypeNameFact` to the existing canonical type-name
+  owner. It carries canonical and nominal-base names together. Call-target
+  resolution consumes that typed fact for `Box<Int>` rather than parsing
+  generic spelling locally or introducing a string-to-string helper.
+- A generic receiver parameter calling `box.Count()` carries
+  `member/Box_Count` through semantic analysis and self MIR. Hard codegen emits
+  `Box_Count(box)` from that carried row. Removing only the generic target row
+  fails at MIR production.
+- C-built and LLVM-built focused probes agree on the positive artifact and the
+  missing-target diagnostic. The prior non-generic receiver fixture remains in
+  the same gate.
+- Chained field receiver resolution remains active because it requires
+  nominal field facts at the call-target consumer. The complete call-target
+  row is not closed, the full matrix was not run, and released/default
+  substitution remains 0%.
+
+### 2026-07-15 -- chained receiver calls consume nominal field facts
+
+- Added a graph receiver-type owner that recursively follows member handles.
+  Leaf bindings consume the lexical environment; member edges consume
+  `SemanticAstNominalConstructorFacts` field rows after canonical nominal-base
+  projection. It does not parse a dotted source path or call codegen type
+  lookup.
+- `holder.box.Count()` resolves `Holder.box: Box`, carries
+  `member/Box_Count` through self MIR, and hard codegen emits
+  `Box_Count(holder.box)` from that target. Removing only the chained target
+  row fails at MIR production.
+- Nominal count and field lookup queries are now `ref`, keeping borrowed facts
+  read-only through recursive helpers rather than copying the aggregate. The
+  focused C and LLVM probes agree on positive output and the missing-target
+  diagnostic.
+- `selfhost.call_target_identity` remains `ACTIVE`: direct calls still recover
+  final callable identity from the callee leaf. The full matrix was not run and
+  released/default substitution remains 0%.
+
+### 2026-07-15 -- direct call target identity closes at the active rung
+
+- Added `direct` to the semantic and self-MIR call-target kind vocabulary.
+  Signature capture records canonical direct targets before body analysis;
+  constructor and receiver calls are completed by the semantic body fixpoint
+  when their required inventories become available.
+- Self MIR carries and serializes the direct target row, the MIR importer
+  validates it, and hard codegen consumes the carried name. The hard emitter
+  no longer reads `callee_text` as final callable identity.
+- The focused C/LLVM probe emits the same `ToIntValue(...)` call. Removing only
+  the carried direct row fails before emission, and the static gate rejects
+  restoring callee-leaf recovery in hard codegen.
+- `selfhost.call_target_identity` is now `CLOSED` for the active self-host
+  expression rung. This does not close the broader expression surface, run the
+  full matrix, or raise released/default substitution above 0%.
+
+### 2026-07-15 -- nominal aggregate call returns consume signature facts
+
+- Replaced the scalar-only resolved-call result query with one canonical
+  return-type owner plus an explicitly named concrete-scalar filter. Expression
+  verdicts consume the broad return fact; scalar validation consumes the
+  filtered capability.
+- `MakeBox() -> Box` now projects `box: Box` into self MIR, and hard codegen
+  emits `MakeBox()` from the carried target. C-built and LLVM-built probes are
+  output-equal.
+- A negative keeps the source expression unchanged and changes only its carried
+  target to `ToTextValue() -> String`; both backends reject the initializer as
+  `let_type_mismatch`. The scalar graph owner is gate-forbidden from indexing
+  the signature return array as a second decision path.
+- Generic substitution and composite aggregate validation remain in the
+  expression bridge. The full matrix was not run and released/default
+  substitution remains 0%.
+
+### 2026-07-15 -- exact-formal generic returns consume typed signature rows
+
+- Promoted `Generic params:` from an unknown compact-AST line to a dedicated
+  typed HIR node kind. Semantic signature facts now own ordered formal-generic
+  starts, counts, and names; expression consumers do not parse provenance.
+- Added a bounded generic-call fact for the exact-formal shape
+  `Identity<T>(value: T) -> T`. It binds `T` from graph-owned argument types
+  and supplies the initializer result without calling the text `ExprType`
+  path.
+- A C/LLVM executable probe projects `Identity(2)` as `Int`. Keeping source
+  unchanged while replacing only the carried target with a String-returning
+  function is rejected as `let_type_mismatch` by both backends.
+- Nested or composite generic forms, explicit generic actuals, collections,
+  and Option/Result remain bridged. The full matrix was not run and
+  released/default substitution remains 0%.
+
+### 2026-07-15 -- composite generic returns consume a type-expression arena
+
+- Added `SemanticAstSignatureTypeExpressionFacts`, a signature-owned flat arena
+  of nominal type nodes and ordered generic children. Canonical spelling is
+  retained for projection, but call semantics consume the structured row.
+- Exact-formal argument binding now resolves both `T` and nested return shapes.
+  The executable fixture proves `Wrap<T>(value: T) -> Option<T>` becomes
+  `Option<Int>` for `Wrap(2)` under C and LLVM.
+- The gate forbids `ExprType` in the generic consumer and requires the
+  signature owner to carry the return type-expression facts. The existing
+  carried-target mutation remains a fail-closed negative.
+- Nested generic parameter inference, explicit generic actuals, builtin
+  collection/Option/Result policy, and aggregate validation remain bridged.
+  The full matrix was not run and released/default substitution remains 0%.
+
+### 2026-07-15 -- nested generic parameters share the signature type arena
+
+- Generalized the return-only type fact into one parameter/return expression
+  arena owned by function signatures. No parallel parameter parser or binding
+  alias was added.
+- `First<T>(values: Array<T>) -> T` now structurally unifies `Array<Int>`, binds
+  `T=Int`, and produces an `Int` initializer under C and LLVM.
+- The executable negative asks the same owner to bind `Int` against `Array<T>`
+  and requires `call_arg_type_mismatch`; exact and nested parameter forms use
+  the same binding function.
+- Explicit generic actual carriage is the next parser-owner blocker: the
+  self-host postfix parser currently skips `<...>` before a call without
+  preserving it in the graph. Builtin collection/Option/Result policy and
+  aggregate validation also remain bridged. The full matrix was not run.
+
+### 2026-07-15 -- explicit generic actuals survive the parser boundary
+
+- Added parser-owned `generic_type_actual` and `generic_callee` graph nodes.
+  Ordered actuals remain separate from compatibility text, and call-target
+  resolution unwraps the generic spine to the canonical base callee.
+- The semantic call view carries explicit actual rows into the existing
+  signature type-expression binding owner. It does not parse `<...>` from the
+  call spelling or retain a compact-text fallback.
+- The executable positive parses a real `.pgy` source and proves
+  `PickSecond<Int, String>(2, "value") -> String`. The negative changes the
+  first explicit actual to `String` and requires `call_arg_type_mismatch`.
+- The first negative attempt exposed that `AnalyzeCompactBridge` erased the
+  parser fact and delayed failure to `let_type_mismatch`; the final gate uses
+  `SemanticAstArtifactAnalyzeTyped` so this wrong route cannot count as proof.
+  C/LLVM focused parity is required; the full matrix was not run.
+
+### 2026-07-15 -- scalar Option/Result policy is graph-owned
+
+- Initial call-target capture now projects canonical builtin signature names,
+  so initializer typing does not wait for a later source-body fixpoint to learn
+  that `Some`, `Ok`, `UnwrapOption`, or `UnwrapOr` is a builtin call.
+- `SemanticExpressionGraphWrapperValueFactFromGraph` consumes the carried
+  target, graph argument handles, and canonical builtin signature rows. It is
+  statically forbidden from reopening source `ExprType` or `CheckCall` paths.
+- The native C oracle and C/LLVM-built Pergyra probes accept the scalar
+  Option/Result cases and reject a non-concrete `None`, a non-wrapper unwrap,
+  and a mutated carried target.
+- This is a bounded scalar wrapper-policy replacement. Collection policy and
+  unknown or aggregate wrapper payload validation remain bridged; the full
+  matrix was not run and released/default substitution remains 0%.
+
+### 2026-07-15 -- collection mutation admission has one policy owner
+
+- Moved mutator names, collection type recognition, and parameter-mode policy
+  behind `SemanticCollectionMutationError`; source, statement, and graph
+  consumers no longer own parallel copies of that decision.
+- Specialized array statements consume their typed target and mode facts.
+  General mutator calls consume a carried direct target and graph receiver;
+  graph call checking is forbidden from replaying the source receiver policy.
+- Native C-oracle and C/LLVM-built Pergyra probes accept local and `inout`
+  mutation, reject value-parameter mutation, and reject carried-target drift.
+- A standalone self-host semantic build exposed and removed a hidden
+  transitive `StartsWith` dependency in the wrapper type owner; the owner now
+  uses its own bounded prefix slice and the component gate forbids regression.
+- Collection result/element typing and aggregate wrapper validation remain
+  bridged. The full matrix was not run and released/default substitution
+  remains 0%.
+
+### 2026-07-15 -- aggregate field validation consumes graph types
+
+- Added one field type/assignability owner for scalar operators, direct nominal
+  returns, nested struct values, `Some(struct)`, wrapper unknowns, and
+  structural integer-literal widening.
+- Removed `ExprType` and source-text `ExpressionAssignableTo` from the struct
+  verdict. Missing graph type facts now fail closed as a field mismatch.
+- Native C-oracle and C/LLVM-built probes accept the active aggregate corpus
+  and reject an invalid source field, source-preserving graph leaf type drift,
+  and a missing child fact.
+- The C-built and LLVM-built hard rung-2 drivers pass the complete 20-fixture
+  body set plus the selected `option_struct_value_flow` MIR producer fixture.
+  The body bundle keeps semantic-negative rows structurally consumable so the
+  original diagnostic remains the first verdict; missing structure still
+  fails closed.
+- Generic/member aggregate field values and broader object initializer policy
+  remain bridged. The remaining 27 MIR fixtures and broader integration matrix
+  were not run; released/default substitution remains 0%.

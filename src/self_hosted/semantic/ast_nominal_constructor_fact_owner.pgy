@@ -184,7 +184,7 @@ func SemanticAstNominalConstructorFactsFromArtifact(
 }
 
 func SemanticAstNominalConstructorCount(
-    facts: SemanticAstNominalConstructorFacts
+    ref facts: SemanticAstNominalConstructorFacts
 ) -> Int {
     return ArrayLength(facts.node_ids);
 }
@@ -293,7 +293,7 @@ func SemanticAstNominalConstructorFieldNameAt(
 }
 
 func SemanticAstNominalFieldType(
-    facts: SemanticAstNominalConstructorFacts,
+    ref facts: SemanticAstNominalConstructorFacts,
     nominal_name: String,
     field_name: String
 ) -> Option<String> {

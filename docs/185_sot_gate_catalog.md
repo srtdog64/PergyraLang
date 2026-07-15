@@ -2,10 +2,11 @@
 
 Status: `ACTIVE`
 
-This document is the single operational index for source-of-truth gates. It
-does not own compiler facts. Fact authority remains in
-`docs/semantics/sot_owner_spine_registry.md`; this catalog explains how that
-registry is enforced.
+This document is the architectural index for source-of-truth gates. It does
+not own compiler facts or executable gate rows. Fact authority remains in
+`docs/semantics/sot_owner_spine_registry.md`; executable dashboard identity,
+tier, budget, and Make targets live in the Pergyra owner
+`src/self_hosted/compiler/gate_dashboard_owner.pgy`.
 
 ## 1. Objective Card
 
@@ -28,6 +29,8 @@ registry is enforced.
 | `docs/semantics/proofs/SoTAuthority.v` | formal projection of registry owner/fact pairs | checked projection |
 | `scripts/sot_registry_gate.py` | generic registry and relation validator | consumer |
 | Per-rung parity scripts | executable missing/corrupt fact evidence | consumer |
+| `src/self_hosted/compiler/gate_dashboard_owner.pgy` | active gate identity, tier, budget, and target rows | operational owner |
+| `src/self_hosted/tools/gate_dashboard/main.pgy` | declared-state plus observed-result dashboard | consumer |
 
 The gate must not carry a copied owner list or copied status count. The Coq
 mapping, registry summary, producer definitions, and self-host fact-owner file
@@ -40,6 +43,9 @@ coverage are compared to the registry at execution time.
 | `make sot-authority-edge-test-smoke` | 60 s | LANDED | duplicate producer, unclassified fact owner, stale derived row, registry/Coq drift, forbidden layer input, or a CLOSED consumer reopened a named fallback |
 | `make sot-authority-adequacy-test-smoke` | 60 s | LANDED, bounded | current typed-expression owner/source bindings or their negative source mutations drifted; this is not whole-compiler extraction evidence |
 | `make self-host-codegen-assignment-projection-parity-test-smoke` | 5 min | LANDED, focused | semantic assignment target/expected type is missing, guessed, or differs across C/LLVM projection |
+| `make self-host-initializer-projection-parity-test-smoke` | 5 min | LANDED, focused | semantic initializer row/type is missing, a graph-owned concrete scalar tree or resolved direct/namespace/receiver target is recovered from source text, or C/LLVM MIR projection differs |
+| `make self-host-generic-return-parity-test-smoke` | 5 min | LANDED, focused | typed formal-generic or signature type-expression rows are missing, ordered explicit actuals are dropped or rebuilt from compact text, exact/nested parameter or return binding falls back to text, explicit/inferred conflict or structural mismatch is accepted, carried target mutation is ignored, or C/LLVM verdicts differ |
+| `make self-host-gate-dashboard-parity-test-smoke` | 5 min | LANDED | Pergyra manifest/JSON golden drift, an unknown/duplicate result is accepted, or C/LLVM dashboard projection differs |
 | `sot-missing-fact executable matrix` | 5 min per active rung | PARTIAL | a last consumer accepted a missing/corrupt canonical fact or emitted output through fallback |
 | `layer-input capability checks in authority-edge gate` | 60 s | LANDED | self-host codegen re-produced semantic facts/imported parser owners, native backend read AIR/raw AST at its public boundary, or the one declared AST-text bridge drifted |
 | `cache-shadow authority gate` | 5 min focused | NEXT | cache-on/off differs, stale owner revision hits, or a cache answers without canonical owner evidence |
@@ -99,8 +105,8 @@ negative gate prevents reintroduction
 ```
 
 The current registry contains 36 authority rows and 11 explicitly derived
-self-host fact carriers. Status remains `CLOSED=14 BRIDGE=7 ACTIVE=15` until an
-executable rung changes that evidence.
+self-host fact carriers. Status is `CLOSED=16 BRIDGE=7 ACTIVE=13` after the
+call-target identity rung changed that evidence.
 
 `selfhost.assignment_type_verdict` reached `CLOSED` on 2026-07-15. The
 semantic body-type bundle is produced once per driver path, transferred through
@@ -110,11 +116,137 @@ rejects both a missing assignment expected type and a missing indexed-target
 type. It also rejects the former source-expression and backend-environment type
 guess patterns before compiling the probe.
 
+`selfhost.initializer_type_verdict` reached `CLOSED` on 2026-07-15. Semantic
+downstream producers and MIR now validate the projection shape without
+re-running initializer inference. MIR routine input carries NodeId/type rows,
+and an unannotated local consumes the inferred type while an annotated local
+retains its declared storage type. C and LLVM probes emit the same MIR local;
+removing either the row or inferred type fails at the MIR projection boundary.
+The same gate preserves the scalar source/root text while corrupting one graph
+leaf; both backends reject `undefined_symbol`. This closes result-type
+reconstruction only for the declared scalar-operator capability subset. A
+String-leaf mutation is also rejected as `binop_type_mismatch` from graph child
+types. Concrete scalar returns from direct named calls now consume the graph
+callee plus the canonical callable return table. A negative keeps source/root
+text unchanged, changes only the callee leaf from an `Int` function to a
+`String` function, and both backends reject the initializer as
+`let_type_mismatch`. Direct calls whose return and parameter rows are concrete
+scalars also consume graph-owned scalar argument trees, arity, and argument
+types.
+Changing only the graph argument from `Int` to `String` is rejected as
+`call_arg_type_mismatch`. `ToIntValue(1 + (2 * 3))` is positive-output equal
+under C/LLVM, and changing only the nested graph leaf to a String is rejected
+as `binop_type_mismatch`. Parser-canonical root spelling is verified by the same
+compact parser owner. Concrete nested direct calls recurse through graph call
+spines: `ToIntValue(ToIntValue(2))` is positive-output equal under C/LLVM, and
+changing only the inner graph callee to a String-returning function is rejected
+at the outer call as `call_arg_type_mismatch`. One concrete scalar graph owner
+now composes scalar operators and direct calls. `1 + ToIntValue(2)` is
+positive-output equal under C/LLVM, and changing only its graph callee to a
+String-returning function is rejected as `binop_type_mismatch`. The retired
+direct-call-only verdict owner and names are gate-forbidden. Receiver-bound
+member calls, generic calls, wrapper/collection policies, and aggregate
+signatures remained bridge consumers at this rung; the later entries below
+record their bounded migrations. This does not close the full expression
+surface.
+
+Namespace-qualified static calls consume the call target already carried by
+`SemanticExpressionCallTargetFact`. `Math.Add(2)` resolves through `Math_Add`
+under C/LLVM parity. A source-preserving mutation that changes only the carried
+target to the String-returning `ToTextValue` is rejected as
+`let_type_mismatch`. The direct-leaf-only call type owner is deleted and
+gate-forbidden. Receiver-bound member calls, generic calls,
+wrapper/collection policies, and aggregate signatures remained bridge
+consumers at this rung; later entries record their bounded migrations.
+
+The next bounded receiver-member slice carries the same target through self
+MIR and hard codegen. `box.Get()` stores `member/Box_Get`, hard codegen emits
+`Box_Get(box)`, and a missing carried row fails before emission under C and
+LLVM. Compact graph construction threads row arrays; the focused gate rejects
+an `inout SemanticExpressionGraphArena` or graph-fact aggregate because that
+shape produced an LLVM-only crash. Generic receiver locals consume a typed
+canonical type-name fact: `Box<Int>.Count()` carries `member/Box_Count`
+through MIR and emits `Box_Count(box)`. Removing only that row fails under C
+and LLVM. Chained field receivers consume graph handles plus nominal field
+facts: `holder.box.Count()` carries the same target and emits
+`Box_Count(holder.box)` under both backends. The gate rejects dotted source or
+codegen field-type recovery in this owner. Direct calls now carry the `direct`
+target kind and canonical name through semantic analysis and self MIR. Hard
+codegen consumes only that row; removing it fails before emission under C and
+LLVM, and the gate rejects callee-text identity recovery in the emitter. The
+bounded `selfhost.call_target_identity` family is therefore closed. This does
+not close generic substitution, composite aggregate validation, or the broader
+expression surface.
+
+Nominal aggregate call returns now consume the closed target row and canonical
+signature return fact. `MakeBox() -> Box` reaches self MIR and hard codegen
+under C/LLVM parity; changing only the carried target to a String-returning
+function is rejected as `let_type_mismatch`. Generic substitution and
+composite aggregate validation remain bridge work. The focused gate,
+`make self-host-generic-return-parity-test-smoke`, proves exact and nested
+parameter binding plus exact and nested return substitution. It requires a typed
+generic-parameter HIR row, a signature-owned parameter/return type-expression arena,
+graph-owned actual argument types, and a source-preserving carried-target
+mismatch under C/LLVM. It rejects an `ExprType` fallback in the generic-call
+owner. Ordered explicit actual carriage is also graph-owned and conflict-gated.
+
+Scalar Option/Result builtins now have a separate graph-policy owner. Initial
+call-target capture includes canonical builtin signatures before initializer
+typing, and the final expression verdict consumes the carried direct target,
+the builtin signature projection, and graph argument handles. The focused
+`make self-host-wrapper-policy-parity-test-smoke` gate accepts `Some`,
+`UnwrapOption`, `Ok`, `UnwrapOr`, `IsSome`, and `IsOk`, rejects non-concrete
+`None` and non-wrapper arguments with the native C-oracle diagnostic class,
+and rejects a source-preserving carried-target mutation. The owner is forbidden
+from calling `ExprType` or `CheckCall`. Collection result/element typing,
+unknown or aggregate wrapper payloads outside the covered graph capability,
+and composite aggregate validation remain bridge work.
+
+Caller-visible collection mutation admission now has one canonical policy
+owner. Specialized `ArrayPush`/`ArraySet`/`ArrayPop` statement facts consume it
+directly, while general mutator calls consume the carried call target and graph
+receiver node. The graph call checker is explicitly barred from replaying the
+source receiver policy. The focused
+`make self-host-collection-policy-parity-test-smoke` gate accepts local and
+`inout` mutation, rejects a value-parameter mutation with the native C-oracle
+diagnostic class, and rejects carried-target drift under C/LLVM-built probes.
+Collection result/element typing and unknown or aggregate wrapper payloads
+remain bridge work.
+
+Aggregate field validation now consumes graph-owned value types and structural
+assignability. The struct verdict no longer calls source `ExprType` or
+`ExpressionAssignableTo`; exact types, `None`/`Err` wrapper unknowns, scalar
+operators, direct nominal returns, nested struct values, `Some(struct)`, and
+structural `Int`-literal-to-`Long` widening are covered. The focused
+`make self-host-aggregate-field-policy-parity-test-smoke` gate compares native
+C with C/LLVM-built probes and injects source-preserving leaf type drift plus a
+missing child fact. Generic/member aggregate field values remain bridge work.
+The adjacent hard-driver check builds rung 2 with both C and LLVM, runs its 20
+body fixtures, and filters MIR parity to `option_struct_value_flow`; it is
+bounded evidence, not a claim about the other 27 MIR fixtures.
+
+`make self-host-gate-dashboard` executes only the selected Pergyra-owned tier
+(`static` by default) and records a separate result artifact. `NOT_RUN` is not
+green, unknown or duplicate result IDs fail closed, and an over-budget run is
+reported independently from semantic gate state. The process bridge consumes
+each manifest budget through the repository's portable timeout owner, so the
+budget also stops the gate instead of merely annotating it afterward.
+Dashboard code, tests, and LOC remain supporting evidence and do not increase
+substitution progress.
+
 ## 7. Next Execution Order
 
-1. Extend the layer-input capability inventory as native AST/HIR bridges reach
+1. Keep the mixed expression bridge as the active executable rung. Concrete
+   scalar trees composed from operators and resolved direct, namespace, and
+   bounded, generic-local, and chained-field receiver calls are graph-owned and
+   their target reaches MIR and hard codegen. Nominal aggregate returns are
+   carried; scalar wrapper policy and collection-mutation admission are also
+   graph/owner-directed. Extend composite consumers one at a time.
+   Do not let an unsupported tree
+   silently fall through a typed/text dual read.
+2. Extend the layer-input capability inventory as native AST/HIR bridges reach
    the active executable rung; do not add global zero claims early.
-2. Add cache-disabled and stale-revision mutation cases to compiler-scale
+3. Add cache-disabled and stale-revision mutation cases to compiler-scale
    semantic memo and future incremental compilation caches.
-3. Migrate existing CLOSED rows from source-copy mutation evidence to actual
+4. Migrate existing CLOSED rows from source-copy mutation evidence to actual
    executable missing-fact fixtures as each row becomes the active rung.

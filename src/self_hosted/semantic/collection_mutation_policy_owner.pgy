@@ -1,0 +1,54 @@
+// Canonical caller-visible collection mutation policy.
+
+import "diagnostic_owner.pgy";
+import "env_owner.pgy";
+
+func SemanticCollectionMutatorName(callee: String) -> Bool {
+    return callee == "ArrayPush" || callee == "ArraySet" ||
+        callee == "ArrayPop" || callee == "ListPush" ||
+        callee == "ListSet" || callee == "ListRemove" ||
+        callee == "SetAdd" || callee == "SetRemove" ||
+        callee == "QueuePush" || callee == "QueuePop" ||
+        callee == "MapSet" || callee == "MapRemove";
+}
+
+func SemanticCollectionTypeName(type_name: String) -> Bool {
+    return StringContains(type_name, "Array<") ||
+        StringContains(type_name, "List<") ||
+        StringContains(type_name, "Set<") ||
+        StringContains(type_name, "Queue<") ||
+        StringContains(type_name, "HashMap<");
+}
+
+func SemanticCollectionMutationError(
+    callee: String,
+    receiver: String,
+    names: Array<String>,
+    types: Array<String>,
+    modes: Array<String>
+) -> String {
+    if !SemanticCollectionMutatorName(callee) ||
+        !IsIdentText(receiver) ||
+        EnvMode(names, modes, receiver) != "default_param" {
+        return "";
+    }
+    let receiver_type: String = EnvLookup(names, types, receiver);
+    if !SemanticCollectionTypeName(receiver_type) { return ""; }
+    return SemanticError3(
+        "value_param_collection_mutation", "func", callee,
+        "param", receiver, "mode", "default"
+    );
+}
+
+func SemanticCollectionMutationPolicyContractReady() -> Bool {
+    return SemanticCollectionMutatorName("ArrayPush") &&
+        SemanticCollectionMutatorName("MapRemove") &&
+        !SemanticCollectionMutatorName("ArrayLength") &&
+        SemanticCollectionTypeName("Array<Int>") &&
+        StringLength(SemanticCollectionMutationError(
+            "ArrayPush", "xs", ["xs"], ["Array<Int>"],
+            ["default_param"]
+        )) > 0 && SemanticCollectionMutationError(
+            "ArrayPush", "xs", ["xs"], ["Array<Int>"], ["inout_param"]
+        ) == "";
+}

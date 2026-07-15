@@ -1,0 +1,107 @@
+// Read-only token and call queries over semantic expression surfaces.
+
+import "ast_expression_surface_fact_owner.pgy";
+
+func SemanticExpressionSurfaceIdentifierByte(c: Int) -> Bool {
+    return SourceByteIsAlphaNum(c) || c == SourceByteOf("_");
+}
+
+func SemanticExpressionSurfaceHasToken(text: String, token: String) -> Bool {
+    let n: Int = StringLength(text);
+    let m: Int = StringLength(token);
+    let i: Int = 0;
+    let in_string: Bool = false;
+    while i < n {
+        let c: Int = SourceByteAt(text, n, i);
+        if in_string {
+            if c == SourceByteOf("\\") { i = i + 2; continue; }
+            if c == SourceByteOf("\"") { in_string = false; }
+            i = i + 1;
+            continue;
+        }
+        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
+        if m > 0 && i + m <= n && SubEqualsWithLen(text, n, i, m, token) {
+            let before_ok: Bool = i == 0 ||
+                !SemanticExpressionSurfaceIdentifierByte(
+                    SourceByteAt(text, n, i - 1)
+                );
+            let after: Int = i + m;
+            let after_ok: Bool = after >= n ||
+                !SemanticExpressionSurfaceIdentifierByte(
+                    SourceByteAt(text, n, after)
+                );
+            if before_ok && after_ok { return true; }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticExpressionSurfaceCalls(text: String, callee: String) -> Bool {
+    let n: Int = StringLength(text);
+    let needle: String = Concat(callee, "(");
+    let m: Int = StringLength(needle);
+    let i: Int = 0;
+    let in_string: Bool = false;
+    while i < n {
+        let c: Int = SourceByteAt(text, n, i);
+        if in_string {
+            if c == SourceByteOf("\\") { i = i + 2; continue; }
+            if c == SourceByteOf("\"") { in_string = false; }
+            i = i + 1;
+            continue;
+        }
+        if c == SourceByteOf("\"") { in_string = true; i = i + 1; continue; }
+        if m > 0 && i + m <= n &&
+            SubEqualsWithLen(text, n, i, m, needle) &&
+            (i == 0 || !SemanticExpressionSurfaceIdentifierByte(
+                SourceByteAt(text, n, i - 1)
+            )) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstExpressionSurfaceTokenPresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    token: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if (facts.has_atoms[i] &&
+                SemanticExpressionSurfaceHasToken(facts.atoms[i], token)) ||
+            (facts.has_values[i] &&
+                SemanticExpressionSurfaceHasToken(facts.values[i], token)) ||
+            (facts.has_auxiliary_values[i] &&
+                SemanticExpressionSurfaceHasToken(
+                    facts.auxiliary_values[i], token
+                )) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func SemanticAstExpressionSurfaceCallPresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    callee: String
+) -> Bool {
+    let i: Int = 0;
+    while i < SemanticAstExpressionSurfaceCount(facts) {
+        if (facts.has_atoms[i] &&
+                SemanticExpressionSurfaceCalls(facts.atoms[i], callee)) ||
+            (facts.has_values[i] &&
+                SemanticExpressionSurfaceCalls(facts.values[i], callee)) ||
+            (facts.has_auxiliary_values[i] &&
+                SemanticExpressionSurfaceCalls(
+                    facts.auxiliary_values[i], callee
+                )) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}

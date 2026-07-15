@@ -59,6 +59,20 @@ func RoutineParamCount(json: String, rpos: Int, header_end: Int) -> Int {
     return count;
 }
 
+func RoutineGenericCount(json: String, rpos: Int, header_end: Int) -> Int {
+    return MirObjectArrayStringFactCount(
+        json, rpos, header_end, "generics"
+    );
+}
+
+func RoutineGenericNameAt(
+    json: String, rpos: Int, header_end: Int, row: Int
+) -> String {
+    return MirObjectArrayStringFactAt(
+        json, rpos, header_end, "generics", row
+    );
+}
+
 func RoutineParamNameAt(json: String, rpos: Int, header_end: Int, row: Int) -> String {
     let bounds: Array<Int> = [0, 0];
     if !MirObjectArrayObjectBoundsAt(json, rpos, header_end, "params", row, bounds) {

@@ -10,7 +10,7 @@ import "ast_statement_fact_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_role_fact_owner.pgy";
 import "ast_expression_surface_fact_owner.pgy";
-import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_call_target_capture_owner.pgy";
 import "ast_expression_typed_binding_owner.pgy";
 import "ast_type_surface_fact_owner.pgy";
 import "ast_kind_surface_fact_owner.pgy";

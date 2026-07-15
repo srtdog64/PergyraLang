@@ -1,71 +1,92 @@
 // Executable contracts for the temporary compact-text expression bridge.
 
-import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_build_owner.pgy";
 
 func SemanticExpressionGraphCompactBridgeTryContractReady() -> Bool {
+    let prefix_kinds: Array<Int> = [];
+    let prefix_texts: Array<String> = [];
+    let prefix_left: Array<Int> = [];
+    let prefix_right: Array<Int> = [];
+    let prefix_target_kinds: Array<Int> = [];
+    let prefix_target_names: Array<String> = [];
     let prefix: SemanticExpressionGraphBuild =
         SemanticExpressionGraphBuildCompactBridgeFromText(
-            SemanticExpressionGraphArenaEmpty(), "(?Pick(x))"
+            prefix_kinds, prefix_texts, prefix_left, prefix_right,
+            prefix_target_kinds, prefix_target_names, "(?Pick(x))"
         );
     if !prefix.ok ||
-        prefix.arena.node_kinds[prefix.root_id] != AstExpressionNodeTry() ||
-        prefix.arena.node_texts[prefix.root_id] != "?Pick(x)" {
+        prefix_kinds[prefix.root_id] != AstExpressionNodeTry() ||
+        prefix_texts[prefix.root_id] != "?Pick(x)" {
         return false;
     }
-    let prefix_operand: Int = prefix.arena.left_children[prefix.root_id];
-    if prefix.arena.node_kinds[prefix_operand] !=
+    let prefix_operand: Int = prefix_left[prefix.root_id];
+    if prefix_kinds[prefix_operand] !=
             AstExpressionNodeCallArgument() {
         return false;
     }
-    let prefix_call: Int = prefix.arena.left_children[prefix_operand];
-    let prefix_argument: Int = prefix.arena.right_children[prefix_operand];
-    let prefix_callee: Int = prefix.arena.left_children[prefix_call];
-    if prefix.arena.node_kinds[prefix_call] != AstExpressionNodeCall() ||
-        prefix.arena.node_texts[prefix_callee] != "Pick" ||
-        prefix.arena.node_texts[prefix_argument] != "x" {
+    let prefix_call: Int = prefix_left[prefix_operand];
+    let prefix_argument: Int = prefix_right[prefix_operand];
+    let prefix_callee: Int = prefix_left[prefix_call];
+    if prefix_kinds[prefix_call] != AstExpressionNodeCall() ||
+        prefix_texts[prefix_callee] != "Pick" ||
+        prefix_texts[prefix_argument] != "x" {
         return false;
     }
 
+    let postfix_kinds: Array<Int> = [];
+    let postfix_texts: Array<String> = [];
+    let postfix_left: Array<Int> = [];
+    let postfix_right: Array<Int> = [];
+    let postfix_target_kinds: Array<Int> = [];
+    let postfix_target_names: Array<String> = [];
     let postfix: SemanticExpressionGraphBuild =
         SemanticExpressionGraphBuildCompactBridgeFromText(
-            SemanticExpressionGraphArenaEmpty(), "1 + value?"
+            postfix_kinds, postfix_texts, postfix_left, postfix_right,
+            postfix_target_kinds, postfix_target_names, "1 + value?"
         );
     if !postfix.ok ||
-        postfix.arena.node_kinds[postfix.root_id] != AstExpressionNodeAdd() {
+        postfix_kinds[postfix.root_id] != AstExpressionNodeAdd() {
         return false;
     }
-    let postfix_try: Int = postfix.arena.right_children[postfix.root_id];
-    if postfix.arena.node_kinds[postfix_try] != AstExpressionNodeTry() ||
-        postfix.arena.node_texts[postfix_try] != "?value" {
+    let postfix_try: Int = postfix_right[postfix.root_id];
+    if postfix_kinds[postfix_try] != AstExpressionNodeTry() ||
+        postfix_texts[postfix_try] != "?value" {
         return false;
     }
-    let postfix_operand: Int = postfix.arena.left_children[postfix_try];
-    return postfix.arena.node_kinds[postfix_operand] ==
+    let postfix_operand: Int = postfix_left[postfix_try];
+    return postfix_kinds[postfix_operand] ==
             AstExpressionNodeLeaf() &&
-        postfix.arena.node_texts[postfix_operand] == "value";
+        postfix_texts[postfix_operand] == "value";
 }
 
 func SemanticExpressionGraphParserBridgeContractReady() -> Bool {
+    let nested_kinds: Array<Int> = [];
+    let nested_texts: Array<String> = [];
+    let nested_left: Array<Int> = [];
+    let nested_right: Array<Int> = [];
+    let nested_target_kinds: Array<Int> = [];
+    let nested_target_names: Array<String> = [];
     let nested: SemanticExpressionGraphBuild =
         SemanticExpressionGraphBuildCompactBridgeFromText(
-            SemanticExpressionGraphArenaEmpty(),
+            nested_kinds, nested_texts, nested_left, nested_right,
+            nested_target_kinds, nested_target_names,
             "line.end.LengthPlus(2)"
         );
-    if !nested.ok || nested.arena.node_kinds[nested.root_id] !=
+    if !nested.ok || nested_kinds[nested.root_id] !=
             AstExpressionNodeCallArgument() {
         return false;
     }
-    let call: Int = nested.arena.left_children[nested.root_id];
-    if nested.arena.node_kinds[call] != AstExpressionNodeCall() {
+    let call: Int = nested_left[nested.root_id];
+    if nested_kinds[call] != AstExpressionNodeCall() {
         return false;
     }
-    let method: Int = nested.arena.left_children[call];
-    if nested.arena.node_kinds[method] !=
+    let method: Int = nested_left[call];
+    if nested_kinds[method] !=
             AstExpressionNodeMemberAccess() {
         return false;
     }
-    let receiver: Int = nested.arena.left_children[method];
-    return nested.arena.node_kinds[receiver] ==
+    let receiver: Int = nested_left[method];
+    return nested_kinds[receiver] ==
             AstExpressionNodeMemberAccess() &&
-        nested.arena.node_texts[receiver] == "line.end";
+        nested_texts[receiver] == "line.end";
 }

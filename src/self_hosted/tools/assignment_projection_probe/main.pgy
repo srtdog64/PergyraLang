@@ -17,13 +17,24 @@ func ProbeAssignmentFacts(
 }
 
 func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
+    let node_kinds: Array<Int> = [];
+    let node_texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let call_target_kinds: Array<Int> = [];
+    let call_target_names: Array<String> = [];
     let built: SemanticExpressionGraphBuild =
         SemanticExpressionGraphBuildCompactBridgeFromText(
-            SemanticExpressionGraphArenaEmpty(), expression
+            node_kinds, node_texts, left_children, right_children,
+            call_target_kinds, call_target_names, expression
         );
     if !built.ok { Die("assignment projection probe graph build failed"); }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names
+    );
     let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
-        true, [built.root_id], [true], built.arena
+        true, [built.root_id], [true], arena
     );
     return SemanticExpressionGraphView(true, built.root_id, facts);
 }

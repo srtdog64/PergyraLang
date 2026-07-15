@@ -2,6 +2,8 @@
 
 import "ast_expression_graph_fact_owner.pgy";
 import "ast_expression_graph_call_view_owner.pgy";
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_resolved_call_type_owner.pgy";
 import "callable_resolution_owner.pgy";
 import "expr_type_owner.pgy";
 import "env_owner.pgy";
@@ -26,9 +28,67 @@ func SemanticExpressionGraphLeafScalarTypeName(
     return "Unknown";
 }
 
+func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
+    return kind == AstExpressionNodeLogicalOr() ||
+        kind == AstExpressionNodeLogicalAnd() ||
+        kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() ||
+        kind == AstExpressionNodeLess() ||
+        kind == AstExpressionNodeLessEqual() ||
+        kind == AstExpressionNodeGreater() ||
+        kind == AstExpressionNodeGreaterEqual() ||
+        kind == AstExpressionNodeAdd() ||
+        kind == AstExpressionNodeSubtract() ||
+        kind == AstExpressionNodeMultiply() ||
+        kind == AstExpressionNodeDivide() ||
+        kind == AstExpressionNodeModulo() ||
+        kind == AstExpressionNodeIndex() ||
+        kind == AstExpressionNodeLogicalNot() ||
+        kind == AstExpressionNodeNegate();
+}
+
+func SemanticExpressionGraphScalarTreeOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Bool {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) { return false; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeLeaf() { return true; }
+    if !SemanticExpressionGraphScalarOperatorKind(kind) { return false; }
+    let left: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if !IsSome(left) || !SemanticExpressionGraphScalarTreeOwned(
+        graph, UnwrapOption(left)
+    ) {
+        return false;
+    }
+    if AstExpressionNodeArity(kind) == 1 { return true; }
+    let right: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    return IsSome(right) && SemanticExpressionGraphScalarTreeOwned(
+        graph, UnwrapOption(right)
+    );
+}
+
+func SemanticExpressionGraphScalarOperatorTypeOwned(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> Bool {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    return IsSome(kind) &&
+        SemanticExpressionGraphScalarOperatorKind(UnwrapOption(kind)) &&
+        SemanticExpressionGraphScalarTreeOwned(graph, root_id);
+}
+
 func SemanticExpressionGraphScalarTypeName(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -53,32 +113,26 @@ func SemanticExpressionGraphScalarTypeName(
             graph, root_id
         );
         if !call.ok { return "Unknown"; }
-        let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            graph, call.callee_node
-        );
-        let callee_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, call.callee_node
-        );
-        if !IsSome(callee_kind) ||
-            UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
-            !IsSome(callee_text) {
-            return "Unknown";
-        }
-        let callee: String = UnwrapOption(callee_text);
+        let target_fact: SemanticExpressionCallTargetFact =
+            SemanticExpressionGraphResolvedCallTarget(
+                graph, root_id, constructors, names, types, function_names
+            );
+        if !target_fact.ok { return "Unknown"; }
+        let callee: String = target_fact.name;
         if callee == "None" { return "Option<Unknown>"; }
         if callee == "IsSome" || callee == "IsOk" || callee == "IsErr" {
             return "Bool";
         }
         if callee == "Some" && ArrayLength(call.argument_nodes) == 1 {
             let payload: String = SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], names, types,
+                graph, call.argument_nodes[0], constructors, names, types,
                 function_names, function_returns
             );
             return Concat("Option<", Concat(payload, ">"));
         }
         if callee == "Ok" && ArrayLength(call.argument_nodes) == 1 {
             let payload2: String = SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], names, types,
+                graph, call.argument_nodes[0], constructors, names, types,
                 function_names, function_returns
             );
             return Concat("Result<", Concat(payload2, ">"));
@@ -87,7 +141,7 @@ func SemanticExpressionGraphScalarTypeName(
         if (callee == "UnwrapOption" || callee == "Unwrap") &&
             ArrayLength(call.argument_nodes) == 1 {
             let wrapped: String = SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], names, types,
+                graph, call.argument_nodes[0], constructors, names, types,
                 function_names, function_returns
             );
             if IsOptionType(wrapped) {
@@ -99,7 +153,7 @@ func SemanticExpressionGraphScalarTypeName(
         }
         if callee == "UnwrapOr" && ArrayLength(call.argument_nodes) == 2 {
             let wrapped2: String = SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], names, types,
+                graph, call.argument_nodes[0], constructors, names, types,
                 function_names, function_returns
             );
             let result_payload2: Option<String> = ResultPayloadTypeOpt(wrapped2);
@@ -108,24 +162,23 @@ func SemanticExpressionGraphScalarTypeName(
                 return UnwrapOption(result_payload2);
             }
             return SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[1], names, types,
+                graph, call.argument_nodes[1], constructors, names, types,
                 function_names, function_returns
             );
         }
         if (callee == "Abs" || callee == "Min" || callee == "Max" ||
             callee == "Clamp") && ArrayLength(call.argument_nodes) > 0 {
             return SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], names, types,
+                graph, call.argument_nodes[0], constructors, names, types,
                 function_names, function_returns
             );
         }
-        let target: Option<Int> = SemanticCallableIndex(
-            function_names, callee
-        );
-        if IsSome(target) {
-            let resolved: String = function_returns[UnwrapOption(target)];
-            return resolved;
-        }
+        let resolved: Option<String> =
+            SemanticExpressionGraphResolvedCallReturnTypeName(
+                graph, root_id, constructors, names, types,
+                function_names, function_returns
+            );
+        if IsSome(resolved) { return UnwrapOption(resolved); }
         return "Unknown";
     }
     let left_opt: Option<Int> = SemanticExpressionGraphLeftChild(
@@ -133,7 +186,7 @@ func SemanticExpressionGraphScalarTypeName(
     );
     if !IsSome(left_opt) { return "Unknown"; }
     let left: String = SemanticExpressionGraphScalarTypeName(
-        graph, UnwrapOption(left_opt), names, types,
+        graph, UnwrapOption(left_opt), constructors, names, types,
         function_names, function_returns
     );
     if kind == AstExpressionNodeLogicalNot() {
@@ -159,7 +212,7 @@ func SemanticExpressionGraphScalarTypeName(
     );
     if !IsSome(right_opt) { return "Unknown"; }
     let right: String = SemanticExpressionGraphScalarTypeName(
-        graph, UnwrapOption(right_opt), names, types,
+        graph, UnwrapOption(right_opt), constructors, names, types,
         function_names, function_returns
     );
     if kind == AstExpressionNodeLogicalAnd() ||
@@ -198,6 +251,11 @@ func SemanticExpressionGraphScalarTypeName(
 }
 
 func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
+    );
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let cursor: Array<Int> = [0];
     let fact: ParserExpressionFact = ParseExprFact("i + 1", 0, cursor);
     if !fact.ok || cursor[0] != 5 { return false; }
@@ -210,8 +268,8 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
         );
     let empty: Array<String> = [];
     return SemanticExpressionGraphScalarTypeName(
-        graph, fact.root, ["i"], ["Int"], empty, empty
+        graph, fact.root, constructors, ["i"], ["Int"], empty, empty
     ) == "Int" && SemanticExpressionGraphScalarTypeName(
-        graph, fact.root, ["i"], ["String"], empty, empty
+        graph, fact.root, constructors, ["i"], ["String"], empty, empty
     ) == "Unknown";
 }

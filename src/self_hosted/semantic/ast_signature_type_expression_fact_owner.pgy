@@ -1,0 +1,460 @@
+// Structured parameter and return type expressions captured with signatures.
+
+import "delimited_range_fact_owner.pgy";
+
+struct SemanticAstSignatureTypeExpressionFacts {
+    ok: Bool;
+    return_roots: Array<Int>;
+    parameter_roots: Array<Int>;
+    node_names: Array<String>;
+    child_starts: Array<Int>;
+    child_counts: Array<Int>;
+    children: Array<Int>;
+}
+
+func SemanticAstSignatureTypeExpressionAppend(
+    type_name: String,
+    inout node_names: Array<String>,
+    inout child_starts: Array<Int>,
+    inout child_counts: Array<Int>,
+    inout children: Array<Int>
+) -> Option<Int> {
+    let text: String = StringTrim(type_name);
+    let n: Int = StringLength(text);
+    if n == 0 {
+        return None;
+    }
+    let open: Int = StringIndexOf(text, "<");
+    if open < 0 {
+        if StringIndexOf(text, ">") >= 0 {
+            return None;
+        }
+        let leaf: Int = ArrayLength(node_names);
+        ArrayPush(node_names, text);
+        ArrayPush(child_starts, ArrayLength(children));
+        ArrayPush(child_counts, 0);
+        return Some(leaf);
+    }
+    if open == 0 || n < open + 3 || CharAt(text, n - 1) != ">" {
+        return None;
+    }
+    let base: String = StringTrim(Substring(text, 0, open));
+    if StringLength(base) == 0 || StringIndexOf(base, ">") >= 0 {
+        return None;
+    }
+    let inner: String = Substring(text, open + 1, n - open - 2);
+    let ranges: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(inner);
+    if SemanticDelimitedRangeCount(ranges) == 0 {
+        return None;
+    }
+    let child_nodes: Array<Int> = [];
+    let i: Int = 0;
+    while i < SemanticDelimitedRangeCount(ranges) {
+        let child: Option<Int> = SemanticAstSignatureTypeExpressionAppend(
+            SemanticDelimitedRangeText(ranges, inner, i),
+            node_names, child_starts, child_counts, children
+        );
+        if !IsSome(child) {
+            return None;
+        }
+        ArrayPush(child_nodes, UnwrapOption(child));
+        i = i + 1;
+    }
+    let root: Int = ArrayLength(node_names);
+    let child_start: Int = ArrayLength(children);
+    i = 0;
+    while i < ArrayLength(child_nodes) {
+        ArrayPush(children, child_nodes[i]);
+        i = i + 1;
+    }
+    ArrayPush(node_names, base);
+    ArrayPush(child_starts, child_start);
+    ArrayPush(child_counts, ArrayLength(child_nodes));
+    return Some(root);
+}
+
+func SemanticAstSignatureTypeExpressionFactsFromRows(
+    return_types: Array<String>,
+    parameter_types: Array<String>
+) -> SemanticAstSignatureTypeExpressionFacts {
+    let return_roots: Array<Int> = [];
+    let parameter_roots: Array<Int> = [];
+    let node_names: Array<String> = [];
+    let child_starts: Array<Int> = [];
+    let child_counts: Array<Int> = [];
+    let children: Array<Int> = [];
+    let ok: Bool = true;
+    let i: Int = 0;
+    while i < ArrayLength(return_types) && ok {
+        let root: Option<Int> = SemanticAstSignatureTypeExpressionAppend(
+            return_types[i], node_names, child_starts, child_counts, children
+        );
+        if !IsSome(root) {
+            ok = false;
+        } else {
+            ArrayPush(return_roots, UnwrapOption(root));
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(parameter_types) && ok {
+        let parameter_root: Option<Int> =
+            SemanticAstSignatureTypeExpressionAppend(
+                parameter_types[i], node_names, child_starts, child_counts,
+                children
+            );
+        if !IsSome(parameter_root) {
+            ok = false;
+        } else {
+            ArrayPush(parameter_roots, UnwrapOption(parameter_root));
+        }
+        i = i + 1;
+    }
+    return SemanticAstSignatureTypeExpressionFacts(
+        ok, return_roots, parameter_roots,
+        node_names, child_starts, child_counts, children
+    );
+}
+
+func SemanticAstSignatureTypeExpressionFormalIndex(
+    type_name: String,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < generic_count {
+        if generic_names[generic_start + i] == type_name {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SemanticAstSignatureTypeExpressionRenderNode(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    node: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    bindings: Array<String>,
+    remaining: Int
+) -> Option<String> {
+    let node_count: Int = ArrayLength(facts.node_names);
+    if remaining <= 0 || node < 0 || node >= node_count ||
+        ArrayLength(facts.child_starts) != node_count ||
+        ArrayLength(facts.child_counts) != node_count {
+        return None;
+    }
+    let start: Int = facts.child_starts[node];
+    let count: Int = facts.child_counts[node];
+    if start < 0 || count < 0 || start + count > ArrayLength(facts.children) {
+        return None;
+    }
+    if count == 0 {
+        let formal: Option<Int> = SemanticAstSignatureTypeExpressionFormalIndex(
+            facts.node_names[node], generic_start, generic_count, generic_names
+        );
+        if IsSome(formal) {
+            let binding_index: Int = UnwrapOption(formal);
+            if binding_index >= ArrayLength(bindings) ||
+                bindings[binding_index] == "" {
+                return None;
+            }
+            return Some(bindings[binding_index]);
+        }
+        return Some(facts.node_names[node]);
+    }
+    let rendered: String = Concat(facts.node_names[node], "<");
+    let i: Int = 0;
+    while i < count {
+        let child: Option<String> = SemanticAstSignatureTypeExpressionRenderNode(
+            facts, facts.children[start + i], generic_start, generic_count,
+            generic_names, bindings, remaining - 1
+        );
+        if !IsSome(child) {
+            return None;
+        }
+        if i > 0 {
+            rendered = Concat(rendered, ", ");
+        }
+        rendered = Concat(rendered, UnwrapOption(child));
+        i = i + 1;
+    }
+    return Some(Concat(rendered, ">"));
+}
+
+func SemanticAstSignatureTypeExpressionResolveRoot(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    root: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    bindings: Array<String>
+) -> Option<String> {
+    if !facts.ok || root < 0 || root >= ArrayLength(facts.node_names) ||
+        generic_start < 0 || generic_count < 0 ||
+        generic_start + generic_count > ArrayLength(generic_names) ||
+        ArrayLength(bindings) != generic_count {
+        return None;
+    }
+    return SemanticAstSignatureTypeExpressionRenderNode(
+        facts, root, generic_start, generic_count,
+        generic_names, bindings, ArrayLength(facts.node_names) + 1
+    );
+}
+
+func SemanticAstSignatureReturnTypeResolveAt(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    signature_index: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    bindings: Array<String>
+) -> Option<String> {
+    if !facts.ok || signature_index < 0 ||
+        signature_index >= ArrayLength(facts.return_roots) {
+        return None;
+    }
+    return SemanticAstSignatureTypeExpressionResolveRoot(
+        facts, facts.return_roots[signature_index], generic_start,
+        generic_count, generic_names, bindings
+    );
+}
+
+func SemanticAstSignatureTypeExpressionRootHasFormal(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    root: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>
+) -> Bool {
+    if !facts.ok || root < 0 || root >= ArrayLength(facts.node_names) ||
+        ArrayLength(facts.child_starts) != ArrayLength(facts.node_names) ||
+        ArrayLength(facts.child_counts) != ArrayLength(facts.node_names) {
+        return false;
+    }
+    let pending: Array<Int> = [root];
+    let remaining: Int = ArrayLength(facts.node_names) + 1;
+    while ArrayLength(pending) > 0 && remaining > 0 {
+        let last: Int = ArrayLength(pending) - 1;
+        let node: Int = pending[last];
+        ArrayPop(pending);
+        if node < 0 || node >= ArrayLength(facts.node_names) {
+            return false;
+        }
+        if IsSome(SemanticAstSignatureTypeExpressionFormalIndex(
+            facts.node_names[node], generic_start, generic_count, generic_names
+        )) {
+            return true;
+        }
+        let start: Int = facts.child_starts[node];
+        let count: Int = facts.child_counts[node];
+        if start < 0 || count < 0 || start + count > ArrayLength(facts.children) {
+            return false;
+        }
+        let i: Int = 0;
+        while i < count {
+            ArrayPush(pending, facts.children[start + i]);
+            i = i + 1;
+        }
+        remaining = remaining - 1;
+    }
+    return false;
+}
+
+func SemanticAstSignatureReturnTypeHasFormalAt(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    signature_index: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>
+) -> Bool {
+    if signature_index < 0 ||
+        signature_index >= ArrayLength(facts.return_roots) {
+        return false;
+    }
+    return SemanticAstSignatureTypeExpressionRootHasFormal(
+        facts, facts.return_roots[signature_index], generic_start,
+        generic_count, generic_names
+    );
+}
+
+func SemanticAstSignatureParameterTypeHasFormalAt(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    parameter_index: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>
+) -> Bool {
+    if parameter_index < 0 ||
+        parameter_index >= ArrayLength(facts.parameter_roots) {
+        return false;
+    }
+    return SemanticAstSignatureTypeExpressionRootHasFormal(
+        facts, facts.parameter_roots[parameter_index], generic_start,
+        generic_count, generic_names
+    );
+}
+
+func SemanticAstSignatureTypeExpressionBindNodes(
+    expected: SemanticAstSignatureTypeExpressionFacts,
+    expected_node: Int,
+    actual: SemanticAstSignatureTypeExpressionFacts,
+    actual_node: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    inout bindings: Array<String>,
+    remaining: Int
+) -> Bool {
+    if remaining <= 0 || expected_node < 0 || actual_node < 0 ||
+        expected_node >= ArrayLength(expected.node_names) ||
+        actual_node >= ArrayLength(actual.node_names) {
+        return false;
+    }
+    let expected_start: Int = expected.child_starts[expected_node];
+    let expected_count: Int = expected.child_counts[expected_node];
+    let actual_start: Int = actual.child_starts[actual_node];
+    let actual_count: Int = actual.child_counts[actual_node];
+    if expected_start < 0 || expected_count < 0 ||
+        expected_start + expected_count > ArrayLength(expected.children) ||
+        actual_start < 0 || actual_count < 0 ||
+        actual_start + actual_count > ArrayLength(actual.children) {
+        return false;
+    }
+    let formal: Option<Int> = SemanticAstSignatureTypeExpressionFormalIndex(
+        expected.node_names[expected_node], generic_start, generic_count,
+        generic_names
+    );
+    if IsSome(formal) {
+        if expected_count != 0 {
+            return false;
+        }
+        let empty_names: Array<String> = [];
+        let empty_bindings: Array<String> = [];
+        let rendered: Option<String> =
+            SemanticAstSignatureTypeExpressionResolveRoot(
+                actual, actual_node, 0, 0, empty_names, empty_bindings
+            );
+        let binding_index: Int = UnwrapOption(formal);
+        if !IsSome(rendered) || binding_index < 0 ||
+            binding_index >= ArrayLength(bindings) {
+            return false;
+        }
+        if bindings[binding_index] == "" {
+            ArraySet(bindings, binding_index, UnwrapOption(rendered));
+            return true;
+        }
+        return bindings[binding_index] == UnwrapOption(rendered);
+    }
+    if expected.node_names[expected_node] != actual.node_names[actual_node] ||
+        expected_count != actual_count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < expected_count {
+        if !SemanticAstSignatureTypeExpressionBindNodes(
+            expected, expected.children[expected_start + i],
+            actual, actual.children[actual_start + i],
+            generic_start, generic_count, generic_names, bindings,
+            remaining - 1
+        ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstSignatureParameterTypeBindAt(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    parameter_index: Int,
+    generic_start: Int,
+    generic_count: Int,
+    generic_names: Array<String>,
+    actual_type: String,
+    inout bindings: Array<String>
+) -> Bool {
+    if !facts.ok || parameter_index < 0 ||
+        parameter_index >= ArrayLength(facts.parameter_roots) {
+        return false;
+    }
+    let actual_rows: Array<String> = [actual_type];
+    let no_parameters: Array<String> = [];
+    let actual: SemanticAstSignatureTypeExpressionFacts =
+        SemanticAstSignatureTypeExpressionFactsFromRows(
+            actual_rows, no_parameters
+        );
+    if !actual.ok || ArrayLength(actual.return_roots) != 1 {
+        return false;
+    }
+    return SemanticAstSignatureTypeExpressionBindNodes(
+        facts, facts.parameter_roots[parameter_index],
+        actual, actual.return_roots[0], generic_start, generic_count,
+        generic_names, bindings,
+        ArrayLength(facts.node_names) + ArrayLength(actual.node_names) + 2
+    );
+}
+
+func SemanticAstSignatureTypeExpressionFactsMatchRows(
+    facts: SemanticAstSignatureTypeExpressionFacts,
+    return_types: Array<String>,
+    parameter_types: Array<String>
+) -> Bool {
+    if !facts.ok ||
+        ArrayLength(facts.return_roots) != ArrayLength(return_types) ||
+        ArrayLength(facts.parameter_roots) != ArrayLength(parameter_types) {
+        return false;
+    }
+    let empty_names: Array<String> = [];
+    let empty_bindings: Array<String> = [];
+    let i: Int = 0;
+    while i < ArrayLength(return_types) {
+        let rendered: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
+            facts, i, 0, 0, empty_names, empty_bindings
+        );
+        if !IsSome(rendered) || UnwrapOption(rendered) != return_types[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < ArrayLength(parameter_types) {
+        let rendered_parameter: Option<String> =
+            SemanticAstSignatureTypeExpressionResolveRoot(
+                facts, facts.parameter_roots[i], 0, 0,
+                empty_names, empty_bindings
+            );
+        if !IsSome(rendered_parameter) ||
+            UnwrapOption(rendered_parameter) != parameter_types[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstSignatureTypeExpressionFactContractReady() -> Bool {
+    let returns: Array<String> = ["Option<T>"];
+    let parameters: Array<String> = ["Array<T>"];
+    let facts: SemanticAstSignatureTypeExpressionFacts =
+        SemanticAstSignatureTypeExpressionFactsFromRows(returns, parameters);
+    let names: Array<String> = ["T"];
+    let bindings: Array<String> = [""];
+    if !SemanticAstSignatureParameterTypeBindAt(
+        facts, 0, 0, 1, names, "Array<Int>", bindings
+    ) {
+        return false;
+    }
+    let resolved: Option<String> = SemanticAstSignatureReturnTypeResolveAt(
+        facts, 0, 0, 1, names, bindings
+    );
+    return SemanticAstSignatureTypeExpressionFactsMatchRows(
+        facts, returns, parameters
+    ) &&
+        IsSome(resolved) &&
+        UnwrapOption(resolved) == "Option<Int>";
+}

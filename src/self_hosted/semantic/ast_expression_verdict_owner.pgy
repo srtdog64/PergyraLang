@@ -5,7 +5,14 @@ import "expr_type_owner.pgy";
 import "expr_validation_owner.pgy";
 import "ast_expression_graph_identifier_owner.pgy";
 import "ast_expression_graph_type_owner.pgy";
+import "ast_expression_graph_resolved_call_type_owner.pgy";
+import "ast_expression_graph_generic_call_owner.pgy";
+import "ast_expression_graph_concrete_scalar_verdict_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_scalar_verdict_owner.pgy";
 import "ast_expression_graph_struct_type_verdict_owner.pgy";
+import "ast_expression_graph_wrapper_value_owner.pgy";
+import "ast_expression_graph_collection_mutation_owner.pgy";
 import "call_check_owner.pgy";
 import "diagnostic_owner.pgy";
 
@@ -92,6 +99,7 @@ func SemanticAstExpressionVerdictFromGraph(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     modes: Array<String>,
@@ -107,7 +115,7 @@ func SemanticAstExpressionVerdictFromGraph(
         );
     let struct_type_error: String =
         SemanticExpressionGraphStructValueTypeError(
-            graph, root_id, constructors, names, types,
+            graph, root_id, constructors, signatures, names, types,
             function_names, function_returns
         );
     if StringLength(struct_type_error) > 0 {
@@ -116,8 +124,56 @@ func SemanticAstExpressionVerdictFromGraph(
     let graph_owned_struct_option: Bool = IsSome(intrinsic) &&
         StartsWith(UnwrapOption(intrinsic), "Option<") &&
         UnwrapOption(intrinsic) != "Option<Unknown>";
+    let wrapper: SemanticExpressionGraphWrapperValueFact =
+        SemanticExpressionGraphWrapperValueFactFromGraph(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns, function_params
+        );
+    if wrapper.applies && !wrapper.ok {
+        return SemanticAstExpressionVerdict(
+            false, wrapper.diagnostic_code, wrapper.diagnostic_message,
+            text, "Unknown"
+        );
+    }
+    let collection_mutation: SemanticExpressionGraphCollectionMutationFact =
+        SemanticExpressionGraphCollectionMutationFactFromGraph(
+            graph, root_id, names, types, modes
+        );
+    if collection_mutation.applies && !collection_mutation.ok {
+        return SemanticAstExpressionVerdict(
+            false, collection_mutation.diagnostic_code,
+            collection_mutation.diagnostic_message, text, "Unknown"
+        );
+    }
+    let resolved_call_type: Option<String> =
+        SemanticExpressionGraphResolvedCallReturnTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    let generic_call: SemanticExpressionGraphGenericCallFact =
+        SemanticExpressionGraphGenericCallFactFromGraph(
+            graph, root_id, signatures, constructors, names, types,
+            function_names, function_returns
+        );
+    if generic_call.applies && !generic_call.ok {
+        return SemanticAstExpressionVerdict(
+            false, generic_call.diagnostic_code,
+            generic_call.diagnostic_message, text, "Unknown"
+        );
+    }
+    let concrete_scalar_value_owned: Bool =
+        SemanticExpressionGraphConcreteScalarValueOwned(
+            graph, root_id, constructors, names, types, function_names,
+            function_returns, function_params
+        );
     let call_error: String = "";
-    if !graph_owned_struct_option {
+    if concrete_scalar_value_owned {
+        call_error = SemanticExpressionGraphConcreteScalarValueError(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns, function_params
+        );
+    } else if !graph_owned_struct_option && !generic_call.applies &&
+        !wrapper.applies {
         call_error = CheckCallFromGraphIdentifiers(
             text, names, types, modes,
             function_names, function_returns, function_params
@@ -150,24 +206,47 @@ func SemanticAstExpressionVerdictFromGraph(
     if StringLength(try_error) > 0 {
         return SemanticAstExpressionVerdictError(text, try_error);
     }
-    let logical_error: String = CheckLogicalOperands(
-        text, names, types, function_names, function_returns
+    let root_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, root_id
     );
-    if StringLength(logical_error) > 0 {
-        return SemanticAstExpressionVerdictError(text, logical_error);
+    let scalar_operator_owned: Bool = concrete_scalar_value_owned &&
+        IsSome(root_kind) && SemanticExpressionGraphScalarOperatorKind(
+            UnwrapOption(root_kind)
+        );
+    let operand_error: String = "";
+    if !concrete_scalar_value_owned {
+        operand_error = CheckLogicalOperands(
+            text, names, types, function_names, function_returns
+        );
+        if StringLength(operand_error) == 0 {
+            operand_error = CheckBinaryOperands(
+                text, names, types, function_names, function_returns
+            );
+        }
     }
-    let binary_error: String = CheckBinaryOperands(
-        text, names, types, function_names, function_returns
-    );
-    if StringLength(binary_error) > 0 {
-        return SemanticAstExpressionVerdictError(text, binary_error);
+    if StringLength(operand_error) > 0 {
+        return SemanticAstExpressionVerdictError(text, operand_error);
     }
-    let inferred: String = ExprType(
-        text, names, types, function_names, function_returns
-    );
-    if inferred == "Unknown" || inferred == "" ||
-        inferred == "Option<Unknown>" {
-        if IsSome(intrinsic) { inferred = UnwrapOption(intrinsic); }
+    let inferred: String = "Unknown";
+    if wrapper.applies {
+        inferred = wrapper.type_name;
+    } else if generic_call.applies {
+        inferred = generic_call.return_type_name;
+    } else if scalar_operator_owned {
+        inferred = SemanticExpressionGraphScalarTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    } else if IsSome(resolved_call_type) {
+        inferred = UnwrapOption(resolved_call_type);
+    } else {
+        inferred = ExprType(
+            text, names, types, function_names, function_returns
+        );
+        if inferred == "Unknown" || inferred == "" ||
+            inferred == "Option<Unknown>" {
+            if IsSome(intrinsic) { inferred = UnwrapOption(intrinsic); }
+        }
     }
     return SemanticAstExpressionVerdictOk(text, inferred);
 }

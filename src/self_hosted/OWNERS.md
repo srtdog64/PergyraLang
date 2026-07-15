@@ -60,6 +60,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.
+- `src/self_hosted/parser/expression_generic_actual_owner.pgy` -- ordered
+  explicit generic actual nodes and generic-callee spine construction.
 - `src/self_hosted/parser/expr_postfix_owner.pgy` -- postfix call/index/try
   parsing, including canonical `AstExpressionNodeTry` ownership and its operand
   edge.
@@ -92,9 +94,16 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_artifact_verdict_owner.pgy` -- semantic
   evidence derived directly from the shared parser-owned `AstTreeArtifact`.
 - `src/self_hosted/semantic/ast_signature_fact_owner.pgy` -- artifact-bound
-  function owner, name, parameter, mode, and return signature facts, including
-  ordered function node/name identity for entrypoint cardinality, selection,
-  and top-level function declaration routing.
+  function owner, name, formal-generic, parameter, mode, and return signature
+  facts, including ordered function node/name identity for entrypoint
+  cardinality, selection, and top-level function declaration routing.
+- `src/self_hosted/semantic/ast_generic_parameter_fact_owner.pgy` -- typed
+  generic-list node to ordered formal-parameter rows; provenance parsing by
+  expression consumers is forbidden.
+- `src/self_hosted/semantic/ast_signature_type_expression_fact_owner.pgy` --
+  one flat parameter/return type-expression arena captured with signature
+  rows; generic call consumers unify and materialize nodes without reparsing
+  source text.
 - `src/self_hosted/semantic/ast_signature_artifact_match_owner.pgy` -- reverse
   artifact validation for signature rows; production and query ownership stays
   in the signature fact owner.
@@ -135,15 +144,40 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.
+- `src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy` --
+  canonical receiver/member handle projection over parser-owned member-access
+  nodes; semantic and codegen consumers share this view.
+- `src/self_hosted/semantic/ast_expression_graph_resolved_call_type_owner.pgy`
+  -- canonical return-type projection from graph-owned direct, namespace, and
+  receiver-bound call targets, plus the explicit concrete-scalar capability
+  filter used by scalar validation.
+- `src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy` --
+  exact and nested generic argument binding plus structured return
+  substitution from one signature type-expression arena and graph argument
+  handles; source-text inference is forbidden.
+- `src/self_hosted/semantic/ast_expression_graph_concrete_scalar_verdict_owner.pgy`
+  -- capability, arity, operand, and argument-type verdicts for graph-owned
+  scalar trees composed from leaves, operators, and concrete direct calls.
 - `src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy` --
   canonical nominal type, field-name, and value-handle projection over
   parser-owned struct literal spines; semantic and codegen share this view.
 - `src/self_hosted/semantic/ast_expression_graph_struct_type_verdict_owner.pgy`
   -- nominal constructor field/cardinality/type verdicts over that graph view.
+- `src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy` --
+  graph-only aggregate field value type and assignability projection, including
+  structural integer-literal widening.
 - `src/self_hosted/semantic/ast_expression_graph_type_owner.pgy` -- intrinsic
   nominal result types carried by parser-owned expression graph nodes.
 - `src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy` --
   scalar result-type projection from parser-owned expression node handles.
+- `src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy` --
+  graph-only Option/Result builtin type and diagnostic facts; carried call
+  targets and typed signature rows are mandatory for the covered scalar lane.
+- `src/self_hosted/semantic/ast_expression_graph_collection_mutation_owner.pgy`
+  -- graph call-target and receiver projection for collection mutation policy;
+  source argument text is not a semantic fallback.
+- `src/self_hosted/semantic/ast_expression_graph_scalar_verdict_owner.pgy` --
+  operand diagnostics for fully graph-owned scalar operator trees.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
@@ -154,7 +188,9 @@ inventory must not become a second fact-family owner registry.
   verdict across initializer, iteration, assignment, and statement owners.
 - `src/self_hosted/semantic/ast_body_type_bundle_owner.pgy` -- canonical
   one-pass assembly of initializer, iteration, assignment, and statement type
-  facts consumed by driver and codegen projections.
+  facts plus readiness diagnostics consumed by driver and codegen projections.
+- `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
+  body-fixpoint resolution of canonical expression call-target rows.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
@@ -175,8 +211,11 @@ inventory must not become a second fact-family owner registry.
   declaration identity, name, target type, and owned method `NodeId` rows.
 - `src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy` --
   artifact-bound atom/value/auxiliary expression surfaces, normalized
-  top-level operator rows, and string-safe call/token queries consumed by
-  semantic and runtime projection.
+  top-level operator rows, and expression-graph bindings consumed by semantic
+  and runtime projection.
+- `src/self_hosted/semantic/ast_expression_surface_query_owner.pgy` --
+  read-only, string-safe call/token queries over canonical expression surface
+  rows; this is a consumer and not a second surface-fact owner.
 - `src/self_hosted/semantic/ast_expression_surface_contract_owner.pgy` --
   executable compact-bridge and expression-topology contract kept outside the
   production fact owner.
@@ -185,11 +224,24 @@ inventory must not become a second fact-family owner registry.
   codegen projections; compact-text production remains an explicit bridge for
   non-migrated expression owners and legacy/native canonicalization, not an
   alternate hard-codegen authority.
+- `src/self_hosted/semantic/ast_expression_graph_build_owner.pgy` -- compact
+  bridge row construction. Recursive calls carry the six row arrays directly;
+  compiler-scale graph aggregates may not cross an `inout` ABI boundary.
 - `src/self_hosted/semantic/ast_expression_graph_bridge_contract_owner.pgy` --
   executable topology contracts for the temporary compact-text graph bridge.
 - `src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy` --
-  canonical namespace-call target identity derived by callable resolution,
-  carried by self MIR, and verified before hard codegen consumption.
+  canonical direct, namespace, and receiver-bound call identity derived from
+  callable, local-type, and nominal field facts; direct, namespace, and
+  receiver targets are carried by self MIR and consumed by hard codegen.
+- `src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy` --
+  signature-only initial capture of direct and namespace call-target rows;
+  body fixpoint resolution remains with the canonical target fact owner.
+- `src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy` --
+  executable positive and missing-target contract kept outside the production
+  call-target owner.
+- `src/self_hosted/semantic/ast_expression_graph_receiver_type_owner.pgy` --
+  read-only receiver type projection over expression handles and canonical
+  nominal field facts; dotted source text and codegen type rows are forbidden.
 - `src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy` -- binds
   parser/HIR `(owner kind, lane, root)` rows to semantic expression slots.
 - `src/self_hosted/semantic/ast_type_surface_fact_owner.pgy` -- canonical
@@ -208,6 +260,11 @@ inventory must not become a second fact-family owner registry.
   string/parenthesis-aware top-level operator-position fact consumed by typing
   and logical/binary diagnostics.
 - `src/self_hosted/semantic/expr_type_owner.pgy` -- expression type facts.
+- `src/self_hosted/semantic/wrapper_type_owner.pgy` -- canonical Option/Result
+  type-shape and payload projection policy shared by legacy and graph lanes.
+- `src/self_hosted/semantic/collection_mutation_policy_owner.pgy` -- canonical
+  mutator, collection type, and parameter-mode policy shared by source,
+  statement-fact, and expression-graph consumers.
 - `src/self_hosted/semantic/expr_validation_owner.pgy` -- expression validation facts.
 - `src/self_hosted/semantic/program_check_owner.pgy` -- program/function signature checks.
 - `src/self_hosted/semantic/semantic_run_owner.pgy` -- semantic CLI run boundary.
@@ -239,6 +296,20 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/hir/typed_ast_arena_owner.pgy` -- shared typed AST arena
   payload contract and `NodeId` lookup facts.
 
+## Focused Substitution Probes
+
+- `src/self_hosted/tools/generic_return_probe/main.pgy` -- executable
+  exact/nested and explicit generic parameter/return projection,
+  carried-target mutation, ordered-actual conflict, and structural mismatch
+  proof.
+- `src/self_hosted/tools/wrapper_policy_probe/main.pgy` -- executable
+  Option/Result graph-policy projection, native C oracle parity, and missing
+  carried-target rejection proof.
+- `src/self_hosted/tools/collection_policy_probe/main.pgy` -- executable
+  specialized-statement and graph-call collection mutation policy proof.
+- `src/self_hosted/tools/aggregate_field_policy_probe/main.pgy` -- executable
+  aggregate field graph typing, type-drift, and missing-child-fact proof.
+
 ## MIR Producer
 
 - `src/self_hosted/mir/program_fact_owner.pgy` -- flat declaration, routine,
@@ -247,12 +318,16 @@ inventory must not become a second fact-family owner registry.
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
   normalized expression graph rows and postorder subtree carriage.
+- `src/self_hosted/mir/expression_graph_kind_name_owner.pgy` -- stable MIR JSON
+  names for expression graph node kinds.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
   block edges, instruction IDs, termination, and local SSA version updates.
 - `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
   lowering as one value-state transformer with explicit loop/branch topology.
+- `src/self_hosted/mir/routine_let_owner.pgy` -- semantic initializer row to
+  MIR local declaration and SSA definition lowering.
 - `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
   signature parameter seeding, and routine-lowering entry.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
@@ -415,6 +490,15 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/tools/assignment_projection_probe/main.pgy` -- focused
   executable proof that scalar and indexed assignments consume semantic
   expected, target, and expression-graph facts under C/LLVM parity.
+- `src/self_hosted/tools/initializer_projection_probe/main.pgy` -- focused
+  executable proof that unannotated local types reach MIR through semantic
+  initializer rows, direct scalar argument trees, and fail-closed graph damage.
+- `src/self_hosted/tools/gate_dashboard/main.pgy` -- Pergyra-owned gate
+  dashboard CLI and manifest/result composition boundary.
+- `src/self_hosted/tools/gate_dashboard/result_owner.pgy` -- fail-closed gate
+  result artifact parser for IDs, outcomes, durations, and details.
+- `src/self_hosted/tools/gate_dashboard/report_owner.pgy` -- stable dashboard
+  JSON, health, budget, and summary projection.
 - `src/self_hosted/tools/compatibility_evolution_checker/main.pgy` --
   compatibility row analysis, fail-closed self-test modes, and checker
   entrypoint.
@@ -524,6 +608,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/compiler/completeness_impact_owner.pgy` -- rung0
   changed-path impact plan rows, proof-gate grouping, and impact planner path
   manifest facts.
+- `src/self_hosted/compiler/gate_dashboard_owner.pgy` -- active hard self-host
+  gate identity, Make target, tier, budget, declared state, and owner-fact rows.
 - `src/self_hosted/compiler/incremental_fact_graph_owner.pgy` -- compiler-scale
   incremental fact graph schema, dependency axes, reusable artifact kinds, and
   clean/incremental verifier vocabulary. The current completeness cache remains

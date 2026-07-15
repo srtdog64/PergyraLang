@@ -322,6 +322,8 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelStringCount(count, rows.kinds) ||
         !SelfMirParallelStringCount(count, rows.owners) ||
         !SelfMirParallelStringCount(count, rows.return_types) ||
+        !SelfMirParallelCount(count, rows.generic_starts) ||
+        !SelfMirParallelCount(count, rows.generic_counts) ||
         !SelfMirParallelCount(count, rows.param_starts) ||
         !SelfMirParallelCount(count, rows.param_counts) ||
         !SelfMirParallelCount(count, rows.block_starts) ||
@@ -334,6 +336,7 @@ func SelfMirRoutineRowsReady(
         return false;
     }
     let param_cursor: Int = 0;
+    let generic_cursor: Int = 0;
     let block_cursor: Int = 0;
     let local_cursor: Int = 0;
     let i: Int = 0;
@@ -341,6 +344,8 @@ func SelfMirRoutineRowsReady(
         if rows.names[i] == "" || rows.return_types[i] == "" ||
             (rows.kinds[i] != "function" && rows.kinds[i] != "method") ||
             (rows.kinds[i] == "method" && rows.owners[i] == "") ||
+            rows.generic_starts[i] != generic_cursor ||
+            rows.generic_counts[i] < 0 ||
             rows.param_starts[i] != param_cursor || rows.param_counts[i] < 0 ||
             rows.block_starts[i] != block_cursor || rows.block_counts[i] <= 0 ||
             rows.local_starts[i] != local_cursor || rows.local_counts[i] < 0 {
@@ -360,6 +365,14 @@ func SelfMirRoutineRowsReady(
             }
             block_i = block_i + 1;
         }
+        let generic_i: Int = 0;
+        while generic_i < rows.generic_counts[i] {
+            if rows.generic_names[generic_cursor + generic_i] == "" {
+                return false;
+            }
+            generic_i = generic_i + 1;
+        }
+        generic_cursor = generic_cursor + rows.generic_counts[i];
         param_cursor = param_cursor + rows.param_counts[i];
         block_cursor = block_cursor + rows.block_counts[i];
         local_cursor = local_cursor + rows.local_counts[i];
@@ -373,7 +386,8 @@ func SelfMirRoutineRowsReady(
         }
         param_i = param_i + 1;
     }
-    return param_cursor == ArrayLength(rows.param_names) &&
+    return generic_cursor == ArrayLength(rows.generic_names) &&
+        param_cursor == ArrayLength(rows.param_names) &&
         block_cursor == ArrayLength(blocks.ids) &&
         local_cursor == ArrayLength(rows.local_names);
 }

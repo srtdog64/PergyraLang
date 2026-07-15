@@ -24,12 +24,15 @@ inventing a second AST serialization format.
   identifiers, lambdas, grouped expressions, array literals, and expression
   block shims before postfix consumption.
 - `expr_postfix_owner.pgy` - postfix expression chain owner. Owns calls,
-  indexes, member access, postfix try, object-init syntax, and call-only
+  ordered explicit generic actuals, indexes, member access, postfix try,
+  object-init syntax, and call-only
   turbofish consumption.
 - `expression_graph_owner.pgy` - expression graph construction owner. The
   precedence walk emits stable node kinds and child edges while it parses;
   semantic analysis must not reparse the compact expression projection on the
   DRV-2 hard path.
+- `expression_generic_actual_owner.pgy` - ordered explicit generic actual
+  nodes and generic-callee spine construction.
 - `stmt_owner.pgy` - statement dispatch and block parsing owner. It delegates
   branch-specific statement syntax to statement owners instead of carrying every
   statement shape itself.

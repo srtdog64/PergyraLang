@@ -215,7 +215,30 @@ SENTINEL_MAX=0
 # 1453 -> 1452 (2026-07-14): deleting the duplicate enum-argument classifier
 # removed its temporary Option; the graph path remains fail-closed and no
 # sentinel or hidden failure replaced it.
-RESULT_USE_MIN=1452
+# 1452 -> 1653 (2026-07-15): typed owners, projection verifiers, concrete
+# scalar graph verdicts, and carried call-target boundaries expose absence and
+# error paths through Option/Result facts.
+# 1653 -> 1661 (2026-07-15): chained receiver type projection keeps every
+# missing graph edge, lexical binding, and nominal field as explicit Option.
+# 1661 -> 1665 (2026-07-15): direct target capture and MIR carriage keep
+# target absence and decoding failures explicit.
+# 1665 -> 1671 (2026-07-15): nominal call returns split broad return facts
+# from the concrete-scalar capability without sentinel values.
+# 1671 -> 1701 (2026-07-15): exact-formal generic binding carries optional
+# signature/graph facts and fails closed instead of using sentinel rows.
+# 1701 -> 1740 (2026-07-15): composite generic returns carry optional
+# type-expression roots, children, bindings, and corrupt-row failures.
+# 1740 -> 1741 (2026-07-15): nested parameter binding preserves the optional
+# signature and flat-parameter handles instead of sentinel indices.
+# 1741 -> 1747 (2026-07-15): explicit generic actual carriage preserves
+# parser graph, call-view, and semantic binding failures as Option/Result facts.
+# 1747 -> 1789 (2026-07-15): graph-owned scalar Option/Result policy preserves
+# target, concrete-wrapper, arity, and argument-type failures as Result facts.
+# 1789 -> 1795 (2026-07-15): collection mutation admission carries graph
+# target/receiver and statement verdict failures as structured facts.
+# 1795 -> 1814 (2026-07-15): aggregate field and rung-readiness owners keep
+# graph absence and contract failure explicit while removing AST fallback.
+RESULT_USE_MIN=1814
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
@@ -252,6 +275,18 @@ self_host_source_files() {
     (cd "$ROOT_DIR" && find src/self_hosted -type f -name '*.pgy' | sort)
 }
 
+LIKELINESS_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-likeness.XXXXXX")"
+trap 'rm -rf "$LIKELINESS_TMP_DIR"' EXIT
+SELF_HOST_SOURCE_CORPUS="$LIKELINESS_TMP_DIR/source-corpus.tsv"
+self_host_source_files \
+    | grep '\.pgy$' \
+    | grep -Ev '/fixture(s)?/' \
+    | while IFS= read -r rel; do
+        [ -f "$ROOT_DIR/$rel" ] || continue
+        sed 's://.*$::' "$ROOT_DIR/$rel" \
+            | awk -v rel="$rel" '{ print rel "\t" $0 }'
+    done > "$SELF_HOST_SOURCE_CORPUS"
+
 count() {
     # count(pattern) -> matches across the pending self-host implementation tree.
     # Fixtures, ignored sketches, and // comments are intentionally excluded so
@@ -260,20 +295,16 @@ count() {
     local exclude_re="${2:-}"
     local matches
     matches="$(
-        self_host_source_files \
-            | grep '\.pgy$' \
-            | grep -Ev '/fixture(s)?/' \
-            | {
-                if [ -n "$exclude_re" ]; then
-                    grep -Ev "$exclude_re"
-                else
-                    cat
-                fi
-            } \
-            | while IFS= read -r rel; do
-                [ -f "$ROOT_DIR/$rel" ] || continue
-                sed 's://.*$::' "$ROOT_DIR/$rel"
-            done \
+        EXCLUDE_RE="$exclude_re" awk '
+            BEGIN { exclude_re = ENVIRON["EXCLUDE_RE"] }
+            {
+                tab = index($0, "\t")
+                if (tab == 0) next
+                rel = substr($0, 1, tab - 1)
+                if (exclude_re != "" && rel ~ exclude_re) next
+                print substr($0, tab + 1)
+            }
+        ' "$SELF_HOST_SOURCE_CORPUS" \
             | grep -oE "$pattern" || true
     )"
     if [ -z "$matches" ]; then

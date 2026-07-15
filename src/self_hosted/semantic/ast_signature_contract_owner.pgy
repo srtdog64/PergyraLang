@@ -57,8 +57,32 @@ func SemanticAstFunctionSignatureFactsContractReady() -> Bool {
     );
     let ability_facts: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(ability_artifact);
-    return ability_facts.ok &&
-        ArrayLength(ability_facts.owner_names) == 1 &&
-        ability_facts.owner_names[0] == "Arithmetic" &&
-        !ability_facts.runtime_callables[0];
+    if !ability_facts.ok ||
+        ArrayLength(ability_facts.owner_names) != 1 ||
+        ability_facts.owner_names[0] != "Arithmetic" ||
+        ability_facts.runtime_callables[0] {
+        return false;
+    }
+    let generic_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Wrap\n    Generic params: <T>\n" +
+        "    Parameters:\n      value: T\n    Returns: Option<T>\n" +
+        "    Body:\n      Block:\n        Return: value\n"
+    );
+    let generic_facts: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(generic_artifact);
+    let generic_name: Option<String> =
+        SemanticAstFunctionGenericNameAt(generic_facts, 0, 0);
+    let bindings: Array<String> = ["Int"];
+    let resolved_return: Option<String> =
+        SemanticAstSignatureReturnTypeResolveAt(
+            generic_facts.type_expressions, 0,
+            generic_facts.generic_starts[0], generic_facts.generic_counts[0],
+            generic_facts.generic_names, bindings
+        );
+    return SemanticAstFunctionSignatureFactsMatchArtifact(
+        generic_artifact, generic_facts
+    ) && generic_facts.generic_counts[0] == 1 &&
+        IsSome(generic_name) && UnwrapOption(generic_name) == "T" &&
+        IsSome(resolved_return) &&
+        UnwrapOption(resolved_return) == "Option<Int>";
 }

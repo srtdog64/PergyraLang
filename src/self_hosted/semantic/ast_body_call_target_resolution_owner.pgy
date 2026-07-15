@@ -1,0 +1,106 @@
+// Body-fixpoint resolution of canonical expression call-target rows.
+
+import "ast_artifact_verdict_owner.pgy";
+
+func SemanticAstAnalysisResolveCallTargetsFromBody(
+    artifact: AstTreeArtifact,
+    inout analysis: SemanticAstArtifactAnalysis,
+    inferred_types: Array<String>
+) -> Bool {
+    if !SemanticAstExpressionSurfaceBorrowReady(
+        artifact, analysis.expression_surfaces
+    ) || !analysis.signatures.ok ||
+        !SemanticAstNominalConstructorRowsReady(analysis.constructors) ||
+        !SemanticAstLocalBindingFactsMatchArtifact(
+            artifact, analysis.signatures, analysis.local_bindings
+        ) || ArrayLength(inferred_types) !=
+            SemanticAstLocalBindingCount(analysis.local_bindings) {
+        return false;
+    }
+    let function_names: Array<String> = [];
+    let function_returns: Array<String> = [];
+    let function_params: Array<String> = [];
+    if !SemanticAstExpressionFunctionTables(
+        analysis.signatures, analysis.constructors,
+        function_names, function_returns, function_params
+    ) {
+        return false;
+    }
+    let last_root: Int = -1;
+    let root_slot: Int = 0;
+    let valid: Bool = true;
+    while root_slot < ArrayLength(
+        analysis.expression_surfaces.expression_graph.roots
+    ) && valid {
+        if analysis.expression_surfaces.expression_graph.has_roots[root_slot] {
+            let root_id: Int =
+                analysis.expression_surfaces.expression_graph.roots[root_slot];
+            let surface_index: Int = root_slot / 3;
+            if surface_index < 0 || surface_index >= ArrayLength(
+                analysis.expression_surfaces.node_ids
+            ) || root_id <= last_root {
+                valid = false;
+            } else {
+                let use_node_id: Int =
+                    analysis.expression_surfaces.node_ids[surface_index];
+                let function_node_id: Option<Int> =
+                    SemanticAstExpressionFunctionNodeForUse(
+                        artifact, analysis.signatures, use_node_id
+                    );
+                let names: Array<String> = [];
+                let types: Array<String> = [];
+                if !IsSome(function_node_id) ||
+                    !SemanticAstExpressionSeedParameters(
+                        analysis.signatures, UnwrapOption(function_node_id),
+                        names, types
+                    ) || !SemanticAstExpressionSeedVisibleLocals(
+                        artifact, analysis.local_bindings, inferred_types,
+                        UnwrapOption(function_node_id), use_node_id,
+                        names, types
+                    ) {
+                    valid = false;
+                } else {
+                    let node_id: Int = last_root + 1;
+                    while node_id <= root_id && valid {
+                        if analysis.expression_surfaces.expression_graph.arena.node_kinds[node_id] == AstExpressionNodeCall() {
+                            let target: SemanticExpressionCallTargetFact =
+                                SemanticExpressionGraphResolvedCallTarget(
+                                    analysis.expression_surfaces.expression_graph,
+                                    node_id, analysis.constructors,
+                                    names, types, function_names
+                                );
+                            if !target.ok {
+                                valid = false;
+                            } else if target.kind ==
+                                SemanticCallTargetDirect() ||
+                                target.kind == SemanticCallTargetNamespace() ||
+                                target.kind == SemanticCallTargetMember() {
+                                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
+                                    target.kind;
+                                analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
+                                    target.name;
+                            } else {
+                                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
+                                    SemanticCallTargetNone();
+                                analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
+                                    "";
+                            }
+                        }
+                        node_id = node_id + 1;
+                    }
+                }
+            }
+            last_root = root_id;
+        }
+        root_slot = root_slot + 1;
+    }
+    if last_root + 1 != SemanticExpressionGraphArenaNodeCount(
+        analysis.expression_surfaces.expression_graph.arena
+    ) {
+        valid = false;
+    }
+    return valid && SemanticExpressionGraphFactsReady(
+        analysis.expression_surfaces.expression_graph,
+        ArrayLength(analysis.expression_surfaces.expression_graph.roots)
+    );
+}

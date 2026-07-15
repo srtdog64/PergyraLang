@@ -136,9 +136,8 @@ func SemanticAstIterationTypeFactsFromArtifact(
             artifact, constructors
         ) || !SemanticAstLocalBindingFactsMatchArtifact(
             artifact, signatures, locals
-        ) || !SemanticAstInitializerTypeFactsMatchArtifact(
-            artifact, signatures, constructors, locals,
-            expression_surfaces, initializer_types
+        ) || !SemanticAstInitializerTypeFactsReadyProjection(
+            artifact, locals, initializer_types
          ) || !SemanticAstStatementFactsMatchArtifact(
              artifact, signatures, statements
          ) || !SemanticAstExpressionSurfaceFactsMatchArtifact(
@@ -333,6 +332,44 @@ func SemanticAstIterationTypeFactsMatchArtifact(
             rebuilt.verified[i] != facts.verified[i] ||
             rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
             rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticAstIterationTypeFactsReadyForMirProjection(
+    artifact: AstTreeArtifact,
+    statements: SemanticAstStatementFacts,
+    facts: SemanticAstIterationTypeFacts
+) -> Bool {
+    let count: Int = SemanticAstIterationTypeCount(facts);
+    if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.binding_type_names) != count ||
+        ArrayLength(facts.iterable_type_names) != count ||
+        ArrayLength(facts.collection_hoists) != count ||
+        ArrayLength(facts.verified) != count ||
+        ArrayLength(facts.diagnostic_codes) != count ||
+        ArrayLength(facts.diagnostic_messages) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        let statement_index: Option<Int> = SemanticAstStatementIndexForNode(
+            statements, facts.node_ids[i]
+        );
+        if !IsSome(statement_index) || statements.kind_tags[
+            UnwrapOption(statement_index)
+        ] != TypedAstKindForStmtTag() ||
+            facts.binding_type_names[i] == "" ||
+            facts.binding_type_names[i] == "Unknown" ||
+            facts.iterable_type_names[i] == "" ||
+            facts.iterable_type_names[i] == "Unknown" ||
+            (facts.collection_hoists[i] != 0 &&
+             facts.collection_hoists[i] != 1) || facts.verified[i] != 1 ||
+            facts.diagnostic_codes[i] != "" ||
+            facts.diagnostic_messages[i] != "" {
             return false;
         }
         i = i + 1;

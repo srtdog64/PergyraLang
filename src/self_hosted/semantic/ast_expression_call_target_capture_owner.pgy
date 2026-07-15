@@ -1,0 +1,151 @@
+// Signature-only initial capture of canonical callable target rows.
+
+import "ast_expression_call_target_fact_owner.pgy";
+import "ast_expression_graph_call_view_owner.pgy";
+import "ast_signature_fact_owner.pgy";
+import "builtin_signature_owner.pgy";
+
+func SemanticExpressionCallTargetExpected(
+    ref graph: SemanticExpressionGraphFacts,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    builtin_names: Array<String>,
+    node_id: Int
+) -> SemanticExpressionCallTargetFact {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
+    if UnwrapOption(kind) != AstExpressionNodeCall() {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), "", 0
+        );
+    }
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok || call.call_node != node_id {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
+    let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, call.callee_node
+    );
+    if !IsSome(callee_kind) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
+    if UnwrapOption(callee_kind) == AstExpressionNodeLeaf() {
+        let source_name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, call.callee_node
+        );
+        if !IsSome(source_name) {
+            return SemanticExpressionCallTargetFact(
+                false, SemanticCallTargetNone(), "", 0
+            );
+        }
+        let direct: Option<Int> = SemanticCallableIndex(
+            signatures.names, UnwrapOption(source_name)
+        );
+        if !IsSome(direct) {
+            let builtin: Option<Int> = SemanticCallableIndex(
+                builtin_names, UnwrapOption(source_name)
+            );
+            if IsSome(builtin) {
+                return SemanticExpressionCallTargetFact(
+                    true, SemanticCallTargetDirect(),
+                    builtin_names[UnwrapOption(builtin)], 0
+                );
+            }
+            return SemanticExpressionCallTargetFact(
+                true, SemanticCallTargetNone(), "", 0
+            );
+        }
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetDirect(),
+            signatures.names[UnwrapOption(direct)], 0
+        );
+    }
+    if UnwrapOption(callee_kind) != AstExpressionNodeMemberAccess() {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), "", 0
+        );
+    }
+    let source_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(source_name) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNone(), "", 0
+        );
+    }
+    let target: Option<Int> = SemanticCallableIndex(
+        signatures.names, UnwrapOption(source_name)
+    );
+    if !IsSome(target) {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNone(), "", 0
+        );
+    }
+    return SemanticExpressionCallTargetFact(
+        true, SemanticCallTargetNamespace(),
+        signatures.names[UnwrapOption(target)], 0
+    );
+}
+
+func SemanticExpressionGraphCallTargetsFromSignatures(
+    graph: SemanticExpressionGraphFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    require_carried: Bool
+) -> SemanticExpressionGraphFacts {
+    if !graph.ok || !signatures.ok ||
+        !SemanticExpressionGraphArenaReady(graph.arena) {
+        return SemanticExpressionGraphFacts(
+            false, graph.roots, graph.has_roots, graph.arena
+        );
+    }
+    let target_names: Array<String> = graph.arena.call_target_names;
+    let target_kinds: Array<Int> = graph.arena.call_target_kinds;
+    let valid: Bool = true;
+    let builtin_names: Array<String> = [];
+    let builtin_returns: Array<String> = [];
+    let builtin_params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(
+        builtin_names, builtin_returns, builtin_params
+    ) {
+        return SemanticExpressionGraphFacts(
+            false, graph.roots, graph.has_roots, graph.arena
+        );
+    }
+    let node_id: Int = 0;
+    while node_id < SemanticExpressionGraphArenaNodeCount(graph.arena) && valid {
+        let expected: SemanticExpressionCallTargetFact =
+            SemanticExpressionCallTargetExpected(
+                graph, signatures, builtin_names, node_id
+            );
+        if !expected.ok {
+            valid = false;
+        } else if require_carried {
+            if target_kinds[node_id] != expected.kind ||
+                target_names[node_id] != expected.name {
+                valid = false;
+            }
+        } else {
+            ArraySet(target_kinds, node_id, expected.kind);
+            ArraySet(target_names, node_id, expected.name);
+        }
+        node_id = node_id + 1;
+    }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        graph.arena.node_kinds, graph.arena.node_texts,
+        graph.arena.left_children, graph.arena.right_children,
+        target_kinds, target_names
+    );
+    return SemanticExpressionGraphFacts(
+        valid && SemanticExpressionGraphArenaReady(arena),
+        graph.roots, graph.has_roots, arena
+    );
+}

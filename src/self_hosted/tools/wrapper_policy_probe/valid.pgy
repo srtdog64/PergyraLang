@@ -1,0 +1,9 @@
+func Main() -> Int {
+    let some: Option<Int> = Some(7);
+    let value: Int = UnwrapOption(some);
+    let ok: Result<Int> = Ok(value);
+    let fallback: Int = UnwrapOr(ok, 0);
+    let has_value: Bool = IsSome(some);
+    let has_result: Bool = IsOk(ok);
+    return fallback;
+}

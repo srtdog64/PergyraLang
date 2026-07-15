@@ -84,9 +84,11 @@ func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
     let texts: Array<String> = ["Pair", "Pair { }"];
     let left_children: Array<Int> = [0, 0];
     let right_children: Array<Int> = [0, 0];
+    let call_target_kinds: Array<Int> = [0, 0];
     let call_targets: Array<String> = ["", ""];
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, left_children, right_children, call_targets
+        kinds, texts, left_children, right_children,
+        call_target_kinds, call_targets
     );
     let roots: Array<Int> = [1];
     let has_roots: Array<Bool> = [true];
@@ -108,11 +110,12 @@ func SemanticExpressionGraphIntrinsicTypeContractReady() -> Bool {
     ];
     let option_left: Array<Int> = [0, 0, 0, 2, 3];
     let option_right: Array<Int> = [0, 0, 0, 0, 1];
+    let option_target_kinds: Array<Int> = [0, 0, 0, 1, 0];
     let option_targets: Array<String> = ["", "", "", "Some", ""];
     let option_arena: SemanticExpressionGraphArena =
         SemanticExpressionGraphArena(
             option_kinds, option_texts, option_left, option_right,
-            option_targets
+            option_target_kinds, option_targets
         );
     let option_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(

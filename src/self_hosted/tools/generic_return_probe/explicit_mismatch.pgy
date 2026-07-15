@@ -1,0 +1,8 @@
+func PickSecond<T, U>(first: T, second: U) -> U {
+    return second;
+}
+
+func Main() -> Int {
+    let explicit: String = PickSecond<String, String>(2, "value");
+    return 0;
+}

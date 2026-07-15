@@ -1,0 +1,133 @@
+// Validated result artifact consumed by the Pergyra-owned gate dashboard.
+
+import "../../compiler/gate_dashboard_owner.pgy";
+
+struct GateDashboardResults {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    gate_ids: Array<String>;
+    run_states: Array<String>;
+    duration_ms: Array<Int>;
+    details: Array<String>;
+}
+
+func GateDashboardResultsError(
+    code: String, message: String
+) -> GateDashboardResults {
+    let empty_strings: Array<String> = [];
+    let empty_ints: Array<Int> = [];
+    return GateDashboardResults(
+        false, code, message,
+        empty_strings, empty_strings, empty_ints, empty_strings
+    );
+}
+
+func GateDashboardResultsEmpty() -> GateDashboardResults {
+    let gate_ids: Array<String> = [];
+    let run_states: Array<String> = [];
+    let duration_ms: Array<Int> = [];
+    let details: Array<String> = [];
+    return GateDashboardResults(
+        true, "", "", gate_ids, run_states, duration_ms, details
+    );
+}
+
+func GateDashboardRunStateKnown(state: String) -> Bool {
+    return state == "PASS" || state == "FAIL" || state == "SKIP";
+}
+
+func GateDashboardCanonicalDuration(text: String) -> Option<Int> {
+    if text == "" { return None; }
+    let value: Int = ToInt(text);
+    if value < 0 || ToString(value) != text { return None; }
+    return Some(value);
+}
+
+func GateDashboardResultIndex(
+    results: GateDashboardResults,
+    gate_id: String
+) -> Option<Int> {
+    return GateDashboardGateIdIndex(results.gate_ids, gate_id);
+}
+
+func GateDashboardGateIdIndex(
+    gate_ids: Array<String>,
+    gate_id: String
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(gate_ids) {
+        if gate_ids[i] == gate_id { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func GateDashboardResultsFromText(
+    manifest: CompilerGateDashboardManifest,
+    content: String
+) -> GateDashboardResults {
+    if !CompilerGateDashboardManifestReady(manifest) {
+        return GateDashboardResultsError(
+            "gate_manifest_invalid", "gate dashboard manifest is invalid"
+        );
+    }
+    let lines: Array<String> = Split(content, "\n");
+    if ArrayLength(lines) == 0 ||
+        StringTrim(lines[0]) != Concat(
+            "schema=", CompilerGateResultSchema()
+        ) {
+        return GateDashboardResultsError(
+            "gate_result_schema_invalid", "gate result schema is missing"
+        );
+    }
+    let results: GateDashboardResults = GateDashboardResultsEmpty();
+    let gate_ids: Array<String> = results.gate_ids;
+    let run_states: Array<String> = results.run_states;
+    let duration_ms: Array<Int> = results.duration_ms;
+    let details: Array<String> = results.details;
+    let line_i: Int = 1;
+    while line_i < ArrayLength(lines) {
+        let line: String = StringTrim(lines[line_i]);
+        if line == "" {
+            line_i = line_i + 1;
+            continue;
+        }
+        let fields: Array<String> = Split(line, "\t");
+        if ArrayLength(fields) != 4 {
+            return GateDashboardResultsError(
+                "gate_result_row_invalid",
+                Concat("malformed gate result row: ", line)
+            );
+        }
+        let gate_id: String = fields[0];
+        let state: String = fields[1];
+        let duration: Option<Int> = GateDashboardCanonicalDuration(fields[2]);
+        if !IsSome(CompilerGateDashboardIndex(manifest, gate_id)) {
+            return GateDashboardResultsError(
+                "gate_result_unknown_id",
+                Concat("unknown gate result id: ", gate_id)
+            );
+        }
+        if IsSome(GateDashboardGateIdIndex(gate_ids, gate_id)) {
+            return GateDashboardResultsError(
+                "gate_result_duplicate_id",
+                Concat("duplicate gate result id: ", gate_id)
+            );
+        }
+        if !GateDashboardRunStateKnown(state) || !IsSome(duration) {
+            return GateDashboardResultsError(
+                "gate_result_value_invalid",
+                Concat("invalid gate result value: ", line)
+            );
+        }
+        ArrayPush(gate_ids, gate_id);
+        ArrayPush(run_states, state);
+        ArrayPush(duration_ms, UnwrapOption(duration));
+        ArrayPush(details, fields[3]);
+        line_i = line_i + 1;
+    }
+    return GateDashboardResults(
+        true, "", "", gate_ids, run_states, duration_ms, details
+    );
+}

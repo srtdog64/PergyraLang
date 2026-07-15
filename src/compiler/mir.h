@@ -283,6 +283,7 @@ typedef struct
     bool               is_action_like;
     bool               has_signature;
     size_t             generic_param_count;
+    char             **generic_param_names;
     FuncParam        **params;
     char             **param_type_names;
     MIRParamAbiFact   *param_abi_facts;
@@ -529,6 +530,8 @@ const char *mir_routine_owner_name(const MIRRoutine *routine);
 ASTNodeType mir_routine_owner_ast_type(const MIRRoutine *routine);
 bool        mir_routine_has_signature(const MIRRoutine *routine);
 size_t      mir_routine_generic_param_count(const MIRRoutine *routine);
+const char *mir_routine_generic_param_name(const MIRRoutine *routine,
+                                            size_t index);
 size_t      mir_routine_param_count(const MIRRoutine *routine);
 FuncParam  *mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *mir_routine_param_type_name(const MIRRoutine *routine,

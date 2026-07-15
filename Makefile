@@ -2395,6 +2395,12 @@ self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)
 	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-$(SELFHOST_CODEGEN_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/initializer_projection_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_return_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/wrapper_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
 	PGY_SELFHOST_DRIVER_BACKENDS="$${PGY_SELFHOST_DRIVER_BACKENDS:-$(SELFHOST_DRIVER_BACKENDS)}" \
@@ -2505,6 +2511,33 @@ self-host-codegen-parity-test-smoke: $(PGY)
 
 self-host-codegen-assignment-projection-parity-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/assignment_projection_probe_parity.sh
+
+self-host-initializer-projection-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/initializer_projection_probe_parity.sh
+
+self-host-generic-return-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/generic_return_probe_parity.sh
+
+self-host-wrapper-policy-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/wrapper_policy_probe_parity.sh
+
+self-host-collection-policy-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/collection_policy_probe_parity.sh
+
+self-host-aggregate-field-policy-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/aggregate_field_policy_probe_parity.sh
+
+self-host-gate-dashboard-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_parity.sh
+
+self-host-gate-dashboard: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/gate_dashboard_runner.sh
+
+.PHONY: self-host-initializer-projection-parity-test-smoke self-host-generic-return-parity-test-smoke
+.PHONY: self-host-wrapper-policy-parity-test-smoke
+.PHONY: self-host-collection-policy-parity-test-smoke
+.PHONY: self-host-aggregate-field-policy-parity-test-smoke
+.PHONY: self-host-gate-dashboard-parity-test-smoke self-host-gate-dashboard
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/codegen_bootstrap.sh

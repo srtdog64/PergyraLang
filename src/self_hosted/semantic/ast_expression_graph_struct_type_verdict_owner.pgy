@@ -2,9 +2,9 @@
 
 import "ast_expression_graph_call_view_owner.pgy";
 import "ast_expression_graph_struct_view_owner.pgy";
-import "ast_expression_graph_type_owner.pgy";
+import "ast_expression_graph_field_type_owner.pgy";
+import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
-import "expr_type_owner.pgy";
 import "diagnostic_owner.pgy";
 
 func SemanticExpressionGraphStructValueRoot(
@@ -48,6 +48,7 @@ func SemanticExpressionGraphStructValueTypeError(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     ref constructors: SemanticAstNominalConstructorFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
     names: Array<String>,
     types: Array<String>,
     function_names: Array<String>,
@@ -124,25 +125,30 @@ func SemanticExpressionGraphStructValueTypeError(
                 Concat(nominal, Concat(".", field_name))
             );
         }
-        let value_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, view.value_nodes[i]
-        );
-        if !IsSome(value_text) {
-            return SemanticError1(
-                "ast_artifact_invalid", "owner", "struct_field_value"
+        let generic_call: SemanticExpressionGraphGenericCallFact =
+            SemanticExpressionGraphGenericCallFactFromGraph(
+                graph, view.value_nodes[i], signatures, constructors,
+                names, types, function_names, function_returns
+            );
+        if generic_call.applies && !generic_call.ok {
+            return generic_call.diagnostic_message;
+        }
+        let actual_opt: Option<String> = None;
+        if generic_call.applies {
+            actual_opt = Some(generic_call.return_type_name);
+        } else {
+            actual_opt = SemanticExpressionGraphFieldValueTypeName(
+                graph, view.value_nodes[i], constructors, names, types,
+                function_names, function_returns
             );
         }
-        let actual_opt: Option<String> = SemanticExpressionGraphIntrinsicTypeName(
-            graph, view.value_nodes[i], function_names, function_returns
-        );
-        let actual: String = ExprType(
-            UnwrapOption(value_text), names, types,
-            function_names, function_returns
-        );
+        let actual: String = "Unknown";
         if IsSome(actual_opt) { actual = UnwrapOption(actual_opt); }
         let expected: String = constructors.param_type_names[field_row];
-        if actual == "" || actual == "Unknown" ||
-            !ExpressionAssignableTo(expected, actual, UnwrapOption(value_text)) {
+        if !IsSome(actual_opt) ||
+            !SemanticExpressionGraphFieldValueAssignableTo(
+                expected, actual, graph, view.value_nodes[i]
+            ) {
             return SemanticError3(
                 "call_arg_type_mismatch",
                 "func", Concat(nominal, Concat(".", field_name)),

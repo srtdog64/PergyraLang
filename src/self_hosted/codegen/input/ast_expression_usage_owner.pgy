@@ -5,7 +5,7 @@
 // arena payload strings, but the scan and builtin vocabulary are owned here so
 // runtime/header usage can consume a fact row instead of reopening payloads.
 
-import "../../semantic/ast_expression_surface_fact_owner.pgy";
+import "../../semantic/ast_expression_surface_query_owner.pgy";
 
 struct CodegenExpressionUsageFacts {
     let has_args: Bool;
