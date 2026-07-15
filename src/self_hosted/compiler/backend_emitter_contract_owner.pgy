@@ -43,7 +43,9 @@ func CompilerBackendEmitterRequiredPathAt(index: Int) -> String {
     if index == 1 { return "src/codegen/llvm_runtime.c"; }
     if index == 2 { return "src/codegen/llvm_runtime_secure_slot_decl.c"; }
     if index == 3 { return "src/codegen/llvm_expr_slot_device_calls.c"; }
-    if index == 4 { return "src/codegen/llvm_stmt.c"; }
+    // Slot auto-release is owned by the block emitter; llvm_stmt.c only
+    // dispatches statements and must not be treated as the ABI-row consumer.
+    if index == 4 { return "src/codegen/llvm_stmt_block.c"; }
     if index == 5 { return "src/codegen/transpiler_block_emit.c"; }
     if index == 6 { return "src/codegen/transpiler_expr_call_member_emit.c"; }
     if index == 7 { return "src/codegen/transpiler_let_slot_emit.c"; }
