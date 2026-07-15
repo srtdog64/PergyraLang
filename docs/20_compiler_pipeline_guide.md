@@ -311,7 +311,16 @@
 관련 파일:
 
 - `src/compiler/mir.h`
+- `src/compiler/mir_program.h`
+- `src/compiler/mir_types.h`
+- `src/compiler/mir_decl.h`
 - `src/compiler/mir.c`
+
+MIR 헤더 책임은 다음처럼 분리한다. `mir_types.h`는 instruction, block,
+routine 및 CFG/SSA 표현 fact를 소유하고, `mir_decl.h`는 구조화된 declaration
+metadata를 소유한다. `mir_program.h`는 이 fact들을 한 lowered program
+inventory로 묶는 `MIRProgram`만 소유한다. `mir.h`는 이 소유자들을 노출하는
+public operation API/umbrella이며 저장 구조를 다시 선언하지 않는다.
 
 주 진입점:
 

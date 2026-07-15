@@ -5,59 +5,9 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include "mir_types.h"
-#include "mir_decl.h"
+#include "mir_program.h"
 
-typedef struct MIRProgram MIRProgram;
 typedef struct SemanticResult SemanticResult;
-
-struct MIRProgram
-{
-    MIRRoutine *routines;
-    size_t      routine_count;
-    size_t      routine_capacity;
-    MIRDeclHeader *decl_headers;
-    size_t      decl_header_count;
-    size_t      decl_header_capacity;
-    MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
-    size_t      parallel_capture_boundary_count;
-    ASTNode   **externs;
-    size_t      extern_count;
-    ASTNode   **types;
-    size_t      type_count;
-    ASTNode   **abilities;
-    size_t      ability_count;
-    ASTNode   **roles;
-    size_t      role_count;
-    ASTNode   **parties;
-    size_t      party_count;
-    ASTNode   **rosters;
-    size_t      roster_count;
-    ASTNode   **worlds;
-    size_t      world_count;
-    ASTNode   **relations;
-    size_t      relation_count;
-    ASTNode   **effects;
-    size_t      effect_count;
-    ASTNode   **zones;
-    size_t      zone_count;
-    ASTNode   **events;
-    size_t      event_count;
-    ASTNode   **intents;
-    size_t      intent_count;
-    ASTNode   **functions;
-    size_t      function_count;
-    bool        has_inventory_surface_usage_facts;
-    bool        inventory_uses_thread_pool_surface;
-    bool        inventory_uses_intent_observability_surface;
-    bool        has_non_cfg_body_fallback_inventory;
-    size_t      non_cfg_body_fallback_total;
-    size_t      non_cfg_body_fallback_routine_count;
-    bool        has_top_level_exec;
-    bool        has_main_function;
-    const char *main_function_name;
-    const char *source_path;  /* non-owning; NULL disables debug-line output */
-};
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                       const SemanticResult *semantic, char **error_message);
 void        mir_instruction_capture_source_provenance(

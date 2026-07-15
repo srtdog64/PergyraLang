@@ -53,6 +53,8 @@ require_term() {
     # MIR representation and declaration facts have dedicated type owners.
     # When the umbrella is requested, search those owners as one public surface.
     if [[ "$rel" == "src/compiler/mir.h" ]]; then
+        load_file_text "src/compiler/mir_program.h"
+        [[ "${!PGY_FILE_TEXT_VAR}" == *"$term"* ]] && return 0
         load_file_text "src/compiler/mir_types.h"
         [[ "${!PGY_FILE_TEXT_VAR}" == *"$term"* ]] && return 0
         load_file_text "src/compiler/mir_decl.h"

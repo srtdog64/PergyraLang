@@ -232,6 +232,7 @@ fi
 
 type_system_owners=(
     "src/compiler/mir.h"
+    "src/compiler/mir_program.h"
     "src/compiler/mir_types.h"
     "src/compiler/mir_source_shape.c"
     "src/compiler/mir_source_provenance.c"
@@ -245,6 +246,19 @@ type_system_owners=(
     "src/compiler/mir_decl_header_validate.c"
     "src/compiler/mir_decl_header_shape_validate.c"
 )
+
+if grep -Fq "struct MIRProgram" "$ROOT_DIR/src/compiler/mir.h"; then
+    echo "MIRProgram aggregate drifted back into the public MIR API owner" >&2
+    exit 1
+fi
+grep -Fq '#include "mir_program.h"' "$ROOT_DIR/src/compiler/mir.h" || {
+    echo "public MIR API no longer exposes the MIRProgram owner" >&2
+    exit 1
+}
+grep -Fq "struct MIRProgram" "$ROOT_DIR/src/compiler/mir_program.h" || {
+    echo "MIRProgram aggregate is missing from its named owner" >&2
+    exit 1
+}
 
 type_system_owner_violations="$(
     cd "$ROOT_DIR"
