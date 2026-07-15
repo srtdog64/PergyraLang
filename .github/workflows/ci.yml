@@ -51,11 +51,11 @@ jobs:
         # without a login shell, so rocq/rocqchk are NOT on PATH -- the gate
         # fail-closes with "no prover found" even though the prover is right
         # there. GitHub Actions overrides HOME, so bare `opam exec --` searches
-        # an uninitialised runner home. Pinning `/home/rocq/.opam` replays the
-        # image entrypoint against the image-owned switch and puts both tools
-        # on PATH. coq_kernel_check.sh then fail-closes on a missing prover,
-        # proof compile failure, kernel-check failure, or axiom-budget drift.
-        run: opam --root=/home/rocq/.opam exec -- bash tests/coq_kernel_check.sh
+        # an uninitialised runner home. Pinning OPAMROOT replays the image
+        # entrypoint against the image-owned switch and puts both tools on
+        # PATH. coq_kernel_check.sh then fail-closes on a missing prover, proof
+        # compile failure, kernel-check failure, or axiom-budget drift.
+        run: OPAMROOT=/home/rocq/.opam opam exec -- bash tests/coq_kernel_check.sh
 
   backend-compare-linux:
     runs-on: ubuntu-latest
