@@ -9,6 +9,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/portable_process_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -347,7 +348,8 @@ run_source_check() {
     local out="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.out"
     local err="$BUILD_DIR/${stage}_${src//[^A-Za-z0-9_]/_}.err"
 
-    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$bin" --check "$check_src" >"$out" 2>"$err")
+    (cd "$ROOT_DIR" && pgy_run_with_timeout \
+        "$CHECK_TIMEOUT_SEC" "$out" "$err" "$bin" --check "$check_src")
     local rc="$?"
     if [[ "$rc" -eq 0 ]]; then
         if grep -Fq 'Status: ok' "$out"; then
@@ -383,8 +385,8 @@ run_codegen_check() {
     local err="$BUILD_DIR/codegen_${safe}.err"
 
     mkdir -p "$BUILD_DIR/ast"
-    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$PARSER_BIN" "$src" \
-        >"$ast_abs" 2>"$ast_err")
+    (cd "$ROOT_DIR" && pgy_run_with_timeout \
+        "$CHECK_TIMEOUT_SEC" "$ast_abs" "$ast_err" "$PARSER_BIN" "$src")
     local ast_rc="$?"
     if [[ "$ast_rc" -eq 0 ]]; then
         :
@@ -395,7 +397,8 @@ run_codegen_check() {
         fi
         return 1
     fi
-    (cd "$ROOT_DIR" && timeout "$CHECK_TIMEOUT_SEC" "$CODEGEN_BIN" --check "$ast_rel" >"$out" 2>"$err")
+    (cd "$ROOT_DIR" && pgy_run_with_timeout \
+        "$CHECK_TIMEOUT_SEC" "$out" "$err" "$CODEGEN_BIN" --check "$ast_rel")
     local codegen_rc="$?"
     if [[ "$codegen_rc" -eq 0 ]]; then
         :
