@@ -554,6 +554,22 @@ emission. Statement typing rejects a non-`Int` graph with
 `Int` fact. The statement-payload accessor and `IntEval` recovery path were
 deleted, and the component gate rejects their return.
 
+CI proof ownership, 2026-07-17: the full self-host preparation proof is a
+Linux-owned gate. It includes real-source selfcheck, the four-stage
+completeness ledger, codegen/driver fixed points, and the complete parity
+surface. Windows and macOS own native C parser, semantic, codegen, and DRV-2
+parity plus the shared contract gates. They must not repeat the exhaustive
+342-source proof. This split follows the impact-isolation rule: platform jobs
+prove platform behavior, while one job proves repository-wide completeness.
+`self_host_ci_profile_smoke.sh` rejects routing drift in either direction.
+The first Windows local platform-profile run completed in 21m49s; the previous
+GitHub Windows full-preparation step took about 75 minutes.
+
+Resource-pressure measurements are advisory while the sampler and benchmark
+corpus are being stabilized. Memory, elapsed-time, and owner-hash evidence must
+not block self-host preparation CI. Functional emission, ABI ownership,
+negative fallback, parity, and fixed-point gates remain blocking.
+
 The same DRV-2 expansion exposed and closed an assignment graph transport gap:
 plain assignment targets now retain their semantic leaf graph just as indexed
 targets retain their index graph. MIR verification rejects either missing
