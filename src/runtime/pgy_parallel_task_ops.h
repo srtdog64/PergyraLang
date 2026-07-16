@@ -85,15 +85,24 @@ pgy_await(PgyTaskHandle handle)
             pthread_mutex_unlock(&task->mutex);
             pgy_async_yield();
             pthread_mutex_lock(&task->mutex);
-        } else if (g_pgy_thread_current != NULL) {
-            /* Help-first await (docs/186 P-A1): a pool worker drains queued
-             * tasks instead of parking -- parking every worker starves the
-             * queue and deadlocks nested fan-out. Only when the queue is
-             * empty AND the target is still incomplete is the target
-             * necessarily RUNNING on another worker (pending tasks live in
-             * the queue), so parking is then deadlock-free: the await graph
-             * is acyclic (a task only awaits tasks it spawned) and bottoms
-             * out at a running task with no incomplete awaits. */
+        } else {
+            /* Help-first await (docs/186 P-A1 + P-B1): ANY thread awaiting a
+             * pool task drains queued tasks instead of parking.
+             *   - Pool workers MUST help: parking every worker starves the
+             *     queue and deadlocks nested fan-out (WO-RT-3 witness).
+             *   - The main/join thread helps for throughput: parking per
+             *     awaited handle costs a scheduler park/wake round trip per
+             *     task, measured as the dominant share (~9 of 10.7 us/task;
+             *     the alloc/init share is only ~1.7 us) of small-task
+             *     fan-out overhead. Running the task ourselves also skips
+             *     that task's spawn->worker wakeup.
+             * Parking remains only when the queue is empty AND the target is
+             * still incomplete: pending tasks live in the queue, so the
+             * target is then necessarily RUNNING on another thread, and the
+             * await graph is acyclic (a task only awaits tasks it spawned),
+             * so the running chain bottoms out -- parking there is
+             * deadlock-free. Helping only ever ADDS runners, so it cannot
+             * introduce a deadlock the parking path lacked. */
             pthread_mutex_unlock(&task->mutex);
             bool helped = pgy_pool_help_run_one();
             pthread_mutex_lock(&task->mutex);
@@ -103,12 +112,6 @@ pgy_await(PgyTaskHandle handle)
                     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                                       "await condition wait failed");
                 }
-            }
-        } else {
-            if (pthread_cond_wait(&task->cond, &task->mutex) != 0) {
-                pthread_mutex_unlock(&task->mutex);
-                PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                                  "await condition wait failed");
             }
         }
     }
