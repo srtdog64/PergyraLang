@@ -433,14 +433,25 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     }
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if mode == "--namespace-call-target-mismatch" ||
+        mode == "--nominal-return-call-target-mismatch" {
+        if !body_types.verdict.ok &&
+            body_types.verdict.diagnostic_code == "call_target_unresolved" {
+            Log(Concat(
+                body_types.verdict.diagnostic_code,
+                Concat(": ", body_types.verdict.diagnostic_message)
+            ));
+            return false;
+        }
+        Log("carried call target damage did not reach body fixpoint owner");
+        return true;
+    }
     if mode == "--direct-call-callee-mismatch" ||
         mode == "--direct-call-argument-mismatch" ||
         mode == "--direct-call-nested-mismatch" ||
         mode == "--direct-call-nested-call-mismatch" ||
         mode == "--scalar-call-mismatch" ||
-        mode == "--namespace-call-target-mismatch" ||
-        mode == "--member-call-target-mismatch" ||
-        mode == "--nominal-return-call-target-mismatch" {
+        mode == "--member-call-target-mismatch" {
         let expected_code: String = "let_type_mismatch";
         if mode == "--direct-call-argument-mismatch" {
             expected_code = "call_arg_type_mismatch";
@@ -450,11 +461,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
             expected_code = "call_arg_type_mismatch";
         } else if mode == "--scalar-call-mismatch" {
             expected_code = "binop_type_mismatch";
-        } else if mode == "--namespace-call-target-mismatch" {
-            expected_code = "let_type_mismatch";
         } else if mode == "--member-call-target-mismatch" {
-            expected_code = "let_type_mismatch";
-        } else if mode == "--nominal-return-call-target-mismatch" {
             expected_code = "let_type_mismatch";
         }
         let i: Int = 0;

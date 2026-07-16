@@ -334,11 +334,11 @@ run_probe() {
         elif [[ "$mode" == "scalar-call-mismatch" ]]; then
             diagnostic='binop_type_mismatch'
         elif [[ "$mode" == "namespace-call-target-mismatch" ]]; then
-            diagnostic='let_type_mismatch'
+            diagnostic='call_target_unresolved'
         elif [[ "$mode" == "member-call-target-mismatch" ]]; then
             diagnostic='let_type_mismatch'
         elif [[ "$mode" == "nominal-return-call-target-mismatch" ]]; then
-            diagnostic='let_type_mismatch'
+            diagnostic='call_target_unresolved'
         elif [[ "$mode" == "missing-carried-direct-target" || \
                 "$mode" == "missing-carried-member-target" || \
                 "$mode" == "missing-carried-generic-member-target" || \
