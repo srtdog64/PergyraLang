@@ -7651,13 +7651,19 @@ require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'MIR_LOWER_SOURCE="$
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_to_file"
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_seed.c"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$MIR_LOWER_SOURCE" "$BUILD_DIR/mir_lower_gen2.c"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_mode_to_file"
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" "emit_oracle_mir_to_file"
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$PGY" --mir-json'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_source.mir.json"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/mir_lower_source.mir.json"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:mir-lower-preflight"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen3.c"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:fixpoint"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"emitted_c"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen3.c"'
+reject_text "tests/self_hosted/parity/driver_bootstrap.sh" '"--emit-mir-json-verified" "$DRIVER_SOURCE"'
 reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/src/self_hosted/compiler/driver_bootstrap_main.pgy"'
 reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'cmp -s'

@@ -41,8 +41,14 @@ ordered body-verdict rows. The latest standalone codegen bootstrap fixes
 `gen2 == gen3` at 14,673 generated-C lines. DRV-2 now integrates bounded MIR
 production and consumption. Its current full-source gen2 artifact builds and a
 34.5-second `mir_lower` owner preflight is byte-identical between seed and gen2;
-the expensive full-source gen3 comparison has not yet been refreshed and must
-not be reported green.
+the bootstrap fixed-point gate now asks the native oracle to produce each
+full-input MIR once and requires seed/gen2 consumers to emit byte-identical C
+from that same fact. Bounded DRV-2 fixtures retain self-host MIR-producer
+parity, and the real-source sample comparison retains end-to-end evidence.
+This is an integrated MIR-consumer fixed point, not a released compiler
+substitution claim. A local full-source self-host producer probe reached about
+68 GB private allocation before completion and is therefore an explicit
+performance blocker rather than a blocking CI proof.
 The landing Windows run observed about 1.35 GB peak working set in the first
 integrated driver seed generation. The fixed point is correct, but self-host
 codegen still needs bounded emission storage before this path is production-

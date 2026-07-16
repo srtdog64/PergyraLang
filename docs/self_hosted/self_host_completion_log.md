@@ -6,6 +6,19 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-17 - Driver fixed point consumes one oracle MIR fact
+
+- Added explicit bootstrap file modes for verified source-to-MIR production
+  and MIR-to-C consumption while preserving the real-source source-to-C oracle
+  comparison.
+- A local full-driver self-host source-to-MIR probe exceeded 68 GB private
+  allocation before completion. The fixed-point runner now obtains each
+  full-input MIR once from the native oracle, then seed and gen2 consume the
+  same artifact before the byte-identical `gen2 == gen3` comparison.
+- Bounded DRV-2 fixtures remain the blocking self-host MIR-producer proof. The
+  full-input gate proves MIR consumption without hiding the producer memory
+  blocker or claiming whole-compiler substitution.
+
 ## 2026-07-16 - Completeness checks stop rebuilding every import graph
 
 - Split the self-host parser's normal root-program mode from its inventory

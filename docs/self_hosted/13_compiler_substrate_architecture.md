@@ -348,15 +348,17 @@ deliberately does not own parser facts or codegen emission facts; those remain
 in their stage owners.
 
 `src/self_hosted/compiler/driver_bootstrap_main.pgy` is a smaller runnable
-source/output-file boundary over the same pipeline owner. The strengthened
+source/MIR/output-file boundary over the same pipeline owner. The strengthened
 `driver_bootstrap.sh` consumes the fresh codegen-bootstrap seed, builds it with
 the Pergyra-built codegen, and compares its
-emitted C against the C-oracle-built driver on a real source, then requires the
-integrated driver's own `gen2.c` and `gen3.c` to be byte-identical through the
-Pergyra-owned artifact comparator. The current run fixes at 17,536 C lines.
-This proves the parser/shared-artifact-entrypoint-verdict/codegen spine
-self-eats; broader semantic analysis and MIR remain outside that executable and
-therefore outside the claim.
+emitted C against the C-oracle-built driver on a real source. For the
+fixed-point leg, the native oracle produces the integrated-source MIR once and
+both `gen2.c` and `gen3.c` consume that same MIR JSON through the Pergyra-owned
+artifact comparator. The self-host MIR producer remains independently covered
+by bounded DRV-2 producer parity. This proves the full-input MIR-to-C consumer
+fixed point without claiming that the current self-host producer can process
+its entire source within bounded memory. Released-default substitution stays
+outside the claim.
 
 ## Codegen Architecture
 
