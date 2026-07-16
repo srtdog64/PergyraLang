@@ -342,6 +342,61 @@ pgy_default_worker_count(void)
     return (size_t)n;
 }
 
+/* Pop and run ONE queued task on the calling thread. Returns false if the
+ * queue was empty. This is the help-first half of await (docs/186 P-A1): a
+ * pool worker that awaits a subtask must never park in cond_wait while
+ * runnable work is queued -- with every worker parked, subtasks queued behind
+ * remaining outer tasks can never run (pool-starvation deadlock; witnessed
+ * deterministically by the nested-parallel fixture before this landed).
+ * Mirrors pgy_worker_loop's execution protocol exactly, except the caller's
+ * task identity is saved and restored so cancellation scoping follows the
+ * task actually running. */
+static inline bool
+pgy_pool_help_run_one(void)
+{
+    PgyTask *task;
+    PgyTask *prev;
+    void    *result;
+
+    if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire))
+        return false;
+
+    pthread_mutex_lock(&g_pgy_pool.queue_mutex);
+    task = g_pgy_pool.queue_head;
+    if (task != NULL) {
+        g_pgy_pool.queue_head = task->next;
+        if (g_pgy_pool.queue_head == NULL)
+            g_pgy_pool.queue_tail = NULL;
+    }
+    pthread_mutex_unlock(&g_pgy_pool.queue_mutex);
+
+    if (task == NULL)
+        return false;
+
+    pthread_mutex_lock(&task->mutex);
+    if (pgy_cancel_is_requested(task->cancel_node)) {
+        task->state = PGY_TASK_DONE;
+        task->result = NULL;
+        pthread_cond_broadcast(&task->cond);
+        pthread_mutex_unlock(&task->mutex);
+        return true;
+    }
+    task->state = PGY_TASK_RUNNING;
+    pthread_mutex_unlock(&task->mutex);
+
+    prev = g_pgy_thread_current;
+    g_pgy_thread_current = task;
+    result = task->fn(task->arg);
+    g_pgy_thread_current = prev;
+
+    pthread_mutex_lock(&task->mutex);
+    task->result = result;
+    task->state = PGY_TASK_DONE;
+    pthread_cond_broadcast(&task->cond);
+    pthread_mutex_unlock(&task->mutex);
+    return true;
+}
+
 static inline void
 pgy_pool_init(size_t worker_count)
 {

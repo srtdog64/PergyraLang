@@ -85,6 +85,25 @@ pgy_await(PgyTaskHandle handle)
             pthread_mutex_unlock(&task->mutex);
             pgy_async_yield();
             pthread_mutex_lock(&task->mutex);
+        } else if (g_pgy_thread_current != NULL) {
+            /* Help-first await (docs/186 P-A1): a pool worker drains queued
+             * tasks instead of parking -- parking every worker starves the
+             * queue and deadlocks nested fan-out. Only when the queue is
+             * empty AND the target is still incomplete is the target
+             * necessarily RUNNING on another worker (pending tasks live in
+             * the queue), so parking is then deadlock-free: the await graph
+             * is acyclic (a task only awaits tasks it spawned) and bottoms
+             * out at a running task with no incomplete awaits. */
+            pthread_mutex_unlock(&task->mutex);
+            bool helped = pgy_pool_help_run_one();
+            pthread_mutex_lock(&task->mutex);
+            if (!helped && task->state != PGY_TASK_DONE) {
+                if (pthread_cond_wait(&task->cond, &task->mutex) != 0) {
+                    pthread_mutex_unlock(&task->mutex);
+                    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                                      "await condition wait failed");
+                }
+            }
         } else {
             if (pthread_cond_wait(&task->cond, &task->mutex) != 0) {
                 pthread_mutex_unlock(&task->mutex);
