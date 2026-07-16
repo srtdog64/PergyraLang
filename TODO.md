@@ -10269,25 +10269,27 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 - **DoD**: 15/15 kind 계약 매핑 + 게이트 배선 + docs/09 참조 갱신.
 - **금지**: 계약 필드만 채우고 negative 없이 "covered" 보고.
 
-#### WO-A4 — codegen 결정성(byte-identity) 게이트 CI 승격
+#### WO-A4 — codegen 결정성(byte-identity) 게이트 CI 승격 — ✅ CLOSED (2026-07-17, `df3c723c`)
 
 - **계기**: Roc 리라이트 에세이 갭 감사(2026-07-17). Roc은 "같은 입력
   바이트 → 같은 출력 바이트"를 cross-compile 보장으로 홍보 — 우리 추적성
   축(산업 SW 컨텍스트)에 정통인 성질인데 게이트가 CI 밖이었다.
-- **현재 (2026-07-17 실측)**: `tests/codegen_determinism_smoke.sh`는 실재
-  (2회 방출 후 cmp)하나 **test-all/CI 미배선**. 실측: 방출 C/LLVM은 이미
-  **raw byte-identical**(기본 4 fixture + 수동 재현) — `ast=0x` 포인터
-  정규화는 낡은 갑옷이라 제거함(재도입 시 게이트가 잡도록). 경로 철자
-  정규화(백슬래시/workdir)만 유지.
-- **단계**: 1. `PGY_CODEGEN_DETERMINISM_SOURCE=all` 전 fixture green 확인.
-  2. `scripts/ci_{linux,macos,windows}_steps.sh`에 기존 make 타깃
-  `codegen-determinism-test-smoke` 호출 추가(Makefile 자체는 동시 세션
-  dirty — 타깃이 이미 있으므로 Makefile 무수정 배선 가능). 3. test-all
-  배선은 Makefile 소유권 풀린 뒤.
-- **게이트**: 그 자체 + CI 3-OS step.
-- **DoD**: all-fixture green 로그 + CI step 배선 커밋.
-- **금지**: 정규화 규칙 재확대로 "green 만들기"(포인터/주소 마스킹 금지 —
-  나온다면 이미터를 고칠 것).
+- **닫힘**: ① `ast=0x` 포인터 정규화 제거(낡은 갑옷 — 방출 C/LLVM은 이미
+  raw byte-identical; 마스킹 유지 시 주소-의존 출력 재도입을 게이트가 못
+  잡음). 경로 철자 정규화만 유지. ② "exit 0인데 산출물 없음"을 게이트
+  자체 진단으로 승격(동시 빌드가 sweep 도중 pgy.exe relink → sed 소음으로
+  죽던 실사고를 관측 가능한 실패로). ③ `ci_linux_steps.sh` 배선(Linux가
+  llvm-dev 있는 leg; 타깃이 `LLVM_ENABLED=1` 강제라 llvm-test-smoke와 동일
+  패턴). **전수 증거**: 911 fixture × C/LLVM 각 2회 방출 —
+  **909/911 양 백엔드 byte-identical, 비결정 0**. 잔여 2건
+  (party_roster_host_methods, secure_field_slot)은 동시 세션 RIR flow
+  enrichment WIP의 **컴파일 실패**(결정성 신호 아님) — 그 작업 착지 후
+  재sweep.
+- **잔여 (소Small)**: macOS/Windows step 배선 + test-all 배선 — 둘 다
+  Makefile `LLVM_ENABLED` passthrough 한 줄이 필요한데 Makefile이 동시
+  세션 소유라 보류. 소유권 풀리면 5분 작업.
+- **금지(유지)**: 정규화 규칙 재확대로 "green 만들기"(포인터/주소 마스킹
+  금지 — 나온다면 이미터를 고칠 것).
 
 #### WO-A5 — 컴파일된 프로그램 leak 게이트 (컴파일러 말고 산출물)
 
