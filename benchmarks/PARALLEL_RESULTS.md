@@ -1,5 +1,10 @@
 # 병렬 벤치마크 스위트 — 같은-머신 3축 비교 (2026-07-17)
 
+> **갱신 (같은 날, B2/B3 이후)**: 아래 원본 표의 축 3 "64x 열위"는
+> **auto-chunking(WO-RT-4 B3, `6f5f29c0`)으로 닫혔다** — 문서 끝
+> "2026-07-17 갱신" 절이 최신 판정. 원본 표는 B3를 정당화한 측정
+> 기록으로 보존.
+
 docs/186의 벤치 축을 실측으로 채운 결과. **같은 머신**(이 Windows 박스,
 16 논리코어, mingw gcc/gfortran -O2, go 1.x)에서만 유효 — 타 머신 숫자와
 비교 금지. best-of-3, 전 대상 동일 산술(32-bit-safe), **전 대상 출력 일치
@@ -76,3 +81,50 @@ coarse에서만 이득 B_n 2.42→2.21s). 해법은 등록된 사다리 그대�
 `perf_parallel_map_{fine,chunked,serial}.pgy`, `perf_parallel_fib.pgy`,
 `baseline_par_map.{c,go,f90}`, `baseline_par_fib.{c,go}`,
 `perf_parallel_task_overhead[_serial].pgy` (µs/task 마이크로).
+
+## 2026-07-17 갱신 — B2(shard)/B3(auto-chunk) 이후: 축 3 열위 닫힘
+
+같은 날 두 rung이 착지한 뒤의 재측정. 판정 근거는 두 층:
+
+**(1) old-vs-new interleave (solo, 기계 드리프트 상쇄 — 가장 깨끗한 수)**
+`parallel (i in 0..200000) join with sum` task/index 경로,
+best-of-3 ×3라운드 교차 실행:
+
+| | pre-B3 | post-B3 |
+|---|---|---|
+| fine 200k | 2,174–2,596 ms | **64–71 ms** (**~34x**) |
+| micro 20k | 238–267 ms | 58–64 ms (직렬 트윈 ~62ms = 하네스 바닥 도달) |
+
+**(2) 스위트 재실행 2회 (동시 세션 빌드 부하 有 — 절대값 부풀고
+상대 위치만 유효; 두 실행 범위 병기)**
+
+| 축 | pgy | C OpenMP | Go | Fortran |
+|---|---|---|---|---|
+| 처리량 32M | 70–82 | 78–90 | 79 | 86–98 |
+| 중첩 fib(38) | 79–92 | 84–96 | 92 | — |
+| **fine 200k (auto-chunk)** | **83–177** | 66–72 | 118–203 | — |
+
+**축 3 판정 교체: 64x 열위 → OpenMP taskloop과 같은 대역, Go
+goroutine/elem보다 우위.** 원리: emitter가 인덱스당 태스크 대신
+`chunk_count(n) = min(n, workers×4)`개의 chunk driver를 fan-out —
+스폰 스레드의 태스크당 부기(~11µs, 분해측정으로 확정)가 N이 아니라
+chunk 수에만 붙는다. **의미론은 구성적으로 보존**: 인덱스별 ctx 슬롯
+전체가 유지되고 reduce/materialize는 그대로 전체 N을 인덱스-순서
+left-fold — 결과·checked-arith panic·Float fold 순서가 unchunked
+lowering과 byte-동일. 분할 산술은 런타임 단일 소스(양 백엔드 동일
+경계), **정책 SoT는 self-host owner**
+(`src/self_hosted/parallel/chunk_policy_owner.pgy` — golden diff +
+C==LLVM leg parity + projection pin 8개,
+`tests/selfhost_parallel_chunk_policy_smoke.sh`).
+
+같은 캠페인의 반증 기록(측정이 수술을 두 번 재조준): B2 shard화
+자체는 fine에 **중립**(단일 큐 경합 가설 반증 — 진범은 스폰 스레드
+자신의 태스크당 비용), pre-park spin은 최고 2.2x·분산 폭발(981–2425ms,
+yield 폭풍이 producer 선점)로 **되돌림**. 게이트: join 전 rung+17거절,
+중첩 목격자 4/4, backpressure 64/64×2, disjoint/snapshot/vision/lane,
+병렬 fixture 6종 codegen 결정성(double-emit byte-identity) — 전부
+GREEN. B_n n=10 실워크로드 45.4s (pre 47.6s, 무회귀).
+
+**종합 판정(갱신)**: 세 축 전부 동급 이상 — coarse 최속권, 중첩
+OpenMP-parity·Go 우위, fine OpenMP-대역·Go 우위. 데이터레이스-프리
+캡처 계약·결정적 reduce·budget/cancel 통합을 유지한 채 낸 숫자다.
