@@ -56,7 +56,11 @@ llvm_main_emit_thread_pool_init(LLVMGenCtx *ctx, bool needs_thread_pool)
             "pgy_pool_init_export");
         return false;
     }
-    LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 4, 0) };
+    /* Pass 0 so the runtime auto-sizes the pool to hardware concurrency
+     * (pgy_default_worker_count), matching the C backend's pgy_pool_init(0).
+     * A fixed 4 here capped `parallel` at 4 workers regardless of core count
+     * (measured: B_n n=10 ran 2.5x slower than an all-cores pool). */
+    LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 0, 0) };
     LLVMBuildCall2(ctx->builder, init_fn->fn_type,
                    init_fn->fn, args, 1, "");
     return true;

@@ -15,6 +15,9 @@
 #include <stdatomic.h>
 #include <pthread.h>
 #include <stdio.h>
+#ifndef _WIN32
+#include <unistd.h>   /* sysconf(_SC_NPROCESSORS_ONLN) for pgy_default_worker_count */
+#endif
 
 #include "../common/execution_lane_kind.h"
 #include "pgy_runtime_panic_contract.h"
@@ -319,6 +322,26 @@ pgy_worker_loop(void *arg)
     return NULL;
 }
 
+/* Default worker count for an auto-sized pool (pgy_pool_init(0)): one worker
+ * per hardware thread, so `parallel`/`spawn` uses the whole machine instead of
+ * a fixed 4. Both backends funnel through pgy_pool_init (C emits
+ * pgy_pool_init(0); LLVM calls pgy_pool_init_export(0)), so this one detector
+ * sizes the pool for both. Same idiom as runtime/async/scheduler.c. */
+static inline size_t
+pgy_default_worker_count(void)
+{
+#ifdef _WIN32
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    long n = (long)si.dwNumberOfProcessors;
+#else
+    long n = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+    if (n < 1)
+        n = 1;
+    return (size_t)n;
+}
+
 static inline void
 pgy_pool_init(size_t worker_count)
 {
@@ -333,7 +356,7 @@ pgy_pool_init(size_t worker_count)
     }
 
     if (worker_count == 0)
-        worker_count = 4;
+        worker_count = pgy_default_worker_count();
     if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))) {
         pgy_parallel_warn("pool-init", "worker array size overflow");
         pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
