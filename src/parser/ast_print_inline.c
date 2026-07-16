@@ -251,9 +251,12 @@ ast_print_compact(ASTNode* node)
             inline_emitf("%s", node->data.identifier.name);
             break;
 
-        case AST_NUMBER:
-            inline_emitf("%g", node->data.number.value);
+        case AST_NUMBER: {
+            char number_text[64];
+            ast_print_number_text(node, number_text, sizeof(number_text));
+            inline_emitf("%s", number_text);
             break;
+        }
 
         case AST_STRING:
             print_escaped_string(node->data.string.value);

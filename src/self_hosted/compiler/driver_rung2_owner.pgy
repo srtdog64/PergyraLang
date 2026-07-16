@@ -26,6 +26,7 @@ import "../mir/json_projection_owner.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
+    if !ParserNumberSpellingContractReady() { return "parser_number_spelling"; }
     if !SemanticBuiltinSignatureContractReady() { return "builtin_signature"; }
     if !SemanticCallableResolutionContractReady() { return "callable_resolution"; }
     if !SemanticExpressionNormalizationContractReady() { return "expression_normalization"; }

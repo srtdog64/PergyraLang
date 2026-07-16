@@ -15,9 +15,12 @@ ast_print_expr_node(ASTNode *node, int indent)
             printf("%s", node->data.identifier.name);
             break;
 
-        case AST_NUMBER:
-            printf("%g", node->data.number.value);
+        case AST_NUMBER: {
+            char number_text[64];
+            ast_print_number_text(node, number_text, sizeof(number_text));
+            printf("%s", number_text);
             break;
+        }
 
         case AST_STRING:
             printf("\"%s\"", node->data.string.value);

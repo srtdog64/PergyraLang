@@ -627,6 +627,7 @@ require_text "src/self_hosted/compiler/stage_artifact_owner.pgy" "ParserAstTreeP
 require_text "src/self_hosted/parser/cursor_owner.pgy" 'import "error_owner.pgy";'
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ParserCharAt"
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "func CharAt"
+require_text "src/self_hosted/parser/cursor_owner.pgy" "func ParserNumberSpellingContractReady"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ExpectOpt"
 require_text "src/self_hosted/parser/cursor_owner.pgy" "func ConsumeStmtTerminatorOpt"
 reject_text "src/self_hosted/parser/cursor_owner.pgy" "return -1"
@@ -2726,6 +2727,7 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSourceToCVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SemanticCallableResolutionContractReady()"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserNumberSpellingContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"

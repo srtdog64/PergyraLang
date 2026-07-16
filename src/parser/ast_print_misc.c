@@ -1,5 +1,33 @@
 ﻿#include "ast_print_internal.h"
 
+#include <stdio.h>
+#include <string.h>
+
+void
+ast_print_number_text(const ASTNode *node, char *buffer, size_t capacity)
+{
+    if (buffer == NULL || capacity == 0)
+        return;
+
+    buffer[0] = '\0';
+    if (node == NULL || node->type != AST_NUMBER)
+        return;
+
+    int written = snprintf(buffer, capacity, "%g", node->data.number.value);
+    if (written < 0 || (size_t)written >= capacity) {
+        buffer[0] = '\0';
+        return;
+    }
+
+    if (ast_number_is_float(node)
+        && strpbrk(buffer, ".eE") == NULL
+        && (size_t)written + 2 < capacity) {
+        buffer[written] = '.';
+        buffer[written + 1] = '0';
+        buffer[written + 2] = '\0';
+    }
+}
+
 bool
 ast_print_needs_trailing_newline(ASTNodeType type)
 {
@@ -24,4 +52,3 @@ ast_print_needs_trailing_newline(ASTNodeType type)
             return false;
     }
 }
-

@@ -45,7 +45,8 @@ func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
 
 // Read a numeric literal (integer or float). Returns the text as the
 // C printer emits it: trailing zeros after the decimal point are
-// trimmed, and a bare trailing `.` is dropped - so `2.0` lexes to `2`,
+// trimmed while one fractional zero preserves Float kind - so `2.0`
+// stays `2.0`,
 // `1.50` to `1.5`, and `3.14` stays `3.14`. Only consumes the `.` when
 // followed by a digit, so `0..10` lexes as `0`, `..`, `10`.
 func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
@@ -77,7 +78,7 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
             trim_to = trim_to - 1;
         }
         if trim_to == dot_idx + 1 {
-            trim_to = dot_idx;
+            return Concat(Substring(text, 0, dot_idx), ".0");
         }
         text = Substring(text, 0, trim_to);
     } else if StringLength(text) > 6 &&
@@ -99,6 +100,19 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
         }
     }
     return text;
+}
+
+func ParserNumberSpellingContractReady() -> Bool {
+    let cursor: Array<Int> = [0];
+    if ReadNumber("16.0", 0, cursor) != "16.0" || cursor[0] != 4 {
+        return false;
+    }
+    ArraySet(cursor, 0, 0);
+    if ReadNumber("1.50", 0, cursor) != "1.5" || cursor[0] != 4 {
+        return false;
+    }
+    ArraySet(cursor, 0, 0);
+    return ReadNumber("16", 0, cursor) == "16" && cursor[0] == 2;
 }
 
 // Read a literal string including the surrounding double-quotes.

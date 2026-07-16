@@ -403,3 +403,38 @@ cleanup:
     lexer_destroy(lexer);
     return failed;
 }
+
+static int
+run_integral_float_ast_print_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let f: Float = 16.0;\n"
+        "    let i: Int = 16;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+
+    printf("\n=== Test: Integral Float AST Print ===\n");
+
+    if (lexer == NULL || parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] integral float parse failed: %s\n",
+            parser != NULL ? parser_get_error(parser) : "<parser unavailable>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_print_contains(ast, "Let: f : Float = 16.0")
+        || !ast_print_contains(ast, "Let: i : Int = 16")) {
+        printf("[FAIL] AST print erased integral Float spelling\n");
+        failed = 1;
+    }
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
