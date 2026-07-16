@@ -1,0 +1,87 @@
+// perf_bn_cycles_parallel.pgy
+//
+// Prefix-parallel B_n cycle tally: `parallel (p in 0..n) join with sum` over the
+// fixed first element (n balanced tasks). Each task allocates its OWN scratch
+// (no shared state -> no data race), permutes the remaining n-1 elements
+// (Heap's), counts cycles (Loops endpoint walk), and returns its signed-
+// permutation count; the counts sum-reduce to n! * 2^n. The entire
+// parallelization is the one `parallel ... join with sum` line in Main plus
+// per-task-local scratch -- the compiler forbids shared mutable capture, so this
+// is data-race-free by construction.
+//
+// N=10 is the benchmark scale: total = 3,715,891,200 (verified n=4=384, n=10).
+//
+// MEASURED (this Windows box, 16 cores; do NOT compare to the reference suite's
+// Apple M4 Max numbers -- different hardware. Same-machine only):
+//     version                     n=10 wall
+//     hand-C serial (gcc -O2)     301.57s
+//     pgy-C serial (Loops)        386.67s   (1.28x hand-C)
+//     pgy-C PARALLEL (this file)  119.43s   (3.24x over pgy serial; 2.53x FASTER
+//                                             than serial hand-C)
+// n=9: serial 15.94s -> parallel 5.30s (3.0x). Speedup trails ideal (n tasks on
+// 16 cores) because the walk is memory-bandwidth-bound and each task does setup;
+// a finer prefix (first 2-3 elements) plus reduced per-task allocation would
+// raise core utilization.
+func HeapSub(
+    m: Int, base: Int, inout perm: Array<Int>, n: Int,
+    inout hist: Array<Long>, inout next: Array<Int>, inout visited: Array<Int>
+) -> Void {
+    if m == 1 {
+        let twoN: Int = n + n;
+        let limit: Int = 1; let bb: Int = 0;
+        while bb < n { limit = limit * 2; bb = bb + 1; }
+        let mask: Int = 0;
+        while mask < limit {
+            let mm: Int = mask; let i: Int = 0;
+            while i < n {
+                let bit: Int = mm - (mm / 2) * 2; let v: Int = perm[i];
+                if bit == 0 { next[i] = v - 1; next[n + i] = n + v - 1; }
+                if bit == 1 { next[i] = n + v - 1; next[n + i] = v - 1; }
+                mm = mm / 2; i = i + 1;
+            }
+            let r: Int = 0; while r < twoN { visited[r] = 0; r = r + 1; }
+            let cycles: Int = 0; let s: Int = 0;
+            while s < twoN {
+                if visited[s] == 0 {
+                    cycles = cycles + 1; let cur: Int = s;
+                    while visited[cur] == 0 { visited[cur] = 1; cur = next[cur]; }
+                }
+                s = s + 1;
+            }
+            hist[cycles] = hist[cycles] + 1L;
+            mask = mask + 1;
+        }
+        return;
+    }
+    let i: Int = 0;
+    while i < m - 1 {
+        HeapSub(m - 1, base, perm, n, hist, next, visited);
+        let even: Int = m - (m / 2) * 2;
+        if even == 0 { let t: Int = perm[base + i]; perm[base + i] = perm[base + m - 1]; perm[base + m - 1] = t; }
+        if even == 1 { let t: Int = perm[base]; perm[base] = perm[base + m - 1]; perm[base + m - 1] = t; }
+        i = i + 1;
+    }
+    HeapSub(m - 1, base, perm, n, hist, next, visited);
+}
+func ComputePrefix(first: Int, n: Int) -> Long {
+    let twoN: Int = n + n; let histLen: Int = twoN + 1;
+    let mut perm: Array<Int> = [];
+    ArrayPush(perm, first);
+    let v: Int = 1;
+    while v <= n { if v != first { ArrayPush(perm, v); } v = v + 1; }
+    let mut hist: Array<Long> = [];
+    for k in 0..histLen { ArrayPush(hist, 0L); }
+    let mut next: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(next, 0); }
+    let mut visited: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(visited, 0); }
+    HeapSub(n - 1, 1, perm, n, hist, next, visited);
+    let total: Long = 0L; let c: Int = 0;
+    while c < histLen { total = total + hist[c]; c = c + 1; }
+    return total;
+}
+func Main() -> Void {
+    let n: Int = 10;
+    let total: Long = parallel (p in 0..n) join with sum { give ComputePrefix(p + 1, n); };
+    Log("total=" + ToString(total));
+}
