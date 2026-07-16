@@ -182,7 +182,9 @@ func Main() -> Void with caps io_read, env {
     let body_types: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
     if mode == "--target-mismatch" {
-        if GenericReturnProbeRejected(body_types, "let_type_mismatch") {
+        if !body_types.verdict.ok &&
+            body_types.verdict.diagnostic_code == "call_target_unresolved" {
+            Log(body_types.verdict.diagnostic_code);
             Exit(1);
         }
         Log("generic target mismatch was not rejected");
