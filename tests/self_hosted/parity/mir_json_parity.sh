@@ -328,8 +328,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     fi
     if [[ "$base" == "class_method" ]]; then
         for required in \
-            '"methods":[{"name":"Length","return":"Int"}]' \
-            '"name":"Length","kind":"method","owner":"Vec2"'; do
+            '"methods":[{"name":"LengthPlus","return":"Int"}]' \
+            '"name":"LengthPlus","kind":"method","owner":"Vec2"'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_method: missing MIR class method fact: $required" >&2
                 exit 1
@@ -490,8 +490,9 @@ for fixture_entry in "${FIXTURES[@]}"; do
         for required in \
             'Class: Vec2' \
             'Methods:' \
-            'Function: Length' \
-            'Log(v.Length())'; do
+            'Function: LengthPlus' \
+            'Return: ((self.x + self.y) + extra)' \
+            'Return: (v.LengthPlus(5) - 15)'; do
             if ! grep -Fq "$required" "$reast"; then
                 echo "[self-host-parity:mir-json] class_method: mir_lower did not reconstruct class method fact: $required" >&2
                 exit 1
