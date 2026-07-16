@@ -1,0 +1,81 @@
+// Runnable projection over chunk_policy_owner.pgy: prints the canonical
+// chunk-policy table for the expected-artifact diff (both compiler legs),
+// re-checks the split cover invariants in-language, and emits the
+// required-term pin rows the smoke greps against the C/LLVM projections.
+
+import "chunk_policy_owner.pgy";
+
+func ParallelChunkCountRow(n: Int, workers: Int) -> String {
+    let row0: String = Concat("count|n=", ToString(n));
+    let row1: String = Concat(row0, "|workers=");
+    let row2: String = Concat(row1, ToString(workers));
+    let row3: String = Concat(row2, "|chunks=");
+    return Concat(row3, ToString(ParallelChunkCountFor(n, workers)));
+}
+
+func ParallelChunkSplitRow(n: Int, chunkCount: Int, k: Int) -> String {
+    let row0: String = Concat("split|n=", ToString(n));
+    let row1: String = Concat(row0, "|chunks=");
+    let row2: String = Concat(row1, ToString(chunkCount));
+    let row3: String = Concat(row2, "|k=");
+    let row4: String = Concat(row3, ToString(k));
+    let row5: String = Concat(row4, "|lo=");
+    let row6: String = Concat(row5, ToString(ParallelChunkLoAt(n, chunkCount, k)));
+    let row7: String = Concat(row6, "|hi=");
+    return Concat(row7, ToString(ParallelChunkHiAt(n, chunkCount, k)));
+}
+
+func ParallelChunkCoverRow(n: Int, chunkCount: Int) -> String {
+    let row0: String = Concat("cover|n=", ToString(n));
+    let row1: String = Concat(row0, "|chunks=");
+    let row2: String = Concat(row1, ToString(chunkCount));
+    let row3: String = Concat(row2, "|");
+    if ParallelChunkCoverHolds(n, chunkCount) {
+        return Concat(row3, "ok");
+    }
+    return Concat(row3, "BROKEN");
+}
+
+func ParallelChunkRequiredRow(index: Int) -> String {
+    let row0: String = Concat("require|", ParallelChunkRequiredPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, ParallelChunkRequiredTermAt(index));
+}
+
+func Main() -> Void {
+    if !ParallelChunkPolicyReady() {
+        Log("PARALLEL_CHUNK_POLICY ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", ParallelChunkPolicySchema()));
+    Log(Concat("factor=", ToString(ParallelChunkFactor())));
+    Log(ParallelChunkCountRow(0, 16));
+    Log(ParallelChunkCountRow(1, 16));
+    Log(ParallelChunkCountRow(5, 16));
+    Log(ParallelChunkCountRow(63, 16));
+    Log(ParallelChunkCountRow(64, 16));
+    Log(ParallelChunkCountRow(65, 16));
+    Log(ParallelChunkCountRow(200000, 16));
+    Log(ParallelChunkCountRow(10, 4));
+    Log(ParallelChunkCountRow(100, 4));
+    Log(ParallelChunkCountRow(7, 0));
+    Log(ParallelChunkCountRow(2, 1));
+    Log(ParallelChunkSplitRow(10, 3, 0));
+    Log(ParallelChunkSplitRow(10, 3, 1));
+    Log(ParallelChunkSplitRow(10, 3, 2));
+    Log(ParallelChunkSplitRow(7, 4, 0));
+    Log(ParallelChunkSplitRow(7, 4, 3));
+    Log(ParallelChunkSplitRow(200000, 64, 0));
+    Log(ParallelChunkSplitRow(200000, 64, 63));
+    Log(ParallelChunkCoverRow(1, 1));
+    Log(ParallelChunkCoverRow(10, 3));
+    Log(ParallelChunkCoverRow(7, 4));
+    Log(ParallelChunkCoverRow(64, 64));
+    Log(ParallelChunkCoverRow(200000, 64));
+    let required_index: Int = 0;
+    while required_index < ParallelChunkRequiredCount() {
+        Log(ParallelChunkRequiredRow(required_index));
+        required_index = required_index + 1;
+    }
+}

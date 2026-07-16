@@ -1,0 +1,151 @@
+// Parallel auto-chunk policy owner (docs/186 P-B3).
+//
+// SoT for the chunk-count policy and the remainder-balanced split behind the
+// `parallel (x in ...) join` fan-out. The C runtime projection
+// (src/runtime/pgy_parallel.h: PGY_PARALLEL_CHUNK_FACTOR,
+// pgy_parallel_chunk_count, pgy_parallel_spawn_chunk_at) and both backend
+// emitters must stay in lockstep with the arithmetic declared here. The
+// runnable manifest prints this policy's canonical table for the golden
+// diff on both compiler legs, and the smoke pins every projection site by
+// the required terms this owner declares.
+//
+// Registration residue: src/self_hosted/OWNERS.md and
+// tests/self_hosted_component_contract_smoke.sh rows are deferred (both
+// files are owned by a concurrent workstream at landing time); the
+// standalone gate is tests/selfhost_parallel_chunk_policy_smoke.sh.
+
+func ParallelChunkPolicySchema() -> String {
+    return "pgy.selfhost.parallel-chunk-policy.v1";
+}
+
+func ParallelChunkFactor() -> Int {
+    return 4;
+}
+
+func ParallelChunkWorkersFloor(workers: Int) -> Int {
+    if workers < 1 { return 1; }
+    return workers;
+}
+
+// chunk_count(n): n itself below one task per index, else workers x factor.
+// Mirrors pgy_parallel_chunk_count with the worker probe made explicit.
+func ParallelChunkCountFor(n: Int, workers: Int) -> Int {
+    if n <= 1 { return n; }
+    let floored: Int = ParallelChunkWorkersFloor(workers);
+    let chunks: Int = floored * ParallelChunkFactor();
+    if n < chunks { return n; }
+    return chunks;
+}
+
+func ParallelChunkMin(a: Int, b: Int) -> Int {
+    if a < b { return a; }
+    return b;
+}
+
+// Remainder-balanced contiguous split: chunk k of C chunks over n indices
+// starts at base*k + min(k, rem) and carries base + (k < rem) indices.
+func ParallelChunkLoAt(n: Int, chunkCount: Int, k: Int) -> Int {
+    let base: Int = n / chunkCount;
+    let rem: Int = n % chunkCount;
+    return base * k + ParallelChunkMin(k, rem);
+}
+
+func ParallelChunkHiAt(n: Int, chunkCount: Int, k: Int) -> Int {
+    let base: Int = n / chunkCount;
+    let rem: Int = n % chunkCount;
+    let lo: Int = ParallelChunkLoAt(n, chunkCount, k);
+    if k < rem { return lo + base + 1; }
+    return lo + base;
+}
+
+// Split invariants for one (n, chunkCount) shape: chunk 0 starts at 0, the
+// last chunk ends at n, every chunk is non-empty-or-empty-forward, and each
+// chunk starts exactly where its predecessor ended. The in-language witness
+// that the split covers the index range exactly once.
+func ParallelChunkCoverHolds(n: Int, chunkCount: Int) -> Bool {
+    if chunkCount <= 0 { return false; }
+    if ParallelChunkLoAt(n, chunkCount, 0) != 0 { return false; }
+    if ParallelChunkHiAt(n, chunkCount, chunkCount - 1) != n { return false; }
+    let k: Int = 1;
+    while k < chunkCount {
+        if ParallelChunkLoAt(n, chunkCount, k) != ParallelChunkHiAt(n, chunkCount, k - 1) {
+            return false;
+        }
+        k = k + 1;
+    }
+    let j: Int = 0;
+    while j < chunkCount {
+        if ParallelChunkLoAt(n, chunkCount, j) > ParallelChunkHiAt(n, chunkCount, j) {
+            return false;
+        }
+        j = j + 1;
+    }
+    return true;
+}
+
+// Required-term pins: each projection file must keep these exact spellings.
+// The smoke reads these rows out of the compiled manifest and greps them, so
+// a projection that drifts from this owner without the lockstep edit fails
+// closed -- and the pin list itself has no second home in shell.
+func ParallelChunkRuntimePath() -> String {
+    return "src/runtime/pgy_parallel.h";
+}
+
+func ParallelChunkExportsPath() -> String {
+    return "src/runtime/pgy_runtime_lib_quantum_exports.h";
+}
+
+func ParallelChunkCEmitterPath() -> String {
+    return "src/codegen/transpiler_parallel_join_emit.c";
+}
+
+func ParallelChunkLlvmEmitterPath() -> String {
+    return "src/codegen/llvm_stmt_parallel_join.c";
+}
+
+func ParallelChunkRequiredCount() -> Int {
+    return 8;
+}
+
+func ParallelChunkRequiredPathAt(index: Int) -> String {
+    if index <= 3 { return ParallelChunkRuntimePath(); }
+    if index == 4 { return ParallelChunkExportsPath(); }
+    if index == 5 { return ParallelChunkCEmitterPath(); }
+    if index == 6 { return ParallelChunkCEmitterPath(); }
+    if index == 7 { return ParallelChunkLlvmEmitterPath(); }
+    return "";
+}
+
+func ParallelChunkRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "#define PGY_PARALLEL_CHUNK_FACTOR 4"; }
+    if index == 1 { return "pgy_parallel_chunk_count(size_t n)"; }
+    if index == 2 { return "base * k + (k < rem ? k : rem)"; }
+    if index == 3 { return "pgy_parallel_chunk_driver"; }
+    if index == 4 { return "pgy_parallel_chunk_count_export(size_t n)"; }
+    if index == 5 { return "pgy_parallel_chunk_count(_pj_n_"; }
+    if index == 6 { return "pgy_parallel_spawn_chunk_at(_pj_cc_"; }
+    if index == 7 { return "pgy_parallel_spawn_chunk_at_export"; }
+    return "";
+}
+
+func ParallelChunkMissingSelfTestTerm() -> String {
+    return "definitely_missing_parallel_chunk_policy_term";
+}
+
+func ParallelChunkPolicyReady() -> Bool {
+    return ParallelChunkPolicySchema() != "" &&
+        ParallelChunkFactor() == 4 &&
+        ParallelChunkCountFor(0, 16) == 0 &&
+        ParallelChunkCountFor(1, 16) == 1 &&
+        ParallelChunkCountFor(65, 16) == 64 &&
+        ParallelChunkCountFor(7, 0) == 4 &&
+        ParallelChunkRequiredCount() == 8 &&
+        ParallelChunkRequiredPathAt(0) == ParallelChunkRuntimePath() &&
+        ParallelChunkRequiredPathAt(7) == ParallelChunkLlvmEmitterPath() &&
+        ParallelChunkRequiredTermAt(0) != "" &&
+        ParallelChunkRequiredTermAt(7) != "" &&
+        ParallelChunkMissingSelfTestTerm() != "" &&
+        ParallelChunkCoverHolds(10, 3) &&
+        ParallelChunkCoverHolds(7, 4) &&
+        ParallelChunkCoverHolds(200000, 64);
+}
