@@ -25,6 +25,8 @@ done
 for required in \
     'self-host-preparation-platform-test-smoke:' \
     'self-host-preparation-platform-parity-test-smoke:' \
+    'self-host-preparation-exhaustive-parity-test-smoke:' \
+    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-driver-bootstrap-test-smoke' \
     'tests/self_hosted/parity/parser_parity.sh' \
     'tests/self_hosted/parity/semantic_parity.sh' \
     'tests/self_hosted/parity/codegen_parity.sh' \
@@ -47,12 +49,28 @@ for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
 done
 
 for required in \
-    'self-host-proof-linux:' \
-    'timeout-minutes: 45' \
-    'run: make self-host-preparation-test-smoke' \
+    'self-host-parity-linux:' \
+    'self-host-bootstrap-linux:' \
+    'timeout-minutes: 40' \
+    'run: make self-host-preparation-exhaustive-parity-test-smoke' \
+    'run: make self-host-driver-bootstrap-test-smoke' \
     'cancel-in-progress: true'; do
     if ! grep -Fq "$required" "$WORKFLOW"; then
         echo "[self-host-ci-profile] dedicated Linux proof job missing: $required" >&2
+        exit 1
+    fi
+done
+
+exhaustive_recipe="$(
+    sed -n \
+        '/^self-host-preparation-exhaustive-parity-test-smoke:/,/^self-host-runtime-boundary-parity-test-smoke:/p' \
+        "$MAKEFILE"
+)"
+for forbidden in \
+    'codegen_bootstrap.sh' \
+    'driver_bootstrap.sh'; do
+    if grep -Fq "$forbidden" <<<"$exhaustive_recipe"; then
+        echo "[self-host-ci-profile] bootstrap leaked into exhaustive parity: $forbidden" >&2
         exit 1
     fi
 done
@@ -83,4 +101,4 @@ for forbidden in \
     fi
 done
 
-echo "[self-host-ci-profile] exhaustive Linux proof and native platform parity are isolated"
+echo "[self-host-ci-profile] exhaustive parity, bootstrap, and native platform jobs are isolated"
