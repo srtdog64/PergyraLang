@@ -80,7 +80,8 @@ pgy_await(PgyTaskHandle handle)
 
     PgyTask *task = (PgyTask *)handle.task;
     pthread_mutex_lock(&task->mutex);
-    while (task->state != PGY_TASK_DONE) {
+    while (atomic_load_explicit(&task->state, memory_order_acquire)
+           != PGY_TASK_DONE) {
         if (pgy_async_in_coroutine()) {
             pthread_mutex_unlock(&task->mutex);
             pgy_async_yield();
@@ -106,7 +107,9 @@ pgy_await(PgyTaskHandle handle)
             pthread_mutex_unlock(&task->mutex);
             bool helped = pgy_pool_help_run_one();
             pthread_mutex_lock(&task->mutex);
-            if (!helped && task->state != PGY_TASK_DONE) {
+            if (!helped
+                && atomic_load_explicit(&task->state, memory_order_acquire)
+                   != PGY_TASK_DONE) {
                 if (pthread_cond_wait(&task->cond, &task->mutex) != 0) {
                     pthread_mutex_unlock(&task->mutex);
                     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
