@@ -9,46 +9,47 @@ suite); only same-machine ratios mean anything.
 Every implementation prints the same verified totals (n=4 -> 384,
 n=10 -> 3,715,891,200), so this is apples-to-apples on identical output.
 
-## n=10
+## n=10  (canonical scale; 3,715,891,200 signed permutations)
 
-| language / backend        | serial   | parallel            | serial vs C | parallel speedup |
-|---------------------------|----------|---------------------|-------------|------------------|
-| hand-C  (gcc -O2)         | 301.57s  | 45.26s (OpenMP)     | 1.00x       | 6.66x            |
-| Fortran (gfortran -O2)    | 404.0s   | 75.71s (OpenMP)     | 1.34x       | 5.34x            |
-| Pergyra (pgy --backend=c) | 386.67s  | 119.43s (`join with sum`) | 1.28x | 3.24x       |
+Parallel wall is best-of-2, all @ 16 threads. Serial single runs are noisy (see
+the serial Correction); read the clean speedups from the n=9 best-of-3 below.
 
-## n=9
+| language / backend        | serial (single) | parallel wall           |
+|---------------------------|-----------------|-------------------------|
+| hand-C  OpenMP            | ~300s           | 40.26s                  |
+| Fortran OpenMP            | ~400s           | 60.96s                  |
+| Pergyra `join with sum`   | ~330s           | **47.64s** (pool=auto)  |
 
-| language | serial  | parallel |
-|----------|---------|----------|
-| hand-C   | 13.96s  | 2.22s    |
-| Fortran  | 19.33s  | 3.43s    |
-| Pergyra  | 15.94s  | 5.30s    |
+Pergyra parallel is **1.28x faster than Fortran OpenMP** and within **1.18x** of
+hand-tuned C OpenMP. Before the pool fix it was 119.43s, behind both -- see
+Correction 2.
+
+## n=9  (best-of-3, same session, solo -- the clean speedups)
+
+| contender                       | best     | speedup vs hand-C serial |
+|---------------------------------|----------|--------------------------|
+| hand-C serial (1 core)          | 14.32s   | 1.00x                    |
+| pgy-C serial (1 core)           | 15.20s   | 0.94x  (~parity)         |
+| hand-C OpenMP @ 4 threads       | 4.96s    | 2.89x                    |
+| pgy-C parallel (pool=4, OLD)    | 6.45s    | 2.39x                    |
+| **pgy-C parallel (pool=auto)**  | **2.42s**| **5.93x**                |
+| Fortran OpenMP @ 16 threads     | ~3.4s    | 5.34x                    |
+| hand-C OpenMP @ 16 threads      | 2.00s    | 7.17x                    |
 
 ## Honest reading
 
-1. **Serial: Pergyra is C-class.** 1.28x hand-C at n=10 (28% overhead) with
-   always-on array bounds checking, on a pointer-chasing / branch-heavy integer
-   workload -- not arithmetic loops. Pergyra also edges gfortran here (0.96x at
-   n=10, 0.82x at n=9): this combinatorial workload is not Fortran's dense-array
-   home turf, and Pergyra's C backend rides gcc while gfortran's frontend is
-   weaker on this shape. No general Fortran-parity claim is made (see docs/168);
-   this is one measured workload.
+1. **Serial: Pergyra is C-parity** (see the serial Correction below): a clean
+   best-of-3 at n=9 puts pgy-C at 0.91-0.94x hand-C -- inside the machine's ~9%
+   run-to-run band -- on a pointer-chasing / branch-heavy integer workload with
+   always-on bounds checking. It also edges gfortran. No general Fortran-parity
+   claim is made (docs/168); this is one measured workload.
 
-2. **Parallel: Pergyra's parallelism is real but its runtime trails OpenMP.**
-   The whole parallelization is one `parallel (p in 0..n) join with sum` line
-   plus per-task-local scratch (the compiler forbids shared mutable capture, so
-   it is data-race-free by construction). It gives a correct 3.24x speedup, but
-   mature OpenMP extracts 6.66x (C) / 5.34x (Fortran) from the same
-   decomposition.
-
-3. **The parallel limiter is the runtime, not the decomposition.** Refining the
-   prefix from the first element (10 tasks) to the first two (90 tasks) barely
-   moved Pergyra (119.43s -> 115.35s, ~3%), so load balancing is not the
-   bottleneck -- the lane-scheduler runtime's per-task / synchronization
-   overhead is. That is the concrete thing to improve (the SEA lane runtime is a
-   partially-filled facade), and it is identified here by measurement rather than
-   guessed.
+2. **Parallel: Pergyra now beats Fortran OpenMP and nears C OpenMP.** The whole
+   parallelization is one `parallel (p in 0..n) join with sum` line plus
+   per-task-local scratch (the compiler forbids shared mutable capture, so it is
+   data-race-free by construction). With the worker pool sized to the machine it
+   reaches 5.93x (n=9) / 47.64s (n=10) -- faster than Fortran OpenMP and 0.83x of
+   hand-C OpenMP. What changed is in Correction 2.
 
 ## Files
 
@@ -101,5 +102,41 @@ spikes). The emitted C is identical at every n, so the per-operation ratio is
 n-independent -- the true serial figure is the clean n=9 result: **parity**.
 
 Lesson (recorded): a serial performance ratio is only meaningful measured
-best-of-N, same session, solo. The parallel gap (pgy 2.6x behind C OpenMP) is
-far larger than this variance band and is the one real, runtime-bound gap.
+best-of-N, same session, solo. The parallel gap looked "far larger than this
+variance band and runtime-bound" -- but most of it turned out to be a 4-worker
+pool, not scheduler quality (Correction 2).
+
+## Correction 2: the parallel gap was a 4-worker pool, not scheduler overhead
+
+The earlier reading -- "the parallel limiter is the lane-scheduler runtime's
+per-task / synchronization overhead" -- was WRONG, and a one-line fix disproves
+it. The worker pool was hardcoded to 4 (`pgy_pool_init`'s fallback; the C
+backend emits `pgy_pool_init(0)` and the LLVM backend passed the constant 4), so
+`parallel` used 4 threads regardless of the 16-core machine -- capping speedup at
+~4x no matter the decomposition. That is exactly why refining the prefix
+(10 -> 90 tasks) barely moved it: more tasks do not help when only 4 run at once.
+The "barely moved" datum was right; the conclusion drawn from it was not.
+
+Cross-check that pins the cause to worker count (n=9, best-of-3, solo):
+
+| contender                     | best   | speedup |
+|-------------------------------|--------|---------|
+| pgy-C parallel (pool=4, old)  | 6.45s  | 2.39x   |
+| hand-C OpenMP @ 4 threads     | 4.96s  | 2.89x   |
+| pgy-C parallel (pool=auto)    | 2.42s  | 5.93x   |
+| hand-C OpenMP @ 16 threads    | 2.00s  | 7.17x   |
+
+Throttle hand-C OpenMP to 4 threads and it lands right next to old pgy (2.89x vs
+2.39x); give pgy the whole machine and it lands next to full OpenMP. The fix
+sizes the pool to hardware concurrency (`pgy_default_worker_count`, the same
+GetSystemInfo / sysconf idiom as `runtime/async/scheduler.c`). The C backend
+gets it on the next compile (the runtime is header-only, folded into emitted C);
+the LLVM backend now emits `pgy_pool_init(0)` too but only picks up the new
+sizing once its machine-local `pgy_runtime_lib.bc` is regenerated (gitignored;
+not done here). The residual 5.93x vs 7.17x is pgy's per-task pool bookkeeping
+(a calloc + mutex/cond per task) plus pgy serial sitting a hair behind -- a
+smaller, real gap, no longer the headline.
+
+Lesson: the first confident root-cause ("scheduler overhead") sounded mechanistic
+and survived unchallenged. The cheap falsifier -- cap OpenMP's threads, or just
+print the pool size -- was the thing to run first.
