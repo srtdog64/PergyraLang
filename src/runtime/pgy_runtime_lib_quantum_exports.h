@@ -304,3 +304,26 @@ bool pgy_task_is_cancelled_export(void)
 {
     return pgy_task_is_cancelled();
 }
+
+/* Auto-chunked index fan-out (docs/186 P-B3). The LLVM join emitter calls
+ * these three; the C emitter calls the same inline functions directly, so
+ * chunk-count policy and split arithmetic have exactly one home. */
+size_t pgy_parallel_chunk_count_export(size_t n)
+{
+    return pgy_parallel_chunk_count(n);
+}
+
+void *pgy_parallel_chunk_ctxs_alloc_export(size_t chunk_count)
+{
+    return pgy_parallel_chunk_ctxs_alloc(chunk_count);
+}
+
+PgyTaskHandle pgy_parallel_spawn_chunk_at_export(void *cctxs, size_t k,
+                                                 size_t chunk_count,
+                                                 void *body, void *ctxs,
+                                                 size_t elem_size, size_t n)
+{
+    return pgy_parallel_spawn_chunk_at(cctxs, k, chunk_count,
+                                       (void *(*)(void *))body, ctxs,
+                                       elem_size, n);
+}

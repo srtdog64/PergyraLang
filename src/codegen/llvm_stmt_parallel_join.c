@@ -106,6 +106,15 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx,
         "pgy_lane_spawn_dispatch_export");
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
+    /* Auto-chunk trio (docs/186 P-B3): chunk-count policy, chunk-ctx table
+     * allocation, and the fill+spawn combiner that owns the split math. */
+    LLVMFuncEntry *chunk_count_fn = llvm_lookup_function(ctx,
+        "pgy_parallel_chunk_count_export");
+    LLVMFuncEntry *chunk_alloc_fn = llvm_lookup_function(ctx,
+        "pgy_parallel_chunk_ctxs_alloc_export");
+    LLVMFuncEntry *chunk_spawn_fn = llvm_lookup_function(ctx,
+        "pgy_parallel_spawn_chunk_at_export");
+    LLVMFuncEntry *free_fn = llvm_lookup_function(ctx, "free");
     char get_fn_name[64] = "";
     LLVMFuncEntry *get_fn = NULL;
     if (!index_mode) {
@@ -120,10 +129,11 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                      elem_suffix) < (int)sizeof(get_fn_name))
             get_fn = llvm_lookup_function(ctx, get_fn_name);
     }
-    if (spawn_fn == NULL || await_fn == NULL
-        || (!index_mode && get_fn == NULL)) {
+    if (spawn_fn == NULL || await_fn == NULL || chunk_count_fn == NULL
+        || chunk_alloc_fn == NULL || chunk_spawn_fn == NULL
+        || free_fn == NULL || (!index_mode && get_fn == NULL)) {
         llvm_parallel_join_set_error(ctx, node,
-            "LLVM parallel join requires registered runtime functions (spawn/await/%s); sequential fallback is disabled",
+            "LLVM parallel join requires registered runtime functions (spawn/await/chunk/%s); sequential fallback is disabled",
             get_fn_name);
         return;
     }
@@ -378,10 +388,27 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMValueRef n_or_one = LLVMBuildSelect(ctx->builder, n_is_zero, one,
         n_val, llvm_tmp_name(ctx));
 
+    /* Auto-chunk (docs/186 P-B3): the handle array is sized by the CHUNK
+     * count -- one driver task per chunk -- while the per-index context
+     * array keeps all n slots so the reduce/materialize walk below stays
+     * a full index-order fold, byte-identical to the unchunked lowering. */
+    LLVMValueRef chunk_count_args[] = { n_val };
+    LLVMValueRef nch_val = LLVMBuildCall2(ctx->builder,
+        chunk_count_fn->fn_type, chunk_count_fn->fn, chunk_count_args, 1,
+        "_pj_nch");
+    LLVMValueRef nch_is_zero = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+        nch_val, zero, llvm_tmp_name(ctx));
+    LLVMValueRef nch_or_one = LLVMBuildSelect(ctx->builder, nch_is_zero,
+        one, nch_val, llvm_tmp_name(ctx));
+    LLVMValueRef chunk_alloc_args[] = { nch_val };
+    LLVMValueRef cctxs = LLVMBuildCall2(ctx->builder,
+        chunk_alloc_fn->fn_type, chunk_alloc_fn->fn, chunk_alloc_args, 1,
+        "_pj_cc");
+
     LLVMValueRef ctxs = LLVMBuildArrayAlloca(ctx->builder, ctx_struct_type,
         n_or_one, "_pj_ctxs");
     LLVMValueRef handles = LLVMBuildArrayAlloca(ctx->builder, handle_type,
-        n_or_one, "_pj_hs");
+        nch_or_one, "_pj_hs");
     LLVMValueRef i_slot = LLVMBuildAlloca(ctx->builder, ctx->type_i64,
         "_pj_i");
     LLVMBuildStore(ctx->builder, zero, i_slot);
@@ -465,26 +492,6 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
                     llvm_tmp_name(ctx)), rs_field);
         }
         {
-            LLVMValueRef fn_ptr = LLVMBuildBitCast(ctx->builder, wrapper_fn,
-                ctx->type_i8ptr, llvm_tmp_name(ctx));
-            LLVMValueRef ctx_i8 = LLVMBuildBitCast(ctx->builder, ctx_i,
-                ctx->type_i8ptr, llvm_tmp_name(ctx));
-            LLVMValueRef spawn_args[] = {
-                LLVMConstInt(ctx->type_i32, PGY_LANE_WORKER_POOL, 0),
-                fn_ptr,
-                ctx_i8
-            };
-            LLVMValueRef handle = LLVMBuildCall2(ctx->builder,
-                spawn_fn->fn_type, spawn_fn->fn, spawn_args, 3,
-                llvm_tmp_name(ctx));
-            if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handle,
-                    "LLVM parallel join task spawn failed"))
-                return;
-            LLVMValueRef h_ptr = LLVMBuildGEP2(ctx->builder, handle_type,
-                handles, &i_val, 1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, handle, h_ptr);
-        }
-        {
             LLVMValueRef i_val2 = LLVMBuildLoad2(ctx->builder,
                 ctx->type_i64, i_slot, llvm_tmp_name(ctx));
             LLVMValueRef next = LLVMBuildAdd(ctx->builder, i_val2, one,
@@ -495,6 +502,60 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, spawn_done);
+    LLVMBuildStore(ctx->builder, zero, i_slot);
+
+    /* Chunk fan-out: one driver task per chunk, boundaries computed by the
+     * runtime's remainder-balanced split (same call the C twin makes). */
+    LLVMBasicBlockRef ck_cond = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.chunk.cond");
+    LLVMBasicBlockRef ck_body = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.chunk.body");
+    LLVMBasicBlockRef ck_done = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "pj.chunk.done");
+    LLVMBuildBr(ctx->builder, ck_cond);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ck_cond);
+    {
+        LLVMValueRef k_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT, k_val,
+            nch_val, llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, cont, ck_body, ck_done);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ck_body);
+    {
+        LLVMValueRef k_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            i_slot, llvm_tmp_name(ctx));
+        LLVMValueRef fn_ptr = LLVMBuildBitCast(ctx->builder, wrapper_fn,
+            ctx->type_i8ptr, llvm_tmp_name(ctx));
+        LLVMValueRef ctxs_i8 = LLVMBuildBitCast(ctx->builder, ctxs,
+            ctx->type_i8ptr, llvm_tmp_name(ctx));
+        LLVMValueRef chunk_spawn_args[] = {
+            cctxs,
+            k_val,
+            nch_val,
+            fn_ptr,
+            ctxs_i8,
+            LLVMSizeOf(ctx_struct_type),
+            n_val
+        };
+        LLVMValueRef handle = LLVMBuildCall2(ctx->builder,
+            chunk_spawn_fn->fn_type, chunk_spawn_fn->fn, chunk_spawn_args,
+            7, llvm_tmp_name(ctx));
+        if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handle,
+                "LLVM parallel join task spawn failed"))
+            return;
+        LLVMValueRef h_ptr = LLVMBuildGEP2(ctx->builder, handle_type,
+            handles, &k_val, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, handle, h_ptr);
+        LLVMValueRef next = LLVMBuildAdd(ctx->builder, k_val, one,
+            llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, next, i_slot);
+        LLVMBuildBr(ctx->builder, ck_cond);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ck_done);
     LLVMBuildStore(ctx->builder, zero, i_slot);
 
     if (expr_mode && is_any) {
@@ -565,8 +626,10 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         {
             LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder,
                 ctx->type_i64, i_slot, llvm_tmp_name(ctx));
+            /* Handles are the chunk drivers; cancel wakes their
+             * back-edge safe points. */
             LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT,
-                i_val, n_val, llvm_tmp_name(ctx));
+                i_val, nch_val, llvm_tmp_name(ctx));
             LLVMBuildCondBr(ctx->builder, cont, can_body, can_done);
         }
         LLVMPositionBuilderAtEnd(ctx->builder, can_body);
@@ -602,7 +665,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef i_val = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
             i_slot, llvm_tmp_name(ctx));
         LLVMValueRef cont = LLVMBuildICmp(ctx->builder, LLVMIntULT, i_val,
-            n_val, llvm_tmp_name(ctx));
+            nch_val, llvm_tmp_name(ctx));
         LLVMBuildCondBr(ctx->builder, cont, join_body, join_done);
     }
 
@@ -626,6 +689,11 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, join_done);
+    {
+        LLVMValueRef free_args[] = { cctxs };
+        LLVMBuildCall2(ctx->builder, free_fn->fn_type, free_fn->fn,
+            free_args, 1, "");
+    }
 
     /* Expression mode: materialize the result from the per-task give
      * slots (llvm_stmt_parallel_join_result.c) -- Array<R> for the

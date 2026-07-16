@@ -37,6 +37,22 @@ llvm_declare_runtime_task_memory(LLVMGenCtx *ctx)
     { LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, NULL, 0, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_task_is_cancelled_export", ft);
       llvm_register_function(ctx, "pgy_task_is_cancelled_export", fn, ft, ctx->type_i1); }
+    /* Auto-chunked index fan-out (docs/186 P-B3): chunk-count policy,
+     * caller-owned chunk-ctx table, and the fill+spawn combiner. */
+    { LLVMTypeRef params[] = { ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_i64, params, 1, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_parallel_chunk_count_export", ft);
+      llvm_register_function(ctx, "pgy_parallel_chunk_count_export", fn, ft, ctx->type_i64); }
+    { LLVMTypeRef params[] = { ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_parallel_chunk_ctxs_alloc_export", ft);
+      llvm_register_function(ctx, "pgy_parallel_chunk_ctxs_alloc_export", fn, ft, ctx->type_i8ptr); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64, ctx->type_i64,
+                               ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i64,
+                               ctx->type_i64 };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 7, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_parallel_spawn_chunk_at_export", ft);
+      llvm_register_function(ctx, "pgy_parallel_spawn_chunk_at_export", fn, ft, ctx->type_task_handle); }
     { LLVMTypeRef params[] = { ctx->type_i64 };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "malloc", ft);

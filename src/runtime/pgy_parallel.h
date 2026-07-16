@@ -741,6 +741,117 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     return handle;
 }
 
+/* =================================================================
+ * Auto-chunked index fan-out (docs/186 P-B3)
+ *
+ * The join emitters used to spawn one pool task per index; at 200k
+ * near-empty indices the spawning thread's own per-task bookkeeping
+ * (~11 us/task measured, benchmarks/PARALLEL_RESULTS.md) dominated the
+ * whole region. Both backends now fan out chunk_count(n) driver tasks;
+ * each driver runs the SAME per-index body over its contiguous slice of
+ * the caller-owned per-index context array. The reduce/materialize walk
+ * still folds every per-index slot in index order, so results, panics
+ * and checked arithmetic are byte-identical to the unchunked lowering.
+ *
+ * Policy SoT: the chunk-count policy and the remainder-balanced split
+ * below are owned by src/self_hosted/parallel/chunk_policy_owner.pgy;
+ * this is the C projection. Keep the constants in lockstep.
+ * ================================================================= */
+
+#define PGY_PARALLEL_CHUNK_FACTOR 4
+
+static inline size_t
+pgy_parallel_chunk_count(size_t n)
+{
+    size_t workers;
+    size_t chunks;
+
+    if (n <= 1)
+        return n;
+    workers = atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)
+        ? g_pgy_pool.worker_count
+        : pgy_default_worker_count();
+    if (workers == 0)
+        workers = 1;
+    chunks = workers * PGY_PARALLEL_CHUNK_FACTOR;
+    return n < chunks ? n : chunks;
+}
+
+typedef struct {
+    void *(*body)(void *);
+    unsigned char *ctxs;
+    size_t         elem_size;
+    size_t         lo;
+    size_t         hi;
+} PgyParallelChunkCtx;
+
+static void *
+pgy_parallel_chunk_driver(void *raw)
+{
+    PgyParallelChunkCtx *chunk = (PgyParallelChunkCtx *)raw;
+
+    for (size_t i = chunk->lo; i < chunk->hi; i++) {
+        /* Back-edge safe point: an any-join decision (or a caller
+         * cancel) retires the remaining indices of this chunk, matching
+         * the pool's pre-run skip for queued whole tasks. */
+        if (pgy_cancel_is_requested(pgy_current_cancel_node()))
+            break;
+        chunk->body(chunk->ctxs + i * chunk->elem_size);
+    }
+    return NULL;
+}
+
+/* Never returns NULL: a fan-out that cannot even allocate its chunk table
+ * fails closed here, one panic site for both backends. */
+static inline void *
+pgy_parallel_chunk_ctxs_alloc(size_t chunk_count)
+{
+    void *cctxs;
+
+    if (!pgy_parallel_array_fits(chunk_count ? chunk_count : 1,
+                                 sizeof(PgyParallelChunkCtx))) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    }
+    cctxs = malloc(sizeof(PgyParallelChunkCtx)
+                   * (chunk_count ? chunk_count : 1));
+    if (cctxs == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
+    }
+    return cctxs;
+}
+
+/* Fill slot k of the caller-owned chunk-ctx array with the [lo,hi) slice of
+ * n indices and spawn its driver. The remainder-balanced split arithmetic
+ * lives here, once, so both backends inherit identical chunk boundaries by
+ * construction (chunk k covers base*k + min(k,rem), length base + (k<rem)). */
+static inline PgyTaskHandle
+pgy_parallel_spawn_chunk_at(void *cctxs, size_t k, size_t chunk_count,
+                            void *(*body)(void *), void *ctxs,
+                            size_t elem_size, size_t n)
+{
+    PgyParallelChunkCtx *slots = (PgyParallelChunkCtx *)cctxs;
+    size_t base;
+    size_t rem;
+    size_t lo;
+
+    if (cctxs == NULL || body == NULL || chunk_count == 0
+        || k >= chunk_count) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "parallel chunk spawn out of range");
+    }
+    base = n / chunk_count;
+    rem = n % chunk_count;
+    lo = base * k + (k < rem ? k : rem);
+    slots[k].body = body;
+    slots[k].ctxs = (unsigned char *)ctxs;
+    slots[k].elem_size = elem_size;
+    slots[k].lo = lo;
+    slots[k].hi = lo + base + (k < rem ? 1 : 0);
+    return pgy_spawn(pgy_parallel_chunk_driver, &slots[k]);
+}
+
 #include "runtime/pgy_parallel_blocking.h"
 
 #if defined(__APPLE__) && defined(__clang__)

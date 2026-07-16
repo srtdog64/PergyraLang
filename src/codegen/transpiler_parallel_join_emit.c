@@ -298,6 +298,19 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             codebuf_write(ctx->out,
                 "size_t _pj_n_%u = _pj_src_%u->length;\n", pid, pid);
         }
+        /* Auto-chunk (docs/186 P-B3): fan out chunk_count(n) driver
+         * tasks instead of one task per index. The per-index context
+         * array keeps ALL n slots -- each driver runs the same
+         * per-index wrapper over its contiguous slice, and the
+         * join/reduce walk below still folds every slot in index
+         * order, so results and panic behavior match the unchunked
+         * lowering exactly. Chunk boundaries come from the runtime's
+         * remainder-balanced split, the same arithmetic the LLVM twin
+         * calls. */
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "size_t _pj_nch_%u = pgy_parallel_chunk_count(_pj_n_%u);\n",
+            pid, pid);
         write_indent(ctx);
         codebuf_write(ctx->out,
             "_pgy_pjoin_ctx_%u *_pj_ctxs_%u = (_pgy_pjoin_ctx_%u *)malloc("
@@ -306,8 +319,12 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(ctx->out,
             "PgyTaskHandle *_pj_hs_%u = (PgyTaskHandle *)malloc("
-            "sizeof(PgyTaskHandle) * (_pj_n_%u ? _pj_n_%u : 1));\n",
+            "sizeof(PgyTaskHandle) * (_pj_nch_%u ? _pj_nch_%u : 1));\n",
             pid, pid, pid);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "PgyParallelChunkCtx *_pj_cc_%u = (PgyParallelChunkCtx *)"
+            "pgy_parallel_chunk_ctxs_alloc(_pj_nch_%u);\n", pid, pid);
         write_indent(ctx);
         codebuf_write(ctx->out,
             "if (_pj_ctxs_%u == NULL || _pj_hs_%u == NULL) {\n", pid, pid);
@@ -377,10 +394,20 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
             codebuf_write(ctx->out, ", &_pj_any_%u, &_pj_any_res_%u",
                 pid, pid);
         codebuf_write(ctx->out, " };\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "_pj_hs_%u[_pj_i] = pgy_lane_spawn_dispatch(PGY_LANE_WORKER_POOL, "
-            "_pgy_pjoin_%u, &_pj_ctxs_%u[_pj_i]);\n", pid, pid, pid);
+            "for (size_t _pj_k = 0; _pj_k < _pj_nch_%u; _pj_k++) {\n", pid);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "_pj_hs_%u[_pj_k] = pgy_parallel_spawn_chunk_at(_pj_cc_%u, "
+            "_pj_k, _pj_nch_%u, _pgy_pjoin_%u, _pj_ctxs_%u, "
+            "sizeof(_pgy_pjoin_ctx_%u), _pj_n_%u);\n",
+            pid, pid, pid, pid, pid, pid, pid);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -395,6 +422,9 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(ctx->out,
             "free(_pj_hs_%u);\n", pid);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "free(_pj_cc_%u);\n", pid);
 
         ctx->indent--;
         write_indent(ctx);

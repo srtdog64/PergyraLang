@@ -76,13 +76,16 @@ transpiler_pjoin_emit_join_await(ASTNode *node, TranspilerCtx *ctx,
         codebuf_write(ctx->out,
             "if (_pj_n_%u != 0) while (__atomic_load_n(&_pj_any_%u,"
             " __ATOMIC_ACQUIRE) == 0) sched_yield();\n", pid, pid);
+        /* Handles are the chunk drivers (docs/186 P-B3); cancel wakes
+         * their back-edge safe points, the per-index entry safe point
+         * retires the rest. */
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+            "for (size_t _pj_i = 0; _pj_i < _pj_nch_%u; _pj_i++) "
             "pgy_lane_cancel(_pj_hs_%u[_pj_i]);\n", pid, pid);
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+            "for (size_t _pj_i = 0; _pj_i < _pj_nch_%u; _pj_i++) "
             "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
         /* Nothing decided after a full join <=> the fan-out was
          * empty. "First of nothing" is a domain violation, same
@@ -96,7 +99,7 @@ transpiler_pjoin_emit_join_await(ASTNode *node, TranspilerCtx *ctx,
     }
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "for (size_t _pj_i = 0; _pj_i < _pj_n_%u; _pj_i++) "
+        "for (size_t _pj_i = 0; _pj_i < _pj_nch_%u; _pj_i++) "
         "pgy_lane_await(_pj_hs_%u[_pj_i]);\n", pid, pid);
 }
 
