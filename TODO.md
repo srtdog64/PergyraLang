@@ -10431,6 +10431,20 @@ RT 계열.
   성숙 work-stealing 풀 ~0.1-1µs 대비 10배+ 여지 = B1 수술 근거 확보.
   다음 = 10.7µs **비용 분해**(calloc/큐 lock/cond signal/핸들 await 중
   어디인가) — 분해 없이 blind 수술 금지(본 WO 교리).
+- **진행 2 (2026-07-17, 같은 날)**: ✅ **비용 분해 완료 — B1 설계 2건 반증,
+  사다리 재조준**. raw-pthread 복제 실측: alloc/init/destroy 몫 **1.7µs**
+  뿐(16%), 무경합 signaling 0.02µs → freelist(B1 원안)는 1.7µs짜리.
+  main park/wake 가설도 반증 — help-first를 전 스레드로 확장(`e6e164c2`)
+  해도 micro 중립(270 vs 287ms). 단 **coarse에선 실증 이득**(join 스레드가
+  러너로 참여: B_n n=9 2.42→2.21s)이라 유지(의미 불변: help는 러너 추가라
+  데드락-프리 논증 그대로). **잔여 ~9µs의 진범 = 단일 큐 mutex + 태스크
+  상태 mutex 경합**(17 경쟁자) → 사다리 우선순위 **B2(deque/steal)·B3
+  (auto-chunk)로 역전**, B1(join counter)은 후순위 강등.
+- **진행 3 (2026-07-17)**: ✅ 3축 병렬 스위트 착지(`efab6083`,
+  `benchmarks/PARALLEL_RESULTS.md`): 처리량 32M **pgy 1위**(18.5ms vs
+  C-OMP 21.9/Go 22.9/Fortran 23.9), **중첩 fib(38) OpenMP-parity·Go 이김**
+  (23.7 vs 23.1/35.3 — WO-RT-3 전엔 데드락이던 축), fine 200k **64x 열위**
+  (2239 vs 35.2ms, ~11µs/task) = B2/B3의 정량 근거. 전 대상 출력 일치 검증.
 - **성공 기준**: hand-C OpenMP 1.10x 이내(현 1.21x). 미달도 측정 기록이 성과.
 - **게이트**: 전 parallel/backpressure 게이트 + 병렬 결정성 목격자
   (`join with sum` 결과가 worker수 무관 — docs/186 P-D).

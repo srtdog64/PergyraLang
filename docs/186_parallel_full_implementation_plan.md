@@ -127,6 +127,17 @@ stress 게이트는 유지, root cause 확정 전 "닫힘" 선언 금지.
 **성공 기준(정량)**: n=9 best-of-3에서 hand-C OpenMP 대비 1.10x 이내
 (현 1.21x). 미달이어도 각 rung의 측정 기록이 성과다.
 
+**진행 (2026-07-17, 분해측정이 사다리를 재조준함)**: 10.7µs 분해 —
+alloc/init 1.7µs·무경합 signaling 0.02µs → **잔여 ~9µs = 큐/태스크 mutex
+경합**. B1 원안(freelist/join counter)은 소득 1.7µs짜리로 강등; main
+park/wake 가설도 반증(help-first 전-스레드 확장 `e6e164c2`는 micro 중립,
+coarse에서만 이득 — B_n 2.42→2.21s — 이라 유지). **다음 유효 rung = B2
+(deque/steal)와 B3(auto-chunk)**, 정량 근거 = 3축 스위트
+(`benchmarks/PARALLEL_RESULTS.md`, `efab6083`): 처리량 32M pgy 1위(18.5ms),
+중첩 fib(38) OpenMP-parity·Go 이김(23.7ms — WO-RT-3 전엔 데드락 축),
+fine 200k 64x 열위(2239ms, 손-청크 시 동일 워크로드가 1위 = 갭은 표현이
+아니라 자동화).
+
 ### P-C. 표면 완성 (docs/181 잔여)
 
 - **C1. Form B every/continuous**: BDFL 결정 3건의 결정 메모 초안 작성 →
