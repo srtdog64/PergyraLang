@@ -331,9 +331,9 @@ if stage_selected semantic; then
     SEMANTIC_BIN="$(compile_tool semantic "$(semantic_tool_source_path)" semantic)"
 fi
 if stage_selected codegen; then
-    # Codegen completeness consumes AST text emitted by the self-host parser.
-    # `pgy --ast` remains a separate oracle/parity target, not this stage's
-    # producer.
+    # Codegen completeness consumes one source-unit AST per inventory row.
+    # Whole import-graph behavior belongs to parser/driver parity; expanding
+    # it again for every owner would make this ledger O(source x graph).
     if [[ -z "$PARSER_BIN" ]]; then
         PARSER_BIN="$(compile_tool parser "$(parser_tool_source_path)" parser)"
     fi
@@ -386,7 +386,8 @@ run_codegen_check() {
 
     mkdir -p "$BUILD_DIR/ast"
     (cd "$ROOT_DIR" && pgy_run_with_timeout \
-        "$CHECK_TIMEOUT_SEC" "$ast_abs" "$ast_err" "$PARSER_BIN" "$src")
+        "$CHECK_TIMEOUT_SEC" "$ast_abs" "$ast_err" \
+        "$PARSER_BIN" --source-unit-ast "$src")
     local ast_rc="$?"
     if [[ "$ast_rc" -eq 0 ]]; then
         :
