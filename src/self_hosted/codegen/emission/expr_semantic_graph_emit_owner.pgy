@@ -125,7 +125,10 @@ func RewriteExprFromSemanticGraph(
             graph, right_id, env
         );
         if !IsSome(left_kind_opt) || !IsSome(right_kind_opt) {
-            Die("semantic addition operand type fact is missing");
+            Die(Concat(
+                "semantic addition operand type fact is missing: ",
+                text
+            ));
         }
         let left_kind: String = UnwrapOption(left_kind_opt);
         let right_kind: String = UnwrapOption(right_kind_opt);

@@ -24,7 +24,7 @@ func CodegenExpressionLeafTypeFromGraph(
         return Some("String");
     }
     if IsIdentifier(value) {
-        let value_type: String = LookupKindType(env, value, "v");
+        let value_type: String = TypeEnvSemanticValueType(env, value);
         if value_type != "" { return Some(value_type); }
         if LookupKindType(env, value, "e") != "" { return Some("Int"); }
         return None;

@@ -30,7 +30,10 @@ participant, not a zone.
 
 - `EmissionZone` currently owns the emitted C text buffer.
 - `TypeEnvZone` owns type binding facts consumed by emitters as read-mostly
-  evidence.
+  evidence. Each value binding carries separate semantic type and runtime-kind
+  rows. Expression typing consumes the semantic row; collection and
+  Option/Result runtime lowering consumes the runtime-kind row. Neither side
+  may reconstruct its fact from the other's spelling.
 - `AbiLayoutZone` owns ABI/layout facts consumed by emitters as read-only
   evidence. C, LLVM, and self-hosted codegen must not infer field order, tags,
   niches, or pointer ownership from emitted text or backend-local spelling.
@@ -185,6 +188,11 @@ and `ArraySet` values across scalar, String, and struct element types.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
+`type_facts/type_env.pgy` preserves semantic value type (`type`) separately
+from runtime value kind (`v`). Function parameters, declared locals, readonly
+references, and loop bindings project both rows. Semantic expression graph
+typing reads only `type`; a missing row fails closed instead of treating
+`OptionInt`, `ArrayInt`, or another runtime spelling as a source type.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.

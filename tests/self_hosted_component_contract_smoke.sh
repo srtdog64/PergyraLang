@@ -3944,6 +3944,11 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvAppendValueBinding"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvBindingCName"
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" '"=cbind:"'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvSemanticValueTypeRows"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" '"=type:"'
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvTypedValueBindingRows"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func TypeEnvTypedReadonlyRefBindingRows"
+require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func CodegenTypeEnvStateAppendTypedValueBinding"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'import "expr_binding_rewrite_owner.pgy";'
 require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" "func RewriteBindingRefs"
 require_text "src/self_hosted/codegen/emission/expr_binding_rewrite_owner.pgy" "TypeEnvBindingCName(env, ident)"
@@ -3954,8 +3959,9 @@ require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSym
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCTryTempName"
 require_text "src/self_hosted/compiler/symbol_table_owner.pgy" "func CompilerSymbolCMatchTempName"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CompilerSymbolCBindingName(p_name)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvValueBindingRows("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "p_name, p_kind, c_p_name"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedValueBindingRows("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "p_name, p_type, p_kind, c_p_name"
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypeEnvTypedReadonlyRefBindingRows("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenFunctionLocalEnvRows("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CompilerSymbolCBindingName(name)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenTypeEnvStateAppendValueBinding("
@@ -4451,6 +4457,11 @@ require_file "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" 250
 require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     "func CodegenExpressionTypeFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "TypeEnvSemanticValueType(env, value)"
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "func CodegenExpressionLeafTypeFromGraph(" \
+    'LookupKindType(env, value, "v")'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     "func SemanticPolymorphicBuiltinReturnTypeOpt("
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
@@ -4595,6 +4606,8 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "WrapCondWithSemant
 require_text "src/self_hosted/codegen/fixture/bool_logic.pgy" "if flag && !other"
 require_text "src/self_hosted/codegen/fixture/bool_logic.pgy" "if flag && !other || other"
 require_text "src/self_hosted/codegen/fixture/bool_logic.pgy" "if (flag || other) && !other"
+require_text "src/self_hosted/codegen/fixture/option_int_core.pgy" \
+    "let sum: Int = UnwrapOption(a) + 3;"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaHasElseAt(arena, count, cur[0], stmt_indent)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindMatchCaseStmtTag()"

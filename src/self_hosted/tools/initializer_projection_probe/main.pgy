@@ -539,7 +539,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
             return false;
         }
         if !ProbeCodegenConsumesMemberTarget(
-            analysis, "Box_Get", "box", "|box=v:Box|box=cbind:box|"
+            analysis, "Box_Get", "box",
+            "|box=v:Box|box=cbind:box|box=type:Box|"
         ) {
             Log("codegen member-call target row was not consumed");
             return false;
@@ -552,7 +553,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
             return false;
         }
         if !ProbeCodegenConsumesMemberTarget(
-            analysis, "Box_Count", "box", "|box=v:Box|box=cbind:box|"
+            analysis, "Box_Count", "box",
+            "|box=v:Box|box=cbind:box|box=type:Box|"
         ) {
             Log("codegen generic member-call target row was not consumed");
             return false;
@@ -566,7 +568,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         }
         if !ProbeCodegenConsumesMemberTarget(
             analysis, "Box_Count", "holder.box",
-            "|holder=v:Holder|holder=cbind:holder|Holder.box=field:Box|"
+            "|holder=v:Holder|holder=cbind:holder|holder=type:Holder|Holder.box=field:Box|"
         ) {
             Log("codegen chained member-call target row was not consumed");
             return false;

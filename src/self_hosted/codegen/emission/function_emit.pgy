@@ -69,8 +69,8 @@ func CodegenFunctionLocalEnvRows(
             }
             let source_name: String = local_bindings.names[i];
             let type_name: String = UnwrapOption(type_opt);
-            ArrayPush(rows, TypeEnvValueBindingRows(
-                source_name,
+            ArrayPush(rows, TypeEnvTypedValueBindingRows(
+                source_name, type_name,
                 CodegenBindingEnvKind(type_name, global_env),
                 CompilerSymbolCBindingName(source_name)
             ));
@@ -164,12 +164,12 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
             p_kind = CollectionRuntimeKindFromTypeName(p_type);
         }
         if p_mode == 3 {
-            ArrayPush(function_env_rows, TypeEnvReadonlyRefBindingRows(
-                p_name, p_kind, c_ref_name
+            ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
+                p_name, p_type, p_kind, c_ref_name
             ));
         } else {
-            ArrayPush(function_env_rows, TypeEnvValueBindingRows(
-                p_name, p_kind, c_p_name
+            ArrayPush(function_env_rows, TypeEnvTypedValueBindingRows(
+                p_name, p_type, p_kind, c_p_name
             ));
         }
         param_n = param_n + 1;

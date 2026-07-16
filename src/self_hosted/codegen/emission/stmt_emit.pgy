@@ -368,8 +368,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 let end_c: String = RewriteExprWithSemanticGraph(
                     end_v, env, stop_graph
                 );
-                CodegenTypeEnvStateAppendValueBinding(
-                    env_state, loop_var, "Int", c_loop_var
+                CodegenTypeEnvStateAppendTypedValueBinding(
+                    env_state, loop_var, "Int", "Int", c_loop_var
                 );
                 let for_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
                 for_hdr = Concat(for_hdr, Concat(" ", c_loop_var));
@@ -428,8 +428,8 @@ func EmitStmtList(count: Int, arena: AstArena,
                 }
                 let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
                 let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
-                CodegenTypeEnvStateAppendValueBinding(
-                    env_state, loop_var, elem_kind, c_loop_var
+                CodegenTypeEnvStateAppendTypedValueBinding(
+                    env_state, loop_var, elem_kind, elem_kind, c_loop_var
                 );
                 ArrayPush(result, Concat(pad, Concat(arr_c, Concat(" ", Concat(tc, Concat(" = ", Concat(coll_c, ";\n")))))));
                 let foreach_hdr: String = Concat("for (", AbiLayoutCLocalType("Int", env));
