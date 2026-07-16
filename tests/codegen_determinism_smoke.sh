@@ -51,12 +51,16 @@ else
     SOURCES=("${DEFAULT_SOURCES[@]}")
 fi
 
+# Path-spelling armor only (backslash vs slash, temp workdir). Pointer values
+# are deliberately NOT normalized any more: the emitted C/LLVM surface is
+# byte-identical across runs today (verified across every backend_compare
+# fixture), and masking `ast=0x...` would let an emitter quietly reintroduce
+# address-dependent output that this gate exists to reject.
 normalize_artifact() {
     local input="$1"
     local output="$2"
     sed -E \
         -e 's#\\#/#g' \
-        -e 's#ast=0x[0-9A-Fa-f]+#ast=<ptr>#g' \
         -e "s#${WORK_DIR//\\/\\\\}#<workdir>#g" \
         "$input" >"$output"
 }
@@ -119,6 +123,15 @@ emit_and_compare() {
         cat "$second_log" >&2
         return 1
     fi
+    # A zero exit with no artifact is still a failure (seen live when the pgy
+    # binary was relinked mid-run by a concurrent build): report it as this
+    # gate's own diagnostic instead of letting the normalize sed die cryptically.
+    for artifact in "$first" "$second"; do
+        if [[ ! -f "$artifact" ]]; then
+            echo "[codegen-determinism] $backend emit exited 0 but produced no artifact: $artifact ($source_rel)" >&2
+            return 1
+        fi
+    done
 
     normalize_artifact "$first" "$first_norm"
     normalize_artifact "$second" "$second_norm"

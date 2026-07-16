@@ -30,6 +30,12 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" tooling-conformance-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" stdlib-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" stage4-determinism-test-smoke'
+# Emit-surface reproducibility (WO-A4): the same source must emit byte-identical
+# C and LLVM artifacts across runs (path spelling aside — pointer values are
+# deliberately NOT masked). Linux is the leg with llvm-dev installed, matching
+# the target's forced LLVM_ENABLED=1 build (same pattern as llvm-test-smoke);
+# macOS/Windows wiring waits on a Makefile LLVM_ENABLED passthrough.
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" codegen-determinism-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" filesystem-directory-walk-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" module-test-smoke'
 run 'make module-taxonomy-test-smoke'
