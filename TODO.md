@@ -10391,8 +10391,7 @@ RT 계열.
   회귀: core-contract·join 전 rung+17거절·backpressure 6/6×2·B_n 무변화.
 - **잔여(소)**: ① Makefile/test-all 배선(Makefile 동시 소유라 보류, 스모크는
   독립 실행형) ② semantic nested fact(선택 — 클래스 제거로 긴급도 하락)
-  ③ `parallel_backpressure_stress_smoke.sh`가 DLL-path 헬퍼를 안 불러
-  bare Git-bash에서 무음 exit 127 — 헬퍼 source 한 줄 추가 후보.
+  ③ ~~backpressure smoke DLL-path 헬퍼~~ ✅ 수정 (2026-07-17, `059bd0ba`).
 
 (원문 계획은 아래 — 기록 보존)
 
@@ -10413,7 +10412,32 @@ RT 계열.
 - **금지**: cond_wait에 timeout만 붙이고 "닫힘" 보고(그건 데드락을 지연으로
   바꿀 뿐); 무음 직렬화 폴백.
 
-#### WO-RT-4 — 실행기 세대교체 측정 사다리 (P-B1→B3)
+#### WO-RT-4 — 실행기 세대교체 측정 사다리 (P-B1→B3) — ✅ CLOSED (2026-07-17, `9470cae9`+`6f5f29c0`+`08248ffd`+`e2fede0b`)
+
+- **닫힘**: fine-grain 축의 측정된 열위(64x)가 **B3 auto-chunk로 닫힘** —
+  interleave 실측 fine 200k **2,174–2,596ms → 64–71ms (~34x)**, 스위트
+  재실행에서 OpenMP taskloop 대역·Go/elem 우위. 의미론 byte-보존(전체 N
+  ctx 인덱스-순서 fold 유지), 분할 산술 런타임 단일 소스, **정책 SoT는
+  self-host owner**(`src/self_hosted/parallel/chunk_policy_owner.pgy`,
+  golden+C==LLVM leg parity+projection pin 8, RED 실증 후 GREEN).
+  반증 2건 기록: B2 shard화는 fine에 중립(단일 큐 경합 가설 기각 — 진범은
+  스폰 스레드 자신의 태스크당 부기), pre-park spin은 분산 폭발로 되돌림.
+  B2 구조(shard+공유 run 프로토콜+blocking pool 공용 init/teardown)는
+  중립 비용으로 유지. 게이트 전부 GREEN(join 전 rung+17거절, 중첩 4/4,
+  backpressure 64/64×2, disjoint/snapshot/vision/lane, 병렬 fixture 6종
+  결정성 double-emit). B_n n=10 45.4s(무회귀). `.bc` regen 규율 준수.
+- **잔여 등록**: ① self-host 등록 3점(OWNERS.md row + component contract
+  smoke 절 + artifact_zone_owner.pgy kind row → comparator 편입)은 해당
+  파일들 동시-세션 소유라 보류 — standalone smoke가 게이트
+  (`tests/selfhost_parallel_chunk_policy_smoke.sh`), 소유 해제 시 이관.
+  ② 성공 기준 "hand-C OpenMP 1.10x"(B_n coarse)는 워크로드가 main-bound라
+  실행기 개선과 독립 — coarse 잔차는 다음 측정 캠페인에서 재정의.
+  ③ B4(fiber/LOCAL_ASYNC 통합)는 여전히 BDFL 결정 대기.
+  ④ worker수-가변 결정성 목격자(P-D)는 PGY_WORKERS류 관측 가능한 knob
+  설계 후 — 현재는 Linux CI(코어수 상이)의 동일-expected 게이트가 사실상
+  cross-worker-count 목격자.
+
+(원문 계획은 아래 — 기록 보존)
 
 - **목표**: g_pgy_pool의 측정된 부기 비용 제거 — 잔여 갭 5.93x vs hand-C
   OpenMP 7.17x(n=9 best-of-3)의 원인 후보를 rung별로 **측정→수술→재측정**.

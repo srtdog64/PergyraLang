@@ -138,6 +138,40 @@ coarse에서만 이득 — B_n 2.42→2.21s — 이라 유지). **다음 유효 
 fine 200k 64x 열위(2239ms, 손-청크 시 동일 워크로드가 1위 = 갭은 표현이
 아니라 자동화).
 
+**진행 2 — 사다리 종결 (2026-07-17, WO-RT-4 CLOSED)**:
+- ✅ **B2 착지 (`9470cae9`)** — worker당 mutex-shard 큐 + round-robin
+  push + own-shard-first steal sweep + eventcount-lite park(pending/
+  sleepers seq_cst 쌍) + task state `_Atomic`(pre-run 락 1회 제거) +
+  run 프로토콜 단일화 + blocking pool 공용 structure init/teardown.
+  **측정 판정: fine에 중립** — "단일 큐 mutex 경합이 잔여 9µs" 가설은
+  **반증**(진범 = 스폰 스레드 자신의 태스크당 부기: alloc·mutex/cond
+  init·cancel node·enqueue·signal·destroy가 전부 producer 임계경로).
+  pre-park spin(yield) 실험은 최고 2.2x·분산 981–2425ms(yield 폭풍이
+  producer 선점)로 **되돌림**, 코드에 반증 주석 보존. 구조는 중립
+  비용+중복 제거라 유지.
+- ✅ **B3 착지 (`6f5f29c0`)** — 양 백엔드 emitter가 인덱스당 태스크 대신
+  `pgy_parallel_chunk_count(n) = min(n, workers×4)`개 chunk driver를
+  fan-out; driver는 같은 per-index wrapper를 자기 슬라이스에 직렬 실행
+  (인덱스마다 cancel back-edge safe point — any-join 패자 회수 유지).
+  reduce/materialize는 전체 N ctx 인덱스-순서 fold 그대로 = **결과·
+  checked-arith panic·Float fold 순서 byte-보존**(§3 결정적 reduce 계약).
+  분할 산술은 런타임 단일 함수(`pgy_parallel_spawn_chunk_at`) = 양 백엔드
+  경계 동일 by construction. **실측: fine 200k 2,174–2,596→64–71ms
+  (~34x, interleave)**, 스위트 재실행에서 OpenMP taskloop 대역·Go 우위.
+  B_n n=10 45.4s 무회귀. docs/182 §6 claim-gate 충족(측정 근거 선행).
+- ✅ **정책 self-host 편입 (`08248ffd`)** —
+  `src/self_hosted/parallel/chunk_policy_owner.pgy`가 chunk 정책 SoT:
+  정책 산술+cover 불변식(in-language witness)+projection pin 목록까지
+  Pergyra가 소유, manifest 실행→golden diff+C==LLVM leg byte-parity+
+  pin 8종 grep+self-test (`tests/selfhost_parallel_chunk_policy_smoke.sh`,
+  RED 실증 후 GREEN). OWNERS.md/component-smoke/artifact-kind 등록은
+  동시-세션 파일 소유로 보드 잔여.
+- **B1**: 분해측정 근거로 미착수 종결(1.7µs 소득; chunking이 그 비용
+  자체를 N→chunk수로 상각). **B4**: BDFL 결정 대기 유지.
+- P-D 부분 충족: 병렬 join fixture 6종 codegen 결정성(double-emit
+  byte-identity, c+llvm) GREEN; worker수-가변 실행 목격자는 knob 설계
+  후(현재는 코어수 다른 Linux CI의 동일-expected 게이트가 대행).
+
 ### P-C. 표면 완성 (docs/181 잔여)
 
 - **C1. Form B every/continuous**: BDFL 결정 3건의 결정 메모 초안 작성 →
