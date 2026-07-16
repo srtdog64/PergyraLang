@@ -499,6 +499,15 @@ Inferred generic calls rooted in returns or assignments, member generic calls,
 nested generic locals, and the other 29 MIR fixtures remain outside this
 bounded proof. Released/default replacement stays 0%.
 
+Forty-first executable active-rung delta, 2026-07-16: Option try-let lowering
+now consumes its operand type from `CodegenExpressionTypeFromGraph` using the
+already-carried semantic graph handle. The emitter no longer reads the operand
+text or invokes `ExprKind` to reconstruct the wrapper type. Missing graph type
+evidence fails closed with the statement provenance, and the component gate
+forbids both old reads. The C-built self-host codegen passes all 73 fixtures,
+including `option_try`; broader legacy expression-shape result classification
+remains bridged. Released/default replacement stays 0%.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

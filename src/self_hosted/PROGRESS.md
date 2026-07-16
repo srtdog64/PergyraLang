@@ -1404,6 +1404,12 @@ beyond the lexer:
   compiles the self-host parser through both C and LLVM and includes a deep
   nested generic type fixture. Remaining parser work is grammar breadth and
   the scale-probe exit list, not C-only backend evidence.
+- **Try-let operand typing** -- `EmitTryLet` now consumes the operand type from
+  the semantic expression graph that it already receives. It no longer reads
+  operand text or calls `ExprKind` to rediscover `Option<T>`. The component
+  contract rejects both regressions, and the 73-fixture C codegen parity suite
+  remains green. Broader expression result-type classification is still a
+  bridge in legacy shape consumers.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

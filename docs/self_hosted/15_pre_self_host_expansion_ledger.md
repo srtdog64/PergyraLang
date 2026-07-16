@@ -177,6 +177,10 @@ substring, or semantic-shape paths. The first parity run exposed that rich
 self MIR and compact oracle graphs selected different ToString optimizations;
 the canonical projection now produces the same runtime-alias C for both.
 Expression result-type classification remains a distinct text-backed seam.
+The try-let consumer is no longer part of that seam: it consumes the operand
+type from `CodegenExpressionTypeFromGraph` and cannot reopen operand text or
+`ExprKind`. Other legacy expression-shape consumers still keep the broader row
+open.
 
 | Blocker | Required owner | Why it matters |
 |---|---|---|

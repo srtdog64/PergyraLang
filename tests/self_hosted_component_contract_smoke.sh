@@ -4411,6 +4411,12 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
     "CodegenExpressionTypeFromGraph("
 reject_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "ExprKind("
+require_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "CodegenExpressionTypeFromGraph("
+reject_function_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "func EmitTryLet(" "ExprKind("
+reject_function_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" \
+    "func EmitTryLet(" "SemanticExpressionGraphNodeText("
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "CodegenMemberReceiverTypeFromGraph("
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \

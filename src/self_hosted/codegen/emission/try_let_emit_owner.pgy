@@ -31,13 +31,6 @@ func EmitTryLet(
         local_bindings, idx
     );
     let operand_node: Int = CodegenSemanticTryOperandNodeOrDie(graph);
-    let inner_opt: Option<String> = SemanticExpressionGraphNodeText(
-        graph.graph, operand_node
-    );
-    if !IsSome(inner_opt) {
-        Die("semantic try-expression operand text is missing");
-    }
-    let inner: String = UnwrapOption(inner_opt);
     let rendered_inner: String = RewriteExprFromSemanticGraph(
         graph.graph, operand_node, env
     );
@@ -86,7 +79,16 @@ func EmitTryLet(
                 "unsupported option try return payload type: ", cur_fn_ret
             ));
         }
-        let inner_kind: String = ExprKind(inner, env);
+        let inner_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
+            graph.graph, operand_node, env
+        );
+        if !IsSome(inner_kind_opt) {
+            Die(Concat(
+                "semantic try-expression operand type is missing: ",
+                CodegenAstArenaProvenanceOrDie(arena, idx)
+            ));
+        }
+        let inner_kind: String = UnwrapOption(inner_kind_opt);
         let operand_payload_kind: Int =
             OptionResultRuntimeOptionPayloadKindForType(inner_kind);
         if operand_payload_kind == 0 {

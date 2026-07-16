@@ -7730,3 +7730,15 @@ Released/default replacement remains 0%.
   assignment-rooted inferred calls, member generic calls, nested generic
   locals, the other 29 MIR fixtures, and released/default substitution remain
   open.
+
+### 2026-07-16 -- try-let consumes graph-owned operand types
+
+- Repointed Option try-let lowering from `ExprKind(operand_text)` to
+  `CodegenExpressionTypeFromGraph(graph, operand_node, env)`.
+- Removed the operand-text read from `EmitTryLet`; missing graph type evidence
+  now fails closed with statement provenance.
+- Tightened the component contract so `EmitTryLet` cannot reintroduce either
+  `ExprKind` or `SemanticExpressionGraphNodeText`.
+- The C-built self-host codegen remains run-output equal across all 73
+  fixtures, including `option_try`. This closes one live result-type consumer,
+  not the broader legacy expression-shape classification bridge.
