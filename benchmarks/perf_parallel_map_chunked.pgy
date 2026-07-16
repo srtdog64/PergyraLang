@@ -1,0 +1,25 @@
+// perf_parallel_map_chunked.pgy -- THROUGHPUT axis of the parallel suite.
+//
+// Same element body as the fine benchmark, 32M elements, but HAND-CHUNKED
+// into 16 coarse tasks (the B_n pattern): what the surface can express today
+// without compiler auto-chunking. This is the fair throughput comparison
+// against OpenMP `parallel for` / chunked goroutines; the fine benchmark is
+// the scheduling-overhead comparison.
+// n = 32,000,000 keeps the total (~1.584e9) inside Int32 so every language
+// runs identical 32-bit-safe arithmetic.
+// Expected output: total=1584000000.
+func ChunkSum(c: Int) -> Int {
+    let lo: Int = c * 2000000;
+    let hi: Int = lo + 2000000;
+    let acc: Int = 0;
+    let i: Int = lo;
+    while i < hi {
+        acc = acc + ((i % 1000) * 31 + 7) % 100;
+        i = i + 1;
+    }
+    return acc;
+}
+func Main() -> Void {
+    let total: Int = parallel (c in 0..16) join with sum { give ChunkSum(c); };
+    Log("total=" + ToString(total));
+}

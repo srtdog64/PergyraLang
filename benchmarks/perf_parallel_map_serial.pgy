@@ -1,0 +1,12 @@
+// Serial twin of perf_parallel_map_chunked.pgy (same 32M-element body, plain
+// loop) -- the pgy-side speedup denominator.
+// Expected output: total=1584000000.
+func Main() -> Void {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < 32000000 {
+        acc = acc + ((i % 1000) * 31 + 7) % 100;
+        i = i + 1;
+    }
+    Log("total=" + ToString(acc));
+}

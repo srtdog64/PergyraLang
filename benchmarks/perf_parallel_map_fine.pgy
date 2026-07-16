@@ -1,0 +1,17 @@
+// perf_parallel_map_fine.pgy -- FINE-GRAIN axis of the parallel suite
+// (docs/186 P-B / PARALLEL_RESULTS.md).
+//
+// One near-empty task PER INDEX, 200k indices: wall time is scheduling
+// overhead x N, exposing the per-task cost of the runtime (no chunking is
+// performed by the compiler today -- docs/182 SS6 / WO-RT-4 B3). Compare:
+//   C OpenMP taskloop grainsize(1)  (task per element, apples-to-apples)
+//   C OpenMP parallel for           (runtime-chunked idiom)
+//   Go goroutine per element        (cheap-task representative)
+// Body everywhere: v(i) = ((i % 1000) * 31 + 7) % 100.
+// Expected output: total=9900000.
+func Main() -> Void {
+    let total: Int = parallel (i in 0..200000) join with sum {
+        give ((i % 1000) * 31 + 7) % 100;
+    };
+    Log("total=" + ToString(total));
+}

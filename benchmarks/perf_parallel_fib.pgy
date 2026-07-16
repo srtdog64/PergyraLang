@@ -1,0 +1,20 @@
+// perf_parallel_fib.pgy -- NESTED FORK-JOIN axis of the parallel suite.
+//
+// Recursive parallel fib(38) with serial cutoff below 28: ~10 levels of
+// nested `parallel ... join` (a few hundred pool tasks whose workers await
+// deeper tasks). This shape DEADLOCKED before help-first await landed
+// (WO-RT-3, 740f5a68) -- it exists as a benchmark only because awaits now
+// help-run queued work. Compare: C OpenMP task, Go goroutine recursion.
+// Expected output: total=39088169.
+func FibSer(n: Int) -> Int {
+    if n < 2 { return n; }
+    return FibSer(n - 1) + FibSer(n - 2);
+}
+func Fib(n: Int) -> Int {
+    if n < 28 { return FibSer(n); }
+    let s: Int = parallel (i in 0..2) join with sum { give Fib(n - 1 - i); };
+    return s;
+}
+func Main() -> Void {
+    Log("total=" + ToString(Fib(38)));
+}
