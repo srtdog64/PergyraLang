@@ -69,3 +69,37 @@ n=10 -> 3,715,891,200), so this is apples-to-apples on identical output.
 Tarjan is ~1.87x the Loops variant on this machine (two parent-chain walks per
 edge with no path compression); Pergyra stays C-class (1.13x, matching Loops's
 1.14x) on both algorithms. `perf_bn_cycles_tarjan.pgy` / `baseline_bn_tarjan.c`.
+
+## Correction: the serial "1.28x" was measurement variance -- best-of-3 shows parity
+
+The serial ratios above were SINGLE runs taken minutes apart at different machine
+loads. A clean same-session best-of-3 at n=9 overturns them:
+
+| n=9, same session, best-of-3, solo | best |
+|------------------------------------|--------|
+| raw hand-C                         | 14.45s |
+| **pgy-C**                          | **14.39s** |
+| hand-C + per-access bounds checks (pgy-style) | 15.70s |
+
+pgy-C == hand-C within noise. Two hypotheses were refuted BY MEASUREMENT:
+
+1. **"pgy is ~1.28x slower"** -- no. Single-run variance: raw hand-C alone swung
+   13.96 <-> 15.28s (~9%) across measurements. The 1.28x was two unlucky single
+   runs, not codegen.
+2. **"array bounds checks cost the gap"** (the obvious guess) -- no. Adding
+   pgy-style bounds checks to hand-C cost **+0.4%** (15.28 -> 15.34s). Reading
+   the emitted C explains why: `pgy_array_get_Int` is `static inline` so gcc
+   inlines it; its null checks are loop-invariant so gcc hoists them out; the
+   bounds branch is always-not-taken so the predictor absorbs it; and the
+   `PgyArray_Int _t = arr` descriptor copy is elided by SSA renaming. The C
+   backend rides gcc, so the emitted C optimizes to essentially the same machine
+   code as raw C.
+
+n=10 single / concurrent runs still show ~1.19-1.28x, but those are NOT best-of-N
+solo measurements (running two processes drops turbo; single runs catch load
+spikes). The emitted C is identical at every n, so the per-operation ratio is
+n-independent -- the true serial figure is the clean n=9 result: **parity**.
+
+Lesson (recorded): a serial performance ratio is only meaningful measured
+best-of-N, same session, solo. The parallel gap (pgy 2.6x behind C OpenMP) is
+far larger than this variance band and is the one real, runtime-bound gap.
