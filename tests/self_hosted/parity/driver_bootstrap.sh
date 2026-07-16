@@ -68,12 +68,28 @@ for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$MIR_LOWER_SOURCE" "$CODEGEN_BIN"
     fi
 done
 
+driver_bootstrap_heartbeat_pid=""
+driver_bootstrap_stop_heartbeat() {
+    if [[ -n "$driver_bootstrap_heartbeat_pid" ]]; then
+        kill "$driver_bootstrap_heartbeat_pid" 2>/dev/null || true
+        wait "$driver_bootstrap_heartbeat_pid" 2>/dev/null || true
+    fi
+}
+trap driver_bootstrap_stop_heartbeat EXIT
+(
+    while sleep 60; do
+        echo "[self-host-driver-bootstrap] still running"
+    done
+) &
+driver_bootstrap_heartbeat_pid=$!
+
 compile_c() {
     local label="$1"
     local source="$2"
     local output="$3"
     local log="$BUILD_DIR/${label}.compile.log"
 
+    echo "[self-host-driver-bootstrap] compiling $label"
     if ! "$CC" "$source" -o "$output" >"$log" 2>&1; then
         echo "[self-host-driver-bootstrap] $label C compile failed" >&2
         tail -c 65536 "$log" >&2 || true
@@ -94,6 +110,7 @@ run_driver_to_file() {
     source_rel="$(pgy_selfhost_path_relative_to_root "$source")"
     output_rel="$(pgy_selfhost_path_relative_to_root "$output")"
     rm -f "$output"
+    echo "[self-host-driver-bootstrap] running $label"
     if ! (cd "$ROOT_DIR" && "$bin" "$source_rel" "$output_rel" >"$stdout" 2>"$stderr"); then
         echo "[self-host-driver-bootstrap] $label failed for $source_rel" >&2
         cat "$stdout" "$stderr" >&2 || true
@@ -108,12 +125,14 @@ run_driver_to_file() {
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
 ast_rel=".tmp/self_hosted/driver/bootstrap/driver_bootstrap.ast.txt"
 ast_abs="$ROOT_DIR/$ast_rel"
+echo "[self-host-driver-bootstrap] parsing integrated driver"
 if ! (cd "$ROOT_DIR" && "$PARSER_BIN" "$driver_rel" 2>"$BUILD_DIR/parser.err" | tr -d '\r' >"$ast_abs"); then
     echo "[self-host-driver-bootstrap] self-parser failed for $driver_rel" >&2
     cat "$BUILD_DIR/parser.err" >&2 || true
     exit 1
 fi
 
+echo "[self-host-driver-bootstrap] emitting integrated driver seed"
 if ! (cd "$ROOT_DIR" && "$CODEGEN_BIN" "$ast_rel" 2>"$BUILD_DIR/seed_emit.err" | tr -d '\r' >"$BUILD_DIR/driver_seed.c"); then
     echo "[self-host-driver-bootstrap] Pergyra-built codegen failed to emit driver seed" >&2
     cat "$BUILD_DIR/seed_emit.err" >&2 || true
@@ -126,6 +145,7 @@ if grep -q '^CODEGEN ERROR' "$BUILD_DIR/driver_seed.c"; then
 fi
 compile_c "driver_seed" "$BUILD_DIR/driver_seed.c" "$BUILD_DIR/driver_seed.exe"
 
+echo "[self-host-driver-bootstrap] compiling oracle driver"
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$DRIVER_SOURCE")" \
     --backend=c -o "$(pgy_path_for_compiler "$PGY" "$BUILD_DIR/driver_oracle.exe")" \
     >"$BUILD_DIR/driver_oracle.compile.log" 2>&1); then

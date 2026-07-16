@@ -50,7 +50,7 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" observability-schema-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" memory-concurrency-model-test-smoke'
 run 'make documentation-quality-test-smoke'
-run 'make self-host-preparation-test-smoke'
+run 'make self-host-preparation-platform-test-smoke'
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'

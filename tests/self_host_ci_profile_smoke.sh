@@ -6,8 +6,16 @@ MAKEFILE="$ROOT_DIR/Makefile"
 LINUX_STEPS="$ROOT_DIR/scripts/ci_linux_steps.sh"
 MACOS_STEPS="$ROOT_DIR/scripts/ci_macos_steps.sh"
 WINDOWS_STEPS="$ROOT_DIR/scripts/ci_windows_steps.sh"
+WORKFLOW="$ROOT_DIR/.github/workflows/ci.yml"
+DRIVER_BOOTSTRAP="$ROOT_DIR/tests/self_hosted/parity/driver_bootstrap.sh"
 
-for file in "$MAKEFILE" "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
+for file in \
+    "$MAKEFILE" \
+    "$LINUX_STEPS" \
+    "$MACOS_STEPS" \
+    "$WINDOWS_STEPS" \
+    "$WORKFLOW" \
+    "$DRIVER_BOOTSTRAP"; do
     if [[ ! -f "$file" ]]; then
         echo "[self-host-ci-profile] missing input: $file" >&2
         exit 1
@@ -27,18 +35,34 @@ for required in \
     fi
 done
 
-if ! grep -Fq 'self-host-preparation-test-smoke' "$LINUX_STEPS"; then
-    echo "[self-host-ci-profile] Linux must own the full self-host proof" >&2
-    exit 1
-fi
-
-for steps in "$MACOS_STEPS" "$WINDOWS_STEPS"; do
+for steps in "$LINUX_STEPS" "$MACOS_STEPS" "$WINDOWS_STEPS"; do
     if ! grep -Fq 'self-host-preparation-platform-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] platform profile missing from $steps" >&2
         exit 1
     fi
     if grep -Fq ' self-host-preparation-test-smoke' "$steps"; then
         echo "[self-host-ci-profile] full self-host proof leaked into $steps" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'self-host-proof-linux:' \
+    'timeout-minutes: 45' \
+    'run: make self-host-preparation-test-smoke' \
+    'cancel-in-progress: true'; do
+    if ! grep -Fq "$required" "$WORKFLOW"; then
+        echo "[self-host-ci-profile] dedicated Linux proof job missing: $required" >&2
+        exit 1
+    fi
+done
+
+for required in \
+    'while sleep 60' \
+    '[self-host-driver-bootstrap] still running' \
+    'trap driver_bootstrap_stop_heartbeat EXIT'; do
+    if ! grep -Fq "$required" "$DRIVER_BOOTSTRAP"; then
+        echo "[self-host-ci-profile] driver bootstrap heartbeat missing: $required" >&2
         exit 1
     fi
 done
@@ -59,4 +83,4 @@ for forbidden in \
     fi
 done
 
-echo "[self-host-ci-profile] Linux full proof and native platform parity are isolated"
+echo "[self-host-ci-profile] exhaustive Linux proof and native platform parity are isolated"

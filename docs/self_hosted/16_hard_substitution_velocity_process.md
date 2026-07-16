@@ -554,16 +554,20 @@ emission. Statement typing rejects a non-`Int` graph with
 `Int` fact. The statement-payload accessor and `IntEval` recovery path were
 deleted, and the component gate rejects their return.
 
-CI proof ownership, 2026-07-17: the full self-host preparation proof is a
-Linux-owned gate. It includes real-source selfcheck, the four-stage
+CI proof ownership, 2026-07-17: the dedicated Linux
+`self-host-proof-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, codegen/driver fixed points, and the complete parity
-surface. Windows and macOS own native C parser, semantic, codegen, and DRV-2
-parity plus the shared contract gates. They must not repeat the exhaustive
-342-source proof. This split follows the impact-isolation rule: platform jobs
-prove platform behavior, while one job proves repository-wide completeness.
+surface. The ordinary Linux, Windows, and macOS jobs own native parser,
+semantic, codegen, and DRV-2 parity plus the shared contract gates. They must
+not repeat the exhaustive source proof. This split follows the
+impact-isolation rule: platform jobs prove platform behavior, while one
+parallel Linux job proves repository-wide completeness.
 `self_host_ci_profile_smoke.sh` rejects routing drift in either direction.
+The integrated driver fixed-point runner emits a 60-second heartbeat because a
+single real-source generation phase can exceed the CI no-output interval.
 The first Windows local platform-profile run completed in 21m49s; the previous
-GitHub Windows full-preparation step took about 75 minutes.
+GitHub Windows full-preparation step took about 75 minutes. The first GitHub
+platform-profile run completed in 27m32s on Windows and 7m09s on macOS.
 
 Resource-pressure measurements are advisory while the sampler and benchmark
 corpus are being stabilized. Memory, elapsed-time, and owner-hash evidence must
