@@ -176,8 +176,12 @@ The Makefile keeps the fast and heavy paths separate:
   baseline source identities, so a previously passing pipeline file cannot
   disappear behind a count-preserving replacement. Unsupported codegen input is
   reported as a measured failure count, not as a successful skip. The current
-  codegen stage consumes AST text emitted by the self-host parser, not
-  C-oracle `pgy --ast`. The `full_pipeline` number is still a stage-check
+  parser and codegen checks consume one source-unit parse per inventory row.
+  They validate import syntax but do not materialize the complete transitive
+  import graph again for every owner. Whole import-graph behavior remains a
+  load-bearing responsibility of parser parity and driver/bootstrap parity.
+  The codegen stage consumes that source-unit AST from the self-host parser,
+  not C-oracle `pgy --ast`. The `full_pipeline` number is still a stage-check
   intersection, not a claim that typed self-semantic facts already feed codegen
   end to end.
 - For focused local validation, `PGY_SELFHOST_COMPLETENESS_STAGES` may name one

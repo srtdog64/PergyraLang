@@ -6,6 +6,22 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-16 - Completeness checks stop rebuilding every import graph
+
+- Split the self-host parser's normal root-program mode from its inventory
+  source-unit mode. Normal parser and driver consumers still expand the full
+  import graph; `--check` validates one owner file after consuming import syntax.
+- Added a source-unit AST projection for the codegen completeness stage. The
+  ledger no longer performs O(source count x transitive import graph) work while
+  proving per-owner parser and codegen acceptance.
+- The C-built parser remained byte-equal on all 188 parser fixtures. The focused
+  three-source CI reproducer passed parser and codegen for the previous `Die`
+  and timeout targets, and the full isolated ledger recorded parser 342/342 and
+  codegen 341/342. The one codegen rejection is the committed unsupported-event
+  negative fixture, not a timeout or skip.
+- This does not weaken whole-program evidence: parser parity and the driver and
+  bootstrap rungs remain the owners of transitive import materialization.
+
 ## 2026-07-15 - Assignment type truth reaches scalar Option emission
 
 - Added one codegen body-type view that synthesizes initializer and iteration

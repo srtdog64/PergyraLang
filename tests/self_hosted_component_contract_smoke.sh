@@ -586,6 +586,11 @@ require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_pat
 reject_text "src/self_hosted/parser/main.pgy" 'import "source_path_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "program_parse_owner.pgy";'
 require_text "src/self_hosted/parser/main.pgy" "RunParserFromArgs(Args())"
+require_text "src/self_hosted/parser/run_owner.pgy" "ParseSourceUnitProgram(args[1])"
+require_text "src/self_hosted/parser/run_owner.pgy" "ParseRootProgram(source_path)"
+require_text "src/self_hosted/parser/run_owner.pgy" 'args[0] == "--source-unit-ast"'
+require_text "tests/self_hosted/parity/completeness_ledger.sh" \
+    '"$PARSER_BIN" --source-unit-ast "$src"'
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureManifestRows"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureManifestCount() -> Int"
 require_text "src/self_hosted/parser/fixture_manifest_owner.pgy" "func ParserFixtureDuplicateCoverageCount() -> Int"
