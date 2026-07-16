@@ -547,6 +547,13 @@ rechecks body initializers with that binding fact. Invalid loop rows are not
 injected, preserving the original header diagnostic. This closes the
 `diagnostic_catalog_checker` bootstrap failure without rescanning source text.
 
+Forty-sixth executable active-rung delta, 2026-07-17: `Exit(Int)` now carries
+its argument from the parser-owned atom graph through statement typing into C
+emission. Statement typing rejects a non-`Int` graph with
+`call_arg_type_mismatch`; codegen consumes the same graph with an expected
+`Int` fact. The statement-payload accessor and `IntEval` recovery path were
+deleted, and the component gate rejects their return.
+
 The same DRV-2 expansion exposed and closed an assignment graph transport gap:
 plain assignment targets now retain their semantic leaf graph just as indexed
 targets retain their index graph. MIR verification rejects either missing

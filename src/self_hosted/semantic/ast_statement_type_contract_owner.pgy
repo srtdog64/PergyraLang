@@ -1,0 +1,67 @@
+// Executable contracts for statement expression/type facts.
+
+import "ast_statement_type_fact_owner.pgy";
+
+func SemanticAstStatementTypeFactsForContract(
+    artifact: AstTreeArtifact
+) -> SemanticAstStatementTypeFacts {
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+    let initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, expression_surfaces
+        );
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, initializers,
+            statements, expression_surfaces
+        );
+    return SemanticAstStatementTypeFactsFromArtifact(
+        artifact, signatures, constructors, locals, initializers,
+        expression_surfaces, iterations, statements
+    );
+}
+
+func SemanticAstStatementTypeFactsContractReady() -> Bool {
+    let valid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Match: x\n          Case: 1\n            Block:\n              Log(x)\n        Return: x\n"
+    );
+    let facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsForContract(valid);
+    if !facts.ok || !SemanticAstStatementTypesAllVerified(facts) ||
+        ArrayLength(facts.node_ids) != 6 ||
+        facts.expected_type_names[0] != "Bool" ||
+        facts.inferred_type_names[2] != "Int" ||
+        facts.expected_type_names[5] != "Int" {
+        return false;
+    }
+    let bad_condition: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        If: 1\n          Then:\n            Block:\n"
+    );
+    let bad_condition_facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsForContract(bad_condition);
+    if SemanticAstStatementTypesAllVerified(bad_condition_facts) ||
+        SemanticAstStatementFirstDiagnosticCode(bad_condition_facts) !=
+            "condition_not_bool" {
+        return false;
+    }
+    let bad_exit: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Exit(\"bad\")\n"
+    );
+    let bad_exit_facts: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsForContract(bad_exit);
+    return bad_exit_facts.ok &&
+        !SemanticAstStatementTypesAllVerified(bad_exit_facts) &&
+        bad_exit_facts.expected_type_names[0] == "Int" &&
+        bad_exit_facts.inferred_type_names[0] == "String" &&
+        SemanticAstStatementFirstDiagnosticCode(bad_exit_facts) ==
+            "call_arg_type_mismatch";
+}

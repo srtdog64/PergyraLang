@@ -416,6 +416,27 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 );
             }
         }
+        if row_verified == 1 && kind == TypedAstKindExitStmtTag() {
+            expected = "Int";
+            if inferred == "Unknown" || inferred == "" {
+                row_verified = 0;
+                row_code = "statement_type_unresolved";
+                row_message = SemanticError2(
+                    "statement_type_unresolved",
+                    "node_id", ToString(statements.node_ids[i]),
+                    "payload", statements.payload_texts[i]
+                );
+            } else if inferred != expected {
+                row_verified = 0;
+                row_code = "call_arg_type_mismatch";
+                row_message = SemanticError3(
+                    "call_arg_type_mismatch",
+                    "expression", statements.payload_texts[i],
+                    "expected", expected,
+                    "actual", inferred
+                );
+            }
+        }
         ArrayPush(node_ids, statements.node_ids[i]);
         ArrayPush(kind_tags, kind);
         ArrayPush(expected_types, expected);
@@ -522,77 +543,4 @@ func SemanticAstStatementTypeFactsMatchArtifact(
         i = i + 1;
     }
     return true;
-}
-
-func SemanticAstStatementTypeFactsContractReady() -> Bool {
-    let valid: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Match: x\n          Case: 1\n            Block:\n              Log(x)\n        Return: x\n"
-    );
-    let signatures: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(valid);
-    let constructors: SemanticAstNominalConstructorFacts =
-        SemanticAstNominalConstructorFactsFromArtifact(valid);
-    let locals: SemanticAstLocalBindingFacts =
-        SemanticAstLocalBindingFactsFromArtifact(valid, signatures);
-    let expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(valid);
-    let initializers: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsFromArtifact(
-            valid, signatures, constructors, locals, expression_surfaces
-        );
-    let statements: SemanticAstStatementFacts =
-        SemanticAstStatementFactsFromArtifact(valid, signatures);
-    let iterations: SemanticAstIterationTypeFacts =
-        SemanticAstIterationTypeFactsFromArtifact(
-            valid, signatures, constructors, locals, initializers, statements,
-            expression_surfaces
-        );
-    let facts: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromArtifact(
-            valid, signatures, constructors, locals, initializers,
-            expression_surfaces, iterations, statements
-        );
-    if !SemanticAstStatementTypeFactsMatchArtifact(
-        valid, signatures, constructors, locals, initializers,
-        expression_surfaces, iterations, statements, facts
-    ) || !SemanticAstStatementTypesAllVerified(facts) ||
-        ArrayLength(facts.node_ids) != 6 ||
-        facts.expected_type_names[0] != "Bool" ||
-        facts.inferred_type_names[2] != "Int" ||
-        facts.expected_type_names[5] != "Int" {
-        return false;
-    }
-    let bad: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        If: 1\n          Then:\n            Block:\n"
-    );
-    let bad_signatures: SemanticAstFunctionSignatureFacts =
-        SemanticAstFunctionSignatureFactsFromArtifact(bad);
-    let bad_constructors: SemanticAstNominalConstructorFacts =
-        SemanticAstNominalConstructorFactsFromArtifact(bad);
-    let bad_locals: SemanticAstLocalBindingFacts =
-        SemanticAstLocalBindingFactsFromArtifact(bad, bad_signatures);
-    let bad_expression_surfaces: SemanticAstExpressionSurfaceFacts =
-        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(bad);
-    let bad_initializers: SemanticAstInitializerTypeFacts =
-        SemanticAstInitializerTypeFactsFromArtifact(
-            bad, bad_signatures, bad_constructors, bad_locals,
-            bad_expression_surfaces
-        );
-    let bad_statements: SemanticAstStatementFacts =
-        SemanticAstStatementFactsFromArtifact(bad, bad_signatures);
-    let bad_iterations: SemanticAstIterationTypeFacts =
-        SemanticAstIterationTypeFactsFromArtifact(
-            bad, bad_signatures, bad_constructors, bad_locals,
-            bad_initializers,
-            bad_statements, bad_expression_surfaces
-        );
-    let bad_facts: SemanticAstStatementTypeFacts =
-        SemanticAstStatementTypeFactsFromArtifact(
-            bad, bad_signatures, bad_constructors, bad_locals,
-            bad_initializers,
-            bad_expression_surfaces, bad_iterations, bad_statements
-        );
-    return !SemanticAstStatementTypesAllVerified(bad_facts) &&
-        SemanticAstStatementFirstDiagnosticCode(bad_facts) ==
-            "condition_not_bool";
 }

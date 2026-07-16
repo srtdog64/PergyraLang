@@ -337,9 +337,18 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(c_q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) {
-            // `Exit(N)` statement -> target process-exit call (rung-9).
-            let e_arg: String = CodegenSemanticExitArgumentOrDie(statements, idx);
-            ArrayPush(result, Concat(pad, Concat(HostIORuntimeCExitFn(), Concat("(", Concat(IntEval(e_arg, env), ");\n")))));
+            let exit_graph: SemanticExpressionGraphView =
+                CodegenSemanticExpressionGraphOrDie(
+                    expression_surfaces, idx, AstExpressionLaneAtom()
+                );
+            let exit_value: String = RewriteSemanticExpectedValue(
+                exit_graph.graph, exit_graph.root_id, "Int", env
+            );
+            ArrayPush(result, Concat(
+                pad, Concat(HostIORuntimeCExitFn(), Concat(
+                    "(", Concat(exit_value, ");\n")
+                ))
+            ));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) {
             ArrayPush(result, Concat(pad, "break;\n"));

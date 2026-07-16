@@ -1427,6 +1427,10 @@ beyond the lexer:
   runtime symbols. `nominal_record_array` raises the C codegen frontier to 75
   fixtures; undeclared record element types fail closed instead of receiving a
   backend-local spelling or exact-type exception.
+- **Exit argument graph ownership** -- parser statement production now stores
+  the `Exit(...)` argument in the atom graph lane. Semantic statement typing
+  requires `Int`, and codegen rewrites that same graph under the expected type.
+  The former payload-text accessor and `IntEval` recovery path are deleted.
 - **Foreach initializer refinement** -- initializer typing now performs a
   bounded second pass after the iteration owner proves loop-binding rows.
   Loop-body locals consume those rows; invalid loop bindings stay uninjected so

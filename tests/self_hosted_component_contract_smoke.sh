@@ -2676,6 +2676,18 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
 require_file "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "func SemanticAstStatementTypeFactsMatchArtifact"
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    "kind == TypedAstKindExitStmtTag()"
+require_file "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" 200
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    "func SemanticAstStatementTypeFactsContractReady"
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    'Exit(\"bad\")'
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    '"call_arg_type_mismatch"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'import "../semantic/ast_statement_type_contract_owner.pgy";'
 require_file "src/self_hosted/semantic/ast_body_verdict_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_body_verdict_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_body_verdict_owner.pgy" "func SemanticAstBodyVerdictFromFacts"
@@ -4257,6 +4269,14 @@ require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlo
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "a terminal instruction erases its"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "reachable statement follows terminal MIR instruction"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "func SemanticAstStatementFactsContractReady"
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'owner_kind == TypedAstKindExitStmtTag()'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'ParserExpressionNamedSingleCallArgument(expr_fact, "Exit")'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'AstExpressionLaneAtom(), exit_argument'
+require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
+    'TypedAstKindExitStmtTag()'
 require_file "src/self_hosted/semantic/ast_statement_type_query_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" 80
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
@@ -4265,7 +4285,7 @@ require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeRowsReady("
 require_text "src/self_hosted/semantic/ast_statement_type_query_owner.pgy" \
     "func SemanticAstStatementTypeQueryContractReady("
-require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     'facts.inferred_type_names[2] != "Int"'
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" \
     "func CodegenSemanticStatementInferredTypeOrDie("
@@ -4273,7 +4293,7 @@ reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner
     "func CodegenSemanticLogArgumentOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticReturnValueOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticArrayPopTargetOrDie"
-require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticExitArgumentOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticExitArgumentOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticWhileConditionOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticIfConditionOrDie"
 require_text "src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy" "func CodegenSemanticMatchSubjectOrDie"
@@ -4610,7 +4630,13 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindArray
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let p_val: String = CodegenSemanticArrayPushValueOrDie(statements, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindExitStmtTag()"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let e_arg: String = CodegenSemanticExitArgumentOrDie(statements, idx)"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let exit_graph: SemanticExpressionGraphView ="
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    'exit_graph.graph, exit_graph.root_id, "Int", env'
+reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func EmitStmtList(" "CodegenSemanticExitArgumentOrDie("
+reject_function_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    "func EmitStmtList(" "IntEval(e_arg, env)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindBreakStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindContinueStmtTag()"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "TypedAstKindForStmtTag()"

@@ -190,6 +190,8 @@ inventory must not become a second fact-family owner registry.
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
   return, condition, call, and statement expression type verdict rows.
+- `src/self_hosted/semantic/ast_statement_type_contract_owner.pgy` -- executable
+  statement-type contracts, including graph-owned `Exit(Int)` validation.
 - `src/self_hosted/semantic/ast_statement_type_query_owner.pgy` -- stable
   node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
