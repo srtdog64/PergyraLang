@@ -9996,6 +9996,16 @@ docs만 읽고 착수할 수 있어야 한다. 각 WO는 목표/현재 상태/�
 - **게이트**: 신규 smoke + `test-semantic` + `test-air`.
 - **DoD**: 게이트 green + docs/118 §freeze 표에 행 추가 + Defense 3 ✅.
 - **금지**: 이 작업을 이유로 lifetime 주석 구문 도입(WO-0-6).
+- **진행 노트 (2026-07-17)**: ① **외부 확증** — Roc의 Rust→Zig 리라이트
+  에세이(2026-07-15)가 "which index goes with which array?"를 Rust borrow
+  checker의 설계상 범위-밖 + Zig 미해결 + compact_arena는 arena 수를 미리
+  알 때만 가능으로 지목. 프로덕션 컴파일러 팀이 아파하며 말한 자리가 정확히
+  이 WO — 우선순위 근거 강화. ② **substrate 선행 착지** — 런타임
+  cross-manager silent alias를 process-global slot id로 fail-close 전환
+  (`6737f3d6`, test-security 193/193, 양쪽-fresh 매니저 목격자 포함).
+  단 이것은 **lookup-miss 보장이지 typed owner check가 아님** — 핸들이
+  owner를 운반하는 본 WO의 typed evidence가 여전히 본체. 감사 원문:
+  docs/118 §6.6.
 
 #### WO-B5 — Result-first host boundary wrappers (red-team Defense 1)
 
@@ -10259,6 +10269,43 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 - **DoD**: 15/15 kind 계약 매핑 + 게이트 배선 + docs/09 참조 갱신.
 - **금지**: 계약 필드만 채우고 negative 없이 "covered" 보고.
 
+#### WO-A4 — codegen 결정성(byte-identity) 게이트 CI 승격
+
+- **계기**: Roc 리라이트 에세이 갭 감사(2026-07-17). Roc은 "같은 입력
+  바이트 → 같은 출력 바이트"를 cross-compile 보장으로 홍보 — 우리 추적성
+  축(산업 SW 컨텍스트)에 정통인 성질인데 게이트가 CI 밖이었다.
+- **현재 (2026-07-17 실측)**: `tests/codegen_determinism_smoke.sh`는 실재
+  (2회 방출 후 cmp)하나 **test-all/CI 미배선**. 실측: 방출 C/LLVM은 이미
+  **raw byte-identical**(기본 4 fixture + 수동 재현) — `ast=0x` 포인터
+  정규화는 낡은 갑옷이라 제거함(재도입 시 게이트가 잡도록). 경로 철자
+  정규화(백슬래시/workdir)만 유지.
+- **단계**: 1. `PGY_CODEGEN_DETERMINISM_SOURCE=all` 전 fixture green 확인.
+  2. `scripts/ci_{linux,macos,windows}_steps.sh`에 기존 make 타깃
+  `codegen-determinism-test-smoke` 호출 추가(Makefile 자체는 동시 세션
+  dirty — 타깃이 이미 있으므로 Makefile 무수정 배선 가능). 3. test-all
+  배선은 Makefile 소유권 풀린 뒤.
+- **게이트**: 그 자체 + CI 3-OS step.
+- **DoD**: all-fixture green 로그 + CI step 배선 커밋.
+- **금지**: 정규화 규칙 재확대로 "green 만들기"(포인터/주소 마스킹 금지 —
+  나온다면 이미터를 고칠 것).
+
+#### WO-A5 — 컴파일된 프로그램 leak 게이트 (컴파일러 말고 산출물)
+
+- **계기**: 같은 감사. Roc은 테스트 할당자가 **컴파일된 Roc 코드**의 leak도
+  잡는다. 우리 ASan 게이트는 **컴파일러 프로세스만** 본다
+  (`tests/sanitizer_compile_smoke.sh:4` "does the compiler leak... while
+  compiling?"; `make test-asan`은 unit 배터리를 `detect_leaks=0`으로 돌림).
+  `PGY_BUDGET_ALLOC_COUNT`는 상한 캡이지 alloc/free 대차가 아님
+  (`pgy_runtime_allocator_inline.h:164`).
+- **단계**: 1. backend_compare 소수 fixture를 `-fsanitize=address`로
+  빌드·실행하는 lane(방출 C는 gcc 직행이라 ASan 링크 가능) — LSan이
+  산출물 leak을 잡는지 RED 실증 먼저(의도적 leak fixture). 2. 대안/보완:
+  런타임 alloc/free 대차 카운터 + exit 리포트(budget 인프라 재사용,
+  fail-close 아님 — 관측 리포트). 3. 게이트化.
+- **게이트**: 신규 smoke + 의도적-leak RED 실증.
+- **DoD**: 산출물 leak이 게이트에 잡히는 로그 + green 기준선.
+- **금지**: 컴파일러-프로세스 leak 게이트와 혼동 보고(둘은 별개 표면).
+
 ---
 
 ### Perf 트랙
@@ -10296,6 +10343,30 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 - **게이트**: `evidence-guard-amortization-test-smoke` + 대상 pin/bounds
   backend-compare slice.
 - **DoD**: 측정 표 1행 추가 + (WIN이면) 구현 + Track B moot 종결 문단.
+
+#### WO-P3 — effect-keyed 캐싱 (pure 함수 결과/컴파일 캐시)
+
+- **계기**: Roc 리라이트 에세이 갭 감사(2026-07-17). Roc은 pure 함수
+  테스트 결과를 디스크 캐시(`roc test`)하고 zero-parse 역직렬화로 파일단위
+  증분을 만든다. 우리는 **기반 두 축이 이미 실재**: interprocedural effect
+  mask(`type_checker_func_decl.c:327-345`, `EffectMask` type_system.h:41-53,
+  capability와 동형 전파) + 방출 결정성(WO-A4). 캐시는 그 payoff.
+- **★선행 함정 (오버클레임 금지)**: `EFFECT_NONE`은 **default지 증명이
+  아님** — type_system.h:39-40 스스로 명시("local-only today"), `is_pure`
+  술어 부재. zero-mask를 "증명된 purity"로 읽고 캐시 키에 쓰면 무효화
+  누락 = 무음 오답. **단계 1이 반드시 purity 승격**(전 빌트인/런타임 콜의
+  effect 표기 전수 감사 → zero-mask가 sound한 subset을 명시 태그).
+- **단계**: 1. purity 승격(위). 2. 슬라이스 선택 — (a) pure-func 단위테스트
+  결과 캐시(작고 안전, Roc 동형) vs (b) 파일단위 컴파일 캐시(큼;
+  `incremental_fact_graph_owner.pgy:3-5`가 스스로 미구현 계약이라 선언).
+  (a) 먼저. 3. 키 = source hash + effect mask + 컴파일러 버전; 무효화는
+  보수적(불확실=miss, fail-open 금지). 4. 관측성: 캐시 hit/miss를 구조화
+  로그로(무음 캐시 금지 — CLAUDE §1.1).
+- **게이트**: 캐시 hit 시/miss 시 결과 동일 fixture + 오염 주입 RED(소스
+  1바이트 변경 → 반드시 miss).
+- **DoD**: (a) 슬라이스 green + purity 승격 감사 표.
+- **금지**: purity 승격 없이 zero-mask 캐싱; compiler_runtime_cache.c(런타임
+  .o 캐시, mtime 기반)와 혼동 — 그건 별개 표면.
 
 ---
 
@@ -10473,6 +10544,39 @@ owner가 들어왔다.
 - **게이트**: 신규 backend_compare fixture 3+ / test-semantic / MIR 인코딩
   왕복 검증.
 - **정합**: A-2(sret 일반화)와 같은 세션 계열 권장 — 둘 다 LLVM 집계-반환 ABI.
+
+#### WO-U4 — C 백엔드 `?` 표현위치 parity
+
+- **계기**: Roc 에세이 갭 감사(2026-07-17)에서 재확인된 실측 parity 갭.
+- **현재**: LLVM은 `?`를 임의 표현위치에서 진짜 early-return으로 완결
+  (`llvm_expr_unary_core.c:58-173`, try.ok/err/cont 블록). C 백엔드는
+  `transpiler_expr_unary_emit.c:24-31`이 일반 표현위치를 거절 — "let
+  초기화 문맥만" 제약. 같은 코드가 백엔드에 따라 컴파일 가/불 = parity 위반.
+- **단계**: 선호안 = **MIR 탈당화**(표현위치 `?`를 MIR에서 임시 let+분기로
+  문장 분해 → 양 백엔드가 기존 let-경로 재사용, backend별 중복 0 — A-1
+  방향과 정합). 차선 = C에서 GCC statement-expr 내 return(합법) lowering.
+  fixture: call-인자 위치 / 중첩 `?` / 조건식 내.
+- **게이트**: backend_compare fixture(성공+에러경로 각각) + 기존
+  `try_operator_*` 4종 유지.
+- **주의**: transpiler_*/MIR은 동시 세션 소유 이력 — 착수 시 dirty 확인.
+- **DoD**: 동일 소스가 양 백엔드 동일 결과 + 제약 에러메시지 삭제.
+
+#### WO-U5 — unused 변수/파라미터 advisory (semantic squiggle 2호 생산자)
+
+- **계기**: Roc 에세이 갭 감사(2026-07-17) — Zig의 dead-code 미발견 불평이
+  역으로 우리 갭 확인. 현재 `PGY_CODE_SEM_UNREACHABLE_CODE`(도달불능 문장,
+  `type_checker_flow_effects.c:93-110`)만 있고 unused-family 진단 부재,
+  linter rule도 0(`src/self_hosted/tools/linter/` unused|dead 히트 0).
+- **왜 advisory**: 막지 않는 인식 축 — semantic squiggle(docs/140)의
+  `DIAG_ADVISORY` 제3상태에 정확히 맞음(1호 생산자=Subject 섀도, LSP/VS
+  Code 배관 이미 landed). RED로 막으면 WIP 코드 고문이 됨 — Zig의 "unused
+  local은 컴파일 에러" 불평을 반면교사로.
+- **단계**: 1. 심볼 read-count(선언 심볼에 use bit — symbol table 확장).
+  2. scope pop 시 미사용 let/param 보고(ADVISORY). `_` prefix = opt-out
+  관례. 3. LSP 물결선 자동(기존 배관). 4. linter rule 동기(self_hosted).
+- **게이트**: fixture(미사용 let/param/`_` opt-out) + advisory가 exit
+  code를 바꾸지 않음(막지-않음 계약) 확인.
+- **DoD**: 2호 생산자 배선 + docs/140 생산자 표 갱신.
 
 ---
 
@@ -10851,6 +10955,14 @@ is the longer execution plan.
 - **Closed slice**: `test-security` covers zero-id/max-id rejection and stale
   generation rejection after released-slot recycle, and the portability smoke
   forbids accidental documentation drift toward false 128-bit claims.
+- **(2026-07-17 갱신, `6737f3d6`)**: fresh id 공급원이 **process-global**
+  (`g_pgy_slot_id_next`)로 변경 — cross-manager handle 사용이 silent alias
+  대신 lookup-miss fail-close가 됨(WO-B4 substrate). zero/max tombstone과
+  recycle-시-generation-전진 계약은 유지(test-security 193/193). **새
+  트레이드오프**: exhaustion이 per-manager가 아니라 process-wide(전체 fresh
+  claim 합계 ~4B) — 한 컴포넌트가 전 매니저의 id 공간을 소모 가능. 완화:
+  budget SPAWN/ALLOC 게이트 + 컴파일된 프로그램은 SlotManager 미경유
+  (PgySlot_T 값 lowering). Option A(64-bit 확폭) 결정 시 이 축도 재평가.
 - **Future option A**: widen to 64-bit id plus 64-bit generation as an explicit
   ABI-breaking post-beta decision.
 - **Future option B**: keep the visible ABI shape and expand the released-slot
@@ -10863,6 +10975,11 @@ is the longer execution plan.
   users may be pushed toward raw FFI or cast-based escape hatches.
 - **Current beta contract**: unsafe handle escape remains rejected or hard-fails;
   first-class `SlotHandle<T> in Zone` / `handle@zone` is not yet implemented.
+- **(2026-07-17 substrate)**: 런타임 층의 cross-manager silent alias는
+  process-global slot id로 닫힘(`6737f3d6` — lookup-miss 보장이지 typed
+  owner check 아님; 본 Defense의 typed evidence가 여전히 본체). Roc
+  리라이트 에세이(2026-07-15)가 이 gap을 Rust/Zig 공통 미해결로 지목 —
+  외부 확증. 상세 = WO-B4 진행 노트.
 - **Remaining work**: make zone-bound handle evidence a typed CFG/AIR fact, then
   allow explicit `handoff` while rejecting source-zone use-after-handoff and
   unapproved spawn/channel/parallel escapes.
