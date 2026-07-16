@@ -693,6 +693,16 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "decl_dispatch_owner.pgy";
 require_text "src/self_hosted/parser/decl_dispatch_owner.pgy" "ParserImportGraphSeen(import_paths, imp_path)"
 require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/parser_parity.sh" "compare_parser_ast_with_owner"
+require_text "tests/self_hosted/parity/parser_parity.sh" 'source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"'
+require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_compile_parser_tool"
+require_file "tests/self_hosted/parity/parser_tool_build_leg.sh"
+require_max_lines "tests/self_hosted/parity/parser_tool_build_leg.sh" 200
+require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
+    'PARSER_TOOL_CACHE_SCHEMA="pgy.selfhost.parser-tool-build.v1"'
+require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
+    'compiler-executable=$(parser_tool_sha256_file "$PGY")'
+require_text "tests/self_hosted/parity/parser_tool_build_leg.sh" \
+    'source-set=$source_set'
 require_text "tests/self_hosted/parity/parser_parity.sh" "pgy_selfhost_read_test_harness_manifest"
 require_text "tests/self_hosted/parity/parser_parity.sh" '"parser-parity-paths"'
 require_text "tests/self_hosted/parity/parser_parity.sh" 'PERGYRA_TOOL_SOURCE="$ROOT_DIR/${harness_paths[0]}"'
@@ -7537,6 +7547,10 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'FUZZ_SOURCE="$ROOT
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "TestHarness manifest expected 9 bootstrap paths"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "compile_parser_ast_producer"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "emit_self_parser_ast"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    "pgy_selfhost_compile_parser_tool"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"'
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fuzz_generator_manifest"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"'

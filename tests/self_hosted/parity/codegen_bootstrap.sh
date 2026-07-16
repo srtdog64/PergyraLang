@@ -29,6 +29,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -322,9 +323,9 @@ compile_parser_ast_producer() {
     local compile_log="$B/parser_ast_producer.compile.log"
 
     echo "[self-host-bootstrap] building self parser AST producer..."
-    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PARSER_SOURCE")" \
-        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$PARSER_BIN")" \
-        >"$compile_log" 2>&1); then
+    if ! pgy_selfhost_compile_parser_tool \
+        "self-host-bootstrap" "$PARSER_SOURCE" c \
+        "$PARSER_BIN" "$compile_log"; then
         echo "[self-host-bootstrap] parser AST producer failed to build" >&2
         cat "$compile_log" >&2
         exit 1

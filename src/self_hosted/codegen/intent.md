@@ -104,6 +104,12 @@ described as a peer C/LLVM/SelfHosted backend replacement until the LLVM and
 SelfHosted emission zones consume the same fact rows and feed the same
 ArtifactZone comparison contract.
 
+Bootstrap build rule: parser parity and codegen bootstrap consume one
+fingerprinted parser-tool build owner. Reuse is allowed only when the complete
+self-host source set, parser source, backend, and compiler executable hashes
+match. This removes repeated whole-parser builds from one preparation run
+without treating a stale binary as evidence.
+
 Run-boundary rule: `run/codegen_run_owner.pgy` must consume
 `CompilerTargetCapabilityEnvelopeReady()` before `GenerateC`. The target
 capability envelope is not documentation-only for this rung; unsupported target
