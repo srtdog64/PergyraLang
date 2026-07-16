@@ -10372,6 +10372,51 @@ axis-직교성/guard-calculus/proof-spine/methodology + **OptionTry(신규)**.
 
 ---
 
+### 병렬 런타임 트랙 (docs/186 전체 계획, 2026-07-17)
+
+docs/186이 상위 계획(P-A~P-D). 여기는 세션-단위 실행 블록만. WO-RT-1(런타임
+자기적용 census, docs/179 3a)·WO-RT-2(cancellation, docs/182 §2 ✅)와 같은
+RT 계열.
+
+#### WO-RT-3 — 중첩 병렬 데드락 클래스 닫기 (P-A1)
+
+- **문제 (실측)**: pool worker가 유저 코드 안에서 같은 g_pgy_pool로
+  fan-out 후 `pgy_await`하면 `pthread_cond_wait`로 블록 — 큐 드레인/help
+  없음(`pgy_parallel_task_ops.h:81-95`). worker 전원이 그렇게 블록하면
+  서브태스크는 영원히 대기 = **도달 가능한 pool-starvation 데드락, 현재
+  미방어**. docs/181의 sibling channel-dep 거절은 이 클래스를 안 덮음.
+- **수정**: (a) **help-first await** — worker 스레드에서 불린 pgy_await는
+  대기 대신 큐 태스크를 실행하며 진행(`g_pgy_thread_current`로 판별, 표준
+  fork-join 해법). (b) semantic은 parallel-inside-parallel **fact 기록**
+  (1차 rung은 진단/기록이지 거절 아님 — (a)가 실행을 안전화).
+- **목격자**: 오늘 데드락나는 중첩 fan-out fixture(worker수보다 깊게) —
+  수정 전 RED(timeout), 후 GREEN, 양 백엔드. 트윈 lockstep + `.bc` 재생성
+  (WO-0-4).
+- **게이트**: 신규 nested-parallel witness + 기존 parallel 게이트 전 green.
+- **DoD**: RED→GREEN 로그 + docs/186 P-A1 체크 + docs/177 후속 노트.
+- **금지**: cond_wait에 timeout만 붙이고 "닫힘" 보고(그건 데드락을 지연으로
+  바꿀 뿐); 무음 직렬화 폴백.
+
+#### WO-RT-4 — 실행기 세대교체 측정 사다리 (P-B1→B3)
+
+- **목표**: g_pgy_pool의 측정된 부기 비용 제거 — 잔여 갭 5.93x vs hand-C
+  OpenMP 7.17x(n=9 best-of-3)의 원인 후보를 rung별로 **측정→수술→재측정**.
+- **rung**: B1 join당 완료카운터 1개+cond 1개(태스크당 mutex/cond/calloc
+  제거, 배치 할당) → B2 per-worker deque + steal(잠자는
+  `src/runtime/async/scheduler.c`의 StealWork 로직을 THREAD-model로 이식,
+  fiber는 이 rung에서 제외; WO-RT-3(a) help가 자연히 "자기 deque 드레인"이
+  됨) → B3 chunking(docs/182 §6 claim-gate 준수: 세밀-그레인 워크로드 측정
+  이득 먼저; reduce는 청크 부분합→인덱스-순서 fold로 결정성 유지).
+- **측정 규율**: 매 rung B_n n=9 best-of-3 solo + 소태스크 1만개 마이크로,
+  [[feedback_measure_perf_best_of_n]] 준수. 숫자 없이 다음 rung 금지.
+- **성공 기준**: hand-C OpenMP 1.10x 이내(현 1.21x). 미달도 측정 기록이 성과.
+- **게이트**: 전 parallel/backpressure 게이트 + 병렬 결정성 목격자
+  (`join with sum` 결과가 worker수 무관 — docs/186 P-D).
+- **금지**: 측정 없는 수술; B4(fiber/LOCAL_ASYNC 통합)는 BDFL 결정 전 착수
+  금지; lane 3층 collapse.
+
+---
+
 ### Closure capture 트랙 (docs/141 — Stage A 完, task #49-51)
 
 공통 패턴(Stage A에서 확립): closure env ABI + 람다는 MIR 우회라 dual-backend
