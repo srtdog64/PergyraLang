@@ -63,6 +63,12 @@ participant, not a zone.
   current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>` /
   `Array<CodegenAstTextNode: CodegenAstTextNode>` into canonical collection
   kind facts.
+- Declared nominal-record arrays are derived from semantic type-surface facts,
+  the declared-struct environment, and
+  `compiler/abi_layout_nominal_array_owner.pgy`. Emission consumes one typed
+  collection-runtime fact carrying the element type, C array type, and helper
+  symbols. A backend-local `Array<SpecificRecord>` spelling or an undeclared
+  element fallback is forbidden.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.

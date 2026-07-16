@@ -324,11 +324,11 @@ func RewriteSemanticDirectCall(
         }
         let array_kind: String = UnwrapOption(array_type);
         if StartsWith(array_kind, "Array<") {
-            array_kind = CollectionRuntimeKindFromTypeName(array_kind);
+            array_kind =
+                CollectionRuntimeFactFromTypeName(array_kind, env).kind;
         }
-        call_symbol = CollectionRuntimeCLenFn(
-            CollectionRuntimeKindCode(array_kind)
-        );
+        call_symbol =
+            CollectionRuntimeFactFromKind(array_kind, env).c_len_fn;
     } else {
         let runtime_symbol: Option<String> = RuntimeCallCName(source_name);
         if IsSome(runtime_symbol) {

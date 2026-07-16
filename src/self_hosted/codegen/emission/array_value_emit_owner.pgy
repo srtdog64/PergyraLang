@@ -10,10 +10,9 @@ func EmitArrayLiteralFromRenderedItems(
     env: CodegenTypeEnv,
     item_values: Array<String>
 ) -> String {
-    let kind: String = CollectionRuntimeKindFromTypeName(expected_type);
-    let kind_code: Int = CollectionRuntimeKindCode(kind);
-    let element_type: String =
-        CollectionRuntimeElementTypeFromKindCode(kind_code);
+    let fact: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(expected_type, env);
+    let element_type: String = fact.element_type;
     if element_type == "CodegenAstTextNode" {
         Die("inline Array<CodegenAstTextNode> values are outside the bootstrap subset");
     }
@@ -21,10 +20,10 @@ func EmitArrayLiteralFromRenderedItems(
     let temp: String = "_pgy_array_value";
     let out: String = Concat("({ ", Concat(c_type, Concat(" ",
         Concat(temp, Concat(" = ", Concat(
-            CollectionRuntimeCNewFn(kind_code), "(); "))))));
+            fact.c_new_fn, "(); "))))));
     let index: Int = 0;
     while index < ArrayLength(item_values) {
-        out = Concat(out, Concat(CollectionRuntimeCPushFn(kind_code),
+        out = Concat(out, Concat(fact.c_push_fn,
             Concat("(&", Concat(temp, Concat(", ",
                 Concat(item_values[index], "); "))))));
         index = index + 1;

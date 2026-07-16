@@ -1422,6 +1422,17 @@ beyond the lexer:
   covers a pipe-bearing `Ok(...)` return. `result_int_core` also joins the
   31-fixture DRV-2 MIR producer frontier, where missing and invalid expression
   graphs fail closed. Other legacy expression leaves remain bridged.
+- **Nominal record array ABI** -- `Array<T>` where `T` is a declared record now
+  consumes a compiler-owned derived ABI/layout fact and typed collection
+  runtime symbols. `nominal_record_array` raises the C codegen frontier to 75
+  fixtures; undeclared record element types fail closed instead of receiving a
+  backend-local spelling or exact-type exception.
+- **Foreach initializer refinement** -- initializer typing now performs a
+  bounded second pass after the iteration owner proves loop-binding rows.
+  Loop-body locals consume those rows; invalid loop bindings stay uninjected so
+  the earlier iteration diagnostic remains authoritative. This lets the
+  self-built codegen compile `diagnostic_catalog_checker` without source-text
+  recovery.
 - **Assignment target graph transport** -- DRV-2 now carries a semantic target
   graph for both plain and indexed assignments. MIR verification rejects a
   missing plain leaf or indexed graph, and JSON consumption preserves

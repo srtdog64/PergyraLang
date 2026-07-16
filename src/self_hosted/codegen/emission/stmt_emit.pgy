@@ -82,13 +82,13 @@ func EmitLet(
         // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
         // `[a, b, c]` literal lowers to `new()` plus one `push` per element;
         // `[]` is just `new()`. `ArrayPush` later extends the same value.
-        let array_kind: String = CollectionRuntimeKindFromTypeName(type_name);
-        let array_kind_code: Int = CollectionRuntimeKindCode(array_kind);
+        let array_fact: CollectionRuntimeFact =
+            CollectionRuntimeFactFromTypeName(type_name, env);
+        let array_kind: String = array_fact.kind;
         let c_type: String = AbiLayoutCLocalType(type_name, env);
-        let new_fn: String = CollectionRuntimeCNewFn(array_kind_code);
-        let push_fn: String = CollectionRuntimeCPushFn(array_kind_code);
-        let element_type: String =
-            CollectionRuntimeElementTypeFromKindCode(array_kind_code);
+        let new_fn: String = array_fact.c_new_fn;
+        let push_fn: String = array_fact.c_push_fn;
+        let element_type: String = array_fact.element_type;
         CodegenTypeEnvStateAppendValueBinding(
             env_state, name, array_kind, c_name
         );
@@ -301,12 +301,12 @@ func EmitStmtList(count: Int, arena: AstArena,
                     expression_surfaces, idx, AstExpressionLaneAuxiliary()
                 );
             let a_kind: String = LookupKindType(env, a_arr, "v");
-            let a_kind_code: Int = CollectionRuntimeKindCode(a_kind);
-            let set_fn: String = CollectionRuntimeCSetFn(a_kind_code);
+            let array_fact: CollectionRuntimeFact =
+                CollectionRuntimeFactFromKind(a_kind, env);
             let a_rhs: String = EmitCollectionGraphElementValue(
-                a_val, env, a_kind_code, a_graph
+                a_val, env, array_fact, a_graph
             );
-            let set_stmt: String = Concat(set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(IntEval(a_idx, env), Concat(", ", Concat(a_rhs, ");")))))));
+            let set_stmt: String = Concat(array_fact.c_set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(IntEval(a_idx, env), Concat(", ", Concat(a_rhs, ");")))))));
             ArrayPush(result, Concat(pad, Concat(set_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) {
@@ -319,12 +319,12 @@ func EmitStmtList(count: Int, arena: AstArena,
                     expression_surfaces, idx, AstExpressionLaneValue()
                 );
             let p_kind: String = LookupKindType(env, p_arr, "v");
-            let p_kind_code: Int = CollectionRuntimeKindCode(p_kind);
-            let push_fn: String = CollectionRuntimeCPushFn(p_kind_code);
+            let array_fact: CollectionRuntimeFact =
+                CollectionRuntimeFactFromKind(p_kind, env);
             let p_rhs: String = EmitCollectionGraphElementValue(
-                p_val, env, p_kind_code, p_graph
+                p_val, env, array_fact, p_graph
             );
-            let push_stmt: String = Concat(push_fn, Concat("(&", Concat(c_p_arr, Concat(", ", Concat(p_rhs, ");")))));
+            let push_stmt: String = Concat(array_fact.c_push_fn, Concat("(&", Concat(c_p_arr, Concat(", ", Concat(p_rhs, ");")))));
             ArrayPush(result, Concat(pad, Concat(push_stmt, "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) {
@@ -332,7 +332,8 @@ func EmitStmtList(count: Int, arena: AstArena,
             let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx);
             let c_q_arr: String = CompilerSymbolCBindingName(q_arr);
             let q_kind: String = LookupKindType(env, q_arr, "v");
-            let pop_fn: String = CollectionRuntimeCPopFn(CollectionRuntimeKindCode(q_kind));
+            let pop_fn: String =
+                CollectionRuntimeFactFromKind(q_kind, env).c_pop_fn;
             ArrayPush(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(c_q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1);
         } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) {
@@ -405,27 +406,15 @@ func EmitStmtList(count: Int, arena: AstArena,
                 let get_fn: String = "";
                 let len_fn: String = "";
                 let elem_kind: String = "";
-                if ck == "ArrayString" {
-                    arr_c = AbiLayoutCLocalType("Array<String>", env);
-                    elem_c = AbiLayoutCLocalType("String", env);
-                    get_fn = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(ck));
-                    len_fn = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(ck));
-                    elem_kind = "String";
-                } else if ck == "ArrayInt" {
-                    arr_c = AbiLayoutCLocalType("Array<Int>", env);
-                    elem_c = AbiLayoutCLocalType("Int", env);
-                    get_fn = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(ck));
-                    len_fn = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(ck));
-                    elem_kind = "Int";
-                } else if ck == "ArrayBool" {
-                    arr_c = AbiLayoutCLocalType("Array<Bool>", env);
-                    elem_c = AbiLayoutCLocalType("Bool", env);
-                    get_fn = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(ck));
-                    len_fn = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(ck));
-                    elem_kind = "Bool";
-                } else {
-                    Die(Concat("for-each requires Array<Int>, Array<String>, or Array<Bool>, got: ", ck));
-                }
+                let collection: CollectionRuntimeFact =
+                    CollectionRuntimeFactFromKind(ck, env);
+                arr_c = collection.c_array_type;
+                elem_c = AbiLayoutCLocalType(
+                    collection.element_type, env
+                );
+                get_fn = collection.c_get_fn;
+                len_fn = collection.c_len_fn;
+                elem_kind = collection.element_type;
                 let tc: String = CompilerSymbolCForEachCollectionTempName(loop_var);
                 let ti: String = CompilerSymbolCForEachIndexTempName(loop_var);
                 CodegenTypeEnvStateAppendTypedValueBinding(

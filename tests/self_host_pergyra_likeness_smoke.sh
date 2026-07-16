@@ -246,7 +246,9 @@ SENTINEL_MAX=0
 # parser/semantic absence as Option through hard codegen.
 # 1918 -> 1919 (2026-07-16): assignment target graph verification keeps the
 # empty-use fixture typed instead of using an out-of-band sentinel.
-RESULT_USE_MIN=1919
+# 1919 -> 1935 (2026-07-16): nominal-array ABI and iteration-initializer
+# refinement preserve missing layout and loop-binding facts explicitly.
+RESULT_USE_MIN=1935
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

@@ -279,7 +279,8 @@ func RewriteStructLiteralCallArg(expr: String, expected_type: String, env: Codeg
             } else if ftype == "Int" || ftype == "Bool" {
                 cval = IntEval(val, env);
             } else if StartsWith(ftype, "Array<") {
-                let array_kind: String = CollectionRuntimeKindFromTypeName(ftype);
+                let array_kind: String =
+                    CollectionRuntimeFactFromTypeName(ftype, env).kind;
                 let array_val: String = StringTrim(val);
                 if StringLength(array_val) > 0 && CodegenCharAt(array_val, 0) == "[" {
                     cval = EmitArrayLiteralValue(array_val, ftype, env);
@@ -521,11 +522,9 @@ func EmitArrayLiteralValue(
         CodegenCharAt(literal, StringLength(literal) - 1) != "]" {
         Die(Concat("expected array literal for type: ", expected_type));
     }
-    let kind_code: Int = CollectionRuntimeKindCode(
-        CollectionRuntimeKindFromTypeName(expected_type)
-    );
-    let element_type: String =
-        CollectionRuntimeElementTypeFromKindCode(kind_code);
+    let collection: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(expected_type, env);
+    let element_type: String = collection.element_type;
     let inner: String = StringTrim(Substring(
         literal, 1, StringLength(literal) - 2
     ));

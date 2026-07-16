@@ -1,0 +1,65 @@
+// Nominal-record array usage projected from semantic type-surface facts.
+
+import "../../semantic/array_type_shape_owner.pgy";
+import "../../semantic/ast_type_surface_fact_owner.pgy";
+import "../type_facts/type_env.pgy";
+
+struct CodegenNominalArrayUsageFacts {
+    ok: Bool;
+    element_types: Array<String>;
+}
+
+func CodegenNominalArrayElementKnown(
+    elements: Array<String>, element_type: String
+) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(elements) {
+        if elements[i] == element_type {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func CodegenNominalArrayBuiltinElement(element_type: String) -> Bool {
+    return element_type == "Int" || element_type == "Long" ||
+        element_type == "String" || element_type == "Bool" ||
+        element_type == "CodegenAstTextNode";
+}
+
+func CodegenNominalArrayUsageFactsFromSemantic(
+    facts: SemanticAstTypeSurfaceFacts,
+    env: CodegenTypeEnv
+) -> CodegenNominalArrayUsageFacts {
+    let elements: Array<String> = [];
+    if !facts.ok {
+        return CodegenNominalArrayUsageFacts(false, elements);
+    }
+    let i: Int = 0;
+    while i < SemanticAstTypeSurfaceCount(facts) {
+        let type_name: Option<String> =
+            SemanticAstTypeSurfaceNameAt(facts, i);
+        if IsSome(type_name) {
+            let element: Option<String> =
+                SemanticArrayElementType(UnwrapOption(type_name));
+            if IsSome(element) {
+                let element_type: String = UnwrapOption(element);
+                if !CodegenNominalArrayBuiltinElement(element_type) {
+                    if LookupKindType(env, element_type, "s") != "struct" {
+                        return CodegenNominalArrayUsageFacts(
+                            false, elements
+                        );
+                    }
+                    if !CodegenNominalArrayElementKnown(
+                        elements, element_type
+                    ) {
+                        ArrayPush(elements, element_type);
+                    }
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return CodegenNominalArrayUsageFacts(true, elements);
+}

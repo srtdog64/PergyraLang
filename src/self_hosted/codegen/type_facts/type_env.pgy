@@ -3,6 +3,7 @@
 // Layered type-environment and expression-kind owner for self-host C emission.
 
 import "../text/text_owner.pgy";
+import "../../semantic/array_type_shape_owner.pgy";
 
 struct CodegenTypeEnv {
     global_rows: String;
@@ -274,6 +275,11 @@ func ExprMemberFieldType(expr: String, env: CodegenTypeEnv) -> String {
 }
 
 func ExprCollectionElementKind(kind: String) -> String {
+    let semantic_element: Option<String> =
+        SemanticArrayElementType(kind);
+    if IsSome(semantic_element) {
+        return UnwrapOption(semantic_element);
+    }
     if kind == "ArrayString" || kind == "Array<String>" || kind == "Array<String: String>" {
         return "String";
     }

@@ -386,8 +386,10 @@ func GenerateCUnitFromSemanticFacts(
         CodegenRuntimeUsageFactsFromSemantic(
             semantic_analysis.expression_surfaces,
             semantic_analysis.type_surfaces,
-            semantic_analysis.kind_surfaces
+            semantic_analysis.kind_surfaces,
+            base_env
         );
+    if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     let uses_args: Bool = usage.uses_args;
 
     let defs: Array<String> = [];
@@ -558,10 +560,8 @@ func GenerateCUnitFromSemanticFacts(
             uses_array_filter
         ));
     }
-    let record_array_block: String = "";
-    if uses_ast_text_node_array {
-        record_array_block = CollectionRuntimeCodegenAstTextNodeArrayBlock();
-    }
+    let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
+        uses_ast_text_node_array, usage.nominal_record_arrays.element_types);
     if uses_args2 {
         TextBuilderAppend(output, HostIORuntimeCArgsBlock());
     }

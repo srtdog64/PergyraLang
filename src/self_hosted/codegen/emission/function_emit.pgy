@@ -33,7 +33,9 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
 
 func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
     if StartsWith(type_name, "Array<") {
-        return CollectionRuntimeKindFromTypeName(type_name);
+        return CollectionRuntimeFactFromTypeName(
+            type_name, CodegenTypeEnv(global_env, "")
+        ).kind;
     }
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
         return "ResultInt";
@@ -161,7 +163,8 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         // rewriting recognizes it (`Array<Int...>` -> ArrayInt, etc.).
         let p_kind: String = p_type;
         if StartsWith(p_type, "Array<") {
-            p_kind = CollectionRuntimeKindFromTypeName(p_type);
+            p_kind =
+                CollectionRuntimeFactFromTypeName(p_type, base_env).kind;
         }
         if p_mode == 3 {
             ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(

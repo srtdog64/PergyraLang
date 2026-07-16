@@ -108,11 +108,12 @@ func RewriteExprFromSemanticGraph(
         }
         let runtime_kind: String = receiver_type;
         if StartsWith(runtime_kind, "Array<") {
-            runtime_kind = CollectionRuntimeKindFromTypeName(runtime_kind);
+            runtime_kind = CollectionRuntimeFactFromTypeName(
+                runtime_kind, env
+            ).kind;
         }
-        let get_fn: String = CollectionRuntimeCGetFn(
-            CollectionRuntimeKindCode(runtime_kind)
-        );
+        let get_fn: String =
+            CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
         return Concat(get_fn, Concat(
             "(", Concat(left, Concat(", ", Concat(right, ")")))
         ));

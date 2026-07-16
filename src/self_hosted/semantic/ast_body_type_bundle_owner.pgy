@@ -7,6 +7,7 @@ import "ast_artifact_verdict_owner.pgy";
 import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
+import "ast_initializer_iteration_refinement_owner.pgy";
 
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
@@ -21,20 +22,27 @@ func SemanticAstBodyTypeBundleFromAnalysis(
     artifact: AstTreeArtifact,
     inout analysis: SemanticAstArtifactAnalysis
 ) -> SemanticAstBodyTypeBundle {
-    let initializer_types: SemanticAstInitializerTypeFacts =
+    let base_initializer_types: SemanticAstInitializerTypeFacts =
         SemanticAstInitializerTypeFactsFromArtifact(
             artifact, analysis.signatures, analysis.constructors,
             analysis.local_bindings, analysis.expression_surfaces
         );
     let call_targets_resolved: Bool =
         SemanticAstAnalysisResolveCallTargetsFromBody(
-            artifact, analysis, initializer_types.inferred_type_names
+            artifact, analysis, base_initializer_types.inferred_type_names
         );
     let iteration_types: SemanticAstIterationTypeFacts =
         SemanticAstIterationTypeFactsFromArtifact(
             artifact, analysis.signatures, analysis.constructors,
-            analysis.local_bindings, initializer_types, analysis.statements,
+            analysis.local_bindings, base_initializer_types,
+            analysis.statements,
             analysis.expression_surfaces
+        );
+    let initializer_types: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsRefinedByIterations(
+            artifact, analysis.signatures, analysis.constructors,
+            analysis.local_bindings, analysis.expression_surfaces,
+            analysis.statements, iteration_types
         );
     let assignment_types: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(

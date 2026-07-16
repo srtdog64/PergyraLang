@@ -1,0 +1,50 @@
+// Derived ABI/layout facts for Array<NominalRecord>.
+
+import "abi_layout_row_owner.pgy";
+import "symbol_table_owner.pgy";
+
+struct CompilerAbiNominalArrayLayoutFact {
+    ok: Bool;
+    element_type: String;
+    c_element_type: String;
+    c_value_type: String;
+    field_order: String;
+    ownership_shape: String;
+    materialization_policy: String;
+}
+
+func CompilerAbiNominalArrayLayoutFactFor(
+    element_type: String
+) -> CompilerAbiNominalArrayLayoutFact {
+    if StringLength(element_type) == 0 {
+        return CompilerAbiNominalArrayLayoutFact(
+            false, "", "", "", "", "", ""
+        );
+    }
+    let c_element_type: String = CompilerSymbolCTypeName(element_type);
+    return CompilerAbiNominalArrayLayoutFact(
+        true,
+        element_type,
+        c_element_type,
+        Concat("pgy_", Concat(c_element_type, "_array")),
+        CompilerAbiLayoutFieldOrderArrayBuffer(),
+        CompilerAbiLayoutOwnershipSharedBufferValue(),
+        CompilerAbiLayoutFieldAllowedMaterialization()
+    );
+}
+
+func CompilerAbiNominalArrayLayoutContractReady() -> Bool {
+    let fact: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor("AstExpressionGraphRows");
+    let missing: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor("");
+    return fact.ok &&
+        fact.c_element_type == "AstExpressionGraphRows" &&
+        fact.c_value_type == "pgy_AstExpressionGraphRows_array" &&
+        fact.field_order == CompilerAbiLayoutFieldOrderArrayBuffer() &&
+        fact.ownership_shape ==
+            CompilerAbiLayoutOwnershipSharedBufferValue() &&
+        fact.materialization_policy ==
+            CompilerAbiLayoutFieldAllowedMaterialization() &&
+        !missing.ok;
+}

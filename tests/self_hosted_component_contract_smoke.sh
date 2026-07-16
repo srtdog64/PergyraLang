@@ -2589,6 +2589,8 @@ require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" "Semant
 require_file "src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedVisibleLocals"
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" \
+    "func SemanticAstExpressionSeedVisibleIterationRows"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionMemberRootNames("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedEnumValues("
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
@@ -2605,6 +2607,8 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "fun
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypesAllVerified"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "func SemanticAstInitializerTypeFactsContractReady"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows"
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckProgram("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "CheckBody("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "LoadSemanticSource"
@@ -2614,6 +2618,16 @@ require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "struct S
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleFromAnalysis"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleReady"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" "func SemanticAstBodyTypeBundleContractReady"
+require_file "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" 200
+require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
+    "func SemanticAstInitializerTypeFactsRefinedByIterations"
+require_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
+    "iterations.binding_type_names"
+reject_text "src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy" \
+    "AstTreeArtifactFromText(source"
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstInitializerTypeFactsRefinedByIterations("
 require_file "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
@@ -3811,9 +3825,9 @@ reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "f_indent = node
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].indent > owner_indent"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].indent > role_owner_indent"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "nodes[cur[0]].indent > decl_indent"
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String = \"\""
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "let record_array_block: String ="
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectionRuntimeCArrayBlock("
-require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectionRuntimeCodegenAstTextNodeArrayBlock()"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectionRuntimeRecordArrayBlocks("
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { long long *data"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "typedef struct { const char **data"
 reject_text "src/self_hosted/codegen/emission/program_emit.pgy" "static pgy_ai"
@@ -4850,11 +4864,11 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'StringIndexOf(p
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'StringIndexOf(part, ": ")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CsvAt(field_names, field_pos)"
 reject_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CsvAt(field_names, field_pos)"
-require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
+require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CollectionRuntimeFactFromTypeName(ftype, env).kind"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "array struct argument field must consume a named array value"
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" 'import "../runtime_abi/collection_runtime_owner.pgy";'
-require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CollectionRuntimeKindFromTypeName(ftype)"
+require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "CollectionRuntimeFactFromTypeName(ftype, env).kind"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'LookupKindType(env, enum_key, "e")'
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "CompilerSymbolCEnumVariantName(expected_type, p)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'LookupKindType(env, p, "e")'
@@ -4872,6 +4886,12 @@ reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" 'out = Concat(ou
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func ModeCsvCount"
 reject_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "mode = CsvAt(modes"
 require_text "src/self_hosted/compiler/abi_layout_row_owner.pgy" "pgy_CodegenAstTextNode_array"
+require_file "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy"
+require_max_lines "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy" 200
+require_text "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy" \
+    "struct CompilerAbiNominalArrayLayoutFact"
+require_text "src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy" \
+    "CompilerAbiNominalArrayLayoutContractReady"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 'import "../../compiler/abi_layout_row_owner.pgy";'
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayIntCValueType()"
@@ -4879,6 +4899,16 @@ require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" 
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayBoolCValueType()"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCodegenAstTextNodeArrayBlock"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "CompilerAbiLayoutArrayCodegenAstTextNodeCValueType()"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    "struct CollectionRuntimeFact"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    "func CollectionRuntimeNominalRecordArrayBlock"
+require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    "func CollectionRuntimeRecordArrayBlocks"
+reject_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" \
+    '"AstExpressionGraphRows"'
+reject_text "src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy" \
+    '"AstExpressionGraphRows"'
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCGetFn(kind_code: Int)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCLenFn(kind_code: Int)"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "func CollectionRuntimeCPushFn(kind_code: Int)"
@@ -4894,17 +4924,25 @@ require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "func ExprCollect
 require_text "src/self_hosted/codegen/type_facts/type_env.pgy" "arr_kind = ExprMemberFieldType(arr_name, env)"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "let receiver: String = Substring(e, i, path_end - i)"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "kind = ExprMemberFieldType(receiver, env)"
-require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeKindFromTypeName(kind)"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeFactFromTypeName(kind, env).kind"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "ArrayCodegenAstTextNode"
 require_text "src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy" "ArrayBool"
+require_file "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy"
+require_max_lines "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" 200
+require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
+    "CodegenNominalArrayUsageFactsFromSemantic"
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    "usage.nominal_record_arrays.element_types"
+require_file "src/self_hosted/codegen/fixture/nominal_record_array.pgy"
+require_file "src/self_hosted/codegen/expected/nominal_record_array_stdout.txt"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.uses_bool || usage.uses_array ||"
 require_file "src/self_hosted/codegen/emission/array_value_emit_owner.pgy"
 require_file "src/self_hosted/codegen/emission/value_return_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "func EmitArrayLiteralValue("
 require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "func EmitArrayLiteralFromRenderedItems("
-require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCNewFn(kind_code)"
-require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "CollectionRuntimeCPushFn(kind_code)"
+require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "fact.c_new_fn"
+require_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "fact.c_push_fn"
 reject_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "IntEval("
 reject_text "src/self_hosted/codegen/emission/array_value_emit_owner.pgy" "StrEval("
 require_text "src/self_hosted/codegen/emission/struct_value_emit.pgy" "EmitArrayLiteralValue(array_val, ftype, env)"
@@ -5077,16 +5115,16 @@ require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func FindTopLevelCom
 require_text "src/self_hosted/hir/ast_text_scan_owner.pgy" "func CodegenCharAt"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func CharAt"
 reject_text "src/self_hosted/codegen/text/text_owner.pgy" "return -1"
-require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCLenFn"
-require_text "src/self_hosted/codegen/text/expr_scan.pgy" "CollectionRuntimeCGetFn"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" ".c_len_fn"
+require_text "src/self_hosted/codegen/text/expr_scan.pgy" ".c_get_fn"
 require_text "src/self_hosted/codegen/text/expr_sequence_owner.pgy" "FindTopLevelComma(rem)"
 require_text "src/self_hosted/codegen/text/struct_literal_call_owner.pgy" "FindMatchingParen(e, op)"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func FindTopLevelOp2(s: String, op: String) -> Option<Int>"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return None"
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "return Some(i)"
 reject_text "src/self_hosted/codegen/text/expr_scan.pgy" "return -1"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCPushFn"
-require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CollectionRuntimeCSetFn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" ".c_push_fn"
+require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" ".c_set_fn"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "CollectionRuntimeCIntSortFn"
 require_text "src/self_hosted/codegen/emission/runtime_call_rewrite_owner.pgy" "StringRuntimeCStringLengthFn"
 require_text "src/self_hosted/codegen/emission/expr_rewrite.pgy" "StringRuntimeCConcatFn"
@@ -7382,10 +7420,10 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 74 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 74"
-[[ "$codegen_expected_count" -eq 74 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 74"
+[[ "$codegen_fixture_count" -eq 75 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 75"
+[[ "$codegen_expected_count" -eq 75 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 75"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
@@ -7399,7 +7437,7 @@ require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 74;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 75;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \

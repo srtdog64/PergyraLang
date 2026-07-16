@@ -48,12 +48,17 @@ func SemanticAstInitializerTypeStructuralError(
     );
 }
 
-func SemanticAstInitializerTypeFactsFromArtifact(
+func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
     locals: SemanticAstLocalBindingFacts,
-    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>
 ) -> SemanticAstInitializerTypeFacts {
     if !AstTreeArtifactReady(artifact) ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
@@ -112,6 +117,11 @@ func SemanticAstInitializerTypeFactsFromArtifact(
         ) || !SemanticAstExpressionSeedVisibleLocalModes(
             artifact, locals, locals.function_node_ids[i],
             locals.node_ids[i], modes
+        ) || !SemanticAstExpressionSeedVisibleIterationRows(
+            artifact, iteration_node_ids, iteration_function_node_ids,
+            iteration_binding_names, iteration_binding_types,
+            iteration_verified, locals.function_node_ids[i],
+            locals.node_ids[i], names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);
         }
@@ -205,6 +215,21 @@ func SemanticAstInitializerTypeFactsFromArtifact(
         true, "", "", artifact.count, node_ids, expression_texts,
         inferred_type_names, verified, diagnostic_codes,
         diagnostic_messages
+    );
+}
+
+func SemanticAstInitializerTypeFactsFromArtifact(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> SemanticAstInitializerTypeFacts {
+    let empty_ints: Array<Int> = [];
+    let empty_strings: Array<String> = [];
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        empty_ints, empty_ints, empty_strings, empty_strings, empty_ints
     );
 }
 

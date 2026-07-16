@@ -1,0 +1,18 @@
+struct AstExpressionGraphRows {
+    ok: Bool;
+    roots: Array<Int>;
+}
+
+func EmptyGraphRows() -> AstExpressionGraphRows {
+    let roots: Array<Int> = [];
+    return AstExpressionGraphRows(true, roots);
+}
+
+func Main() -> Void {
+    let rows: Array<AstExpressionGraphRows> = [EmptyGraphRows()];
+    let first: AstExpressionGraphRows = rows[0];
+    Log(ToString(ArrayLength(rows)));
+    if first.ok {
+        Log("ready");
+    }
+}

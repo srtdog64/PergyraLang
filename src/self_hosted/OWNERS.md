@@ -128,6 +128,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and initializer payload facts without source re-scanning.
+- `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy` --
+  loop-body initializer refinement that consumes verified iteration binding
+  facts after the header pass.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
@@ -415,6 +418,9 @@ inventory must not become a second fact-family owner registry.
   statement-kind projection from semantic kind-surface facts.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- backend runtime
   type-family projection from semantic type-surface facts.
+- `src/self_hosted/codegen/input/nominal_array_usage_owner.pgy` -- declared
+  nominal-record array usage facts derived from semantic type surfaces and the
+  codegen type environment.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
@@ -643,6 +649,9 @@ inventory must not become a second fact-family owner registry.
   rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
+- `src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy` -- derived ABI
+  layout and C symbol facts for arrays whose element is a declared nominal
+  record.
 - `src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy` -- backend
   ABI-layout required/forbidden source contract rows tied to the ABI row owner.
 - `src/self_hosted/compiler/abi_layout_target_policy_owner.pgy` -- ABI layout

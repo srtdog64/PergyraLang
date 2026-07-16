@@ -3,28 +3,61 @@
 // Self-host C collection runtime symbol facts for the supported codegen subset.
 
 import "../text/text_owner.pgy";
+import "../type_facts/type_env.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/abi_layout_nominal_array_owner.pgy";
+import "../../semantic/array_type_shape_owner.pgy";
+
+struct CollectionRuntimeFact {
+    ok: Bool;
+    kind: String;
+    element_type: String;
+    c_array_type: String;
+    c_new_fn: String;
+    c_push_fn: String;
+    c_set_fn: String;
+    c_get_fn: String;
+    c_len_fn: String;
+    c_pop_fn: String;
+}
+
+func CollectionRuntimeBuiltinKindFromTypeName(
+    type_name: String
+) -> Option<String> {
+    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" ||
+        type_name == "Array<Long>" || type_name == "Array<Long: Long>" {
+        return Some("ArrayInt");
+    }
+    if type_name == "Array<String>" ||
+        type_name == "Array<String: String>" {
+        return Some("ArrayString");
+    }
+    if type_name == "Array<Bool>" || type_name == "Array<Bool: Bool>" {
+        return Some("ArrayBool");
+    }
+    if type_name == "Array<CodegenAstTextNode>" ||
+        type_name ==
+            "Array<CodegenAstTextNode: CodegenAstTextNode>" {
+        return Some("ArrayCodegenAstTextNode");
+    }
+    return None;
+}
 
 // The AST-text bridge currently prints generic actuals as `Array<T: T>`.
 // Normalize bridge spelling at the owner boundary so emission participants
 // consume canonical collection-kind facts rather than re-parsing type text.
 func CollectionRuntimeKindFromTypeName(type_name: String) -> String {
-    if type_name == "Array<Int>" || type_name == "Array<Int: Int>" ||
-        type_name == "Array<Long>" || type_name == "Array<Long: Long>" {
-        return "ArrayInt";
-    }
-    if type_name == "Array<String>" || type_name == "Array<String: String>" {
-        return "ArrayString";
-    }
-    if type_name == "Array<Bool>" || type_name == "Array<Bool: Bool>" {
-        return "ArrayBool";
-    }
-    if type_name == "Array<CodegenAstTextNode>" ||
-        type_name == "Array<CodegenAstTextNode: CodegenAstTextNode>" {
-        return "ArrayCodegenAstTextNode";
+    let kind: Option<String> =
+        CollectionRuntimeBuiltinKindFromTypeName(type_name);
+    if IsSome(kind) {
+        return UnwrapOption(kind);
     }
     Die(Concat("unsupported collection type (only Array<Int>/Array<String>/Array<Bool>/Array<CodegenAstTextNode> bridge forms): ", type_name));
     return "";
+}
+
+func CollectionRuntimeRecordElementType(kind: String) -> Option<String> {
+    return SemanticArrayElementType(kind);
 }
 
 func CollectionRuntimeRequireKind(kind: String, context: String) -> String {
@@ -154,6 +187,90 @@ func CollectionRuntimeCPopFn(kind_code: Int) -> String {
     return "pgy_ai_pop";
 }
 
+func CollectionRuntimeFactFromKind(
+    kind: String, env: CodegenTypeEnv
+) -> CollectionRuntimeFact {
+    if kind == "ArrayInt" || kind == "ArrayString" ||
+        kind == "ArrayBool" || kind == "ArrayCodegenAstTextNode" {
+        let kind_code: Int = CollectionRuntimeKindCode(kind);
+        let c_array_type: String = CompilerAbiLayoutArrayIntCValueType();
+        if kind == "ArrayString" {
+            c_array_type = CompilerAbiLayoutArrayStringCValueType();
+        } else if kind == "ArrayBool" {
+            c_array_type = CompilerAbiLayoutArrayBoolCValueType();
+        } else if kind == "ArrayCodegenAstTextNode" {
+            c_array_type =
+                CompilerAbiLayoutArrayCodegenAstTextNodeCValueType();
+        }
+        return CollectionRuntimeFact(
+            true, kind,
+            CollectionRuntimeElementTypeFromKindCode(kind_code),
+            c_array_type,
+            CollectionRuntimeCNewFn(kind_code),
+            CollectionRuntimeCPushFn(kind_code),
+            CollectionRuntimeCSetFn(kind_code),
+            CollectionRuntimeCGetFn(kind_code),
+            CollectionRuntimeCLenFn(kind_code),
+            CollectionRuntimeCPopFn(kind_code)
+        );
+    }
+    let record_element: Option<String> =
+        CollectionRuntimeRecordElementType(kind);
+    if IsSome(record_element) {
+        let element_type: String = UnwrapOption(record_element);
+        if LookupKindType(env, element_type, "s") != "struct" {
+            Die(Concat(
+                "nominal array element is not a declared struct: ",
+                element_type
+            ));
+        }
+        let layout: CompilerAbiNominalArrayLayoutFact =
+            CompilerAbiNominalArrayLayoutFactFor(element_type);
+        if !layout.ok {
+            Die("nominal array ABI/layout fact is missing");
+        }
+        return CollectionRuntimeFact(
+            true, kind, element_type, layout.c_value_type,
+            Concat(layout.c_value_type, "_new"),
+            Concat(layout.c_value_type, "_push"),
+            Concat(layout.c_value_type, "_set"),
+            Concat(layout.c_value_type, "_get"),
+            Concat(layout.c_value_type, "_len"),
+            Concat(layout.c_value_type, "_pop")
+        );
+    }
+    Die(Concat("unsupported collection runtime kind: ", kind));
+    return CollectionRuntimeFact(
+        false, "", "", "", "", "", "", "", "", ""
+    );
+}
+
+func CollectionRuntimeFactFromTypeName(
+    type_name: String, env: CodegenTypeEnv
+) -> CollectionRuntimeFact {
+    let builtin: Option<String> =
+        CollectionRuntimeBuiltinKindFromTypeName(type_name);
+    if IsSome(builtin) {
+        return CollectionRuntimeFactFromKind(
+            UnwrapOption(builtin), env
+        );
+    }
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    if IsSome(element) {
+        let element_type: String = UnwrapOption(element);
+        if LookupKindType(env, element_type, "s") == "struct" {
+            return CollectionRuntimeFactFromKind(type_name, env);
+        }
+    }
+    Die(Concat(
+        "unsupported collection type; nominal arrays require a declared struct: ",
+        type_name
+    ));
+    return CollectionRuntimeFact(
+        false, "", "", "", "", "", "", "", "", ""
+    );
+}
+
 func CollectionRuntimeCIntSortFn() -> String {
     return "pgy_ai_sort";
 }
@@ -245,4 +362,113 @@ func CollectionRuntimeCodegenAstTextNodeArrayBlock() -> String {
     block = Concat(block, Concat("static long long ", Concat(CollectionRuntimeCLenFn(3), Concat("(", Concat(array_type, " a) { return a.len; }\n")))));
     block = Concat(block, Concat("static CodegenAstTextNode ", Concat(CollectionRuntimeCPopFn(3), Concat("(", Concat(array_type, " *a) { return a->len > 0 ? a->data[--a->len] : (CodegenAstTextNode){0, \"\", -1, 0}; }\n\n")))));
     return block;
+}
+
+func CollectionRuntimeNominalRecordArrayBlock(
+    element_type: String
+) -> String {
+    let layout: CompilerAbiNominalArrayLayoutFact =
+        CompilerAbiNominalArrayLayoutFactFor(element_type);
+    if !layout.ok {
+        Die("nominal array ABI/layout fact is missing");
+    }
+    let env: CodegenTypeEnv = CodegenTypeEnv(
+        Concat("|", Concat(element_type, "=s:struct|")), ""
+    );
+    let fact: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(
+            Concat("Array<", Concat(element_type, ">")), env
+        );
+    let block: String = "";
+    block = Concat(block, Concat(
+        "typedef struct { ",
+        Concat(layout.c_element_type, Concat(
+            " *data; long long len; long long cap; } ",
+            Concat(layout.c_value_type, ";\n\n")
+        ))
+    ));
+    block = Concat(block, Concat(
+        "static ", Concat(layout.c_value_type, Concat(
+            " ", Concat(fact.c_new_fn, Concat(
+                "(void) { ", Concat(
+                    layout.c_value_type,
+                    " a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n"
+                )
+            ))
+        ))
+    ));
+    block = Concat(block, Concat(
+        "static void ", Concat(fact.c_push_fn, Concat(
+            "(", Concat(layout.c_value_type, Concat(
+                " *a, ", Concat(layout.c_element_type, " v) {\n")
+            ))
+        ))
+    ));
+    block = Concat(block, Concat(
+        "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (",
+        Concat(layout.c_element_type, Concat(
+            " *)realloc(a->data, (size_t)a->cap * sizeof(",
+            Concat(layout.c_element_type, ")); }\n")
+        ))
+    ));
+    block = Concat(block, "    a->data[a->len++] = v;\n}\n");
+    block = Concat(block, Concat(
+        "static ", Concat(layout.c_element_type, Concat(
+            " ", Concat(fact.c_get_fn, Concat(
+                "(", Concat(layout.c_value_type,
+                    " a, long long i) { return a.data[i]; }\n")
+            ))
+        ))
+    ));
+    block = Concat(block, Concat(
+        "static void ", Concat(fact.c_set_fn, Concat(
+            "(", Concat(layout.c_value_type, Concat(
+                " *a, long long i, ", Concat(
+                    layout.c_element_type,
+                    " v) { a->data[i] = v; }\n"
+                )
+            ))
+        ))
+    ));
+    block = Concat(block, Concat(
+        "static long long ", Concat(fact.c_len_fn, Concat(
+            "(", Concat(layout.c_value_type,
+                " a) { return a.len; }\n")
+        ))
+    ));
+    block = Concat(block, Concat(
+        "static ", Concat(layout.c_element_type, Concat(
+            " ", Concat(fact.c_pop_fn, Concat(
+                "(", Concat(layout.c_value_type, Concat(
+                    " *a) { return a->len > 0 ? a->data[--a->len] : (",
+                    Concat(layout.c_element_type, "){0}; }\n\n")
+                ))
+            ))
+        ))
+    ));
+    return block;
+}
+
+func CollectionRuntimeRecordArrayBlocks(
+    uses_ast_text_node_array: Bool,
+    nominal_element_types: Array<String>
+) -> String {
+    let blocks: Array<String> = [];
+    if uses_ast_text_node_array {
+        ArrayPush(
+            blocks,
+            CollectionRuntimeCodegenAstTextNodeArrayBlock()
+        );
+    }
+    let index: Int = 0;
+    while index < ArrayLength(nominal_element_types) {
+        ArrayPush(
+            blocks,
+            CollectionRuntimeNominalRecordArrayBlock(
+                nominal_element_types[index]
+            )
+        );
+        index = index + 1;
+    }
+    return StringJoin(blocks, "");
 }

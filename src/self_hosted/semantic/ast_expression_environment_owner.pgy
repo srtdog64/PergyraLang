@@ -347,6 +347,47 @@ func SemanticAstExpressionSeedVisibleLocalModes(
     return true;
 }
 
+func SemanticAstExpressionSeedVisibleIterationRows(
+    artifact: AstTreeArtifact,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    let count: Int = ArrayLength(iteration_node_ids);
+    if ArrayLength(iteration_function_node_ids) != count ||
+        ArrayLength(iteration_binding_names) != count ||
+        ArrayLength(iteration_binding_types) != count ||
+        ArrayLength(iteration_verified) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if iteration_verified[i] == 1 &&
+            iteration_function_node_ids[i] == function_node_id &&
+            iteration_node_ids[i] < use_node_id &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, iteration_node_ids[i], use_node_id
+            ) {
+            let binding_type: String = iteration_binding_types[i];
+            if binding_type == "" || binding_type == "Unknown" {
+                return false;
+            }
+            ArrayPush(names, iteration_binding_names[i]);
+            ArrayPush(types, binding_type);
+            ArrayPush(modes, "loop_binding");
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: F\n    Parameters:\n      p: Int\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = p\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n              Assign: x = y\n"

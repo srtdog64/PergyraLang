@@ -530,6 +530,23 @@ mutations exercise the same hard consumer. Other leaf-expression
 compatibility rewriting remains bridged. Released/default replacement stays
 0%.
 
+Forty-fourth executable active-rung delta, 2026-07-16: arrays whose element is
+a declared nominal record now consume a compiler-owned derived ABI fact.
+Semantic type-surface usage selects the record element, the type environment
+proves that it is declared, and collection emission consumes the resulting C
+array type and runtime symbol row. The emitter no longer needs an
+`AstExpressionGraphRows` exception. The `nominal_record_array` fixture raises
+the C-oracle codegen frontier to 75 fixtures and compiles and runs the emitted
+C. Undeclared element types remain fail-closed.
+
+Forty-fifth executable active-rung delta, 2026-07-16: foreach body initializer
+typing now consumes the verified loop-binding rows owned by
+`SemanticAstIterationTypeFacts`. The base initializer pass still supplies the
+collection type needed to prove the loop header; a bounded second pass then
+rechecks body initializers with that binding fact. Invalid loop rows are not
+injected, preserving the original header diagnostic. This closes the
+`diagnostic_catalog_checker` bootstrap failure without rescanning source text.
+
 The same DRV-2 expansion exposed and closed an assignment graph transport gap:
 plain assignment targets now retain their semantic leaf graph just as indexed
 targets retain their index graph. MIR verification rejects either missing
