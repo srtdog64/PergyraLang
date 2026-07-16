@@ -2,12 +2,17 @@ void test_slot_pin_lease_runtime()
 {
     SlotManager *plainManager;
     SlotManager *exhaustManager;
+    SlotManager *homeManager;
+    SlotManager *foreignManager;
     SlotManager *secureManager;
     SlotHandle plainHandle;
     SlotHandle exhaustHandle;
+    SlotHandle homeHandle;
+    SlotHandle foreignHandle;
     SlotHandle staleHandle;
     SlotHandle secureHandle;
     SlotHandle revokedHandle;
+    uint32_t savedNextSlotId;
     TokenCapability token;
     TokenCapability revokedToken;
     TokenCapability invalidToken;
@@ -23,15 +28,18 @@ void test_slot_pin_lease_runtime()
 
     plainManager = SlotManagerCreate(16, 4096);
     TEST_ASSERT(plainManager != NULL, "Plain slot manager for pin tests");
-    plainManager->nextSlotId = 0;
+    /* The id source is process-global now; save and restore it so forcing the
+     * exhaustion sentinels here does not poison later cases in this process. */
+    savedNextSlotId = atomic_load(&g_pgy_slot_id_next);
+    atomic_store(&g_pgy_slot_id_next, 0);
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_ID_EXHAUSTED,
                             "Zero slot id sentinel is tombstoned before claim");
-    plainManager->nextSlotId = UINT32_MAX;
+    atomic_store(&g_pgy_slot_id_next, UINT32_MAX);
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_ID_EXHAUSTED,
                             "Slot id wrap is tombstoned before reuse");
-    plainManager->nextSlotId = 1;
+    atomic_store(&g_pgy_slot_id_next, savedNextSlotId);
 
     exhaustManager = SlotManagerCreate(1, 1024);
     TEST_ASSERT(exhaustManager != NULL,
@@ -131,6 +139,54 @@ void test_slot_pin_lease_runtime()
     result = SlotRelease(plainManager, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS,
                 "Generation guard original handle still releases");
+
+    /* Cross-manager fail-close: slot ids come from one process-global source,
+     * so a handle claimed from one manager can never share an id with an
+     * entry in another. Using a handle against a foreign manager must miss
+     * lookup and fail closed (SLOT_NOT_FOUND). The witness needs BOTH
+     * managers fresh with first claims: under per-manager id counters both
+     * were {slotId=1, generation=1} and the foreign lookup silently aliased
+     * the other manager's payload (generation churn on an older manager
+     * would mask the bug by mismatching accidentally). */
+    homeManager = SlotManagerCreate(16, 4096);
+    foreignManager = SlotManagerCreate(16, 4096);
+    TEST_ASSERT(homeManager != NULL && foreignManager != NULL,
+                "Fresh manager pair for cross-manager test");
+    result = SlotClaim(homeManager, TYPE_INT, &homeHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Cross-manager home claim");
+    result = SlotClaim(foreignManager, TYPE_INT, &foreignHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Cross-manager foreign claim");
+    TEST_ASSERT(homeHandle.generation == 1 && foreignHandle.generation == 1,
+                "Both first claims are generation 1 (alias witness is armed)");
+    TEST_ASSERT(homeHandle.slotId != foreignHandle.slotId,
+                "Slot ids are process-globally unique across managers");
+    value = 42;
+    result = SlotWrite(homeManager, &homeHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "Cross-manager home write");
+    value = 99;
+    result = SlotWrite(foreignManager, &foreignHandle, &value, sizeof(value));
+    TEST_ASSERT(result == SLOT_SUCCESS, "Cross-manager foreign write");
+    readValue = 0;
+    result = SlotRead(foreignManager, &homeHandle, &readValue,
+                      sizeof(readValue), &bytesRead);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Foreign-manager handle read fails closed");
+    value = 1234;
+    result = SlotWrite(foreignManager, &homeHandle, &value, sizeof(value));
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Foreign-manager handle write fails closed");
+    readValue = 0;
+    result = SlotRead(homeManager, &homeHandle, &readValue,
+                      sizeof(readValue), &bytesRead);
+    TEST_ASSERT(result == SLOT_SUCCESS && readValue == 42,
+                "Home-manager handle still reads its own payload");
+    readValue = 0;
+    result = SlotRead(foreignManager, &foreignHandle, &readValue,
+                      sizeof(readValue), &bytesRead);
+    TEST_ASSERT(result == SLOT_SUCCESS && readValue == 99,
+                "Foreign manager's own handle is unaffected");
+    SlotManagerDestroy(homeManager);
+    SlotManagerDestroy(foreignManager);
 
     result = SlotClaimScoped(plainManager, TYPE_INT, 77, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Scoped slot claim for pin");

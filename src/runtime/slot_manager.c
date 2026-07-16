@@ -20,6 +20,10 @@ typedef struct
     size_t requestedSize;
 } MemoryPool;
 
+/* One id source for every manager in the process (contract in slot_manager.h):
+ * cross-manager handle use becomes a lookup miss instead of a silent alias. */
+_Atomic uint32_t g_pgy_slot_id_next = 1;
+
 pthread_mutex_t *
 manager_mutex(SlotManager *manager)
 {
@@ -164,7 +168,6 @@ SlotManagerCreate(size_t maxSlots, size_t memoryPoolSize)
 
     manager->tableSize = maxSlots;
     manager->maxSlots = maxSlots;
-    manager->nextSlotId = 1;
     manager->memoryPool = pool;
     manager->mutex = mutex;
     manager->defaultSecurityLevel = SECURITY_LEVEL_BASIC;

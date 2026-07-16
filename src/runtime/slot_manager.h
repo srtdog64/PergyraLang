@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdatomic.h>
 #include "pgy_runtime_slot_status.h"
 #include "slot_security.h"
 
@@ -94,8 +95,7 @@ typedef struct
     SlotEntry *slotTable;
     size_t     tableSize;
     size_t     maxSlots;
-    uint32_t   nextSlotId;
-    
+
     /* Memory pool reference */
     void *memoryPool;
     
@@ -125,6 +125,16 @@ typedef struct
     uint32_t typeTag;
     uint32_t generation;        /* For ABA problem prevention */
 } SlotHandle;
+
+/*
+ * Process-global fresh-slot-id source (defined in slot_manager.c). Ids are
+ * globally unique across managers so a handle used against a foreign manager
+ * misses lookup and fails closed (SLOT_ERROR_SLOT_NOT_FOUND) instead of
+ * silently aliasing whichever entry shared a per-manager id. 0 is the
+ * tombstone (never issued); UINT32_MAX parks the counter as sticky
+ * exhaustion. Tests may set it to exercise the exhaustion path.
+ */
+extern _Atomic uint32_t g_pgy_slot_id_next;
 
 typedef struct SecureSlotScope SecureSlotScope;
 typedef struct PergyraSlotScope PergyraSlotScope;

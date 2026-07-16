@@ -127,6 +127,29 @@ find_free_entry_locked(SlotManager *manager, bool *sawGenerationExhausted)
     return NULL;
 }
 
+/* Draw a fresh slot id from the process-global source (g_pgy_slot_id_next,
+ * slot_manager.h). Global uniqueness is what makes cross-manager handle use
+ * fail closed: a foreign manager can never hold an entry with this id, so the
+ * lookup misses (SLOT_ERROR_SLOT_NOT_FOUND) instead of silently aliasing the
+ * entry that shared a per-manager id. 0 and UINT32_MAX are never issued;
+ * once the counter reaches UINT32_MAX it parks there (sticky exhaustion) and
+ * this returns 0 so the claim fails closed. */
+static uint32_t
+slot_global_id_alloc(void)
+{
+    uint32_t cur = atomic_load_explicit(&g_pgy_slot_id_next,
+                                        memory_order_relaxed);
+    for (;;) {
+        if (cur == 0 || cur == UINT32_MAX)
+            return 0;
+        if (atomic_compare_exchange_weak_explicit(&g_pgy_slot_id_next, &cur,
+                                                  cur + 1u,
+                                                  memory_order_relaxed,
+                                                  memory_order_relaxed))
+            return cur;
+    }
+}
+
 static SlotError
 slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
                   SlotHandle *handle)
@@ -153,15 +176,6 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
         return err;
     }
 
-    if (entry->slotId == 0
-        && (manager->nextSlotId == 0 || manager->nextSlotId == UINT32_MAX)) {
-        memset(handle, 0, sizeof(*handle));
-        pthread_mutex_unlock(manager_mutex(manager));
-        err = SLOT_ERROR_ID_EXHAUSTED;
-        slot_manager_warn("claim", handle, err);
-        return err;
-    }
-
     if (manager->activeSlots >= manager->tableSize) {
         memset(handle, 0, sizeof(*handle));
         pthread_mutex_unlock(manager_mutex(manager));
@@ -173,13 +187,25 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
     {
         uint32_t recycledSlotId = entry->slotId;
         uint32_t recycledGeneration = entry->generation;
+        uint32_t freshId = 0;
+
+        if (recycledSlotId == 0) {
+            freshId = slot_global_id_alloc();
+            if (freshId == 0) {
+                memset(handle, 0, sizeof(*handle));
+                pthread_mutex_unlock(manager_mutex(manager));
+                err = SLOT_ERROR_ID_EXHAUSTED;
+                slot_manager_warn("claim", handle, err);
+                return err;
+            }
+        }
 
         memset(entry, 0, sizeof(*entry));
         if (recycledSlotId != 0) {
             entry->slotId = recycledSlotId;
             entry->generation = recycledGeneration + 1u;
         } else {
-            entry->slotId = manager->nextSlotId++;
+            entry->slotId = freshId;
             entry->generation = 1;
         }
     }
