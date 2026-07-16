@@ -7177,7 +7177,7 @@ require_text "scripts/self_host_impact_changed_paths.sh" "PGY_SELFHOST_IMPACT_CH
 reject_text "scripts/self_host_impact_changed_paths.sh" "source_pattern"
 reject_text "scripts/self_host_impact_changed_paths.sh" "impact_id"
 require_make_target_text \
-    "self-host-preparation-parity-test-smoke" \
+    "self-host-preparation-exhaustive-parity-test-smoke" \
     "tests/self_hosted/parity/completeness_impact_run_group_runner.sh"
 require_make_target_text \
     "self-host-completeness-impact-test-smoke" \
@@ -7640,9 +7640,8 @@ require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codege
 require_make_target_text \
     "self-host-driver-bootstrap-test-smoke" \
     "tests/self_hosted/parity/driver_bootstrap.sh"
-require_make_target_text \
-    "self-host-preparation-parity-test-smoke" \
-    "tests/self_hosted/parity/driver_bootstrap.sh"
+require_text "Makefile" \
+    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-driver-bootstrap-test-smoke"
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'
@@ -8003,7 +8002,7 @@ require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if ind
 require_text "src/self_hosted/compiler/test_harness_lsp_paths_owner.pgy" "if index == 4"
 require_text "Makefile" "self-host-lsp-diagnostics-parity-test-smoke"
 require_text "Makefile" 'self-host-lsp-diagnostics-parity-test-smoke: $(PGY) $(PGY_LSP)'
-require_text "Makefile" 'self-host-preparation-parity-test-smoke: $(PGY) $(PGY_LSP)'
+require_text "Makefile" 'self-host-preparation-exhaustive-parity-test-smoke: $(PGY) $(PGY_LSP)'
 require_text "Makefile" 'PGY_LSP_BIN="$(abspath $(PGY_LSP))"'
 require_text "src/lsp/pgy_lsp.c" "--dump-diagnostics"
 require_text "src/lsp/pgy_lsp_diagnostics.c" "lsp_build_diagnostics_params"
