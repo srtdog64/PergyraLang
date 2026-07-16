@@ -1,0 +1,86 @@
+// perf_bn_cycles_loops.pgy
+//
+// B_n signed-permutation cycle tally -- SINGLE method (Loops endpoint walk),
+// hot loop inlined, zero allocation (scratch reused). The fast benchmark form
+// of perf_bn_cycles.pgy (which runs both methods with a cross-check). One
+// permutation stream (Heap's) x 2^n sign vectors; cycles counted by walking the
+// permutation on the 2n-element extended domain; tallied into an Array<Long>.
+//
+// N=10 is the benchmark scale: total = 10! * 2^10 = 3,715,891,200 (verified).
+// Change N below for a quick check (N=4 -> total 384; N=8 -> 10,321,920).
+//
+// MEASURED (this Windows box, serial 1 core, C backend), same-machine fair
+// comparison against a hand-C port (benchmarks/baseline_bn_loops.c, gcc -O2):
+//     n=9 : hand-C 13.96s   pgy-C 15.94s   1.14x
+//     n=10: hand-C 301.57s  pgy-C 386.67s  1.28x
+// So on this real, pointer-chasing / branch-heavy research workload the C
+// backend runs within ~28% of hand-C WITH bounds-checking on -- C-class. (Do
+// NOT compare these to the reference suite's Apple M4 Max numbers; different
+// hardware. Compare only same-machine.) Follow-ups: prefix-parallel across
+// cores; a Tarjan (union-find) sibling; wire into the multi-language harness.
+func HeapGen(
+    k: Int, inout perm: Array<Int>, n: Int,
+    inout hist: Array<Long>, inout next: Array<Int>, inout visited: Array<Int>
+) -> Void {
+    if k == 1 {
+        let twoN: Int = n + n;
+        let limit: Int = 1;
+        let bb: Int = 0;
+        while bb < n { limit = limit * 2; bb = bb + 1; }
+        let mask: Int = 0;
+        while mask < limit {
+            let m: Int = mask;
+            let i: Int = 0;
+            while i < n {
+                let bit: Int = m - (m / 2) * 2;
+                let v: Int = perm[i];
+                if bit == 0 { next[i] = v - 1; next[n + i] = n + v - 1; }
+                if bit == 1 { next[i] = n + v - 1; next[n + i] = v - 1; }
+                m = m / 2;
+                i = i + 1;
+            }
+            let r: Int = 0;
+            while r < twoN { visited[r] = 0; r = r + 1; }
+            let cycles: Int = 0;
+            let s: Int = 0;
+            while s < twoN {
+                if visited[s] == 0 {
+                    cycles = cycles + 1;
+                    let cur: Int = s;
+                    while visited[cur] == 0 { visited[cur] = 1; cur = next[cur]; }
+                }
+                s = s + 1;
+            }
+            hist[cycles] = hist[cycles] + 1L;
+            mask = mask + 1;
+        }
+        return;
+    }
+    let i: Int = 0;
+    while i < k - 1 {
+        HeapGen(k - 1, perm, n, hist, next, visited);
+        let even: Int = k - (k / 2) * 2;
+        if even == 0 { let t: Int = perm[i]; perm[i] = perm[k - 1]; perm[k - 1] = t; }
+        if even == 1 { let t: Int = perm[0]; perm[0] = perm[k - 1]; perm[k - 1] = t; }
+        i = i + 1;
+    }
+    HeapGen(k - 1, perm, n, hist, next, visited);
+}
+func Main() -> Void {
+    let n: Int = 10;
+    let twoN: Int = n + n;
+    let histLen: Int = twoN + 1;
+    let mut perm: Array<Int> = [];
+    for k in 0..n { ArrayPush(perm, k + 1); }
+    let mut hist: Array<Long> = [];
+    for k in 0..histLen { ArrayPush(hist, 0L); }
+    let mut next: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(next, 0); }
+    let mut visited: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(visited, 0); }
+    HeapGen(n, perm, n, hist, next, visited);
+    let total: Long = 0L;
+    let c: Int = 0;
+    while c < histLen { total = total + hist[c]; c = c + 1; }
+    Log("total=" + ToString(total));
+}
