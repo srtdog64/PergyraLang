@@ -175,8 +175,10 @@ The Makefile keeps the fast and heavy paths separate:
   (`lex_parse`, `lex_parse_semantic`, and `full_pipeline`) and committed
   baseline source identities, so a previously passing pipeline file cannot
   disappear behind a count-preserving replacement. Unsupported codegen input is
-  reported as a measured failure count, not as a successful skip. The current
-  parser and codegen checks consume one source-unit parse per inventory row.
+  reported as a measured failure count, not as a successful skip. Fixture and
+  expected-output directories, including prefixed negative or role fixture
+  directories, are test harness inputs and never production inventory. The
+  current parser and codegen checks consume one source-unit parse per inventory row.
   They validate import syntax but do not materialize the complete transitive
   import graph again for every owner. Whole import-graph behavior remains a
   load-bearing responsibility of parser parity and driver/bootstrap parity.

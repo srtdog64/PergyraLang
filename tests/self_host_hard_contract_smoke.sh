@@ -191,6 +191,10 @@ require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "CompilerCompletenessSourceInventory"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    'CompilerCompletenessPathContains(path, "_fixture/")'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
+    'CompilerCompletenessPathContains(path, "_expected/")'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "CompilerCompletenessLexParsePassMin"
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" \
     "CompilerCompletenessLexParseSemanticPassMin"

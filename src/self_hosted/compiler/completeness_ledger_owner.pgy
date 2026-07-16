@@ -131,6 +131,12 @@ func CompilerCompletenessIsProductionSource(path: String) -> Bool {
     if CompilerCompletenessPathContains(path, "/expected/") {
         return false;
     }
+    if CompilerCompletenessPathContains(path, "_fixture/") {
+        return false;
+    }
+    if CompilerCompletenessPathContains(path, "_expected/") {
+        return false;
+    }
     if path == "src/self_hosted/tools/linter/fixture.pgy" {
         return false;
     }
