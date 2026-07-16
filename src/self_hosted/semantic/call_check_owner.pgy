@@ -29,7 +29,7 @@ func CompareCallArgs(
         if StringLength(part) > 0 {
             if check_argument_identifiers {
                 let undefined_error: String =
-                    CheckUndefinedIdentifiers(part, names);
+                    CheckUndefinedIdentifiers(part, names, func_names);
                 if StringLength(undefined_error) > 0 {
                     return undefined_error;
                 }
@@ -69,11 +69,13 @@ func CheckScalarUtilityArgs(
     let first: String = CallArgAtFromFacts(argument_facts, args_src, 0);
     let second: String = CallArgAtFromFacts(argument_facts, args_src, 1);
     if check_argument_identifiers {
-        let first_undefined: String = CheckUndefinedIdentifiers(first, names);
+        let first_undefined: String =
+            CheckUndefinedIdentifiers(first, names, func_names);
         if StringLength(first_undefined) > 0 {
             return first_undefined;
         }
-        let second_undefined: String = CheckUndefinedIdentifiers(second, names);
+        let second_undefined: String =
+            CheckUndefinedIdentifiers(second, names, func_names);
         if StringLength(second_undefined) > 0 {
             return second_undefined;
         }

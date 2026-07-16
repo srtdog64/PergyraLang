@@ -1,42 +1,68 @@
-// Self-host parser expression string/interpolation owner.
+// Self-host parser expression string/interpolation graph owner.
 
 import "cursor_owner.pgy";
+import "expression_graph_owner.pgy";
 
-func DesugarStringInterpolation(s: String) -> String {
+func ParserExpressionInterpolationAppend(
+    expression: ParserExpressionFact,
+    part: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !part.ok { return ParserExpressionInvalid(); }
+    if !expression.ok { return part; }
+    let text: String = Concat(
+        "(", Concat(expression.text, Concat(" + ", Concat(part.text, ")")))
+    );
+    return ParserExpressionBinary(
+        AstExpressionNodeAdd(), text, expression, part
+    );
+}
+
+func ParserExpressionInterpolationValue(
+    value: ParserExpressionFact
+) -> ParserExpressionFact {
+    if !value.ok { return ParserExpressionInvalid(); }
+    let call: ParserExpressionFact = ParserExpressionCall(
+        "ToString()", ParserExpressionLeaf("ToString")
+    );
+    return ParserExpressionCallArgument(
+        Concat("ToString(", Concat(value.text, ")")), call, value
+    );
+}
+
+func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
     let n: Int = StringLength(s);
     if StringIndexOf(s, "${") < 0 {
-        return s;
+        return ParserExpressionLeaf(s);
     }
     let i: Int = 1;
     let segment_start: Int = 1;
-    let expr: String = "";
+    let expression: ParserExpressionFact = ParserExpressionInvalid();
     let content_end: Int = n - 1;
     while i < content_end {
         if ParserCharAt(s, i) == "$" && ParserCharAt(s, i + 1) == "{" {
             if i > segment_start {
-                let part: String = Substring(s, segment_start, i - segment_start);
-                let part_lit: String = Concat("\"", Concat(part, "\""));
-                if StringLength(expr) == 0 {
-                    expr = part_lit;
-                } else {
-                    expr = Concat("(", Concat(expr, Concat(" + ", Concat(part_lit, ")"))));
-                }
+                let part: String = Substring(
+                    s, segment_start, i - segment_start
+                );
+                expression = ParserExpressionInterpolationAppend(
+                    expression,
+                    ParserExpressionLeaf(Concat("\"", Concat(part, "\"")))
+                );
             }
             i = i + 2;
-            let var_start: Int = i;
+            let value_start: Int = i;
             while i < content_end && ParserCharAt(s, i) != "}" {
                 i = i + 1;
             }
             if i >= content_end {
-                return s;
+                return ParserExpressionLeaf(s);
             }
-            let var_name: String = Substring(s, var_start, i - var_start);
-            let var_expr: String = Concat("ToString(", Concat(var_name, ")"));
-            if StringLength(expr) == 0 {
-                expr = var_expr;
-            } else {
-                expr = Concat("(", Concat(expr, Concat(" + ", Concat(var_expr, ")"))));
-            }
+            expression = ParserExpressionInterpolationAppend(
+                expression,
+                ParserExpressionInterpolationValue(ParserExpressionLeaf(
+                    Substring(s, value_start, i - value_start)
+                ))
+            );
             i = i + 1;
             segment_start = i;
             continue;
@@ -44,57 +70,60 @@ func DesugarStringInterpolation(s: String) -> String {
         i = i + 1;
     }
     if segment_start < content_end {
-        let tail: String = Substring(s, segment_start, content_end - segment_start);
-        let tail_lit: String = Concat("\"", Concat(tail, "\""));
-        if StringLength(expr) == 0 {
-            expr = tail_lit;
-        } else {
-            expr = Concat("(", Concat(expr, Concat(" + ", Concat(tail_lit, ")"))));
-        }
+        let tail: String = Substring(
+            s, segment_start, content_end - segment_start
+        );
+        expression = ParserExpressionInterpolationAppend(
+            expression,
+            ParserExpressionLeaf(Concat("\"", Concat(tail, "\"")))
+        );
     }
-    if StringLength(expr) == 0 {
-        return "\"\"";
-    }
-    return expr;
+    if !expression.ok { return ParserExpressionLeaf("\"\""); }
+    return expression;
 }
 
-func DesugarDollarStringInterpolation(s: String) -> String {
+func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
     let n: Int = StringLength(s);
     if StringIndexOf(s, "{") < 0 {
-        return s;
+        return ParserExpressionLeaf(s);
     }
     let i: Int = 1;
     let segment_start: Int = 1;
-    let expr: String = "";
+    let expression: ParserExpressionFact = ParserExpressionInvalid();
     let content_end: Int = n - 1;
     while i < content_end {
         if ParserCharAt(s, i) == "{" {
             if i > segment_start {
-                let part: String = Substring(s, segment_start, i - segment_start);
-                let part_lit: String = Concat("\"", Concat(part, "\""));
-                if StringLength(expr) == 0 {
-                    expr = part_lit;
-                } else {
-                    expr = Concat("(", Concat(expr, Concat(" + ", Concat(part_lit, ")"))));
-                }
+                let part: String = Substring(
+                    s, segment_start, i - segment_start
+                );
+                expression = ParserExpressionInterpolationAppend(
+                    expression,
+                    ParserExpressionLeaf(Concat("\"", Concat(part, "\"")))
+                );
             }
             i = i + 1;
-            let var_start: Int = i;
+            let value_start: Int = i;
             while i < content_end && ParserCharAt(s, i) != "}" {
                 i = i + 1;
             }
             if i >= content_end {
-                return s;
+                return ParserExpressionLeaf(s);
             }
-            let var_src: String = Substring(s, var_start, i - var_start);
-            let expr_cursor: Array<Int> = [0];
-            let rendered: String = ParseExpr(var_src, 0, expr_cursor);
-            let var_expr: String = Concat("ToString(", Concat(rendered, ")"));
-            if StringLength(expr) == 0 {
-                expr = var_expr;
-            } else {
-                expr = Concat("(", Concat(expr, Concat(" + ", Concat(var_expr, ")"))));
+            let value_source: String = Substring(
+                s, value_start, i - value_start
+            );
+            let value_cursor: Array<Int> = [0];
+            let value: ParserExpressionFact = ParseExprFact(
+                value_source, 0, value_cursor
+            );
+            if !value.ok ||
+                value_cursor[0] != StringLength(value_source) {
+                return ParserExpressionLeaf(s);
             }
+            expression = ParserExpressionInterpolationAppend(
+                expression, ParserExpressionInterpolationValue(value)
+            );
             i = i + 1;
             segment_start = i;
             continue;
@@ -102,16 +131,30 @@ func DesugarDollarStringInterpolation(s: String) -> String {
         i = i + 1;
     }
     if segment_start < content_end {
-        let tail: String = Substring(s, segment_start, content_end - segment_start);
-        let tail_lit: String = Concat("\"", Concat(tail, "\""));
-        if StringLength(expr) == 0 {
-            expr = tail_lit;
-        } else {
-            expr = Concat("(", Concat(expr, Concat(" + ", Concat(tail_lit, ")"))));
-        }
+        let tail: String = Substring(
+            s, segment_start, content_end - segment_start
+        );
+        expression = ParserExpressionInterpolationAppend(
+            expression,
+            ParserExpressionLeaf(Concat("\"", Concat(tail, "\"")))
+        );
     }
-    if StringLength(expr) == 0 {
-        return s;
+    if !expression.ok { return ParserExpressionLeaf(s); }
+    return expression;
+}
+
+func ParserExpressionInterpolationGraphContractReady() -> Bool {
+    let fact: ParserExpressionFact = ParseStringInterpolationFact(
+        Concat("\"hello ", Concat("$", "{lang}!\""))
+    );
+    if !fact.ok ||
+        fact.arena.node_kinds[fact.root] != AstExpressionNodeAdd() {
+        return false;
     }
-    return expr;
+    let left: Int = fact.arena.left_children[fact.root];
+    let value_call: Int = fact.arena.right_children[left];
+    return fact.text == "((\"hello \" + ToString(lang)) + \"!\")" &&
+        fact.arena.node_kinds[left] == AstExpressionNodeAdd() &&
+        fact.arena.node_kinds[value_call] ==
+            AstExpressionNodeCallArgument();
 }

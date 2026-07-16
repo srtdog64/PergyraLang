@@ -66,7 +66,8 @@ func SemanticAstExpressionVerdictFromPayload(
     if StringLength(call_error) > 0 {
         return SemanticAstExpressionVerdictError(text, call_error);
     }
-    let undefined_error: String = CheckUndefinedIdentifiers(text, names);
+    let undefined_error: String =
+        CheckUndefinedIdentifiers(text, names, function_names);
     if StringLength(undefined_error) > 0 {
         return SemanticAstExpressionVerdictError(text, undefined_error);
     }
@@ -183,7 +184,7 @@ func SemanticAstExpressionVerdictFromGraph(
     }
     let identifier_fact: SemanticExpressionGraphIdentifierFact =
         SemanticExpressionGraphIdentifierEvidence(
-            graph, root_id, names, member_root_names
+            graph, root_id, names, function_names, member_root_names
         );
     if !identifier_fact.ok {
         return SemanticAstExpressionVerdictError(

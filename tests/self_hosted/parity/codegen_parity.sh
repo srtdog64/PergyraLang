@@ -12,8 +12,8 @@
 #   1. live oracle: build the fixture through the C backend -> exe, run it,
 #      capture stdout. The committed expected/<name>_stdout.txt MUST equal this
 #      (live-drift guard, mirroring parser_parity.sh).
-#   2. self-host: self-parser <fixture> -> ast.txt; run the codegen tool on
-#      ast.txt -> out.c; gcc out.c -> exe; run it, capture stdout.
+#   2. self-host: the Pergyra codegen tool parses <fixture> into its typed AST
+#      artifact, consumes semantic facts, emits out.c, then gcc/run checks it.
 #   3. assert self stdout == committed expected (== oracle), tr -d '\r'.
 #
 # The codegen tool itself is compiled through the requested backends. LLVM is
@@ -71,14 +71,12 @@ if ! [[ "$CODEGEN_JOBS" =~ ^[1-9][0-9]*$ ]] || [[ "$CODEGEN_JOBS" -gt 4 ]]; then
 fi
 
 # Build artifacts live under a repo-relative dir. The Pergyra codegen tool is a
-# native binary that resolves its AST-path argument relative to cwd, so it is
-# always invoked from ROOT_DIR with a repo-relative path (mirrors
-# parser_parity.sh). gcc/run paths use the absolute form.
+# native binary that resolves its source-path argument relative to cwd, so it
+# is always invoked from ROOT_DIR. gcc/run paths use the absolute form.
 REL_BUILD=".tmp/self_hosted/codegen"
 ABS_BUILD="$ROOT_DIR/$REL_BUILD"
 HARNESS_PATHS_FILE="$ABS_BUILD/codegen_harness_paths.txt"
 CODEGEN_FIXTURE_MANIFEST_FILE="$ABS_BUILD/codegen_fixture_manifest.txt"
-PARSER_BIN="$ABS_BUILD/parser_ast_producer.exe"
 
 mkdir -p "$ABS_BUILD"
 pgy_selfhost_read_test_harness_manifest \
@@ -216,21 +214,6 @@ compile_backend_output_comparator() {
         --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$COMPARATOR_BIN")"; then
         echo "[self-host-parity:codegen] backend output comparator failed to build" >&2
-        cat "$compile_out" "$compile_err" >&2
-        exit 1
-    fi
-}
-
-compile_parser_ast_producer() {
-    local compile_out="$ABS_BUILD/parser_ast_producer.compile.out"
-    local compile_err="$ABS_BUILD/parser_ast_producer.compile.err"
-
-    echo "[self-host-parity:codegen] compiling parser AST producer backend=c..."
-    if ! run_native_capture "$ROOT_DIR" "$compile_out" "$compile_err" "$PGY" \
-        "$(pgy_path_for_compiler "$PGY" "$PARSER_SOURCE")" \
-        --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$PARSER_BIN")"; then
-        echo "[self-host-parity:codegen] parser AST producer failed to build" >&2
         cat "$compile_out" "$compile_err" >&2
         exit 1
     fi
@@ -377,34 +360,16 @@ run_tool_fixture() {
 
     local src="$FIXTURE_DIR/${base}.pgy"
     local expected_file="$EXPECTED_DIR/${base}_stdout.txt"
-    local ast_rel="$REL_BUILD/${base}_${backend}_ast.txt"
-    local ast_file="$ROOT_DIR/$ast_rel"
-    local ast_raw="$ast_file.raw"
-    local ast_err="$ast_file.err"
     local c_file="$ABS_BUILD/${base}_${backend}.c"
     local self_exe="$ABS_BUILD/${base}_${backend}_self.exe"
 
-        # 1. AST text from the self-host parser (written to a repo-relative path).
+        # 1. Parse source to the parser-owned typed artifact, then emit C.
         local src_rel
         src_rel="$(path_relative_to_root "$src")"
-        if ! run_native_capture "$ROOT_DIR" "$ast_raw" "$ast_err" "$PARSER_BIN" "$src_rel"; then
-            echo "[self-host-parity:codegen] backend=$backend $base: self-parser AST failed" >&2
-            cat "$ast_err" >&2
-            exit 1
-        fi
-        tr -d '\r' < "$ast_raw" > "$ast_file"
-        if [[ ! -s "$ast_file" ]]; then
-            echo "[self-host-parity:codegen] backend=$backend $base: empty self-parser AST output" >&2
-            cat "$ast_err" >&2
-            exit 1
-        fi
-
-        # 2. Pergyra codegen tool: AST text -> C. The tool resolves its argument
-        #    relative to cwd, so run it from ROOT_DIR with the repo-relative path.
-        #    Capture the tool's own exit (not a pipe's) before stripping CRs.
         local tool_rc
         set +e
-        run_native_capture "$ROOT_DIR" "$c_file.raw" "$c_file.err" "$tool_bin" "$ast_rel"
+        run_native_capture "$ROOT_DIR" "$c_file.raw" "$c_file.err" \
+            "$tool_bin" --source "$src_rel"
         tool_rc="$?"
         set -e
         tr -d '\r' < "$c_file.raw" > "$c_file"
@@ -414,7 +379,7 @@ run_tool_fixture() {
             exit 1
         fi
 
-        # 3. gcc the emitted C and run it.
+        # 2. gcc the emitted C and run it.
         if ! "$CC" "$c_file" -o "$self_exe" 2>"$ABS_BUILD/${base}_${backend}_cc.log"; then
             echo "[self-host-parity:codegen] backend=$backend $base: emitted C failed to compile" >&2
             cat "$ABS_BUILD/${base}_${backend}_cc.log" >&2
@@ -497,7 +462,6 @@ run_oracle_drift_checks() {
 }
 
 compile_backend_output_comparator
-compile_parser_ast_producer
 read_codegen_fixture_manifest
 run_oracle_drift_checks
 

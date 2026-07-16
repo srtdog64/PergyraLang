@@ -201,6 +201,18 @@ func SemanticAstGenericSpecializationFactsFromBody(
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enum_facts.ok {
+        return SemanticAstGenericSpecializationError(
+            "ast_artifact_invalid",
+            SemanticError1(
+                "ast_artifact_invalid", "owner", "generic_enum_environment"
+            ),
+            call_node_ids, signature_indexes, actual_starts, actual_counts,
+            actual_type_names
+        );
+    }
     if !SemanticAstExpressionFunctionTables(
         signatures, constructors, function_names, function_returns,
         function_params
@@ -249,7 +261,10 @@ func SemanticAstGenericSpecializationFactsFromBody(
         }
         let names: Array<String> = [];
         let types: Array<String> = [];
-        if !SemanticAstExpressionSeedParameters(
+        let modes: Array<String> = [];
+        if !SemanticAstExpressionSeedEnumValues(
+            enum_facts, names, types, modes
+        ) || !SemanticAstExpressionSeedParameters(
             signatures, UnwrapOption(function_node), names, types
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,

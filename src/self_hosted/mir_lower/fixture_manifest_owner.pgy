@@ -10,16 +10,13 @@ func MirParityCoreFixtureCount() -> Int {
     return 26;
 }
 
-func MirParityCodegenFixtureExpectedCount() -> Int {
-    return 71;
-}
-
 func MirParityExampleFixtureCount() -> Int {
     return 1;
 }
 
 func MirParityFixtureCount() -> Int {
-    return MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount() + MirParityExampleFixtureCount();
+    return MirParityCoreFixtureCount() + CodegenParityFixtureExpectedCount() +
+        MirParityExampleFixtureCount();
 }
 
 func MirParityFixtureAt(index: Int) -> String {
@@ -51,7 +48,8 @@ func MirParityFixtureAt(index: Int) -> String {
     if index == 25 { return "src/self_hosted/mir_lower/fixture/forloop.pgy"; }
 
     let codegen_start: Int = MirParityCoreFixtureCount();
-    let codegen_end: Int = MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount();
+    let codegen_end: Int = MirParityCoreFixtureCount() +
+        CodegenParityFixtureExpectedCount();
     if index >= codegen_start && index < codegen_end {
         let bases: Array<String> = CodegenParityFixtureManifestRows();
         let codegen_index: Int = index - codegen_start;
@@ -61,7 +59,8 @@ func MirParityFixtureAt(index: Int) -> String {
         return CodegenParityFixtureSourcePath(bases[codegen_index]);
     }
 
-    if index == MirParityCoreFixtureCount() + MirParityCodegenFixtureExpectedCount() {
+    if index == MirParityCoreFixtureCount() +
+        CodegenParityFixtureExpectedCount() {
         return "examples/binary_search.pgy";
     }
     return "";
@@ -80,7 +79,7 @@ func MirParityManifestContains(path: String) -> Bool {
 
 func MirParityCodegenFixtureCoverageReady() -> Bool with caps io_read {
     let bases: Array<String> = CodegenParityFixtureManifestRows();
-    if ArrayLength(bases) != MirParityCodegenFixtureExpectedCount() {
+    if ArrayLength(bases) != CodegenParityFixtureExpectedCount() {
         return false;
     }
     let i: Int = 0;

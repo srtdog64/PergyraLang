@@ -8,6 +8,7 @@ import "../../semantic/ast_expression_graph_call_view_owner.pgy";
 import "../../semantic/ast_expression_graph_member_view_owner.pgy";
 import "../../semantic/wrapper_type_owner.pgy";
 import "expr_rewrite.pgy";
+import "expr_semantic_type_owner.pgy";
 
 func RewriteSemanticCallArgument(
     graph: SemanticExpressionGraphFacts,
@@ -115,109 +116,6 @@ func RewriteSemanticCallArguments(
     return args;
 }
 
-func CodegenMemberReceiverTypeFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    node_id: Int,
-    env: CodegenTypeEnv
-) -> Option<String> {
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
-    if !IsSome(kind) {
-        return None;
-    }
-    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
-        let text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, node_id
-        );
-        if !IsSome(text) || !IsIdentifier(UnwrapOption(text)) {
-            return None;
-        }
-        let value_type: String = LookupKindType(
-            env, UnwrapOption(text), "v"
-        );
-        if value_type == "" {
-            return None;
-        }
-        return Some(value_type);
-    }
-    if UnwrapOption(kind) == AstExpressionNodeIndex() {
-        let receiver_node: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node_id
-        );
-        if !IsSome(receiver_node) { return None; }
-        let collection_type: Option<String> =
-            CodegenMemberReceiverTypeFromGraph(
-                graph, UnwrapOption(receiver_node), env
-            );
-        if !IsSome(collection_type) { return None; }
-        let element_type: String = ExprCollectionElementKind(
-            UnwrapOption(collection_type)
-        );
-        if element_type == "" { return None; }
-        return Some(element_type);
-    }
-    if AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
-        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
-            graph, node_id
-        );
-        if !call.ok { return None; }
-        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-            graph, call.call_node
-        );
-        if !IsSome(target_name) { return None; }
-        let source_name: String = UnwrapOption(target_name);
-        if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
-            ArrayLength(call.argument_nodes) == 1 {
-            let wrapped: Option<String> = CodegenMemberReceiverTypeFromGraph(
-                graph, call.argument_nodes[0], env
-            );
-            if !IsSome(wrapped) { return None; }
-            let option_payload: Option<String> = OptionPayloadTypeOpt(
-                UnwrapOption(wrapped)
-            );
-            if IsSome(option_payload) { return option_payload; }
-            return ResultPayloadTypeOpt(UnwrapOption(wrapped));
-        }
-        let call_symbol: String = source_name;
-        let alias: String = LookupKindType(env, source_name, "call");
-        if alias != "" { call_symbol = alias; }
-        let carried_specialization: String = LookupKindType(
-            env, CodegenGenericCallNodeKey(call.call_node), "call"
-        );
-        if carried_specialization != "" {
-            call_symbol = carried_specialization;
-        }
-        let return_type: String = LookupKindType(env, call_symbol, "f");
-        if return_type == "" { return None; }
-        return Some(return_type);
-    }
-    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() {
-        return None;
-    }
-    let view: SemanticMemberAccessView =
-        SemanticMemberAccessViewFromGraph(graph, node_id);
-    if !view.ok {
-        return None;
-    }
-    let member_text: Option<String> = SemanticExpressionGraphNodeText(
-        graph, view.member_node
-    );
-    let receiver_type: Option<String> = CodegenMemberReceiverTypeFromGraph(
-        graph, view.receiver_node, env
-    );
-    if !IsSome(member_text) ||
-        !IsIdentifier(UnwrapOption(member_text)) ||
-        !IsSome(receiver_type) {
-        return None;
-    }
-    let field_type: String = LookupFieldType(
-        env, UnwrapOption(receiver_type), UnwrapOption(member_text)
-    );
-    if field_type == "" {
-        return None;
-    }
-    return Some(field_type);
-}
-
 func RewriteSemanticMemberAccess(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -251,7 +149,7 @@ func RewriteSemanticMemberAccess(
         );
         if enum_value != "" { return enum_value; }
     }
-    let receiver_type: Option<String> = CodegenMemberReceiverTypeFromGraph(
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, view.receiver_node, env
     );
     if !IsSome(receiver_type) {
@@ -384,15 +282,15 @@ func RewriteSemanticDirectCall(
         if ArrayLength(view.argument_nodes) != 1 {
             Die("Some call requires exactly one argument graph");
         }
-        let payload_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, view.argument_nodes[0]
+        let payload_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, view.argument_nodes[0], env
         );
-        if !IsSome(payload_text) {
-            Die("Some call payload fact is missing");
+        if !IsSome(payload_type) {
+            Die("Some call payload type fact is missing");
         }
         call_symbol = OptionResultRuntimeCOptionSomeFnForPayloadKind(
             OptionResultRuntimeOptionPayloadKindFromExprKind(
-                ExprKind(UnwrapOption(payload_text), env)
+                UnwrapOption(payload_type)
             )
         );
     } else if source_name == "ToString" {
@@ -400,9 +298,13 @@ func RewriteSemanticDirectCall(
             Die("ToString call requires exactly one argument graph");
         }
         let argument_node: Int = view.argument_nodes[0];
-        let argument_type: Option<String> =
-            CodegenMemberReceiverTypeFromGraph(graph, argument_node, env);
-        if IsSome(argument_type) && UnwrapOption(argument_type) == "String" {
+        let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, argument_node, env
+        );
+        if !IsSome(argument_type) {
+            Die("ToString argument type fact is missing");
+        }
+        if UnwrapOption(argument_type) == "String" {
             return RewriteExprFromSemanticGraph(graph, argument_node, env);
         }
         let tostring_symbol: Option<String> = RuntimeCallCName(source_name);
@@ -414,18 +316,13 @@ func RewriteSemanticDirectCall(
         if ArrayLength(view.argument_nodes) != 1 {
             Die("ArrayLength call requires exactly one argument graph");
         }
-        let array_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, view.argument_nodes[0]
+        let array_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, view.argument_nodes[0], env
         );
-        if !IsSome(array_text) {
-            Die("ArrayLength argument fact is missing");
+        if !IsSome(array_type) {
+            Die("ArrayLength argument type fact is missing");
         }
-        let array_kind: String = LookupKindType(
-            env, UnwrapOption(array_text), "v"
-        );
-        if array_kind == "" {
-            array_kind = ExprKind(UnwrapOption(array_text), env);
-        }
+        let array_kind: String = UnwrapOption(array_type);
         if StartsWith(array_kind, "Array<") {
             array_kind = CollectionRuntimeKindFromTypeName(array_kind);
         }

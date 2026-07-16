@@ -166,7 +166,7 @@ subset.
   and the example-origin
   `binary_search` fixture and the Int role operator-dispatch fixture. The
   coverage boundary is now measured
-  at **96 PASS / 0 gap plus 0 clean rejects** across the committed
+  at **100 PASS / 0 gap plus 0 clean rejects** across the committed
   MIR-lower/codegen/example fixture inventory. Ability declarations now consume MIR
   method signature facts and lower as zero-artifact declaration hosts in the
   self-hosted codegen pre-passes. Role declaration facts are consumed for the

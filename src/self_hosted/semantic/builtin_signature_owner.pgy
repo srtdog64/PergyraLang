@@ -76,7 +76,15 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "TextBuilderNew^TextBuilder^Int",
         "TextBuilderAppend^Void^TextBuilder|String",
         "TextBuilderFinish^String^TextBuilder|Allocator",
-        "TextBuilderDrop^Void^TextBuilder"
+        "TextBuilderDrop^Void^TextBuilder",
+        "FileOpen^Int^String|String",
+        "FileRead^String^Int",
+        "FileWrite^Void^Int|String",
+        "FileClose^Void^Int",
+        "ArraySort^Unknown^Unknown",
+        "ArrayReverse^Unknown^Unknown",
+        "ArrayMap^Unknown^Unknown|Unknown",
+        "ArrayFilter^Unknown^Unknown|Unknown"
     ];
     return rows;
 }
@@ -105,16 +113,58 @@ func SeedSemanticBuiltinSignatures(
     return true;
 }
 
+func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
+    return name == "Abs" || name == "Min" ||
+        name == "Max" || name == "Clamp";
+}
+
+func SemanticPolymorphicBuiltinReturnTypeOpt(
+    name: String,
+    argument_types: Array<String>
+) -> Option<String> {
+    let expected_count: Int = 0;
+    if name == "Abs" { expected_count = 1; }
+    else if name == "Min" || name == "Max" { expected_count = 2; }
+    else if name == "Clamp" { expected_count = 3; }
+    else { return None; }
+    if ArrayLength(argument_types) != expected_count {
+        return None;
+    }
+    let result_type: String = argument_types[0];
+    if result_type != "Int" && result_type != "Long" &&
+        result_type != "Float" {
+        return None;
+    }
+    let i: Int = 1;
+    while i < ArrayLength(argument_types) {
+        if argument_types[i] != result_type { return None; }
+        i = i + 1;
+    }
+    return Some(result_type);
+}
+
 func SemanticBuiltinSignatureContractReady() -> Bool {
     let names: Array<String> = [];
     let returns: Array<String> = [];
     let params: Array<String> = [];
+    let int_pair: Array<String> = ["Int", "Int"];
+    let mixed_pair: Array<String> = ["Int", "Float"];
+    let min_type: Option<String> =
+        SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 75 && ArrayLength(returns) == 75 &&
-        ArrayLength(params) == 75 && names[0] == "StringLength" &&
+        ArrayLength(names) == 83 && ArrayLength(returns) == 83 &&
+        ArrayLength(params) == 83 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
         names[69] == "AllocatorResult" && returns[69] == "Allocator" &&
-        names[74] == "TextBuilderDrop" && params[74] == "TextBuilder";
+        names[74] == "TextBuilderDrop" && params[74] == "TextBuilder" &&
+        names[75] == "FileOpen" && returns[75] == "Int" &&
+        params[75] == "String|String" &&
+        names[78] == "FileClose" && params[78] == "Int" &&
+        names[79] == "ArraySort" && names[82] == "ArrayFilter" &&
+        IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
+        !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
+            "Min", mixed_pair
+        ));
 }

@@ -2,6 +2,7 @@
 
 import "ast_expression_graph_fact_owner.pgy";
 import "env_owner.pgy";
+import "callable_resolution_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
 import "../parser/expr_owner.pgy";
 
@@ -29,6 +30,7 @@ func SemanticExpressionGraphIdentifierEvidence(
     ref graph: SemanticExpressionGraphFacts,
     root_id: Int,
     names: Array<String>,
+    callable_names: Array<String>,
     member_root_names: Array<String>
 ) -> SemanticExpressionGraphIdentifierFact {
     let pending: Array<Int> = [root_id];
@@ -51,7 +53,8 @@ func SemanticExpressionGraphIdentifierEvidence(
             }
             let text: String = UnwrapOption(text_opt);
             if text != "true" && text != "false" && text != "None" &&
-                IsIdentifier(text) && !EnvContainsName(names, text) {
+                IsIdentifier(text) && !EnvContainsName(names, text) &&
+                !IsSome(SemanticCallableIndex(callable_names, text)) {
                 return SemanticExpressionGraphIdentifierUndefined(text);
             }
             continue;
@@ -149,19 +152,20 @@ func SemanticExpressionGraphIdentifierContractReady() -> Bool {
             ), [0], 1
         );
     let names: Array<String> = ["known"];
+    let callable_names: Array<String> = ["Callback"];
     let member_roots: Array<String> = ["Choice"];
     let undefined: SemanticExpressionGraphIdentifierFact =
         SemanticExpressionGraphIdentifierEvidence(
-            missing_facts, missing.root, names, member_roots
+            missing_facts, missing.root, names, callable_names, member_roots
         );
     return missing_cursor[0] == StringLength(missing_source) &&
         valid_cursor[0] == StringLength(valid_source) &&
         member_cursor[0] == StringLength(member_source) &&
         undefined.ok && undefined.has_undefined && undefined.name == "missing" &&
         !SemanticExpressionGraphIdentifierEvidence(
-            valid_facts, valid.root, names, member_roots
+            valid_facts, valid.root, names, callable_names, member_roots
         ).has_undefined &&
         !SemanticExpressionGraphIdentifierEvidence(
-            member_facts, member.root, names, member_roots
+            member_facts, member.root, names, callable_names, member_roots
         ).has_undefined;
 }

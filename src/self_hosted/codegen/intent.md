@@ -63,6 +63,10 @@ participant, not a zone.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
+- `CompilerDriverPipeline` owns the hard source-to-typed-AST boundary. The
+  codegen run path consumes `CompileSourceToAstArtifact` so literal kinds and
+  expression edges survive without codegen importing parser implementation
+  owners.
 - `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process entrypoint runtime
   helper and target-library symbol spelling for the supported file,
   byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset. The

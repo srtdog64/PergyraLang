@@ -71,6 +71,11 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     let function_names: Array<String> = [];
     let function_returns: Array<String> = [];
     let function_params: Array<String> = [];
+    let enum_facts: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !enum_facts.ok {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
     if !SemanticAstExpressionFunctionTables(
         signatures, constructors,
         function_names, function_returns, function_params
@@ -84,11 +89,6 @@ func SemanticAstInitializerTypeFactsFromArtifact(
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
-    let enum_facts: SemanticAstEnumFacts =
-        SemanticAstEnumFactsFromArtifact(artifact);
-    if !enum_facts.ok {
-        return SemanticAstInitializerTypeStructuralError(artifact);
-    }
     let member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
@@ -100,7 +100,9 @@ func SemanticAstInitializerTypeFactsFromArtifact(
         let names: Array<String> = [];
         let types: Array<String> = [];
         let modes: Array<String> = [];
-        if !SemanticAstExpressionSeedParameters(
+        if !SemanticAstExpressionSeedEnumValues(
+            enum_facts, names, types, modes
+        ) || !SemanticAstExpressionSeedParameters(
             signatures, locals.function_node_ids[i], names, types
         ) || !SemanticAstExpressionSeedParameterModes(
             signatures, locals.function_node_ids[i], modes

@@ -29,20 +29,11 @@ run_role_operator_parity() {
     tr -d '\r' < "$oracle_raw" > "$oracle_out"
     compare_run_output_with_owner "c-oracle" "$base" "$ROLE_EXPECTED" "$oracle_out" 0
 
-    local ast_rel="$REL_BUILD/${base}.ast"
-    local ast_file="$ROOT_DIR/$ast_rel"
-    if ! run_native_capture "$ROOT_DIR" "$ast_file.raw" "$ast_file.err" \
-        "$PARSER_BIN" "$source_rel"; then
-        echo "[self-host-parity:codegen] backend=$backend role parser failed" >&2
-        cat "$ast_file.err" >&2
-        exit 1
-    fi
-    tr -d '\r' < "$ast_file.raw" > "$ast_file"
-
     local c_file="$ABS_BUILD/${base}_${backend}.c"
     local tool_rc
     set +e
-    run_native_capture "$ROOT_DIR" "$c_file.raw" "$c_file.err" "$tool_bin" "$ast_rel"
+    run_native_capture "$ROOT_DIR" "$c_file.raw" "$c_file.err" \
+        "$tool_bin" --source "$source_rel"
     tool_rc="$?"
     set -e
     tr -d '\r' < "$c_file.raw" > "$c_file"

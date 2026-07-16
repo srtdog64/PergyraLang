@@ -8,9 +8,14 @@ import "../input/ast_input_owner.pgy";
 import "../emission/program_entry_owner.pgy";
 import "../fixture_manifest_owner.pgy";
 import "../text/text_owner.pgy";
+import "../../compiler/driver_pipeline_owner.pgy";
 import "../../compiler/target_capability_owner.pgy";
 
 func EmitCodegenParityFixtureManifest() -> Void {
+    if !CodegenParityFixtureManifestReady() {
+        Exit(1);
+        return;
+    }
     let rows: Array<String> = CodegenParityFixtureManifestRows();
     let i: Int = 0;
     while i < ArrayLength(rows) {
@@ -42,6 +47,18 @@ func RunCodegenFromArgs(args: Array<String>) -> Void {
             Log("Stage: codegen");
             Log("Status: ok");
         }
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--source" {
+        if ArrayLength(args) < 2 {
+            Die("codegen source path is missing");
+        }
+        if !CompilerTargetCapabilityEnvelopeReady() {
+            Die("target capability envelope is not ready for self-host C codegen");
+        }
+        let source_artifact: AstTreeArtifact =
+            CompileSourceToAstArtifact(args[1]);
+        Log(GenerateCFromTypedAstArtifact(source_artifact));
         return;
     }
     if !CompilerTargetCapabilityEnvelopeReady() {

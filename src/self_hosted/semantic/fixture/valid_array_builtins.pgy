@@ -1,8 +1,20 @@
+func Identity(value: Int) -> Int {
+    return value;
+}
+
+func IsPositive(value: Int) -> Bool {
+    return value > 0;
+}
+
 func Main() -> Int {
     let xs: Array<Int> = [];
     ArrayPush(xs, 1);
     ArraySet(xs, 0, 2);
     let value: Int = xs[0];
+    let sorted: Array<Int> = ArraySort(xs);
+    let reversed: Array<Int> = ArrayReverse(sorted);
+    let mapped: Array<Int> = ArrayMap(reversed, Identity);
+    let filtered: Array<Int> = ArrayFilter(mapped, IsPositive);
     ArrayPop(xs);
-    return value - 2;
+    return value - 2 + ArrayLength(filtered) - 1;
 }

@@ -23,7 +23,7 @@ raised the M2 ledger to 219/219 after the incremental fact graph owner and
 completeness impact owner split landed; the changed-source impact run proved
 the incremental graph, completeness ledger, impact owner, and TestHarness owner
 sources through lexer/parser/semantic/codegen;
-the MIR JSON fact-only frontier then moved to 96 fixtures. It first added Long
+the MIR JSON fact-only frontier then moved to 100 fixtures. It first added Long
 scalar flow, array index assignment, `Option` `?` propagation, and string
 equality-plus-concat surfaces, then closed the remaining committed codegen
 fixture surfaces: C-reserved binding spelling, payload-free enum match
@@ -696,7 +696,7 @@ declaration and role operator consumers; it
 does not increase released/default replacement or close the remaining
 mixed-expression consumers.
 
-The whole compiler skeleton now has 36 machine-gated authority rows and 13
+The whole compiler skeleton now has 36 machine-gated authority rows and 15
 classified derived fact carriers in
 `docs/semantics/sot_owner_spine_registry.md`, with sixteen `CLOSED`, seven
 `BRIDGE`, and thirteen `ACTIVE` rows. Each authority row names its stable handle,
@@ -725,7 +725,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 28 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 96 fixtures; indexed assignment plus Int/String/struct collection-mutator fixtures passed focused C/LLVM-built driver legs, while the complete 28-case matrix was not rerun in this slice | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 30 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 100 fixtures; indexed assignment plus Int/String/struct collection-mutator fixtures passed focused C/LLVM-built driver legs, while the complete 30-case matrix was not rerun in this slice | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be
@@ -942,7 +942,7 @@ flow, string-array index return flow, and phi-bearing loop headers classified
 by CFG backedges rather than phi presence alone, plus MIR-owned array destructure
 binding facts), gated by
 `parity/mir_json_parity.sh`
-(`make self-host-mir-json-parity-test-smoke`, 96 fixtures plus 0 clean-reject
+(`make self-host-mir-json-parity-test-smoke`, 100 fixtures plus 0 clean-reject
 fixtures). The gate now
 requires the MIR JSON fact surface and checks the `for`
 header is reconstructed from `arg0` plus `expr0`/`expr1` bounds, and checks
@@ -960,7 +960,7 @@ expression, source-local, CFG, match-case, I/O policy, typed struct field
 declaration, field-only class/subject/object/tobject/vessel declaration/method,
 ability signature declaration, payload-free enum surfaces, and the Int role
 operator dispatch surface. The committed MIR-lower/codegen fixture inventory is
-currently **96 PASS / 0 gap plus 0 clean rejects** through this
+currently **100 PASS / 0 gap plus 0 clean rejects** through this
 path. The nominal family now flows through MIR-owned `nominal_kind`/field facts
 and reconstructs `Class:` / `Subject:` / `Object:` / `TObject:` / `Vessel:`
 instead of collapsing those labels to a generic class alias. Ability
@@ -979,10 +979,10 @@ symbols. New fixtures must preserve that by adding owning facts rather than
 text fallback.
 `self_hosted_component_contract_smoke` now also ratchets that frontier against
 the parity harness itself: the MIR JSON positive fixture inventory must stay at
-95, the clean-reject inventory must stay at 0, the scorecard must cite the same
-96 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
+100, the clean-reject inventory must stay at 0, the scorecard must cite the same
+100 PASS / 0 gap plus 0 clean reject boundary, and stale fixture-count wording
 is rejected. The positive inventory now includes `examples/binary_search.pgy`
-as an example-origin fixture after all 70 committed self-host codegen fixtures,
+as an example-origin fixture after all 73 committed self-host codegen fixtures,
 not only purpose-built MIR-lower fixtures.
 
 The self-hosted `mir_lower/` implementation is now split by source-of-truth

@@ -5,6 +5,7 @@ import "../text/text_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
+import "expr_semantic_type_owner.pgy";
 
 func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
@@ -22,6 +23,10 @@ func RewriteExprFromSemanticGraph(
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
+    if kind == AstExpressionNodeFloatLiteral() {
+        if StringIndexOf(text, ".") >= 0 { return text; }
+        return Concat(text, ".0");
+    }
     if kind == AstExpressionNodeLeaf() {
         return RewriteTokens(text, env);
     }
@@ -113,17 +118,17 @@ func RewriteExprFromSemanticGraph(
         ));
     }
     if kind == AstExpressionNodeAdd() {
-        let left_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, left_id
+        let left_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, left_id, env
         );
-        let right_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, right_id
+        let right_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, right_id, env
         );
-        if !IsSome(left_text) || !IsSome(right_text) {
-            Die("semantic addition operand is missing");
+        if !IsSome(left_kind_opt) || !IsSome(right_kind_opt) {
+            Die("semantic addition operand type fact is missing");
         }
-        let left_kind: String = ExprKind(UnwrapOption(left_text), env);
-        let right_kind: String = ExprKind(UnwrapOption(right_text), env);
+        let left_kind: String = UnwrapOption(left_kind_opt);
+        let right_kind: String = UnwrapOption(right_kind_opt);
         if left_kind == right_kind {
             let op_name: String = LookupKindType(
                 env, Concat(left_kind, "+"), "op"

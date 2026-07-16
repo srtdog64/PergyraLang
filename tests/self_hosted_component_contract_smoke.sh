@@ -495,9 +495,9 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "MirParityFi
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" 'import "../codegen/fixture_manifest_owner.pgy";'
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureExpectedCount()"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 71;"
+reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
@@ -507,8 +507,8 @@ require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureMani
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "96 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "96 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "100 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "100 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -624,6 +624,12 @@ reject_text "src/self_hosted/parser/main.pgy" 'import "tree_text_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "type_name_owner.pgy";'
 reject_text "src/self_hosted/parser/main.pgy" 'import "../lib/path.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_string_owner.pgy";'
+require_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "func ParserExpressionInterpolationGraphContractReady("
+require_text "src/self_hosted/parser/expr_primary_owner.pgy" \
+    "preserves_interpolation_graph"
+reject_text "src/self_hosted/parser/expr_string_owner.pgy" \
+    "func DesugarStringInterpolation("
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_postfix_owner.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_primary_owner.pgy";'
 require_text "src/self_hosted/parser/expr_owner.pgy" 'import "expr_precedence_owner.pgy";'
@@ -767,6 +773,17 @@ require_file "src/self_hosted/semantic/builtin_signature_owner.pgy"
 require_max_lines "src/self_hosted/semantic/builtin_signature_owner.pgy" 600
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SeedSemanticBuiltinSignatures"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" "func SemanticBuiltinSignatureContractReady"
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArraySort^Unknown^Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayReverse^Unknown^Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayMap^Unknown^Unknown|Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayFilter^Unknown^Unknown|Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileOpen^Int^String|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileRead^String^Int"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileWrite^Void^Int|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileClose^Void^Int"'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" "func CollectionArrayReturnType"
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "SemanticCallableIndex(callable_names, name)"
+require_text "src/self_hosted/semantic/ast_expression_graph_identifier_owner.pgy" "SemanticCallableIndex(callable_names, text)"
 require_text "src/self_hosted/codegen/text/text_owner.pgy" "func Die(msg: String) -> Void"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func Trim(content: String) -> String"
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func CharAt(s: String, i: Int) -> String"
@@ -859,6 +876,7 @@ require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "func Sema
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadSchema"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "pgy.selfhost.semantic.v1"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureFrontierCount() -> Int"
+require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "return 111;"
 require_text "src/self_hosted/semantic/diagnostic_contract_owner.pgy" "SemanticVerdictPayloadFixtureCount() != SemanticVerdictPayloadFixtureFrontierCount()"
 reject_text "src/self_hosted/semantic/diagnostic_owner.pgy" "SemanticVerdictPayloadFixtureCount() != 110"
 require_text "src/self_hosted/semantic/diagnostic_owner.pgy" "func SemanticVerdictPayloadFixtureManifestRows"
@@ -2485,7 +2503,12 @@ reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelComm
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/ast_text_arena_projection_owner.pgy";'
 require_file "src/self_hosted/parser/expression_graph_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_graph_owner.pgy" 600
-require_text "src/self_hosted/parser/expression_graph_owner.pgy" "struct ParserExpressionFact"
+require_file "src/self_hosted/parser/expression_fact_owner.pgy"
+require_max_lines "src/self_hosted/parser/expression_fact_owner.pgy" 100
+require_text "src/self_hosted/parser/expression_fact_owner.pgy" "struct ParserExpressionFact"
+require_text "src/self_hosted/parser/expression_fact_owner.pgy" "func ParserExpressionFloatLiteral("
+require_text "src/self_hosted/parser/expression_fact_owner.pgy" "ParserExpressionFactContractReady()"
+reject_text "src/self_hosted/parser/expression_graph_owner.pgy" "struct ParserExpressionFact"
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionGraphsAppend"
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "!AstExpressionGraphRowsReady(malformed)"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParseExprFact"
@@ -2545,7 +2568,14 @@ require_file "src/self_hosted/semantic/ast_expression_environment_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedVisibleLocals"
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionMemberRootNames("
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionSeedEnumValues("
+require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" 'ArrayPush(modes, "enum_value");'
 require_text "src/self_hosted/semantic/ast_expression_environment_owner.pgy" "func SemanticAstExpressionEnvironmentContractReady"
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstExpressionSeedEnumValues("
+require_file "src/self_hosted/codegen/emission/enum_emit_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 600
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" \
+    'part, Concat("=e:", Concat(cname, "|"))'
 require_file "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "struct SemanticAstInitializerTypeFacts"
@@ -2982,6 +3012,8 @@ require_file "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
     "func SemanticExpressionGraphWrapperValueFactFromGraph("
+require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    "SemanticDelimitedNonEmptyRangeCount(signature_facts)"
 require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
     '"wrapper_call_target"'
 reject_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
@@ -3474,6 +3506,8 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCall()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCallArgument()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMemberAccess()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeFloatLiteral()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsScalarLeaf("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArityOpt("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArity("
@@ -3489,6 +3523,41 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionNamedCallArgumentAtContractReady("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
+require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionFloatLiteral(base);"
+reject_file "src/self_hosted/codegen/input/source_artifact_owner.pgy"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    'import "../../compiler/driver_pipeline_owner.pgy";'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    'args[0] == "--source"'
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "CompileSourceToAstArtifact(args[1])"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
+    "GenerateCFromTypedAstArtifact(source_artifact)"
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "func GenerateCUnitFromTypedAstArtifact("
+require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "SemanticAstArtifactAnalyzeTyped(artifact, require_entrypoint)"
+reject_function_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
+    "func GenerateCUnitFromTypedAstArtifact(" \
+    "SemanticAstArtifactAnalyzeCompactBridge("
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    '"$tool_bin" --source "$src_rel"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" \
+    '"$PARSER_BIN" "$src_rel"'
+require_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" \
+    '"$tool_bin" --source "$source_rel"'
+reject_text "tests/self_hosted/parity/codegen_reject_parity_leg.sh" \
+    "PARSER_BIN"
+require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" \
+    '"$tool_bin" --source "$source_rel"'
+reject_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" \
+    "PARSER_BIN"
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    'if kind == AstExpressionNodeFloatLiteral() { return "Float"; }'
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "if kind == AstExpressionNodeFloatLiteral()"
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'AstExpressionNodeFloatLiteral() { return "float_literal"; }'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParserExpressionPipeGraphContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPipeGraphContractReady()"
@@ -3529,6 +3598,10 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'kind == "try"'
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "AstExpressionLaneAtom(), lhs_fact"
+reject_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "AstExpressionLaneAuxiliary(), lhs_fact"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeLogicalNot()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "AstExpressionNodeNegate()"
 require_text "src/self_hosted/mir/expression_graph_fact_owner.pgy" "malformed_unary"
@@ -3694,8 +3767,10 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectR
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "roles: SemanticAstRoleFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstNominalConstructorFacts"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "facts: SemanticAstEnumFacts"
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnums("
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    'import "enum_emit_owner.pgy";'
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "facts: SemanticAstEnumFacts"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" "CollectEnums(semantic_analysis.enums, env_acc)"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(signatures: SemanticAstFunctionSignatureFacts"
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(count: Int"
@@ -3796,14 +3871,14 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let for_type: 
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let sname: String = CodegenAstArenaAtomOrDie(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let fname: String = CodegenAstArenaAtomOrDie(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ftype: String = CodegenAstArenaTypeNameOrDie(arena, j)"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "let ename: String = CodegenAstArenaAtomOrDie(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticEnumVariantCount(facts, ename)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticEnumVariantNameAtOrDie("
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'import "../input/semantic_enum_codegen_view_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "let ename: String = CodegenAstArenaAtomOrDie(arena, i)"
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenSemanticEnumVariantCount(facts, ename)"
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenSemanticEnumVariantNameAtOrDie("
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'import "../input/semantic_enum_codegen_view_owner.pgy";'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "TypedAstArenaAuxValueText"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" '"=enum:payload_free|"'
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(ename, Concat(".", Concat(part, Concat("=e:"'
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" '"=enum:payload_free|"'
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'ename, Concat(".", Concat('
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" 'Concat(env_box[0], Concat(part, Concat("=e:"'
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamNameOrDie("
 require_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenSemanticFunctionParamTypeOrDie("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaParamTypeNameOrDie(arena, j, owner)"
@@ -3851,8 +3926,8 @@ reject_text "src/self_hosted/codegen/emission/try_let_emit_owner.pgy" '"_pgy_try
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" '"_pgy_match_"'
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsNominalDecl(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsRoleDecl(arena, i)"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
-require_text "src/self_hosted/codegen/emission/function_emit.pgy" "while i < SemanticAstEnumCount(facts)"
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstArenaIsEnumDecl(arena, i)"
+require_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "while i < SemanticAstEnumCount(facts)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, j)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstArenaIsFunction(arena, i)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstArenaIsFunction(arena, j)"
@@ -3860,7 +3935,7 @@ require_text "src/self_hosted/codegen/emission/function_emit.pgy" "AbiLayoutCStr
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsZeroArtifactDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsNominalDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsRoleDecl(nodes[i])"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsEnumDecl(nodes[i])"
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextIsEnumDecl(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsFunction(nodes[i])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "!CodegenAstTextIsFunction(nodes[j])"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextIsReturns(nodes[cur[0]])"
@@ -3897,13 +3972,13 @@ reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstText
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextRoleForType("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextFieldName("
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextFieldType("
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumName("
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextEnumName("
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextEnumVariantCount(nodes[i])"
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "CodegenAstTextEnumVariantNameAt(nodes[i], value)"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func BuildFunctionEnv(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectRoleOperators(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectStructs(indents:"
-reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectEnums(indents:"
+reject_text "src/self_hosted/codegen/emission/enum_emit_owner.pgy" "func CollectEnums(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func CollectProtos(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "func EmitFunction(indents:"
 reject_text "src/self_hosted/codegen/emission/function_emit.pgy" "texts["
@@ -4228,6 +4303,7 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"'
+require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy")'
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let call_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "call_graph.graph, call_graph.root_id, env"
@@ -4315,8 +4391,28 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
     "func RewriteSemanticCallArguments("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess("
+require_file "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy"
+require_max_lines "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" 250
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "func CodegenExpressionTypeFromGraph("
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
+    "func SemanticPolymorphicBuiltinReturnTypeOpt("
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "SemanticPolymorphicBuiltinReturnTypeOpt("
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "SemanticPolymorphicBuiltinReturnTypeOpt("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    "SeedSemanticBuiltinSignatures("
+require_text "src/self_hosted/codegen/emission/function_emit.pgy" \
+    '"=f:", Concat(builtin_returns[builtin_index], "|")'
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "func CodegenMemberReceiverTypeFromGraph("
+    "CodegenExpressionTypeFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "CodegenExpressionTypeFromGraph("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "ExprKind("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CodegenMemberReceiverTypeFromGraph("
 reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func SemanticMemberReceiverTypeFromGraph("
 require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
@@ -4363,8 +4459,8 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_o
     "func RewriteSemanticMemberAccess(" "RewriteStructFieldAccess("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberAccess(" "FindMatchingParen("
-reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "func CodegenMemberReceiverTypeFromGraph(" "ExprMemberFieldType("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "func CodegenExpressionTypeFromGraph(" "ExprKind("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticMemberCall(" "RewriteMemberCalls("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -7146,8 +7242,12 @@ require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" "func TryO
 require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" "func SemanticTryOperand"
 reject_text "src/self_hosted/semantic/expr_type_owner.pgy" "func TryOperandBounds"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" "TryOperandBounds(text, try_bounds)"
+require_text "src/self_hosted/semantic/wrapper_type_owner.pgy" "func TryPayloadTypeOpt("
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" "TryPayloadTypeOpt(try_operand_type)"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "func CheckTryOperand"
 require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "TryOperandBounds(text, bounds)"
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" "TryPayloadTypeOpt(operand_type)"
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" "TryPayloadTypeOpt(left)"
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'split_op == "+" && lt == "String" && rt == "String"'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'lt == "Int" || lt == "Long" || lt == "Float" || lt == "Bool"'
 require_text "src/self_hosted/semantic/expr_type_owner.pgy" 'return Concat(Concat("Option<", value_type), ">")'
@@ -7211,7 +7311,10 @@ require_file "src/self_hosted/codegen/fixture/ref_param.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 73;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
     "PGY_SELFHOST_CODEGEN_FIXTURES"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "PGY_SELFHOST_MIR_FIXTURES"
@@ -7220,6 +7323,7 @@ require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "DirWalk(Codeg
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "CodegenParityExpectedPath(base)"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" 'import "../fixture_manifest_owner.pgy";'
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "func EmitCodegenParityFixtureManifest"
+require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" "CodegenParityFixtureManifestReady()"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" '"--fixture-manifest"'
 require_text "src/self_hosted/codegen/fixture/long_scalar.pgy" "func AddLong(x: Long, y: Long) -> Long"
 require_text "src/self_hosted/codegen/expected/long_scalar_stdout.txt" "15"
@@ -7274,8 +7378,9 @@ require_text "tests/self_hosted/parity/codegen_parity.sh" 'source "$ROOT_DIR/tes
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_role_operator_parity "$backend" "$tool_bin"'
 require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" "run_role_operator_parity()"
 require_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" 'compare_run_output_with_owner "$backend" "$base" "$ROLE_EXPECTED" "$run_out" 2'
-require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
-require_text "tests/self_hosted/parity/codegen_parity.sh" '"$PARSER_BIN" "$src_rel"'
+reject_text "tests/self_hosted/parity/codegen_parity.sh" "compile_parser_ast_producer"
+require_text "tests/self_hosted/parity/codegen_parity.sh" \
+    '"$tool_bin" --source "$src_rel"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" \
     'C_TOOL_BIN="$ABS_BUILD/tool_c.exe"'
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
@@ -7404,16 +7509,15 @@ reject_text "tests/self_hosted/parity/driver_bootstrap.sh" 'diff -u'
 require_text "Makefile" "self-host-driver-rung0-parity-test-smoke"
 require_text "Makefile" "tests/self_hosted/parity/driver_rung0_parity.sh"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "../codegen/fixture_manifest_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityExpectedFixtureCount"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureRows"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureCount"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityFixtureAt"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func EmitDriverParityFixtureManifest"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpectedFixtureCount()"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureExpectedCount()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 71;"
+reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func DriverParityExpectedFixtureCount"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7440,7 +7544,8 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 71'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" "fixture manifest is empty"
+reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 71'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7465,7 +7570,8 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 71'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "fixture manifest is empty"
+reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 71'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'

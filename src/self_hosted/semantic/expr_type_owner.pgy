@@ -185,6 +185,27 @@ func ScalarUtilityReturnType(text: String, names: Array<String>, types: Array<St
     }
     return "Unknown";
 }
+func CollectionArrayReturnType(text: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" {
+        return "";
+    }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 {
+        return "";
+    }
+    let callee: String = Trim(Substring(text, 0, paren));
+    if callee != "ArraySort" && callee != "ArrayReverse" &&
+        callee != "ArrayMap" && callee != "ArrayFilter" {
+        return "";
+    }
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    let array_expr: String = CallArgAt(args_src, 0);
+    if StringLength(array_expr) == 0 {
+        return "Unknown";
+    }
+    return ExprType(array_expr, names, types, func_names, func_rets);
+}
 func ArithmeticResultType(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);
@@ -365,9 +386,9 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     if TryOperandBounds(text, try_bounds) {
         let try_operand: String = Trim(Substring(text, try_bounds[0], try_bounds[1]));
         let try_operand_type: String = ExprType(try_operand, names, types, func_names, func_rets);
-        if IsOptionType(try_operand_type) {
-            return Substring(try_operand_type, 7, StringLength(try_operand_type) - 8);
-        }
+        let try_payload: Option<String> =
+            TryPayloadTypeOpt(try_operand_type);
+        if IsSome(try_payload) { return UnwrapOption(try_payload); }
         return "Unknown";
     }
     if CharAt(text, 0) == "!" && CharAt(text, 1) != "=" {
@@ -414,6 +435,11 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     let scalar_utility_type: String = ScalarUtilityReturnType(text, names, types, func_names, func_rets);
     if StringLength(scalar_utility_type) > 0 {
         return scalar_utility_type;
+    }
+    let collection_array_type: String =
+        CollectionArrayReturnType(text, names, types, func_names, func_rets);
+    if StringLength(collection_array_type) > 0 {
+        return collection_array_type;
     }
     let call_type: String = CallReturnType(text, func_names, func_rets);
     if call_type != "Unknown" {

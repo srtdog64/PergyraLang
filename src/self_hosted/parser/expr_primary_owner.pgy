@@ -2,6 +2,7 @@
 
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
+import "expr_string_owner.pgy";
 
 // Forward-declared mutual recursion: ParsePrimary may recurse into
 // ParseAdditive via `( EXPR )`. Pergyra mutual recursion is fine (see
@@ -22,6 +23,9 @@ func ParsePrimaryFact(
     let preserves_grouped_graph: Bool = false;
     let array_literal: ParserExpressionFact = ParserExpressionInvalid();
     let preserves_array_literal_graph: Bool = false;
+    let interpolation: ParserExpressionFact = ParserExpressionInvalid();
+    let preserves_interpolation_graph: Bool = false;
+    let preserves_float_literal_fact: Bool = false;
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
@@ -271,15 +275,27 @@ func ParsePrimaryFact(
         }
     } else if c == "$" && ParserCharAt(content, i + 1) == "\"" {
         let raw_interp: String = ReadString(content, i + 1, cursor_out);
-        base = DesugarDollarStringInterpolation(raw_interp);
+        interpolation = ParseDollarStringInterpolationFact(raw_interp);
+        if !interpolation.ok { Exit(1); }
+        base = interpolation.text;
+        preserves_interpolation_graph = true;
         i = cursor_out[0];
     } else if c == "\"" {
         let raw_str: String = ReadString(content, i, cursor_out);
-        base = DesugarStringInterpolation(raw_str);
+        interpolation = ParseStringInterpolationFact(raw_str);
+        if !interpolation.ok { Exit(1); }
+        base = interpolation.text;
+        preserves_interpolation_graph = true;
         i = cursor_out[0];
     } else if IsDigit(c) {
+        let number_start: Int = i;
         base = ReadNumber(content, i, cursor_out);
         i = cursor_out[0];
+        let source_number: String = Substring(
+            content, number_start, i - number_start
+        );
+        preserves_float_literal_fact =
+            StringIndexOf(source_number, ".") >= 0;
         while IsAlpha(ParserCharAt(content, i)) {
             i = i + 1;
         }
@@ -399,7 +415,11 @@ func ParsePrimaryFact(
     }
 
     let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
+    if preserves_float_literal_fact {
+        base_fact = ParserExpressionFloatLiteral(base);
+    }
     if preserves_grouped_graph { base_fact = grouped; }
     if preserves_array_literal_graph { base_fact = array_literal; }
+    if preserves_interpolation_graph { base_fact = interpolation; }
     return ApplyPostfixFact(content, base_fact, i, cursor_out);
 }

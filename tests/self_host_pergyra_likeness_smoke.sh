@@ -80,7 +80,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # facts while compact text is only their parity/provenance projection.
 # 79 -> 78 (2026-07-14): namespace call targets are carried as semantic facts
 # instead of being reconstructed from receiver text in hard codegen.
-CORE_STRING_MUNGE_SIG_MAX=78
+# 78 -> 76 (2026-07-16): source codegen preserves parser-owned expression
+# graphs instead of rebuilding interpolation and scalar types from text.
+CORE_STRING_MUNGE_SIG_MAX=76
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -240,7 +242,9 @@ SENTINEL_MAX=0
 # graph absence and contract failure explicit while removing AST fallback.
 # 1814 -> 1886 (2026-07-16): typed assignment/return facts preserve missing
 # semantic facts as Result/Option values through the executable self-host rung.
-RESULT_USE_MIN=1886
+# 1886 -> 1918 (2026-07-16): source-artifact and graph-type owners preserve
+# parser/semantic absence as Option through hard codegen.
+RESULT_USE_MIN=1918
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

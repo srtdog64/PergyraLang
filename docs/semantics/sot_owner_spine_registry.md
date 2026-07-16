@@ -95,6 +95,7 @@ path | primary_term | owner_id | relation
 
 <!-- BEGIN sot-derived-fact-registry -->
 ```text
+src/self_hosted/parser/expression_fact_owner.pgy | ParserExpressionFact | selfhost.expression_graph | local_view
 src/self_hosted/mir/program_fact_owner.pgy | SelfMirProgramFacts | mir.execution_graph | projection
 src/self_hosted/mir/parallel_capture_fact_owner.pgy | SelfMirParallelCaptureRows | mir.execution_graph | projection
 src/self_hosted/mir/expression_graph_fact_owner.pgy | SelfMirExpressionGraphRows | mir.execution_graph | projection
@@ -112,7 +113,7 @@ src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy | SemanticAst
 ```
 <!-- END sot-derived-fact-registry -->
 
-The two expression rows above are deliberately bounded. The initializer row
+The expression rows above are deliberately bounded. The initializer row
 closes array-literal initializer body ownership; the expression-surface row
 also carries array-literal call arguments as ordered element graphs, named
 struct-literal values as ordered field-binding graphs, and `Option<struct>`

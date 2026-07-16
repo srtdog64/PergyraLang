@@ -4,12 +4,12 @@
 
 import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
-import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
@@ -259,6 +259,23 @@ func BuildFunctionEnv(
     specializations: CodegenGenericSpecializationFacts
 ) -> String {
     let rows: Array<String> = ["|"];
+    let builtin_names: Array<String> = [];
+    let builtin_returns: Array<String> = [];
+    let builtin_params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(
+        builtin_names, builtin_returns, builtin_params
+    ) {
+        Die("semantic builtin signature facts are invalid");
+    }
+    let builtin_index: Int = 0;
+    while builtin_index < ArrayLength(builtin_names) {
+        ArrayPush(rows, Concat(
+            builtin_names[builtin_index], Concat(
+                "=f:", Concat(builtin_returns[builtin_index], "|")
+            )
+        ));
+        builtin_index = builtin_index + 1;
+    }
     ArrayPush(rows, Concat("AllocatorResult=call:", Concat(TextBuilderRuntimeCAllocatorResultFn(), "|")));
     ArrayPush(rows, Concat("AllocatorDestroy=call:", Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "|")));
     ArrayPush(rows, Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "=pm:ref|"));
@@ -434,38 +451,6 @@ func CollectStructs(
         i = i + 1;
     }
     return StringJoin(typedefs, "");
-}
-
-func CollectEnums(
-    facts: SemanticAstEnumFacts,
-    inout env_box: Array<String>
-) -> String {
-    let blocks: Array<String> = [];
-    let env_rows: Array<String> = [];
-    let i: Int = 0;
-    while i < SemanticAstEnumCount(facts) {
-        let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
-        let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
-        let value: Int = 0;
-        let enum_rows: Array<String> = ["enum {\n"];
-        ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
-        while value < variant_total {
-            let part: String = CodegenSemanticEnumVariantNameAtOrDie(
-                facts, ename, value
-            );
-            let cname: String = CompilerSymbolCEnumVariantName(ename, part);
-            ArrayPush(enum_rows, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
-            ArrayPush(env_rows, Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|"))))));
-            value = value + 1;
-        }
-        ArrayPush(enum_rows, "};\n\n");
-        ArrayPush(blocks, StringJoin(enum_rows, ""));
-        i = i + 1;
-    }
-    if ArrayLength(env_rows) > 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_rows, "")));
-    }
-    return StringJoin(blocks, "");
 }
 
 // Build the C forward-declaration block for every non-Main function, in

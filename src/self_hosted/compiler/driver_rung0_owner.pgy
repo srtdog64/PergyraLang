@@ -28,10 +28,6 @@ func CompilerDriverRung0Ready() -> Bool with caps io_read {
     return CompilerDriverPipelineReady();
 }
 
-func DriverParityExpectedFixtureCount() -> Int {
-    return 71;
-}
-
 func DriverParityFixtureRows() -> Array<String> {
     let bases: Array<String> = CodegenParityFixtureManifestRows();
     let rows: Array<String> = [];
@@ -58,7 +54,7 @@ func DriverParityFixtureAt(index: Int) -> String {
 
 func DriverParityFixtureManifestReady() -> Bool with caps io_read {
     let rows: Array<String> = DriverParityFixtureRows();
-    if ArrayLength(rows) != DriverParityExpectedFixtureCount() {
+    if ArrayLength(rows) != CodegenParityFixtureExpectedCount() {
         return false;
     }
     let i: Int = 0;

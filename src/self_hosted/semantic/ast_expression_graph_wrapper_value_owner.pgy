@@ -136,7 +136,8 @@ func SemanticExpressionGraphWrapperValueFactFromGraph(
     let signature_text: String = function_params[UnwrapOption(signature_index)];
     let signature_facts: SemanticDelimitedRangeFacts =
         SemanticSignatureRangeFactsFromSource(signature_text);
-    let expected_count: Int = SemanticDelimitedRangeCount(signature_facts);
+    let expected_count: Int =
+        SemanticDelimitedNonEmptyRangeCount(signature_facts);
     let actual_count: Int = ArrayLength(call.argument_nodes);
     if expected_count != actual_count {
         return SemanticExpressionGraphWrapperError(

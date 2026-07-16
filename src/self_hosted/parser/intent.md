@@ -79,6 +79,9 @@ parity and the examples scale probe.
     turbofish, `async {}`
     / `parallel (...) join with all {}` expression blocks, dollar string
     interpolation, and common duration suffixes.
+  - floating literals retain a parser-owned `FloatLiteral` graph kind even
+    when compact AST display canonicalization renders `16.0` as `16`; semantic
+    and codegen consumers do not infer the lost type from display text.
 
 ## Output Contract
 
