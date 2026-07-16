@@ -179,8 +179,10 @@ the canonical projection now produces the same runtime-alias C for both.
 Expression result-type classification remains a distinct text-backed seam.
 The try-let consumer is no longer part of that seam: it consumes the operand
 type from `CodegenExpressionTypeFromGraph` and cannot reopen operand text or
-`ExprKind`. Other legacy expression-shape consumers still keep the broader row
-open.
+`ExprKind`. Array return emission is also no longer part of that seam: literal
+and ordinary `Array<T>` returns consume one expected-value expression graph and
+cannot classify the return by trimming text or testing for a leading bracket.
+Other legacy expression-shape consumers still keep the broader row open.
 
 | Blocker | Required owner | Why it matters |
 |---|---|---|

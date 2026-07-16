@@ -508,6 +508,16 @@ forbids both old reads. The C-built self-host codegen passes all 73 fixtures,
 including `option_try`; broader legacy expression-shape result classification
 remains bridged. Released/default replacement stays 0%.
 
+Forty-second executable active-rung delta, 2026-07-16: `Array<T>` return
+emission consumes the expected-value semantic graph for both array literals and
+ordinary array-valued expressions. `EmitReturnValue` no longer trims return
+text, tests its first character, or chooses between the legacy array-literal
+emitter and `RewriteExpr`. The component gate forbids those four reads, while
+`array_return_literal` and the existing `array_param` fixture cover the literal
+and variable forms under C-oracle run parity. The C-built self-host codegen
+frontier is now 74 fixtures; broader Result and leaf-expression legacy
+rewriting remains bridged. Released/default replacement stays 0%.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

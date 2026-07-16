@@ -344,7 +344,16 @@ check_oracle_drift() {
     local oracle_err="$ABS_BUILD/${base}_oracle.err"
     # Run from ROOT_DIR so file-reading fixtures (ReadFile/FileExists) resolve
     # repo-relative paths deterministically.
-    if ! run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"; then
+    local oracle_run_rc
+    set +e
+    if [[ "${#run_args[@]}" -gt 0 ]]; then
+        run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"
+    else
+        run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe"
+    fi
+    oracle_run_rc="$?"
+    set -e
+    if [[ "$oracle_run_rc" -ne 0 ]]; then
         echo "[self-host-parity:codegen] $base: C-backend oracle exit failed" >&2
         cat "$oracle_err" >&2
         exit 1
@@ -397,7 +406,11 @@ run_tool_fixture() {
         local run_norm="$ABS_BUILD/${base}_${backend}_self.out"
         local run_rc
         set +e
-        run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"
+        if [[ "${#run_args[@]}" -gt 0 ]]; then
+            run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"
+        else
+            run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe"
+        fi
         run_rc="$?"
         set -e
         tr -d '\r' < "$run_raw" > "$run_norm"

@@ -1,0 +1,9 @@
+func Build() -> Array<Int> {
+    return [1, 2, 3, 4];
+}
+
+func Main() -> Void {
+    let values: Array<Int> = Build();
+    Log(ToString(ArrayLength(values)));
+    Log(ToString(values[2]));
+}

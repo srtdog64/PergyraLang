@@ -7742,3 +7742,18 @@ Released/default replacement remains 0%.
 - The C-built self-host codegen remains run-output equal across all 73
   fixtures, including `option_try`. This closes one live result-type consumer,
   not the broader legacy expression-shape classification bridge.
+
+### 2026-07-16 -- array returns consume expected-value graphs
+
+- Repointed `Array<T>` return emission to
+  `RewriteExpectedValueWithSemanticGraph` for both literals and ordinary
+  array-valued expressions.
+- Removed the return-text trim, leading-bracket classification, legacy
+  `EmitArrayLiteralValue`, and array-specific `RewriteExpr` branch from the
+  live return owner.
+- Added `array_return_literal` beside the existing `array_param` fixture so the
+  C oracle and Pergyra codegen compare both graph forms. The component contract
+  rejects restoration of the four text-owned reads.
+- This is one executable codegen consumer migration. Result return rewriting
+  and broader legacy expression leaves remain bridged; released/default
+  substitution remains 0%.

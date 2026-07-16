@@ -56,6 +56,18 @@ require_text() {
         fail "$rel missing term: $term"
 }
 
+require_text_count_at_least() {
+    local rel="$1"
+    local term="$2"
+    local minimum="$3"
+    local count
+
+    [[ -f "$ROOT_DIR/$rel" ]] || fail "missing count input: $rel"
+    count="$(grep -F -c -- "$term" "$ROOT_DIR/$rel" || true)"
+    [[ "$count" -ge "$minimum" ]] ||
+        fail "$rel needs at least $minimum occurrence(s) of: $term"
+}
+
 require_make_target_text() {
     local target="$1"
     local term="$2"
@@ -3132,6 +3144,14 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'EmitStructValue(expr, vt, env)'
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
     'EmitStructValue(rexpr, return_type, env)'
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "StringTrim(rexpr)"
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "CodegenCharAt(array_expr, 0)"
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "EmitArrayLiteralValue(array_expr, return_type, env)"
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "RewriteExpr(array_expr, env)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -7303,22 +7323,24 @@ fi
 
 codegen_fixture_count="$(find "$SELF_HOST_DIR/codegen/fixture" -maxdepth 1 -type f -name '*.pgy' | wc -l | tr -d ' ')"
 codegen_expected_count="$(find "$SELF_HOST_DIR/codegen/expected" -maxdepth 1 -type f -name '*_stdout.txt' | wc -l | tr -d ' ')"
-[[ "$codegen_fixture_count" -eq 73 ]] ||
-    fail "codegen fixture count drifted: $codegen_fixture_count != 73"
-[[ "$codegen_expected_count" -eq 73 ]] ||
-    fail "codegen expected count drifted: $codegen_expected_count != 73"
+[[ "$codegen_fixture_count" -eq 74 ]] ||
+    fail "codegen fixture count drifted: $codegen_fixture_count != 74"
+[[ "$codegen_expected_count" -eq 74 ]] ||
+    fail "codegen expected count drifted: $codegen_expected_count != 74"
 require_file "src/self_hosted/codegen/fixture/hello.pgy"
 require_file "src/self_hosted/codegen/fixture/seed_random.pgy"
 require_file "src/self_hosted/codegen/fixture/array_index_assign.pgy"
 require_file "src/self_hosted/codegen/fixture/c_reserved_binding.pgy"
 require_file "src/self_hosted/codegen/fixture/long_scalar.pgy"
+require_file "src/self_hosted/codegen/fixture/array_return_literal.pgy"
+require_file "src/self_hosted/codegen/expected/array_return_literal_stdout.txt"
 require_file "src/self_hosted/codegen/fixture/string_array_index_return.pgy"
 require_file "src/self_hosted/codegen/fixture/ref_param.pgy"
 require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
 require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
 require_file "src/self_hosted/codegen/fixture_manifest_owner.pgy"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureExpectedCount"
-require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 73;"
+require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "return 74;"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestRows"
 require_text "src/self_hosted/codegen/fixture_manifest_owner.pgy" "func CodegenParityFixtureManifestReady"
 require_text "tests/self_hosted/parity/codegen_tool_build_leg.sh" \
@@ -8011,6 +8033,7 @@ reject_text "tests/self_hosted/parity/backend_output_comparator_parity.sh" "ACTU
 reject_text "tests/self_hosted/parity/codegen_parity.sh" "MINGW BYPASS"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$oracle_raw" "$oracle_err" "$oracle_exe" "${run_args[@]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'run_native_capture "$ROOT_DIR" "$run_raw" "$run_err" "$self_exe" "${run_args[@]}"'
+require_text_count_at_least "tests/self_hosted/parity/codegen_parity.sh" 'if [[ "${#run_args[@]}" -gt 0 ]]; then' 2
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'COMPARATOR_SOURCE="$ROOT_DIR/${harness_paths[2]}"'
 require_text "tests/self_hosted/parity/codegen_parity.sh" "compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/codegen_parity.sh" 'compare_run_output_with_owner "$backend" "$base" "$expected_file" "$run_norm" 2'

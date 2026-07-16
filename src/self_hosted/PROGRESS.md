@@ -1410,6 +1410,12 @@ beyond the lexer:
   contract rejects both regressions, and the 73-fixture C codegen parity suite
   remains green. Broader expression result-type classification is still a
   bridge in legacy shape consumers.
+- **Array return emission** -- `EmitReturnValue` now sends every `Array<T>`
+  result through the expected-value semantic graph. Literal and ordinary
+  array-valued returns no longer choose a path by trimming source text or
+  testing for a leading bracket. `array_return_literal` and `array_param`
+  exercise both forms in the 74-fixture codegen frontier. Result returns and
+  broader legacy expression leaves remain bridged.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core
