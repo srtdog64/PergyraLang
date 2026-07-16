@@ -32,7 +32,9 @@ func EmitReturnValue(
         );
     }
     if StartsWith(return_type, "Result<") && StringIndexOf(return_type, "Int") >= 0 {
-        return RewriteExpr(rexpr, env);
+        return RewriteExpectedValueWithSemanticGraph(
+            rexpr, return_type, env, graph
+        );
     }
     if StartsWith(return_type, "Option<") {
         let kind: Int = OptionResultRuntimeOptionPayloadKindForType(return_type);

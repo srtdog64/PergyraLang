@@ -7757,3 +7757,31 @@ Released/default replacement remains 0%.
 - This is one executable codegen consumer migration. Result return rewriting
   and broader legacy expression leaves remain bridged; released/default
   substitution remains 0%.
+
+### 2026-07-16 -- Result returns consume expected-value graphs
+
+- Repointed `Result<Int>` return emission from the legacy
+  `RewriteExpr(rexpr, env)` scanner to the expected-value semantic graph.
+- Existing `result_int_core` and `result_try` fixtures exercise direct
+  `Ok`/`Err` calls and a pipe-bearing `Ok(...)` return without adding a
+  documentation-only surface.
+- Added `result_int_core` to the 31-fixture DRV-2 MIR producer frontier. Its
+  source/MIR consumer path inherits the mandatory missing-graph and invalid-root
+  mutations.
+- Closed the assignment target graph transport exposed by that DRV-2 run:
+  plain targets carry a leaf graph, indexed targets carry an index graph, and
+  the consumer reads target-before-RHS in semantic lane order.
+- Corrected the expression-binding readiness fixture to compare the canonical
+  `x + 1` spelling. It still proves missing and malformed graphs fail closed.
+- Rebound carried direct-call targets against nominal-constructor inventory
+  facts as well as function and builtin signatures. `Pair(...)` no longer
+  fails as an unknown call target, and no expression-text recovery was added.
+- Removed the semantic shortcut that trusted an already-carried call target.
+  Namespace targets are re-derived from qualified callable inventory and
+  member targets from receiver type plus method signature. A carried mismatch
+  now fails closed rather than being silently replaced.
+- Verified the complete C DRV-2 frontier: 20 source fixtures and 31 MIR
+  producer fixtures pass producer-first parity with these checks enabled.
+- The component contract rejects restoring the return-expression scanner.
+  Other legacy expression leaves remain bridged; released/default substitution
+  remains 0%.

@@ -518,6 +518,40 @@ and variable forms under C-oracle run parity. The C-built self-host codegen
 frontier is now 74 fixtures; broader Result and leaf-expression legacy
 rewriting remains bridged. Released/default replacement stays 0%.
 
+Forty-third executable active-rung delta, 2026-07-16: `Result<Int>` return
+emission now consumes the expected-value semantic graph that already crosses
+the hard statement boundary. `Ok(...)`, `Err(...)`, and result-return
+expressions no longer enter the legacy `RewriteExpr(rexpr, env)` text scanner.
+The component gate forbids that fallback, while `result_int_core` and
+`result_try` cover direct wrapper calls and a pipe-bearing `Ok(...)` return
+in the C/LLVM oracle parity gate. `result_int_core` is also the thirty-first
+DRV-2 MIR producer fixture, so source/MIR emission and missing or invalid graph
+mutations exercise the same hard consumer. Other leaf-expression
+compatibility rewriting remains bridged. Released/default replacement stays
+0%.
+
+The same DRV-2 expansion exposed and closed an assignment graph transport gap:
+plain assignment targets now retain their semantic leaf graph just as indexed
+targets retain their index graph. MIR verification rejects either missing
+shape, and the MIR JSON consumer reads target-before-RHS to match the semantic
+atom/value lane order. The readiness fixture also compares the canonical
+`x + 1` spelling rather than the pre-normalization `(x + 1)` spelling. No
+target text recovery was added.
+
+The expanded producer frontier also exposed nominal constructors as a missing
+call-target owner input. Carried call-target verification now consumes the
+typed nominal-constructor inventory alongside function and builtin signatures,
+so `Pair(...)` is accepted as a direct constructor call while unknown callees
+still fail closed. No callee text recovery was added.
+
+Removing the carried-target shortcut then exposed the existing namespace and
+method provenance gap. Initial validation now admits only declared canonical
+namespace/member targets. The body fixpoint independently resolves
+`Math.Add()` from the qualified callable inventory and `v.LengthPlus()` from
+the receiver type plus method signature, then rejects any carried mismatch
+instead of trusting or overwriting it. The full C DRV-2 frontier passes 20
+source fixtures and 31 MIR producer fixtures with this comparison active.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

@@ -5,10 +5,13 @@ import "ast_expression_graph_build_owner.pgy";
 
 func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
+        "Program:\n  Struct: Pair\n    Fields:\n      left: Int\n      right: Int\n  Function: Math_Add\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Return: 7\n"
+        + "  Class: Box\n    Fields:\n      value: Int\n    Methods:\n      Function: Get\n        Parameters:\n          self\n        Returns: Int\n        Body:\n          Block:\n            Return: self.value\n"
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
@@ -29,12 +32,12 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     );
     let carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphCallTargetsFromSignatures(
-            source, signatures, false
+            source, signatures, constructors, false
         );
     if !carried.ok ||
         carried.arena.call_target_names[build.root_id] != "Math_Add" ||
         !SemanticExpressionGraphCallTargetsFromSignatures(
-            carried, signatures, true
+            carried, signatures, constructors, true
         ).ok {
         return false;
     }
@@ -49,7 +52,116 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, carried.roots, carried.has_roots, missing_arena
     );
-    return !SemanticExpressionGraphCallTargetsFromSignatures(
-        missing, signatures, true
-    ).ok;
+    if SemanticExpressionGraphCallTargetsFromSignatures(
+        missing, signatures, constructors, true
+    ).ok {
+        return false;
+    }
+    let constructor_kinds: Array<Int> = [];
+    let constructor_texts: Array<String> = [];
+    let constructor_left: Array<Int> = [];
+    let constructor_right: Array<Int> = [];
+    let constructor_target_kinds: Array<Int> = [];
+    let constructor_target_names: Array<String> = [];
+    let constructor_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            constructor_kinds, constructor_texts,
+            constructor_left, constructor_right,
+            constructor_target_kinds, constructor_target_names,
+            "Pair(1, 2)"
+        );
+    let constructor_source: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            constructor_build.ok, [constructor_build.root_id],
+            [constructor_build.ok], SemanticExpressionGraphArena(
+                constructor_kinds, constructor_texts,
+                constructor_left, constructor_right,
+                constructor_target_kinds, constructor_target_names
+            )
+        );
+    let constructor_carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            constructor_source, signatures, constructors, false
+        );
+    let constructor_call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(
+            constructor_carried, constructor_build.root_id
+        );
+    if !constructor_carried.ok || !constructor_call.ok ||
+        constructor_carried.arena.call_target_names[
+            constructor_call.call_node
+        ] != "Pair" ||
+        !SemanticExpressionGraphCallTargetsFromSignatures(
+            constructor_carried, signatures, constructors, true
+        ).ok {
+        return false;
+    }
+    let member_kinds: Array<Int> = [];
+    let member_texts: Array<String> = [];
+    let member_left: Array<Int> = [];
+    let member_right: Array<Int> = [];
+    let member_target_kinds: Array<Int> = [];
+    let member_target_names: Array<String> = [];
+    let member_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            member_kinds, member_texts, member_left, member_right,
+            member_target_kinds, member_target_names, "box.Get()"
+        );
+    let member_unbound: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            member_build.ok, [member_build.root_id],
+            [member_build.ok], SemanticExpressionGraphArena(
+                member_kinds, member_texts, member_left, member_right,
+                member_target_kinds, member_target_names
+            )
+        );
+    let member_call: SemanticCallSpineView =
+        SemanticCallSpineViewFromGraph(member_unbound, member_build.root_id);
+    if !member_call.ok {
+        return false;
+    }
+    ArraySet(
+        member_target_kinds, member_call.call_node,
+        SemanticCallTargetMember()
+    );
+    ArraySet(member_target_names, member_call.call_node, "Other_Get");
+    let wrong_member: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            true, member_unbound.roots, member_unbound.has_roots,
+            SemanticExpressionGraphArena(
+                member_kinds, member_texts, member_left, member_right,
+                member_target_kinds, member_target_names
+            )
+        );
+    if SemanticExpressionGraphCallTargetsFromSignatures(
+        wrong_member, signatures, constructors, true
+    ).ok {
+        return false;
+    }
+    let derived_member: SemanticExpressionCallTargetFact =
+        SemanticExpressionGraphResolvedCallTarget(
+            wrong_member, member_build.root_id, constructors,
+            ["box"], ["Box"], ["Box_Get", "Other_Get"]
+        );
+    if !derived_member.ok ||
+        derived_member.kind != SemanticCallTargetMember() ||
+        derived_member.name != "Box_Get" {
+        return false;
+    }
+    ArraySet(member_target_names, member_call.call_node, "Box_Get");
+    let member_carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            true, member_unbound.roots, member_unbound.has_roots,
+            SemanticExpressionGraphArena(
+                member_kinds, member_texts, member_left, member_right,
+                member_target_kinds, member_target_names
+            )
+        );
+    let member_verified: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromSignatures(
+            member_carried, signatures, constructors, true
+        );
+    return member_verified.ok &&
+        member_verified.arena.call_target_names[member_call.call_node] ==
+            "Box_Get";
 }

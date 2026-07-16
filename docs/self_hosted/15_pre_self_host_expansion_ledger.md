@@ -182,6 +182,16 @@ type from `CodegenExpressionTypeFromGraph` and cannot reopen operand text or
 `ExprKind`. Array return emission is also no longer part of that seam: literal
 and ordinary `Array<T>` returns consume one expected-value expression graph and
 cannot classify the return by trimming text or testing for a leading bracket.
+`Result<Int>` returns also consume that graph and cannot re-enter the legacy
+return-expression scanner. The DRV-2 transport now preserves the assignment
+target graph for both plain and indexed targets, and consumes target-before-RHS
+in semantic lane order instead of reconstructing a target from `arg0`/`expr1`.
+Carried direct-call targets also consume nominal-constructor inventory facts,
+so constructor calls such as `Pair(...)` are verified without recovering a
+callee from expression text. Carried namespace and member targets are admitted
+only when present in callable inventory, then independently re-derived from
+the qualified name or receiver type during the body fixpoint; a mismatch fails
+instead of being silently overwritten.
 Other legacy expression-shape consumers still keep the broader row open.
 
 | Blocker | Required owner | Why it matters |

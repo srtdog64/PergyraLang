@@ -329,7 +329,7 @@ func MirInstructionRequiresTargetExpressionGraph(
     return IsSome(kind) && UnwrapOption(kind) == "def" &&
         IsSome(source_type) && UnwrapOption(source_type) == "AST_ASSIGNMENT" &&
         IsSome(arg0) && IsSome(expr1) &&
-        UnwrapOption(arg0) != UnwrapOption(expr1);
+        UnwrapOption(arg0) != "" && UnwrapOption(expr1) != "";
 }
 
 func MirExpressionGraphSequenceFromJson(
@@ -359,12 +359,6 @@ func MirExpressionGraphSequenceFromJson(
             let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
                 instruction, "expr0_graph"
             );
-            if MirInstructionRequiresExpressionGraph(instruction) {
-                if !JsonObjectFactTableReady(graph) {
-                    return MirExpressionGraphSequenceError(sequence);
-                }
-                sequence = MirExpressionGraphSequenceAppend(sequence, graph);
-            }
             let target_graph: JsonObjectFactTable =
                 JsonObjectFactObjectTable(instruction, "expr1_graph");
             if MirInstructionRequiresTargetExpressionGraph(instruction) {
@@ -374,6 +368,12 @@ func MirExpressionGraphSequenceFromJson(
                 sequence = MirExpressionGraphSequenceAppend(
                     sequence, target_graph
                 );
+            }
+            if MirInstructionRequiresExpressionGraph(instruction) {
+                if !JsonObjectFactTableReady(graph) {
+                    return MirExpressionGraphSequenceError(sequence);
+                }
+                sequence = MirExpressionGraphSequenceAppend(sequence, graph);
             }
             instruction_i = instruction_i + 1;
         }

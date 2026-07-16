@@ -1416,6 +1416,24 @@ beyond the lexer:
   testing for a leading bracket. `array_return_literal` and `array_param`
   exercise both forms in the 74-fixture codegen frontier. Result returns and
   broader legacy expression leaves remain bridged.
+- **Result return emission** -- `Result<Int>` returns now use the same
+  expected-value semantic graph instead of the legacy return-expression text
+  scanner. `result_int_core` covers direct `Ok`/`Err` calls and `result_try`
+  covers a pipe-bearing `Ok(...)` return. `result_int_core` also joins the
+  31-fixture DRV-2 MIR producer frontier, where missing and invalid expression
+  graphs fail closed. Other legacy expression leaves remain bridged.
+- **Assignment target graph transport** -- DRV-2 now carries a semantic target
+  graph for both plain and indexed assignments. MIR verification rejects a
+  missing plain leaf or indexed graph, and JSON consumption preserves
+  target-before-RHS lane order without target-text reconstruction.
+- **Nominal constructor call targets** -- carried direct-call verification now
+  consumes the typed nominal-constructor inventory together with function and
+  builtin signatures. Constructor calls such as `Pair(...)` remain direct
+  targets without reopening expression text; unknown callees still fail closed.
+- **Namespace/member call provenance** -- carried call targets are no longer a
+  resolver shortcut. The body fixpoint re-derives qualified namespace targets
+  and receiver-typed method targets, then rejects any mismatch. The complete C
+  DRV-2 frontier passes 20 source and 31 MIR producer fixtures with this rule.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

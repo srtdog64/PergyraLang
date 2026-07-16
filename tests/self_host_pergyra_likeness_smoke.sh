@@ -244,7 +244,9 @@ SENTINEL_MAX=0
 # semantic facts as Result/Option values through the executable self-host rung.
 # 1886 -> 1918 (2026-07-16): source-artifact and graph-type owners preserve
 # parser/semantic absence as Option through hard codegen.
-RESULT_USE_MIN=1918
+# 1918 -> 1919 (2026-07-16): assignment target graph verification keeps the
+# empty-use fixture typed instead of using an out-of-band sentinel.
+RESULT_USE_MIN=1919
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

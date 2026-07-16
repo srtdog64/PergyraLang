@@ -30,7 +30,7 @@ func SelfMirInstructionUsesLocalVersion(
     return false;
 }
 
-func SelfMirIndexedAssignmentUseReady(
+func SelfMirAssignmentTargetGraphReady(
     rows: SelfMirInstructionRows,
     instruction_index: Int
 ) -> Bool {
@@ -42,13 +42,15 @@ func SelfMirIndexedAssignmentUseReady(
     if target == "" || base_name == "" {
         return false;
     }
-    if target == base_name {
-        return rows.expr1_graphs.has_roots[instruction_index] == 0;
-    }
     if rows.expr1_graphs.has_roots[instruction_index] != 1 {
         return false;
     }
     let root: Int = rows.expr1_graphs.roots[instruction_index];
+    if target == base_name {
+        return rows.expr1_graphs.node_kinds[root] ==
+            AstExpressionNodeLeaf() &&
+            rows.expr1_graphs.node_texts[root] == target;
+    }
     if rows.expr1_graphs.node_kinds[root] != AstExpressionNodeIndex() ||
         rows.expr1_graphs.node_texts[root] != target {
         return false;
@@ -166,7 +168,7 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
               rows.expr1s[i] == "")) {
             return false;
         }
-        if !SelfMirIndexedAssignmentUseReady(rows, i) {
+        if !SelfMirAssignmentTargetGraphReady(rows, i) {
             return false;
         }
         use_cursor = use_cursor + rows.use_counts[i];
@@ -175,7 +177,8 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
     return use_cursor == ArrayLength(rows.uses);
 }
 
-func SelfMirIndexedAssignmentUseContractReady() -> Bool {
+func SelfMirAssignmentTargetGraphContractReady() -> Bool {
+    let no_uses: Array<String> = [];
     let value_graph: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRows(
             [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["values[j]"],
@@ -188,13 +191,28 @@ func SelfMirIndexedAssignmentUseContractReady() -> Bool {
              AstExpressionNodeIndex()],
             ["values", "i", "values[i]"], [0, 0, 0], [0, 0, 1],
             [SemanticCallTargetNone(), SemanticCallTargetNone(),
-             SemanticCallTargetNone()], ["", "", ""]
+            SemanticCallTargetNone()], ["", "", ""]
+        );
+    let simple_value_graph: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["1"],
+            [0], [0], [SemanticCallTargetNone()], [""]
+        );
+    let simple_target_graph: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["x"],
+            [0], [0], [SemanticCallTargetNone()], [""]
         );
     let valid: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
         ["values.1", "i.1", "j.1"],
         value_graph, target_graph
+    );
+    let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
+        ["1"], ["x"], ["AST_ASSIGNMENT"], [0], [0], no_uses,
+        simple_value_graph, simple_target_graph
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
@@ -207,9 +225,18 @@ func SelfMirIndexedAssignmentUseContractReady() -> Bool {
         ["values.1", "i.1", "j.1"], value_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1)
     );
+    let missing_simple_target_graph: SelfMirInstructionRows =
+        SelfMirInstructionRows(
+            [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
+            ["1"], ["x"], ["AST_ASSIGNMENT"], [0], [0], no_uses,
+            simple_value_graph,
+            SelfMirExpressionGraphRowsForInstructionCount(1)
+        );
     return SelfMirInstructionRowsReady(valid) &&
+        SelfMirInstructionRowsReady(valid_simple) &&
         !SelfMirInstructionRowsReady(missing_base_use) &&
-        !SelfMirInstructionRowsReady(missing_target_graph);
+        !SelfMirInstructionRowsReady(missing_target_graph) &&
+        !SelfMirInstructionRowsReady(missing_simple_target_graph);
 }
 
 func SelfMirBlockRowsValidationError(

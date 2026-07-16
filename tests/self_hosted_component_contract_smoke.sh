@@ -2749,7 +2749,28 @@ require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "func SemanticExpressionGraphCallTargetsFromSignatures("
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "SemanticAstExpressionFunctionTables("
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
+    "member_names"
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    '"Pair(1, 2)"'
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    '"Box_Get"'
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    '"Other_Get"'
+require_text "src/self_hosted/semantic/ast_expression_call_target_contract_owner.pgy" \
+    "derived_member.name != \"Box_Get\""
+require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticCallableIndex("
+require_text "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "carried_kind != target.kind"
+require_text_count_at_least \
+    "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy" \
+    "carried_kind != SemanticCallTargetNone()" 2
+require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+    "SemanticCallTargetNamespace()"
+require_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
+    "function_names, UnwrapOption(qualified_name)"
 reject_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
     "func SemanticExpressionGraphCallTargetsFromSignatures("
 require_text "src/self_hosted/semantic/ast_artifact_verdict_owner.pgy" \
@@ -3152,6 +3173,14 @@ reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
     "EmitArrayLiteralValue(array_expr, return_type, env)"
 reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
     "RewriteExpr(array_expr, env)"
+reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
+    "RewriteExpr(rexpr, env)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/result_int_core.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "return 31;"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 31'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -3176,9 +3205,14 @@ reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'ExprKind(coll, env)'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     'RewriteExpr(coll, env)'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirIndexedAssignmentUseReady('
+require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirAssignmentTargetGraphReady('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_simple_target_graph)'
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    'node_id, AstExpressionLaneAtom()'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'UnwrapOption(arg0) != "" && UnwrapOption(expr1) != "";'
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 20;"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "struct DriverRung2VerifiedFacts"
@@ -3647,6 +3681,8 @@ require_file "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 600
 require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" "func SemanticAstExpressionSurfaceFactsFromTypedArtifact"
 require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" "func SemanticAstExpressionTypedBindingContractReady"
+require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 'facts.normalized_values[i] == "x + 1"'
+reject_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 'facts.normalized_values[i] == "(x + 1)"'
 require_file "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticExpressionGraphOrDie"

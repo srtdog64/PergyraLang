@@ -186,7 +186,7 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
             ).ok;
         }
         if facts.has_values[i] &&
-            facts.normalized_values[i] == "(x + 1)" {
+            facts.normalized_values[i] == "x + 1" {
             assign_value_graph_ok = SemanticAstExpressionGraphForNode(
                 facts, facts.node_ids[i], AstExpressionLaneValue()
             ).ok;
