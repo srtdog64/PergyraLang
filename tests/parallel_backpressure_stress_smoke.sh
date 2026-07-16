@@ -2,6 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Windows: pgy.exe needs the mingw/LLVM runtime DLLs on PATH or it dies as a
+# silent exit-127 "command not found" under bare Git-bash (WO-RT-3 residue 3).
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 SOURCE="$ROOT_DIR/tests/cases/backend_compare/parallel_backpressure_witness/main.pgy"
 ITERATIONS="${PGY_BACKPRESSURE_STRESS_ITERATIONS:-64}"
