@@ -10378,7 +10378,23 @@ docs/186이 상위 계획(P-A~P-D). 여기는 세션-단위 실행 블록만. WO
 자기적용 census, docs/179 3a)·WO-RT-2(cancellation, docs/182 §2 ✅)와 같은
 RT 계열.
 
-#### WO-RT-3 — 중첩 병렬 데드락 클래스 닫기 (P-A1)
+#### WO-RT-3 — 중첩 병렬 데드락 클래스 닫기 (P-A1) — ✅ CLOSED (2026-07-17, `740f5a68`)
+
+- **닫힘**: help-first await 착지 — worker에서 불린 pgy_await가 park 대신
+  `pgy_pool_help_run_one()`으로 큐를 드레인(호출자 task 정체성 save/restore로
+  cancel 스코프 유지). park는 "큐 비었고 target 미완"일 때만 — 그 상태에선
+  target이 반드시 RUNNING이고 await 그래프가 비순환이라 park가 데드락-프리.
+  **RED 실증**: 강제 fixture(64 outer > 16 worker, burn 후 inner fan-out)
+  3/3 timeout; **mild(32/4)는 운으로 통과** — 테스트는 지나가고 부하에서
+  죽는 최악 형태 확인. **GREEN**: 목격자 4/4
+  (`tests/nested_parallel_witness_smoke.sh`, c/llvm × mild 2176/forced 8448).
+  회귀: core-contract·join 전 rung+17거절·backpressure 6/6×2·B_n 무변화.
+- **잔여(소)**: ① Makefile/test-all 배선(Makefile 동시 소유라 보류, 스모크는
+  독립 실행형) ② semantic nested fact(선택 — 클래스 제거로 긴급도 하락)
+  ③ `parallel_backpressure_stress_smoke.sh`가 DLL-path 헬퍼를 안 불러
+  bare Git-bash에서 무음 exit 127 — 헬퍼 source 한 줄 추가 후보.
+
+(원문 계획은 아래 — 기록 보존)
 
 - **문제 (실측)**: pool worker가 유저 코드 안에서 같은 g_pgy_pool로
   fan-out 후 `pgy_await`하면 `pthread_cond_wait`로 블록 — 큐 드레인/help
@@ -10409,6 +10425,12 @@ RT 계열.
   이득 먼저; reduce는 청크 부분합→인덱스-순서 fold로 결정성 유지).
 - **측정 규율**: 매 rung B_n n=9 best-of-3 solo + 소태스크 1만개 마이크로,
   [[feedback_measure_perf_best_of_n]] 준수. 숫자 없이 다음 rung 금지.
+- **진행 (2026-07-17)**: ✅ B1 기준선 실측 —
+  `benchmarks/perf_parallel_task_overhead[_serial].pgy` (20k near-empty
+  task), best-of-3 solo: **10.7 µs/task** (224.6ms − 10.2ms serial 트윈).
+  성숙 work-stealing 풀 ~0.1-1µs 대비 10배+ 여지 = B1 수술 근거 확보.
+  다음 = 10.7µs **비용 분해**(calloc/큐 lock/cond signal/핸들 await 중
+  어디인가) — 분해 없이 blind 수술 금지(본 WO 교리).
 - **성공 기준**: hand-C OpenMP 1.10x 이내(현 1.21x). 미달도 측정 기록이 성과.
 - **게이트**: 전 parallel/backpressure 게이트 + 병렬 결정성 목격자
   (`join with sum` 결과가 worker수 무관 — docs/186 P-D).

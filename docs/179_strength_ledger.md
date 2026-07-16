@@ -101,8 +101,34 @@ docs/137(레드팀 계약서)·docs/166(프로덕션 바)과 같은 계열이며
 4. R6 잔여 3종(asset boundary → wasm-equiv → 서명 로더).
 5. 검증 마일스톤 pre-work 소진 후 본 실행(V1 동결 목록 기준).
 
+## 2026-07-17 델타 (세션 실측 — 원장 판정은 유지, 칸에 숫자가 붙음)
+
+- **축1 이론 ↑**: Coq 4→5트랙 — MachineLayerCore.v 47정리(0 admits/0
+  axioms), 기계층 스모크 4종+parity 3종 전부 GREEN(동시 세션 수직 슬라이스,
+  host-sim envelope 명시 유지). negative scope 보존 확인.
+- **축2 보장 ↑**: 방출 결정성 **909/911 byte-identical** 게이트 CI 승격
+  (`df3c723c`, 잔여 2는 동시 WIP 컴파일 실패지 비결정 아님) +
+  cross-manager slot alias fail-close(`6737f3d6`) + **중첩 병렬 데드락
+  클래스 제거**(help-first await, `740f5a68`, RED 3/3→GREEN 4/4 목격자).
+- **축3 정체성**: 외부 확증 — Roc의 Rust→Zig 리라이트 에세이(2026-07-15)가
+  "which index goes with which array?"를 Rust/Zig 공통 미해결로 지목 =
+  우리 좌표(WO-B4 handle@zone)가 실제 프로덕션 통증임을 제3자가 진술.
+- **축4 구현**: **첫 외부 워크로드 성능 실증** — B_n 직렬 C-parity(best-of-3
+  n=9: 14.39 vs 14.45s), 병렬 pool=auto 후 **Fortran OpenMP 이김**(n=10:
+  47.6 vs 61.0s), hand-C OpenMP 1.18x 이내. 태스크 부기 기준선 10.7µs/task
+  실측(WO-RT-4 B1). **사용자 실증 0은 그대로 — 여전히 최약점.**
+- **축5 구조 재확인**: 이 세션 계열에서만 자기-오진 3회(직렬 경계검사 →
+  병렬 "스케줄러 오버헤드" → "index-owner 답 보유")를 전부 측정이 잡아
+  정정 커밋 — "깨짐을 숨길 수 없다" 정의가 작동하는 실황.
+- 인프라 실사(16항목, 2026-07-17): EXISTS 5(디버그정보 양백엔드·LSP·fmt·
+  REPL·진단 70/122/108) / PARTIAL 4(자체 opt=DCE만·pkg 로컬·크로스컴파일
+  passthrough·WASM 간접) / ABSENT 7(**증분 컴파일**·핫리로드·docgen·
+  프로파일러·compile_commands·유저 sanitizer). 개발자-대면 도구는 성숙
+  언어급, 갭은 빌드-스케일(증분)과 생태계 축.
+
 ## Related
 
 - docs/137 (레드팀 리스크 계약) · docs/166 (프로덕션 바) · docs/180 (논리
   척추) · docs/178 (병렬 증거) · docs/14 (소거 계기판) ·
-  docs/post_selfhost_validation_milestone.md (반증 가능한 다음 증명)
+  docs/post_selfhost_validation_milestone.md (반증 가능한 다음 증명) ·
+  docs/186 (병렬 전체 구현 계획)

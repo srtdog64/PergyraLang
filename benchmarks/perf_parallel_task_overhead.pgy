@@ -1,0 +1,15 @@
+// perf_parallel_task_overhead.pgy -- WO-RT-4 B1 baseline (docs/186 P-B).
+//
+// Fan out N near-empty tasks and sum-join them: the body is one addition, so
+// wall time is dominated by per-task machinery (per-task calloc + mutex/cond
+// init/destroy in pgy_spawn, single-queue lock traffic, per-handle await).
+// Compare against perf_parallel_task_overhead_serial.pgy (same sum, plain
+// loop, same process startup) and divide the wall-clock DELTA by N for the
+// per-task overhead. Measure best-of-3, same session, solo
+// (feedback_measure_perf_best_of_n).
+//
+// Expected output: total=199990000 (sum of 0..19999).
+func Main() -> Void {
+    let total: Int = parallel (i in 0..20000) join with sum { give i; };
+    Log("total=" + ToString(total));
+}

@@ -73,7 +73,13 @@ parallel (i in lo..hi) join with sum
 
 ### P-A. 정확성 먼저 (fail-close)
 
-**P-A1. 중첩 병렬 데드락 닫기 — 2중 방어.**
+**P-A1. 중첩 병렬 데드락 닫기 — 2중 방어.** ✅ (a) 완료 (2026-07-17,
+`740f5a68`): help-first await 착지 — RED 실증(강제 fixture 3/3 timeout;
+mild 32/4 형태는 **운으로 통과**해 "테스트는 지나가고 부하에서 죽는" 최악
+형태임을 확인) → GREEN 4/4 (`tests/nested_parallel_witness_smoke.sh`,
+c/llvm × mild/forced). 회귀 green: core-contract, join 전 rung + 17 거절,
+backpressure 6/6×2, B_n 무변화(flat await는 main 스레드라 help 미경유).
+(b) semantic fact는 후속(선택) — (a)가 클래스를 제거해 긴급도 하락.
 - (a) **런타임 help-first await**: `pgy_await`가 pool worker 스레드에서
   불렸고 대상 태스크가 PENDING이면, cond_wait 대신 **큐의 태스크를 꺼내
   실행하며 대기**(work-donation). fork-join 풀의 표준 해법이고 데드락
@@ -99,6 +105,12 @@ stress 게이트는 유지, root cause 확정 전 "닫힘" 선언 금지.
   태스크 구조체는 ctx 배열처럼 **배치 할당**(이미 join_emit이 ctx를 한 번에
   malloc — 같은 모양). 예상 효과: 태스크당 calloc 3회+mutex/cond init 제거.
   측정: B_n n=9 best-of-3 (현 2.42s) + 마이크로(작은 태스크 1만개 fan-out).
+  **✅ 기준선 실측 (2026-07-17)**: `benchmarks/perf_parallel_task_overhead.pgy`
+  (20k near-empty task sum-join) vs serial 트윈, best-of-3 solo —
+  **10.7 µs/task** (parallel 224.6ms − serial 10.2ms = 214.4ms / 20000).
+  참고 좌표: 성숙 work-stealing 풀 ~0.1-1µs/task. 다음 rung = 이 10.7µs의
+  **비용 분해**(calloc? 큐 lock 경합? cond signal? 핸들별 await?) — 분해
+  숫자 없이 수술 금지.
 - **B2. per-worker deque + stealing**: 단일 전역 큐 → worker당 로컬 deque
   (owner는 LIFO push/pop, thief는 FIFO steal). **잠자는 scheduler.c의
   ConcurrentQueue/StealWork 로직을 THREAD-model로 이식**하는 것이 첫 후보

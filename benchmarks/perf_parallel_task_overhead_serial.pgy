@@ -1,0 +1,9 @@
+// Serial twin of perf_parallel_task_overhead.pgy: same sum, plain loop, same
+// process startup -- the subtraction baseline for per-task overhead.
+// Expected output: total=199990000.
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 20000 { total = total + i; i = i + 1; }
+    Log("total=" + ToString(total));
+}
