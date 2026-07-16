@@ -1,0 +1,189 @@
+// perf_bn_cycles.pgy
+//
+// Signed-permutation (hyperoctahedral group B_n) cycle-distribution tally.
+// A Pergyra port of the language-comparison research benchmark: Heap's algorithm
+// generates the n! permutations; each is paired with all 2^n sign vectors; every
+// signed permutation's cycles are counted TWO ways and the counts must agree:
+//   - Loops:  a direct endpoint walk of the permutation (visited marks).
+//   - Tarjan: primitive tree-based union-find, NO rank, NO path compression
+//             (exactly the "honorific Tarjan" of the reference).
+// Both operate on the 2n-element extended domain {+1..+n, -1..-n}: point +i maps
+// to sign[i]*perm[i] and -i to its negation, so the sign structure is intrinsic.
+// The result is a histogram of orbit counts (cycle distribution).
+//
+// Zero allocation in the hot loop: the scratch arrays (next / visited / parent)
+// are allocated once at size 2n and RESET (not reallocated) per signed
+// permutation -- allocation in the inner loop is the primary performance killer.
+//
+// Counts need 64-bit: for n=10 the total is 10! * 2^10 = 3,715,891,200 > 2^31,
+// so the histogram is Array<Long>.
+//
+// STATUS: authored and grounded in the language's array / inout / Long surface,
+// but NOT yet compiled on this machine (an anti-cheat blocks builds). The
+// ALGORITHM is independently verified with a Python mirror -- when the Pergyra
+// build runs, its output MUST match:
+//   n=3: total=48   method_mismatches=0   h[1..6] = 8,14,13,9,3,1
+//   n=4: total=384  method_mismatches=0   h[1..8] = 48,92,100,81,40,18,4,1
+// Default N=4, so the first compile+run is that fast self-check. Set N=10 for
+// the benchmark (matches the reference's 3,715,891,200 signed permutations).
+// Parallel-by-prefix (the reference's work-stealing) is a follow-up once the
+// serial core is verified. The cycle convention here is orbit-count on the 2n
+// domain; to byte-match a specific reference suite, align it with that suite's
+// cycle definition.
+
+// ---- Loops: endpoint walk. visited is reset here, then walked. ----
+func CountLoops(next: Array<Int>, inout visited: Array<Int>, twoN: Int) -> Int {
+    let i: Int = 0;
+    while i < twoN { visited[i] = 0; i = i + 1; }
+    let cycles: Int = 0;
+    let s: Int = 0;
+    while s < twoN {
+        if visited[s] == 0 {
+            cycles = cycles + 1;
+            let cur: Int = s;
+            while visited[cur] == 0 {
+                visited[cur] = 1;
+                cur = next[cur];
+            }
+        }
+        s = s + 1;
+    }
+    return cycles;
+}
+
+// ---- Tarjan: primitive union-find, no rank, no path compression. ----
+func UfFind(inout parent: Array<Int>, x: Int) -> Int {
+    let r: Int = x;
+    while parent[r] != r { r = parent[r]; }
+    return r;
+}
+
+func CountUnionFind(next: Array<Int>, inout parent: Array<Int>, twoN: Int) -> Int {
+    let i: Int = 0;
+    while i < twoN { parent[i] = i; i = i + 1; }
+    let j: Int = 0;
+    while j < twoN {
+        let ra: Int = UfFind(parent, j);
+        let rb: Int = UfFind(parent, next[j]);
+        if ra != rb { parent[ra] = rb; }
+        j = j + 1;
+    }
+    let cycles: Int = 0;
+    let k: Int = 0;
+    while k < twoN {
+        if UfFind(parent, k) == k { cycles = cycles + 1; }
+        k = k + 1;
+    }
+    return cycles;
+}
+
+// ---- Build the 2n-point map for one signed permutation, then tally. ----
+// perm[i] in 1..n. sign bit i of mask: 1 => negative, 0 => positive.
+// mism is a 1-element array used as a shared counter (inout array, not scalar).
+func ProcessSigns(
+    perm: Array<Int>, n: Int,
+    inout hist: Array<Long>,
+    inout next: Array<Int>,
+    inout visited: Array<Int>,
+    inout parent: Array<Int>,
+    inout mism: Array<Int>
+) -> Void {
+    let twoN: Int = n + n;
+    let limit: Int = 1;            // 2^n
+    let b: Int = 0;
+    while b < n { limit = limit * 2; b = b + 1; }
+
+    let mask: Int = 0;
+    while mask < limit {
+        // Build next[] from perm and the sign bits of mask (mod-2 via m-(m/2)*2).
+        let m: Int = mask;
+        let i: Int = 0;
+        while i < n {
+            let bit: Int = m - (m / 2) * 2;
+            let v: Int = perm[i];           // 1..n
+            if bit == 0 {
+                next[i] = v - 1;            // +（i+1) -> +v
+                next[n + i] = n + v - 1;    // -(i+1) -> -v
+            }
+            if bit == 1 {
+                next[i] = n + v - 1;        // +（i+1) -> -v
+                next[n + i] = v - 1;        // -(i+1) -> +v
+            }
+            m = m / 2;
+            i = i + 1;
+        }
+
+        let c1: Int = CountLoops(next, visited, twoN);
+        let c2: Int = CountUnionFind(next, parent, twoN);
+        if c1 != c2 { mism[0] = mism[0] + 1; }
+        hist[c1] = hist[c1] + 1L;
+
+        mask = mask + 1;
+    }
+}
+
+// ---- Heap's algorithm: generate the n! permutations of perm[0..n-1]. ----
+func HeapGen(
+    k: Int,
+    inout perm: Array<Int>, n: Int,
+    inout hist: Array<Long>,
+    inout next: Array<Int>,
+    inout visited: Array<Int>,
+    inout parent: Array<Int>,
+    inout mism: Array<Int>
+) -> Void {
+    if k == 1 {
+        ProcessSigns(perm, n, hist, next, visited, parent, mism);
+        return;
+    }
+    let i: Int = 0;
+    while i < k - 1 {
+        HeapGen(k - 1, perm, n, hist, next, visited, parent, mism);
+        let even: Int = k - (k / 2) * 2;   // 0 if k even
+        if even == 0 {
+            let t: Int = perm[i]; perm[i] = perm[k - 1]; perm[k - 1] = t;
+        }
+        if even == 1 {
+            let t: Int = perm[0]; perm[0] = perm[k - 1]; perm[k - 1] = t;
+        }
+        i = i + 1;
+    }
+    HeapGen(k - 1, perm, n, hist, next, visited, parent, mism);
+}
+
+func Main() -> Void {
+    let n: Int = 4;                // self-check default; set to 10 for the benchmark
+    let twoN: Int = n + n;
+    let histLen: Int = twoN + 1;
+
+    let mut perm: Array<Int> = [];
+    for k in 0..n { ArrayPush(perm, k + 1); }
+
+    let mut hist: Array<Long> = [];
+    for k in 0..histLen { ArrayPush(hist, 0L); }
+
+    let mut next: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(next, 0); }
+    let mut visited: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(visited, 0); }
+    let mut parent: Array<Int> = [];
+    for k in 0..twoN { ArrayPush(parent, 0); }
+    let mut mism: Array<Int> = [];
+    ArrayPush(mism, 0);
+
+    HeapGen(n, perm, n, hist, next, visited, parent, mism);
+
+    // Report: the full nonzero distribution + a total that must equal n! * 2^n
+    // (384 at n=4), plus the two-method agreement check.
+    let total: Long = 0L;
+    let c: Int = 0;
+    while c < histLen {
+        if hist[c] > 0L {
+            Log("h[" + ToString(c) + "]=" + ToString(hist[c]));
+        }
+        total = total + hist[c];
+        c = c + 1;
+    }
+    Log("total=" + ToString(total));
+    Log("method_mismatches=" + ToString(mism[0]));
+}
