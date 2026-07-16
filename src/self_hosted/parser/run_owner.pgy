@@ -17,7 +17,7 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
             Exit(1);
             return;
         }
-        Log(ParseSourceUnitProgram(args[1]));
+        Log(ParseProgramBuildWithImportPolicy(args[1], false).tree_text);
         Log("");
         return;
     }
@@ -30,7 +30,10 @@ func RunParserFromArgs(args: Array<String>) -> Void with caps env, io_read {
             Exit(1);
             return;
         }
-        let parse_text: String = ParseSourceUnitProgram(args[1]);
+        let parse_text: String = ParseProgramBuildWithImportPolicy(
+            args[1],
+            false
+        ).tree_text;
         if StringLength(parse_text) >= 0 {
             Log("Diagnostic: pgy.selfhost.stage-check.v1");
             Log("Stage: parser");

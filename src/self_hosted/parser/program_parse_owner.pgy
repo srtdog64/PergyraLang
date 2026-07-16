@@ -52,10 +52,6 @@ func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
     return ParseProgramBuildWithImportPolicy(source_path, true);
 }
 
-func ParseSourceUnitProgram(source_path: String) -> String {
-    return ParseProgramBuildWithImportPolicy(source_path, false).tree_text;
-}
-
 func ParseRootProgram(source_path: String) -> String {
     return ParseRootProgramBuild(source_path).tree_text;
 }
