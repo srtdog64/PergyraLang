@@ -499,6 +499,18 @@ Inferred generic calls rooted in returns or assignments, member generic calls,
 nested generic locals, and the other 29 MIR fixtures remain outside this
 bounded proof. Released/default replacement stays 0%.
 
+Forty-first executable active-rung delta, 2026-07-16: inferred direct generic
+calls rooted in assignment and value-return lanes now cross the same semantic
+specialization owner, self MIR rows, and hard emitter as initializer calls.
+The new fixture assigns `Identity(41)` and returns `Identity(return_value)`;
+C-built and LLVM-built DRV-2 drivers emit `Identity_Int` in both lanes, match
+the native MIR/C/run oracle, and reject graph-only argument mutations while
+the source call text remains unchanged. The semantic producer is statically
+forbidden from calling `ExprType`, `StringTrim`, or `Substring`, so this does
+not add a source-text specialization path. Member generic calls, nested generic
+locals, and the remaining 30 MIR fixtures are outside this focused proof.
+Released/default replacement stays 0%.
+
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,
 and zero semantic fallback. It proves that the current array-literal,

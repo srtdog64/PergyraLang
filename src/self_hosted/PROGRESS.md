@@ -685,6 +685,16 @@ remaining mixed-expression blocker is therefore exact: semantic owner rows
 still carry expression text into lowering. Codegen no longer has a direct arena
 payload recovery API that can bypass those owners.
 
+The focused inferred-generic extension now covers assignment and value-return
+roots in addition to local initializers. `SemanticAstGenericSpecializationFacts`
+remains the only specialization owner; self MIR and hard codegen consume its
+call-node and actual-type rows. C-built and LLVM-built DRV-2 drivers matched
+native MIR, emitted C, and run output for the selected thirty-first MIR fixture.
+Changing only the assignment or return graph leaf failed closed under both
+backends, and the producer is ratcheted against `ExprType` and text slicing.
+The complete 31-fixture DRV-2 matrix was not rerun in this slice, and released
+or default replacement remains 0%.
+
 The same bounded closure is now modeled in
 `docs/semantics/proofs/SoTAuthority.v`. Rocq/Coq checks owner completeness,
 uniqueness, required consumption, and zero semantic fallback, while

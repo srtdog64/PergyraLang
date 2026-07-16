@@ -2961,6 +2961,24 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_inferred_generic_value'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'inferred actual drift was accepted'
+require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 31;"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'mir_fixture_rows[@]}" -ne 31'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    'inferred return drift was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    'Identity_Int(41)'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    'Identity_Int(return_value)'
+reject_function_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromBody(" "ExprType("
+reject_function_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromBody(" "StringTrim("
+reject_function_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
+    "func SemanticAstGenericSpecializationFactsFromBody(" "Substring("
 require_file "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \

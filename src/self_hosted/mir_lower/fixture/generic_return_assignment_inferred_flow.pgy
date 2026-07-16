@@ -1,0 +1,13 @@
+func Identity<T>(identity_value: T) -> T {
+    return identity_value;
+}
+
+func ReturnIdentity(return_value: Int) -> Int {
+    return Identity(return_value);
+}
+
+func Main() -> Void {
+    let result: Int = 0;
+    result = Identity(41);
+    Log(ToString(ReturnIdentity(result)));
+}
