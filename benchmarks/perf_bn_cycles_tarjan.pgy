@@ -1,0 +1,66 @@
+// perf_bn_cycles_tarjan.pgy
+//
+// B_n cycle tally, SINGLE method = primitive tree-based union-find (NO rank, NO
+// path compression -- the reference's "honorific Tarjan"). Sibling of
+// perf_bn_cycles_loops.pgy; the union-find walk replaces the Loops endpoint
+// walk. Cycle count = number of roots (parent[k]==k) after unioning each node
+// with its image. Inlined hot loop, scratch reused.
+//
+// N=10 benchmark scale: total = 3,715,891,200 (verified). MEASURED n=9 (this
+// box, serial, C backend): pgy-C 29.76s vs hand-C 26.35s = 1.13x -- C-class,
+// same as Loops (1.14x). Tarjan is ~1.87x the Loops variant here (two chain
+// walks per edge without compression). n=10 serial is ~17 min (not run under the
+// tool cap); baseline_bn_tarjan.c is the hand-C port.
+func HeapGen(
+    k: Int, inout perm: Array<Int>, n: Int,
+    inout hist: Array<Long>, inout next: Array<Int>, inout parent: Array<Int>
+) -> Void {
+    if k == 1 {
+        let twoN: Int = n + n;
+        let limit: Int = 1; let bb: Int = 0;
+        while bb < n { limit = limit * 2; bb = bb + 1; }
+        let mask: Int = 0;
+        while mask < limit {
+            let m: Int = mask; let i: Int = 0;
+            while i < n {
+                let bit: Int = m - (m / 2) * 2; let v: Int = perm[i];
+                if bit == 0 { next[i] = v - 1; next[n + i] = n + v - 1; }
+                if bit == 1 { next[i] = n + v - 1; next[n + i] = v - 1; }
+                m = m / 2; i = i + 1;
+            }
+            let r: Int = 0; while r < twoN { parent[r] = r; r = r + 1; }
+            let j: Int = 0;
+            while j < twoN {
+                let ra: Int = j; while parent[ra] != ra { ra = parent[ra]; }
+                let rb: Int = next[j]; while parent[rb] != rb { rb = parent[rb]; }
+                if ra != rb { parent[ra] = rb; }
+                j = j + 1;
+            }
+            let cycles: Int = 0; let kk: Int = 0;
+            while kk < twoN { if parent[kk] == kk { cycles = cycles + 1; } kk = kk + 1; }
+            hist[cycles] = hist[cycles] + 1L;
+            mask = mask + 1;
+        }
+        return;
+    }
+    let i: Int = 0;
+    while i < k - 1 {
+        HeapGen(k - 1, perm, n, hist, next, parent);
+        let even: Int = k - (k / 2) * 2;
+        if even == 0 { let t: Int = perm[i]; perm[i] = perm[k - 1]; perm[k - 1] = t; }
+        if even == 1 { let t: Int = perm[0]; perm[0] = perm[k - 1]; perm[k - 1] = t; }
+        i = i + 1;
+    }
+    HeapGen(k - 1, perm, n, hist, next, parent);
+}
+func Main() -> Void {
+    let n: Int = 10; let twoN: Int = n + n; let histLen: Int = twoN + 1;
+    let mut perm: Array<Int> = []; for k in 0..n { ArrayPush(perm, k + 1); }
+    let mut hist: Array<Long> = []; for k in 0..histLen { ArrayPush(hist, 0L); }
+    let mut next: Array<Int> = []; for k in 0..twoN { ArrayPush(next, 0); }
+    let mut parent: Array<Int> = []; for k in 0..twoN { ArrayPush(parent, 0); }
+    HeapGen(n, perm, n, hist, next, parent);
+    let total: Long = 0L; let c: Int = 0;
+    while c < histLen { total = total + hist[c]; c = c + 1; }
+    Log("total=" + ToString(total));
+}

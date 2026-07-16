@@ -58,3 +58,14 @@ n=10 -> 3,715,891,200), so this is apples-to-apples on identical output.
 - `baseline_bn_loops.c` / `.f90`   hand-C / Fortran serial
 - `baseline_bn_par.c` / `.f90`     hand-C / Fortran OpenMP parallel
 - `run_bn_compare.sh`           manual reproduction runner
+
+## Tarjan (union-find, no rank / no compression), n=9
+
+| language | serial  | vs C  |
+|----------|---------|-------|
+| hand-C   | 26.35s  | 1.00x |
+| Pergyra  | 29.76s  | 1.13x |
+
+Tarjan is ~1.87x the Loops variant on this machine (two parent-chain walks per
+edge with no path compression); Pergyra stays C-class (1.13x, matching Loops's
+1.14x) on both algorithms. `perf_bn_cycles_tarjan.pgy` / `baseline_bn_tarjan.c`.
