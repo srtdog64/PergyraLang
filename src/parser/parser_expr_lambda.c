@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 
 bool
 parser_is_lambda_start(Parser *parser)
@@ -39,11 +40,10 @@ static ASTNode*
 parse_pipe_lambda_param(Parser* parser)
 {
     if (parser_match(parser, TOKEN_LPAREN)) {
-        ASTNode* tuple = calloc(1, sizeof(ASTNode));
+        ASTNode* tuple = ast_create_node(AST_TUPLE_LITERAL);
         size_t cap = 4;
         if (tuple == NULL)
             return NULL;
-        tuple->type = AST_TUPLE_LITERAL;
         tuple->line = parser->previous_token.line;
         tuple->data.tuple_literal.elements = calloc(cap, sizeof(ASTNode *));
         tuple->data.tuple_literal.count = 0;

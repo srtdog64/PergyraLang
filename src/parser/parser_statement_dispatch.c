@@ -4,6 +4,7 @@
  */
 
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 
 ASTNode* parser_parse_statement(Parser* parser) {
     parser_collect_doc_comments(parser);
@@ -139,8 +140,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         Token mod_name = parser_consume(parser, TOKEN_IDENTIFIER,
             "Expected module name after 'use'");
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after use");
-        ASTNode *use_node = calloc(1, sizeof(ASTNode));
-        use_node->type = AST_USE_DECL;
+        ASTNode *use_node = ast_create_node(AST_USE_DECL);
         use_node->line = mod_name.line;
         use_node->column = mod_name.column;
         use_node->data.use_decl.module_name = pergyra_strndup(mod_name.text, mod_name.length);
@@ -368,8 +368,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
             label = pergyra_strndup(label_tok.text, label_tok.length);
         }
         parser_consume_statement_terminator(parser, "Expected ';' after break");
-        ASTNode *node = calloc(1, sizeof(ASTNode));
-        node->type = AST_BREAK;
+        ASTNode *node = ast_create_node(AST_BREAK);
         node->line = parser->previous_token.line;
         node->data.break_stmt.label = label;
         return parser_finalize_statement(parser, node);
@@ -384,8 +383,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
             label = pergyra_strndup(label_tok.text, label_tok.length);
         }
         parser_consume_statement_terminator(parser, "Expected ';' after continue");
-        ASTNode *node = calloc(1, sizeof(ASTNode));
-        node->type = AST_CONTINUE;
+        ASTNode *node = ast_create_node(AST_CONTINUE);
         node->line = parser->previous_token.line;
         node->data.continue_stmt.label = label;
         return parser_finalize_statement(parser, node);

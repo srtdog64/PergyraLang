@@ -64,6 +64,9 @@ typedef struct
     int     scope_depth;
     int     recursion_depth;
     int     binary_op_count;
+    int     expr_root_depth;
+    int     error_count;
+    bool    panic_mode;
     StructuredComment *pending_doc_comment;
     const char *source_path;
     char   **decl_hint_names;

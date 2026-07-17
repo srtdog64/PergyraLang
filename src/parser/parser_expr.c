@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 #include "../common/match_variant_policy.h"
 #include "../common/numeric_parse.h"
 
@@ -8,8 +9,14 @@ ASTNode* parse_pipe(Parser* parser);
  * Operator-chain cap. Left-associative binary chains (a < b < c < ...) build a
  * left-deep AST iteratively; the later recursive tree walks (semantic check,
  * codegen, destroy) would overflow the native stack on a pathologically long
- * chain. parser->binary_op_count is reset per top-level expression and capped
- * here so the deep node is never built.
+ * chain. parser->binary_op_count is reset per expression ROOT (tracked by
+ * parser->expr_root_depth) and capped here so the deep node is never built.
+ *
+ * The reset used to key on recursion_depth == 0, which block parsing keeps
+ * >= 1 inside every function body -- so the count silently accumulated
+ * ACROSS statements and a legal 5000-statement function with one operator
+ * per line was rejected at statement ~4096 (caught by
+ * tests/adversarial_input_smoke.sh big_valid, docs/189 C14).
  */
 #define PARSER_MAX_EXPR_OPERATORS 4096
 
@@ -116,11 +123,13 @@ parser_name_is_builtin_like_identifier(const char *name)
 
 ASTNode* parser_parse_expression(Parser* parser) {
     ASTNode* result;
-    if (parser->recursion_depth == 0)
+    if (parser->expr_root_depth == 0)
         parser->binary_op_count = 0;
     if (!parser_enter_recursion(parser))
         return NULL;
+    parser->expr_root_depth++;
     result = parser_parse_assignment(parser);
+    parser->expr_root_depth--;
     parser_leave_recursion(parser);
     return result;
 }
@@ -444,8 +453,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
     }
 
     if (parser_match(parser, TOKEN_LBRACKET)) {
-        ASTNode *arr = calloc(1, sizeof(ASTNode));
-        arr->type = AST_ARRAY_LITERAL;
+        ASTNode *arr = ast_create_node(AST_ARRAY_LITERAL);
         arr->line = parser->previous_token.line;
         arr->data.array_literal.elements = NULL;
         arr->data.array_literal.count = 0;
@@ -599,9 +607,8 @@ ASTNode* parser_parse_primary(Parser* parser) {
     if (parser_match(parser, TOKEN_LPAREN)) {
         if (parser_check(parser, TOKEN_RPAREN)) {
             /* Unit value `()` -- a zero-element tuple literal. */
-            ASTNode *unit = calloc(1, sizeof(ASTNode));
+            ASTNode *unit = ast_create_node(AST_TUPLE_LITERAL);
             if (unit != NULL) {
-                unit->type = AST_TUPLE_LITERAL;
                 unit->line = parser->previous_token.line;
                 unit->data.tuple_literal.elements = NULL;
                 unit->data.tuple_literal.count = 0;
@@ -611,8 +618,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
         }
         ASTNode* first = parser_parse_expression(parser);
         if (parser_check(parser, TOKEN_COMMA)) {
-            ASTNode *tuple = calloc(1, sizeof(ASTNode));
-            tuple->type = AST_TUPLE_LITERAL;
+            ASTNode *tuple = ast_create_node(AST_TUPLE_LITERAL);
             tuple->line = parser->previous_token.line;
             size_t cap = 4;
             tuple->data.tuple_literal.elements = calloc(cap, sizeof(ASTNode *));

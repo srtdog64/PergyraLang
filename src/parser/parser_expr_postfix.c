@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 
 static bool
 parser_token_is_range_separator(Token token)
@@ -228,9 +229,8 @@ parser_parse_call(Parser *parser)
                 "Expected ']' after array index");
             expr = ast_create_array_access(expr, index);
         } else if (parser_match(parser, TOKEN_QUESTION)) {
-            ASTNode *try_node = calloc(1, sizeof(ASTNode));
+            ASTNode *try_node = ast_create_node(AST_UNARY);
             if (try_node != NULL) {
-                try_node->type = AST_UNARY;
                 try_node->line = parser->previous_token.line;
                 try_node->data.unary.op = parser->previous_token;
                 try_node->data.unary.op.text = NULL;

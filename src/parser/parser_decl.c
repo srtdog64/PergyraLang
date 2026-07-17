@@ -1,4 +1,5 @@
 ﻿#include "parser_internal.h"
+#include "ast_constructors_internal.h"
 #include <string.h>
 
 static bool
@@ -514,13 +515,12 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
                 ASTNode *destructure;
 
                 parser_advance(parser); /* consume '(' */
-                destructure = calloc(1, sizeof(ASTNode));
+                destructure = ast_create_node(AST_LET_DESTRUCTURE);
                 if (destructure == NULL) {
                     parser_error(parser,
                         "Out of memory parsing class destructuring");
                     return class_decl;
                 }
-                destructure->type = AST_LET_DESTRUCTURE;
                 destructure->line = parser->previous_token.line;
                 destructure->column = parser->previous_token.column;
                 destructure->data.let_destructure.names = NULL;

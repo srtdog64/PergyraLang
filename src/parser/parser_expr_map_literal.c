@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 
 static bool
 parser_grow_map_entry_arrays(Parser *parser, ASTNode *map, size_t *capacity)
@@ -60,24 +61,22 @@ parse_map_literal_expression(Parser *parser)
                    "Expected '{' to begin map or set literal");
 
     if (parser_check(parser, TOKEN_RBRACE)) {
-        ASTNode *set = calloc(1, sizeof(ASTNode));
+        ASTNode *set = ast_create_node(AST_SET_LITERAL);
         if (set == NULL) {
             parser_error(parser, "Out of memory while parsing set literal");
             return NULL;
         }
-        set->type = AST_SET_LITERAL;
         set->line = line;
         set->column = col;
         parser_advance(parser);
         return set;
     }
     if (parser_check(parser, TOKEN_COLON)) {
-        ASTNode *map = calloc(1, sizeof(ASTNode));
+        ASTNode *map = ast_create_node(AST_MAP_LITERAL);
         if (map == NULL) {
             parser_error(parser, "Out of memory while parsing map literal");
             return NULL;
         }
-        map->type = AST_MAP_LITERAL;
         map->line = line;
         map->column = col;
         parser_advance(parser);
@@ -89,7 +88,7 @@ parse_map_literal_expression(Parser *parser)
     first = parser_parse_expression(parser);
 
     if (parser_check(parser, TOKEN_COLON)) {
-        ASTNode *map = calloc(1, sizeof(ASTNode));
+        ASTNode *map = ast_create_node(AST_MAP_LITERAL);
         size_t capacity = 0;
         ASTNode *value;
         if (map == NULL) {
@@ -97,7 +96,6 @@ parse_map_literal_expression(Parser *parser)
             ast_destroy(first);
             return NULL;
         }
-        map->type = AST_MAP_LITERAL;
         map->line = line;
         map->column = col;
         parser_advance(parser);
@@ -128,14 +126,13 @@ parse_map_literal_expression(Parser *parser)
     }
 
     {
-        ASTNode *set = calloc(1, sizeof(ASTNode));
+        ASTNode *set = ast_create_node(AST_SET_LITERAL);
         size_t capacity = 0;
         if (set == NULL) {
             parser_error(parser, "Out of memory while parsing set literal");
             ast_destroy(first);
             return NULL;
         }
-        set->type = AST_SET_LITERAL;
         set->line = line;
         set->column = col;
         if (!parser_append_expr_node_with_capacity(parser,

@@ -5,6 +5,7 @@
  */
 
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 #include <stdint.h>
 
 static bool
@@ -339,8 +340,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
 
                     // Wrap in a let-like assignment: let var_name = <-channel
                     ASTNode* var_id = ast_create_identifier(var_name.text);
-                    ASTNode* assign = calloc(1, sizeof(ASTNode));
-                    assign->type = AST_ASSIGNMENT;
+                    ASTNode* assign = ast_create_node(AST_ASSIGNMENT);
                     assign->data.assignment.target = var_id;
                     assign->data.assignment.value = recv;
                     case_node = assign;

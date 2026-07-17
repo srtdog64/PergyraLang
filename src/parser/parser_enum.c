@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 
 static bool
 parser_append_enum_method(Parser *parser, ASTNode *node, ASTNode *method)
@@ -146,8 +147,7 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after enum name");
 
-    node = calloc(1, sizeof(ASTNode));
-    node->type = AST_ENUM_DECL;
+    node = ast_create_node(AST_ENUM_DECL);
     node->line = name_tok.line;
     node->data.enum_decl.name = pergyra_strndup(name_tok.text, name_tok.length);
     node->data.enum_decl.variants = NULL;

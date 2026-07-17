@@ -4,6 +4,7 @@
  */
 
 #include "parser_internal.h"
+#include "ast_constructors_internal.h"
 #include "../semantic/diag_codes.h"
 #include "../common/string_compat.h"
 #include <stdint.h>
@@ -150,17 +151,39 @@ void parser_consume_statement_terminator(Parser* parser, const char* message) {
     parser_consume(parser, TOKEN_SEMICOLON, message);
 }
 
-// 에러 처리
+/*
+ * Error reporting (docs/189 C10). Recovery dynamics are unchanged --
+ * has_error stays sticky and the statement loops keep synchronizing on
+ * it -- but reporting is no longer first-error-only:
+ *
+ * - panic_mode suppresses the cascade INSIDE the failing statement
+ *   (set here, cleared when parser_synchronize reaches a boundary), so
+ *   one defect prints one diagnostic;
+ * - the FIRST error still lands in parser->error_msg, the single slot
+ *   every existing consumer (driver_diag code-prefix router, LSP) reads;
+ * - errors found in later statements after recovery print immediately to
+ *   stderr in the same rendered format, capped at
+ *   PARSER_MAX_REPORTED_ERRORS so hostile input cannot spam.
+ */
+#define PARSER_MAX_REPORTED_ERRORS 20
+
 void parser_error(Parser* parser, const char* format, ...) {
     va_list args;
     char *message;
+    char *rendered;
+    bool first;
 
     if (parser == NULL)
         return;
-    if (parser->has_error)
+    if (parser->panic_mode)
+        return;
+    if (parser->error_count >= PARSER_MAX_REPORTED_ERRORS)
         return;
 
+    first = !parser->has_error;
     parser->has_error = true;
+    parser->panic_mode = true;
+    parser->error_count++;
 
     /* Heap-exact throughout: the rendered text is what the user (and the
      * code-prefix router in driver_diag) actually consumes, so no stage of
@@ -170,15 +193,14 @@ void parser_error(Parser* parser, const char* format, ...) {
     message = pergyra_strdup_vprintf(format, args);
     va_end(args);
 
-    free(parser->error_msg);
     if (parser->current_token.type == TOKEN_ERROR && parser->lexer != NULL) {
         const char *lex_error = lexer_get_error(parser->lexer);
-        parser->error_msg = pergyra_strdup_printf(
+        rendered = pergyra_strdup_printf(
             "%s at line %d, column %d",
             lex_error != NULL ? lex_error : "Lexer error",
             parser->current_token.line, parser->current_token.column);
     } else {
-        parser->error_msg = pergyra_strdup_printf(
+        rendered = pergyra_strdup_printf(
             "%s\nCode: %s\nReason: %s\nFix: %s at line %d, column %d",
             message != NULL ? message : "parse error",
             PGY_CODE_PARSE_SYNTAX,
@@ -187,10 +209,23 @@ void parser_error(Parser* parser, const char* format, ...) {
             parser->current_token.line, parser->current_token.column);
     }
     free(message);
+
+    if (first) {
+        free(parser->error_msg);
+        parser->error_msg = rendered;
+    } else {
+        fprintf(stderr, "pgy: parse error: %s\n",
+                rendered != NULL ? rendered : "parse error");
+        free(rendered);
+        if (parser->error_count == PARSER_MAX_REPORTED_ERRORS)
+            fprintf(stderr,
+                    "pgy: parse error: further parse errors suppressed "
+                    "(limit %d)\n", PARSER_MAX_REPORTED_ERRORS);
+    }
 }
 
 // 에러 복구 - 다음 문장까지 건너뛰기
-void parser_synchronize(Parser* parser) {
+static void parser_synchronize_scan(Parser* parser) {
     parser_advance(parser);
 
     while (!parser_is_at_end(parser)) {
@@ -246,6 +281,15 @@ void parser_synchronize(Parser* parser) {
 
         parser_advance(parser);
     }
+}
+
+void parser_synchronize(Parser* parser) {
+    parser_synchronize_scan(parser);
+    /* Reaching a statement boundary ends the cascade-suppression window:
+     * the next defect is a distinct error and reports again (docs/189
+     * C10; capped in parser_error). */
+    if (parser != NULL)
+        parser->panic_mode = false;
 }
 
 // 파싱 종료 확인
@@ -497,8 +541,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
     /* Destructuring: let (a, b, c) = expr; */
     if (parser_check(parser, TOKEN_LPAREN)) {
         parser_advance(parser);  /* consume '(' */
-        ASTNode *node = calloc(1, sizeof(ASTNode));
-        node->type = AST_LET_DESTRUCTURE;
+        ASTNode *node = ast_create_node(AST_LET_DESTRUCTURE);
         node->line = parser->previous_token.line;
         node->column = parser->previous_token.column;
         node->data.let_destructure.names = NULL;

@@ -12,6 +12,9 @@
 #ifdef _WIN32
 #include <fcntl.h>
 #include <io.h>
+#include <windows.h>
+#else
+#include <sys/select.h>
 #endif
 
 #include "../common/numeric_parse.h"
@@ -20,6 +23,15 @@
 #include "../runtime/pgy_runtime_observability_schema.h"
 #include "pgy_lsp_internal.h"
 
+/*
+ * 256KB message cap. Load-bearing survivability invariant (docs/189 C9):
+ * a document arriving over LSP is bounded by this cap, and a <=256KB
+ * source cannot produce anywhere near the 1M-node AST budget whose
+ * exhaustion exit(1)s the process -- so the batch compiler's
+ * bounded-refusal path is structurally unreachable from editor input.
+ * Oversized messages are drained and skipped (never kill the server);
+ * see lsp_read_message.
+ */
 #define PGY_LSP_MESSAGE_BUFFER_SIZE 262144u /* 256KB for messages */
 
 static void
@@ -71,8 +83,29 @@ lsp_read_message(char *msg_buf, size_t msg_buf_size)
             break;
     }
 
-    if (!saw_content_length || content_length >= msg_buf_size)
+    if (!saw_content_length)
         return NULL;
+
+    if (content_length >= msg_buf_size) {
+        /* A persistent server must survive an oversized message: drain the
+         * payload so the stream stays framed, then skip it (docs/189 C9).
+         * The old behavior returned NULL, which the main loop treated as
+         * EOF -- one large didOpen killed the whole server. */
+        char sink[4096];
+        size_t remaining = content_length;
+        while (remaining > 0) {
+            size_t chunk = remaining < sizeof(sink) ? remaining : sizeof(sink);
+            size_t n = fread(sink, 1, chunk, stdin);
+            if (n == 0)
+                return NULL;
+            remaining -= n;
+        }
+        fprintf(stderr,
+                "pgy-lsp: skipped a %zu-byte message exceeding the %u-byte cap\n",
+                content_length, PGY_LSP_MESSAGE_BUFFER_SIZE);
+        msg_buf[0] = '\0';
+        return msg_buf;
+    }
 
     size_t read_total = 0;
     while (read_total < content_length) {
@@ -83,6 +116,36 @@ lsp_read_message(char *msg_buf, size_t msg_buf_size)
     }
     msg_buf[content_length] = '\0';
     return msg_buf;
+}
+
+/*
+ * True when at least one more client message is already waiting on stdin.
+ * Used to coalesce didChange bursts: re-analyzing on every keystroke
+ * message is wasted work when the next edit is already queued -- only the
+ * last message of a burst pays for diagnostics (docs/189 C9). Falls back
+ * to "nothing pending" (analyze every message) when the peek is not
+ * supported, which is the previous behavior.
+ */
+static bool
+lsp_stdin_has_pending(void)
+{
+#ifdef _WIN32
+    HANDLE h = (HANDLE)_get_osfhandle(_fileno(stdin));
+    DWORD avail = 0;
+
+    if (h == INVALID_HANDLE_VALUE)
+        return false;
+    if (!PeekNamedPipe(h, NULL, 0, NULL, &avail, NULL))
+        return false;
+    return avail > 0;
+#else
+    fd_set rfds;
+    struct timeval tv = { 0, 0 };
+
+    FD_ZERO(&rfds);
+    FD_SET(0, &rfds);
+    return select(1, &rfds, NULL, NULL, &tv) > 0;
+#endif
 }
 
 static void
@@ -116,7 +179,7 @@ respond_initialize(int id)
 
 static void
 store_document_text(char *doc_uri, size_t doc_uri_size, char **doc_content,
-                    const char *uri, const char *text)
+                    const char *uri, const char *text, bool analyze)
 {
     if (uri != NULL) {
         lsp_copy_string(doc_uri, doc_uri_size, uri);
@@ -124,7 +187,8 @@ store_document_text(char *doc_uri, size_t doc_uri_size, char **doc_content,
     if (text != NULL) {
         free(*doc_content);
         *doc_content = pergyra_strdup(text);
-        publish_diagnostics(doc_uri, *doc_content);
+        if (analyze)
+            publish_diagnostics(doc_uri, *doc_content);
     }
 }
 
@@ -234,12 +298,15 @@ main(int argc, char **argv)
             uri_copy[0] = '\0';
             json_find_string_copy(msg, "uri", uri_copy, sizeof(uri_copy));
             store_document_text(doc_uri, sizeof(doc_uri), &doc_content,
-                                uri_copy[0] ? uri_copy : NULL, text);
+                                uri_copy[0] ? uri_copy : NULL, text, true);
             free(text);
         } else if (strcmp(method, "textDocument/didChange") == 0) {
             char *text = json_find_string_dup(msg, "text");
+            /* Coalesce bursts: when the next message is already queued,
+             * store the text but defer diagnostics to the burst's last
+             * message (docs/189 C9). */
             store_document_text(doc_uri, sizeof(doc_uri), &doc_content,
-                                NULL, text);
+                                NULL, text, !lsp_stdin_has_pending());
             free(text);
         } else if (strcmp(method, "textDocument/completion") == 0) {
             lsp_respond(id, lsp_completion_items);
