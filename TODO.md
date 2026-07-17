@@ -10571,17 +10571,39 @@ RT 계열.
   본문이라 오브젝트 캐시(현 `PGY_LLVM_ENABLED` 전용)만으로 안 됨 —
   inline→extern ABI 재구조화(트윈 규율·strip 목록 동반)가 필요한
   워크스트림. 패치 아님, 별도 착수.
-- **잔여 asan + `.bc`-on CI 잡 (Linux-러너 검증 필요, 스테이징)**: 이
-  Windows 박스엔 libasan 없어 `make test-asan`이 hard-fail(self-skip
-  아님 — sanitizer_compile_smoke.sh:29), CI는 `.bc`를 안 만듦. 둘 다
-  Linux 러너에서만 green 확인 가능하므로 blind 배선 대신 정확한 라인만
-  준비:
-  - asan: `run 'make CC="$CI_LINUX_CC" test-asan'` (자체 ASAN_BUILD_DIR,
-    LLVM_ENABLED=0 — 메인 빌드 무간섭).
-  - `.bc`-on: Linux clang으로 `make runtime-bc` 후
-    `PGY_RUNTIME_BC=<path> make ... llvm-test-backend-compare` 샤드 1개
-    (로컬 bc-on↔CI bc-off 구성 비대칭 해소, docs/189 C5-②). 미채택 시
-    `.bc` 경로 experimental 격하 명시가 정직.
+- **✅ asan + `.bc`-on CI (커밋 72421388, WSL로 로컬 검증 완료)**: "이
+  박스에서 검증 불가"는 **틀렸음** — WSL Ubuntu(gcc 13.3+libasan)로 진짜
+  Linux asan 완주 확인(40소스 clean + 배터리 3종 clean + "Sanitizer gate:
+  clean", 내 세션 변경분 포함). `.bc`-on은 clang의 compiler-rt로 로컬
+  11/11 확인. ① `make test-asan`(자체 ASAN_BUILD_DIR, LLVM_ENABLED=0 —
+  메인 빌드 무간섭)을 ci_linux_steps.sh에 배선. ② `backend_compare_bc_on_
+  smoke.sh` 신설(clang으로 `.bc` 빌드→PGY_RUNTIME_BC 대표 샤드, clang
+  없으면 clean-skip), redteam-repair aggregate에 편입 → CI가 bc-OFF/bc-ON
+  양 구성 테스트. **구성 비대칭 해소 완료.**
+- **잔여 ② C-backend 런타임 prelink (C14-③, scoped workstream)**:
+  **측정 확정(WSL 네이티브 gcc)**: 방출 65줄 프로그램 컴파일 480~710ms
+  중 거의 전부가 런타임 14k줄 헤더 파싱 → PCH로 **54ms(~9-10x)**, PCH
+  1회 빌드 798ms/13.5MB 상각. **설계 확정**: 안전 접근 = 공통 배치
+  케이스(`PGY_INTENT_OBSERVABILITY_ENABLED=0`)만 `pgy_emitted_prelude.h`
+  PCH로 가속, 관측성 opt-in(=1) 케이스는 현행 raw-include 폴백(PCH-miss=
+  정상). freshness는 `.bc` dir-scan 패턴 재사용, PCH-miss=정상 폴백이라
+  **정확성 무위험**(순수 가속). **왜 in-session 패치 아님**: (a) 방출
+  preamble 변경이 `test_transpile_mir_part_c.cases.h` 등 transpile golden
+  3곳을 깨는데 **유저가 지금 그 배터리(part_a/part_b)를 활발히 편집 중**,
+  (b) load-bearing C(compat) 백엔드 driver+emit 수술을 perf-only(우선순위
+  #4)로 강행하는 트레이드가 CLAUDE.md §9(정확성>성능) 위배, (c) 실측
+  컴파일 311ms로 현재 pathological 아님. → 유저 transpile 존이 settle된
+  뒤 별도 착수. 측정·설계·hazard·golden-scope 전부 확정됐으므로 착수 시
+  즉시 구현 가능.
+
+**BDFL 판정 2건(수리 아님 — 언어 정체성 결정)**:
+- **C2 `+ - *` wrap**: 이미 **정착된 결정**(signed-default 메모: wrap은
+  UB 아닌 의도된 정의된 동작). 레드팀은 결제-도메인 재고를 제기했을 뿐.
+  narrative 정정 + 방출 C 빌드-계약 방벽(#error non-GCC/Clang)은 이미
+  착지(f5a305cc). wrap→checked 승격은 **미래 질문**이지 미수리 잔여 아님.
+- **C12 Channel 표현**: 복사면 5면 **전부 닫힘**(param 포함 8efa54aa) =
+  현 상태 안전·완결. heap-핸들 승격(복사=합법 별칭)은 **미래 방향**이지
+  미수리 잔여 아님. 채택 시 현 거절들이 완화되는 enhancement.
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
