@@ -6,6 +6,19 @@
 
 #include "../common/execution_lane_kind.h"
 
+/* Compensated channel waits (WO-RT-5): the ONE home of the pool hook macro
+ * both channel-family headers expand in their unbounded waits (docs/188 R6
+ * unification -- two per-header copies could drift, and an earlier
+ * `#ifndef` guard let any preempting definition silently disable
+ * compensation). A preempting definition now fails the build instead. The
+ * hook expands at call sites inside the channel bodies, which every TU
+ * compiles after pgy_parallel.h, so definition order here is not a
+ * visibility concern. */
+#ifdef PGY_CHANNEL_BLOCKED_TICK
+#error "PGY_CHANNEL_BLOCKED_TICK is owned by pgy_runtime_channel_status.h; do not predefine it"
+#endif
+#define PGY_CHANNEL_BLOCKED_TICK() pgy_pool_channel_blocked_tick()
+
 typedef enum
 {
     PGY_RUNTIME_CHANNEL_STATUS_OK = 0,

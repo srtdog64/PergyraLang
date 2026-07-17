@@ -40,10 +40,9 @@
  * tests/channel_pool_starvation_probe.sh). Running the queued task INLINE
  * here instead was refuted by the backpressure gate: channel deps are
  * cyclic, so the helped task can nest above the parked op it depends on.
- * Timeout variants are excluded: they self-unblock by deadline. */
-#ifndef PGY_CHANNEL_BLOCKED_TICK
-#define PGY_CHANNEL_BLOCKED_TICK() pgy_pool_channel_blocked_tick()
-#endif
+ * Timeout variants are excluded: they self-unblock by deadline. The
+ * PGY_CHANNEL_BLOCKED_TICK macro itself is owned by
+ * pgy_runtime_channel_status.h (single home, fail-closed on preemption). */
 
 /* Lifecycle guard (docs/179 3a; V1 bug class #8-R): an operation on a
  * NULL or uninitialized channel is a contract VIOLATION, never a contract

@@ -16,12 +16,8 @@
 #include "pgy_runtime_channel_status.h"
 #include "pgy_parallel.h"
 
-/* Compensated channel waits (WO-RT-5) -- self-sufficient twin of the guard
- * in pgy_runtime_channel_inline.h, so this header does not depend on
- * include order for the pool hook. */
-#ifndef PGY_CHANNEL_BLOCKED_TICK
-#define PGY_CHANNEL_BLOCKED_TICK() pgy_pool_channel_blocked_tick()
-#endif
+/* PGY_CHANNEL_BLOCKED_TICK (WO-RT-5 compensation hook) is owned by
+ * pgy_runtime_channel_status.h -- single home, fail-closed on preemption. */
 
 /* Storage class for the externally-visible String channel ops (main ops here +
  * the Result adapters in pgy_runtime_channel_string_result_inline.h, included at
