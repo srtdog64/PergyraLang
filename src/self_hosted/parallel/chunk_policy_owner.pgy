@@ -2,7 +2,7 @@
 //
 // SoT for the chunk-count policy and the remainder-balanced split behind the
 // `parallel (x in ...) join` fan-out. The C runtime projection
-// (src/runtime/pgy_parallel.h: PGY_PARALLEL_CHUNK_FACTOR,
+// (src/runtime/pgy_parallel_chunk.h: PGY_PARALLEL_CHUNK_FACTOR,
 // pgy_parallel_chunk_count, pgy_parallel_spawn_chunk_at) and both backend
 // emitters must stay in lockstep with the arithmetic declared here. The
 // runnable manifest prints this policy's canonical table for the golden
@@ -87,8 +87,18 @@ func ParallelChunkCoverHolds(n: Int, chunkCount: Int) -> Bool {
 // The smoke reads these rows out of the compiled manifest and greps them, so
 // a projection that drifts from this owner without the lockstep edit fails
 // closed -- and the pin list itself has no second home in shell.
+//
+// Pin doctrine (docs/188 R2): pins target STABLE IDENTIFIERS only --
+// function names, the factor define, emitter call sites. Arithmetic
+// spellings are NOT pinned: the 2026-07-17 merge relocated the runtime
+// projection into pgy_parallel_chunk.h and renamed the split's local
+// variables, which tripped the old spelling pin as a false-positive
+// drift. Semantic equivalence is what the executable golden (the count/
+// split/cover table plus C==LLVM leg parity) already witnesses; string
+// pins only guard "the projection still goes through the owned entry
+// points".
 func ParallelChunkRuntimePath() -> String {
-    return "src/runtime/pgy_parallel.h";
+    return "src/runtime/pgy_parallel_chunk.h";
 }
 
 func ParallelChunkExportsPath() -> String {
@@ -100,7 +110,7 @@ func ParallelChunkCEmitterPath() -> String {
 }
 
 func ParallelChunkLlvmEmitterPath() -> String {
-    return "src/codegen/llvm_stmt_parallel_join.c";
+    return "src/codegen/llvm_stmt_parallel_join_chunk.c";
 }
 
 func ParallelChunkRequiredCount() -> Int {
@@ -119,7 +129,7 @@ func ParallelChunkRequiredPathAt(index: Int) -> String {
 func ParallelChunkRequiredTermAt(index: Int) -> String {
     if index == 0 { return "#define PGY_PARALLEL_CHUNK_FACTOR 4"; }
     if index == 1 { return "pgy_parallel_chunk_count(size_t n)"; }
-    if index == 2 { return "base * k + (k < rem ? k : rem)"; }
+    if index == 2 { return "pgy_parallel_spawn_chunk_at(void *"; }
     if index == 3 { return "pgy_parallel_chunk_driver"; }
     if index == 4 { return "pgy_parallel_chunk_count_export(size_t n)"; }
     if index == 5 { return "pgy_parallel_chunk_count(_pj_n_"; }

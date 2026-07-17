@@ -15,14 +15,10 @@
 #   4. self-test: the pin check must be able to report absence (the owner's
 #      known-missing sentinel term must NOT be found).
 #
-# Standalone runner (WO-RT-3 precedent): registration rows in
-# src/self_hosted/OWNERS.md, tests/self_hosted_component_contract_smoke.sh
-# and the artifact-kind row in
-# src/self_hosted/compiler/artifact_zone_owner.pgy (which would let this
-# gate ride the self-hosted backend-output comparator) are deferred while
-# those files are owned by a concurrent workstream; until then the golden
-# and leg comparisons are plain byte diffs. The TODO board WO-RT-4 records
-# that residue.
+# Registered owner (docs/188 R2 repair): OWNERS.md rows, the component
+# contract smoke section, and the parallel_chunk_policy artifact kind are
+# in place, so the golden and LLVM-leg comparisons ride the self-hosted
+# backend-output comparator (the same tool the other parity gates trust).
 #
 # Usage: PGY_BIN=bin/pgy.exe bash tests/selfhost_parallel_chunk_policy_smoke.sh
 
@@ -86,47 +82,12 @@ if [[ "$C_RC" -ne 0 ]]; then
     exit 1
 fi
 
-# 1) golden diff (byte-exact after newline normalization)
-EXPECTED_NORM="$BUILD_DIR/expected.norm.txt"
-pgy_selfhost_normalize_text_artifact <"$EXPECTED_FILE" >"$EXPECTED_NORM"
-if ! diff -u "$EXPECTED_NORM" "$C_OUT" >"$BUILD_DIR/golden.diff" 2>&1; then
-    echo "[$LABEL] manifest output diverges from the pinned golden table" >&2
-    cat "$BUILD_DIR/golden.diff" >&2
-    exit 1
-fi
+# 1) golden diff through the self-hosted backend-output comparator
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "$LABEL" "$BUILD_DIR" "$EXPECTED_FILE" "$C_OUT" "parallel_chunk_policy"
 
-# 2) backend invariance of the policy tool itself (LLVM leg, byte-equal)
-LLVM_BIN="$BUILD_DIR/chunk_policy_llvm.exe"
-LLVM_COMPILE_LOG="$BUILD_DIR/chunk_policy_llvm.compile.log"
-LLVM_OUT="$BUILD_DIR/chunk_policy_llvm.out"
-LLVM_ERR="$BUILD_DIR/chunk_policy_llvm.err"
-if ! (cd "$ROOT_DIR" && "$PGY" "$TOOL_ARG" --backend=llvm \
-    -o "$(pgy_path_for_compiler "$PGY" "$LLVM_BIN")" \
-    >"$LLVM_COMPILE_LOG" 2>&1); then
-    if pgy_selfhost_log_reports_no_llvm "$LLVM_COMPILE_LOG"; then
-        echo "[$LABEL] llvm-leg skipped (compiler built without LLVM backend support)"
-    else
-        echo "[$LABEL] LLVM leg compile failed" >&2
-        cat "$LLVM_COMPILE_LOG" >&2
-        exit 1
-    fi
-else
-    set +e
-    (cd "$ROOT_DIR" && "$LLVM_BIN" 2>"$LLVM_ERR" \
-        | pgy_selfhost_normalize_text_artifact >"$LLVM_OUT")
-    LLVM_RC=$?
-    set -e
-    if [[ "$LLVM_RC" -ne 0 ]]; then
-        echo "[$LABEL] LLVM-compiled manifest failed" >&2
-        cat "$LLVM_OUT" "$LLVM_ERR" >&2
-        exit 1
-    fi
-    if ! cmp -s "$C_OUT" "$LLVM_OUT"; then
-        echo "[$LABEL] LLVM-compiled manifest diverges from the C-compiled one" >&2
-        diff -u "$C_OUT" "$LLVM_OUT" >&2 || true
-        exit 1
-    fi
-fi
+# 2) backend invariance of the policy tool itself (C leg == LLVM leg)
+assert_llvm_leg "$LABEL" "$TOOL_ARG" "$BUILD_DIR"
 
 # 3) required-term pins, parsed from the OWNER's own require| rows
 term_present() { # $1 = repo-relative path, $2 = exact term
@@ -134,6 +95,7 @@ term_present() { # $1 = repo-relative path, $2 = exact term
 }
 
 require_rows=0
+selftest_path=""
 # `|| [[ -n ... ]]`: the normalized artifact has no trailing newline, and a
 # bare `read` loop would silently drop the final (unterminated) require row.
 while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
@@ -151,6 +113,9 @@ while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
         echo "[$LABEL] the chunk policy owner and this projection must move in lockstep" >&2
         exit 1
     fi
+    if [[ -z "$selftest_path" ]]; then
+        selftest_path="$pin_path"
+    fi
     require_rows=$((require_rows + 1))
 done <"$C_OUT"
 
@@ -165,7 +130,11 @@ if ! grep -qF -- "$SELFTEST_TERM" "$OWNER_SOURCE"; then
     echo "[$LABEL] self-test sentinel disappeared from the owner" >&2
     exit 1
 fi
-if term_present "src/runtime/pgy_parallel.h" "$SELFTEST_TERM"; then
+if [[ -z "$selftest_path" ]]; then
+    echo "[$LABEL] self-test has no owner-provided projection path" >&2
+    exit 1
+fi
+if term_present "$selftest_path" "$SELFTEST_TERM"; then
     echo "[$LABEL] self-test broken: known-missing term reported present" >&2
     exit 1
 fi

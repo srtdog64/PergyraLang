@@ -565,6 +565,18 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/sea/lane_executor_contract.pgy` -- runtime executor facade
   contract probe over the lane executor owner facts.
 
+## Parallel
+
+- `src/self_hosted/parallel/chunk_policy_owner.pgy` -- auto-chunk policy SoT
+  for the `parallel ... join` fan-out (WO-RT-4 B3): chunk-count policy,
+  remainder-balanced split arithmetic, in-language cover invariants, and the
+  stable-identifier pin list for every C/LLVM projection site.
+- `src/self_hosted/parallel/chunk_policy_manifest.pgy` -- runnable projection
+  over the chunk policy owner: prints the canonical count/split/cover table
+  and the require rows for the expected-artifact diff on both compiler legs
+  (`src/self_hosted/parallel/expected_chunk_policy_manifest.txt`, gate
+  `tests/selfhost_parallel_chunk_policy_smoke.sh`).
+
 ## Compiler World
 
 - `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path

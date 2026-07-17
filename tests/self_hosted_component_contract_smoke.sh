@@ -2341,6 +2341,43 @@ reject_text "src/self_hosted/sea/lane_executor_contract.pgy" "lane|MovableSchedu
 require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|Reject|(rejected)|fail_closed"
 require_text "src/self_hosted/sea/expected_executor_contract.txt" "lane|MovableScheduler|MovableExecutor|worker_join_scaffold"
 require_text "src/self_hosted/sea/expected_executor_contract_missing.txt" "missing_required|src/runtime/pgy_lane_scheduler.c|definitely_missing_lane_executor_contract_term"
+
+# --- Parallel auto-chunk policy owner (docs/186 P-B3, docs/188 R2) ---
+# The chunk policy SoT lives in Pergyra; the runnable manifest prints the
+# canonical table AND the stable-identifier require rows the standalone gate
+# greps against every C/LLVM projection site. The manifest must project the
+# owner's facts, never restate them (reject rows), and the pins must target
+# stable identifiers only -- the 2026-07-17 relocation/rename false-positive
+# is the doctrine's origin story.
+require_file "src/self_hosted/parallel/chunk_policy_owner.pgy"
+require_max_lines "src/self_hosted/parallel/chunk_policy_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/parallel/chunk_policy_owner.pgy"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "pgy.selfhost.parallel-chunk-policy.v1"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkCountFor"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkLoAt"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkHiAt"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkCoverHolds"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkRequiredPathAt"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkRequiredTermAt"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "func ParallelChunkPolicyReady"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "definitely_missing_parallel_chunk_policy_term"
+require_text "src/self_hosted/parallel/chunk_policy_owner.pgy" "src/runtime/pgy_parallel_chunk.h"
+require_file "src/self_hosted/parallel/chunk_policy_manifest.pgy"
+require_max_lines "src/self_hosted/parallel/chunk_policy_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/parallel/chunk_policy_manifest.pgy"
+require_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" 'import "chunk_policy_owner.pgy";'
+require_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "ParallelChunkPolicyReady()"
+require_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "ParallelChunkRequiredCount()"
+require_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "ParallelChunkCoverRow"
+reject_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "pgy.selfhost.parallel-chunk-policy.v1"
+reject_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "definitely_missing_parallel_chunk_policy_term"
+reject_text "src/self_hosted/parallel/chunk_policy_manifest.pgy" "src/runtime/pgy_parallel_chunk.h"
+require_file "src/self_hosted/parallel/expected_chunk_policy_manifest.txt"
+require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "schema=pgy.selfhost.parallel-chunk-policy.v1"
+require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "cover|n=200000|chunks=64|ok"
+require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "require|src/runtime/pgy_parallel_chunk.h|pgy_parallel_chunk_count(size_t n)"
+require_file "tests/selfhost_parallel_chunk_policy_smoke.sh"
+require_text "tests/selfhost_parallel_chunk_policy_smoke.sh" 'while IFS=' # parses require rows from the manifest, no shell copy of the pin list
 require_text "src/self_hosted/sea/expected_lanes.txt" "negative_live_view_requires_movability|Reject"
 require_text "src/self_hosted/sea/expected_lanes.txt" "negative_raw_channel_requires_movability|Reject"
 require_text "src/self_hosted/sea/expected_lanes.txt" "air_parallel_raw_channel_pins|PinnedZone"

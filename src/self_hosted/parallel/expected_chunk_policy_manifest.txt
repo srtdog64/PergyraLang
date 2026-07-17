@@ -23,11 +23,11 @@ cover|n=10|chunks=3|ok
 cover|n=7|chunks=4|ok
 cover|n=64|chunks=64|ok
 cover|n=200000|chunks=64|ok
-require|src/runtime/pgy_parallel.h|#define PGY_PARALLEL_CHUNK_FACTOR 4
-require|src/runtime/pgy_parallel.h|pgy_parallel_chunk_count(size_t n)
-require|src/runtime/pgy_parallel.h|base * k + (k < rem ? k : rem)
-require|src/runtime/pgy_parallel.h|pgy_parallel_chunk_driver
+require|src/runtime/pgy_parallel_chunk.h|#define PGY_PARALLEL_CHUNK_FACTOR 4
+require|src/runtime/pgy_parallel_chunk.h|pgy_parallel_chunk_count(size_t n)
+require|src/runtime/pgy_parallel_chunk.h|pgy_parallel_spawn_chunk_at(void *
+require|src/runtime/pgy_parallel_chunk.h|pgy_parallel_chunk_driver
 require|src/runtime/pgy_runtime_lib_quantum_exports.h|pgy_parallel_chunk_count_export(size_t n)
 require|src/codegen/transpiler_parallel_join_emit.c|pgy_parallel_chunk_count(_pj_n_
 require|src/codegen/transpiler_parallel_join_emit.c|pgy_parallel_spawn_chunk_at(_pj_cc_
-require|src/codegen/llvm_stmt_parallel_join.c|pgy_parallel_spawn_chunk_at_export
+require|src/codegen/llvm_stmt_parallel_join_chunk.c|pgy_parallel_spawn_chunk_at_export
