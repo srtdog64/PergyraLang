@@ -72,6 +72,57 @@ grep -Fq "backend cases compile_avg_s compile_max_s compile_max_case run_avg_s r
 grep -Fq "c 2 1.125 1.750 intent_authority_snapshot_abi 0.003 0.004 intent_authority_snapshot_abi" "$SUMMARY"
 grep -Fq "llvm 1 0.250 0.250 projection_abi 0.003 0.003 projection_abi" "$SUMMARY"
 
+# --- Measured compile-speed contract (docs/189 C14-④) -------------------
+# The synthetic block above unit-tests the summary PARSER on fixed input;
+# it never measured anything, so compiler-speed regressions landed
+# silently. This block times a real end-to-end C-backend compile of a
+# small fixed fixture. The ceiling is deliberately catastrophic-only
+# (default 60s, PGY_COMPILE_SPEED_CEILING_MS overrides): machine variance
+# is ~9% on this corpus, so a tight threshold would flake -- the contract
+# here is "compiling a 60-line program never becomes pathological"
+# (the hang/blow-up class), not a benchmark. The measured number is
+# printed so CI logs accumulate a history.
+COMPILE_SPEED_PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [ ! -x "$COMPILE_SPEED_PGY" ] && [ -x "${COMPILE_SPEED_PGY}.exe" ]; then
+    COMPILE_SPEED_PGY="${COMPILE_SPEED_PGY}.exe"
+fi
+# Windows: pgy links LLVM/runtime DLLs; without the path helpers the
+# binary cannot even launch from a bare shell.
+if [ -f "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+    pgy_prepend_windows_runtime_paths
+fi
+if [ -x "$COMPILE_SPEED_PGY" ]; then
+    SPEED_SRC="$WORK_DIR/compile_speed_probe.pgy"
+    {
+        printf 'func Main() -> Void {\n    let mut total: Int = 0;\n'
+        i=0
+        while [ "$i" -lt 60 ]; do
+            printf '    total = total + %d;\n' "$i"
+            i=$((i + 1))
+        done
+        printf '    Log(ToString(total));\n}\n'
+    } > "$SPEED_SRC"
+    SPEED_CEILING_MS="${PGY_COMPILE_SPEED_CEILING_MS:-60000}"
+    speed_start_ns="$(date +%s%N)"
+    if ! "$COMPILE_SPEED_PGY" "$SPEED_SRC" -o "$WORK_DIR/compile_speed_probe.out" \
+        >"$WORK_DIR/compile_speed_probe.log" 2>&1; then
+        echo "[perf-contract] compile-speed probe failed to compile" >&2
+        tail -5 "$WORK_DIR/compile_speed_probe.log" >&2
+        exit 1
+    fi
+    speed_end_ns="$(date +%s%N)"
+    speed_elapsed_ms=$(( (speed_end_ns - speed_start_ns) / 1000000 ))
+    echo "[perf-contract] measured end-to-end C compile: ${speed_elapsed_ms}ms (ceiling ${SPEED_CEILING_MS}ms)"
+    if [ "$speed_elapsed_ms" -gt "$SPEED_CEILING_MS" ]; then
+        echo "[perf-contract] compile-speed contract breached: ${speed_elapsed_ms}ms > ${SPEED_CEILING_MS}ms" >&2
+        exit 1
+    fi
+else
+    echo "[perf-contract] NOTE: pgy binary not present; measured compile-speed section skipped" >&2
+fi
+
 pgy_beta_checklist_contains "test-abi-perf"
 pgy_beta_checklist_contains "perf-summary"
 pgy_beta_checklist_contains "perf-c-baseline-test-smoke"
