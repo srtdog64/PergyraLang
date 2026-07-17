@@ -27,6 +27,33 @@ routine work requires selecting compiler mechanisms, and dynamic-language
 opacity, where convenience hides failure until runtime. Pergyra's target is a
 single ergonomic path backed by visible evidence and precise rejection.
 
+## Intellectual Starting Point: Computer Power and Human Reason
+
+The project founder identifies ELIZA creator Joseph Weizenbaum's *Computer
+Power and Human Reason: From Judgment to Calculation* as Pergyra's
+intellectual starting point. This is lineage, not a claim that the language
+mechanically implements the book's argument.
+
+The design consequence is concrete: computability does not by itself justify
+delegating a judgment to a machine. A Pergyra program must make the delegation
+legible by carrying intent, authority, evidence, coordination, and accepted
+loss until the last legitimate consumer. The compiler may derive mechanisms,
+but it must not silently invent policy, authority, or certainty.
+
+This gives the evidence architecture a human boundary:
+
+- `intent` states the purpose being delegated;
+- authority facts state who may authorize that delegation;
+- loss budgets state what the abstraction is allowed to discard;
+- diagnostics and IR evidence expose what the machine derived;
+- fail-closed gates prevent an implementation or AI coding agent from turning
+  missing evidence into an implicit decision.
+
+Pergyra therefore does not treat "the machine can execute it" as the final
+correctness criterion. The stronger criterion is that the machine's permitted
+decision, evidence, loss, and observable consequence remain attributable to a
+declared human or program authority boundary.
+
 ## 0. Pergyra는 시스템 언어다 — 모든 것이 그 위에 얹힌다
 
 이 문서의 모든 다른 chapter, 그리고 docs/106 / 114 / 117 / 118 같은 sister

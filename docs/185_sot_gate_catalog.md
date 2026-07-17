@@ -261,9 +261,8 @@ substitution progress.
 
 ## 6c. docs/189 Repair Gates (2026-07-18, C-compiler-dev red team)
 
-New standalone gates from the repair campaign; each is runnable directly
-and awaits Makefile-target wiring (coordinate with the in-flight CI
-repair before adding targets):
+Standalone gates from the repair campaign. They are wired through the
+Makefile and run as the `redteam-repair-contract-test-smoke` cluster:
 
 - `tests/runtime_bc_contract_smoke.sh` — bitcode-twin contract pins:
   `.bc` build mirrors `-fwrapv`/`-fno-strict-aliasing`, strip predicates
@@ -308,6 +307,14 @@ Campaign-close status (2026-07-18):
   fixed seeds + `fuzz-backend-parity-campaign` env-seed rotated by
   `GITHUB_RUN_NUMBER`) is now gated, closing the "free oracle only ran on
   a fixed corpus" gap.
+- ✅ **Semantic flow-universe pointer lifetime**: stable resource-flow
+  identity owns an index plus copied declaration metadata, never a
+  scope-owned `Symbol *`. `dir-resource-flow-identity-test-smoke` forbids
+  the old pointer cache and requires the nested-block regression; the
+  semantic ASan/UBSan battery executes the block-teardown UAF shape.
+- ✅ **ASan and `.bc`-on Linux CI** (commit `72421388`): the sanitizer unit
+  battery and a runtime-bitcode-enabled backend comparison are explicit
+  Linux steps. Missing sanitizer support fails rather than self-skipping.
 
 Genuine residues (workstream-scale or runner-gated, not forgotten):
 
@@ -316,12 +323,6 @@ Genuine residues (workstream-scale or runner-gated, not forgotten):
   the 14k-line recompile — it needs an inline→extern ABI restructuring
   of the runtime (with the twin discipline and strip list following). A
   workstream, not a patch.
-- **asan + `.bc`-on CI jobs** (docs/189 C13/C5-②): both need the Linux
-  runner to verify — this box has no libasan (`make test-asan` hard-fails
-  rather than self-skipping) and CI never builds the `.bc`. Exact
-  ready-to-wire lines are staged in TODO board WO-RED2; they land with
-  the CI-repair track rather than blind.
-
 ## 7. Next Execution Order
 
 1. Keep the mixed expression bridge as the active executable rung. Concrete

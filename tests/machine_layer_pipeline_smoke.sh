@@ -52,6 +52,7 @@ C_OUT="$WORK_DIR/machine.c"
 LLVM_OUT="$WORK_DIR/machine.ll"
 C_REMOTE_OUT="$WORK_DIR/remote.c"
 LLVM_REMOTE_OUT="$WORK_DIR/remote.ll"
+LLVM_AVAILABLE=1
 
 compiler_path() {
     pgy_path_for_compiler "$PGY" "$1"
@@ -90,21 +91,31 @@ compiler_path() {
     cat "$WORK_DIR/c.err" >&2
     fail "C backend rejected the direct DeviceRead fixture"
 }
-"$PGY" "$(compiler_path "$SOURCE_READ")" --backend=llvm --emit-llvm -o "$(compiler_path "$LLVM_OUT")" \
-    >"$WORK_DIR/llvm.out" 2>"$WORK_DIR/llvm.err" || {
-    cat "$WORK_DIR/llvm.err" >&2
-    fail "LLVM backend rejected the direct DeviceRead fixture"
-}
+if ! "$PGY" "$(compiler_path "$SOURCE_READ")" --backend=llvm --emit-llvm \
+        -o "$(compiler_path "$LLVM_OUT")" \
+        >"$WORK_DIR/llvm.out" 2>"$WORK_DIR/llvm.err"; then
+    if grep -Eiq 'compiled without LLVM backend support|LLVM backend.*(not enabled|disabled|unavailable|not built)' \
+            "$WORK_DIR/llvm.err"; then
+        LLVM_AVAILABLE=0
+        echo "[machine-layer-pipeline] llvm-leg skipped (compiler built without LLVM backend support)"
+    else
+        cat "$WORK_DIR/llvm.err" >&2
+        fail "LLVM backend rejected the direct DeviceRead fixture"
+    fi
+fi
 "$PGY" "$(compiler_path "$SOURCE_REMOTE")" --backend=c --emit-c -o "$(compiler_path "$C_REMOTE_OUT")" \
     >"$WORK_DIR/c_remote.out" 2>"$WORK_DIR/c_remote.err" || {
     cat "$WORK_DIR/c_remote.err" >&2
     fail "C backend rejected the SubmitDeviceRead fixture"
 }
-"$PGY" "$(compiler_path "$SOURCE_REMOTE")" --backend=llvm --emit-llvm -o "$(compiler_path "$LLVM_REMOTE_OUT")" \
-    >"$WORK_DIR/llvm_remote.out" 2>"$WORK_DIR/llvm_remote.err" || {
-    cat "$WORK_DIR/llvm_remote.err" >&2
-    fail "LLVM backend rejected the SubmitDeviceRead fixture"
-}
+if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
+    "$PGY" "$(compiler_path "$SOURCE_REMOTE")" --backend=llvm --emit-llvm \
+        -o "$(compiler_path "$LLVM_REMOTE_OUT")" \
+        >"$WORK_DIR/llvm_remote.out" 2>"$WORK_DIR/llvm_remote.err" || {
+        cat "$WORK_DIR/llvm_remote.err" >&2
+        fail "LLVM backend rejected the SubmitDeviceRead fixture"
+    }
+fi
 
 require_file_text() {
     local path="$1"
@@ -210,14 +221,17 @@ done
 require_file_text "$C_OUT" 'pgy_machine_layer_runtime_bind_mapping_export'
 require_file_text "$C_OUT" 'UINT32_C('
 require_file_text "$C_OUT" 'machine-layer runtime bind rejected'
-for term in pgy_claim_device_ pgy_device_read_ pgy_device_write_ pgy_release_device_; do
-    require_file_text "$LLVM_OUT" "$term"
-done
-require_file_text "$LLVM_OUT" 'pgy_machine_layer_runtime_bind_mapping_export'
-require_file_text "$LLVM_OUT" 'i32 1'
-require_file_text "$LLVM_OUT" 'machine_layer_bind_fail'
+if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
+    for term in pgy_claim_device_ pgy_device_read_ pgy_device_write_ pgy_release_device_; do
+        require_file_text "$LLVM_OUT" "$term"
+    done
+    require_file_text "$LLVM_OUT" 'pgy_machine_layer_runtime_bind_mapping_export'
+    require_file_text "$LLVM_OUT" 'i32 1'
+    require_file_text "$LLVM_OUT" 'machine_layer_bind_fail'
+fi
 if grep -Fq -- 'pgy_machine_layer_runtime_bind_export(UINT64_C' "$C_OUT" \
-    || grep -Fq -- 'call i32 @pgy_machine_layer_runtime_bind_export' "$LLVM_OUT"; then
+    || { [[ "$LLVM_AVAILABLE" -eq 1 ]] \
+         && grep -Fq -- 'call i32 @pgy_machine_layer_runtime_bind_export' "$LLVM_OUT"; }; then
     fail 'backend emitted the legacy fingerprint-only machine-layer bind path'
 fi
 require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_machine_layer_inline.h" \
@@ -238,9 +252,11 @@ require_file_text "$ROOT_DIR/src/runtime/pgy_runtime_lib_machine_layer_exports.h
 # Opaque pointers alone cannot carry the distinction, so the named aggregate
 # and the DeviceSlot alloca are the negative/positive ratchet here.
 require_file_text "$C_OUT" 'PgyDeviceSlot_Int'
-require_file_text "$LLVM_OUT" '%PgySlot_Int = type'
-require_file_text "$LLVM_OUT" '%PgyDeviceSlot_Int = type'
-require_file_text "$LLVM_OUT" 'alloca %PgyDeviceSlot_Int'
+if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
+    require_file_text "$LLVM_OUT" '%PgySlot_Int = type'
+    require_file_text "$LLVM_OUT" '%PgyDeviceSlot_Int = type'
+    require_file_text "$LLVM_OUT" 'alloca %PgyDeviceSlot_Int'
+fi
 grep -A8 -F -- 'case PGY_TK_DEVICE_SLOT:' \
     "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" |
     grep -Fq -- 'return llvm_device_slot_struct_type' ||
@@ -262,7 +278,9 @@ for term in \
         fail "LLVM physical projection owner term missing: $term"
 done
 require_file_text "$C_REMOTE_OUT" pgy_submit_device_read_
-require_file_text "$LLVM_REMOTE_OUT" pgy_submit_device_read_
+if [[ "$LLVM_AVAILABLE" -eq 1 ]]; then
+    require_file_text "$LLVM_REMOTE_OUT" pgy_submit_device_read_
+fi
 
 # AIR/LSP test links are a separate consumer set from MIR_CORE_OBJECTS; keep
 # the machine-layer owner objects in that set so AIR verification cannot drift

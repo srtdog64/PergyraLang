@@ -26,7 +26,7 @@ pgy_selfhost_verify_driver_rung2_generic_struct_value() {
 
     missing_formal="${self_mir_json%.json}.missing-generic-formal.mir.json"
     sed 's/"generics":\["T"\]/"generics":[]/g' "$self_mir_json" >"$missing_formal"
-    if cmp -s "$self_mir_json" "$missing_formal"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$missing_formal")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend generic formal mutation did not apply" >&2
         exit 1
     fi
@@ -46,7 +46,7 @@ pgy_selfhost_verify_driver_rung2_generic_struct_value() {
     missing_actual="${self_mir_json%.json}.missing-generic-actual.mir.json"
     sed 's/"kind":"generic_type_actual"/"kind":"leaf"/g' \
         "$self_mir_json" >"$missing_actual"
-    if cmp -s "$self_mir_json" "$missing_actual"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$missing_actual")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend generic actual mutation did not apply" >&2
         exit 1
     fi

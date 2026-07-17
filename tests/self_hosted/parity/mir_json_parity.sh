@@ -350,7 +350,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "class_method" ]]; then
         for required in \
             '"methods":[{"name":"LengthPlus","return":"Int"}]' \
-            '"name":"LengthPlus","kind":"method","owner":"Vec2"'; do
+            '"name":"LengthPlus","kind":"method"' \
+            '"owner":"Vec2","generics"'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_method: missing MIR class method fact: $required" >&2
                 exit 1

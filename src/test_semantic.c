@@ -84,6 +84,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_core_part_a.cases.h"
 #include "tests/semantic/test_semantic_core_part_b_1.cases.h"
 #include "tests/semantic/test_semantic_core_part_b_2.cases.h"
+#include "tests/semantic/test_semantic_resource_flow_lifetime.cases.h"
 #include "tests/semantic/test_semantic_qubit_part_a.cases.h"
 #include "tests/semantic/test_semantic_qubit_part_b_1.cases.h"
 #include "tests/semantic/test_semantic_qubit_part_b_2.cases.h"
@@ -172,6 +173,7 @@ main(void)
     test_type_system();
     test_symbol_table();
     test_type_checker_slot_rules();
+    test_resource_flow_symbol_lifetime();
     test_undefined_symbol();
     test_while_loop();
     test_arrays_and_enums();

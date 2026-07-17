@@ -23,6 +23,9 @@ OUTPUT="$($DIR_TEST)"
 DRIVER_SOURCE="$(< "$ROOT_DIR/src/compiler/driver_app.c")"
 DIR_HEADER="$(< "$ROOT_DIR/src/compiler/dir.h")"
 DIR_VALIDATOR="$(< "$ROOT_DIR/src/compiler/dir_validate.c")"
+FLOW_UNIVERSE="$(< "$ROOT_DIR/src/semantic/type_checker_flow_universe.c")"
+LIFETIME_TEST="$(< "$ROOT_DIR/src/tests/semantic/test_semantic_resource_flow_lifetime.cases.h")"
+MAKEFILE_TEXT="$(< "$ROOT_DIR/Makefile")"
 [[ "$DRIVER_SOURCE" == *"dir_lower_with_hir_resource_flow_facts"* ]]
 if [[ "$DRIVER_SOURCE" == *"dir_lower_with_resource_flow_facts"* ]]; then
     echo "[dir-resource-flow] production driver reopened SemanticResult facts" >&2
@@ -30,5 +33,14 @@ if [[ "$DRIVER_SOURCE" == *"dir_lower_with_resource_flow_facts"* ]]; then
 fi
 [[ "$DIR_HEADER" == *"resource_flow_facts"* ]]
 [[ "$DIR_VALIDATOR" == *"DIR ResourceFlowUniverse snapshot is incomplete"* ]]
+[[ "$FLOW_UNIVERSE" == *"scope_lookup_current(scope, entry->name)"* ]]
+if [[ "$FLOW_UNIVERSE" == *"current_symbol"* ]]; then
+    echo "[dir-resource-flow] universe reintroduced borrowed Symbol pointer authority" >&2
+    exit 1
+fi
+[[ "$LIFETIME_TEST" == *"resource-flow facts outlive inner-block Symbol storage"* ]]
+[[ "$LIFETIME_TEST" == *"ast_assign_stable_ids(program)"* ]]
+[[ "$LIFETIME_TEST" == *"result->resource_flow_facts[i]"* ]]
+[[ "$MAKEFILE_TEXT" == *"ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser"* ]]
 
-echo "[dir-resource-flow] DIR receives the HIR-owned snapshot with stable identity and negative validation"
+echo "[dir-resource-flow] stable identity, scope-owned Symbols, inner-block lifetime regression, and ASan coverage are closed"

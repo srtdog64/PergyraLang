@@ -353,7 +353,8 @@ test_qubit_slot_semantics_part_b(void)
     TEST("ref Int parameter may be sent through channel by copy");
     {
         const char *source =
-            "func Publish(ch: Channel<Int>, ref value: Int) -> Void {\n"
+            "func Publish(ref value: Int) -> Void {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- value;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

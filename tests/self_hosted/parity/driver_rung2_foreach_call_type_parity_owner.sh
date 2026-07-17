@@ -37,7 +37,7 @@ pgy_selfhost_verify_driver_rung2_foreach_call_type() {
     missing_local="${self_mir_json%.json}.missing-synthetic-local.mir.json"
     sed 's/,{"name":"__pgy_forin_0","type":"Array<Int>"}//' \
         "$self_mir_json" >"$missing_local"
-    if cmp -s "$self_mir_json" "$missing_local"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$missing_local")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend synthetic-local mutation did not apply" >&2
         exit 1
     fi

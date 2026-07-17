@@ -245,14 +245,17 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("array access -> values[0]");
+    TEST("array access -> typed array ABI get");
     {
         ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "values", "Array<Int>");
         result = emit_expression(
             ast_create_array_access(make_identifier("values", 1),
                                     make_number(0, 1)),
             ctx);
-        EXPECT(strcmp(result, "values[0]") == 0);
+        EXPECT(strcmp(result,
+                      "({ PgyArray_Int _pgy_arr_get_1 = values; "
+                      "pgy_array_get_Int(&_pgy_arr_get_1, 0); })") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }

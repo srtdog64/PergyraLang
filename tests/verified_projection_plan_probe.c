@@ -19,6 +19,126 @@ air_requires_strict_evidence(const AIRProgram *air)
     return air != NULL && air->strict_evidence;
 }
 
+bool
+air_intent_storage_valid(const AIRProgram *air)
+{
+    return air != NULL && (air->intent_count == 0 || air->intents != NULL);
+}
+
+bool
+air_boundary_storage_valid(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->boundary_count == 0 || air->boundaries != NULL);
+}
+
+bool
+air_drift_storage_valid(const AIRProgram *air)
+{
+    return air != NULL && (air->drift_count == 0 || air->drifts != NULL);
+}
+
+bool
+air_evidence_inventory_storage_valid(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->evidence_count == 0 || air->evidence_nodes != NULL);
+}
+
+bool
+air_has_hir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_hir_input;
+}
+
+bool
+air_has_rir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_rir_input;
+}
+
+bool
+air_has_mir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_mir_input;
+}
+
+size_t
+air_intent_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->intent_count : 0;
+}
+
+const AIRIntentNode *
+air_intent_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->intent_count)
+        return NULL;
+    return &air->intents[index];
+}
+
+size_t
+air_boundary_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->boundary_count : 0;
+}
+
+const AIRBoundaryNode *
+air_boundary_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->boundary_count)
+        return NULL;
+    return &air->boundaries[index];
+}
+
+size_t
+air_drift_count(const AIRProgram *air)
+{
+    return air != NULL ? air->drift_count : 0;
+}
+
+size_t
+air_evidence_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->evidence_count : 0;
+}
+
+const AIREvidenceNode *
+air_evidence_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->evidence_count)
+        return NULL;
+    return &air->evidence_nodes[index];
+}
+
+size_t
+air_propagation_requirement_count(const AIRProgram *air)
+{
+    return air != NULL ? air->propagation_requirement_count : 0;
+}
+
+const AIRPropagationRequirement *
+air_propagation_requirement_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->propagation_requirement_count)
+        return NULL;
+    return &air->propagation_requirements[index];
+}
+
+size_t
+air_machine_layer_site_count(const AIRProgram *air)
+{
+    return air != NULL ? air->machine_layer_site_count : 0;
+}
+
+const AIRMachineLayerSite *
+air_machine_layer_site_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->machine_layer_site_count)
+        return NULL;
+    return &air->machine_layer_sites[index];
+}
+
 AIREvidenceKind
 air_evidence_node_kind(const AIREvidenceNode *evidence)
 {

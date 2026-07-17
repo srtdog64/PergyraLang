@@ -28,7 +28,7 @@ pgy_selfhost_verify_driver_rung2_array_argument() {
     malformed_graph="${self_mir_json%.json}.malformed-array-spine.mir.json"
     sed 's/"kind":"array_literal"/"kind":"leaf"/g' \
         "$self_mir_json" >"$malformed_graph"
-    if cmp -s "$self_mir_json" "$malformed_graph"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$malformed_graph")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend array-spine mutation did not apply" >&2
         exit 1
     fi

@@ -3,8 +3,9 @@
  *
  * Flow re-entry destroys and recreates block scopes, so Symbol * is not a
  * semantic identity.  This universe gives each declaration identity one
- * stable index for the duration of a function analysis and rebinds that index
- * to the currently live Symbol allocation.
+ * stable index for the duration of a function analysis.  Scope remains the
+ * sole owner of live Symbol allocations; this owner resolves a stable index
+ * through the current scope chain instead of caching a borrowed pointer.
  */
 
 #include <stdlib.h>
@@ -19,7 +20,8 @@ typedef struct
     uint32_t column;
     SymbolKind kind;
     char *name;
-    Symbol *current_symbol;
+    bool is_parameter;
+    size_t parameter_index;
 } ResourceFlowUniverseEntry;
 
 struct ResourceFlowUniverse
@@ -103,13 +105,11 @@ resource_flow_universe_bind(SemanticContext *ctx, Symbol *symbol)
 
     if (symbol->flow_universe_epoch == ctx->resource_flow_epoch
         && symbol->flow_universe_index < universe->count) {
-        universe->entries[symbol->flow_universe_index].current_symbol = symbol;
         return symbol->flow_universe_index;
     }
 
     for (index = 0; index < universe->count; index++) {
         if (resource_flow_entry_matches(&universe->entries[index], symbol)) {
-            universe->entries[index].current_symbol = symbol;
             symbol->flow_universe_epoch = ctx->resource_flow_epoch;
             symbol->flow_universe_index = index;
             return index;
@@ -148,7 +148,13 @@ resource_flow_universe_bind(SemanticContext *ctx, Symbol *symbol)
         }
         memcpy(entry->name, symbol->name, length);
     }
-    entry->current_symbol = symbol;
+    entry->is_parameter = symbol->is_parameter;
+    if (entry->is_parameter) {
+        for (size_t prior = 0; prior < index; prior++) {
+            if (universe->entries[prior].is_parameter)
+                entry->parameter_index++;
+        }
+    }
     symbol->flow_universe_epoch = ctx->resource_flow_epoch;
     symbol->flow_universe_index = index;
     return index;
@@ -161,7 +167,15 @@ resource_flow_universe_symbol(SemanticContext *ctx, size_t index)
         ctx != NULL ? ctx->resource_flow_universe : NULL;
     if (universe == NULL || index >= universe->count)
         return NULL;
-    return universe->entries[index].current_symbol;
+    ResourceFlowUniverseEntry *entry = &universe->entries[index];
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        Symbol *symbol = entry->name != NULL
+            ? scope_lookup_current(scope, entry->name)
+            : NULL;
+        if (resource_flow_entry_matches(entry, symbol))
+            return symbol;
+    }
+    return NULL;
 }
 
 void
@@ -252,18 +266,8 @@ resource_flow_universe_capture_function_facts(
         fact->line = entry->line;
         fact->column = entry->column;
         fact->symbol_kind = (uint32_t)entry->kind;
-        fact->is_parameter = entry->current_symbol != NULL
-            && entry->current_symbol->is_parameter;
-        fact->parameter_index = 0;
-        if (fact->is_parameter) {
-            size_t parameter_index = 0;
-            for (size_t prior = 0; prior < i; prior++) {
-                if (universe->entries[prior].current_symbol != NULL
-                    && universe->entries[prior].current_symbol->is_parameter)
-                    parameter_index++;
-            }
-            fact->parameter_index = parameter_index;
-        }
+        fact->is_parameter = entry->is_parameter;
+        fact->parameter_index = entry->parameter_index;
         if (entry->name != NULL) {
             size_t length = strlen(entry->name) + 1;
             fact->name = malloc(length);

@@ -6,7 +6,8 @@ test_mir_select_dispatch_emit(void)
     TEST("MIR select dispatch emits channel readiness in C backend");
     {
         const char *source =
-            "func SelectEdges(ch: Channel<Int>) -> Int {\n"
+            "func SelectEdges() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 1;\n"
             "    select {\n"
             "        case <-ch:\n"
@@ -87,7 +88,8 @@ test_mir_select_dispatch_emit(void)
     TEST("MIR select dispatch materializes bound receive local type");
     {
         const char *source =
-            "func SelectBound(ch: Channel<Int>) -> Int {\n"
+            "func SelectBound() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 7;\n"
             "    select {\n"
             "        case v = <-ch:\n"

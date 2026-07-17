@@ -56,10 +56,14 @@
         ASTNode *func = ast_create_function("Dispatch");
         func->data.func_decl.return_type = ast_create_type("Int");
         func->data.func_decl.body = ast_create_block();
-        func->data.func_decl.param_count = 1;
-        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
-        func->data.func_decl.params[0] =
-            make_func_param("ch", make_generic_type("Channel", "Int"));
+
+        ASTNode *channel = ast_create_let_declaration("ch");
+        ASTNode *capacity = make_number(1, 1);
+        ASTNode *channel_args[] = { capacity };
+        channel->data.let_decl.type = make_generic_type("Channel", "Int");
+        channel->data.let_decl.initializer =
+            make_call("Channel", channel_args, 1, 1);
+        ast_add_statement(func->data.func_decl.body, channel);
 
         ASTNode *pending = ast_create_let_declaration("pending");
         pending->data.let_decl.initializer =

@@ -33,7 +33,7 @@ pgy_selfhost_verify_driver_rung2_option_struct_value() {
     malformed_graph="${self_mir_json%.json}.malformed-option-struct.mir.json"
     sed 's/"kind":"call_argument","text":"Some(Pair/"kind":"leaf","text":"Some(Pair/g' \
         "$self_mir_json" >"$malformed_graph"
-    if cmp -s "$self_mir_json" "$malformed_graph"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$malformed_graph")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend Option<struct> mutation did not apply" >&2
         exit 1
     fi

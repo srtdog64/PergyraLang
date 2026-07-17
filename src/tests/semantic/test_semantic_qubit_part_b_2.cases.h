@@ -380,7 +380,8 @@
     {
         const char *source =
             "enum Mode { Idle, Active }\n"
-            "func Publish(ch: Channel<Mode>, ref mode: Mode) -> Void {\n"
+            "func Publish(ref mode: Mode) -> Void {\n"
+            "    let ch: Channel<Mode> = Channel(1);\n"
             "    ch <- mode;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

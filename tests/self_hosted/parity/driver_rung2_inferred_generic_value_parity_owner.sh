@@ -22,7 +22,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
     drifted="${self_mir_json%.json}.inferred-actual-drift.mir.json"
     sed 's/"text":"41"/"text":"\\"bad\\""/g' \
         "$self_mir_json" >"$drifted"
-    if cmp -s "$self_mir_json" "$drifted"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$drifted")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend inferred actual mutation did not apply" >&2
         exit 1
     fi
@@ -51,7 +51,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
     return_drifted="${self_mir_json%.json}.inferred-return-drift.mir.json"
     sed 's/"text":"return_value"/"text":"missing_return_value"/g' \
         "$self_mir_json" >"$return_drifted"
-    if cmp -s "$self_mir_json" "$return_drifted"; then
+    if [[ "$(<"$self_mir_json")" == "$(<"$return_drifted")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend inferred return mutation did not apply" >&2
         exit 1
     fi

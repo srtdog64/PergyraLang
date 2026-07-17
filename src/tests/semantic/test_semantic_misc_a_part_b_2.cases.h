@@ -25,7 +25,8 @@
     TEST("CFG parallel channel send consumes resource after join");
     {
         const char *source =
-            "func Main(ch: Channel<QubitSlot>) -> Void {\n"
+            "func Main() -> Void {\n"
+            "    let ch: Channel<QubitSlot> = Channel(2);\n"
             "    let q: QubitSlot = ClaimQubit();\n"
             "    parallel {\n"
             "        ch <- q;\n"
@@ -51,7 +52,8 @@
     TEST("CFG parallel channel sends reject double resource consume");
     {
         const char *source =
-            "func Main(ch: Channel<QubitSlot>) -> Void {\n"
+            "func Main() -> Void {\n"
+            "    let ch: Channel<QubitSlot> = Channel(2);\n"
             "    let q: QubitSlot = ClaimQubit();\n"
             "    parallel {\n"
             "        ch <- q;\n"
