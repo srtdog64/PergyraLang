@@ -4445,6 +4445,10 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "RuntimeCallCName(text)"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'LookupKindType(env, text, "cbind")'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" "TypeEnvSemanticValueType(env, text)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeIndex()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeLogicalNot()"

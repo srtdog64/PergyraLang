@@ -29,7 +29,7 @@ func RewriteSemanticLeaf(
             }
             return CompilerSymbolCIdentifier(text);
         }
-        if TypeEnvSemanticValueType(env, text) == "" {
+        if LookupKindType(env, text, "cbind") == "" {
             Die(Concat(
                 "semantic leaf binding fact is missing: ", text
             ));
