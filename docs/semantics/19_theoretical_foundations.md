@@ -29,9 +29,11 @@ soundness proof.
 | `effect` / `capability` | Effect systems, algebraic effects and handlers, object-capability, CHERI-style capability machines | `effect` records what may happen; `capability` records who is allowed to make it happen. | Keep the axes separate. An effect declaration is not a capability, and a runtime capability check is not an effect system. |
 | `authority` | Authorization logic, ABLP access-control calculus, dependency/control calculi | Principals, delegation, evidence, and "authorized by" obligations. | Runtime checks alone are not authorization logic. The proof obligation is explicit principal/evidence flow. |
 | `slot` / lifecycle | Linear and affine types, typestate, regions, separation logic | Ownership, lifecycle state, release/consume, and resource safety. | This is the strongest current spine. The open work is composition with zone/effect/authority, not the isolated idea of resource state. |
+| Machine Layer | Region calculi, provenance models, capability machines, volatile/atomic memory models | Address, extent, layout, access mode, ordering, and explicit contact below `Slot`. | Physical facts are not inferred from resource identity. `Slot` authority and machine placement meet only through an explicit projection binding. |
 | `intent` | Dataflow, Kahn process networks, Petri/workflow nets, saga compensation | Readiness, ordering, purpose, failure, and compensation over the other axes. | Dataflow alone is too thin. Intent needs coordination plus compensation, linked to effect, authority, zone, and slot facts. |
 | `ability` / `role` | Strachey's parametric/ad-hoc split (1967), Cardelli-Wegner polymorphism taxonomy (1985), Wadler-Blott type classes with dictionary translation (1989), modular type classes / ML functors for explicit instantiation | Surface polymorphism: `ability` is the class, `role ... impl` the instance, the IR `witness` the dictionary, `where T: Ability` the constrained quantification (docs/semantics/10 §9 audit). | Deliberate caps and shifts: no constructor classes/HKT (types are domain-coordinate carriers, docs/121); no inclusion subtyping (roles replace inheritance); coherence closed by explicit named binding instead of global instance uniqueness, plus exactly one impl per (role, ability) — gate `ability-coherence-test-smoke`. |
 | declare-not-analyze | Rice's theorem and decidability limits | Lost domain meaning must be declared instead of recovered by whole-program analysis. | This is a limit argument, not a syntax proof. |
+| delegation boundary | Weizenbaum's distinction between judgment and calculation, complete mediation, object-capability discipline | Declared purpose is attributable; automated permits require delegability, trusted authority evidence, and complete mediation. | Authorization does not prove justified delegation, actual human purpose, consent, or moral legitimacy. |
 | vocabulary | Domain-driven design and game/world modeling | Ubiquitous terms for world, zone, role, party, roster, and intent. | Vocabulary helps humans model systems; semantics still require owner facts and verifier gates. |
 | synthesis precedent | Effects as Sessions, propositions-as-sessions, RustBelt | Evidence that separated theories can be connected or formalized after implementation exists. | Precedent is not proof. Pergyra still needs its own core calculus and backend simulation argument. |
 
@@ -180,11 +182,11 @@ authorization-logic/ocap lineage): `delegation_requires_holding` (you can only
 grant what you hold) and `no_privilege_escalation` (delegation creates no new
 capability — the transitive no-ambient-authority property for the authority axis).
 
-**Milestone: all four base axes of the abstract machine now have a mechanized
+**Milestone: all four base axes of the abstract machine have a local mechanized
 soundness / fail-closed theorem** — zone crossing, effect emit, slot lifecycle,
-authority delegation — each sharing the same authority-evidence discipline (every
-step leaves authority invariant, so the four disciplines compose). The whole proof
-pack is `coqc`-checked under `make formal-semantics-test-smoke` (11/11).
+and authority delegation. Composition is a separate claim owned by
+`UnifiedCore.v`; implementation adequacy remains separate again. The complete
+registered corpus is checked under `make formal-semantics-test-smoke`.
 
 ### Unified machine landed (2026-06-22)
 
@@ -344,7 +346,7 @@ Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
    model↔code vocabulary cannot drift silently. Not claimed: guard-firing
    correctness (failclosed fixtures) or emission coverage (twin parity).
 
-The `formal_semantics_smoke` coqc loop now compiles the **30-file smoke-wired
+The `formal_semantics_smoke` coqc loop now compiles the **35-file smoke-wired
 proof corpus**. Additional experimental `.v` files must be added to the smoke
 before they count as part of the cited proof pack.
 
@@ -363,3 +365,27 @@ inconsistent. This is an implementation binding, not a proof of a physical
 board, MMIO ordering, linker/MMU agreement, or device side effects. Stable
 surface syntax for `Region`/`Grant` and a concrete hardware refinement remain
 separate closure obligations.
+
+### Architecture-boundary fragments landed (2026-07-18)
+
+Three small models correct over-broad claims in the design philosophy without
+replacing `MachineLayerCore.v`:
+
+1. `DelegationBoundaryCore.v` separates attributed purpose, capability,
+   trusted authority evidence, complete mediation, and delegability. It proves
+   that missing evidence, `human-required`, and `non-delegable` boundaries
+   cannot derive an automated permit. Runtime permits retain a passing guard.
+2. `LossCompositionCore.v` makes loss path-cumulative and shows by
+   counterexample that local budgets do not imply a path budget. A
+   compiler-derived mechanism requires observational equivalence and a cost
+   bound in the model.
+3. `ResourceMachineBridge.v` requires resource authority, physical machine
+   evidence, and an explicit projection binding for grounded contact. It proves
+   the two non-inference directions: resource identity does not determine an
+   address, and an address does not determine authority.
+
+These are mechanized model theorems with 0 admits / 0 axioms. They do not prove
+actual human purpose, moral legitimacy, live hardware adequacy, compiler
+correctness, or implementation refinement. Those limits are part of the
+theorem statement's usable meaning, not a documentation disclaimer that may be
+ignored.

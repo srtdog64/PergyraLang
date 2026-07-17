@@ -1564,8 +1564,11 @@ attributed loss; the CI gate keeps bucket C monotonically shrinking.
 Canonical rule: World/Zone/Intent/Slot are source-level semantic axes, not
 backend-level physical artifacts. The full source chain
 `World -> Zone -> Roster -> Role -> Intent -> Slot` is a verification spine,
-not a required runtime object graph. Missing evidence fails closed. Sufficient
-AIR/MIR/ABI evidence may erase or compress the axis in C/LLVM.
+not a required runtime object graph. Missing evidence never becomes guessed
+static success: the owner rejects, retains an explicit checked runtime path, or
+crosses a declared external authority boundary. Sufficient AIR/MIR/ABI evidence
+and a composed path loss budget may erase or compress the axis through the
+verified projection plan consumed by C/LLVM.
 
 Global `AIREvidenceNode` inventory is the verification source of truth. Summary
 counters remain telemetry and compatibility surface: counter-only evidence may

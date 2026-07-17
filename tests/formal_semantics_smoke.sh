@@ -70,6 +70,10 @@ AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
 WITNESS_COQ="$PROOF_DIR/proofs/WitnessDataRace.v"
 METHODOLOGY_COQ="$PROOF_DIR/proofs/VerificationMethodology.v"
 PROOF_SPINE_COQ="$PROOF_DIR/proofs/ProofSpine.v"
+DELEGATION_BOUNDARY_COQ="$PROOF_DIR/proofs/DelegationBoundaryCore.v"
+LOSS_COMPOSITION_COQ="$PROOF_DIR/proofs/LossCompositionCore.v"
+RESOURCE_MACHINE_BRIDGE_COQ="$PROOF_DIR/proofs/ResourceMachineBridge.v"
+ARCHITECTURE_BOUNDARY_DOC="$PROOF_DIR/proofs/ArchitectureBoundaryCores.md"
 SOT_AUTHORITY_COQ="$PROOF_DIR/proofs/SoTAuthority.v"
 GUARD_COQ="$PROOF_DIR/proofs/GuardCalculus.v"
 WHOLE_PROGRAM_COQ="$PROOF_DIR/proofs/WholeProgramCore.v"
@@ -108,6 +112,10 @@ require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
 require_file "$WITNESS_COQ" "docs/semantics/proofs/WitnessDataRace.v"
 require_file "$METHODOLOGY_COQ" "docs/semantics/proofs/VerificationMethodology.v"
 require_file "$PROOF_SPINE_COQ" "docs/semantics/proofs/ProofSpine.v"
+require_file "$DELEGATION_BOUNDARY_COQ" "docs/semantics/proofs/DelegationBoundaryCore.v"
+require_file "$LOSS_COMPOSITION_COQ" "docs/semantics/proofs/LossCompositionCore.v"
+require_file "$RESOURCE_MACHINE_BRIDGE_COQ" "docs/semantics/proofs/ResourceMachineBridge.v"
+require_file "$ARCHITECTURE_BOUNDARY_DOC" "docs/semantics/proofs/ArchitectureBoundaryCores.md"
 require_file "$SOT_AUTHORITY_COQ" "docs/semantics/proofs/SoTAuthority.v"
 require_file "$GUARD_COQ" "docs/semantics/proofs/GuardCalculus.v"
 require_file "$WHOLE_PROGRAM_COQ" "docs/semantics/proofs/WholeProgramCore.v"
@@ -165,14 +173,17 @@ Stable surface: compiler and tooling abstraction boundaries.
 Loss is not automatically a bug. Hidden loss is the bug.
 An abstraction loss contract has seven fields:
 Loss budget classes:
+Evidence strength is not interchangeable:
+## Loss Composition
+## Derived Mechanism Boundary
 `consumer forbidden_to_recover fact from source`
 ### AST To HIR/DIR/RIR/MIR
 ### MIR To AIR
 ### MIR To C And LLVM
 ### Self-Hosted Tool To C Oracle
-## Theorem: Loss Visibility
-## Theorem: Preservation Carry
-## Theorem: Bounded Approximation Soundness
+## Executable Invariant: Loss Visibility
+## Executable Invariant: Preservation Carry
+## Proof Obligation: Bounded Approximation Visibility
 That syntax is a design sketch only.
 TERMS
 
@@ -498,6 +509,61 @@ TERMS
 forbid_term "$PROOF_DIR/proofs/MachineLayerCore.md" "docs/semantics/proofs/MachineLayerCore.md" "??"
 forbid_term "$PROOF_DIR/proofs/MachineLayerCore.md" "docs/semantics/proofs/MachineLayerCore.md" "MachineContactCore"
 
+require_terms "$DELEGATION_BOUNDARY_COQ" "docs/semantics/proofs/DelegationBoundaryCore.v" <<'TERMS'
+Pergyra Formal Semantics -- Delegation Boundary Core
+Inductive Delegability
+Record SourceDeclaration
+Record EnforcementEvidence
+Inductive AutomatedPermit
+Theorem automated_permit_requires_complete_mediation
+Theorem automated_permit_requires_delegable_judgment
+Theorem runtime_permit_requires_retained_guard
+Theorem missing_evidence_never_permits_automation
+Theorem human_required_blocks_automated_permit
+Theorem non_delegable_blocks_automated_permit
+Theorem authorization_does_not_imply_delegability
+Theorem declared_purpose_does_not_establish_actual_purpose
+0 admits / 0 axioms
+Negative scope
+TERMS
+
+require_terms "$LOSS_COMPOSITION_COQ" "docs/semantics/proofs/LossCompositionCore.v" <<'TERMS'
+Pergyra Formal Semantics -- Loss Composition Core
+Inductive DerivedMechanism
+Record LossVector
+Definition loss_compose
+Definition PathBudgetAllows
+Theorem derived_mechanism_requires_observational_equivalence
+Theorem derived_mechanism_requires_cost_budget
+Theorem loss_compose_associative
+Theorem composed_budget_implies_each_component_bounded
+Theorem local_budgets_do_not_imply_path_budget
+0 admits / 0 axioms
+TERMS
+
+require_terms "$RESOURCE_MACHINE_BRIDGE_COQ" "docs/semantics/proofs/ResourceMachineBridge.v" <<'TERMS'
+Pergyra Formal Semantics -- Resource/Machine Bridge
+Record ResourceGrant
+Record MachinePlacement
+Record ProjectionBinding
+Inductive GroundedContact
+Theorem grounded_contact_requires_resource_authority
+Theorem grounded_contact_requires_machine_evidence
+Theorem grounded_contact_requires_explicit_projection
+Theorem resource_identity_does_not_determine_machine_address
+Theorem machine_address_does_not_determine_resource_authority
+0 admits / 0 axioms
+TERMS
+
+require_terms "$ARCHITECTURE_BOUNDARY_DOC" "docs/semantics/proofs/ArchitectureBoundaryCores.md" <<'TERMS'
+attributed declaration
+resource id does not establish an address.
+An address does not establish
+A local loss budget does not establish a path budget.
+mechanized model soundness != implementation adequacy
+complete proof spine != whole-language verification
+TERMS
+
 OPTION_TRY_COQ="$PROOF_DIR/proofs/OptionTry.v"
 require_file "$OPTION_TRY_COQ" "docs/semantics/proofs/OptionTry.v"
 require_terms "$OPTION_TRY_COQ" "docs/semantics/proofs/OptionTry.v" <<'TERMS'
@@ -689,6 +755,12 @@ docs/semantics/README.md
 docs/semantics/08_slot_capability_calculus.md
 docs/semantics/09_abstraction_loss_contracts.md
 docs/semantics/proofs/SlotCalculus.v
+docs/semantics/proofs/MachineLayerCore.v
+docs/semantics/proofs/DelegationBoundaryCore.v
+docs/semantics/proofs/LossCompositionCore.v
+docs/semantics/proofs/ResourceMachineBridge.v
+docs/semantics/proofs/ArchitectureBoundaryCores.md
+docs/semantics/proofs/ProofSpine.v
 docs/118_slot_model_rigor_audit.md
 TERMS
 
@@ -765,6 +837,11 @@ Definition PermitsClaim
 Theorem complete_spine_has_node
 Theorem complete_spine_connects_runtime_safety
 Theorem complete_spine_connects_unified_machine
+NodeMachineLayerCore
+NodeDelegationBoundaryCore
+NodeLossCompositionCore
+NodeResourceMachineBridge
+Theorem complete_spine_connects_architecture_boundary
 Theorem complete_spine_connects_formal_kernel
 Theorem complete_spine_connects_basis_selection
 Theorem complete_spine_connects_certificate_pipeline
@@ -930,6 +1007,9 @@ docs/semantics/proofs/EffectAuthorityCore.v \
 docs/semantics/proofs/SlotLifecycleCore.v \
 docs/semantics/proofs/MachineLayerCore.v \
 docs/semantics/proofs/AuthorityDelegationCore.v \
+docs/semantics/proofs/DelegationBoundaryCore.v \
+docs/semantics/proofs/LossCompositionCore.v \
+docs/semantics/proofs/ResourceMachineBridge.v \
 docs/semantics/proofs/UnifiedCore.v \
 docs/semantics/proofs/CompensationCore.v \
 docs/semantics/proofs/CoordinationCore.v \

@@ -44,7 +44,7 @@ An abstraction loss contract has seven fields:
 | `preserves` | Facts that must remain available in the target or evidence. |
 | `forbids` | Downstream reads or fallbacks that would depend on lost facts. |
 | `last consumer` | The final stage that still reads the preserved fact (backend, runtime guard, sandbox manifest, LSP/diagnostic, or compatibility corpus). Erasure before this stage is a contract violation; retention past it is hoarding. |
-| `evidence` | Smoke, regression, diagnostic, trace, or invariant proving the budget. |
+| `evidence` | Named evidence strength plus the artifact that supports the budget. |
 
 Loss budget classes:
 
@@ -55,6 +55,21 @@ Loss budget classes:
 | `runtime-checked` | Static abstraction loses dynamic existence; runtime validates it. |
 | `diagnostic-only` | The fact may be kept only for source spans, messages, or traces. |
 | `forbidden` | The boundary may not lose this fact for the stable surface. |
+
+Evidence strength is not interchangeable:
+
+| Strength | What may be claimed |
+|---|---|
+| `mechanized theorem` | The stated property holds in the named formal model, under that model's assumptions. |
+| `executable invariant` | A live implementation gate rejects the named violating artifact or path. |
+| `property/differential evidence` | Generated or paired executions agree over the tested domain. |
+| `regression witness` | A previously observed failure is fixed for the frozen fixture. |
+| `textual ratchet` | Required/forbidden terms and declared ownership remain documented. |
+| `documented obligation` | The requirement is named but not yet executable evidence. |
+
+A smoke test is not a theorem, and a mechanized model is not implementation
+adequacy. A boundary claim must use the weakest honest label supported by its
+current artifact.
 
 Compression budget classes:
 
@@ -77,14 +92,53 @@ Canonical rule:
 World/Zone/Intent/Slot are source-level semantic axes, not backend-level
 physical artifacts.
 
-Missing evidence fails closed.
-If the evidence is sufficient, the axis may be erased or compressed by the
-backend.
+Missing evidence never becomes guessed static success. The owner must reject,
+retain an explicit checked runtime path, or cross a declared external authority
+boundary. If the evidence is sufficient, the axis may be erased or compressed
+by the verified projection plan.
 
 The chain World -> Zone -> Roster -> Role -> Intent -> Slot is therefore not a
 mandatory runtime object graph. It is a verification spine. C and LLVM may
 materialize only the parts whose AIR/MIR/ABI facts prove runtime necessity.
 ```
+
+## Loss Composition
+
+Loss is path-sensitive and cumulative. Each lowering boundary reports a vector:
+
+```text
+LossVector = {
+  semantic_loss,
+  provenance_loss,
+  timing_loss,
+  runtime_debt
+}
+
+path_loss = boundary_1_loss + boundary_2_loss + ... + boundary_n_loss
+```
+
+Composition is component-wise addition. Acceptance is component-wise comparison
+against the program or intent path budget. Therefore two boundaries that each
+fit a local budget can still violate the cumulative path budget. A gate that
+checks only each pass in isolation is insufficient.
+
+The owner of the final `VerifiedProjectionPlan` must consume the composed loss,
+not a last-pass snapshot. `LossCompositionCore.v` machine-checks identity,
+associativity, component bounds, and a concrete counterexample where two
+locally accepted losses exceed one path budget.
+
+## Derived Mechanism Boundary
+
+Execution lane, guard placement, materialization, layout, and backend projection
+are compiler mechanisms only while they preserve the named observation class
+and remain within the declared observable-cost/loss envelope. If either fact is
+unproven, the compiler must not silently choose a default. It must retain an
+inspectable checked path, require an explicit policy boundary, or reject.
+
+`LossCompositionCore.v` formalizes this narrow rule as
+`DerivedMechanism`: derivation requires observational equivalence and a cost
+bound. It does not claim that the current compiler has proved those premises for
+every mechanism.
 
 ## Erasure Decision Point
 
@@ -353,7 +407,7 @@ Forbidden:
 - self-hosted output becoming the deciding value before the C oracle agrees;
 - tool-only success that bypasses C/LLVM parity for the stable subset.
 
-## Theorem: Loss Visibility
+## Executable Invariant: Loss Visibility
 
 Every stable abstraction boundary must expose its accepted loss budget.
 
@@ -375,7 +429,7 @@ Every stable abstraction boundary must expose its accepted loss budget.
   pass as the self-hosted substitution surface grows, and move `parser_to_ast`
   from documentation-only to an enforced manifest row.
 
-## Theorem: Preservation Carry
+## Executable Invariant: Preservation Carry
 
 If a later stable layer needs a fact, the abstraction target or its evidence
 must carry that fact without rereading the older source artifact.
@@ -391,7 +445,7 @@ must carry that fact without rereading the older source artifact.
 - Remaining obligation: extend the manifest from stage/gate adequacy to
   per-boundary forbidden-read checks for every listed loss clause.
 
-## Theorem: Bounded Approximation Soundness
+## Proof Obligation: Bounded Approximation Visibility
 
 If a boundary uses a `bounded` or `runtime-checked` loss budget, the bound must
 be visible to diagnostics, trace, or runtime validation.

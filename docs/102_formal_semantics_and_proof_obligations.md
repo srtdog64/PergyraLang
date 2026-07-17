@@ -19,6 +19,12 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/09_abstraction_loss_contracts.md](semantics/09_abstraction_loss_contracts.md)
 - [docs/semantics/10_behavior_contract_closure_gaps.md](semantics/10_behavior_contract_closure_gaps.md)
 - [docs/semantics/proofs/SlotCalculus.v](semantics/proofs/SlotCalculus.v)
+- [docs/semantics/proofs/MachineLayerCore.v](semantics/proofs/MachineLayerCore.v)
+- [docs/semantics/proofs/DelegationBoundaryCore.v](semantics/proofs/DelegationBoundaryCore.v)
+- [docs/semantics/proofs/LossCompositionCore.v](semantics/proofs/LossCompositionCore.v)
+- [docs/semantics/proofs/ResourceMachineBridge.v](semantics/proofs/ResourceMachineBridge.v)
+- [docs/semantics/proofs/ArchitectureBoundaryCores.md](semantics/proofs/ArchitectureBoundaryCores.md)
+- [docs/semantics/proofs/ProofSpine.v](semantics/proofs/ProofSpine.v)
 
 Related rigor audits:
 
@@ -30,12 +36,11 @@ This file remains as a stable English index for older references from the beta b
 
 Regression tests, smoke tests, and backend compare runs are evidence. They are not mathematical proof by themselves.
 
-The Coq file is currently a checked-in proof sketch for the
-`stale_handle_read_impossible`, `handle_read_requires_issued_token`,
-`unissued_token_read_impossible`, `handle_pin_requires_issued_token`,
-`unissued_token_pin_impossible`, and `pin_non_eviction` invariants. Do not
-describe it as completed beta mechanized proof unless CI type-checks it with
-Coq, and do not describe it as a whole-language proof.
+Each Coq/Rocq file owns a bounded model. `SlotCalculus.v` covers handle/token
+and pin invariants; the architecture-boundary cores cover delegation,
+cumulative loss, and the logical-resource/physical-machine bridge. Do not
+describe model theorems as implementation adequacy, completed beta proof, or a
+whole-language proof. The proof spine makes that negative boundary explicit.
 
 Run the proof-pack drift gate with:
 

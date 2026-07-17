@@ -30,7 +30,12 @@ for rel in \
     docs/semantics/proofs/ZoneCrossingCore.v \
     docs/semantics/proofs/EffectAuthorityCore.v \
     docs/semantics/proofs/SlotLifecycleCore.v \
+    docs/semantics/proofs/MachineLayerCore.v \
     docs/semantics/proofs/AuthorityDelegationCore.v \
+    docs/semantics/proofs/DelegationBoundaryCore.v \
+    docs/semantics/proofs/LossCompositionCore.v \
+    docs/semantics/proofs/ResourceMachineBridge.v \
+    docs/semantics/proofs/ArchitectureBoundaryCores.md \
     docs/semantics/proofs/UnifiedCore.v \
     docs/semantics/proofs/CompensationCore.v \
     docs/semantics/proofs/CoordinationCore.v \
@@ -63,7 +68,16 @@ require_text "docs/semantics/proofs/CheckedArith.v" "Theorem div_none_iff"
 require_text "docs/semantics/proofs/ZoneCrossingCore.v" "Theorem fail_closed_crossing"
 require_text "docs/semantics/proofs/EffectAuthorityCore.v" "Theorem fail_closed_emit"
 require_text "docs/semantics/proofs/SlotLifecycleCore.v" "Theorem no_op_after_release"
+require_text "docs/semantics/proofs/MachineLayerCore.v" "Theorem contact_step_requires_valid_region"
 require_text "docs/semantics/proofs/AuthorityDelegationCore.v" "Theorem no_privilege_escalation"
+require_text "docs/semantics/proofs/DelegationBoundaryCore.v" "Theorem missing_evidence_never_permits_automation"
+require_text "docs/semantics/proofs/DelegationBoundaryCore.v" "Theorem authorization_does_not_imply_delegability"
+require_text "docs/semantics/proofs/DelegationBoundaryCore.v" "Theorem declared_purpose_does_not_establish_actual_purpose"
+require_text "docs/semantics/proofs/LossCompositionCore.v" "Theorem local_budgets_do_not_imply_path_budget"
+require_text "docs/semantics/proofs/LossCompositionCore.v" "Theorem derived_mechanism_requires_observational_equivalence"
+require_text "docs/semantics/proofs/ResourceMachineBridge.v" "Theorem grounded_contact_requires_explicit_projection"
+require_text "docs/semantics/proofs/ResourceMachineBridge.v" "Theorem resource_identity_does_not_determine_machine_address"
+require_text "docs/semantics/proofs/ResourceMachineBridge.v" "Theorem machine_address_does_not_determine_resource_authority"
 require_text "docs/semantics/proofs/UnifiedCore.v" "Theorem authority_conservation"
 require_text "docs/semantics/proofs/CompensationCore.v" "Theorem do_then_rollback_restores"
 require_text "docs/semantics/proofs/CoordinationCore.v" "Theorem reachable_dep_closed"
@@ -99,7 +113,10 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_auth
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SFMachineLayerTransition"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SOMachineLayer"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=16 BRIDGE=11 ACTIVE=10"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=20 BRIDGE=17 ACTIVE=0"
+require_text "docs/semantics/sot_owner_spine_registry.md" "docs/semantics/proofs/ResourceMachineBridge.v"
+require_text "docs/semantics/sot_owner_spine_registry.md" "resource_identity_as_machine_address"
+require_text "docs/semantics/sot_owner_spine_registry.md" "machine_address_as_resource_authority"
 
 for term in \
     "Inductive ProofNode" \
@@ -113,6 +130,11 @@ for term in \
     "Theorem complete_spine_connects_axis_ownership" \
     "Theorem complete_spine_connects_intent_core" \
     "Theorem complete_spine_connects_unified_machine" \
+    "NodeMachineLayerCore" \
+    "NodeDelegationBoundaryCore" \
+    "NodeLossCompositionCore" \
+    "NodeResourceMachineBridge" \
+    "Theorem complete_spine_connects_architecture_boundary" \
     "Theorem complete_spine_connects_formal_kernel" \
     "Theorem complete_spine_connects_basis_selection" \
     "NodeIntentObligations" \
@@ -143,6 +165,11 @@ require_text "docs/semantics/proofs/ProofSpine.md" "IntentObligations.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "IntentSpine.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "IntentConflict.v"
 require_text "docs/semantics/proofs/ProofSpine.md" "AuthorityIrreducibility.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "architecture boundary"
+require_text "docs/semantics/proofs/ProofSpine.md" "DelegationBoundaryCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "LossCompositionCore.v"
+require_text "docs/semantics/proofs/ProofSpine.md" "ResourceMachineBridge.v"
+require_text "docs/semantics/proofs/ArchitectureBoundaryCores.md" "mechanized model soundness != implementation adequacy"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationPinExceptionalCleanup"
 require_text "docs/semantics/proofs/ProofSpine.md" "DropOnce / ReleaseAfterUnpin"
 require_text "docs/semantics/proofs/ProofSpine.md" "ObligationParserToAstManifest"

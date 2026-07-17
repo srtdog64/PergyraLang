@@ -23,6 +23,8 @@ for rel in \
     "docs/semantics/09_abstraction_loss_contracts.md" \
     "docs/semantics/loss_contract_manifest.md" \
     "docs/semantics/pass_contract_manifest.md" \
+    "docs/semantics/proofs/LossCompositionCore.v" \
+    "docs/semantics/proofs/ArchitectureBoundaryCores.md" \
     "docs/semantics/README.md" \
     "docs/102_formal_semantics_and_proof_obligations.md" \
     "docs/104_air_compiler_architecture.md" \
@@ -41,7 +43,10 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "proof-gated eras
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Zone is a semantic boundary"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "World/Zone/Intent/Slot are source-level semantic axes, not backend-level"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "The chain World -> Zone -> Roster -> Role -> Intent -> Slot"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "Missing evidence fails closed."
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Missing evidence never becomes guessed static success."
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "Evidence strength is not interchangeable:"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Loss Composition"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Derived Mechanism Boundary"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Erasure Decision Point"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "The canonical erasure decision point is AIR's intent/boundary compression"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" 'The owner artifact is `pgy.air.graph.v1`.'
@@ -58,13 +63,16 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "### AST To HIR/D
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### MIR To AIR"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### MIR To C And LLVM"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "### Self-Hosted Tool To C Oracle"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Loss Visibility"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Preservation Carry"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Theorem: Bounded Approximation Soundness"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Executable Invariant: Loss Visibility"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Executable Invariant: Preservation Carry"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Proof Obligation: Bounded Approximation Visibility"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "That syntax is a design sketch only."
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "documentation does not call the boundary lossless unless the budget is"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Current manifest coverage is 4/5 gate-enforced"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "pass_contract_manifest.md"
+require_text "docs/semantics/proofs/LossCompositionCore.v" "Theorem local_budgets_do_not_imply_path_budget"
+require_text "docs/semantics/proofs/LossCompositionCore.v" "Theorem derived_mechanism_requires_observational_equivalence"
+require_text "docs/semantics/proofs/ArchitectureBoundaryCores.md" "A local loss budget does not establish a path budget"
 
 require_text "docs/semantics/loss_contract_manifest.md" "5 canonical boundaries, **4 gate-enforced**"
 require_text "docs/semantics/loss_contract_manifest.md" "tests/ast_to_mir_loss_contract_smoke.sh"

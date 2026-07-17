@@ -14,13 +14,15 @@ The surface contract is:
 - developers declare intent, resources, authority, loss tolerance, and actual
   external boundaries;
 - the compiler derives proof strategy, execution lane, guard placement,
-  materialization, layout, and backend projection whenever one sound default
-  exists;
+  materialization, layout, and backend projection only when observational
+  equivalence and the declared cost/loss envelope establish one sound default;
 - derived decisions remain inspectable through stable diagnostics and IR facts;
 - an explicit escape hatch appears only where the developer truly chooses a
   different authority, cost, lifetime, or interoperability contract;
-- missing evidence rejects. It must not become hidden runtime failure or a menu
-  of compiler-mechanism choices in ordinary source.
+- missing evidence never becomes guessed static success. The owner must reject,
+  retain an explicit checked runtime path, or cross a declared external
+  authority boundary. It must not become an unreported fallback or a menu of
+  compiler-mechanism choices in ordinary source.
 
 This deliberately rejects two failure modes: Rust-style choice exposure, where
 routine work requires selecting compiler mechanisms, and dynamic-language
@@ -40,10 +42,18 @@ legible by carrying intent, authority, evidence, coordination, and accepted
 loss until the last legitimate consumer. The compiler may derive mechanisms,
 but it must not silently invent policy, authority, or certainty.
 
+A declaration is attribution evidence, not proof that the attributed purpose
+is the author's actual purpose, that the decision is morally legitimate, or
+that the judgment should be delegated at all. Authorization and delegability are separate facts.
+A boundary classified as `human-required` or
+`non-delegable` cannot be converted into an automated permit merely because a
+capability is present.
+
 This gives the evidence architecture a human boundary:
 
-- `intent` states the purpose being delegated;
+- `intent` states the attributed purpose being delegated;
 - authority facts state who may authorize that delegation;
+- delegability facts state whether automation is permitted at that boundary;
 - loss budgets state what the abstraction is allowed to discard;
 - diagnostics and IR evidence expose what the machine derived;
 - fail-closed gates prevent an implementation or AI coding agent from turning
@@ -360,18 +370,23 @@ Pergyra의 답은 결정 불가능한 질문을 *풀려는 게 아니라* 빠져
 검사다. **선언은 손실을 복원하는 게 아니라, 손실되기 전에 붙잡아 둔다** —
 Thesis-손실(인코딩 안 됨)을 "처음부터 코드에 박혀 있음"으로 바꾼다.
 
-### ✦.4 게이트가 나머지를 닫는다 — 판정 없이 sound
+### ✦.4 게이트가 닫는 것은 선언된 허용 범위다
 
-결정적 통찰: 선언을 했을 때 **"실제 사용 ⊆ 선언"을 정적으로 *판정할 필요가
-없다*.** 동적 부분은 어차피 결정 불가능하니까. 대신 런타임 게이트가 선언을
-*강제*한다 — 초과 시 fail-close. 따라서:
+선언을 했다고 해서 실제 목적, 올바른 판단, 또는 전체 프로그램 의미를
+정적으로 판정할 수 있게 되는 것은 아니다. 런타임 게이트가 정직하게 닫을 수
+있는 것은 더 좁다. **신뢰된 선언, 완전한 매개(complete mediation), 모든
+접촉점의 강제**가 있을 때, 실행이 선언된 capability envelope를 넘지 않는다는
+보장이다.
 
-> **결정 불가능한 질문을 풀지 않고도 sound한 보장이 나온다.**
-> 판정(decide) 대신 선언(declare) + 강제(enforce).
+> 판정 불가능한 목적의 진실을 증명하는 대신, 선언된 허용 범위의 초과를
+> 완전하게 차단한다.
 
-정적 검사(declared ⊇ 정적-유도-used)는 *결정 가능한 부분*의 조기 경고일
-뿐이고, 게이트가 실제 보장이다. 이것이 **fail-closed 설계가 결정 불가능한
-성질에 대한 유일하게 정직한 아키텍처**인 이유다.
+정적 검사(`declared ⊇ statically-derived-used`)는 결정 가능한 부분을 조기에
+닫는다. 동적 사실은 명시적으로 retained runtime guard가 마지막 소비자가 된다.
+게이트가 관찰하지 않는 우회 경로, 신뢰되지 않은 선언 원천, 또는 선언으로
+표현할 수 없는 성질이 있으면 이 보장은 성립하지 않는다. 그러므로 이 구조가
+증명하는 것은 **capability-envelope confinement**이지, 인간 의도의 진실이나
+프로그램 전체의 semantic soundness가 아니다.
 
 ### ✦.5 연구 프로그램의 재정의
 
@@ -653,7 +668,24 @@ slot + ownership + capability + transition tracking
 ### Q. 왜 포인터를 중심에 두지 않는가?
 
 포인터는 클래식 메모리 환경에서는 강력하지만, 모든 자원 모델의 보편적 기초는 아니다.
-Pergyra는 더 넓은 자원 문제를 다루기 위해 주소보다 점유권을 우선한다.
+Pergyra는 더 넓은 자원 문제를 다루기 위해 언어의 논리적 중심을 점유권에 둔다.
+그러나 주소, extent, alignment, endianness, access mode, ordering, MMIO,
+cache/DMA 접촉은 없애야 할 사고가 아니라 **Machine Layer가 소유하는 물리적
+사실**이다.
+
+두 층은 다음처럼 분리된다.
+
+| 층 | 단일 소유 사실 | 추측해서는 안 되는 사실 |
+|---|---|---|
+| Resource/Slot layer | 누가 어떤 자원을 왜, 어떤 authority와 lifecycle로 점유하는가 | 주소, 배치, 장치 접촉 방식 |
+| Machine Layer | 어디에 어떤 extent/layout/mode/order로 놓이고 어떻게 기계와 접촉하는가 | 사용자 목적, 자원 authority, 위임 정당성 |
+
+`Slot`에서 주소를 역추론하지 않고, 주소에서 authority를 역추론하지 않는다.
+Resource identity does not determine an address, and a machine address does not
+determine resource authority.
+실제 접촉은 두 층의 증거와 명시적 projection binding이 모두 있을 때만
+허용된다. `MachineLayerCore.v`가 물리 접촉 전이를 소유하고,
+`ResourceMachineBridge.v`가 이 비추론 계약을 소유한다.
 
 ### Q. 그러면 Pergyra는 시스템 언어가 아닌가?
 
@@ -675,7 +707,8 @@ Pergyra는 더 넓은 자원 문제를 다루기 위해 주소보다 점유권�
 
 - 이 기능은 자원 점유를 더 명확하게 만드는가
 - 이 기능은 제네릭 자원 표현을 더 아름답게 만드는가
-- 이 기능은 주소 중심 사고를 줄이는가
+- 이 기능은 논리적 자원 사실과 물리적 기계 사실의 소유자를 분리하는가
+- compiler-derived mechanism이 관찰 동등성과 누적 cost/loss budget을 지키는가
 
 그렇지 않다면 Pergyra의 중심이 아닐 가능성이 크다.
 
@@ -687,9 +720,16 @@ Pergyra의 설계 철학은 다음 문장으로 요약된다.
 
 다시 말해:
 
-- 포인터보다 점유권
-- 주소보다 권한
+- 논리적 표면에서는 포인터보다 점유권
+- 물리적 접촉에서는 주소와 배치를 숨기지 않는 Machine Layer
+- 주소와 권한은 서로를 추측하지 않는 별도 사실
 - 메모리보다 자원
 - 문법 과시보다 추적 가능성
+
+이 철학의 형식 경계는 `DelegationBoundaryCore.v`,
+`LossCompositionCore.v`, `ResourceMachineBridge.v`, 그리고 기존
+`MachineLayerCore.v`가 나누어 소유한다. 이 증명들은 선언된 자동화 허용 범위,
+손실 합성, 교차 계층 binding, 추상 machine contact를 각각 검증할 뿐, 실제
+인간 의도나 전체 컴파일러의 정당성을 증명한다고 주장하지 않는다.
 
 이 기준이 앞으로의 모든 설계 결정을 통과하는지 검증해야 한다.

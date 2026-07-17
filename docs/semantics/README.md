@@ -147,6 +147,22 @@ Mechanized artifacts:
   manifest-owned contact-to-runtime-operation mapping; concrete board and
   device refinement remains open. See the design and implementation status in
   [proofs/MachineLayerCore.md](proofs/MachineLayerCore.md).
+- [proofs/ResourceMachineBridge.v](proofs/ResourceMachineBridge.v): Coq proof
+  for the explicit binding between logical resource authority and physical
+  machine placement. It proves that grounded contact requires both owners and
+  that resource identity does not determine address, nor address authority.
+- [proofs/DelegationBoundaryCore.v](proofs/DelegationBoundaryCore.v): Coq proof
+  for the narrow automation permit envelope. Capability possession,
+  delegability, trusted authority evidence, complete mediation, and retained
+  runtime guards remain separate obligations. Declared purpose is attribution,
+  not proof of actual human purpose.
+- [proofs/LossCompositionCore.v](proofs/LossCompositionCore.v): Coq proof for
+  cumulative loss vectors and compiler-derived mechanism bounds. Local budgets
+  do not imply a path budget; derivation requires observational equivalence and
+  an observable-cost bound.
+- [proofs/ArchitectureBoundaryCores.md](proofs/ArchitectureBoundaryCores.md):
+  scope and ownership map connecting those three models to
+  `MachineLayerCore.v` without claiming implementation adequacy.
 - [proofs/AuthorityDelegationCore.v](proofs/AuthorityDelegationCore.v): Coq proof
   sketch for the FOURTH core-calculus corner -- the authority-check step
   (delegation, authorization-logic/ocap lineage). `delegation_requires_holding`
@@ -254,7 +270,8 @@ Mechanized artifacts:
   honest `ACTIVE` / `BRIDGE` / `CLOSED` status.
 - [proofs/ProofSpine.v](proofs/ProofSpine.v): top-level Coq proof spine that
   names every mechanized artifact as a proof-pack node and connects the runtime
-  safety, axis ownership, intent core, unified machine, formal-kernel,
+  safety, axis ownership, intent core, unified machine, architecture boundary,
+  formal-kernel,
   basis-selection,
   certificate pipeline, verification-methodology, and SoT-authority groups. Its negative
   theorem states that a complete spine is still not whole-language verification.

@@ -23,7 +23,11 @@ Inductive ProofNode : Type :=
   | NodeZoneCrossingCore
   | NodeEffectAuthorityCore
   | NodeSlotLifecycleCore
+  | NodeMachineLayerCore
   | NodeAuthorityDelegationCore
+  | NodeDelegationBoundaryCore
+  | NodeLossCompositionCore
+  | NodeResourceMachineBridge
   | NodeUnifiedCore
   | NodeCompensationCore
   | NodeCoordinationCore
@@ -44,6 +48,7 @@ Inductive SpineClaim : Type :=
   | AxisOwnershipConnected
   | IntentCoreConnected
   | UnifiedMachineConnected
+  | ArchitectureBoundaryConnected
   | FormalKernelConnected
   | BasisSelectionConnected
   | CertificatePipelineConnected
@@ -71,7 +76,11 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeZoneCrossingCore /\
   HasNode s NodeEffectAuthorityCore /\
   HasNode s NodeSlotLifecycleCore /\
+  HasNode s NodeMachineLayerCore /\
   HasNode s NodeAuthorityDelegationCore /\
+  HasNode s NodeDelegationBoundaryCore /\
+  HasNode s NodeLossCompositionCore /\
+  HasNode s NodeResourceMachineBridge /\
   HasNode s NodeUnifiedCore /\
   HasNode s NodeCompensationCore /\
   HasNode s NodeCoordinationCore /\
@@ -109,11 +118,18 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeZoneCrossingCore /\
       HasNode s NodeEffectAuthorityCore /\
       HasNode s NodeSlotLifecycleCore /\
+      HasNode s NodeMachineLayerCore /\
       HasNode s NodeAuthorityDelegationCore /\
       HasNode s NodeUnifiedCore /\
       HasNode s NodeCompensationCore /\
       HasNode s NodeCoordinationCore /\
       HasNode s NodeWholeProgramCore
+  | ArchitectureBoundaryConnected =>
+      HasNode s NodeDelegationBoundaryCore /\
+      HasNode s NodeLossCompositionCore /\
+      HasNode s NodeResourceMachineBridge /\
+      HasNode s NodeMachineLayerCore /\
+      HasNode s NodeAuthorityDelegationCore
   | FormalKernelConnected =>
       HasNode s NodeFormalKernel /\
       HasNode s NodeWholeProgramCore /\
@@ -187,6 +203,14 @@ Qed.
 
 Theorem complete_spine_connects_unified_machine :
   forall s, ProofSpineComplete s -> PermitsClaim s UnifiedMachineConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_architecture_boundary :
+  forall s, ProofSpineComplete s -> PermitsClaim s ArchitectureBoundaryConnected.
 Proof.
   intros s Hcomplete.
   unfold PermitsClaim.

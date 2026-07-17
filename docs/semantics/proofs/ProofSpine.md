@@ -17,8 +17,12 @@ present before a proof-pack-level claim can be made.
   `CoordinationCore.v`, `IntentObligations.v`, `IntentSpine.v`, and
   `IntentConflict.v`;
 - unified machine: `ZoneCrossingCore.v`, `EffectAuthorityCore.v`,
-  `SlotLifecycleCore.v`, `AuthorityDelegationCore.v`, `UnifiedCore.v`,
-  `CompensationCore.v`, `CoordinationCore.v`, and `WholeProgramCore.v`;
+  `SlotLifecycleCore.v`, `MachineLayerCore.v`, `AuthorityDelegationCore.v`,
+  `UnifiedCore.v`, `CompensationCore.v`, `CoordinationCore.v`, and
+  `WholeProgramCore.v`;
+- architecture boundary: `DelegationBoundaryCore.v`,
+  `LossCompositionCore.v`, `ResourceMachineBridge.v`, `MachineLayerCore.v`,
+  and `AuthorityDelegationCore.v`;
 - formal kernel: `FormalKernel.v`, `WholeProgramCore.v`, and `AIRBinding.v`;
 - basis selection: `BasisCompleteness.v`, `FormalKernel.v`, and
   `AxisOwnership.v`;
@@ -82,6 +86,14 @@ remaining obligation blocks that stronger claim.
 - `AuthorityIrreducibility.v` keeps the authority-axis claim tied to the proof
   pack: delegation history distinguishes configurations that have identical
   capability and zone projections;
+- `DelegationBoundaryCore.v` keeps attribution, authorization, and
+  delegability separate; missing evidence cannot produce an automated permit,
+  and runtime permits retain a passing guard;
+- `LossCompositionCore.v` keeps local loss from masquerading as a path budget
+  and requires observation/cost evidence for compiler-derived mechanisms;
+- `ResourceMachineBridge.v` and `MachineLayerCore.v` keep logical resource
+  authority and physical placement/contact as complementary owners joined only
+  by an explicit projection binding;
 - `SoTAuthority.v` keeps hard-substitution closure tied to owner completeness,
   owner uniqueness, authority-only semantic reads, and zero fallback reads;
 - `sot_authority_adequacy_smoke.sh` binds the first concrete model row to the
