@@ -568,6 +568,23 @@ pgy_pool_structure_teardown(PgyThreadPool *pool)
 static inline size_t
 pgy_default_worker_count(void)
 {
+    /* Observable pool-size override (docs/186 P-D): PGY_WORKERS=<n> pins
+     * the auto-sized pool, which also pins pgy_parallel_chunk_count -- the
+     * worker-invariance witness runs the same program under several values
+     * and requires byte-identical output. An invalid value warns and falls
+     * back to the hardware count; never a silent correction. */
+    const char *env = getenv("PGY_WORKERS");
+
+    if (env != NULL && env[0] != '\0') {
+        char *end = NULL;
+        unsigned long v = strtoul(env, &end, 10);
+
+        if (end != NULL && *end == '\0' && v >= 1 && v <= 4096)
+            return (size_t)v;
+        pgy_parallel_warn("pool-init",
+            "PGY_WORKERS is not a valid worker count (want 1..4096); "
+            "using the hardware default");
+    }
 #ifdef _WIN32
     SYSTEM_INFO si;
     GetSystemInfo(&si);
