@@ -10580,21 +10580,27 @@ RT 계열.
   smoke.sh` 신설(clang으로 `.bc` 빌드→PGY_RUNTIME_BC 대표 샤드, clang
   없으면 clean-skip), redteam-repair aggregate에 편입 → CI가 bc-OFF/bc-ON
   양 구성 테스트. **구성 비대칭 해소 완료.**
-- **잔여 ② C-backend 런타임 prelink (C14-③, scoped workstream)**:
-  **측정 확정(WSL 네이티브 gcc)**: 방출 65줄 프로그램 컴파일 480~710ms
-  중 거의 전부가 런타임 14k줄 헤더 파싱 → PCH로 **54ms(~9-10x)**, PCH
-  1회 빌드 798ms/13.5MB 상각. **설계 확정**: 안전 접근 = 공통 배치
-  케이스(`PGY_INTENT_OBSERVABILITY_ENABLED=0`)만 `pgy_emitted_prelude.h`
-  PCH로 가속, 관측성 opt-in(=1) 케이스는 현행 raw-include 폴백(PCH-miss=
-  정상). freshness는 `.bc` dir-scan 패턴 재사용, PCH-miss=정상 폴백이라
-  **정확성 무위험**(순수 가속). **왜 in-session 패치 아님**: (a) 방출
-  preamble 변경이 `test_transpile_mir_part_c.cases.h` 등 transpile golden
-  3곳을 깨는데 **유저가 지금 그 배터리(part_a/part_b)를 활발히 편집 중**,
-  (b) load-bearing C(compat) 백엔드 driver+emit 수술을 perf-only(우선순위
-  #4)로 강행하는 트레이드가 CLAUDE.md §9(정확성>성능) 위배, (c) 실측
-  컴파일 311ms로 현재 pathological 아님. → 유저 transpile 존이 settle된
-  뒤 별도 착수. 측정·설계·hazard·golden-scope 전부 확정됐으므로 착수 시
-  즉시 구현 가능.
+- **잔여 ② C-backend 런타임 prelink (C14-③) — PCH 접근 구현·측정·revert,
+  inline→extern이 진짜 fix로 확정**:
+  가설(런타임 14k줄 파싱이 병목)을 검증하려 **forced-include PCH를 실제
+  구현**(prelude 헤더 + PCH 캐시 헬퍼 + driver 배선, 방출 C 무변경이라
+  golden 무영향, PCH-miss=정상 폴백). WSL 네이티브 Linux pgy로 end-to-end
+  측정:
+  - trivial 프로그램: 500→85ms(6x)처럼 보였으나 **허상** — 실코드는
+    gcc가 참조된 인라인 런타임 함수를 여전히 컴파일.
+  - **실측(실제 fixture, `--opt=dev`/-O0)**: gcc-컴파일 부분 640→490ms
+    (**~24%**), 전체 dev 컴파일 warm ~530ms. 첫 컴파일 PCH 빌드 800ms
+    셋업.
+  - **release(-O3, 기본)**: **무이득** — 병목이 파싱이 아니라 인라인
+    런타임의 per-TU **최적화**이고 PCH는 파싱만 캐시.
+  - 결론: PCH는 **dev-only·조건부·marginal**(반복 컴파일 5회+ 후 상각),
+    §8(측정된 반복 이득 없는 복잡도 금지)에 미달 → **revert**(BDFL
+    "가장 나은 선택+추후 확장성" 위임하에). **진짜 fix = 런타임
+    inline→extern 재구조화**: 파싱+최적화 둘 다 per-TU에서 제거(PCH가
+    파싱만 없애는 것과 달리)하고 PCH를 obsolete시킴 = strictly-better
+    미래. 단 트윈 규율·strip 목록·양 백엔드 ABI 동반이라 진짜 워크스트림.
+    **부산물: `.bc` freshness dir-scan 패턴이 PCH freshness에도 재사용
+    가능함을 확인.** 측정은 이 revert 커밋 메시지에 보존.
 
 **BDFL 판정 2건(수리 아님 — 언어 정체성 결정)**:
 - **C2 `+ - *` wrap**: 이미 **정착된 결정**(signed-default 메모: wrap은
