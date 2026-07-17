@@ -4437,7 +4437,17 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteExprFromSemanticGraph(" "RewriteTokens("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteExprFromSemanticGraph(" "RewriteEqualityProjection("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteExprFromSemanticGraph(" "ExprKind("
+reject_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'import "expr_rewrite.pgy";'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteSemanticLeaf(" "RewriteTokens("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "CodegenExpressionTypeFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "StringRuntimeCStringCompareFn()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     'LookupKindType(env, text, "call")'
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \

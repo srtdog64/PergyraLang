@@ -577,6 +577,16 @@ Leaf lexical classification and callable-reference target carriage are still
 bridges until the parser and semantic graph carry those dedicated kinds, so
 the expression owner remains `BRIDGE`.
 
+Forty-eighth executable active-rung delta, 2026-07-17: equality and inequality
+emission now consumes child node handles and
+`CodegenExpressionTypeFromGraph`. String comparison selects the runtime ABI
+compare row from those facts; scalar and payload-free enum operands use their
+already projected graph values. The graph emitter no longer calls the legacy
+`RewriteEqualityProjection`, `ExprKind`, or `RewriteExpr` text path. Existing
+String equality and concatenated-String equality fixtures remain the focused
+C/LLVM proof. Other expression bridges listed in the owner registry remain
+open, so this does not promote the whole expression owner to `CLOSED`.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel

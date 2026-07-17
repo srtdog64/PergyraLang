@@ -2,8 +2,8 @@
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
-import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
@@ -120,25 +120,34 @@ func RewriteExprFromSemanticGraph(
         Die("semantic expression graph right edge is missing");
     }
     let right_id: Int = UnwrapOption(right_opt);
-    if kind == AstExpressionNodeEquality() ||
-        kind == AstExpressionNodeInequality() {
-        let left_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, left_id
-        );
-        let right_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, right_id
-        );
-        if !IsSome(left_text) || !IsSome(right_text) {
-            Die("semantic equality operand is missing");
-        }
-        let projected: Option<String> = RewriteEqualityProjection(
-            UnwrapOption(left_text), UnwrapOption(right_text),
-            kind == AstExpressionNodeEquality(), env
-        );
-        if IsSome(projected) { return UnwrapOption(projected); }
-    }
     let left: String = RewriteExprFromSemanticGraph(graph, left_id, env);
     let right: String = RewriteExprFromSemanticGraph(graph, right_id, env);
+    if kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() {
+        let left_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, left_id, env
+        );
+        let right_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, right_id, env
+        );
+        if !IsSome(left_type) || !IsSome(right_type) {
+            Die("semantic equality operand type fact is missing");
+        }
+        if UnwrapOption(left_type) == "String" ||
+            UnwrapOption(right_type) == "String" {
+            let comparison: String = " == 0)";
+            if kind == AstExpressionNodeInequality() {
+                comparison = " != 0)";
+            }
+            return Concat("(", Concat(
+                StringRuntimeCStringCompareFn(), Concat(
+                    "(", Concat(left, Concat(
+                        ", ", Concat(right, Concat(")", comparison))
+                    ))
+                )
+            ));
+        }
+    }
     if kind == AstExpressionNodeIndex() {
         let left_text: Option<String> = SemanticExpressionGraphNodeText(
             graph, left_id
