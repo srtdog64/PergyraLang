@@ -17,6 +17,10 @@
 #include <stdio.h>
 #ifndef _WIN32
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 #endif
 
 #include "../common/execution_lane_kind.h"
@@ -299,6 +303,15 @@ struct PgyThreadPool {
     pthread_mutex_t    queue_mutex;   /* park/wake handshake only */
     pthread_cond_t     queue_cond;
     bool               shutdown;      /* written under queue_mutex */
+    /* Per-pool lifecycle wiring so pool-generic code (the channel-blocked
+     * compensation tick) can act on the pool the CURRENT thread serves
+     * without naming pool globals that are defined later in the include
+     * chain (docs/189 C13-④). Each pool's init fills these right after
+     * pgy_pool_structure_init; NULL means "not wired" and the tick
+     * refuses rather than guessing. */
+    pthread_mutex_t   *lifecycle_mutex;
+    atomic_bool       *active_flag;
+    atomic_bool       *shutting_flag;
 };
 
 static PgyThreadPool g_pgy_pool = {0};
@@ -312,6 +325,14 @@ static __thread PgyTask *g_pgy_thread_current = NULL;
  * inside a pool task -- main blocking outside any task does not shrink the
  * pool's parallelism, so it does not compensate. */
 static __thread int g_pgy_pool_task_depth = 0;
+/* Which pool this thread is a worker of (NULL on non-worker threads, e.g.
+ * main). The compensation tick used to hardcode g_pgy_pool, so a
+ * BLOCKING-pool worker parked on a channel spawned a useless spare in the
+ * MAIN pool while its own pool stayed starved (docs/189 C13-④); resolving
+ * the pool through this stamp routes compensation to the pool that is
+ * actually blocked. Main-thread help runs main-pool tasks, so NULL
+ * resolves to the main pool. */
+static __thread PgyThreadPool *g_pgy_thread_pool = NULL;
 
 /* Forward declaration — blocking pool shutdown called from pgy_pool_shutdown */
 static inline void pgy_blocking_pool_shutdown(void);
@@ -452,6 +473,7 @@ pgy_worker_loop(void *arg)
     PgyPoolWorkerSlot *slot = (PgyPoolWorkerSlot *)arg;
     PgyThreadPool *pool = slot->pool;
 
+    g_pgy_thread_pool = pool;
     for (;;) {
         PgyTask *task = pgy_pool_try_pop(pool, slot->index);
 

@@ -44,6 +44,13 @@ pgy_blocking_pool_init(size_t worker_count)
         pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         return;
     }
+    /* Wire this pool's lifecycle deps so the channel-blocked compensation
+     * tick spawns spares HERE when a blocking-pool worker parks on a
+     * channel, instead of mis-attributing to the main pool (docs/189
+     * C13-④). */
+    g_pgy_blocking_pool.lifecycle_mutex = &g_pgy_blocking_pool_lifecycle_mutex;
+    g_pgy_blocking_pool.active_flag = &g_pgy_blocking_pool_active;
+    g_pgy_blocking_pool.shutting_flag = &g_pgy_blocking_pool_shutting_down;
 
     atomic_store_explicit(&g_pgy_blocking_pool_active, true,
                           memory_order_release);

@@ -149,6 +149,16 @@ pgy_default_worker_count(void)
     SYSTEM_INFO si;
     GetSystemInfo(&si);
     long n = (long)si.dwNumberOfProcessors;
+#elif defined(__APPLE__)
+    int logical_cpu_count = 0;
+    size_t logical_cpu_count_size = sizeof(logical_cpu_count);
+    long n = 1;
+
+    if (sysctlbyname("hw.logicalcpu", &logical_cpu_count,
+                     &logical_cpu_count_size, NULL, 0) == 0
+        && logical_cpu_count > 0) {
+        n = logical_cpu_count;
+    }
 #else
     long n = sysconf(_SC_NPROCESSORS_ONLN);
 #endif
@@ -217,24 +227,35 @@ pgy_pool_spawn_spare_locked(PgyThreadPool *pool)
 static inline void
 pgy_pool_channel_blocked_tick(void)
 {
+    /* Compensate the pool the CURRENT thread serves (worker threads stamp
+     * g_pgy_thread_pool at loop entry; main-thread help runs main-pool
+     * tasks, so NULL resolves to the main pool). The old body hardcoded
+     * g_pgy_pool, so a blocking-pool worker parked on a channel spawned a
+     * useless main-pool spare while its own pool stayed starved
+     * (docs/189 C13-④). */
+    PgyThreadPool *pool = g_pgy_thread_pool != NULL
+        ? g_pgy_thread_pool : &g_pgy_pool;
+
     if (g_pgy_pool_task_depth <= 0)
         return;   /* not inside a pool task; pool parallelism unaffected */
-    if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire))
+    if (pool->lifecycle_mutex == NULL || pool->active_flag == NULL
+        || pool->shutting_flag == NULL)
+        return;   /* pool not wired for compensation; refuse, don't guess */
+    if (!atomic_load_explicit(pool->active_flag, memory_order_acquire))
         return;
-    if (atomic_load_explicit(&g_pgy_pool.sleepers, memory_order_seq_cst) != 0)
+    if (atomic_load_explicit(&pool->sleepers, memory_order_seq_cst) != 0)
         return;   /* an idle runner exists; enqueue signals reach it */
-    if (atomic_load_explicit(&g_pgy_pool.pending, memory_order_seq_cst) == 0)
+    if (atomic_load_explicit(&pool->pending, memory_order_seq_cst) == 0)
         return;   /* nothing queued for a spare to run */
-    if (atomic_load_explicit(&g_pgy_pool.spare_count, memory_order_acquire)
-        >= g_pgy_pool.max_spares)
+    if (atomic_load_explicit(&pool->spare_count, memory_order_acquire)
+        >= pool->max_spares)
         return;
 
-    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
-    if (atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)
-        && !atomic_load_explicit(&g_pgy_pool_shutting_down,
-                                 memory_order_acquire))
-        pgy_pool_spawn_spare_locked(&g_pgy_pool);
-    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+    pthread_mutex_lock(pool->lifecycle_mutex);
+    if (atomic_load_explicit(pool->active_flag, memory_order_acquire)
+        && !atomic_load_explicit(pool->shutting_flag, memory_order_acquire))
+        pgy_pool_spawn_spare_locked(pool);
+    pthread_mutex_unlock(pool->lifecycle_mutex);
 }
 
 static inline void
@@ -256,6 +277,9 @@ pgy_pool_init(size_t worker_count)
         pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return;
     }
+    g_pgy_pool.lifecycle_mutex = &g_pgy_pool_lifecycle_mutex;
+    g_pgy_pool.active_flag = &g_pgy_pool_active;
+    g_pgy_pool.shutting_flag = &g_pgy_pool_shutting_down;
 
     atomic_store_explicit(&g_pgy_pool_active, true, memory_order_release);
     pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
