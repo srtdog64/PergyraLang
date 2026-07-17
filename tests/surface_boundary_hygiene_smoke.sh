@@ -128,6 +128,17 @@ func Main() -> Int {
 }
 PGY
 
+cat > "$WORK_DIR/channel_param.pgy" <<'PGY'
+func Feed(ch: Channel<Int>) -> Void {
+    ch <- 1;
+}
+func Main() -> Int {
+    let ch: Channel<Int> = Channel(4);
+    Feed(ch);
+    return 0;
+}
+PGY
+
 cat > "$WORK_DIR/legal_surface.pgy" <<'PGY'
 func Main() -> Int {
     let double: Int = 3;
@@ -144,6 +155,7 @@ expect_reject "func_reserved" "is a C reserved word"
 expect_reject "channel_let_copy" "identity-bearing"
 expect_reject "channel_return" "Channel cannot cross a return boundary"
 expect_reject "channel_mut" "identity-bearing"
+expect_reject "channel_param" "Channel parameters are not supported"
 expect_accept_run "legal_surface" "c" "v=3"
 expect_accept_run "legal_surface" "llvm" "v=3"
 

@@ -103,6 +103,25 @@ type_check_func_validate_param_boundary(ASTNode *node,
     type_check_func_validate_identifier_hygiene(node, ctx, "parameter",
                                                 param->name);
 
+    /* Channel<T> descriptors are by-value structs with interior cursors: a
+     * parameter silently copies {buffer, head, count} and the copies drift
+     * (duplicate/split deliveries even in serial code). Final copy edge of
+     * the class -- let/mut/return/field/capture are already closed
+     * (docs/189 C12, board WO-RT-6). */
+    if (type_is_constructed_named(param_type, "Channel")) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
+            PGY_FIX_USE_BOUNDARY_VISIBLE_TYPE_OR_DROP_QUALIFIER,
+            node,
+            "Channel parameters are not supported.\n"
+            "Reason:\n"
+            "- passing a channel copies its descriptor (buffer pointer + cursors), so the copies drift and deliveries silently split\n"
+            "Fix:\n"
+            "- declare the channel at the use site and send/recv on that one variable\n"
+            "- pass the values that travel through the channel instead of the channel itself");
+        return;
+    }
+
     if (type_is_builtin_owner_handle(param_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
