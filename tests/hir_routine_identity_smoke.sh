@@ -78,6 +78,11 @@ reject_text "src/semantic/type_checker_ownership_destructure.c" \
 reject_text "src/semantic/type_checker_ownership_destructure.c" \
     "pgy_class_decl_field_declaration_syntax_id"
 require_text "src/compiler/rir_builder.c" "case AST_ROLE_DECL:"
+require_text "src/compiler/rir_builder.c" "case AST_ENUM_DECL:"
+require_text "src/compiler/rir_builder.c" "case AST_PARTY_DECL:"
+require_text "src/compiler/rir_builder.c" "case AST_ROSTER_DECL:"
+require_text "src/compiler/rir_builder.c" \
+    "rir_collect_hosted_method_scopes("
 require_text "src/compiler/rir_builder.c" "ast_impl_ability_method_count"
 require_text "src/compiler/rir_validation.c" \
     "RIR scope '%s' resource fact '%s' is missing HIR stable identity"

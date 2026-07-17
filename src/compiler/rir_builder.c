@@ -272,6 +272,25 @@ oom_no_scope:
     return false;
 }
 
+static bool
+rir_collect_hosted_method_scopes(RIRProgram *rir,
+                                 const char *owner_name,
+                                 ASTNode *owner_decl,
+                                 ASTNode **methods,
+                                 size_t method_count)
+{
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
+
+        if (method == NULL)
+            continue;
+        if (!rir_collect_func_scope(rir, RIR_SCOPE_METHOD, owner_name,
+                                    owner_decl, method))
+            return false;
+    }
+    return true;
+}
+
 RIRProgram *
 rir_lower(ASTNode *annotated_ast, char **error_message)
 {
@@ -307,12 +326,32 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
             {
                 size_t method_count = 0;
                 ASTNode **methods = ast_class_methods(node, &method_count);
-                for (size_t j = 0; ok && j < method_count; j++) {
-                    ok = rir_collect_func_scope(rir, RIR_SCOPE_METHOD,
-                                                ast_class_name(node),
-                                                node,
-                                                methods != NULL ? methods[j] : NULL);
-                }
+                ok = rir_collect_hosted_method_scopes(
+                    rir, ast_class_name(node), node, methods, method_count);
+                break;
+            }
+            case AST_ENUM_DECL:
+            {
+                size_t method_count = 0;
+                ASTNode **methods = ast_enum_methods(node, &method_count);
+                ok = rir_collect_hosted_method_scopes(
+                    rir, ast_enum_name(node), node, methods, method_count);
+                break;
+            }
+            case AST_PARTY_DECL:
+            {
+                size_t method_count = ast_party_method_count(node);
+                ASTNode **methods = ast_party_methods(node, NULL);
+                ok = rir_collect_hosted_method_scopes(
+                    rir, ast_party_name(node), node, methods, method_count);
+                break;
+            }
+            case AST_ROSTER_DECL:
+            {
+                size_t method_count = ast_roster_method_count(node);
+                ASTNode **methods = ast_roster_methods(node, NULL);
+                ok = rir_collect_hosted_method_scopes(
+                    rir, ast_roster_name(node), node, methods, method_count);
                 break;
             }
             case AST_ROLE_DECL:
