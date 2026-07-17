@@ -176,11 +176,30 @@ compiler_build_native(const CompilerIRBundle *bundle,
         return compiler_error("Unable to detect C compiler");
     const char *cc = cc_selection.cc;
     const char *cc_target = cc_selection.target_flag;
+
+    /* Extern-runtime mode: emitted C parses only runtime prototypes
+     * (PGY_RUNTIME_DECLS_ONLY) and links the separately-compiled runtime
+     * object, instead of re-inlining ~9k lines of runtime per build -- the
+     * measured 91% of emitted-C compile time (docs/189 C14 / WO-RED2). Opt out
+     * with PGY_RUNTIME_INLINE=1 to force self-contained inline emission. */
+    const char *force_inline_env = getenv("PGY_RUNTIME_INLINE");
+    bool extern_runtime = !(force_inline_env != NULL && force_inline_env[0] == '1');
+    char *runtime_obj_path = NULL;
+    if (extern_runtime) {
+        const char *obj_err = NULL;
+        runtime_obj_path = compiler_runtime_object_ensure(
+            opt_profile, uses_intent_observability, verbose, &obj_err);
+        if (runtime_obj_path == NULL) {
+            free(output_obj_path);
+            return compiler_error(obj_err != NULL ? obj_err
+                                  : "Runtime object unavailable");
+        }
+    }
     {
-        const char *compile_argv[28];
+        const char *compile_argv[32];
         int ci = 0;
 #ifdef _WIN32
-        const char *link_argv[28];
+        const char *link_argv[32];
         int li = 0;
 #endif
         compile_argv[ci++] = cc;
@@ -215,6 +234,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-fopenmp";
 #endif
         compile_argv[ci++] = intent_observability_flag;
+        if (extern_runtime)
+            compile_argv[ci++] = "-DPGY_RUNTIME_DECLS_ONLY";
         compile_argv[ci++] = "-I";
         compile_argv[ci++] = PGY_SRC_DIR;
         compile_argv[ci++] = "-I";
@@ -233,6 +254,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
         link_argv[li++] = opt_flag;
         link_argv[li++] = PGY_CFLAGS_THREAD_FLAG;
         link_argv[li++] = output_obj_path;
+        if (runtime_obj_path != NULL)
+            link_argv[li++] = runtime_obj_path;
         link_argv[li++] = "-o";
         link_argv[li++] = output_binary_path;
         link_argv[li++] = PGY_CFLAGS_THREAD_LIB;
@@ -243,12 +266,14 @@ compiler_build_native(const CompilerIRBundle *bundle,
     result = compiler_success(output_c_path, output_binary_path);
     if (result == NULL) {
         free(output_obj_path);
+        free(runtime_obj_path);
         return NULL;
     }
     if (!compiler_result_bind_artifact_identity(
             result, &projection_plan, "emitted_c")) {
         compiler_result_destroy(result);
         free(output_obj_path);
+        free(runtime_obj_path);
         return compiler_error(
             "C artifact identity could not bind the verified projection plan");
     }
@@ -264,6 +289,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
         remove(output_obj_path);
         free(output_obj_path);
+        free(runtime_obj_path);
         return result;
     }
     result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
@@ -272,7 +298,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
 #ifndef _WIN32
     /* POSIX: rebuild link_argv with extra flags where the host compiler supports them. */
     {
-        const char *lnk[20];
+        const char *lnk[24];
         int lc = 0;
         lnk[lc++] = cc;
         if (cc_target != NULL) lnk[lc++] = cc_target;
@@ -286,6 +312,8 @@ compiler_build_native(const CompilerIRBundle *bundle,
         lnk[lc++] = "-Wl,--build-id=none";
 #endif
         lnk[lc++] = output_obj_path;
+        if (runtime_obj_path != NULL)
+            lnk[lc++] = runtime_obj_path;
         lnk[lc++] = "-o";
         lnk[lc++] = output_binary_path;
 #ifndef __APPLE__
@@ -307,12 +335,14 @@ compiler_build_native(const CompilerIRBundle *bundle,
         result->backend_timings.link = compiler_now_seconds() - phase_start;
         remove(output_obj_path);
         free(output_obj_path);
+        free(runtime_obj_path);
         return result;
     }
     result->backend_timings.link = compiler_now_seconds() - phase_start;
 
     remove(output_obj_path);
     free(output_obj_path);
+    free(runtime_obj_path);
     return result;
 }
 

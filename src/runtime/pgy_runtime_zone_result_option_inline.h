@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 
 /* =================================================================
  * Parallel Support (OpenMP or Sequential Fallback)
@@ -99,10 +100,12 @@ _Static_assert(_Alignof(_Atomic uint32_t) == _Alignof(uint32_t),
 #define PGY_ZONE_GENERATION_LOAD(z) \
     atomic_load_explicit(&(z)->__sync_generation, memory_order_acquire)
 
-static inline void
+PGY_RT_DECL void
 pgy_zone_generation_warn_if_stale_impl(const char *label,
                                        uint32_t expected,
                                        uint32_t actual)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     static _Thread_local unsigned pgy_zone_stale_warn_count = 0;
     static _Thread_local bool pgy_zone_stale_warn_suppressed = false;
@@ -124,6 +127,10 @@ pgy_zone_generation_warn_if_stale_impl(const char *label,
         pgy_zone_stale_warn_suppressed = true;
     }
 }
+#else
+;
+#endif
+
 
 #define PGY_ZONE_GENERATION_WARN_IF_STALE(z, expected, label) do {                 \
     uint32_t _pgy_expected_gen = (uint32_t)(expected);                             \
@@ -141,12 +148,14 @@ pgy_zone_generation_warn_if_stale_impl(const char *label,
  * placeholder. Generated C uses the inline validator below; LLVM code
  * calls the exported twin in pgy_runtime_lib.c.
  * ================================================================= */
-static inline void
+PGY_RT_DECL void
 pgy_zone_authority_record_last(bool ok,
                                const char *zone_name,
                                const char *participant_name,
                                const char *code,
                                const char *reason)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
     const char *resolved_participant =
@@ -165,12 +174,18 @@ pgy_zone_authority_record_last(bool ok,
     snprintf(pgy_zone_authority_last_reason, sizeof(pgy_zone_authority_last_reason),
              "%s", reason != NULL ? reason : "");
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
                                  const char *zone_name,
                                  const char *participant_name,
                                  bool emit_stderr)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
     const char *resolved_participant =
@@ -204,8 +219,12 @@ pgy_zone_authority_validate_impl(void *zone_ptr, void *participant_ptr,
                                    PGY_ZONE_AUTHORITY_CODE_OK, "");
     return true;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_validate_token_impl(void *zone_ptr,
                                        void *participant_ptr,
                                        int64_t expected_token,
@@ -213,6 +232,8 @@ pgy_zone_authority_validate_token_impl(void *zone_ptr,
                                        const char *zone_name,
                                        const char *participant_name,
                                        bool emit_stderr)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
     const char *resolved_participant =
@@ -241,20 +262,32 @@ pgy_zone_authority_validate_token_impl(void *zone_ptr,
                                    PGY_ZONE_AUTHORITY_CODE_OK, "");
     return true;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_validate(void *zone_ptr, void *participant_ptr,
                             const char *zone_name, const char *participant_name)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_validate_impl(zone_ptr, participant_ptr,
                                             zone_name, participant_name, true);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_validate_flags_export(bool has_zone,
                                          bool has_participant,
                                          char *zone_name,
                                          char *participant_name)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     void *zone_ptr = has_zone ? (void *)&pgy_zone_authority_last_ok : NULL;
     void *participant_ptr =
@@ -262,14 +295,20 @@ pgy_zone_authority_validate_flags_export(bool has_zone,
     return pgy_zone_authority_validate_impl(zone_ptr, participant_ptr,
                                             zone_name, participant_name, false);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_validate_token_flags_export(bool has_zone,
                                                bool has_participant,
                                                int64_t expected_token,
                                                int64_t provided_token,
                                                char *zone_name,
                                                char *participant_name)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     void *zone_ptr = has_zone ? (void *)&pgy_zone_authority_last_ok : NULL;
     void *participant_ptr =
@@ -277,66 +316,130 @@ pgy_zone_authority_validate_token_flags_export(bool has_zone,
     return pgy_zone_authority_validate_token_impl(zone_ptr, participant_ptr,
         expected_token, provided_token, zone_name, participant_name, false);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_last_ok_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_ok;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_zone_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_zone;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_participant_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_participant;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_code_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_code;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_reason_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_reason;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_zone_authority_last_ok_rt_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_ok_export();
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_zone_rt_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_zone_export();
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_participant_rt_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_participant_export();
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_code_rt_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_code_export();
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_zone_authority_last_reason_rt_export(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_zone_authority_last_reason_export();
 }
+#else
+;
+#endif
+
 
 void pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
                                      const char *zone_name,
@@ -435,7 +538,9 @@ typedef struct {                                                        \
  * access remains reserved for the future scoped unsafe capability contract
  * (`unsafe(raw) { ... }`) and must pass through semantic/AIR/ABI gates first.
  */
-static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
+PGY_RT_DECL void* pgy_ptr_new_impl(size_t size, const char *file, int line)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     void *p = malloc(size);
     if (p == NULL && size > 0) {
@@ -445,9 +550,15 @@ static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
     }
     return p;
 }
+#else
+;
+#endif
 
-static inline void*
+
+PGY_RT_DECL void*
 pgy_ptr_new_array_impl(size_t elem_size, size_t count, const char *file, int line)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (elem_size != 0 && count > ((size_t)-1) / elem_size) {
         PGY_RUNTIME_PANIC_AT(PGY_RUNTIME_PANIC_CLASS_OOM,
@@ -456,6 +567,10 @@ pgy_ptr_new_array_impl(size_t elem_size, size_t count, const char *file, int lin
     }
     return pgy_ptr_new_impl(elem_size * count, file, line);
 }
+#else
+;
+#endif
+
 
 #define PGY_PTR_NEW(Type) \
     ((Type*)pgy_ptr_new_impl(sizeof(Type), __FILE__, __LINE__))

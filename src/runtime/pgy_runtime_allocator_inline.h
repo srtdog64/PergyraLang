@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /* =================================================================
  * Allocator Interface
  * ================================================================= */
@@ -29,8 +30,10 @@ typedef struct {
     PgyPoolAllocatorState *pool;
 } PgyAllocator;
 
-static inline void
+PGY_RT_DECL void
 pgy_allocator_record_alloc(PgyAllocator *alloc, size_t size)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (alloc == NULL)
         return;
@@ -47,9 +50,15 @@ pgy_allocator_record_alloc(PgyAllocator *alloc, size_t size)
                 size, alloc->bytes_in_use);
     }
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_allocator_record_free(PgyAllocator *alloc, size_t size)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (alloc == NULL)
         return;
@@ -64,36 +73,60 @@ pgy_allocator_record_free(PgyAllocator *alloc, size_t size)
                 size, alloc->bytes_in_use);
     }
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_system(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc;
     memset(&alloc, 0, sizeof(alloc));
     alloc.kind = PGY_ALLOC_SYSTEM;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_tracing(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_TRACING;
     alloc.trace_enabled = true;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_debug(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_DEBUG;
     alloc.debug_enabled = true;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_pool(size_t capacity)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_POOL;
@@ -109,33 +142,57 @@ pgy_allocator_pool(size_t capacity)
     alloc.pool->offset = 0;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_scratch(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_SCRATCH;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_result(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_RESULT;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline PgyAllocator
+
+PGY_RT_DECL PgyAllocator
 pgy_allocator_persistent(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyAllocator alloc = pgy_allocator_system();
     alloc.kind = PGY_ALLOC_PERSISTENT;
     return alloc;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_allocator_destroy(PgyAllocator *alloc)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (alloc == NULL)
         return;
@@ -145,6 +202,10 @@ pgy_allocator_destroy(PgyAllocator *alloc)
         alloc->pool = NULL;
     }
 }
+#else
+;
+#endif
+
 
 /*
  * Single charged choke point for the resource budget. Every runtime heap
@@ -157,17 +218,25 @@ pgy_allocator_destroy(PgyAllocator *alloc)
  * memory-exhaustion bound holds identically across backends regardless of how
  * each backend lowers the allocation. Resolves to the inline budget twin in C
  * output, the extern twin in the linked .bc -- one atomic counter per context. */
-static inline void
+PGY_RT_DECL void
 pgy_budget_charge_alloc(size_t bytes)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (pgy_budget_is_imposed_export()) {
         pgy_budget_charge_export(PGY_BUDGET_ALLOC_COUNT, 1, "alloc");
         pgy_budget_charge_export(PGY_BUDGET_ALLOC_BYTES, (uint64_t)bytes, "alloc");
     }
 }
+#else
+;
+#endif
 
-static inline void *
+
+PGY_RT_DECL void *
 pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_budget_charge_alloc(size);
     if (alloc != NULL && alloc->pool != NULL) {
@@ -208,9 +277,15 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
     }
     return ptr;
 }
+#else
+;
+#endif
 
-static inline void *
+
+PGY_RT_DECL void *
 pgy_realloc(PgyAllocator *alloc, void *ptr, size_t old_size, size_t new_size)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (alloc != NULL && alloc->pool != NULL) {
         if (ptr == NULL)
@@ -232,9 +307,15 @@ pgy_realloc(PgyAllocator *alloc, void *ptr, size_t old_size, size_t new_size)
     }
     return grown;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_free(PgyAllocator *alloc, void *ptr, size_t size)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (ptr == NULL)
         return;
@@ -253,3 +334,7 @@ pgy_free(PgyAllocator *alloc, void *ptr, size_t size)
     }
     free(ptr);
 }
+#else
+;
+#endif
+

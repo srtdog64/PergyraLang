@@ -1,9 +1,12 @@
+#include "pgy_runtime_linkage.h"
 /* String-value variant */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-static inline void pgy_map_keys_sort_bool_array(PgyArray_Bool *out)
+PGY_RT_DECL void pgy_map_keys_sort_bool_array(PgyArray_Bool *out)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t false_count = 0;
 
@@ -16,14 +19,24 @@ static inline void pgy_map_keys_sort_bool_array(PgyArray_Bool *out)
     for (size_t i = 0; i < out->length; i++)
         out->data[i] = i >= false_count;
 }
+#else
+;
+#endif
 
-static inline bool pgy_map_string_capacity_fits(size_t capacity)
+
+PGY_RT_DECL bool pgy_map_string_capacity_fits(size_t capacity)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return capacity != 0
         && capacity <= (size_t)INT32_MAX
         && capacity <= SIZE_MAX / sizeof(char *)
         && capacity <= SIZE_MAX / sizeof(uint8_t);
 }
+#else
+;
+#endif
+
 
 typedef struct
 {
@@ -34,7 +47,9 @@ typedef struct
     size_t   capacity;
 } PgyHashMap_String;
 
-static inline bool pgy_map_string_is_initialized(const PgyHashMap_String *m)
+PGY_RT_DECL bool pgy_map_string_is_initialized(const PgyHashMap_String *m)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return m != NULL
         && pgy_map_string_capacity_fits(m->capacity)
@@ -42,8 +57,14 @@ static inline bool pgy_map_string_is_initialized(const PgyHashMap_String *m)
         && m->values != NULL
         && m->occupied != NULL;
 }
+#else
+;
+#endif
 
-static inline PgyHashMap_String pgy_map_new_string(void)
+
+PGY_RT_DECL PgyHashMap_String pgy_map_new_string(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyHashMap_String m;
     m.capacity = PGY_HASHMAP_INIT_CAP;
@@ -63,8 +84,14 @@ static inline PgyHashMap_String pgy_map_new_string(void)
     }
     return m;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, const char *val)
+
+PGY_RT_DECL void pgy_map_set_string(PgyHashMap_String *m, const char *key, const char *val)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!pgy_map_string_is_initialized(m)) {
         pgy_runtime_warn_invalid_collection("map_set_string", "map is not initialized");
@@ -137,8 +164,14 @@ static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, con
     }
     m->occupied[h] = 1; m->count++;
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
+
+PGY_RT_DECL char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!pgy_map_string_is_initialized(m))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
@@ -156,8 +189,14 @@ static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
     return "";
 }
+#else
+;
+#endif
 
-static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
+
+PGY_RT_DECL bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!pgy_map_string_is_initialized(m)) return false;
     if (key == NULL) return false;
@@ -170,8 +209,14 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
     }
     return false;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
+
+PGY_RT_DECL void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (!pgy_map_string_is_initialized(m))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map");
@@ -217,13 +262,25 @@ static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
                       "map remove key not found");
 }
+#else
+;
+#endif
 
-static inline int32_t pgy_map_size_string(PgyHashMap_String *m)
+
+PGY_RT_DECL int32_t pgy_map_size_string(PgyHashMap_String *m)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_map_string_is_initialized(m) ? (int32_t)m->count : 0;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const char *val)
+
+PGY_RT_DECL void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const char *val)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_i32_key(key);
     if (key_str == NULL) {
@@ -233,8 +290,14 @@ static inline void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, con
     pgy_map_set_string(m, key_str, val);
     free(key_str);
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_get_i32_string(PgyHashMap_String *m, int32_t key)
+
+PGY_RT_DECL char *pgy_map_get_i32_string(PgyHashMap_String *m, int32_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *value = "";
     char *key_str = pgy_map_format_i32_key(key);
@@ -246,8 +309,14 @@ static inline char *pgy_map_get_i32_string(PgyHashMap_String *m, int32_t key)
     free(key_str);
     return value;
 }
+#else
+;
+#endif
 
-static inline bool pgy_map_has_i32_string(PgyHashMap_String *m, int32_t key)
+
+PGY_RT_DECL bool pgy_map_has_i32_string(PgyHashMap_String *m, int32_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     bool result = false;
     char *key_str = pgy_map_format_i32_key(key);
@@ -259,8 +328,14 @@ static inline bool pgy_map_has_i32_string(PgyHashMap_String *m, int32_t key)
     free(key_str);
     return result;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_remove_i32_string(PgyHashMap_String *m, int32_t key)
+
+PGY_RT_DECL void pgy_map_remove_i32_string(PgyHashMap_String *m, int32_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_i32_key(key);
     if (key_str == NULL) {
@@ -270,8 +345,14 @@ static inline void pgy_map_remove_i32_string(PgyHashMap_String *m, int32_t key)
     pgy_map_remove_string(m, key_str);
     free(key_str);
 }
+#else
+;
+#endif
 
-static inline void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, const char *val)
+
+PGY_RT_DECL void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, const char *val)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_i64_key(key);
     if (key_str == NULL) {
@@ -281,8 +362,14 @@ static inline void pgy_map_set_i64_string(PgyHashMap_String *m, int64_t key, con
     pgy_map_set_string(m, key_str, val);
     free(key_str);
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_get_i64_string(PgyHashMap_String *m, int64_t key)
+
+PGY_RT_DECL char *pgy_map_get_i64_string(PgyHashMap_String *m, int64_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *value = "";
     char *key_str = pgy_map_format_i64_key(key);
@@ -294,8 +381,14 @@ static inline char *pgy_map_get_i64_string(PgyHashMap_String *m, int64_t key)
     free(key_str);
     return value;
 }
+#else
+;
+#endif
 
-static inline bool pgy_map_has_i64_string(PgyHashMap_String *m, int64_t key)
+
+PGY_RT_DECL bool pgy_map_has_i64_string(PgyHashMap_String *m, int64_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     bool result = false;
     char *key_str = pgy_map_format_i64_key(key);
@@ -307,8 +400,14 @@ static inline bool pgy_map_has_i64_string(PgyHashMap_String *m, int64_t key)
     free(key_str);
     return result;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_remove_i64_string(PgyHashMap_String *m, int64_t key)
+
+PGY_RT_DECL void pgy_map_remove_i64_string(PgyHashMap_String *m, int64_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_i64_key(key);
     if (key_str == NULL) {
@@ -318,8 +417,14 @@ static inline void pgy_map_remove_i64_string(PgyHashMap_String *m, int64_t key)
     pgy_map_remove_string(m, key_str);
     free(key_str);
 }
+#else
+;
+#endif
 
-static inline void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const char *val)
+
+PGY_RT_DECL void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const char *val)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_bool_key(key);
     if (key_str == NULL) {
@@ -329,8 +434,14 @@ static inline void pgy_map_set_bool_string(PgyHashMap_String *m, bool key, const
     pgy_map_set_string(m, key_str, val);
     free(key_str);
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_get_bool_string(PgyHashMap_String *m, bool key)
+
+PGY_RT_DECL char *pgy_map_get_bool_string(PgyHashMap_String *m, bool key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *value = "";
     char *key_str = pgy_map_format_bool_key(key);
@@ -342,8 +453,14 @@ static inline char *pgy_map_get_bool_string(PgyHashMap_String *m, bool key)
     free(key_str);
     return value;
 }
+#else
+;
+#endif
 
-static inline bool pgy_map_has_bool_string(PgyHashMap_String *m, bool key)
+
+PGY_RT_DECL bool pgy_map_has_bool_string(PgyHashMap_String *m, bool key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     bool result = false;
     char *key_str = pgy_map_format_bool_key(key);
@@ -355,8 +472,14 @@ static inline bool pgy_map_has_bool_string(PgyHashMap_String *m, bool key)
     free(key_str);
     return result;
 }
+#else
+;
+#endif
 
-static inline void pgy_map_remove_bool_string(PgyHashMap_String *m, bool key)
+
+PGY_RT_DECL void pgy_map_remove_bool_string(PgyHashMap_String *m, bool key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *key_str = pgy_map_format_bool_key(key);
     if (key_str == NULL) {
@@ -366,6 +489,10 @@ static inline void pgy_map_remove_bool_string(PgyHashMap_String *m, bool key)
     pgy_map_remove_string(m, key_str);
     free(key_str);
 }
+#else
+;
+#endif
+
 
 #define PGY_DEFINE_MAP_KEYS_EXPORTS(TypeSuffix, FuncSuffix) \
 static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix *m) \

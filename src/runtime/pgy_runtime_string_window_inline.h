@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  *
@@ -16,8 +17,10 @@
 
 /* The 1-char string s[i..i+1) in O(1) (caller passes the length; no strlen).
  * Out-of-range yields "". Allocates the 1-char result; self-contained. */
-static inline char *
+PGY_RT_DECL char *
 CharAtN(const char *s, int32_t len, int32_t i)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *r;
     if (s != NULL && i >= 0 && i < len) {
@@ -33,16 +36,26 @@ CharAtN(const char *s, int32_t len, int32_t i)
         r[0] = '\0';
     return r;
 }
+#else
+;
+#endif
+
 
 /* The byte at s[i] as an int (0..255) in O(1) with a caller-supplied length;
  * -1 when out of range. The allocation-free counterpart of CharAtN for hot
  * char-by-char scanning (a lexer): no per-character heap string. */
-static inline int32_t
+PGY_RT_DECL int32_t
 CharCode(const char *s, int32_t len, int32_t i)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (s == NULL || i < 0 || i >= len)
         return -1;
     return (int32_t)(unsigned char)s[i];
 }
+#else
+;
+#endif
+
 
 #endif /* PGY_RUNTIME_STRING_WINDOW_INLINE_H */

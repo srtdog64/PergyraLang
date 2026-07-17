@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /* =================================================================
  * HashMap<String, T> / HashMap<Int, T> / HashMap<Long, T> /
  * HashMap<Bool, T> -- stable key subset over open-addressing
@@ -42,28 +43,52 @@ typedef struct
     size_t   capacity;
 } PgyHashMap_Int;
 
-static inline uint32_t pgy_hash_string(const char *s)
+PGY_RT_DECL uint32_t pgy_hash_string(const char *s)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     uint32_t h = 5381;
     if (s == NULL) return h;
     while (*s) { h = ((h << 5) + h) ^ (uint32_t)*s++; }
     return h;
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_format_i32_key(int32_t key)
+
+PGY_RT_DECL char *pgy_map_format_i32_key(int32_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_int_to_string(key);
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_format_i64_key(int64_t key)
+
+PGY_RT_DECL char *pgy_map_format_i64_key(int64_t key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_long_to_string(key);
 }
+#else
+;
+#endif
 
-static inline char *pgy_map_format_bool_key(bool key)
+
+PGY_RT_DECL char *pgy_map_format_bool_key(bool key)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_bool_to_string(key);
 }
+#else
+;
+#endif
+
 
 #define PGY_HASHMAP_DEFINE(SuffixName, CType) \
 typedef struct \

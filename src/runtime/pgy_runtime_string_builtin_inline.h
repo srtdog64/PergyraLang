@@ -1,6 +1,8 @@
 #ifndef PGY_RUNTIME_STRING_BUILTIN_INLINE_H
 #define PGY_RUNTIME_STRING_BUILTIN_INLINE_H
 
+#include "pgy_runtime_linkage.h"
+
 #include "pgy_runtime_strview_inline.h"
 
 /*
@@ -12,15 +14,23 @@
  * implementation out of that I/O boundary.
  */
 
-static inline bool
+PGY_RT_DECL bool
 StringContains(const char *haystack, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (haystack == NULL || needle == NULL) return false;
     return strstr(haystack, needle) != NULL;
 }
+#else
+;
+#endif
 
-static inline int32_t
+
+PGY_RT_DECL int32_t
 StringIndexOf(const char *haystack, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *match;
     if (haystack == NULL || needle == NULL)
@@ -30,9 +40,15 @@ StringIndexOf(const char *haystack, const char *needle)
         return -1;
     return (int32_t)(match - haystack);
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 Substring(const char *s, int32_t start, int32_t len)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t raw_len;
     int32_t slen;
@@ -49,58 +65,106 @@ Substring(const char *s, int32_t start, int32_t len)
     buf[len] = '\0';
     return buf;
 }
+#else
+;
+#endif
 
-static inline int32_t
+
+PGY_RT_DECL int32_t
 SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle);
 }
+#else
+;
+#endif
 
-static inline int32_t
+
+PGY_RT_DECL int32_t
 SubIndexOfWithLen(const char *s, int32_t source_len,
                   int32_t start, int32_t len, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_indexof(
         pgy_strview_with_len(s, source_len, start, len), needle);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubEquals(const char *s, int32_t start, int32_t len, const char *other)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_equals(pgy_strview(s, start, len), other);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubEqualsWithLen(const char *s, int32_t source_len,
                  int32_t start, int32_t len, const char *other)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_equals(
         pgy_strview_with_len(s, source_len, start, len), other);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubContains(const char *s, int32_t start, int32_t len, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_indexof(pgy_strview(s, start, len), needle) >= 0;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubContainsWithLen(const char *s, int32_t source_len,
                    int32_t start, int32_t len, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_indexof(
         pgy_strview_with_len(s, source_len, start, len), needle) >= 0;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubStartsWith(const char *s, int32_t start, const char *prefix)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_strview_starts_with(s, start, prefix);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 SubStartsWithLen(const char *s, int32_t source_len,
                  int32_t start, const char *prefix)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t prefix_len;
     if (s == NULL || prefix == NULL || source_len < 0)
@@ -118,9 +182,15 @@ SubStartsWithLen(const char *s, int32_t source_len,
         pgy_strview_with_len(s, source_len, start, (int32_t)prefix_len),
         prefix);
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (s == NULL || old_str == NULL || new_str == NULL)
         return pgy_runtime_strdup(s ? s : "");
@@ -159,9 +229,15 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     *dst = '\0';
     return result;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 StringTrim(const char *s)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (s == NULL) return pgy_runtime_strdup("");
     while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
@@ -175,9 +251,15 @@ StringTrim(const char *s)
     buf[len] = '\0';
     return buf;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 ToUpper(const char *s)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
@@ -187,9 +269,15 @@ ToUpper(const char *s)
         buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
     return buf;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 ToLower(const char *s)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
@@ -199,9 +287,15 @@ ToLower(const char *s)
         buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
     return buf;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 StringConcat(const char *a, const char *b)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (a == NULL) a = "";
     if (b == NULL) b = "";
@@ -214,9 +308,15 @@ StringConcat(const char *a, const char *b)
     memcpy(buf + la, b, lb + 1);
     return buf;
 }
+#else
+;
+#endif
 
-static inline PgyArray_String
+
+PGY_RT_DECL PgyArray_String
 StringSplit(const char *s, const char *delim)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyArray_String result = pgy_array_new_String(8);
     if (s == NULL || delim == NULL || delim[0] == '\0') {
@@ -244,9 +344,15 @@ StringSplit(const char *s, const char *delim)
     }
     return result;
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 StringJoin(PgyArray_String *arr, const char *sep)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (arr == NULL || arr->data == NULL || arr->length == 0) {
         return pgy_runtime_strdup("");
@@ -287,13 +393,23 @@ StringJoin(PgyArray_String *arr, const char *sep)
     result[pos] = '\0';
     return result;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_string_equals(const char *a, const char *b)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (a == NULL) a = "";
     if (b == NULL) b = "";
     return strcmp(a, b) == 0;
 }
+#else
+;
+#endif
+
 
 #endif /* PGY_RUNTIME_STRING_BUILTIN_INLINE_H */

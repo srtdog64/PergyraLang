@@ -1,6 +1,8 @@
 #ifndef PGY_RUNTIME_TEXT_BUILDER_INLINE_H
 #define PGY_RUNTIME_TEXT_BUILDER_INLINE_H
 
+#include "pgy_runtime_linkage.h"
+
 /*
  * Owned text assembly substrate. The builder keeps intermediate bytes in one
  * growable allocation and makes promotion to a result allocator explicit.
@@ -13,8 +15,10 @@ typedef struct {
     bool finished;
 } PgyTextBuilder;
 
-static inline PgyTextBuilder
+PGY_RT_DECL PgyTextBuilder
 pgy_text_builder_new(int64_t initial_capacity)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTextBuilder builder;
     size_t capacity;
@@ -30,9 +34,15 @@ pgy_text_builder_new(int64_t initial_capacity)
     builder.data[0] = '\0';
     return builder;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_text_builder_reserve(PgyTextBuilder *builder, size_t required)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t capacity;
     char *grown;
@@ -59,11 +69,17 @@ pgy_text_builder_reserve(PgyTextBuilder *builder, size_t required)
     builder->capacity = capacity;
     builder->data[builder->length] = '\0';
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_text_builder_append_n(PgyTextBuilder *builder,
                           const char *text,
                           size_t text_length)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t required;
 
@@ -81,16 +97,28 @@ pgy_text_builder_append_n(PgyTextBuilder *builder,
     builder->length += text_length;
     builder->data[builder->length] = '\0';
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_text_builder_append(PgyTextBuilder *builder, const char *text)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_text_builder_append_n(builder, text,
                               text != NULL ? strlen(text) : 0);
 }
+#else
+;
+#endif
 
-static inline char *
+
+PGY_RT_DECL char *
 pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     char *result;
     size_t result_size;
@@ -116,9 +144,15 @@ pgy_text_builder_finish(PgyTextBuilder *builder, PgyAllocator *result_allocator)
     builder->finished = true;
     return result;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_text_builder_drop(PgyTextBuilder *builder)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (builder == NULL || builder->finished)
         PGY_PANIC("TextBuilder drop after finish or drop");
@@ -128,5 +162,9 @@ pgy_text_builder_drop(PgyTextBuilder *builder)
     builder->capacity = 0;
     builder->finished = true;
 }
+#else
+;
+#endif
+
 
 #endif /* PGY_RUNTIME_TEXT_BUILDER_INLINE_H */

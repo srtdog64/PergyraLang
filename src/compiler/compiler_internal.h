@@ -16,6 +16,13 @@
 #define PGY_RUNTIME_LIB_C "src/runtime/pgy_runtime_lib.c"
 #endif
 
+/* C-leg extern runtime object TU (inline->extern, docs/189 C14). Built with
+ * -DPGY_RUNTIME_EXTERN_DEFS so it holds one external-linkage definition of
+ * every converted runtime body; the emitted C in extern mode links it. */
+#ifndef PGY_RUNTIME_CEXT_LIB_C
+#define PGY_RUNTIME_CEXT_LIB_C "src/runtime/pgy_runtime_cext_lib.c"
+#endif
+
 #ifdef _WIN32
 #define PGY_CFLAGS_THREAD_LIB "-lwinpthread"
 #define PGY_CFLAGS_THREAD_FLAG "-pthread"

@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  *
@@ -30,8 +31,10 @@ typedef struct {
 
 /* A view over s[start .. start+len), with the SAME clamping as Substring():
  * out-of-range / non-positive len yields an empty view. No allocation. */
-static inline PgyStrView
+PGY_RT_DECL PgyStrView
 pgy_strview(const char *s, int32_t start, int32_t len)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyStrView v;
     v.data = "";
@@ -50,13 +53,19 @@ pgy_strview(const char *s, int32_t start, int32_t len)
     v.length = len;
     return v;
 }
+#else
+;
+#endif
+
 
 /* Same contract as pgy_strview(), but consumes a caller-owned source-length
  * fact. This is the hot-path form for StrView/CharAtN-style code where the
  * length was already computed by the same owner and should not be re-scanned. */
-static inline PgyStrView
+PGY_RT_DECL PgyStrView
 pgy_strview_with_len(const char *s, int32_t source_len,
                      int32_t start, int32_t len)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyStrView v;
     v.data = "";
@@ -71,17 +80,29 @@ pgy_strview_with_len(const char *s, int32_t source_len,
     v.length = len;
     return v;
 }
+#else
+;
+#endif
 
-static inline int32_t
+
+PGY_RT_DECL int32_t
 pgy_strview_len(PgyStrView v)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return v.length;
 }
+#else
+;
+#endif
+
 
 /* Index of `needle` within the view, or -1, matching StringIndexOf semantics
  * (empty needle -> 0). Searches only the view's range; no allocation. */
-static inline int32_t
+PGY_RT_DECL int32_t
 pgy_strview_indexof(PgyStrView v, const char *needle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (needle == NULL)
         return -1;
@@ -95,16 +116,30 @@ pgy_strview_indexof(PgyStrView v, const char *needle)
                                    (size_t)v.length);
         return match != NULL ? (int32_t)((const char *)match - v.data) : -1;
     }
-    int32_t limit = v.length - (int32_t)nl;
-    for (int32_t i = 0; i <= limit; i++) {
-        if (memcmp(v.data + i, needle, nl) == 0)
-            return i;
+    const char *cursor = v.data;
+    size_t remaining = (size_t)v.length;
+    while (remaining >= nl) {
+        const char *match = (const char *)memchr(
+            cursor, (unsigned char)needle[0], remaining - nl + 1);
+        if (match == NULL)
+            return -1;
+        if (memcmp(match, needle, nl) == 0)
+            return (int32_t)(match - v.data);
+        size_t advanced = (size_t)(match - cursor) + 1;
+        cursor += advanced;
+        remaining -= advanced;
     }
     return -1;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_strview_equals(PgyStrView v, const char *other)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t n;
 
@@ -131,9 +166,15 @@ pgy_strview_equals(PgyStrView v, const char *other)
     }
     return memcmp(v.data, other, n) == 0;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_strview_starts_with(const char *s, int32_t start, const char *prefix)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t raw_len, prefix_len;
     int32_t slen;
@@ -153,11 +194,17 @@ pgy_strview_starts_with(const char *s, int32_t start, const char *prefix)
         return false;
     return memcmp(s + start, prefix, prefix_len) == 0;
 }
+#else
+;
+#endif
+
 
 /* Materialize a view into an owned NUL-terminated string when one is genuinely
  * needed (escape hatch back to the `char *` String world). Allocates. */
-static inline char *
+PGY_RT_DECL char *
 pgy_strview_to_string(PgyStrView v, char *(*alloc_fn)(size_t))
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     int32_t n = v.length < 0 ? 0 : v.length;
     char *r = alloc_fn((size_t)n + 1);
@@ -168,5 +215,9 @@ pgy_strview_to_string(PgyStrView v, char *(*alloc_fn)(size_t))
     r[n] = '\0';
     return r;
 }
+#else
+;
+#endif
+
 
 #endif /* PGY_RUNTIME_STRVIEW_INLINE_H */
