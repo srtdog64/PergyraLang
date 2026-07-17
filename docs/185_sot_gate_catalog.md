@@ -234,6 +234,31 @@ budget also stops the gate instead of merely annotating it afterward.
 Dashboard code, tests, and LOC remain supporting evidence and do not increase
 substitution progress.
 
+## 6b. Parallel-Track SoT Rows (2026-07-17, docs/188 R2/R8/R9)
+
+- **Chunk policy owner**: `src/self_hosted/parallel/chunk_policy_owner.pgy`
+  is the auto-chunk policy SoT; C runtime (`pgy_parallel_chunk.h`), exports,
+  and both emitters are projections. Gate:
+  `tests/selfhost_parallel_chunk_policy_smoke.sh` (comparator-backed golden
+  + C==LLVM legs + stable-identifier pins parsed from the compiled
+  manifest). Pin doctrine: stable identifiers only — arithmetic spellings
+  are not pinned (the 2026-07-17 relocation/rename false-positive is the
+  origin story); semantic equivalence is the executable golden's job.
+- **Measurement ledger canon**: `benchmarks/PARALLEL_RESULTS.md` is the
+  canonical parallel-performance ledger; `BN_RESULTS.md`, docs/186 progress
+  notes, the TODO board, and session memory are derived narrations. On
+  remeasure, update the canon first and let the derived copies cite it.
+- **Golden-refresh rule**: a commit that refreshes any expected/golden
+  artifact must state in its message what changed upstream and why the
+  golden follows — a silent refresh turns a drift detector off.
+- **Parallel production aggregate**:
+  `make parallel-production-contract-test-smoke` runs the nested-parallel
+  witness, worker-invariance (+ `PGY_WORKERS` warn pin), channel-pool
+  starvation, chunk-policy owner, budget chunk-charge, and join emit-shape
+  gates. It is wired once in Linux CI, where both C and LLVM voices are
+  available, instead of multiplying the same integration cost across all
+  platform jobs.
+
 ## 7. Next Execution Order
 
 1. Keep the mixed expression bridge as the active executable rung. Concrete

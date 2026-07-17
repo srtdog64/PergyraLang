@@ -147,20 +147,20 @@ selfhost-chunk-policy 4종 스모크는 전부 standalone(당시 Makefile
 가능해졌다 — 배선 전까지 이 게이트들은 "아는 사람만 돌리는" 상태고,
 R2가 보여줬듯 아무도 안 돌리는 사이 main이 빨개질 수 있다.
 
-## 요약 표
+## 요약 표 (수리 집행 후 갱신 — 2026-07-17 같은 날)
 
 | # | 분류 | 상태 | 한 줄 |
 |---|---|---|---|
-| R1 | silent-wrong | **LIVE** | 채널 param 복사 — 거절도 게이트도 없음 |
-| R2 | SoT pin | **RED now** | owner pin이 분가·리네임에 발화, 등록 3점이 근본 수리 |
-| R3 | 의미 드리프트 | 판정 대기 | SPAWN 예산이 N→chunk수로 조용히 변경, charge 골든 0 |
-| R4 | 골든 공백 | open | join 방출 형태 유닛 골든 0 |
-| R5 | 골든 공백 | open | F1 warn 텍스트 미핀 |
-| R6 | SoT 중복 | 소형 | BLOCKED_TICK 가드 2벌 + 선점-정의 창 |
+| R1 | silent-wrong | **보류(조정)** | 거절 설계·판정 완료(WO-RT-6), flow-summary 트랙의 Channel-param escape fixture와 충돌 — 소유자 조정 후 착지 |
+| R2 | SoT pin | ✅ 수리 (`ae7a8eb3`) | 안정-식별자 pin + 등록 3점(OWNERS/contract-smoke/artifact-kind) + comparator 편입, 게이트 GREEN |
+| R3 | 의미 드리프트 | ✅ 판정+골든 (`8e5a798f`) | 판정 D: SPAWN=생성 태스크 수; charge/ceiling 양면 pin 게이트 GREEN |
+| R4 | 골든 공백 | ✅ 수리 (`431cfcb2`) | 방출-형태 골든 14 pin(c 9+llvm 5) GREEN |
+| R5 | 골든 공백 | ✅ 부분수리 (`431cfcb2`) | PGY_WORKERS warn pin 착지; pool-inactive warn은 런타임 유닛 후보로 잔존 |
+| R6 | SoT 중복 | ✅ 수리 (`9b3412ca`) | 단일 홈(channel_status.h) + 선점-정의 #error |
 | R7 | 잔차 검증 | 이상 없음 | 보상 degrade 3경로 전부 관측 가능 |
-| R8 | 프로세스 SoT | 소형 | 측정 서사 5곳, canon 1줄 부재 |
-| R9 | 규율 | 제안 | 골든 refresh 사유 의무화 |
-| R10 | 배선 | open | 신설 게이트 4종 test-all 밖 |
+| R8 | 프로세스 SoT | ✅ 등재 | docs/185 §6b: 측정 원장 canon 규칙 |
+| R9 | 규율 | ✅ 등재 | docs/185 §6b: 골든 refresh 사유 의무화 |
+| R10 | 배선 | 부분 | 게이트 6종 docs/185 §6b 등재; Makefile 타겟은 사용자 WIP(Makefile dirty) 해제 후 |
 
 ## Related
 

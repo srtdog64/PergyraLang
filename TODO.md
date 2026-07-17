@@ -10481,7 +10481,26 @@ RT 계열.
 - **금지**: 측정 없는 수술; B4(fiber/LOCAL_ASYNC 통합)는 BDFL 결정 전 착수
   금지; lane 3층 collapse.
 
-#### WO-RT-5 — 채널-파킹 풀 기아 클래스 (WO-RT-3의 채널판) — RED 실증, fix는 결정 대기
+#### WO-RT-5 — 채널-파킹 풀 기아 클래스 (WO-RT-3의 채널판) — ✅ CLOSED (2026-07-17, `8c001799`+`9b3412ca`)
+
+- **닫힘 (판정 A, docs/187 ★판정)**: fix = **보상 스레드**(ForkJoin
+  managedBlock 형) — 블록된 pool 태스크의 park 양자마다 idle runner가
+  없고 큐에 일이 있으면 spare worker를 cap(worker×4)까지 스폰. 중첩
+  없음 = 순환 채널-의존 함정 원천 차단. **help-in-channel-wait 1안은
+  backpressure 게이트가 반증**(반증 6호: helper에 consumer가 중첩되며
+  자기 밑 producer의 continuation을 대기 → self-deadlock) — 반증 이력은
+  채널 헤더 주석에 보존. probe는 하드 게이트로 승격
+  (`tests/channel_pool_starvation_probe.sh`, 양 백엔드 완주 요구 + 회귀
+  시 RED). 기아 4/4·backpressure 64/64×2·중첩 4/4·불변성 GREEN.
+  보상 hook 매크로는 단일 홈(`pgy_runtime_channel_status.h`, 선점 정의
+  = #error, docs/188 R6).
+- **잔차 (관측 가능)**: cap 초과·spare 생성 실패 시 quantum-park 강등
+  (warn). fiber lane은 이 잔차의 후보로만 잔존(판정 B — 재론 조건:
+  실워크로드 cap-강등 실증 1건).
+
+(원문 — RED 실증 기록 보존)
+
+#### (구) WO-RT-5 원문 — RED 실증, fix는 결정 대기
 
 - **실증 (2026-07-17, `79eb26b5`)**: THREAD-모델 채널 대기는
   cancellation-quantum timedwait로 **worker를 점유**하며 help-드레인이
@@ -10500,6 +10519,31 @@ RT 계열.
   디스크립터 무음 값-복사로 head/count desync — **직렬 코드에서도**
   중복 수신(1+2 자리에 1+1). silent-wrong 클래스, 별도 세션에서
   fail-close 거절 vs reference 의미론 판정.
+
+#### WO-RT-6 — Channel<T> 함수-param fail-close 거절 (docs/188 R1) — 착수 대기 (충돌 조정)
+
+- **판정(위임)**: 1차 rung = semantic **fail-close 거절**(silent-wrong을
+  컴파일 에러로). 삽입 지점 확인됨:
+  `type_check_func_validate_param_boundary`(TextBuilder param 거절과 동일
+  자리·동일 근거, aggregate-field Channel 거절 선례 존재), 판별은
+  `type_is_constructed_named(param_type, "Channel")`.
+- **착수 보류 사유 (2026-07-17)**: 전수조사 결과 유일한 Channel-param
+  사용처가 `tests/cases/function_param_flow_summary/escape_negative.pgy`
+  — **동시 진행 중인 flow-summary 트랙**(smoke+main.pgy dirty)이
+  Channel-param을 escape 모델로 사용. 거절을 지금 착지시키면 그 트랙이
+  RED가 됨 → 소유자와 fixture 대체(escape 매개를 다른 자원으로) 조정 후
+  착지. 그 전까지 `docs/188` R1이 LIVE 기록, 재현은 칩 task_b4b2f972.
+- **게이트(착지 시)**: 거절 fixture + 직접-사용 회귀(starvation probe의
+  control이 이미 커버) + 힌트 문구("캡처-현장 직접 사용") pin.
+
+#### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
+
+- **해제 근거**: docs/187 ★판정 C — ① 명시 시작(world-층 선언 + code-층
+  시작 문장) ② 스코프-종속 정지 기본 + 핸들 opt-in ③ worker-pool 고정
+  (role은 R4 재방문). §3의 "판정 없이 착수 금지"가 이 3판정으로 해제됨.
+- **선행 잔여**: Duration 산술/비교(P-C2) → 실행 모양은 §3 원문
+  (가상모드 advance-브로드캐스트, compare 게이트는 가상모드만).
+- **금지 유지**: 스케줄-적응형 fold(§6), lane collapse, M:N default.
 
 ---
 

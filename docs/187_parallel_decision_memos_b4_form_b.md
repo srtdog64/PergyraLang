@@ -100,7 +100,39 @@ advance-브로드캐스트, compare 게이트는 가상모드만), Duration 산�
 후 role은 R4에서 재방문"이 최소-후회 경로로 보인다. 셋 다 반례가
 있으면 뒤집는 게 맞고, 이 문서는 그 논쟁의 좌표만 고정한다.
 
+## ★ 판정 (2026-07-17, BDFL 위임 "전부 시작하고 판정해라" 집행)
+
+BDFL이 판정을 위임했고("판정해라"), 아래를 확정한다. 반례가 나오면
+뒤집는 것 포함, 이후 이 절이 두 메모의 canonical 판정이다.
+
+**판정 A — WO-RT-5 fix = 보상 스레드(ForkJoin managedBlock 형)**.
+help-in-channel-wait는 backpressure 게이트가 반증(순환 채널 의존에서
+helper 중첩 self-deadlock — 반증 6호). 보상 스레드로 집행 완료
+(`8c001799` 흡수, probe는 하드 게이트로 승격, 기아/backpressure/중첩/
+불변성 전부 GREEN). cap(worker×4) 초과·spare 생성 실패는 quantum-park
+강등으로 관측 가능하게 잔존.
+
+**판정 B — B4 = O1 유지 (fiber 미채택)**. compute 축 논거는 측정으로
+소멸했고, IO-파킹 축(이 메모의 유일한 실증 RED)은 판정 A가 닫았다.
+fiber lane은 **cap-초과 잔차의 후보로만** 남는다 — 재론 조건: 실제
+워크로드에서 cap 강등이 관측되는 실증 1건.
+
+**판정 C — Form B 3건**: ① 시작 의미론 = **명시 시작**(반응형 블록은
+world-층 선언, 시작은 code-층 문장 — 구두점-register 원칙 정합).
+② 취소 표면 = **스코프 종속 기본 + 핸들 opt-in**(콘텐츠 sandbox의
+"스코프 밖 생존 루프 없음" 신뢰 스토리 우선). ③ 단일 lane = **worker-
+pool 고정**, role 소유는 R4에서 재방문. docs/182 §3의 착수-금지가
+해제된다 — 구현은 별도 WO(선행: Duration 산술 P-C2), 이 판정이 그
+WO의 §3 절차 입력이다.
+
+**판정 D — SPAWN_COUNT 예산 = 실제 생성 태스크 수** (docs/188 R3).
+join fan-out은 chunk 수를 charge한다; 반복수 상한은 별도 미래 축
+(ITER/TIME, 보드 등록). 게이트가 판정을 pin:
+`tests/parallel_budget_chunk_charge_smoke.sh` (budget 100에서 n=1000
+join 완주 = 의미론 pin, budget 8에서 budget-exceeded = ceiling 유지).
+
 ## Related
 
 docs/186(계획·종결 기록) · docs/182 §3/§6(원문 제약) · docs/181(표면
-설계) · benchmarks/PARALLEL_RESULTS.md(측정) · TODO 보드 WO-RT-4 잔여.
+설계) · benchmarks/PARALLEL_RESULTS.md(측정) · TODO 보드 WO-RT-4/5 ·
+docs/188(레드팀 감사 — R3 판정의 발견 경위).
