@@ -581,11 +581,14 @@ Forty-eighth executable active-rung delta, 2026-07-17: equality and inequality
 emission now consumes child node handles and
 `CodegenExpressionTypeFromGraph`. String comparison selects the runtime ABI
 compare row from those facts; scalar and payload-free enum operands use their
-already projected graph values. The graph emitter no longer calls the legacy
+already projected graph values. Qualified payload-free variants derive their
+owner type only when both the enum declaration row and exact variant row
+exist. The graph emitter no longer calls the legacy
 `RewriteEqualityProjection`, `ExprKind`, or `RewriteExpr` text path. Existing
 String equality and concatenated-String equality fixtures remain the focused
-C/LLVM proof. Other expression bridges listed in the owner registry remain
-open, so this does not promote the whole expression owner to `CLOSED`.
+C/LLVM proof; `enum_return` pins the qualified-variant type row in the DRV-2
+MIR integration gate. Other expression bridges listed in the owner registry
+remain open, so this does not promote the whole expression owner to `CLOSED`.
 
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage

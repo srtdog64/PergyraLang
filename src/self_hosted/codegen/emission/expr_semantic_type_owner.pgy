@@ -100,14 +100,35 @@ func CodegenExpressionMemberTypeFromGraph(
     let member_text: Option<String> = SemanticExpressionGraphNodeText(
         graph, view.member_node
     );
+    if !IsSome(member_text) ||
+        !IsIdentifier(UnwrapOption(member_text)) {
+        return None;
+    }
+    let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, view.receiver_node
+    );
+    let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.receiver_node
+    );
+    if IsSome(receiver_kind) &&
+        UnwrapOption(receiver_kind) == AstExpressionNodeLeaf() &&
+        IsSome(receiver_text) &&
+        IsIdentifier(UnwrapOption(receiver_text)) {
+        let enum_owner: String = UnwrapOption(receiver_text);
+        let enum_value: String = LookupKindType(
+            env, Concat(enum_owner, Concat(
+                ".", UnwrapOption(member_text)
+            )), "e"
+        );
+        if enum_value != "" &&
+            LookupKindType(env, enum_owner, "enum") == "payload_free" {
+            return Some(enum_owner);
+        }
+    }
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, view.receiver_node, env
     );
-    if !IsSome(member_text) ||
-        !IsIdentifier(UnwrapOption(member_text)) ||
-        !IsSome(receiver_type) {
-        return None;
-    }
+    if !IsSome(receiver_type) { return None; }
     let field_type: String = LookupFieldType(
         env, UnwrapOption(receiver_type), UnwrapOption(member_text)
     );

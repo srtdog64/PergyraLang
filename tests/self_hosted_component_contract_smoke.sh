@@ -4448,6 +4448,10 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
     "CodegenExpressionTypeFromGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "StringRuntimeCStringCompareFn()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    'LookupKindType(env, enum_owner, "enum") == "payload_free"'
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    'return Some(enum_owner);'
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     'LookupKindType(env, text, "call")'
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
