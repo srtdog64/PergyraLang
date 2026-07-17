@@ -259,6 +259,52 @@ substitution progress.
   available, instead of multiplying the same integration cost across all
   platform jobs.
 
+## 6c. docs/189 Repair Gates (2026-07-18, C-compiler-dev red team)
+
+New standalone gates from the repair campaign; each is runnable directly
+and awaits Makefile-target wiring (coordinate with the in-flight CI
+repair before adding targets):
+
+- `tests/runtime_bc_contract_smoke.sh` — bitcode-twin contract pins:
+  `.bc` build mirrors `-fwrapv`/`-fno-strict-aliasing`, strip predicates
+  cover the stateful/panic-carrying families, the exclusion loop enforces
+  external linkage, freshness is a directory scan, and the checked
+  float->int twins exist in both runtime homes (docs/189 C4-C7).
+- `tests/surface_boundary_hygiene_smoke.sh` — C-reserved-word rejection
+  for function/parameter names (SoT twin:
+  `symbol_table_owner.pgy` CompilerSymbolCReservedWord) and the Channel
+  copy-edge rules (let-copy/mut/return fail closed; constructor-born
+  immutable lets and SSA-renamed `let double` stay legal) (C11+C12).
+- `tests/adversarial_input_smoke.sh` — termination-contract exercise:
+  deep nesting (parser 400 cap), operator bomb (4096 cap), 1MB token,
+  garbage bytes, and a 10MB valid source, all under hard timeouts with
+  hang/crash/accept outcomes distinguished (C8/C10/C14). Complements
+  `tests/semantic_termination_security_smoke.sh` (step budget + NUL),
+  which landed with the CI-repair track.
+- `tests/emitted_c_warning_clean_smoke.sh` — emitted C for a 15-fixture
+  representative slice must compile warning-clean at
+  `-Wall -Wextra -Werror` (suppressions only for the structural
+  single-TU inline-runtime noise) (C14).
+- Panic-class gate extension: `tests/runtime_panic_codegen_smoke.sh`
+  now also pins `float_to_int_oob` / `float_to_long_oob` /
+  `float_nan_to_int` on both backends (C1); the Coq side is
+  `CheckedArith.v` `checked_f2i` (`f2i_none_iff` / `f2i_some_exact` /
+  `f2i_some_representable` / `f2i_total`, machine-checked).
+
+Deferred with owners (blocked or workstream-scale, not forgotten):
+
+- **Blocking-pool compensation mis-attribution** (docs/189 C13-④):
+  `g_pgy_pool_task_depth` TLS is shared by both pools while the tick
+  always spawns into `g_pgy_pool`; fix needs edits to
+  `pgy_parallel.h`/`pgy_parallel_pool_lifecycle.h`, which are in-flight
+  in the CI-repair track — land after those files settle.
+- **C-backend runtime prelink** (C14-③): moving the 14k-line inline
+  runtime include to a cached object is an emission-shape workstream
+  (every generated program changes), not a patch.
+- **Real compile-speed contract** (C14-④): `perf_contract_smoke.sh`
+  currently pins a synthetic log's format, not measured time; replacing
+  it with a measured-threshold gate waits on the same in-flight file.
+
 ## 7. Next Execution Order
 
 1. Keep the mixed expression bridge as the active executable rung. Concrete

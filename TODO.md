@@ -10520,8 +10520,15 @@ RT 계열.
   중복 수신(1+2 자리에 1+1). silent-wrong 클래스, 별도 세션에서
   fail-close 거절 vs reference 의미론 판정.
 
-#### WO-RT-6 — Channel<T> 함수-param fail-close 거절 (docs/188 R1) — 착수 대기 (충돌 조정)
+#### WO-RT-6 — Channel<T> 함수-param fail-close 거절 (docs/188 R1) — param 면만 잔여 (충돌 조정)
 
+- **★2026-07-18 진행 (docs/189 C12, 커밋 490ef0ca)**: 복사면 5면 중
+  param을 제외한 열린 면 전부 착지 — **let-복사/let mut/return 거절**
+  (`ownership_let_validate_channel_binding` +
+  `type_check_func_validate_return_boundary`의 Channel 절, alias를 뚫고
+  resolved 타입에 걸림). field/클로저캡처는 기존 닫힘. 게이트 =
+  `tests/surface_boundary_hygiene_smoke.sh`(거절 5 + 합법 2 양 백엔드).
+  **이제 잔여는 param 면 1개.**
 - **판정(위임)**: 1차 rung = semantic **fail-close 거절**(silent-wrong을
   컴파일 에러로). 삽입 지점 확인됨:
   `type_check_func_validate_param_boundary`(TextBuilder param 거절과 동일
@@ -10533,8 +10540,39 @@ RT 계열.
   Channel-param을 escape 모델로 사용. 거절을 지금 착지시키면 그 트랙이
   RED가 됨 → 소유자와 fixture 대체(escape 매개를 다른 자원으로) 조정 후
   착지. 그 전까지 `docs/188` R1이 LIVE 기록, 재현은 칩 task_b4b2f972.
-- **게이트(착지 시)**: 거절 fixture + 직접-사용 회귀(starvation probe의
-  control이 이미 커버) + 힌트 문구("캡처-현장 직접 사용") pin.
+- **게이트(착지 시)**: surface_boundary_hygiene에 param 거절 케이스 추가
+  + 직접-사용 회귀(starvation probe의 control이 이미 커버).
+- **표현 판정(후속, BDFL)**: docs/189 C12 — 4면 거절 유지(A) vs
+  디스크립터 heap 핸들 승격(복사=별칭, 클래스 소멸, 수명 스토리 필요)(B).
+  B 채택 시 이 거절들은 합법 별칭으로 완화된다.
+
+#### WO-RED2 — docs/189 수리 캠페인 잔여 3건 + CI 배선 스니펫 (2026-07-18)
+
+수리 캠페인(커밋 f5a305cc/8fb96279/490ef0ca + 후속)에서 착지 못 한
+3건과, CI-수리 트랙과 조정 후 배선할 스니펫. 게이트 상세는 docs/185 §6c.
+
+- **① blocking-pool 보상 오귀속 (C13-④, dirty-블록)**:
+  `g_pgy_pool_task_depth` TLS가 두 풀 공용인데
+  `pgy_pool_channel_blocked_tick`은 무조건 `g_pgy_pool`에 스폰 →
+  blocking-pool 태스크의 채널 블록은 보상이 엉뚱한 풀로 감. fix 후보 =
+  depth TLS 풀별화 or task에 풀 태그. 대상 파일 2개가 CI-수리 트랙
+  in-flight라 그 착지 후 진행.
+- **② C-backend 런타임 prelink (C14-③, workstream)**: 방출 C가 런타임
+  14k줄을 매 빌드 인라인 재컴파일(`compiler_runtime_cache.c`가
+  `PGY_LLVM_ENABLED` 전용). 방출 형태가 바뀌는 워크스트림이라 패치 아님.
+- **③ 실측 컴파일-속도 계약 (C14-④, dirty-블록)**: perf_contract가
+  합성 로그 포맷 검사 — 실측 임계 게이트로 교체는 해당 파일 settle 후.
+- **CI 잡 스니펫 (배선은 CI-수리 트랙 소유자와 조정)**:
+  - asan: `ubuntu-latest` 잡 1개 → `make test-asan`(타겟 존재,
+    libasan 없으면 self-skip이라 안전).
+  - fuzz 캠페인: 기존 `fuzz-backend-parity-matrix-test-smoke`를
+    `ci_linux_steps.sh`에 1줄 추가 + `PGY_FUZZ_SEED=${GITHUB_RUN_NUMBER}`
+    회전(오라클-on, 현 CI는 생성기-안정성 8케이스만).
+  - `.bc`-on 레그: Linux 잡에서 `make runtime-bc` 후 backend-compare 샤드
+    1개 실행 — 로컬(bc-on)과 CI(bc-off)가 다른 구성을 테스트하는 비대칭
+    해소(docs/189 C5-②; 미채택 시 `.bc` 경로 experimental 격하 명시가
+    정직). 신설 4게이트(`runtime_bc_contract`/`surface_boundary_hygiene`/
+    `adversarial_input`/`emitted_c_warning_clean`)의 make 타겟 배선 포함.
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
