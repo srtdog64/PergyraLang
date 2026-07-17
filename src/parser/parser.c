@@ -19,6 +19,13 @@
  */
 #define PARSER_MAX_RECURSION_DEPTH 400
 
+void
+parser_set_recovered_error_output(Parser *parser, bool enabled)
+{
+    if (parser != NULL)
+        parser->emit_recovered_errors = enabled;
+}
+
 bool
 parser_enter_recursion(Parser *parser)
 {
@@ -50,6 +57,7 @@ Parser* parser_create(Lexer* lexer) {
 
     parser->lexer = lexer;
     parser->has_error = false;
+    parser->emit_recovered_errors = true;
     parser->error_msg = NULL;
     parser->scope_depth = 0;
     parser->in_parallel_block = false;
@@ -213,7 +221,7 @@ void parser_error(Parser* parser, const char* format, ...) {
     if (first) {
         free(parser->error_msg);
         parser->error_msg = rendered;
-    } else {
+    } else if (parser->emit_recovered_errors) {
         fprintf(stderr, "pgy: parse error: %s\n",
                 rendered != NULL ? rendered : "parse error");
         free(rendered);
@@ -221,6 +229,8 @@ void parser_error(Parser* parser, const char* format, ...) {
             fprintf(stderr,
                     "pgy: parse error: further parse errors suppressed "
                     "(limit %d)\n", PARSER_MAX_REPORTED_ERRORS);
+    } else {
+        free(rendered);
     }
 }
 

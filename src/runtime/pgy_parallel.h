@@ -17,10 +17,6 @@
 #include <stdio.h>
 #ifndef _WIN32
 #include <unistd.h>
-#ifdef __APPLE__
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#endif
 #endif
 
 #include "../common/execution_lane_kind.h"

@@ -146,6 +146,7 @@ lsp_build_diagnostics_params(const char *uri, const char *source_text,
         lexer_destroy(lexer);
         return false;
     }
+    parser_set_recovered_error_output(parser, false);
 
     ASTNode *ast = parser_parse_program(parser);
     bool parse_err = parser_has_error(parser);

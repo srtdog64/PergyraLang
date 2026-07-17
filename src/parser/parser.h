@@ -43,6 +43,7 @@ typedef struct
     Token   previous_token;
     PgyTokenStreamHandle token_stream;
     bool    has_error;
+    bool    emit_recovered_errors;
     /* Owned, heap-exact. A diagnostic is the compiler's product, so it must
      * not be silently clipped: the previous fixed 512-byte buffer dropped
      * the tail of any message carrying a long identifier or literal, with
@@ -86,6 +87,7 @@ typedef struct
  */
 Parser  *parser_create(Lexer *lexer);
 void     parser_destroy(Parser *parser);
+void     parser_set_recovered_error_output(Parser *parser, bool enabled);
 
 /*
  * Main parsing function

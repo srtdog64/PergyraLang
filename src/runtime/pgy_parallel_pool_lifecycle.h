@@ -150,15 +150,10 @@ pgy_default_worker_count(void)
     GetSystemInfo(&si);
     long n = (long)si.dwNumberOfProcessors;
 #elif defined(__APPLE__)
-    int logical_cpu_count = 0;
-    size_t logical_cpu_count_size = sizeof(logical_cpu_count);
     long n = 1;
-
-    if (sysctlbyname("hw.logicalcpu", &logical_cpu_count,
-                     &logical_cpu_count_size, NULL, 0) == 0
-        && logical_cpu_count > 0) {
-        n = logical_cpu_count;
-    }
+#if defined(_SC_NPROCESSORS_ONLN)
+    n = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 #else
     long n = sysconf(_SC_NPROCESSORS_ONLN);
 #endif

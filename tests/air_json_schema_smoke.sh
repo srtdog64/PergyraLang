@@ -66,7 +66,8 @@ SELECT_OUT="$WORK_DIR/air_select_receive.json"
 SELECT_ERR="$WORK_DIR/air_select_receive.err"
 
 cat > "$SELECT_SOURCE" <<'EOF'
-func SelectReceiveAir(ch: Channel<Int>) -> Int {
+func SelectReceiveAir() -> Int {
+    let ch: Channel<Int> = Channel(1);
     ch <- 7;
     select {
         case v = <-ch:

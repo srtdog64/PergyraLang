@@ -1297,7 +1297,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 139 .cases.h files
+test case includes under src/tests = 140 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -1308,13 +1308,20 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 139 files unless
+test fragment inventory at the current 140 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
 must be referenced by a test harness or a smoke script. There is no
 empty-sentinel allowlist. New behavior-owning `.inc` splits are blocked by
 default.
+
+The 140th fragment is
+`src/tests/semantic/test_semantic_resource_flow_lifetime.cases.h`. It owns the
+negative regression that proves resource-flow facts outlive inner-block
+`Symbol` storage. Keeping that lifetime contract separate from the broad
+semantic suites preserves one failure owner; the inventory increase does not
+authorize production `.inc` files or unreferenced test fragments.
 
 Owner-size policy is separate from the `.inc` gate:
 

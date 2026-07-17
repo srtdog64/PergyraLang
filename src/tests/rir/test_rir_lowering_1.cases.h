@@ -34,7 +34,8 @@ test_rir_lowering(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         const char *src =
-            "func ChannelOps(ch: Channel<Int>) -> Int {\n"
+            "func ChannelOps() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 1;\n"
             "    let first: Int = <- ch;\n"
             "    select {\n"

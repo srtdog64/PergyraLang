@@ -253,6 +253,7 @@ main(int argc, char **argv)
     char doc_uri[2048] = "";
     char *doc_content = NULL;
     char *msg_buf = malloc(PGY_LSP_MESSAGE_BUFFER_SIZE);
+    bool diagnostics_deferred = false;
 
     if (argc == 3 && strcmp(argv[1], "--dump-diagnostics") == 0)
         return dump_diagnostics_file(argv[2]);
@@ -284,6 +285,12 @@ main(int argc, char **argv)
         if (!has_method)
             continue;
 
+        if (diagnostics_deferred
+            && strcmp(method, "textDocument/didChange") != 0) {
+            publish_diagnostics(doc_uri, doc_content);
+            diagnostics_deferred = false;
+        }
+
         if (strcmp(method, "initialize") == 0) {
             respond_initialize(id);
         } else if (strcmp(method, "initialized") == 0) {
@@ -302,11 +309,13 @@ main(int argc, char **argv)
             free(text);
         } else if (strcmp(method, "textDocument/didChange") == 0) {
             char *text = json_find_string_dup(msg, "text");
+            bool defer = lsp_stdin_has_pending();
             /* Coalesce bursts: when the next message is already queued,
              * store the text but defer diagnostics to the burst's last
              * message (docs/189 C9). */
             store_document_text(doc_uri, sizeof(doc_uri), &doc_content,
-                                NULL, text, !lsp_stdin_has_pending());
+                                NULL, text, !defer);
+            diagnostics_deferred = defer;
             free(text);
         } else if (strcmp(method, "textDocument/completion") == 0) {
             lsp_respond(id, lsp_completion_items);
