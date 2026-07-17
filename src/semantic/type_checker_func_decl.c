@@ -140,6 +140,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
          * are identity-bearing types, so reference passing is automatic. */
     }
 
+    type_check_func_validate_identifier_hygiene(node, ctx, "function", name);
+
     Type *func_type = type_create_function(param_types, param_count,
                                             return_type);
     for (size_t i = 0; i < param_count; i++) {

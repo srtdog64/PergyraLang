@@ -39,5 +39,9 @@ bool  ownership_let_validate_builtin_owner_binding(ASTNode *node,
                                                     SemanticContext *ctx,
                                                     Type *decl_type,
                                                     ASTNode *init);
+bool  ownership_let_validate_channel_binding(ASTNode *node,
+                                             SemanticContext *ctx,
+                                             Type *decl_type,
+                                             ASTNode *init);
 
 #endif

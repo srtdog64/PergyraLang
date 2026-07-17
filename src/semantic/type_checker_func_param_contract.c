@@ -2,11 +2,84 @@
 #include "type_checker_ownership_internal.h"
 #include "diag_codes.h"
 
+#include <string.h>
+
+/*
+ * C reserved words that are NOT Pergyra keywords, so they parse as legal
+ * identifiers -- but the bootstrap C backend emits function and parameter
+ * names raw, so they would produce broken C. The self-hosted compiler
+ * already escapes these (src/self_hosted/compiler/symbol_table_owner.pgy,
+ * CompilerSymbolCReservedWord -- the SoT twin of this list; keep them in
+ * lockstep). The bootstrap rejects instead of renaming: renaming would
+ * have to be threaded through every emission site of both backends,
+ * while rejection is a single fail-closed surface rule (docs/189 C11).
+ * Let-bound locals are exempt by construction -- they are SSA-renamed to
+ * _pgy_ssa_* on emission, and the corpus legitimately uses names like
+ * `let double`.
+ */
+static bool
+identifier_is_c_reserved_word(const char *name)
+{
+    static const char *const words[] = {
+        "auto", "break", "case", "char", "const", "continue", "default",
+        "do", "double", "else", "enum", "extern", "float", "for", "goto",
+        "if", "inline", "int", "long", "register", "restrict", "return",
+        "short", "signed", "sizeof", "static", "struct", "switch",
+        "typedef", "union", "unsigned", "void", "volatile", "while",
+    };
+
+    if (name == NULL)
+        return false;
+    for (size_t i = 0; i < sizeof(words) / sizeof(words[0]); i++) {
+        if (strcmp(name, words[i]) == 0)
+            return true;
+    }
+    return false;
+}
+
+void
+type_check_func_validate_identifier_hygiene(ASTNode *node,
+                                            SemanticContext *ctx,
+                                            const char *role,
+                                            const char *name)
+{
+    if (!identifier_is_c_reserved_word(name))
+        return;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_IDENTIFIER_C_RESERVED,
+        PGY_FIX_RENAME_IDENTIFIER,
+        node,
+        "%s name '%s' is a C reserved word and cannot cross the C emission boundary.\n"
+        "Reason:\n"
+        "- function and parameter names are emitted verbatim into the C backend's output, where '%s' is a keyword\n"
+        "Fix:\n"
+        "- rename the %s (e.g. '%s_value')",
+        role != NULL ? role : "identifier",
+        name, name,
+        role != NULL ? role : "identifier",
+        name);
+}
+
 void
 type_check_func_validate_return_boundary(ASTNode *node,
                                          SemanticContext *ctx,
                                          Type *return_type)
 {
+    if (type_is_constructed_named(return_type, "Channel")) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
+            PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL,
+            ast_func_return_type(node),
+            "Channel cannot cross a return boundary.\n"
+            "Reason:\n"
+            "- returning a channel copies its descriptor (buffer pointer + cursors), and aliased descriptors drift so deliveries silently split (docs/189 C12)\n"
+            "Fix:\n"
+            "- declare the channel at the use site and pass values through it\n"
+            "- or send the produced values over a channel the caller owns");
+        return;
+    }
     if (!type_is_builtin_owner_handle(return_type))
         return;
     semantic_error_with_hints(ctx,
@@ -26,6 +99,9 @@ type_check_func_validate_param_boundary(ASTNode *node,
 {
     if (param == NULL)
         return;
+
+    type_check_func_validate_identifier_hygiene(node, ctx, "parameter",
+                                                param->name);
 
     if (type_is_builtin_owner_handle(param_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,

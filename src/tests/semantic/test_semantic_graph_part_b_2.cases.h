@@ -34,11 +34,16 @@
 
     TEST("graph-backed forward alias materializes nested constructed type");
     {
+        /* The nested constructed type is deliberately NOT Channel<...>:
+         * Channel cannot cross param/return boundaries (docs/189 C12), and
+         * the alias correctly does not evade that rule. Option<Array<Int>>
+         * keeps what this test is about -- a forward alias materializing a
+         * nested constructed type. */
         const char *source =
             "func Echo(value: Later) -> Later {\n"
             "    return value;\n"
             "}\n"
-            "type Later = Channel<Slot<Int>>;\n";
+            "type Later = Option<Array<Int>>;\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);

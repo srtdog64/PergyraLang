@@ -147,6 +147,10 @@ Type *type_check_signature_resolve_type_ref(ASTNode *type_ref,
 const char *type_check_func_current_implicit_self_host_name(
     SemanticContext *ctx);
 bool type_check_func_symbol_is_self_host(Symbol *sym);
+void type_check_func_validate_identifier_hygiene(ASTNode *node,
+                                                 SemanticContext *ctx,
+                                                 const char *role,
+                                                 const char *name);
 void type_check_func_validate_param_boundary(ASTNode *node,
                                              SemanticContext *ctx,
                                              const char *func_name,
