@@ -110,6 +110,16 @@ run 'make runtime-intent-observability-contract-test-smoke'
 run 'make parallel-core-contract-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" PGY_BACKPRESSURE_STRESS_ITERATIONS=32 parallel-backpressure-stress-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-production-contract-test-smoke'
+# docs/189 C-compiler-dev red-team repair gates: bitcode-twin contract pins,
+# surface boundary hygiene (C-reserved words + channel copy edges),
+# adversarial-input termination contract, and emitted-C warning cleanliness.
+# Linux runs both backend voices natively and has gcc for the -Werror leg.
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" redteam-repair-contract-test-smoke'
+# Differential fuzzing over the dual backend (docs/189 C14): three fixed
+# seeds for reproducibility plus one campaign seed rotated by the CI run
+# number so the oracle is not pinned to a fixed corpus.
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" fuzz-backend-parity-matrix-test-smoke'
+run 'PGY_FUZZ_SEED="${GITHUB_RUN_NUMBER:-2026}" make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" fuzz-backend-parity-campaign-test-smoke'
 # Parallel boundary evidence gates (docs/178): disjoint-split admission,
 # reader-snapshot admission, and ability coherence. Linux runs both backend
 # voices natively (the LLVM voice is load-bearing for ability-coherence:
