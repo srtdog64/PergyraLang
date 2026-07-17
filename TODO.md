@@ -10430,12 +10430,18 @@ RT 계열.
   smoke 절 + artifact_zone_owner.pgy kind row → comparator 편입)은 해당
   파일들 동시-세션 소유라 보류 — standalone smoke가 게이트
   (`tests/selfhost_parallel_chunk_policy_smoke.sh`), 소유 해제 시 이관.
-  ② 성공 기준 "hand-C OpenMP 1.10x"(B_n coarse)는 워크로드가 main-bound라
-  실행기 개선과 독립 — coarse 잔차는 다음 측정 캠페인에서 재정의.
-  ③ B4(fiber/LOCAL_ASYNC 통합)는 여전히 BDFL 결정 대기.
-  ④ worker수-가변 결정성 목격자(P-D)는 PGY_WORKERS류 관측 가능한 knob
-  설계 후 — 현재는 Linux CI(코어수 상이)의 동일-expected 게이트가 사실상
-  cross-worker-count 목격자.
+  ② ~~성공 기준 재정의~~ ✅ 닫힘 (2026-07-17 재실측): n=10 interleave
+  best-of-3 **pgy 47.06s vs hand-C OpenMP 38.82s = 1.212x** — B2/B3
+  전후 불변(옛 1.21x과 동일). 실행기 몫은 소진됐고 잔차는 **태스크당
+  방출 코드 품질(직렬 축, docs/179 축1)** 소속으로 이관. 실행기
+  기준으로서의 "1.10x"는 폐기.
+  ③ B4(fiber/LOCAL_ASYNC 통합)는 여전히 BDFL 결정 대기 — 결정 자료
+  docs/187 메모 1 + WO-RT-5 RED 실증이 준비됨.
+  ④ ~~worker수-가변 결정성 목격자~~ ✅ 닫힘 (`5f59bfdf`): 관측 가능한
+  `PGY_WORKERS` override(무효값 warn+hw fallback) +
+  `tests/parallel_worker_invariance_smoke.sh` — PGY_WORKERS 1/2/3/16 ×
+  c/llvm 전부 byte-동일, Float 0.1-step 합을 직렬 left-fold와 **비트
+  동일** 비교(청크-부분합류 회귀 시 즉시 RED).
 
 (원문 계획은 아래 — 기록 보존)
 
@@ -10474,6 +10480,26 @@ RT 계열.
   (`join with sum` 결과가 worker수 무관 — docs/186 P-D).
 - **금지**: 측정 없는 수술; B4(fiber/LOCAL_ASYNC 통합)는 BDFL 결정 전 착수
   금지; lane 3층 collapse.
+
+#### WO-RT-5 — 채널-파킹 풀 기아 클래스 (WO-RT-3의 채널판) — RED 실증, fix는 결정 대기
+
+- **실증 (2026-07-17, `79eb26b5`)**: THREAD-모델 채널 대기는
+  cancellation-quantum timedwait로 **worker를 점유**하며 help-드레인이
+  없다. 수신 태스크 수 ≥ worker+main이고 송신자가 그 뒤에 큐되면 전원
+  파킹 = 도달 가능한 기아 데드락. `tests/channel_pool_starvation_probe.sh`
+  가 **양 백엔드 RED**(PGY_WORKERS=2, 수신 arm 7 → 송신 arm 7; control은
+  GREEN). help-first await가 못 닫는 이유 실증 포함: help는 태스크를
+  helper 스레드에서 완주시키므로 수신자를 help하면 helper도 파킹.
+- **probe 계약**: 상태-단언형 — 클래스가 고쳐지면 probe가 exit 1로
+  "하드 게이트로 승격+이 WO 닫기"를 요구(무음 통과 불가).
+- **fix 후보 (결정 자료 docs/187 메모 1)**: (a) 채널 대기 안 help —
+  단 채널 의존은 비순환이 아니라 help 중첩=스택 성장 검토 필수,
+  (b) B4-O2 fiber lane 채택(파킹이 스택 없이 저렴해짐). 후보 선택이
+  B4 결정과 결부되므로 **BDFL 판정 전 수술 금지**.
+- **부수 발견 (칩 task_b4b2f972)**: `Channel<T>`를 함수 param으로 넘기면
+  디스크립터 무음 값-복사로 head/count desync — **직렬 코드에서도**
+  중복 수신(1+2 자리에 1+1). silent-wrong 클래스, 별도 세션에서
+  fail-close 거절 vs reference 의미론 판정.
 
 ---
 
