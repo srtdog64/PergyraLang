@@ -109,6 +109,30 @@ for backend in c llvm; do
         fi
     done
     echo "[$LABEL] PASS $backend (byte-identical across PGY_WORKERS=${WORKER_COUNTS[*]})"
+
+    # Observability pin (docs/188 R5): an invalid override must WARN and fall
+    # back to the hardware default -- never a silent correction. This is the
+    # one place the warn text is gated; deleting or rewording the warn
+    # silently would regress the F1 observability contract.
+    inv_out="$WORK/$backend.winvalid.out"
+    inv_err="$WORK/$backend.winvalid.err"
+    if ! PGY_WORKERS=abc "$binary" >"$inv_out" 2>"$inv_err"; then
+        echo "[$LABEL] $backend run failed under invalid PGY_WORKERS" >&2
+        cat "$inv_out" "$inv_err" >&2
+        exit 1
+    fi
+    tr -d '\r' <"$inv_out" >"$inv_out.norm"
+    if ! cmp -s "$reference" "$inv_out.norm"; then
+        echo "[$LABEL] $backend invalid PGY_WORKERS changed the results" >&2
+        diff -u "$reference" "$inv_out.norm" >&2 || true
+        exit 1
+    fi
+    if ! grep -qF "PGY_WORKERS is not a valid worker count" "$inv_err"; then
+        echo "[$LABEL] $backend invalid PGY_WORKERS fell back WITHOUT the warn" >&2
+        echo "[$LABEL] silent correction is forbidden (docs/177 F1 observability)" >&2
+        cat "$inv_err" >&2
+        exit 1
+    fi
 done
 
 # Cross-backend: the two references must match too (same fold, same spelling).
