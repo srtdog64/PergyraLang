@@ -1,0 +1,16 @@
+struct Pair {
+    left: Int;
+    right: Int;
+}
+
+func ReadScalar(ref value: Int) -> Int {
+    return value + 1;
+}
+
+func MakePair() -> Pair {
+    return Pair(20, 22);
+}
+
+func Main() -> Void {
+    Log(ReadScalar(MakePair().left));
+}

@@ -10,6 +10,7 @@ import "../../semantic/wrapper_type_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_type_owner.pgy";
+import "expr_semantic_addressability_owner.pgy";
 
 func RewriteSemanticCallArgument(
     graph: SemanticExpressionGraphFacts,
@@ -24,22 +25,35 @@ func RewriteSemanticCallArgument(
     if !IsSome(text) {
         Die("semantic call argument fact is missing");
     }
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind) {
+        Die("semantic call argument kind fact is missing");
+    }
     let source: String = UnwrapOption(text);
+    let argument_kind: Int = UnwrapOption(kind);
+    let addressability: Option<Bool> =
+        CodegenExpressionAddressabilityFromGraph(graph, node_id, env);
+    if !IsSome(addressability) {
+        Die("semantic call argument addressability fact is missing");
+    }
+    let addressable: Bool = UnwrapOption(addressability);
+    let direct_binding: Bool =
+        argument_kind == AstExpressionNodeLeaf() &&
+        addressable;
     let rendered: String = RewriteSemanticExpectedValue(
         graph, node_id, expected_type, env
     );
     if mode == "inout" {
-        if !IsIdentifier(source) {
+        if !direct_binding {
             Die(Concat("inout argument must be a variable: ", source));
         }
         return Concat("&", rendered);
     }
     if mode == "ref" {
-        let already_ref: Bool = IsIdentifier(source) &&
+        let already_ref: Bool = direct_binding &&
             TypeEnvBindingIsReadonlyRef(env, source);
-        let member_lvalue: Bool = StringIndexOf(source, ".") > 0 &&
-            StringIndexOf(source, "(") < 0 &&
-            StringIndexOf(source, "[") < 0;
         if already_ref {
             let c_name: Option<String> = TypeEnvReadonlyRefCName(env, source);
             if !IsSome(c_name) {
@@ -47,7 +61,7 @@ func RewriteSemanticCallArgument(
             }
             return UnwrapOption(c_name);
         }
-        if !IsIdentifier(source) && !member_lvalue {
+        if !addressable {
             Die(Concat("ref argument must be addressable: ", source));
         }
         return Concat("&", rendered);

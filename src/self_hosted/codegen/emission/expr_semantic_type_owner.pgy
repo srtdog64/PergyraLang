@@ -125,6 +125,26 @@ func CodegenExpressionMemberTypeFromGraph(
             return Some(enum_owner);
         }
     }
+    return CodegenExpressionMemberFieldTypeFromGraph(
+        graph, node_id, env
+    );
+}
+
+func CodegenExpressionMemberFieldTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let view: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !view.ok { return None; }
+    let member_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.member_node
+    );
+    if !IsSome(member_text) ||
+        !IsIdentifier(UnwrapOption(member_text)) {
+        return None;
+    }
     let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
         graph, view.receiver_node, env
     );

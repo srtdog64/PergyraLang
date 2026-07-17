@@ -36,8 +36,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && paths+=("$line")
 done <"$PATHS_FILE"
-if [[ "${#paths[@]}" -ne 13 ]]; then
-    echo "[$LABEL] expected 13 codegen TestHarness paths, got ${#paths[@]}" >&2
+if [[ "${#paths[@]}" -ne 15 ]]; then
+    echo "[$LABEL] expected 15 codegen TestHarness paths, got ${#paths[@]}" >&2
     exit 1
 fi
 

@@ -20,5 +20,6 @@ func Main() -> Void {
     let pair: Pair = Pair(20, 22);
     Log(ReadScalar(value));
     Log(ReadPair(pair));
+    Log(ReadScalar(pair.left));
     Log(ForwardScalar(value));
 }

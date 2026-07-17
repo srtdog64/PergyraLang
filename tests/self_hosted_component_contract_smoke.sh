@@ -4693,6 +4693,20 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
     'mode == "inout"'
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     'mode == "ref"'
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "semantic call argument kind fact is missing"
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CodegenExpressionAddressabilityFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "semantic call argument addressability fact is missing"
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "IsIdentifier("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "StringIndexOf("
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "func CodegenExpressionMemberFieldTypeFromGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy" \
+    "func CodegenExpressionAddressabilityFromGraph("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticDirectCall(" "RewriteInoutCallArgs("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
@@ -6317,7 +6331,9 @@ require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "fu
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenRoleExpectedPath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "func CompilerHarnessCodegenEventRejectExpectedPath"
-require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 13;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" "return 15;"
+require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
+    "CompilerHarnessCodegenRefTemporaryRejectSourcePath()"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \
     "CompilerHarnessAssignmentProjectionProbeSourcePath"
 require_text "src/self_hosted/compiler/test_harness_codegen_paths_owner.pgy" \

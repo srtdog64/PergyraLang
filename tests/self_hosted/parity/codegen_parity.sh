@@ -90,8 +90,8 @@ while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     harness_paths+=("$line")
 done <"$HARNESS_PATHS_FILE"
-if [[ "${#harness_paths[@]}" -ne 13 ]]; then
-    echo "[self-host-parity:codegen] TestHarness manifest expected 13 codegen paths, got ${#harness_paths[@]}" >&2
+if [[ "${#harness_paths[@]}" -ne 15 ]]; then
+    echo "[self-host-parity:codegen] TestHarness manifest expected 15 codegen paths, got ${#harness_paths[@]}" >&2
     exit 1
 fi
 
@@ -106,10 +106,13 @@ ROLE_SOURCE="$ROOT_DIR/${harness_paths[7]}"
 ROLE_EXPECTED="$ROOT_DIR/${harness_paths[8]}"
 EVENT_REJECT_SOURCE="$ROOT_DIR/${harness_paths[9]}"
 EVENT_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[10]}"
+REF_TEMPORARY_REJECT_SOURCE="$ROOT_DIR/${harness_paths[13]}"
+REF_TEMPORARY_REJECT_EXPECTED="$ROOT_DIR/${harness_paths[14]}"
 
 for path in "$TOOL_SOURCE" "$PARSER_SOURCE" "$COMPARATOR_SOURCE" \
     "$REJECT_SOURCE" "$REJECT_EXPECTED" "$ROLE_SOURCE" "$ROLE_EXPECTED" \
-    "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED"; do
+    "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" \
+    "$REF_TEMPORARY_REJECT_SOURCE" "$REF_TEMPORARY_REJECT_EXPECTED"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:codegen] missing TestHarness input: $path" >&2
         exit 1
@@ -504,6 +507,10 @@ for backend in $BACKENDS; do
     run_codegen_reject_case \
         "$backend" "$tool_bin" "event_decl_reject" \
         "$EVENT_REJECT_SOURCE" "$EVENT_REJECT_EXPECTED" "event declaration"
+    run_codegen_reject_case \
+        "$backend" "$tool_bin" "ref_temporary_member_reject" \
+        "$REF_TEMPORARY_REJECT_SOURCE" \
+        "$REF_TEMPORARY_REJECT_EXPECTED" "temporary member ref"
     run_role_operator_parity "$backend" "$tool_bin"
     RAN_BACKENDS+=("$backend")
 done

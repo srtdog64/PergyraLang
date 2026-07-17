@@ -288,6 +288,21 @@ Operand diagnostics walk the parser arena's postorder subtree and do not
 re-parse source text. The positive `ToIntValue(1 + (2 * 3))` path projects
 `x: Int` to MIR identically under C-built and LLVM-built probes; changing only
 the graph's `2` leaf to a String fails as `binop_type_mismatch`.
+
+Twenty-third executable active-rung delta, 2026-07-18: self-host call emission
+derives `ref` and `inout` argument addressability from the parser expression
+node kind plus codegen binding and nominal field facts. The final consumer is
+`RewriteSemanticCallArgument`; `IsIdentifier` and dotted-source scans are
+forbidden there. Missing node-kind facts fail closed, direct bindings consume
+`cbind`/`cref`, and member lvalues require a resolvable nominal field type so
+payload-free enum spelling cannot masquerade as storage. Addressability walks
+the member receiver graph back to a stable binding; `MakePair().left` therefore
+rejects instead of exposing temporary storage. The `ref_param` fixture executes
+a direct binding, a forwarded readonly ref, and `pair.left`; the temporary
+member reject fixture is the executable negative. The component contract is
+the fallback ratchet and codegen parity/bootstrap are the executable gates.
+This bounded codegen substitution does not change the released/default
+compiler replacement percentage.
 Parser-canonical root spelling is checked against the surface by
 the same compact parser owner instead of being treated as a second semantic
 spelling. Arguments containing nested calls, generic/aggregate signatures,

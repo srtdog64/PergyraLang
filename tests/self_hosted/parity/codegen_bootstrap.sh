@@ -9,6 +9,8 @@
 #   gen2 = gen1.exe(main.pgy AST) -> C  -> gcc -> gen2.exe   (a Pergyra-built tool)
 #   gen3 = gen2.exe(main.pgy AST) -> C
 #   FIXPOINT: gen2 == gen3 byte-identical.
+# Set PGY_SELFHOST_CODEGEN_FIXPOINT_ONLY=1 to stop after that proof while
+# preserving the default full breadth run used by integration CI.
 #
 # (gen1 vs gen2 may differ by a trailing newline only -- gen0 uses the oracle's
 # `Log`, gen1+ use the emitted `printf("%s\n", ...)`. From gen2 on, the lineage
@@ -416,6 +418,11 @@ emit "$B/gen2.exe" "$B/gen3.c"
 compile_artifact_comparator
 compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"
 echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") lines)"
+
+if [[ "${PGY_SELFHOST_CODEGEN_FIXPOINT_ONLY:-0}" == "1" ]]; then
+    echo "[self-host-bootstrap] fixpoint-only boundary complete"
+    exit 0
+fi
 
 # Sample: the Pergyra-built tool must emit identical C to the oracle-built tool.
 for base in "${BOOTSTRAP_SAMPLE_ROWS[@]}"; do

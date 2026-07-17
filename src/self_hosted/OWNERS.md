@@ -463,6 +463,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy` --
   expression type projection from semantic graph handles plus codegen type
   rows; migrated emitters must not reparse node text to recover these types.
+- `src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy` --
+  recursive storage-addressability proof from expression node kind, stable
+  codegen binding, nominal field, and member receiver graph facts.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
@@ -713,6 +716,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/reject_fixture/event_decl.pgy` -- TestHarness-owned
   negative codegen artifact proving unsupported event declarations reject
   through semantic node-kind identity under C/LLVM tool parity.
+- `src/self_hosted/codegen/reject_fixture/ref_temporary_member.pgy` --
+  TestHarness-owned negative codegen artifact proving that a nominal field on
+  temporary storage cannot cross a `ref` boundary under C/LLVM tool parity.
 - `src/self_hosted/codegen/role_fixture/operator_add.pgy` -- TestHarness-owned
   positive role operator artifact proving role target and method identity rows
   through C/LLVM codegen parity.
