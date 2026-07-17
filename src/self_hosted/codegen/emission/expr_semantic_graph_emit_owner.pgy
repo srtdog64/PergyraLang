@@ -7,6 +7,38 @@ import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
 import "expr_semantic_type_owner.pgy";
 
+func RewriteSemanticLeaf(
+    text: String,
+    env: CodegenTypeEnv
+) -> String {
+    if text == "true" { return "1"; }
+    if text == "false" { return "0"; }
+    if IsIdentifier(text) {
+        let enum_value: String = LookupKindType(env, text, "e");
+        if enum_value != "" { return enum_value; }
+        if TypeEnvSemanticValueType(env, text) == "" {
+            Die(Concat(
+                "semantic leaf binding fact is missing: ", text
+            ));
+        }
+        return TypeEnvBindingCName(env, text);
+    }
+    if StringLength(text) > 0 && CodegenCharAt(text, 0) == "\"" {
+        return text;
+    }
+    if StringLength(text) > 0 &&
+        StringIndexOf("0123456789", CodegenCharAt(text, 0)) >= 0 {
+        if CodegenCharAt(text, StringLength(text) - 1) == "L" {
+            return Concat(
+                Substring(text, 0, StringLength(text) - 1), "LL"
+            );
+        }
+        return text;
+    }
+    Die(Concat("unsupported semantic leaf expression: ", text));
+    return "";
+}
+
 func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
     node_id: Int,
@@ -28,7 +60,7 @@ func RewriteExprFromSemanticGraph(
         return Concat(text, ".0");
     }
     if kind == AstExpressionNodeLeaf() {
-        return RewriteTokens(text, env);
+        return RewriteSemanticLeaf(text, env);
     }
     if AstExpressionNodeIsCallSpine(kind) {
         return RewriteSemanticCall(graph, node_id, env);

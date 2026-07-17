@@ -4416,6 +4416,7 @@ require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func RewriteEqualityP
 require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'shape.additive_operator_code == SourceByteOf("+")'
 require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteSemanticLeaf("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func WrapExprWithSemanticGraph("
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"'
 require_text "src/self_hosted/compiler/completeness_ledger_owner.pgy" 'path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"'
@@ -4433,6 +4434,10 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_
     "func RewriteExprFromSemanticGraph(" "RewriteBool("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteExprFromSemanticGraph(" "RewriteIndexing("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteExprFromSemanticGraph(" "RewriteTokens("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" "RewriteTokens("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeIndex()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \

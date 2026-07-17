@@ -565,6 +565,17 @@ emission. Statement typing rejects a non-`Int` graph with
 `Int` fact. The statement-payload accessor and `IntEval` recovery path were
 deleted, and the component gate rejects their return.
 
+Forty-seventh executable active-rung delta, 2026-07-17: scalar leaf emission
+now consumes the parser-owned expression node and the canonical codegen binding
+or enum row directly. Bool, String, Int, Long, and bound identifiers no longer
+enter the broad `RewriteTokens` scanner, including literal-only call
+arguments. Unknown identifiers and unsupported leaf spellings fail closed
+instead of falling back to text recovery. The component gate rejects
+`RewriteTokens` from both the graph dispatcher and the bounded leaf projector.
+Leaf lexical classification is still a bridge until the parser carries
+separate Bool, String, Int, and Long node kinds, so the expression owner remains
+`BRIDGE`.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel
