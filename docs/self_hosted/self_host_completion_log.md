@@ -6,6 +6,28 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-17 - Driver fixed point is split by validation budget
+
+- The native-oracle MIR boundary removed the previous 68 GB full-source
+  producer growth, but the blocking Linux bootstrap still exceeded its
+  40-minute job budget on the full stage2/stage3 chain. A local Windows
+  full-stage2 consumer also exceeded the 30-minute integration budget while
+  staying below 101 MB private memory.
+- `self-host-driver-bootstrap-test-smoke` now compares the Pergyra-built
+  integrated seed with the native-built same driver on a real source and a
+  TestHarness-owned sample. Both builds produce byte-identical verified MIR
+  for that sample and consume the common fact to byte-identical C. This avoids
+  treating native `pgy --mir-json` output without expression-graph facts as a
+  valid DRV-2 input.
+  `self-host-driver-bootstrap-full-test-smoke` explicitly requests the
+  full-input stage2 plus `gen2 == gen3` comparison.
+- The driver target consumes a seed-only codegen profile (`gen2` and parser AST
+  producer). Standalone codegen fixed-point and breadth coverage remains a
+  separate 30-minute Linux job instead of delaying the driver boundary.
+- This is scope isolation, not a timeout increase or a semantic exemption.
+  Bounded DRV-2 producer parity and the real-source oracle comparison remain
+  blocking.
+
 ## 2026-07-17 - Driver fixed point consumes one oracle MIR fact
 
 - Added explicit bootstrap file modes for verified source-to-MIR production

@@ -348,6 +348,8 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     row_message = value_verdict.diagnostic_message;
                 } else if !ExpressionAssignableTo(
                     expected, inferred, value_text
+                ) && !SemanticAstPayloadFreeEnumValueAssignableToInt(
+                    enum_facts, expected, inferred, value_text
                 ) {
                     row_verified = 0;
                     row_code = "call_arg_type_mismatch";
@@ -385,6 +387,9 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 );
             } else if !ExpressionAssignableTo(
                 expected, inferred, statements.payload_texts[i]
+            ) && !SemanticAstPayloadFreeEnumValueAssignableToInt(
+                enum_facts, expected, inferred,
+                statements.payload_texts[i]
             ) {
                 row_verified = 0;
                 row_code = "return_type_mismatch";

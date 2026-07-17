@@ -299,6 +299,9 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                         );
                     } else if !ExpressionAssignableTo(
                         expected, inferred, assignments.value_texts[i]
+                    ) && !SemanticAstPayloadFreeEnumValueAssignableToInt(
+                        enum_facts, expected, inferred,
+                        assignments.value_texts[i]
                     ) {
                         row_code = "assign_type_mismatch";
                         row_message = SemanticError2(

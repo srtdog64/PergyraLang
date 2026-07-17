@@ -110,13 +110,19 @@ func SemanticAstEnumNestedPayloadContractReady() -> Bool {
     return facts.ok && SemanticAstEnumCount(facts) == 1 &&
         IsSome(circle) && UnwrapOption(circle) == 1 &&
         IsSome(rect) && UnwrapOption(rect) == 2 &&
-        IsSome(none) && UnwrapOption(none) == 0;
+        IsSome(none) && UnwrapOption(none) == 0 &&
+        SemanticAstPayloadFreeEnumValueAssignableToInt(
+            facts, "Int", "Shape", "Shape.None"
+        ) &&
+        !SemanticAstPayloadFreeEnumValueAssignableToInt(
+            facts, "Int", "Shape", "Shape.Circle"
+        );
 }
 
-func SemanticAstEnumExpressionType(
+func SemanticAstEnumExpressionRow(
     facts: SemanticAstEnumFacts,
     expression: String
-) -> Option<String> {
+) -> Option<Int> {
     if !facts.ok ||
         ArrayLength(facts.variant_enum_names) != ArrayLength(facts.variant_names) ||
         ArrayLength(facts.variant_param_counts) != ArrayLength(facts.variant_names) {
@@ -136,11 +142,36 @@ func SemanticAstEnumExpressionType(
     while i < ArrayLength(facts.variant_names) {
         if facts.variant_enum_names[i] == enum_name &&
             facts.variant_names[i] == variant_name {
-            return Some(enum_name);
+            return Some(i);
         }
         i = i + 1;
     }
     return None;
+}
+
+func SemanticAstEnumExpressionType(
+    facts: SemanticAstEnumFacts,
+    expression: String
+) -> Option<String> {
+    let row: Option<Int> =
+        SemanticAstEnumExpressionRow(facts, expression);
+    if !IsSome(row) { return None; }
+    return Some(facts.variant_enum_names[UnwrapOption(row)]);
+}
+
+func SemanticAstPayloadFreeEnumValueAssignableToInt(
+    facts: SemanticAstEnumFacts,
+    expected: String,
+    actual: String,
+    expression: String
+) -> Bool {
+    if expected != "Int" { return false; }
+    let row: Option<Int> =
+        SemanticAstEnumExpressionRow(facts, expression);
+    if !IsSome(row) { return false; }
+    let index: Int = UnwrapOption(row);
+    return facts.variant_param_counts[index] == 0 &&
+        facts.variant_enum_names[index] == actual;
 }
 
 func SemanticAstEnumCount(facts: SemanticAstEnumFacts) -> Int {

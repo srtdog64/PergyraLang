@@ -352,13 +352,19 @@ source/MIR/output-file boundary over the same pipeline owner. The strengthened
 `driver_bootstrap.sh` consumes the fresh codegen-bootstrap seed, builds it with
 the Pergyra-built codegen, and compares its
 emitted C against the C-oracle-built driver on a real source. For the
-fixed-point leg, the native oracle produces the integrated-source MIR once and
-both `gen2.c` and `gen3.c` consume that same MIR JSON through the Pergyra-owned
-artifact comparator. The self-host MIR producer remains independently covered
-by bounded DRV-2 producer parity. This proves the full-input MIR-to-C consumer
-fixed point without claiming that the current self-host producer can process
-its entire source within bounded memory. Released-default substitution stays
-outside the claim.
+default blocking leg, the Pergyra-built integrated seed and native-built copy
+must emit byte-identical C from a real source. They must also emit
+byte-identical verified MIR from the TestHarness-owned sample and consume that
+common fact to byte-identical C. The full-input stage2 build and
+`gen2.c == gen3.c` consumer fixed point
+are an explicit
+`self-host-driver-bootstrap-full-test-smoke` proof rather than part of every CI
+run. The self-host MIR producer remains independently covered by bounded DRV-2
+producer parity. Released-default substitution stays outside the claim.
+The driver job requests only the codegen `gen2` and parser-producer seed
+artifacts. The standalone codegen `gen2 == gen3` plus component/tool breadth
+remains a separate blocking Linux proof, so driver validation does not repeat
+unrelated breadth before reaching its own boundary.
 
 ## Codegen Architecture
 

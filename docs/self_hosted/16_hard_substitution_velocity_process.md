@@ -74,6 +74,17 @@ The edit loop uses bounded validation:
 Raising a timeout is not the first response to a budget violation. The test
 must first show why its scope cannot be narrowed or cached.
 
+The integrated driver bootstrap follows this rule: blocking CI compares the
+Pergyra-built integrated seed with the native-built same driver on a real
+source. Both builds must then produce byte-identical verified MIR for the
+TestHarness-owned sample and consume that common fact to byte-identical C. The full-input
+stage2/stage3 fixed
+point is retained as the explicit
+`self-host-driver-bootstrap-full-test-smoke` merge/scheduled proof.
+Its prerequisite is the seed-only codegen profile: `gen2` plus the parser AST
+producer. The standalone codegen fixed point and breadth run in their own
+blocking Linux job rather than being repeated inside the driver job.
+
 ## 5. Finite SoT Closure
 
 For an active rung, SoT is closed when:

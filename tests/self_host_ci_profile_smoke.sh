@@ -26,7 +26,7 @@ for required in \
     'self-host-preparation-platform-test-smoke:' \
     'self-host-preparation-platform-parity-test-smoke:' \
     'self-host-preparation-exhaustive-parity-test-smoke:' \
-    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-driver-bootstrap-test-smoke' \
+    'self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke' \
     'tests/self_hosted/parity/parser_parity.sh' \
     'tests/self_hosted/parity/semantic_parity.sh' \
     'tests/self_hosted/parity/codegen_parity.sh' \
@@ -51,8 +51,11 @@ done
 for required in \
     'self-host-parity-linux:' \
     'self-host-bootstrap-linux:' \
+    'self-host-codegen-bootstrap-linux:' \
     'timeout-minutes: 40' \
+    'timeout-minutes: 30' \
     'run: make self-host-preparation-exhaustive-parity-test-smoke' \
+    'run: make self-host-codegen-bootstrap-test-smoke' \
     'run: make self-host-driver-bootstrap-test-smoke' \
     'cancel-in-progress: true'; do
     if ! grep -Fq "$required" "$WORKFLOW"; then

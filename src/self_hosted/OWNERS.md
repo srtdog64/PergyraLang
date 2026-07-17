@@ -690,7 +690,8 @@ inventory must not become a second fact-family owner registry.
   this is the single owner of parser/codegen composition.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- minimal runnable
   source/MIR/output-file boundary used by bounded producer parity and the
-  oracle-MIR integrated consumer fixed point; pipeline ownership remains in
+  integrated seed/oracle parity proof. The full stage2/stage3 consumer fixed
+  point is an explicit gate; pipeline ownership remains in
   `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
   assembly owner that composes self-parser AST text and self-codegen C emission

@@ -400,6 +400,11 @@ emit "$B/gen1.exe" "$B/gen2.c"
 compile_c_artifact_with_bounded_log "gen2" "$B/gen2.c" "$B/gen2.exe" || {
     echo "[self-host-bootstrap] gen2 C failed to compile" >&2; cat "$B/gen2_cc.log" >&2; exit 1; }
 
+if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
+    echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"
+    exit 0
+fi
+
 emit "$B/gen2.exe" "$B/gen3.c"
 
 compile_artifact_comparator

@@ -474,6 +474,9 @@ done
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "set -euo pipefail"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "pgy_selfhost_compile_backend_output_comparator"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "compare_mir_run_output_with_owner"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "run_mir_binary_to_file"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "pgy_run_with_timeout"
+require_text "tests/self_hosted/parity/mir_json_parity.sh" "PGY_SELFHOST_MIR_RUN_TIMEOUT_SECONDS"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "run_output"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "read_mir_fixture_manifest"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"$B/mir_lower.exe" --fixture-manifest'
@@ -519,8 +522,8 @@ require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureMani
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "100 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "100 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "102 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "102 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -3416,6 +3419,8 @@ require_text "src/self_hosted/parser/fixture/enum_data_ast.txt" "Enum: Shape { C
 require_text "src/self_hosted/parser/fixture/tagged_union_ast.txt" "Enum: Shape { Circle(Int), Rect(Int, Int), None }"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumFactsMatchArtifact"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumNestedPayloadContractReady"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumExpressionRow"
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstPayloadFreeEnumValueAssignableToInt"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "SemanticNestedCommaRangeFactsFromSource(variants_text)"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "SemanticDelimitedNonEmptyRangeCount("
 reject_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" 'Split(UnwrapOption(variants_opt), ",")'
@@ -3426,6 +3431,9 @@ require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAs
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantCountForName"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantNameAt"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" "func SemanticAstEnumVariantParamCountAt"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" "SemanticAstPayloadFreeEnumValueAssignableToInt("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" "SemanticAstPayloadFreeEnumValueAssignableToInt("
+require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticAstPayloadFreeEnumValueAssignableToInt("
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumNameAtOrDie"
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumIs"
 require_text "src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy" "func CodegenSemanticEnumVariantCount"
@@ -5373,6 +5381,10 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockSuccessor(index, bs, false_edge)"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockBounds("
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockRow("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineEdgeTargetsDominator("
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" \
+    "MirRoutineGraphCanReachAvoiding("
+reject_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "target <= block_row"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "ReadSucc(index, bs, false)"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'let key: String = Concat("\"id\":'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, ",\"reachable\""'
@@ -7618,6 +7630,13 @@ require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
     "pgy_selfhost_compile_parser_tool"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fixpoint_gen2_gen3" "$B/gen2.c" "$B/gen3.c" "emitted_c"'
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" "PGY_SELFHOST_CODEGEN_SEED_ONLY:-0"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    "seed artifacts ready: gen2 codegen and parser AST producer"
+require_text "Makefile" "self-host-codegen-bootstrap-seed-test-smoke: \$(PGY)"
+require_make_target_text \
+    "self-host-codegen-bootstrap-seed-test-smoke" \
+    "PGY_SELFHOST_CODEGEN_SEED_ONLY=1"
 require_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'compare_artifact_with_owner "fuzz_generator_manifest"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'SAMPLE="hello func_recursive struct_param array_push str_indexof else_if_chain string_equality io_probe"'
 reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'MIR_BOOTSTRAP_FIXTURES="let_log forloop role_operator_dispatch"'
@@ -7638,27 +7657,35 @@ reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" 'tsrc="$ROOT_DIR/src
 require_file "tests/self_hosted/parity/driver_bootstrap.sh"
 require_max_lines "tests/self_hosted/parity/driver_bootstrap.sh" 300
 require_text "Makefile" "self-host-driver-bootstrap-test-smoke"
-require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-test-smoke"
+require_text "Makefile" "self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
+require_text "Makefile" "self-host-driver-bootstrap-full-test-smoke: self-host-codegen-bootstrap-seed-test-smoke"
+require_make_target_text \
+    "self-host-driver-bootstrap-full-test-smoke" \
+    "PGY_SELFHOST_DRIVER_FULL_FIXPOINT=1"
 require_make_target_text \
     "self-host-driver-bootstrap-test-smoke" \
     "tests/self_hosted/parity/driver_bootstrap.sh"
 require_text "Makefile" \
-    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-driver-bootstrap-test-smoke"
+    "self-host-preparation-parity-test-smoke: self-host-preparation-exhaustive-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-driver-bootstrap-test-smoke"
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"codegen-bootstrap-paths"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'MIR_LOWER_SOURCE="$ROOT_DIR/${paths[4]}"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_to_file"
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" "run_driver_mode_to_file"
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" "emit_oracle_mir_to_file"
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$PGY" --mir-json'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_source.mir.json"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/mir_lower_source.mir.json"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_gen2.exe"'
-require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:mir-lower-preflight"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_oracle.exe"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"--emit-mir-json-verified"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/bounded_seed.mir.json"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/bounded_oracle.mir.json"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:bounded-mir-producer"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:bounded-mir-consumer"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:generated-bounded-preflight"'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0'
+require_text "tests/self_hosted/parity/driver_bootstrap.sh" 'bounded integrated bootstrap ok; full stage2/gen3 fixed point is explicit'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"self-host-driver-bootstrap:fixpoint"'
 require_text "tests/self_hosted/parity/driver_bootstrap.sh" '"emitted_c"'
 reject_text "tests/self_hosted/parity/driver_bootstrap.sh" '"$BUILD_DIR/driver_seed.exe" "$DRIVER_SOURCE" "$BUILD_DIR/driver_gen2.c"'

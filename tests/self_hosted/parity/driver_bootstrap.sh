@@ -60,8 +60,7 @@ fi
 
 DRIVER_SOURCE="$ROOT_DIR/${paths[8]}"
 SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"
-MIR_LOWER_SOURCE="$ROOT_DIR/${paths[4]}"
-for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$MIR_LOWER_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
+for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-driver-bootstrap] missing bootstrap input: $path" >&2
         exit 1
@@ -149,27 +148,6 @@ run_driver_mode_to_file() {
     fi
 }
 
-emit_oracle_mir_to_file() {
-    local label="$1"
-    local source="$2"
-    local output="$3"
-    local stderr="$BUILD_DIR/${label}.err"
-
-    rm -f "$output"
-    echo "[self-host-driver-bootstrap] running $label"
-    if ! (cd "$ROOT_DIR" && \
-        "$PGY" --mir-json "$(pgy_path_for_compiler "$PGY" "$source")" \
-            --backend=c 2>"$stderr" | tr -d '\r' >"$output"); then
-        echo "[self-host-driver-bootstrap] $label failed" >&2
-        cat "$stderr" >&2 || true
-        exit 1
-    fi
-    if [[ ! -s "$output" ]]; then
-        echo "[self-host-driver-bootstrap] $label emitted no MIR artifact" >&2
-        exit 1
-    fi
-}
-
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
 ast_rel=".tmp/self_hosted/driver/bootstrap/driver_bootstrap.ast.txt"
 ast_abs="$ROOT_DIR/$ast_rel"
@@ -211,8 +189,56 @@ pgy_selfhost_compare_expected_text_artifact_file_with_owner \
     "$BUILD_DIR/sample_self.c" \
     "emitted_c"
 
-emit_oracle_mir_to_file \
+run_driver_mode_to_file \
+    "bounded_mir_seed" \
+    "$BUILD_DIR/driver_seed.exe" \
+    "--emit-mir-json-verified" \
+    "$SAMPLE_SOURCE" \
+    "$BUILD_DIR/bounded_seed.mir.json"
+run_driver_mode_to_file \
+    "bounded_mir_oracle" \
+    "$BUILD_DIR/driver_oracle.exe" \
+    "--emit-mir-json-verified" \
+    "$SAMPLE_SOURCE" \
+    "$BUILD_DIR/bounded_oracle.mir.json"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-driver-bootstrap:bounded-mir-producer" \
+    "$BUILD_DIR" \
+    "$BUILD_DIR/bounded_oracle.mir.json" \
+    "$BUILD_DIR/bounded_seed.mir.json" \
+    "mir_json"
+run_driver_mode_to_file \
+    "bounded_seed" \
+    "$BUILD_DIR/driver_seed.exe" \
+    "--mir-json" \
+    "$BUILD_DIR/bounded_seed.mir.json" \
+    "$BUILD_DIR/bounded_seed.c"
+run_driver_mode_to_file \
+    "bounded_oracle" \
+    "$BUILD_DIR/driver_oracle.exe" \
+    "--mir-json" \
+    "$BUILD_DIR/bounded_seed.mir.json" \
+    "$BUILD_DIR/bounded_oracle.c"
+pgy_selfhost_compare_expected_text_artifact_file_with_owner \
+    "self-host-driver-bootstrap:bounded-mir-consumer" \
+    "$BUILD_DIR" \
+    "$BUILD_DIR/bounded_oracle.c" \
+    "$BUILD_DIR/bounded_seed.c" \
+    "emitted_c"
+echo "[self-host-driver-bootstrap] integrated seed bounded MIR consumer parity ok"
+
+if [[ "${PGY_SELFHOST_DRIVER_FULL_FIXPOINT:-0}" != "1" ]]; then
+    echo "[self-host-driver-bootstrap] bounded integrated bootstrap ok; full stage2/gen3 fixed point is explicit"
+    exit 0
+fi
+
+# Full-source self-host MIR production is covered by bounded DRV-2 producer
+# parity until its allocation growth is closed. The explicit fixed point
+# consumes one oracle-owned MIR fact so generation drift stays isolated.
+run_driver_mode_to_file \
     "driver_mir_oracle" \
+    "$BUILD_DIR/driver_oracle.exe" \
+    "--emit-mir-json-verified" \
     "$DRIVER_SOURCE" \
     "$BUILD_DIR/driver_source.mir.json"
 run_driver_mode_to_file \
@@ -222,33 +248,19 @@ run_driver_mode_to_file \
     "$BUILD_DIR/driver_source.mir.json" \
     "$BUILD_DIR/driver_gen2.c"
 compile_c "driver_gen2" "$BUILD_DIR/driver_gen2.c" "$BUILD_DIR/driver_gen2.exe"
-
-# Full-source self-host MIR production is covered by bounded DRV-2 producer
-# parity until its allocation growth is closed. The bootstrap fixed point
-# consumes one oracle-owned MIR fact so generation drift stays isolated.
-emit_oracle_mir_to_file \
-    "mir_lower_mir_oracle" \
-    "$MIR_LOWER_SOURCE" \
-    "$BUILD_DIR/mir_lower_source.mir.json"
 run_driver_mode_to_file \
-    "mir_lower_seed" \
-    "$BUILD_DIR/driver_seed.exe" \
-    "--mir-json" \
-    "$BUILD_DIR/mir_lower_source.mir.json" \
-    "$BUILD_DIR/mir_lower_seed.c"
-run_driver_mode_to_file \
-    "mir_lower_gen2" \
+    "bounded_gen2" \
     "$BUILD_DIR/driver_gen2.exe" \
     "--mir-json" \
-    "$BUILD_DIR/mir_lower_source.mir.json" \
-    "$BUILD_DIR/mir_lower_gen2.c"
+    "$BUILD_DIR/bounded_seed.mir.json" \
+    "$BUILD_DIR/bounded_gen2.c"
 pgy_selfhost_compare_expected_text_artifact_file_with_owner \
-    "self-host-driver-bootstrap:mir-lower-preflight" \
+    "self-host-driver-bootstrap:generated-bounded-preflight" \
     "$BUILD_DIR" \
-    "$BUILD_DIR/mir_lower_seed.c" \
-    "$BUILD_DIR/mir_lower_gen2.c" \
+    "$BUILD_DIR/bounded_seed.c" \
+    "$BUILD_DIR/bounded_gen2.c" \
     "emitted_c"
-echo "[self-host-driver-bootstrap] MIR-lower preflight fixed point ok"
+echo "[self-host-driver-bootstrap] generated driver bounded MIR preflight ok"
 
 run_driver_mode_to_file \
     "gen3_emit" \

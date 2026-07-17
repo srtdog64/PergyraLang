@@ -193,6 +193,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         } else {
             if IsSome(declared) && !ExpressionAssignableTo(
                 UnwrapOption(declared), inferred, expression
+            ) && !SemanticAstPayloadFreeEnumValueAssignableToInt(
+                enum_facts, UnwrapOption(declared), inferred, expression
             ) {
                 row_verified = 0;
                 row_code = "let_type_mismatch";
