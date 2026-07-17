@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -21,6 +25,48 @@ jobs:
         # ci-linux already shards backend comparison; do not multiply each
         # runner into another compiler worker pool.
         run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
+
+  self-host-parity-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
+
+      - name: Run exhaustive self-host parity
+        run: make self-host-preparation-exhaustive-parity-test-smoke
+
+  self-host-bootstrap-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
+
+      - name: Run self-host bootstrap fixed points
+        run: make self-host-driver-bootstrap-test-smoke
+
+  self-host-codegen-bootstrap-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
+
+      - name: Run self-host codegen fixed point and breadth
+        run: make self-host-codegen-bootstrap-test-smoke
 
   formal-proofs-rocq9:
     runs-on: ubuntu-latest

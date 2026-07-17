@@ -30,10 +30,9 @@ typedef struct
     size_t row_capacity;
 } PgySourceModuleGraph;
 
-ASTNode *module_loader_load_program(const char *source_path, char **error_message);
 ASTNode *module_loader_load_program_with_graph(const char *source_path,
-                                                PgySourceModuleGraph **graph_out,
-                                                char **error_message);
+                                               PgySourceModuleGraph **graph_out,
+                                               char **error_message);
 bool module_loader_validate_graph(const PgySourceModuleGraph *graph,
                                   char **error_message);
 void module_loader_destroy_graph(PgySourceModuleGraph *graph);

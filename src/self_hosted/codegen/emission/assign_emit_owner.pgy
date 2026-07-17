@@ -62,13 +62,12 @@ func EmitAssign(
         let idx_expr: String = RewriteExprFromSemanticGraph(
             target_graph.graph, index_id, env
         );
-        let arr_kind: String = CollectionRuntimeKindFromTypeName(target_type);
-        let arr_kind_code: Int = CollectionRuntimeKindCode(arr_kind);
-        let set_fn: String = CollectionRuntimeCSetFn(arr_kind_code);
+        let array_fact: CollectionRuntimeFact =
+            CollectionRuntimeFactFromTypeName(target_type, env);
         let rhs: String = EmitCollectionGraphElementValue(
-            expr, env, arr_kind_code, graph
+            expr, env, array_fact, graph
         );
-        return Concat(set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
+        return Concat(array_fact.c_set_fn, Concat("(&", Concat(c_arr_name, Concat(", ",
             Concat(idx_expr, Concat(", ", Concat(rhs, ");")))))));
     }
     let c_name: String = CompilerSymbolCBindingName(name);

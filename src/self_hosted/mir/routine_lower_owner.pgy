@@ -119,6 +119,12 @@ func SelfMirLowerBlockFromArtifact(
                     node_id, AstExpressionLaneAtom()
                 )
             );
+            build = SelfMirRoutineAttachLastTargetExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    state.input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneAtom()
+                )
+            );
         } else if kind == TypedAstKindBreakStmtTag() ||
             kind == TypedAstKindContinueStmtTag() {
             let control_name: String = "break";

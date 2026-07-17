@@ -22,8 +22,9 @@ type facts for four shapes and that three distinct mismatches are rejected:
 - **explicit-mismatch** -- an explicit generic call with a wrong argument is
   rejected with `call_arg_type_mismatch`.
 - **target-mismatch** -- rewriting the call target (`Identity` -> `ToTextValue`)
-  so the generic return no longer matches the binding is rejected with
-  `let_type_mismatch`.
+  is rejected by the body call-target fixpoint with
+  `call_target_unresolved`; generic return projection must not trust the
+  damaged carried target.
 - **nested-mismatch** -- binding `First`'s `Array<T>` parameter against a plain
   `Int` fails the signature-owned parameter bind, rejected with
   `call_arg_type_mismatch`.
@@ -63,7 +64,7 @@ generic-call=explicit type=String
 Mismatch modes -- one line on stdout, matching the paired expected file:
 
 - `--explicit-mismatch` -> `call_arg_type_mismatch` (`explicit_mismatch_expected.txt`)
-- `--target-mismatch` -> `let_type_mismatch` (`mismatch_expected.txt`)
+- `--target-mismatch` -> `call_target_unresolved` (`mismatch_expected.txt`)
 - `--nested-mismatch` -> `call_arg_type_mismatch` (`nested_mismatch_expected.txt`)
 
 Each exits `1` on correct rejection and `2` (with a `... was not rejected`

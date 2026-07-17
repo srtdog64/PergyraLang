@@ -37,7 +37,7 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
 esac
 export TMPDIR
 case "$(uname -s 2>/dev/null || echo unknown)" in
-    MINGW*|MSYS*|CYGWIN*) export SHELL=/usr/bin/bash ;;
+    MINGW*|MSYS*|CYGWIN*) SHELL="$(command -v bash)"; export SHELL ;;
 esac
 LOWER_BIN="$BUILD_DIR/mir_lower.exe"
 MIR_JSON="$BUILD_DIR/function_param_flow.mirjson"

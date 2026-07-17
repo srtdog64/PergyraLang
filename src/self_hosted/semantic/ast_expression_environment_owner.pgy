@@ -52,6 +52,33 @@ func SemanticAstExpressionMemberRootNames(
     return true;
 }
 
+func SemanticAstExpressionSeedEnumValues(
+    enums: SemanticAstEnumFacts,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if !enums.ok ||
+        ArrayLength(enums.variant_enum_names) !=
+            ArrayLength(enums.variant_names) ||
+        ArrayLength(enums.variant_param_counts) !=
+            ArrayLength(enums.variant_names) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(enums.variant_names) {
+        if enums.variant_param_counts[i] == 0 &&
+            !EnvContainsName(names, enums.variant_names[i]) {
+            ArrayPush(names, enums.variant_names[i]);
+            ArrayPush(types, enums.variant_enum_names[i]);
+            ArrayPush(modes, "enum_value");
+        }
+        i = i + 1;
+    }
+    return ArrayLength(names) == ArrayLength(types) &&
+        ArrayLength(names) == ArrayLength(modes);
+}
+
 func SemanticAstExpressionFunctionRowIndex(
     names: Array<String>,
     name: String
@@ -334,6 +361,47 @@ func SemanticAstExpressionSeedVisibleLocalModes(
     return true;
 }
 
+func SemanticAstExpressionSeedVisibleIterationRows(
+    artifact: AstTreeArtifact,
+    iteration_node_ids: Array<Int>,
+    iteration_function_node_ids: Array<Int>,
+    iteration_binding_names: Array<String>,
+    iteration_binding_types: Array<String>,
+    iteration_verified: Array<Int>,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    let count: Int = ArrayLength(iteration_node_ids);
+    if ArrayLength(iteration_function_node_ids) != count ||
+        ArrayLength(iteration_binding_names) != count ||
+        ArrayLength(iteration_binding_types) != count ||
+        ArrayLength(iteration_verified) != count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < count {
+        if iteration_verified[i] == 1 &&
+            iteration_function_node_ids[i] == function_node_id &&
+            iteration_node_ids[i] < use_node_id &&
+            SemanticAstExpressionScopeVisible(
+                artifact.arena, iteration_node_ids[i], use_node_id
+            ) {
+            let binding_type: String = iteration_binding_types[i];
+            if binding_type == "" || binding_type == "Unknown" {
+                return false;
+            }
+            ArrayPush(names, iteration_binding_names[i]);
+            ArrayPush(types, binding_type);
+            ArrayPush(modes, "loop_binding");
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: F\n    Parameters:\n      p: Int\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = p\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n              Assign: x = y\n"
@@ -342,6 +410,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
     let constructors: SemanticAstNominalConstructorFacts =
         SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
     let locals: SemanticAstLocalBindingFacts =
         SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
     let names: Array<String> = [];
@@ -354,6 +424,8 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
     if !SemanticAstExpressionFunctionTables(
         signatures, constructors,
         function_names, function_returns, function_params
+    ) || !SemanticAstExpressionSeedEnumValues(
+        enums, names, types, modes
     ) || !SemanticAstExpressionSeedParameters(
         signatures, locals.function_node_ids[0], names, types
     ) || !SemanticAstExpressionSeedParameterModes(
@@ -375,5 +447,24 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         modes[1] == "local" && modes[2] == "local" &&
         ArrayLength(function_names) == 89 &&
         function_names[88] == "F" && function_returns[88] == "Void" &&
-        function_params[88] == "Int";
+        function_params[88] == "Int" &&
+        SemanticAstExpressionEnumValueContractReady();
+}
+
+func SemanticAstExpressionEnumValueContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Enum: Direction { North, East, Payload(Int) }\n"
+    );
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    let names: Array<String> = [];
+    let types: Array<String> = [];
+    let modes: Array<String> = [];
+    return SemanticAstExpressionSeedEnumValues(
+        enums, names, types, modes
+    ) && ArrayLength(names) == 2 &&
+        names[0] == "North" && types[0] == "Direction" &&
+        modes[0] == "enum_value" &&
+        names[1] == "East" && types[1] == "Direction" &&
+        modes[1] == "enum_value";
 }

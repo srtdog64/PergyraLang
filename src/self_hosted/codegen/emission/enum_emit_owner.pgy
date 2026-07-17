@@ -1,0 +1,50 @@
+// Enum declaration and expression-environment projection owner.
+
+import "../text/text_owner.pgy";
+import "../input/semantic_enum_codegen_view_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
+
+func CollectEnums(
+    facts: SemanticAstEnumFacts,
+    inout env_box: Array<String>
+) -> String {
+    let blocks: Array<String> = [];
+    let env_rows: Array<String> = [];
+    let i: Int = 0;
+    while i < SemanticAstEnumCount(facts) {
+        let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
+        let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
+        let value: Int = 0;
+        let enum_rows: Array<String> = ["enum {\n"];
+        ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
+        while value < variant_total {
+            let part: String = CodegenSemanticEnumVariantNameAtOrDie(
+                facts, ename, value
+            );
+            let cname: String = CompilerSymbolCEnumVariantName(ename, part);
+            ArrayPush(enum_rows, Concat(
+                "    ", Concat(cname, Concat(
+                    " = ", Concat(ToString(value), ",\n")
+                ))
+            ));
+            ArrayPush(env_rows, Concat(
+                ename, Concat(".", Concat(
+                    part, Concat("=e:", Concat(ToString(value), "|"))
+                ))
+            ));
+            ArrayPush(env_rows, Concat(
+                part, Concat("=e:", Concat(cname, "|"))
+            ));
+            value = value + 1;
+        }
+        ArrayPush(enum_rows, "};\n\n");
+        ArrayPush(blocks, StringJoin(enum_rows, ""));
+        i = i + 1;
+    }
+    if ArrayLength(env_rows) > 0 {
+        ArraySet(env_box, 0, Concat(
+            env_box[0], StringJoin(env_rows, "")
+        ));
+    }
+    return StringJoin(blocks, "");
+}

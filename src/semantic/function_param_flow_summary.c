@@ -12,77 +12,10 @@
 
 #include "../parser/ast_analysis.h"
 #include "slot_analyzer_internal.h"
+#include "function_param_flow_summary_internal.h"
 #include "type_checker_internal.h"
 
 #define FUNCTION_PARAM_FLOW_WORK_BUDGET 4096u
-
-typedef enum
-{
-    FUNCTION_PARAM_FLOW_UNSEEN = 0,
-    FUNCTION_PARAM_FLOW_COMPUTING,
-    FUNCTION_PARAM_FLOW_EVALUATED,
-    FUNCTION_PARAM_FLOW_COMPLETE
-} FunctionParamFlowSummaryState;
-
-typedef struct
-{
-    uint32_t function_id;
-    size_t param_index;
-    ASTNode *function_decl;
-    unsigned mask;
-    FunctionParamFlowSummaryState state;
-} FunctionParamFlowSummaryEntry;
-
-/*
- * Function-local sparse program-point owner.  The rows are deliberately
- * rooted at source statements, not copied summaries: the last consumer still
- * runs the existing access/escape transfer over the selected roots, while the
- * owner removes unrelated statements from every demanded parameter walk.
- */
-typedef struct
-{
-    uint32_t function_id;
-    ASTNode *function_decl;
-    ASTNode ***roots_by_param;
-    size_t *root_counts;
-    size_t *root_capacities;
-    size_t param_count;
-    size_t statement_count;
-    size_t relevant_root_count;
-} FunctionParamFlowProgramPointIndex;
-
-struct FunctionParamFlowSummaryStore
-{
-    SemanticContext *ctx;
-    ASTNode *program_root;
-    FunctionParamFlowSummaryEntry *entries;
-    size_t count;
-    size_t capacity;
-    size_t *hash;
-    size_t hash_capacity;
-    FunctionParamFlowProgramPointIndex *program_point_indexes;
-    size_t program_point_index_count;
-    size_t program_point_index_capacity;
-    size_t active_start;
-    bool solving;
-    bool changed;
-    bool active_had_recursion;
-    bool failed;
-    size_t body_evaluations;
-    size_t cache_hits;
-    size_t recursion_hits;
-    size_t fixed_point_passes;
-    size_t work_units;
-    size_t work_budget;
-    size_t indexed_statement_visits;
-    size_t indexed_program_points;
-};
-
-void
-pgy_function_param_flow_facts_destroy(PgyFunctionParamFlowFact *facts)
-{
-    free(facts);
-}
 
 static bool
 function_param_flow_identifier_matches(const char *candidate, void *userdata)
@@ -171,22 +104,6 @@ function_param_flow_find(const FunctionParamFlowSummaryStore *store,
         slot = (slot + 1) & (store->hash_capacity - 1);
     }
     return SIZE_MAX;
-}
-
-static void
-function_param_flow_program_point_index_destroy(
-    FunctionParamFlowProgramPointIndex *index)
-{
-    if (index == NULL)
-        return;
-    if (index->roots_by_param != NULL) {
-        for (size_t i = 0; i < index->param_count; i++)
-            free(index->roots_by_param[i]);
-    }
-    free(index->roots_by_param);
-    free(index->root_counts);
-    free(index->root_capacities);
-    memset(index, 0, sizeof(*index));
 }
 
 static size_t
@@ -669,76 +586,4 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     if (store->failed)
         return SLOT_PARAM_SUMMARY_ALL;
     return store->entries[root_index].mask;
-}
-
-bool
-function_param_flow_summary_snapshot(SemanticContext *ctx)
-{
-    FunctionParamFlowSummaryStore *store;
-    PgyFunctionParamFlowFact *facts;
-    size_t count = 0;
-
-    if (ctx == NULL)
-        return false;
-    store = ctx->function_param_flow_summaries;
-    if (store == NULL)
-        return true;
-    if (store->failed)
-        return false;
-    if (store->count > SIZE_MAX / sizeof(*facts))
-        return false;
-
-    facts = store->count == 0
-        ? NULL
-        : calloc(store->count, sizeof(*facts));
-    if (store->count != 0 && facts == NULL)
-        return false;
-    for (size_t i = 0; i < store->count; i++) {
-        const FunctionParamFlowSummaryEntry *entry = &store->entries[i];
-        if (entry->state != FUNCTION_PARAM_FLOW_COMPLETE)
-            continue;
-        facts[count].function_syntax_id = entry->function_id;
-        facts[count].parameter_index = entry->param_index;
-        facts[count].mask = entry->mask;
-        count++;
-    }
-    if (count == 0) {
-        free(facts);
-        facts = NULL;
-    }
-    ctx->function_param_flow_facts = facts;
-    ctx->function_param_flow_fact_count = count;
-    ctx->function_param_flow_fact_capacity = count;
-    return true;
-}
-
-void
-function_param_flow_summary_store_destroy(SemanticContext *ctx)
-{
-    FunctionParamFlowSummaryStore *store;
-
-    if (ctx == NULL || ctx->function_param_flow_summaries == NULL)
-        return;
-    store = ctx->function_param_flow_summaries;
-    if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
-        fprintf(stderr,
-            "pgy: function-param-flow entries=%zu body_evaluations=%zu"
-            " cache_hits=%zu recursion_hits=%zu fixed_point_passes=%zu\n",
-            store->count, store->body_evaluations, store->cache_hits,
-            store->recursion_hits, store->fixed_point_passes);
-        fprintf(stderr,
-            "pgy: function-param-flow-sparse functions=%zu"
-            " statement_visits=%zu program_points=%zu\n",
-            store->program_point_index_count,
-            store->indexed_statement_visits,
-            store->indexed_program_points);
-    }
-    for (size_t i = 0; i < store->program_point_index_count; i++)
-        function_param_flow_program_point_index_destroy(
-            &store->program_point_indexes[i]);
-    free(store->program_point_indexes);
-    free(store->entries);
-    free(store->hash);
-    free(store);
-    ctx->function_param_flow_summaries = NULL;
 }

@@ -6,6 +6,7 @@
 import "ast_expression_usage_owner.pgy";
 import "ast_kind_usage_owner.pgy";
 import "ast_type_usage_owner.pgy";
+import "nominal_array_usage_owner.pgy";
 
 struct CodegenRuntimeUsageFacts {
     let uses_args: Bool;
@@ -21,6 +22,7 @@ struct CodegenRuntimeUsageFacts {
     let uses_exit: Bool;
     let uses_array: Bool;
     let uses_ast_text_node_array: Bool;
+    nominal_record_arrays: CodegenNominalArrayUsageFacts;
     let uses_io: Bool;
     let uses_join: Bool;
     let uses_split: Bool;
@@ -41,7 +43,8 @@ struct CodegenRuntimeUsageFacts {
 func CodegenRuntimeUsageFactsFromSemantic(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     type_surfaces: SemanticAstTypeSurfaceFacts,
-    kind_surfaces: SemanticAstKindSurfaceFacts
+    kind_surfaces: SemanticAstKindSurfaceFacts,
+    env: CodegenTypeEnv
 ) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts =
         CodegenExpressionUsageFactsFromSemantic(expression_surfaces);
@@ -77,6 +80,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
         || uses_array_filter
         || uses_args;
     let uses_ast_text_node_array: Bool = type_usage.has_ast_text_node_array;
+    let nominal_record_arrays: CodegenNominalArrayUsageFacts =
+        CodegenNominalArrayUsageFactsFromSemantic(type_surfaces, env);
     let uses_io: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupIo());
     let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
     let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());
@@ -108,6 +113,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_exit,
         uses_array,
         uses_ast_text_node_array,
+        nominal_record_arrays,
         uses_io,
         uses_join,
         uses_split,

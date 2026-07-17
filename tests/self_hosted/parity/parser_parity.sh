@@ -10,6 +10,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -33,6 +34,7 @@ PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/par
 ARTIFACT_COMPARE_BUILD_DIR="$PERGYRA_TOOL_BUILD_DIR/artifact_owner"
 HARNESS_PATHS_FILE="$PERGYRA_TOOL_BUILD_DIR/parser_harness_paths.txt"
 PARSER_FIXTURE_MANIFEST_FILE="$PERGYRA_TOOL_BUILD_DIR/parser_fixture_manifest.txt"
+C_PARSER_COMPILED=0
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 pgy_selfhost_read_test_harness_manifest \
@@ -106,18 +108,18 @@ compare_parser_ast_with_owner() {
 SOURCE_PAIRS=()
 
 read_parser_fixture_manifest() {
-    local manifest_bin="$PERGYRA_TOOL_BUILD_DIR/main_manifest.exe"
+    local manifest_bin="$PERGYRA_TOOL_BUILD_DIR/main_c.exe"
     local manifest_log="$PERGYRA_TOOL_BUILD_DIR/main_manifest.compile.log"
     local line
 
-    if ! (cd "$ROOT_DIR" && "$PGY_EXEC" \
-        "$PERGYRA_TOOL_ARG" \
-        --backend=c \
-        -o "$(pgy_path_for_compiler "$PGY" "$manifest_bin")" >"$manifest_log" 2>&1); then
+    if ! pgy_selfhost_compile_parser_tool \
+        "self-host-parity:parser" "$PERGYRA_TOOL_SOURCE" c \
+        "$manifest_bin" "$manifest_log"; then
         echo "[self-host-parity:parser] parser fixture manifest owner failed to build" >&2
         cat "$manifest_log" >&2
         exit 1
     fi
+    C_PARSER_COMPILED=1
 
     SOURCE_PAIRS=()
     if ! (cd "$ROOT_DIR" && "$manifest_bin" --fixture-manifest \
@@ -178,12 +180,15 @@ check_live_fixture_drift() {
 compile_parser_backend() {
     local backend="$1"
     local tool_bin="$2"
+    local compile_log="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.compile.log"
 
     echo "[self-host-parity:parser] compiling parser backend=$backend..."
-    (cd "$ROOT_DIR" && "$PGY_EXEC" \
-        "$PERGYRA_TOOL_ARG" \
-        --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
+    if ! pgy_selfhost_compile_parser_tool \
+        "self-host-parity:parser" "$PERGYRA_TOOL_SOURCE" "$backend" \
+        "$tool_bin" "$compile_log"; then
+        cat "$compile_log" >&2
+        exit 1
+    fi
 }
 
 run_parser_backend() {
@@ -224,7 +229,9 @@ ANY_DRIFT_GUARD_RAN="$(check_live_fixture_drift)"
 
 for backend in $BACKENDS; do
     tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
-    compile_parser_backend "$backend" "$tool_bin"
+    if [[ "$backend" != "c" || "$C_PARSER_COMPILED" -ne 1 ]]; then
+        compile_parser_backend "$backend" "$tool_bin"
+    fi
     run_parser_backend "$backend" "$tool_bin"
 done
 

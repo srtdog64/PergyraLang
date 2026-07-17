@@ -1,0 +1,206 @@
+// Codegen expression types projected from semantic graph facts and type rows.
+
+import "../input/generic_specialization_codegen_view_owner.pgy";
+import "../type_facts/type_env.pgy";
+import "../../hir/ast_text_scan_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_member_view_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
+import "../../semantic/wrapper_type_owner.pgy";
+
+func CodegenExpressionLeafTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, node_id
+    );
+    if !IsSome(text) { return None; }
+    let value: String = UnwrapOption(text);
+    if value == "true" || value == "false" { return Some("Bool"); }
+    if StringLength(value) > 0 && CodegenCharAt(value, 0) == "\"" {
+        return Some("String");
+    }
+    if IsIdentifier(value) {
+        let value_type: String = TypeEnvSemanticValueType(env, value);
+        if value_type != "" { return Some(value_type); }
+        if LookupKindType(env, value, "e") != "" { return Some("Int"); }
+        return None;
+    }
+    if StringLength(value) > 0 &&
+        CodegenCharAt(value, StringLength(value) - 1) == "L" {
+        return Some("Long");
+    }
+    if StringLength(value) > 0 &&
+        StringIndexOf("0123456789", CodegenCharAt(value, 0)) >= 0 {
+        return Some("Int");
+    }
+    return None;
+}
+
+func CodegenExpressionCallTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+        graph, node_id
+    );
+    if !call.ok { return None; }
+    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+        graph, call.call_node
+    );
+    if !IsSome(target_name) { return None; }
+    let source_name: String = UnwrapOption(target_name);
+    if (source_name == "UnwrapOption" || source_name == "Unwrap") &&
+        ArrayLength(call.argument_nodes) == 1 {
+        let wrapped: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, call.argument_nodes[0], env
+        );
+        if !IsSome(wrapped) { return None; }
+        return TryPayloadTypeOpt(UnwrapOption(wrapped));
+    }
+    if SemanticBuiltinReturnDependsOnArguments(source_name) {
+        let argument_types: Array<String> = [];
+        let argument_index: Int = 0;
+        while argument_index < ArrayLength(call.argument_nodes) {
+            let argument_type: Option<String> = CodegenExpressionTypeFromGraph(
+                graph, call.argument_nodes[argument_index], env
+            );
+            if !IsSome(argument_type) { return None; }
+            ArrayPush(argument_types, UnwrapOption(argument_type));
+            argument_index = argument_index + 1;
+        }
+        return SemanticPolymorphicBuiltinReturnTypeOpt(
+            source_name, argument_types
+        );
+    }
+    let call_symbol: String = source_name;
+    let alias: String = LookupKindType(env, source_name, "call");
+    if alias != "" { call_symbol = alias; }
+    let specialization: String = LookupKindType(
+        env, CodegenGenericCallNodeKey(call.call_node), "call"
+    );
+    if specialization != "" { call_symbol = specialization; }
+    let return_type: String = LookupKindType(env, call_symbol, "f");
+    if return_type == "" || return_type == "Unknown" { return None; }
+    return Some(return_type);
+}
+
+func CodegenExpressionMemberTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let view: SemanticMemberAccessView =
+        SemanticMemberAccessViewFromGraph(graph, node_id);
+    if !view.ok { return None; }
+    let member_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.member_node
+    );
+    if !IsSome(member_text) ||
+        !IsIdentifier(UnwrapOption(member_text)) {
+        return None;
+    }
+    let receiver_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, view.receiver_node
+    );
+    let receiver_text: Option<String> = SemanticExpressionGraphNodeText(
+        graph, view.receiver_node
+    );
+    if IsSome(receiver_kind) &&
+        UnwrapOption(receiver_kind) == AstExpressionNodeLeaf() &&
+        IsSome(receiver_text) &&
+        IsIdentifier(UnwrapOption(receiver_text)) {
+        let enum_owner: String = UnwrapOption(receiver_text);
+        let enum_value: String = LookupKindType(
+            env, Concat(enum_owner, Concat(
+                ".", UnwrapOption(member_text)
+            )), "e"
+        );
+        if enum_value != "" &&
+            LookupKindType(env, enum_owner, "enum") == "payload_free" {
+            return Some(enum_owner);
+        }
+    }
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, view.receiver_node, env
+    );
+    if !IsSome(receiver_type) { return None; }
+    let field_type: String = LookupFieldType(
+        env, UnwrapOption(receiver_type), UnwrapOption(member_text)
+    );
+    if field_type == "" { return None; }
+    return Some(field_type);
+}
+
+func CodegenExpressionTypeFromGraph(
+    graph: SemanticExpressionGraphFacts,
+    node_id: Int,
+    env: CodegenTypeEnv
+) -> Option<String> {
+    let kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, node_id
+    );
+    if !IsSome(kind_opt) { return None; }
+    let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeFloatLiteral() { return Some("Float"); }
+    if kind == AstExpressionNodeLeaf() {
+        return CodegenExpressionLeafTypeFromGraph(graph, node_id, env);
+    }
+    if AstExpressionNodeIsCallSpine(kind) {
+        return CodegenExpressionCallTypeFromGraph(graph, node_id, env);
+    }
+    if kind == AstExpressionNodeMemberAccess() {
+        return CodegenExpressionMemberTypeFromGraph(graph, node_id, env);
+    }
+    let left_id: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if !IsSome(left_id) { return None; }
+    let left: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, UnwrapOption(left_id), env
+    );
+    if !IsSome(left) { return None; }
+    if kind == AstExpressionNodeIndex() {
+        let element_type: String = ExprCollectionElementKind(
+            UnwrapOption(left)
+        );
+        if element_type == "" { return None; }
+        return Some(element_type);
+    }
+    if kind == AstExpressionNodeLogicalNot() { return Some("Bool"); }
+    if kind == AstExpressionNodeNegate() { return left; }
+    if kind == AstExpressionNodeTry() {
+        return TryPayloadTypeOpt(UnwrapOption(left));
+    }
+    let right_id: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, node_id
+    );
+    if !IsSome(right_id) { return None; }
+    let right: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, UnwrapOption(right_id), env
+    );
+    if !IsSome(right) { return None; }
+    if kind == AstExpressionNodeLogicalAnd() ||
+        kind == AstExpressionNodeLogicalOr() ||
+        kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() ||
+        kind == AstExpressionNodeLess() ||
+        kind == AstExpressionNodeLessEqual() ||
+        kind == AstExpressionNodeGreater() ||
+        kind == AstExpressionNodeGreaterEqual() {
+        return Some("Bool");
+    }
+    if UnwrapOption(left) != UnwrapOption(right) { return None; }
+    if kind == AstExpressionNodeAdd() ||
+        kind == AstExpressionNodeSubtract() ||
+        kind == AstExpressionNodeMultiply() ||
+        kind == AstExpressionNodeDivide() ||
+        kind == AstExpressionNodeModulo() {
+        return left;
+    }
+    return None;
+}

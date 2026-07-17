@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INDEX="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
 LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
-DUMP="$ROOT_DIR/src/compiler/mir_json_dump.c"
+DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH

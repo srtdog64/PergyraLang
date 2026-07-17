@@ -139,7 +139,7 @@ func SemanticExpressionGraphScalarOperandError(
             );
         }
         let kind: Int = UnwrapOption(kind_opt);
-        if kind == AstExpressionNodeLeaf() {
+        if AstExpressionNodeIsScalarLeaf(kind) {
             node = node + 1;
             continue;
         }

@@ -34,18 +34,6 @@
 #include "llvm_type_kind.h"
 #include "llvm_result_spec.h"
 
-LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
-LLVMTypeRef llvm_nested_array_struct_type(LLVMGenCtx *ctx, const char *inner);
-const char *llvm_scalar_array_elem_suffix(LLVMGenCtx *ctx, LLVMTypeRef elem_type);
-LLVMTypeRef llvm_scalar_array_struct_element_type(LLVMGenCtx *ctx,
-                                                  LLVMTypeRef type);
-LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
-LLVMTypeRef llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner);
-LLVMTypeRef llvm_set_struct_type(LLVMGenCtx *ctx, const char *inner);
-LLVMTypeRef llvm_queue_struct_type(LLVMGenCtx *ctx, const char *inner);
-LLVMTypeRef llvm_hashmap_struct_type(LLVMGenCtx *ctx, const char *value);
-LLVMValueRef llvm_sizeof_type_i64(LLVMGenCtx *ctx, LLVMTypeRef type);
-
 /* =================================================================
  * Type definitions
  * ================================================================= */
@@ -596,11 +584,8 @@ typedef struct LLVMGenCtx
     PgyArena        persistent;
 } LLVMGenCtx;
 
-/* Opt-in debug info (DWARF via DILocation); no-ops unless mir->source_path. */
-void llvm_debug_begin_function(LLVMGenCtx *ctx, const char *name,
-                               LLVMValueRef fn, unsigned line);
-void llvm_debug_set_line(LLVMGenCtx *ctx, unsigned line);
-
+#include "llvm_type_projection_internal.h"
+#include "llvm_debug_info_internal.h"
 #include "llvm_inventory_internal.h"
 #include "llvm_internal_api.h"
 

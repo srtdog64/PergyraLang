@@ -3,6 +3,7 @@
 // Layered type-environment and expression-kind owner for self-host C emission.
 
 import "../text/text_owner.pgy";
+import "../../semantic/array_type_shape_owner.pgy";
 
 struct CodegenTypeEnv {
     global_rows: String;
@@ -86,6 +87,37 @@ func TypeEnvValueBindingRows(
     );
 }
 
+func TypeEnvSemanticValueTypeRows(
+    source_name: String, value_type: String
+) -> String {
+    return Concat(
+        source_name, Concat("=type:", Concat(value_type, "|"))
+    );
+}
+
+func TypeEnvTypedValueBindingRows(
+    source_name: String, value_type: String,
+    value_kind: String, c_name: String
+) -> String {
+    return Concat(
+        TypeEnvValueBindingRows(source_name, value_kind, c_name),
+        TypeEnvSemanticValueTypeRows(source_name, value_type)
+    );
+}
+
+func CodegenTypeEnvStateAppendTypedValueBinding(
+    inout state: Array<String>, source_name: String,
+    value_type: String, value_kind: String, c_name: String
+) -> Void {
+    let env: CodegenTypeEnv = TypeEnvAppendLocalRows(
+        CodegenTypeEnvStateView(state),
+        TypeEnvTypedValueBindingRows(
+            source_name, value_type, value_kind, c_name
+        )
+    );
+    CodegenTypeEnvStateStoreLocal(state, env);
+}
+
 func TypeEnvAppendValueBinding(env: CodegenTypeEnv, source_name: String, value_kind: String, c_name: String) -> CodegenTypeEnv {
     if LookupKindType(env, source_name, "v") == value_kind &&
         LookupKindType(env, source_name, "cbind") == c_name {
@@ -106,6 +138,18 @@ func TypeEnvReadonlyRefBindingRows(
             source_name, value_kind, Concat("(*", Concat(ref_c_name, ")"))
         ),
         Concat(source_name, Concat("=cref:", Concat(ref_c_name, "|")))
+    );
+}
+
+func TypeEnvTypedReadonlyRefBindingRows(
+    source_name: String, value_type: String,
+    value_kind: String, ref_c_name: String
+) -> String {
+    return Concat(
+        TypeEnvReadonlyRefBindingRows(
+            source_name, value_kind, ref_c_name
+        ),
+        TypeEnvSemanticValueTypeRows(source_name, value_type)
     );
 }
 
@@ -143,6 +187,12 @@ func TypeEnvBindingCName(env: CodegenTypeEnv, source_name: String) -> String {
         return c_name;
     }
     return source_name;
+}
+
+func TypeEnvSemanticValueType(
+    env: CodegenTypeEnv, source_name: String
+) -> String {
+    return LookupKindType(env, source_name, "type");
 }
 
 func CsvAt(csv: String, want: Int) -> String {
@@ -225,6 +275,11 @@ func ExprMemberFieldType(expr: String, env: CodegenTypeEnv) -> String {
 }
 
 func ExprCollectionElementKind(kind: String) -> String {
+    let semantic_element: Option<String> =
+        SemanticArrayElementType(kind);
+    if IsSome(semantic_element) {
+        return UnwrapOption(semantic_element);
+    }
     if kind == "ArrayString" || kind == "Array<String>" || kind == "Array<String: String>" {
         return "String";
     }

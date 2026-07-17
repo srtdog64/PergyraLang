@@ -6,6 +6,7 @@ import "ast_expression_call_target_fact_owner.pgy";
 import "ast_expression_graph_resolved_call_type_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
 import "callable_resolution_owner.pgy";
+import "builtin_signature_owner.pgy";
 import "expr_type_owner.pgy";
 import "env_owner.pgy";
 import "../hir/ast_text_scan_owner.pgy";
@@ -57,7 +58,7 @@ func SemanticExpressionGraphScalarTreeOwned(
     );
     if !IsSome(kind_opt) { return false; }
     let kind: Int = UnwrapOption(kind_opt);
-    if kind == AstExpressionNodeLeaf() { return true; }
+    if AstExpressionNodeIsScalarLeaf(kind) { return true; }
     if !SemanticExpressionGraphScalarOperatorKind(kind) { return false; }
     let left: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, node_id
@@ -100,6 +101,7 @@ func SemanticExpressionGraphScalarTypeName(
     );
     if !IsSome(kind_opt) { return "Unknown"; }
     let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeFloatLiteral() { return "Float"; }
     if kind == AstExpressionNodeLeaf() {
         let text: Option<String> = SemanticExpressionGraphNodeText(
             graph, root_id
@@ -176,12 +178,28 @@ func SemanticExpressionGraphScalarTypeName(
                 function_names, function_returns
             );
         }
-        if (callee == "Abs" || callee == "Min" || callee == "Max" ||
-            callee == "Clamp") && ArrayLength(call.argument_nodes) > 0 {
-            return SemanticExpressionGraphScalarTypeName(
-                graph, call.argument_nodes[0], constructors, names, types,
-                function_names, function_returns
-            );
+        if SemanticBuiltinReturnDependsOnArguments(callee) {
+            let builtin_argument_types: Array<String> = [];
+            let builtin_argument_index: Int = 0;
+            while builtin_argument_index < ArrayLength(call.argument_nodes) {
+                ArrayPush(
+                    builtin_argument_types,
+                    SemanticExpressionGraphScalarTypeName(
+                        graph, call.argument_nodes[builtin_argument_index],
+                        constructors, names, types,
+                        function_names, function_returns
+                    )
+                );
+                builtin_argument_index = builtin_argument_index + 1;
+            }
+            let polymorphic_return: Option<String> =
+                SemanticPolymorphicBuiltinReturnTypeOpt(
+                    callee, builtin_argument_types
+                );
+            if IsSome(polymorphic_return) {
+                return UnwrapOption(polymorphic_return);
+            }
+            return "Unknown";
         }
         if (callee == "DeviceRead" || callee == "SubmitDeviceRead") &&
             ArrayLength(call.argument_nodes) == 1 {
@@ -228,10 +246,7 @@ func SemanticExpressionGraphScalarTypeName(
         return "Unknown";
     }
     if kind == AstExpressionNodeTry() {
-        if IsOptionType(left) {
-            return Substring(left, 7, StringLength(left) - 8);
-        }
-        let payload: Option<String> = ResultPayloadTypeOpt(left);
+        let payload: Option<String> = TryPayloadTypeOpt(left);
         if IsSome(payload) { return UnwrapOption(payload); }
         return "Unknown";
     }

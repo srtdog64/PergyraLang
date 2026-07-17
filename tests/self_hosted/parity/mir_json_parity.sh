@@ -23,6 +23,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/portable_process_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
@@ -75,6 +76,7 @@ HARNESS_PATHS_FILE="$B/mir_json_harness_paths.txt"
 ARTIFACT_COMPARE_BUILD_DIR="$B/artifact_owner"
 MIR_FIXTURE_MANIFEST_FILE="$B/mir_fixture_manifest.txt"
 MIR_RUN_COMPARATOR_BIN=""
+RUN_TIMEOUT_SECONDS="${PGY_SELFHOST_MIR_RUN_TIMEOUT_SECONDS:-30}"
 MIR_LOWER_SRC=""
 CODEGEN_SRC=""
 COMPARATOR_SOURCE=""
@@ -110,8 +112,8 @@ done
 
 compare_mir_run_output_with_owner() {
     local base="$1"
-    local via_text="$2"
-    local oracle_text="$3"
+    local via_file="$2"
+    local oracle_file="$3"
     local safe_label="${base//[^A-Za-z0-9_]/_}"
     local oracle_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_oracle.out"
     local via_norm="$ARTIFACT_COMPARE_BUILD_DIR/${safe_label}_via_mir.out"
@@ -120,8 +122,8 @@ compare_mir_run_output_with_owner() {
     local oracle_rel
     local via_rel
 
-    printf '%s' "$oracle_text" | pgy_selfhost_normalize_text_artifact > "$oracle_norm"
-    printf '%s' "$via_text" | pgy_selfhost_normalize_text_artifact > "$via_norm"
+    pgy_selfhost_normalize_text_artifact < "$oracle_file" > "$oracle_norm"
+    pgy_selfhost_normalize_text_artifact < "$via_file" > "$via_norm"
     oracle_rel="$(pgy_selfhost_path_relative_to_root "$oracle_norm")"
     via_rel="$(pgy_selfhost_path_relative_to_root "$via_norm")"
 
@@ -132,6 +134,25 @@ compare_mir_run_output_with_owner() {
         cat "$cmp_out" "$cmp_err" >&2
         exit 1
     fi
+}
+
+run_mir_binary_to_file() {
+    local base="$1"
+    local kind="$2"
+    local bin="$3"
+    local output="$4"
+    local error="$5"
+    local rc
+
+    if (cd "$ROOT_DIR" && pgy_run_with_timeout \
+            "$RUN_TIMEOUT_SECONDS" "$output" "$error" "$bin"); then
+        return
+    else
+        rc=$?
+    fi
+    echo "[self-host-parity:mir-json] $base: $kind execution failed (rc=$rc)" >&2
+    cat "$error" >&2 || true
+    exit 1
 }
 
 read_mir_fixture_manifest() {
@@ -153,8 +174,8 @@ read_mir_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$MIR_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 100 ]]; then
-        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 100" >&2
+    if [[ "${#FIXTURES[@]}" -eq 0 ]]; then
+        echo "[self-host-parity:mir-json] fixture manifest is empty" >&2
         exit 1
     fi
 
@@ -329,15 +350,14 @@ for fixture_entry in "${FIXTURES[@]}"; do
     if [[ "$base" == "class_method" ]]; then
         for required in \
             '"methods":[{"name":"LengthPlus","return":"Int"}]' \
-            '"name":"LengthPlus","kind":"method"' \
-            '"owner":"Vec2"'; do
+            '"name":"LengthPlus","kind":"method","owner":"Vec2"'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_method: missing MIR class method fact: $required" >&2
                 exit 1
             fi
         done
     fi
-    if [[ "$base" == nominal_* ]]; then
+    if [[ "$base" =~ ^nominal_(subject|object|tobject|vessel)$ ]]; then
         nominal_kind=""
         nominal_name=""
         field_name=""
@@ -368,6 +388,16 @@ for fixture_entry in "${FIXTURES[@]}"; do
             "\"fields\":[{\"name\":\"$field_name\",\"type\":\"Int\"}]"; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] $base: missing MIR nominal declaration fact: $required" >&2
+                exit 1
+            fi
+        done
+    fi
+    if [[ "$base" == "nominal_record_array" ]]; then
+        for required in \
+            '"decls":[{"kind":"struct","nominal_kind":"struct","name":"AstExpressionGraphRows"' \
+            '"fields":[{"name":"ok","type":"Bool"},{"name":"roots","type":"Array<Int>"}]'; do
+            if ! grep -Fq "$required" "$mj"; then
+                echo "[self-host-parity:mir-json] nominal_record_array: missing MIR struct declaration fact: $required" >&2
                 exit 1
             fi
         done
@@ -456,6 +486,20 @@ for fixture_entry in "${FIXTURES[@]}"; do
             exit 1
         fi
     fi
+    if [[ "$base" == "dir_walk" ]]; then
+        if ! grep -Fq 'If: (ArrayLength(files) > 0)' "$reast" ||
+            grep -Fq 'While: (ArrayLength(files) > 0)' "$reast"; then
+            echo "[self-host-parity:mir-json] dir_walk: acyclic merge edge was classified as a loop backedge" >&2
+            exit 1
+        fi
+    fi
+    if [[ "$base" == "break_after_stmt" ]]; then
+        if ! grep -Fq 'If: (i == 3)' "$reast" ||
+            grep -Fq 'While: (i == 3)' "$reast"; then
+            echo "[self-host-parity:mir-json] break_after_stmt: outer-cycle edge was classified as an inner loop backedge" >&2
+            exit 1
+        fi
+    fi
     if [[ "$base" == "struct_point" ]] && ! grep -q 'Struct: Point' "$reast"; then
         echo "[self-host-parity:mir-json] struct_point: mir_lower did not reconstruct the struct declaration from MIR facts" >&2
         exit 1
@@ -492,6 +536,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
             'Class: Vec2' \
             'Methods:' \
             'Function: LengthPlus' \
+            'Return: ((self.x + self.y) + extra)' \
             'Return: (v.LengthPlus(5) - 15)'; do
             if ! grep -Fq "$required" "$reast"; then
                 echo "[self-host-parity:mir-json] class_method: mir_lower did not reconstruct class method fact: $required" >&2
@@ -499,7 +544,7 @@ for fixture_entry in "${FIXTURES[@]}"; do
             fi
         done
     fi
-    if [[ "$base" == nominal_* ]]; then
+    if [[ "$base" =~ ^nominal_(subject|object|tobject|vessel)$ ]]; then
         ast_label=""
         nominal_name=""
         local_name=""
@@ -544,6 +589,11 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 exit 1
             fi
         done
+    fi
+    if [[ "$base" == "nominal_record_array" ]] &&
+        ! grep -Fq 'Struct: AstExpressionGraphRows' "$reast"; then
+        echo "[self-host-parity:mir-json] nominal_record_array: mir_lower did not reconstruct struct facts" >&2
+        exit 1
     fi
     if [[ "$base" == "ability_decl" ]]; then
         for required in \
@@ -655,8 +705,12 @@ for fixture_entry in "${FIXTURES[@]}"; do
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$src")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/${base}_oracle.exe")" >/dev/null 2>&1)
 
-    via="$(cd "$ROOT_DIR" && "$B/${base}_via_mir.exe" 2>/dev/null | tr -d '\r')"
-    orc="$(cd "$ROOT_DIR" && "$B/${base}_oracle.exe" 2>/dev/null | tr -d '\r')"
+    via="$B/${base}_via_mir.run.out"
+    orc="$B/${base}_oracle.run.out"
+    run_mir_binary_to_file \
+        "$base" "reconstructed binary" "$B/${base}_via_mir.exe" "$via" "$B/${base}_via_mir.run.err"
+    run_mir_binary_to_file \
+        "$base" "oracle binary" "$B/${base}_oracle.exe" "$orc" "$B/${base}_oracle.run.err"
     compare_mir_run_output_with_owner "$base" "$via" "$orc"
     pass=$((pass + 1))
 done

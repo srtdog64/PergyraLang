@@ -271,7 +271,7 @@ require_file_text "$ROOT_DIR/Makefile" '$(BUILD_DIR)/compiler/machine_layer_mani
 require_file_text "$ROOT_DIR/Makefile" '$(BUILD_DIR)/compiler/mir_machine_layer.o'
 require_file_text "$ROOT_DIR/tests/machine_layer_manifest_smoke.sh" \
     'C and LLVM consume distinct physical projections with checked physical declaration and fail-closed owner validation'
-require_file_text "$ROOT_DIR/src/compiler/air_validate.c" \
+require_file_text "$ROOT_DIR/src/compiler/air_validate_machine_layer.c" \
     'pgy_machine_layer_manifest_validate_site'
 require_file_text "$ROOT_DIR/src/compiler/mir_json_dump.c" \
     'machine_contact_kind'
@@ -294,7 +294,7 @@ require_file_text "$ROOT_DIR/src/compiler/mir_machine_layer.c" \
 require_file_text "$ROOT_DIR/src/compiler/mir_program_validate.c" \
     'inst->machine_layer_fact_required'
 if grep -Fq -- 'pgy_machine_layer_manifest_operation_at' \
-    "$ROOT_DIR/src/compiler/air_validate.c"; then
+    "$ROOT_DIR/src/compiler/air_validate_machine_layer.c"; then
     fail "AIR validation duplicated manifest operation traversal"
 fi
 

@@ -3,12 +3,12 @@
 // Function/declaration scan and signature emission owner for self-host C emission.
 import "../text/text_owner.pgy";
 import "../input/ast_arena_codegen_view_owner.pgy";
-import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_signature_codegen_view_owner.pgy";
 import "../input/generic_specialization_codegen_view_owner.pgy";
 import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_nominal_codegen_view_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "../../semantic/builtin_signature_owner.pgy";
 import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
@@ -29,7 +29,9 @@ func ParamTypeCsvAppend(csv: String, type_name: String) -> String {
 }
 func CodegenBindingEnvKind(type_name: String, global_env: String) -> String {
     if StartsWith(type_name, "Array<") {
-        return CollectionRuntimeKindFromTypeName(type_name);
+        return CollectionRuntimeFactFromTypeName(
+            type_name, CodegenTypeEnv(global_env, "")
+        ).kind;
     }
     if StartsWith(type_name, "Result<") && StringIndexOf(type_name, "Int") >= 0 {
         return "ResultInt";
@@ -65,8 +67,8 @@ func CodegenFunctionLocalEnvRows(
             }
             let source_name: String = local_bindings.names[i];
             let type_name: String = UnwrapOption(type_opt);
-            ArrayPush(rows, TypeEnvValueBindingRows(
-                source_name,
+            ArrayPush(rows, TypeEnvTypedValueBindingRows(
+                source_name, type_name,
                 CodegenBindingEnvKind(type_name, global_env),
                 CompilerSymbolCBindingName(source_name)
             ));
@@ -158,15 +160,16 @@ func EmitFunctionWithSpecialization(count: Int, arena: AstArena,
         // rewriting recognizes it (`Array<Int...>` -> ArrayInt, etc.).
         let p_kind: String = p_type;
         if StartsWith(p_type, "Array<") {
-            p_kind = CollectionRuntimeKindFromTypeName(p_type);
+            p_kind =
+                CollectionRuntimeFactFromTypeName(p_type, base_env).kind;
         }
         if p_mode == 3 {
-            ArrayPush(function_env_rows, TypeEnvReadonlyRefBindingRows(
-                p_name, p_kind, c_ref_name
+            ArrayPush(function_env_rows, TypeEnvTypedReadonlyRefBindingRows(
+                p_name, p_type, p_kind, c_ref_name
             ));
         } else {
-            ArrayPush(function_env_rows, TypeEnvValueBindingRows(
-                p_name, p_kind, c_p_name
+            ArrayPush(function_env_rows, TypeEnvTypedValueBindingRows(
+                p_name, p_type, p_kind, c_p_name
             ));
         }
         param_n = param_n + 1;
@@ -259,6 +262,23 @@ func BuildFunctionEnv(
     specializations: CodegenGenericSpecializationFacts
 ) -> String {
     let rows: Array<String> = ["|"];
+    let builtin_names: Array<String> = [];
+    let builtin_returns: Array<String> = [];
+    let builtin_params: Array<String> = [];
+    if !SeedSemanticBuiltinSignatures(
+        builtin_names, builtin_returns, builtin_params
+    ) {
+        Die("semantic builtin signature facts are invalid");
+    }
+    let builtin_index: Int = 0;
+    while builtin_index < ArrayLength(builtin_names) {
+        ArrayPush(rows, Concat(
+            builtin_names[builtin_index], Concat(
+                "=f:", Concat(builtin_returns[builtin_index], "|")
+            )
+        ));
+        builtin_index = builtin_index + 1;
+    }
     ArrayPush(rows, Concat("AllocatorResult=call:", Concat(TextBuilderRuntimeCAllocatorResultFn(), "|")));
     ArrayPush(rows, Concat("AllocatorDestroy=call:", Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "|")));
     ArrayPush(rows, Concat(TextBuilderRuntimeCAllocatorDestroyFn(), "=pm:ref|"));
@@ -434,38 +454,6 @@ func CollectStructs(
         i = i + 1;
     }
     return StringJoin(typedefs, "");
-}
-
-func CollectEnums(
-    facts: SemanticAstEnumFacts,
-    inout env_box: Array<String>
-) -> String {
-    let blocks: Array<String> = [];
-    let env_rows: Array<String> = [];
-    let i: Int = 0;
-    while i < SemanticAstEnumCount(facts) {
-        let ename: String = CodegenSemanticEnumNameAtOrDie(facts, i);
-        let variant_total: Int = CodegenSemanticEnumVariantCount(facts, ename);
-        let value: Int = 0;
-        let enum_rows: Array<String> = ["enum {\n"];
-        ArrayPush(env_rows, Concat(ename, "=enum:payload_free|"));
-        while value < variant_total {
-            let part: String = CodegenSemanticEnumVariantNameAtOrDie(
-                facts, ename, value
-            );
-            let cname: String = CompilerSymbolCEnumVariantName(ename, part);
-            ArrayPush(enum_rows, Concat("    ", Concat(cname, Concat(" = ", Concat(ToString(value), ",\n")))));
-            ArrayPush(env_rows, Concat(ename, Concat(".", Concat(part, Concat("=e:", Concat(ToString(value), "|"))))));
-            value = value + 1;
-        }
-        ArrayPush(enum_rows, "};\n\n");
-        ArrayPush(blocks, StringJoin(enum_rows, ""));
-        i = i + 1;
-    }
-    if ArrayLength(env_rows) > 0 {
-        ArraySet(env_box, 0, Concat(env_box[0], StringJoin(env_rows, "")));
-    }
-    return StringJoin(blocks, "");
 }
 
 // Build the C forward-declaration block for every non-Main function, in

@@ -124,21 +124,20 @@ func RewriteSemanticArrayLiteralValue(
     if !view.ok || !StartsWith(expected_type, "Array<") {
         Die("semantic array-literal graph/type fact is invalid");
     }
-    let kind: String = CollectionRuntimeKindFromTypeName(expected_type);
-    let kind_code: Int = CollectionRuntimeKindCode(kind);
-    let element_type: String =
-        CollectionRuntimeElementTypeFromKindCode(kind_code);
+    let collection: CollectionRuntimeFact =
+        CollectionRuntimeFactFromTypeName(expected_type, env);
+    let element_type: String = collection.element_type;
     let c_type: String = AbiLayoutCValueType(expected_type, env);
     let temp: String = "_pgy_array_value";
     let out: String = Concat("({ ", Concat(c_type, Concat(" ",
         Concat(temp, Concat(" = ", Concat(
-            CollectionRuntimeCNewFn(kind_code), "(); "))))));
+            collection.c_new_fn, "(); "))))));
     let i: Int = 0;
     while i < ArrayLength(view.element_nodes) {
         let value: String = RewriteSemanticExpectedValue(
             graph, view.element_nodes[i], element_type, env
         );
-        out = Concat(out, Concat(CollectionRuntimeCPushFn(kind_code),
+        out = Concat(out, Concat(collection.c_push_fn,
             Concat("(&", Concat(temp, Concat(", ",
                 Concat(value, "); "))))));
         i = i + 1;

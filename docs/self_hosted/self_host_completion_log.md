@@ -6,6 +6,41 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-17 - Driver fixed point is split by validation budget
+
+- The native-oracle MIR boundary removed the previous 68 GB full-source
+  producer growth, but the blocking Linux bootstrap still exceeded its
+  40-minute job budget on the full stage2/stage3 chain. A local Windows
+  full-stage2 consumer also exceeded the 30-minute integration budget while
+  staying below 101 MB private memory.
+- `self-host-driver-bootstrap-test-smoke` now compares the Pergyra-built
+  integrated seed with the native-built same driver on a real source and a
+  TestHarness-owned sample. Both builds produce byte-identical verified MIR
+  for that sample and consume the common fact to byte-identical C. This avoids
+  treating native `pgy --mir-json` output without expression-graph facts as a
+  valid DRV-2 input.
+  `self-host-driver-bootstrap-full-test-smoke` explicitly requests the
+  full-input stage2 plus `gen2 == gen3` comparison.
+- The driver target consumes a seed-only codegen profile (`gen2` and parser AST
+  producer). Standalone codegen fixed-point and breadth coverage remains a
+  separate 30-minute Linux job instead of delaying the driver boundary.
+- This is scope isolation, not a timeout increase or a semantic exemption.
+  Bounded DRV-2 producer parity and the real-source oracle comparison remain
+  blocking.
+
+## 2026-07-17 - Driver fixed point consumes one oracle MIR fact
+
+- Added explicit bootstrap file modes for verified source-to-MIR production
+  and MIR-to-C consumption while preserving the real-source source-to-C oracle
+  comparison.
+- A local full-driver self-host source-to-MIR probe exceeded 68 GB private
+  allocation before completion. The fixed-point runner now obtains each
+  full-input MIR once from the native oracle, then seed and gen2 consume the
+  same artifact before the byte-identical `gen2 == gen3` comparison.
+- Bounded DRV-2 fixtures remain the blocking self-host MIR-producer proof. The
+  full-input gate proves MIR consumption without hiding the producer memory
+  blocker or claiming whole-compiler substitution.
+
 ## 2026-07-16 - Completeness checks stop rebuilding every import graph
 
 - Split the self-host parser's normal root-program mode from its inventory
@@ -7730,3 +7765,58 @@ Released/default replacement remains 0%.
   assignment-rooted inferred calls, member generic calls, nested generic
   locals, the other 29 MIR fixtures, and released/default substitution remain
   open.
+
+### 2026-07-16 -- try-let consumes graph-owned operand types
+
+- Repointed Option try-let lowering from `ExprKind(operand_text)` to
+  `CodegenExpressionTypeFromGraph(graph, operand_node, env)`.
+- Removed the operand-text read from `EmitTryLet`; missing graph type evidence
+  now fails closed with statement provenance.
+- Tightened the component contract so `EmitTryLet` cannot reintroduce either
+  `ExprKind` or `SemanticExpressionGraphNodeText`.
+- The C-built self-host codegen remains run-output equal across all 73
+  fixtures, including `option_try`. This closes one live result-type consumer,
+  not the broader legacy expression-shape classification bridge.
+
+### 2026-07-16 -- array returns consume expected-value graphs
+
+- Repointed `Array<T>` return emission to
+  `RewriteExpectedValueWithSemanticGraph` for both literals and ordinary
+  array-valued expressions.
+- Removed the return-text trim, leading-bracket classification, legacy
+  `EmitArrayLiteralValue`, and array-specific `RewriteExpr` branch from the
+  live return owner.
+- Added `array_return_literal` beside the existing `array_param` fixture so the
+  C oracle and Pergyra codegen compare both graph forms. The component contract
+  rejects restoration of the four text-owned reads.
+- This is one executable codegen consumer migration. Result return rewriting
+  and broader legacy expression leaves remain bridged; released/default
+  substitution remains 0%.
+
+### 2026-07-16 -- Result returns consume expected-value graphs
+
+- Repointed `Result<Int>` return emission from the legacy
+  `RewriteExpr(rexpr, env)` scanner to the expected-value semantic graph.
+- Existing `result_int_core` and `result_try` fixtures exercise direct
+  `Ok`/`Err` calls and a pipe-bearing `Ok(...)` return without adding a
+  documentation-only surface.
+- Added `result_int_core` to the 31-fixture DRV-2 MIR producer frontier. Its
+  source/MIR consumer path inherits the mandatory missing-graph and invalid-root
+  mutations.
+- Closed the assignment target graph transport exposed by that DRV-2 run:
+  plain targets carry a leaf graph, indexed targets carry an index graph, and
+  the consumer reads target-before-RHS in semantic lane order.
+- Corrected the expression-binding readiness fixture to compare the canonical
+  `x + 1` spelling. It still proves missing and malformed graphs fail closed.
+- Rebound carried direct-call targets against nominal-constructor inventory
+  facts as well as function and builtin signatures. `Pair(...)` no longer
+  fails as an unknown call target, and no expression-text recovery was added.
+- Removed the semantic shortcut that trusted an already-carried call target.
+  Namespace targets are re-derived from qualified callable inventory and
+  member targets from receiver type plus method signature. A carried mismatch
+  now fails closed rather than being silently replaced.
+- Verified the complete C DRV-2 frontier: 20 source fixtures and 31 MIR
+  producer fixtures pass producer-first parity with these checks enabled.
+- The component contract rejects restoring the return-expression scanner.
+  Other legacy expression leaves remain bridged; released/default substitution
+  remains 0%.

@@ -52,6 +52,18 @@ func GenerateCUnitFromAstArtifact(
     );
 }
 
+func GenerateCUnitFromTypedAstArtifact(
+    artifact: AstTreeArtifact,
+    require_entrypoint: Bool
+) -> String {
+    let semantic_analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeTyped(artifact, require_entrypoint);
+    return GenerateCUnitFromSemanticArtifact(
+        artifact, semantic_analysis, require_entrypoint,
+        SelfHostMachineLayerDeclarationEmpty()
+    );
+}
+
 func GenerateCFromSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis
@@ -64,6 +76,10 @@ func GenerateCFromSemanticArtifact(
 
 func GenerateCFromAstArtifact(artifact: AstTreeArtifact) -> String {
     return GenerateCUnitFromAstArtifact(artifact, true);
+}
+
+func GenerateCFromTypedAstArtifact(artifact: AstTreeArtifact) -> String {
+    return GenerateCUnitFromTypedAstArtifact(artifact, true);
 }
 
 func GenerateC(tree_text: String) -> String {

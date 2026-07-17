@@ -8,6 +8,7 @@
 void ast_print_indent(int level);
 void ast_print_inline(ASTNode *node);
 const char *ast_print_operator_to_string(PgyTokenType type);
+void ast_print_number_text(const ASTNode *node, char *buffer, size_t capacity);
 bool ast_print_needs_trailing_newline(ASTNodeType type);
 void print_generic_params_inline(GenericParams *params);
 void print_where_clause_inline(WhereClause *clause);

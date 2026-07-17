@@ -74,6 +74,17 @@ The edit loop uses bounded validation:
 Raising a timeout is not the first response to a budget violation. The test
 must first show why its scope cannot be narrowed or cached.
 
+The integrated driver bootstrap follows this rule: blocking CI compares the
+Pergyra-built integrated seed with the native-built same driver on a real
+source. Both builds must then produce byte-identical verified MIR for the
+TestHarness-owned sample and consume that common fact to byte-identical C. The full-input
+stage2/stage3 fixed
+point is retained as the explicit
+`self-host-driver-bootstrap-full-test-smoke` merge/scheduled proof.
+Its prerequisite is the seed-only codegen profile: `gen2` plus the parser AST
+producer. The standalone codegen fixed point and breadth run in their own
+blocking Linux job rather than being repeated inside the driver job.
+
 ## 5. Finite SoT Closure
 
 For an active rung, SoT is closed when:
@@ -499,17 +510,132 @@ Inferred generic calls rooted in returns or assignments, member generic calls,
 nested generic locals, and the other 29 MIR fixtures remain outside this
 bounded proof. Released/default replacement stays 0%.
 
-Forty-first executable active-rung delta, 2026-07-16: inferred direct generic
-calls rooted in assignment and value-return lanes now cross the same semantic
-specialization owner, self MIR rows, and hard emitter as initializer calls.
-The new fixture assigns `Identity(41)` and returns `Identity(return_value)`;
-C-built and LLVM-built DRV-2 drivers emit `Identity_Int` in both lanes, match
-the native MIR/C/run oracle, and reject graph-only argument mutations while
-the source call text remains unchanged. The semantic producer is statically
-forbidden from calling `ExprType`, `StringTrim`, or `Substring`, so this does
-not add a source-text specialization path. Member generic calls, nested generic
-locals, and the remaining 30 MIR fixtures are outside this focused proof.
-Released/default replacement stays 0%.
+Forty-first executable active-rung delta, 2026-07-16: Option try-let lowering
+now consumes its operand type from `CodegenExpressionTypeFromGraph` using the
+already-carried semantic graph handle. The emitter no longer reads the operand
+text or invokes `ExprKind` to reconstruct the wrapper type. Missing graph type
+evidence fails closed with the statement provenance, and the component gate
+forbids both old reads. The C-built self-host codegen passes all 73 fixtures,
+including `option_try`; broader legacy expression-shape result classification
+remains bridged. Released/default replacement stays 0%.
+
+Forty-second executable active-rung delta, 2026-07-16: `Array<T>` return
+emission consumes the expected-value semantic graph for both array literals and
+ordinary array-valued expressions. `EmitReturnValue` no longer trims return
+text, tests its first character, or chooses between the legacy array-literal
+emitter and `RewriteExpr`. The component gate forbids those four reads, while
+`array_return_literal` and the existing `array_param` fixture cover the literal
+and variable forms under C-oracle run parity. The C-built self-host codegen
+frontier is now 74 fixtures; broader Result and leaf-expression legacy
+rewriting remains bridged. Released/default replacement stays 0%.
+
+Forty-third executable active-rung delta, 2026-07-16: `Result<Int>` return
+emission now consumes the expected-value semantic graph that already crosses
+the hard statement boundary. `Ok(...)`, `Err(...)`, and result-return
+expressions no longer enter the legacy `RewriteExpr(rexpr, env)` text scanner.
+The component gate forbids that fallback, while `result_int_core` and
+`result_try` cover direct wrapper calls and a pipe-bearing `Ok(...)` return
+in the C/LLVM oracle parity gate. `result_int_core` is also the thirty-first
+DRV-2 MIR producer fixture, so source/MIR emission and missing or invalid graph
+mutations exercise the same hard consumer. Other leaf-expression
+compatibility rewriting remains bridged. Released/default replacement stays
+0%.
+
+Forty-fourth executable active-rung delta, 2026-07-16: arrays whose element is
+a declared nominal record now consume a compiler-owned derived ABI fact.
+Semantic type-surface usage selects the record element, the type environment
+proves that it is declared, and collection emission consumes the resulting C
+array type and runtime symbol row. The emitter no longer needs an
+`AstExpressionGraphRows` exception. The `nominal_record_array` fixture raises
+the C-oracle codegen frontier to 75 fixtures and compiles and runs the emitted
+C. Undeclared element types remain fail-closed.
+
+Forty-fifth executable active-rung delta, 2026-07-16: foreach body initializer
+typing now consumes the verified loop-binding rows owned by
+`SemanticAstIterationTypeFacts`. The base initializer pass still supplies the
+collection type needed to prove the loop header; a bounded second pass then
+rechecks body initializers with that binding fact. Invalid loop rows are not
+injected, preserving the original header diagnostic. This closes the
+`diagnostic_catalog_checker` bootstrap failure without rescanning source text.
+
+Forty-sixth executable active-rung delta, 2026-07-17: `Exit(Int)` now carries
+its argument from the parser-owned atom graph through statement typing into C
+emission. Statement typing rejects a non-`Int` graph with
+`call_arg_type_mismatch`; codegen consumes the same graph with an expected
+`Int` fact. The statement-payload accessor and `IntEval` recovery path were
+deleted, and the component gate rejects their return.
+
+Forty-seventh executable active-rung delta, 2026-07-17: scalar leaf emission
+now consumes the parser-owned expression node and the canonical codegen binding
+enum, callable-target, or runtime ABI row directly. Bool, String, Int, Long,
+bound identifiers, and callable references no longer enter the broad
+`RewriteTokens` scanner, including literal-only and higher-order call
+arguments. Unknown identifiers and unsupported leaf spellings fail closed
+instead of falling back to text recovery. The component gate rejects
+`RewriteTokens` from both the graph dispatcher and the bounded leaf projector.
+Leaf lexical classification and callable-reference target carriage are still
+bridges until the parser and semantic graph carry those dedicated kinds, so
+the expression owner remains `BRIDGE`.
+
+Forty-eighth executable active-rung delta, 2026-07-17: equality and inequality
+emission now consumes child node handles and
+`CodegenExpressionTypeFromGraph`. String comparison selects the runtime ABI
+compare row from those facts; scalar and payload-free enum operands use their
+already projected graph values. Qualified payload-free variants derive their
+owner type only when both the enum declaration row and exact variant row
+exist. The graph emitter no longer calls the legacy
+`RewriteEqualityProjection`, `ExprKind`, or `RewriteExpr` text path. Existing
+String equality and concatenated-String equality fixtures remain the focused
+C/LLVM proof; `enum_return` pins the qualified-variant type row in the DRV-2
+MIR integration gate. Other expression bridges listed in the owner registry
+remain open, so this does not promote the whole expression owner to `CLOSED`.
+
+CI proof ownership, 2026-07-17: the dedicated Linux
+`self-host-parity-linux` job owns real-source selfcheck, the four-stage
+completeness ledger, and the complete parity surface. The parallel
+`self-host-bootstrap-linux` job owns the codegen and integrated-driver fixed
+points. The ordinary Linux, Windows, and macOS jobs own native parser,
+semantic, codegen, and DRV-2 parity plus the shared contract gates. They must
+not repeat the exhaustive source proof. This split follows the
+impact-isolation rule: platform jobs prove platform behavior, while two
+parallel Linux jobs prove repository-wide parity and bootstrap closure.
+`self_host_ci_profile_smoke.sh` rejects routing drift in either direction.
+The integrated driver fixed-point runner emits a 60-second heartbeat because a
+single real-source MIR consumption phase can exceed the CI no-output interval.
+Until full-source self-host MIR production has bounded allocation, the native
+oracle produces the fixed-point MIR once and gen2/gen3 consume the same fact.
+Bounded DRV-2 producer parity remains blocking. Repeating whole-source analysis
+inside the fixed-point leg is a gate design regression, not evidence strength.
+The first Windows local platform-profile run completed in 21m49s; the previous
+GitHub Windows full-preparation step took about 75 minutes. The first GitHub
+platform-profile run completed in 27m32s on Windows and 7m09s on macOS.
+
+Resource-pressure measurements are advisory while the sampler and benchmark
+corpus are being stabilized. Memory, elapsed-time, and owner-hash evidence must
+not block self-host preparation CI. Functional emission, ABI ownership,
+negative fallback, parity, and fixed-point gates remain blocking.
+
+The same DRV-2 expansion exposed and closed an assignment graph transport gap:
+plain assignment targets now retain their semantic leaf graph just as indexed
+targets retain their index graph. MIR verification rejects either missing
+shape, and the MIR JSON consumer reads target-before-RHS to match the semantic
+atom/value lane order. The readiness fixture also compares the canonical
+`x + 1` spelling rather than the pre-normalization `(x + 1)` spelling. No
+target text recovery was added.
+
+The expanded producer frontier also exposed nominal constructors as a missing
+call-target owner input. Carried call-target verification now consumes the
+typed nominal-constructor inventory alongside function and builtin signatures,
+so `Pair(...)` is accepted as a direct constructor call while unknown callees
+still fail closed. No callee text recovery was added.
+
+Removing the carried-target shortcut then exposed the existing namespace and
+method provenance gap. Initial validation now admits only declared canonical
+namespace/member targets. The body fixpoint independently resolves
+`Math.Add()` from the qualified callable inventory and `v.LengthPlus()` from
+the receiver type plus method signature, then rejects any carried mismatch
+instead of trusting or overwriting it. The full C DRV-2 frontier passes 20
+source fixtures and 31 MIR producer fixtures with this comparison active.
 
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,

@@ -22,7 +22,7 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     );
     if !IsSome(kind_opt) { return false; }
     let kind: Int = UnwrapOption(kind_opt);
-    if kind == AstExpressionNodeLeaf() { return true; }
+    if AstExpressionNodeIsScalarLeaf(kind) { return true; }
     if kind == AstExpressionNodeMemberAccess() {
         return IsSome(SemanticExpressionGraphValueReceiverTypeName(
             graph, node_id, constructors, names, types,
@@ -120,7 +120,7 @@ func SemanticExpressionGraphConcreteScalarValueError(
         );
     }
     let kind: Int = UnwrapOption(kind_opt);
-    if kind == AstExpressionNodeLeaf() { return ""; }
+    if AstExpressionNodeIsScalarLeaf(kind) { return ""; }
     if kind == AstExpressionNodeMemberAccess() {
         if IsSome(SemanticExpressionGraphValueReceiverTypeName(
             graph, node_id, constructors, names, types,

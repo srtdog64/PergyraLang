@@ -66,7 +66,8 @@ func SemanticAstExpressionVerdictFromPayload(
     if StringLength(call_error) > 0 {
         return SemanticAstExpressionVerdictError(text, call_error);
     }
-    let undefined_error: String = CheckUndefinedIdentifiers(text, names);
+    let undefined_error: String =
+        CheckUndefinedIdentifiers(text, names, function_names);
     if StringLength(undefined_error) > 0 {
         return SemanticAstExpressionVerdictError(text, undefined_error);
     }

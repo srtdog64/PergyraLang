@@ -23,6 +23,11 @@ require_text src/lexer/lexer.c "token.stream = lexer->stream"
 require_text src/parser/parser.c "parser token stream anchor changed during parse"
 require_text src/parser/parser.c "lexer_token_stream_handle_equal"
 
+# parser_relex is forbidden: parser lookahead snapshots the anchored lexer and
+# never reconstructs a token stream from source bytes.
+# source_bytes_as_token_identity is forbidden: parser identity is the complete
+# PgyTokenStreamHandle, including the source fingerprint and ordinal.
+
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
@@ -45,4 +50,4 @@ if grep -Fq 'source_fingerprint' "$TOKENS" || grep -Fq 'stream=' "$TOKENS"; then
     exit 1
 fi
 
-echo "[lexer-token-stream-anchor] lexer and parser share one stable token-stream anchor"
+echo "[lexer-token-stream-anchor] lexer_parser_anchor_and_byte_output: one stable token-stream anchor"

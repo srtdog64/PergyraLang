@@ -5,6 +5,8 @@ func Main() -> Void {
     b = None();
     if IsSome(a) {
         Log(UnwrapOption(a));
+        let sum: Int = UnwrapOption(a) + 3;
+        Log(sum);
     }
     if !IsSome(b) {
         Log(0);

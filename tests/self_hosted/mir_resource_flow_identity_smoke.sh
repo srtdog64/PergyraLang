@@ -14,7 +14,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INDEX="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
 LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
-DUMP="$ROOT_DIR/src/compiler/mir_json_dump.c"
+DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
@@ -38,7 +38,7 @@ case "$(uname -s 2>/dev/null || echo unknown)" in
 esac
 export TMPDIR
 case "$(uname -s 2>/dev/null || echo unknown)" in
-    MINGW*|MSYS*|CYGWIN*) export SHELL=/usr/bin/bash ;;
+    MINGW*|MSYS*|CYGWIN*) SHELL="$(command -v bash)"; export SHELL ;;
 esac
 
 LOWER_BIN="$BUILD_DIR/mir_lower.exe"
@@ -96,7 +96,8 @@ grep -Fq -- 'resource_flow_stable_indices' "$INDEX"
 grep -Fq -- 'routine ResourceFlowUniverse facts are incomplete' "$LOWER"
 grep -Fq -- 'MIRResourceFlowSymbol *resource_flow_symbols' \
     "$ROOT_DIR/src/compiler/mir_types.h"
-grep -Fq -- 'mir_copy_resource_flow_symbols' "$ROOT_DIR/src/compiler/mir.c"
+grep -Fq -- 'mir_copy_resource_flow_symbols' \
+    "$ROOT_DIR/src/compiler/mir_hir_fact_transfer.c"
 grep -Fq -- 'mir_validate_resource_flow_symbols' \
     "$ROOT_DIR/src/compiler/mir_program_validate.c"
 

@@ -36,5 +36,6 @@ func SelfMirExpressionGraphKindName(kind: Int) -> String {
         return "generic_type_actual";
     }
     if kind == AstExpressionNodeGenericCallee() { return "generic_callee"; }
+    if kind == AstExpressionNodeFloatLiteral() { return "float_literal"; }
     return "";
 }

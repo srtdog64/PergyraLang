@@ -25,6 +25,9 @@ require_text src/compiler/verified_projection_plan.c "pgy_verified_projection_pl
 require_text src/self_hosted/compiler/artifact_zone_owner.pgy "CompilerArtifactPlanRevision"
 require_text src/self_hosted/compiler/artifact_zone_owner.pgy "CompilerArtifactIdentityReady"
 
+# path_as_artifact_identity and backend_output_without_plan_digest are
+# forbidden: every runnable artifact must carry the verified plan identity.
+
 if [[ ! -f "$PROBE" ]]; then
     echo "[artifact-zone] verified projection probe is missing: $PROBE" >&2
     exit 1
@@ -32,4 +35,4 @@ fi
 
 probe_output="$($PROBE)"
 grep -Fq "OBS0 erase and OBS1 materialize rows verified" <<<"$probe_output"
-echo "[artifact-zone] native C/LLVM artifacts require anchored projection revision and digest"
+echo "[artifact-zone] native_C_LLVM_artifact_plan_identity: anchored revision and digest"

@@ -1,0 +1,124 @@
+// Initializer type refinement after iteration-header facts are available.
+//
+// The base initializer pass supplies collection types to the iteration owner.
+// This consumer then rechecks loop-body initializers with the verified binding
+// rows. It does not derive loop bindings from source or AST text.
+
+import "ast_initializer_type_fact_owner.pgy";
+import "ast_iteration_type_fact_owner.pgy";
+
+func SemanticAstInitializerTypeFactsRefinedByIterations(
+    artifact: AstTreeArtifact,
+    signatures: SemanticAstFunctionSignatureFacts,
+    constructors: SemanticAstNominalConstructorFacts,
+    locals: SemanticAstLocalBindingFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    statements: SemanticAstStatementFacts,
+    iterations: SemanticAstIterationTypeFacts
+) -> SemanticAstInitializerTypeFacts {
+    let count: Int = SemanticAstIterationTypeCount(iterations);
+    if !iterations.ok ||
+        iterations.artifact_node_count != artifact.count ||
+        ArrayLength(iterations.binding_type_names) != count ||
+        ArrayLength(iterations.verified) != count {
+        return SemanticAstInitializerTypeStructuralError(artifact);
+    }
+    let function_node_ids: Array<Int> = [];
+    let binding_names: Array<String> = [];
+    let i: Int = 0;
+    while i < count {
+        let statement_index: Option<Int> =
+            SemanticAstStatementIndexForNode(
+                statements, iterations.node_ids[i]
+            );
+        if !IsSome(statement_index) {
+            return SemanticAstInitializerTypeStructuralError(artifact);
+        }
+        let row: Int = UnwrapOption(statement_index);
+        ArrayPush(function_node_ids, statements.function_node_ids[row]);
+        ArrayPush(binding_names, statements.payload_texts[row]);
+        i = i + 1;
+    }
+    return SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
+        artifact, signatures, constructors, locals, expression_surfaces,
+        iterations.node_ids, function_node_ids, binding_names,
+        iterations.binding_type_names, iterations.verified
+    );
+}
+
+func SemanticAstInitializerIterationRefinementContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: lines : Array<String> = [\"a\"]\n        For: line in lines\n          Block:\n            Let: value : String = line\n            Log(value)\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+    let base: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, surfaces
+        );
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, base, statements,
+            surfaces
+        );
+    let refined: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsRefinedByIterations(
+            artifact, signatures, constructors, locals, surfaces,
+            statements, iterations
+        );
+    if !SemanticAstInitializerTypeFactsReadyProjection(
+        artifact, locals, refined
+    ) || !SemanticAstInitializerTypesAllVerified(refined) ||
+        SemanticAstInitializerTypeCount(refined) != 2 ||
+        refined.inferred_type_names[1] != "String" {
+        return false;
+    }
+    let invalid: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        For: item in 1\n          Block:\n            Let: value : Int = item\n"
+    );
+    let invalid_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(invalid);
+    let invalid_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(invalid);
+    let invalid_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            invalid, invalid_signatures
+        );
+    let invalid_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(invalid);
+    let invalid_base: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            invalid, invalid_signatures, invalid_constructors,
+            invalid_locals, invalid_surfaces
+        );
+    let invalid_statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(
+            invalid, invalid_signatures
+        );
+    let invalid_iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            invalid, invalid_signatures, invalid_constructors,
+            invalid_locals, invalid_base, invalid_statements,
+            invalid_surfaces
+        );
+    let invalid_refined: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsRefinedByIterations(
+            invalid, invalid_signatures, invalid_constructors,
+            invalid_locals, invalid_surfaces, invalid_statements,
+            invalid_iterations
+        );
+    return invalid_iterations.verified[0] == 0 &&
+        invalid_iterations.diagnostic_codes[0] ==
+            "statement_type_unresolved" &&
+        SemanticAstInitializerTypeFactsReadyProjection(
+            invalid, invalid_locals, invalid_refined
+        ) && !SemanticAstInitializerTypesAllVerified(invalid_refined);
+}

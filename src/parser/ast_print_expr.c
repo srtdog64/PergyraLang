@@ -1,25 +1,6 @@
 #include "ast_print_internal.h"
 
 #include <stdio.h>
-#include <string.h>
-
-static void
-ast_print_number(const ASTNode *node)
-{
-    char rendered[64];
-    int written = snprintf(rendered, sizeof(rendered), "%g",
-                           node->data.number.value);
-    if (written < 0 || (size_t)written >= sizeof(rendered)) {
-        printf("0");
-        return;
-    }
-    if (node->data.number.is_float && strchr(rendered, '.') == NULL &&
-        strchr(rendered, 'e') == NULL && strchr(rendered, 'E') == NULL) {
-        printf("%s.0", rendered);
-        return;
-    }
-    printf("%s", rendered);
-}
 
 bool
 ast_print_expr_node(ASTNode *node, int indent)
@@ -34,9 +15,12 @@ ast_print_expr_node(ASTNode *node, int indent)
             printf("%s", node->data.identifier.name);
             break;
 
-        case AST_NUMBER:
-            ast_print_number(node);
+        case AST_NUMBER: {
+            char number_text[64];
+            ast_print_number_text(node, number_text, sizeof(number_text));
+            printf("%s", number_text);
             break;
+        }
 
         case AST_STRING:
             printf("\"%s\"", node->data.string.value);

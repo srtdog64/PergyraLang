@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # DRV-2 parity: artifact-body semantic evidence is mandatory before C emission.
+# native_MIR_JSON_rows_and_C_LLVM_forloop_foreach_rows is the registry witness.
+# source_iteration_type_rescan and backend_iteration_type_guess are forbidden:
+# both backend legs consume the carried iteration rows and negative mutations.
 
 set -euo pipefail
 

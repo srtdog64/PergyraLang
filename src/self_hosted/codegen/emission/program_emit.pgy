@@ -1,5 +1,4 @@
 // src/self_hosted/codegen/emission/program_emit.pgy
-//
 // Program-level C assembly owner for self-host C emission.
 import "../text/text_owner.pgy";
 import "../../hir/ast_text_inventory_owner.pgy";
@@ -23,6 +22,7 @@ import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/machine_layer_runtime_binding_owner.pgy";
+import "enum_emit_owner.pgy";
 import "generic_function_emit_owner.pgy";
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
@@ -381,8 +381,10 @@ func GenerateCUnitFromSemanticFacts(
         CodegenRuntimeUsageFactsFromSemantic(
             semantic_analysis.expression_surfaces,
             semantic_analysis.type_surfaces,
-            semantic_analysis.kind_surfaces
+            semantic_analysis.kind_surfaces,
+            base_env
         );
+    if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }
     let uses_args: Bool = usage.uses_args;
     if usage.uses_machine_layer &&
         !SelfHostMachineLayerDeclarationReady(machine_declaration) {
@@ -554,10 +556,8 @@ func GenerateCUnitFromSemanticFacts(
             uses_array_filter
         ));
     }
-    let record_array_block: String = "";
-    if uses_ast_text_node_array {
-        record_array_block = CollectionRuntimeCodegenAstTextNodeArrayBlock();
-    }
+    let record_array_block: String = CollectionRuntimeRecordArrayBlocks(
+        uses_ast_text_node_array, usage.nominal_record_arrays.element_types);
     if uses_args2 {
         TextBuilderAppend(output, HostIORuntimeCArgsBlock());
     }

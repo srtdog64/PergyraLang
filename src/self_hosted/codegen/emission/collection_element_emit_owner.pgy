@@ -7,13 +7,10 @@ import "expr_semantic_graph_emit_owner.pgy";
 func EmitCollectionGraphElementValue(
     value_expr: String,
     env: CodegenTypeEnv,
-    kind_code: Int,
+    collection: CollectionRuntimeFact,
     graph: SemanticExpressionGraphView
 ) -> String {
-    let elem_type: String = CollectionRuntimeElementTypeFromKindCode(
-        kind_code
-    );
     return RewriteExpectedValueWithSemanticGraph(
-        value_expr, elem_type, env, graph
+        value_expr, collection.element_type, env, graph
     );
 }

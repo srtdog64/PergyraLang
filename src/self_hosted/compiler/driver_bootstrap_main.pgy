@@ -1,19 +1,24 @@
 // Minimal runnable boundary for the integrated compiler fixed point.
 //
 // The verified pipeline is owned by driver_rung2_owner.pgy. This entrypoint
-// only gives the bootstrap runner a deterministic source/output-file surface.
+// gives the bootstrap runner deterministic source/MIR/output-file surfaces.
 
 import "driver_rung2_owner.pgy";
 
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
-    if ArrayLength(args) != 2 {
-        Die("bootstrap driver requires source and output paths");
+    if ArrayLength(args) == 2 {
+        WriteFile(args[1], CompileSourceToCVerified(args[0]).payload);
+        return;
     }
-    WriteFile(
-        args[1],
-        CompileSourceToCVerified(
-            args[0], SelfHostMachineLayerDeclarationEmpty()
-        ).payload
-    );
+    if ArrayLength(args) == 3 &&
+        args[0] == "--emit-mir-json-verified" {
+        WriteFile(args[2], CompileSourceToMirJsonVerified(args[1]));
+        return;
+    }
+    if ArrayLength(args) == 3 && args[0] == "--mir-json" {
+        WriteFile(args[2], CompileMirJsonToCVerified(args[1]).payload);
+        return;
+    }
+    Die("bootstrap driver requires source/output or MIR mode/input/output");
 }

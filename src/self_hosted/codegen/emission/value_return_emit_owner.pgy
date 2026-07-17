@@ -27,14 +27,14 @@ func EmitReturnValue(
         return WrapExprWithSemanticGraph(rexpr, env, graph);
     }
     if StartsWith(return_type, "Array<") {
-        let array_expr: String = StringTrim(rexpr);
-        if StringLength(array_expr) > 0 && CodegenCharAt(array_expr, 0) == "[" {
-            return EmitArrayLiteralValue(array_expr, return_type, env);
-        }
-        return RewriteExpr(array_expr, env);
+        return RewriteExpectedValueWithSemanticGraph(
+            rexpr, return_type, env, graph
+        );
     }
     if StartsWith(return_type, "Result<") && StringIndexOf(return_type, "Int") >= 0 {
-        return RewriteExpr(rexpr, env);
+        return RewriteExpectedValueWithSemanticGraph(
+            rexpr, return_type, env, graph
+        );
     }
     if StartsWith(return_type, "Option<") {
         let kind: Int = OptionResultRuntimeOptionPayloadKindForType(return_type);

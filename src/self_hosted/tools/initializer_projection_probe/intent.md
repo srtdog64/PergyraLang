@@ -65,7 +65,11 @@ initializer row or its inferred type; no external source file is read.
   `Math_Add` call target and reaches the same MIR local under C/LLVM parity.
 - `--namespace-call-target-mismatch` preserves the source/member graph while
   changing only the carried target to the String-returning `ToTextValue`.
-  Initializer typing must reject it as `let_type_mismatch`.
+  The body call-target fixpoint must reject the disagreement as
+  `call_target_unresolved`; initializer typing must not trust the damaged row.
+- `--nominal-return-call-target-mismatch` preserves the direct `MakeBox()` call
+  graph while changing only its carried target to `ToTextValue`. The same body
+  fixpoint must reject the disagreement as `call_target_unresolved`.
 
 The first two modes must fail at the MIR projection boundary. The graph-damage
 modes must fail in semantic initializer typing. The former requirement that

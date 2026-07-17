@@ -6,6 +6,7 @@
 
 import "json_fact_read.pgy";
 import "loop_flow_fact_owner.pgy";
+import "mir_cfg_graph_owner.pgy";
 import "resource_flow_fact_owner.pgy";
 
 struct MirRoutineFactIndex {
@@ -55,46 +56,6 @@ struct MirRoutineFactIndex {
     let loop_flow_state_slot_states: Array<Int>;
     let loop_flow_state_semantic_states: Array<Int>;
     let loop_flow_state_pool_ids: Array<Int>;
-}
-
-func MirRoutineGraphDistances(
-    block_succ_true: Array<String>,
-    block_succ_false: Array<String>,
-    start: Int
-) -> Array<Int> {
-    let block_count: Int = ArrayLength(block_succ_true);
-    let distances: Array<Int> = [];
-    let row: Int = 0;
-    while row < block_count {
-        ArrayPush(distances, 0 - 1);
-        row = row + 1;
-    }
-    if start < 0 || start >= block_count {
-        return distances;
-    }
-    let queue: Array<Int> = [start];
-    ArraySet(distances, start, 0);
-    let cursor: Int = 0;
-    while cursor < ArrayLength(queue) {
-        let block: Int = queue[cursor];
-        let next_distance: Int = distances[block] + 1;
-        if StringLength(block_succ_true[block]) > 0 {
-            let target: Int = ToInt(block_succ_true[block]);
-            if target >= 0 && target < block_count && distances[target] < 0 {
-                ArraySet(distances, target, next_distance);
-                ArrayPush(queue, target);
-            }
-        }
-        if StringLength(block_succ_false[block]) > 0 {
-            let target: Int = ToInt(block_succ_false[block]);
-            if target >= 0 && target < block_count && distances[target] < 0 {
-                ArraySet(distances, target, next_distance);
-                ArrayPush(queue, target);
-            }
-        }
-        cursor = cursor + 1;
-    }
-    return distances;
 }
 
 func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int) -> MirRoutineFactIndex {
@@ -246,24 +207,23 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
     // source, i.e. the edge closes a cycle in the owner-directed CFG.
     let block_row: Int = 0;
     while block_row < ArrayLength(block_starts) {
-        let edge_row: Int = 0;
-        while edge_row < 2 {
-            let successor: String = block_succ_true[block_row];
-            if edge_row == 1 {
-                successor = block_succ_false[block_row];
+        let true_succ: String = block_succ_true[block_row];
+        if StringLength(true_succ) > 0 {
+            let target: Int = ToInt(true_succ);
+            if target < ArrayLength(backedge_headers) &&
+                MirRoutineEdgeTargetsDominator(
+                    block_succ_true, block_succ_false, block_row, target) {
+                ArraySet(backedge_headers, target, 1);
             }
-            if StringLength(successor) > 0 {
-                let target: Int = ToInt(successor);
-                if target >= 0 && target <= block_row &&
-                    target < ArrayLength(backedge_headers) {
-                    let target_distances: Array<Int> = MirRoutineGraphDistances(
-                        block_succ_true, block_succ_false, target);
-                    if target_distances[block_row] >= 0 {
-                        ArraySet(backedge_headers, target, 1);
-                    }
-                }
+        }
+        let false_succ: String = block_succ_false[block_row];
+        if StringLength(false_succ) > 0 {
+            let target: Int = ToInt(false_succ);
+            if target < ArrayLength(backedge_headers) &&
+                MirRoutineEdgeTargetsDominator(
+                    block_succ_true, block_succ_false, block_row, target) {
+                ArraySet(backedge_headers, target, 1);
             }
-            edge_row = edge_row + 1;
         }
         block_row = block_row + 1;
     }

@@ -96,16 +96,6 @@ fail:
 }
 
 ASTNode *
-module_loader_load_program(const char *source_path, char **error_message)
-{
-    PgySourceModuleGraph *graph = NULL;
-    ASTNode *program = module_loader_load_program_with_graph(
-        source_path, &graph, error_message);
-    module_loader_destroy_graph(graph);
-    return program;
-}
-
-ASTNode *
 module_loader_load_program_with_graph(const char *source_path,
                                       PgySourceModuleGraph **graph_out,
                                       char **error_message)

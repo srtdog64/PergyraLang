@@ -214,6 +214,8 @@ main(void)
     printf("\n");
     failures += run_named_call_argument_ast_print_test();
     printf("\n");
+    failures += run_integral_float_ast_print_test();
+    printf("\n");
     failures += run_option_coalesce_ast_print_test();
     printf("\n");
     failures += run_ast_program_splice_take_test();

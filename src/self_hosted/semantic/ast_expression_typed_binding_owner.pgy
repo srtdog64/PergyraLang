@@ -108,18 +108,29 @@ func SemanticAstExpressionSurfaceFactsFromTypedArtifact(
 
 func SemanticAstExpressionTypedBindingContractReady() -> Bool {
     let base: AstTreeArtifact = AstTreeArtifactFromText(
-        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: ready\n          Then:\n            Block:\n              Return\n"
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: ready\n          Then:\n            Block:\n              Return\n        Assign: x = (x + 1)\n"
     );
     let missing: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(base);
     let root_rows: AstExpressionGraphRows = AstExpressionGraphRows(
         true,
-        [TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag()],
-        [AstExpressionLaneValue(), AstExpressionLaneAtom()],
-        [0, 1],
+        [
+            TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag(),
+            TypedAstKindAssignStmtTag(), TypedAstKindAssignStmtTag()
+        ],
+        [
+            AstExpressionLaneValue(), AstExpressionLaneAtom(),
+            AstExpressionLaneAtom(), AstExpressionLaneValue()
+        ],
+        [0, 1, 2, 5],
         AstExpressionArena(
-            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf()],
-            ["1", "ready"], [0, 0], [0, 0]
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(), AstExpressionNodeAdd()
+            ],
+            ["1", "ready", "x", "x", "1", "(x + 1)"],
+            [0, 0, 0, 0, 0, 3], [0, 0, 0, 0, 0, 4]
         )
     );
     let typed: AstTreeArtifact = AstTreeArtifact(
@@ -129,12 +140,23 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(typed);
     let bad_rows: AstExpressionGraphRows = AstExpressionGraphRows(
         true,
-        [TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag()],
-        [AstExpressionLaneValue(), AstExpressionLaneAtom()],
-        [0, 1],
+        [
+            TypedAstKindLetStmtTag(), TypedAstKindIfStmtTag(),
+            TypedAstKindAssignStmtTag(), TypedAstKindAssignStmtTag()
+        ],
+        [
+            AstExpressionLaneValue(), AstExpressionLaneAtom(),
+            AstExpressionLaneAtom(), AstExpressionLaneValue()
+        ],
+        [0, 1, 2, 5],
         AstExpressionArena(
-            [AstExpressionNodeLeaf(), AstExpressionNodeLeaf()],
-            ["1", "wrong"], [0, 0], [0, 0]
+            [
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(), AstExpressionNodeLeaf(),
+                AstExpressionNodeLeaf(), AstExpressionNodeAdd()
+            ],
+            ["1", "wrong", "x", "x", "1", "(x + 1)"],
+            [0, 0, 0, 0, 0, 3], [0, 0, 0, 0, 0, 4]
         )
     );
     let bad: AstTreeArtifact = AstTreeArtifact(
@@ -144,6 +166,8 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(bad);
     let let_graph_ok: Bool = false;
     let if_graph_ok: Bool = false;
+    let assign_target_graph_ok: Bool = false;
+    let assign_value_graph_ok: Bool = false;
     let i: Int = 0;
     while i < SemanticAstExpressionSurfaceCount(facts) {
         if facts.has_values[i] && facts.normalized_values[i] == "1" {
@@ -156,8 +180,19 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
                 facts, facts.node_ids[i], AstExpressionLaneAtom()
             ).ok;
         }
+        if facts.has_atoms[i] && facts.normalized_atoms[i] == "x" {
+            assign_target_graph_ok = SemanticAstExpressionGraphForNode(
+                facts, facts.node_ids[i], AstExpressionLaneAtom()
+            ).ok;
+        }
+        if facts.has_values[i] &&
+            facts.normalized_values[i] == "x + 1" {
+            assign_value_graph_ok = SemanticAstExpressionGraphForNode(
+                facts, facts.node_ids[i], AstExpressionLaneValue()
+            ).ok;
+        }
         i = i + 1;
     }
     return !missing.ok && facts.ok && let_graph_ok && if_graph_ok &&
-        !malformed.ok;
+        assign_target_graph_ok && assign_value_graph_ok && !malformed.ok;
 }

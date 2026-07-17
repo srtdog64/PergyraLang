@@ -6,8 +6,9 @@ import "../text/text_owner.pgy";
 import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
+import "../../compiler/abi_layout_nominal_array_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
-import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../../semantic/array_type_shape_owner.pgy";
 
 func AbiLayoutRequireCompilerRows() -> Void {
     if !CompilerAbiLayoutRowsReady() {
@@ -36,6 +37,19 @@ func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> Strin
     if IsSome(option_struct_fact_opt) {
         let option_struct_fact: OptionStructRuntimeFact = UnwrapOption(option_struct_fact_opt);
         return option_struct_fact.c_type;
+    }
+    let array_element: Option<String> =
+        SemanticArrayElementType(type_name);
+    if IsSome(array_element) {
+        let element_type: String = UnwrapOption(array_element);
+        if LookupKindType(struct_env, element_type, "s") == "struct" {
+            let array_fact: CompilerAbiNominalArrayLayoutFact =
+                CompilerAbiNominalArrayLayoutFactFor(element_type);
+            if !array_fact.ok {
+                Die("nominal array ABI/layout fact is missing");
+            }
+            return array_fact.c_value_type;
+        }
     }
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return AbiLayoutCStructTypeName(type_name);

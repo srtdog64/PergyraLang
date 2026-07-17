@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <time.h>
 #include "../common/string_compat.h"
-#include "../common/squiggle_class.h"
 #include "semantic.h"
 #include "diag_payload.h"
 #include "type_checker.h"
@@ -499,109 +498,4 @@ semantic_result_print(const SemanticResult *result)
 
     fprintf(stderr, "\n%zu error(s), %zu warning(s)\n",
             result->error_count, result->warning_count);
-}
-
-/* Emit a JSON-escaped string literal including the surrounding quotes.
- * Handles ASCII control characters, backslash, and double-quote. Non-ASCII
- * bytes are passed through (source is assumed UTF-8). */
-static void
-json_emit_string(FILE *out, const char *s)
-{
-    fputc('"', out);
-    if (s == NULL) {
-        fputc('"', out);
-        return;
-    }
-    for (const unsigned char *p = (const unsigned char *)s; *p != '\0'; p++) {
-        unsigned char c = *p;
-        switch (c) {
-        case '"':  fputs("\\\"", out); break;
-        case '\\': fputs("\\\\", out); break;
-        case '\b': fputs("\\b", out);  break;
-        case '\f': fputs("\\f", out);  break;
-        case '\n': fputs("\\n", out);  break;
-        case '\r': fputs("\\r", out);  break;
-        case '\t': fputs("\\t", out);  break;
-        default:
-            if (c < 0x20) {
-                fprintf(out, "\\u%04x", c);
-            } else {
-                fputc((int)c, out);
-            }
-        }
-    }
-    fputc('"', out);
-}
-
-void
-semantic_result_print_json(const SemanticResult *result)
-{
-    FILE *out = stderr;
-    if (result == NULL || result->diagnostic_count == 0) {
-        fputs("[]\n", out);
-        return;
-    }
-
-    fputc('[', out);
-    for (size_t i = 0; i < result->diagnostic_count; i++) {
-        Diagnostic *d = result->diagnostics[i];
-        const char *severity = d->level == DIAG_ERROR
-            ? "error"
-            : (d->level == DIAG_WARNING ? "warning" : "advisory");
-        SquiggleClass sq = squiggle_class_classify(d->level == DIAG_ERROR,
-            d->layer, d->code);
-        if (i > 0)
-            fputc(',', out);
-        fputs("{\"severity\":", out);
-        json_emit_string(out, severity);
-        fputs(",\"squiggleClass\":", out);
-        json_emit_string(out, squiggle_class_name(sq));
-        fputs(",\"stage\":\"semantic\"", out);
-        fputs(",\"layer\":", out);
-        json_emit_string(out, diagnostic_layer_name(d->layer));
-        if (d->code != NULL) {
-            fputs(",\"code\":", out);
-            json_emit_string(out, d->code);
-        }
-        if (d->cause_ir != NULL) {
-            fputs(",\"cause_ir\":", out);
-            json_emit_string(out, d->cause_ir);
-        }
-        if (d->fix_source != NULL) {
-            fputs(",\"fix_source\":", out);
-            json_emit_string(out, d->fix_source);
-        }
-        fputs(",\"location\":{\"line\":", out);
-        fprintf(out, "%u,\"column\":%u}", d->line, d->col);
-        fputs(",\"message\":", out);
-        json_emit_string(out, d->message != NULL ? d->message : "");
-        if (d->payload != NULL) {
-            bool wrote = false;
-            fputs(",\"payload\":{", out);
-#define PGY_JSON_PAYLOAD_FIELD(key, value) \
-            do { \
-                if ((value) != NULL) { \
-                    if (wrote) \
-                        fputc(',', out); \
-                    json_emit_string(out, (key)); \
-                    fputc(':', out); \
-                    json_emit_string(out, (value)); \
-                    wrote = true; \
-                } \
-            } while (0)
-            PGY_JSON_PAYLOAD_FIELD("value_label", d->payload->value_label);
-            PGY_JSON_PAYLOAD_FIELD("provenance_label", d->payload->provenance_label);
-            PGY_JSON_PAYLOAD_FIELD("replacement_label", d->payload->replacement_label);
-            PGY_JSON_PAYLOAD_FIELD("transfer_label", d->payload->transfer_label);
-            PGY_JSON_PAYLOAD_FIELD("borrowed_name", d->payload->borrowed_name);
-            PGY_JSON_PAYLOAD_FIELD("consumer_name", d->payload->consumer_name);
-            PGY_JSON_PAYLOAD_FIELD("secondary_name", d->payload->secondary_name);
-            PGY_JSON_PAYLOAD_FIELD("kind_label", d->payload->kind_label);
-            PGY_JSON_PAYLOAD_FIELD("extra", d->payload->extra);
-#undef PGY_JSON_PAYLOAD_FIELD
-            fputc('}', out);
-        }
-        fputc('}', out);
-    }
-    fputs("]\n", out);
 }

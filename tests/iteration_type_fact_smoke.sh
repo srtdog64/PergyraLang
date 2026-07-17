@@ -15,12 +15,16 @@ require_text() {
 }
 
 require_text src/semantic/iteration_type_fact.h "iteration_syntax_id"
-require_text src/compiler/hir.c "hir_attach_iteration_type_facts"
-require_text src/compiler/mir.c "mir_copy_iteration_type_facts"
+require_text src/compiler/hir_iteration_flow_facts.c \
+    "hir_attach_iteration_type_facts"
+require_text src/compiler/mir_hir_fact_transfer.c \
+    "mir_copy_iteration_type_facts"
+require_text src/compiler/mir_iteration_type_facts.c \
+    "mir_routine_iteration_type_fact"
 require_text src/compiler/mir_source_local_types.c \
     "mir_routine_iteration_type_fact"
-require_text src/compiler/mir_json_dump.c "iteration_type_fact_count"
-require_text src/compiler/mir_json_dump.c "iteration_type_facts"
+require_text src/compiler/mir_json_dump_flow.c "iteration_type_fact_count"
+require_text src/compiler/mir_json_dump_flow.c "iteration_type_facts"
 if grep -Fq 'mir_source_local_for_loop_variable_type_name(' \
         "$ROOT_DIR/src/compiler/mir_source_local_types.c"; then
     echo "[iteration-type-fact] source-local capture reopened AST type lookup" >&2

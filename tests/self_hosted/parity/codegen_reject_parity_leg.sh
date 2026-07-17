@@ -8,10 +8,6 @@ run_codegen_reject_case() {
     local source="$4"
     local expected="$5"
     local label="$6"
-    local ast_rel="$REL_BUILD/${base}.ast"
-    local ast_file="$ROOT_DIR/$ast_rel"
-    local ast_raw="$ast_file.raw"
-    local ast_err="$ast_file.err"
     local reject_raw="$ABS_BUILD/${base}_${backend}.out.raw"
     local reject_norm="$ABS_BUILD/${base}_${backend}.out"
     local reject_err="$ABS_BUILD/${base}_${backend}.err"
@@ -19,21 +15,10 @@ run_codegen_reject_case() {
     local reject_rc
 
     source_rel="$(path_relative_to_root "$source")"
-    if ! run_native_capture "$ROOT_DIR" "$ast_raw" "$ast_err" \
-        "$PARSER_BIN" "$source_rel"; then
-        echo "[self-host-parity:codegen] backend=$backend $label: self-parser AST failed" >&2
-        cat "$ast_err" >&2
-        exit 1
-    fi
-    tr -d '\r' < "$ast_raw" > "$ast_file"
-    if [[ ! -s "$ast_file" ]]; then
-        echo "[self-host-parity:codegen] backend=$backend $label: empty self-parser AST output" >&2
-        exit 1
-    fi
 
     set +e
     run_native_capture "$ROOT_DIR" "$reject_raw" "$reject_err" \
-        "$tool_bin" "$ast_rel"
+        "$tool_bin" --source "$source_rel"
     reject_rc="$?"
     set -e
     tr -d '\r' < "$reject_raw" > "$reject_norm"

@@ -140,14 +140,19 @@ if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WIN
     echo "[build-source-inventory] Windows source harness smoke must use the isolated CI build/bin dirs" >&2
     missing=1
 fi
-if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-test-smoke' \
+if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-platform-test-smoke' \
     "$ROOT_DIR/scripts/ci_windows_steps.sh"; then
-    echo "[build-source-inventory] Windows self-host preparation smoke must use the isolated CI build/bin dirs" >&2
+    echo "[build-source-inventory] Windows self-host platform smoke must use the isolated CI build/bin dirs" >&2
     missing=1
 fi
-if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" self-host-preparation-test-smoke' \
+if ! grep -Fq 'self-host-preparation-platform-test-smoke' \
+    "$ROOT_DIR/scripts/ci_linux_steps.sh"; then
+    echo "[build-source-inventory] Linux release list must use the isolated self-host platform profile" >&2
+    missing=1
+fi
+if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_MACOS_BUILD_DIR" BIN_DIR="$CI_MACOS_BIN_DIR" self-host-preparation-platform-test-smoke' \
     "$ROOT_DIR/scripts/ci_macos_steps.sh"; then
-    echo "[build-source-inventory] macOS self-host preparation smoke must use the isolated C-only CI build/bin dirs" >&2
+    echo "[build-source-inventory] macOS self-host platform smoke must use the isolated C-only CI build/bin dirs" >&2
     missing=1
 fi
 

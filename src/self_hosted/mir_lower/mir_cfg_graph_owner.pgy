@@ -1,0 +1,101 @@
+// Pure CFG queries used while building a per-routine MIR fact index.
+
+func MirRoutineGraphDistances(
+    block_succ_true: Array<String>,
+    block_succ_false: Array<String>,
+    start: Int
+) -> Array<Int> {
+    let block_count: Int = ArrayLength(block_succ_true);
+    let distances: Array<Int> = [];
+    let row: Int = 0;
+    while row < block_count {
+        ArrayPush(distances, 0 - 1);
+        row = row + 1;
+    }
+    if start < 0 || start >= block_count {
+        return distances;
+    }
+    let queue: Array<Int> = [start];
+    ArraySet(distances, start, 0);
+    let cursor: Int = 0;
+    while cursor < ArrayLength(queue) {
+        let block: Int = queue[cursor];
+        let next_distance: Int = distances[block] + 1;
+        if StringLength(block_succ_true[block]) > 0 {
+            let target: Int = ToInt(block_succ_true[block]);
+            if target >= 0 && target < block_count && distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
+                ArrayPush(queue, target);
+            }
+        }
+        if StringLength(block_succ_false[block]) > 0 {
+            let target: Int = ToInt(block_succ_false[block]);
+            if target >= 0 && target < block_count && distances[target] < 0 {
+                ArraySet(distances, target, next_distance);
+                ArrayPush(queue, target);
+            }
+        }
+        cursor = cursor + 1;
+    }
+    return distances;
+}
+
+func MirRoutineGraphCanReachAvoiding(
+    block_succ_true: Array<String>,
+    block_succ_false: Array<String>,
+    start: Int,
+    want: Int,
+    blocked: Int
+) -> Bool {
+    let block_count: Int = ArrayLength(block_succ_true);
+    if start < 0 || start >= block_count || want < 0 ||
+        want >= block_count || start == blocked {
+        return false;
+    }
+    let visited: Array<Int> = [];
+    let row: Int = 0;
+    while row < block_count {
+        ArrayPush(visited, 0);
+        row = row + 1;
+    }
+    let queue: Array<Int> = [start];
+    ArraySet(visited, start, 1);
+    let cursor: Int = 0;
+    while cursor < ArrayLength(queue) {
+        let block: Int = queue[cursor];
+        if block == want { return true; }
+        if StringLength(block_succ_true[block]) > 0 {
+            let target: Int = ToInt(block_succ_true[block]);
+            if target >= 0 && target < block_count && target != blocked &&
+                visited[target] == 0 {
+                ArraySet(visited, target, 1);
+                ArrayPush(queue, target);
+            }
+        }
+        if StringLength(block_succ_false[block]) > 0 {
+            let target: Int = ToInt(block_succ_false[block]);
+            if target >= 0 && target < block_count && target != blocked &&
+                visited[target] == 0 {
+                ArraySet(visited, target, 1);
+                ArrayPush(queue, target);
+            }
+        }
+        cursor = cursor + 1;
+    }
+    return false;
+}
+
+func MirRoutineEdgeTargetsDominator(
+    block_succ_true: Array<String>,
+    block_succ_false: Array<String>,
+    source: Int,
+    target: Int
+) -> Bool {
+    if source < 0 || target < 0 || target >= ArrayLength(block_succ_true) {
+        return false;
+    }
+    if source == target { return true; }
+    return !MirRoutineGraphCanReachAvoiding(
+        block_succ_true, block_succ_false, 0, source, target
+    );
+}

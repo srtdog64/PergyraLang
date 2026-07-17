@@ -495,6 +495,17 @@ func ParseOneStmt(
                     )
                 );
             }
+        } else if owner_kind == TypedAstKindExitStmtTag() {
+            let exit_argument: ParserExpressionFact =
+                ParserExpressionNamedSingleCallArgument(expr_fact, "Exit");
+            if !exit_argument.ok { Exit(1); }
+            ArraySet(
+                expression_graphs, 0,
+                ParserExpressionGraphsAppend(
+                    expression_graphs[0], owner_kind,
+                    AstExpressionLaneAtom(), exit_argument
+                )
+            );
         } else if owner_kind == TypedAstKindArrayPushStmtTag() {
             let push_value: ParserExpressionFact =
                 ParserExpressionNamedCallArgumentAt(

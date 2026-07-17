@@ -73,9 +73,10 @@ func RewriteArrayLengthEnv(e: String, env: CodegenTypeEnv) -> String {
                 kind = ExprKind(arg, env);
             }
             if StartsWith(kind, "Array<") {
-                kind = CollectionRuntimeKindFromTypeName(kind);
+                kind = CollectionRuntimeFactFromTypeName(kind, env).kind;
             }
-            let fn: String = CollectionRuntimeCLenFn(CollectionRuntimeKindCode(kind));
+            let fn: String =
+                CollectionRuntimeFactFromKind(kind, env).c_len_fn;
             out = Concat(out, Concat(fn, Concat("(", Concat(arg, ")"))));
             i = close + 1;
             continue;
@@ -146,9 +147,11 @@ func RewriteIndexing(e: String, env: CodegenTypeEnv) -> String {
                     kind = ExprMemberFieldType(receiver, env);
                 }
                 if StartsWith(kind, "Array<") {
-                    kind = CollectionRuntimeKindFromTypeName(kind);
+                    kind =
+                        CollectionRuntimeFactFromTypeName(kind, env).kind;
                 }
-                let get_fn: String = CollectionRuntimeCGetFn(CollectionRuntimeKindCode(kind));
+                let get_fn: String =
+                    CollectionRuntimeFactFromKind(kind, env).c_get_fn;
                 out = Concat(out, Concat(get_fn, Concat("(", Concat(receiver, Concat(", ", Concat(inner_r, ")"))))));
                 i = close + 1;
             } else {

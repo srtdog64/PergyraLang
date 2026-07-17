@@ -57,6 +57,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/decl_zone_owner.pgy` -- zone declarations.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
+- `src/self_hosted/parser/expression_fact_owner.pgy` -- canonical parser
+  expression result plus scalar leaf-kind construction; rendered text and
+  literal type identity remain separate facts.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.
@@ -67,7 +70,9 @@ inventory must not become a second fact-family owner registry.
   edge.
 - `src/self_hosted/parser/expr_precedence_owner.pgy` -- precedence expression parsing.
 - `src/self_hosted/parser/expr_primary_owner.pgy` -- primary expression parsing.
-- `src/self_hosted/parser/expr_string_owner.pgy` -- string literal expression parsing.
+- `src/self_hosted/parser/expr_string_owner.pgy` -- string literal and
+  interpolation graph construction; interpolation carries `Add` and `Call`
+  nodes instead of a desugared text leaf.
 - `src/self_hosted/parser/fixture_manifest_owner.pgy` -- parser parity
   source/fixture manifest rows.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
@@ -123,6 +128,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
   local-binding, and initializer payload facts without source re-scanning.
+- `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy` --
+  loop-body initializer refinement that consumes verified iteration binding
+  facts after the header pass.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
@@ -182,6 +190,8 @@ inventory must not become a second fact-family owner registry.
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
   return, condition, call, and statement expression type verdict rows.
+- `src/self_hosted/semantic/ast_statement_type_contract_owner.pgy` -- executable
+  statement-type contracts, including graph-owned `Exit(Int)` validation.
 - `src/self_hosted/semantic/ast_statement_type_query_owner.pgy` -- stable
   node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body
@@ -358,6 +368,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
+- `src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy` -- pure CFG distance,
+  reachability, and dominator-edge queries used by the routine fact index.
 - `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
   machine-contact projection validation for MIR JSON rows.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
@@ -381,6 +393,9 @@ inventory must not become a second fact-family owner registry.
 
 - `src/self_hosted/codegen/main.pgy` -- entrypoint only.
 - `src/self_hosted/codegen/input/ast_input_owner.pgy` -- AST path and read boundary.
+- `src/self_hosted/compiler/driver_pipeline_owner.pgy` -- source-to-typed-AST
+  composition boundary consumed by the hard codegen run path; codegen does not
+  import parser implementation owners.
 - `src/self_hosted/codegen/input/ast_arena_codegen_view_owner.pgy` -- codegen-only fail-closed predicates over shared `AstArena` facts.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- owner of array-literal roots and ordered element edges consumed by hard codegen through the semantic expression graph view.
 - `src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy` -- fail-closed projection of semantic enum names, ordered variants, and payload arity.
@@ -413,6 +428,9 @@ inventory must not become a second fact-family owner registry.
   statement-kind projection from semantic kind-surface facts.
 - `src/self_hosted/codegen/input/ast_type_usage_owner.pgy` -- backend runtime
   type-family projection from semantic type-surface facts.
+- `src/self_hosted/codegen/input/nominal_array_usage_owner.pgy` -- declared
+  nominal-record array usage facts derived from semantic type surfaces and the
+  codegen type environment.
 - `src/self_hosted/codegen/input/ast_usage_owner.pgy` -- runtime/header usage facts derived from expression/kind/type usage owner rows.
 - `src/self_hosted/codegen/run/codegen_run_owner.pgy` -- codegen CLI run boundary.
 - `src/self_hosted/codegen/text/text_owner.pgy` -- codegen expression scanning and unsupported-surface policy.
@@ -442,6 +460,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy` --
   expected-type array and named-struct literal emission from semantic graph
   handles and field edges.
+- `src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy` --
+  expression type projection from semantic graph handles plus codegen type
+  rows; migrated emitters must not reparse node text to recover these types.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method
@@ -460,6 +481,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/collection_element_emit_owner.pgy` --
   collection element value emission; graph-owned `ArrayPush` projection is
   separated from the still-explicit array-literal and `ArraySet` text bridges.
+- `src/self_hosted/codegen/emission/enum_emit_owner.pgy` -- enum declaration
+  emission and semantic enum-value projection into the codegen environment.
 - `src/self_hosted/codegen/emission/function_emit.pgy` -- function emission.
 - `src/self_hosted/codegen/emission/generic_function_emit_owner.pgy` --
   generic-template suppression and concrete specialization emission.
@@ -642,6 +665,9 @@ inventory must not become a second fact-family owner registry.
   rung0 and coarse; this owner is the contract for later precise invalidation.
 - `src/self_hosted/compiler/abi_layout_row_owner.pgy` -- cross-backend ABI row
   fact vocabulary for field order, niche, tags, ownership, and layout.
+- `src/self_hosted/compiler/abi_layout_nominal_array_owner.pgy` -- derived ABI
+  layout and C symbol facts for arrays whose element is a declared nominal
+  record.
 - `src/self_hosted/compiler/backend_abi_layout_contract_owner.pgy` -- backend
   ABI-layout required/forbidden source contract rows tied to the ABI row owner.
 - `src/self_hosted/compiler/abi_layout_target_policy_owner.pgy` -- ABI layout
@@ -687,8 +713,10 @@ inventory must not become a second fact-family owner registry.
   source-to-AST-to-C pipeline shared by the user-facing driver and bootstrap;
   this is the single owner of parser/codegen composition.
 - `src/self_hosted/compiler/driver_bootstrap_main.pgy` -- minimal runnable
-  source/output-file boundary used to prove the integrated driver fixed point;
-  pipeline ownership remains in `driver_pipeline_owner.pgy`.
+  source/MIR/output-file boundary used by bounded producer parity and the
+  integrated seed/oracle parity proof. The full stage2/stage3 consumer fixed
+  point is an explicit gate; pipeline ownership remains in
+  `driver_rung2_owner.pgy`.
 - `src/self_hosted/compiler/driver_rung0_owner.pgy` -- DRV-0 in-process
   assembly owner that composes self-parser AST text and self-codegen C emission
   after consuming compiler-world readiness facts.

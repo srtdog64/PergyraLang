@@ -14,6 +14,15 @@ require_text() {
     fi
 }
 
+reject_text() {
+    local file="$1"
+    local text="$2"
+    if grep -Fq -- "$text" "$ROOT_DIR/$file"; then
+        echo "[source-module-graph] retired $file fallback returned: $text" >&2
+        exit 1
+    fi
+}
+
 require_text src/compiler/module_loader.h "PgySourceModuleGraph"
 require_text src/compiler/module_loader.h "first_syntax_id"
 require_text src/compiler/module_loader.h "module_loader_load_program_with_graph"
@@ -23,6 +32,12 @@ require_text src/compiler/module_loader.c "module_loader_validate_graph"
 require_text src/compiler/driver_app.c "module_loader_load_program_with_graph"
 require_text src/compiler/driver_app.c "module_loader_validate_graph"
 require_text src/compiler/driver_app.c "module_loader_destroy_graph"
+
+# unowned_source_reload: the graph-dropping compatibility loader is forbidden.
+reject_text src/compiler/module_loader.h "module_loader_load_program("
+reject_text src/compiler/module_loader.c "module_loader_load_program("
+# module_path_string_identity: syntax identity must accompany canonical paths.
+require_text src/compiler/module_loader.c "row->first_syntax_id == 0"
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
 if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
@@ -44,4 +59,4 @@ LOG="$WORK_DIR/compile.log"
     >"$LOG" 2>&1)
 test -s "$OUT"
 
-echo "[source-module-graph] driver validates the anchored source/module graph"
+echo "[source-module-graph] driver_validates_and_destroys_graph: anchored source/module graph ok"

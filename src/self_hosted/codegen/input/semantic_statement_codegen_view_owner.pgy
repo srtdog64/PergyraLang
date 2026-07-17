@@ -138,10 +138,6 @@ func CodegenSemanticArrayPushValueOrDie(
     return facts.value_texts[index];
 }
 
-func CodegenSemanticExitArgumentOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
-    return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindExitStmtTag());
-}
-
 func CodegenSemanticWhileConditionOrDie(facts: SemanticAstStatementFacts, node_id: Int) -> String {
     return CodegenSemanticStatementPayloadOrDie(facts, node_id, TypedAstKindWhileStmtTag());
 }

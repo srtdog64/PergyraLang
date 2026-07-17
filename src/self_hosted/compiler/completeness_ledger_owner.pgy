@@ -131,6 +131,12 @@ func CompilerCompletenessIsProductionSource(path: String) -> Bool {
     if CompilerCompletenessPathContains(path, "/expected/") {
         return false;
     }
+    if CompilerCompletenessPathContains(path, "_fixture/") {
+        return false;
+    }
+    if CompilerCompletenessPathContains(path, "_expected/") {
+        return false;
+    }
     if path == "src/self_hosted/tools/linter/fixture.pgy" {
         return false;
     }
@@ -231,6 +237,9 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }
     if path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" {
+        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
+    }
+    if path == "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }
     return CompilerCompletenessCheckTarget(path);

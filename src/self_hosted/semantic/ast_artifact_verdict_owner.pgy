@@ -135,7 +135,7 @@ func SemanticAstArtifactAnalyzeFromExpressionSurfaces(
         input_expression_surfaces;
     if signatures.ok && constructors.ok && input_expression_surfaces.ok {
         let target_graph: SemanticExpressionGraphFacts =
-            SemanticExpressionGraphCallTargetsFromCallableFacts(
+            SemanticExpressionGraphCallTargetsFromSignatures(
                 input_expression_surfaces.expression_graph,
                 signatures, constructors,
                 require_carried_call_targets

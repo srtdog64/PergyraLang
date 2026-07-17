@@ -56,43 +56,6 @@ func SemanticExpressionGraphResolvedCallTarget(
             false, SemanticCallTargetNone(), "", 0
         );
     }
-    let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
-        graph, call.call_node
-    );
-    let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
-        graph, call.call_node
-    );
-    if !IsSome(target_kind) || !IsSome(target_name) {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
-    }
-    if UnwrapOption(target_kind) == SemanticCallTargetDirect() ||
-        UnwrapOption(target_kind) == SemanticCallTargetNamespace() ||
-        UnwrapOption(target_kind) == SemanticCallTargetMember() {
-        let target: Option<Int> = SemanticCallableIndex(
-            function_names, UnwrapOption(target_name)
-        );
-        if !IsSome(target) {
-            return SemanticExpressionCallTargetFact(
-                false, UnwrapOption(target_kind), "", 0
-            );
-        }
-        let parameter_offset: Int = 0;
-        if UnwrapOption(target_kind) == SemanticCallTargetMember() {
-            parameter_offset = 1;
-        }
-        return SemanticExpressionCallTargetFact(
-            true, UnwrapOption(target_kind),
-            function_names[UnwrapOption(target)], parameter_offset
-        );
-    }
-    if UnwrapOption(target_kind) != SemanticCallTargetNone() ||
-        UnwrapOption(target_name) != "" {
-        return SemanticExpressionCallTargetFact(
-            false, SemanticCallTargetNone(), "", 0
-        );
-    }
     let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
         graph, call.callee_node
     );
@@ -128,6 +91,23 @@ func SemanticExpressionGraphResolvedCallTarget(
     if !member.ok {
         return SemanticExpressionCallTargetFact(
             false, SemanticCallTargetNone(), "", 0
+        );
+    }
+    let qualified_name: Option<String> = SemanticExpressionGraphNodeText(
+        graph, call.callee_node
+    );
+    if !IsSome(qualified_name) {
+        return SemanticExpressionCallTargetFact(
+            false, SemanticCallTargetNamespace(), "", 0
+        );
+    }
+    let namespace_target: Option<Int> = SemanticCallableIndex(
+        function_names, UnwrapOption(qualified_name)
+    );
+    if IsSome(namespace_target) {
+        return SemanticExpressionCallTargetFact(
+            true, SemanticCallTargetNamespace(),
+            function_names[UnwrapOption(namespace_target)], 0
         );
     }
     let member_name: Option<String> = SemanticExpressionGraphNodeText(

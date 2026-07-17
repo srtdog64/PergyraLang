@@ -126,10 +126,19 @@ The executable driver spine is also single-owned.
 DRV-0/DRV-1 add compiler-world and CLI policy, while DRV-2 owns the bounded
 source-to-MIR-to-C verified composition and
 `compiler/driver_bootstrap_main.pgy` is only the fixed-point file boundary.
-`self-host-driver-bootstrap-test-smoke` now proves that a Pergyra-built copy of
-this integrated parser/semantic/MIR/codegen driver rebuilds itself
-(`gen2 == gen3`). That remains a bounded compiler bootstrap, not a
+`self-host-driver-bootstrap-test-smoke` compares the Pergyra-built integrated
+seed with the native-built same parser/semantic/MIR/codegen driver on a real
+source. Both builds must also produce byte-identical verified MIR for the
+TestHarness-owned sample and consume that common fact to byte-identical C.
+`self-host-driver-bootstrap-full-test-smoke` explicitly builds full-input
+stage2 and extends the same fact to the `gen2 == gen3` comparison. Bounded
+DRV-2 fixtures separately
+prove the self-host MIR producer, and a sample leg checks source-to-C output
+against the native oracle. This remains a bounded compiler bootstrap, not a
 whole-compiler or released-default substitution claim.
+The driver gate consumes only the codegen `gen2` and parser-producer seed.
+Standalone codegen fixed-point and breadth coverage remains an independent
+blocking CI job.
 
 Import de-duplication is now a compiler fact and a self-hosted parser fact.
 Sibling owner modules should declare the fact-owner imports they actually

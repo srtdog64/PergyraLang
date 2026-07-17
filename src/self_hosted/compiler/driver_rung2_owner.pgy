@@ -10,6 +10,7 @@ import "../semantic/ast_initializer_type_fact_owner.pgy";
 import "../semantic/ast_assignment_type_fact_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
 import "../semantic/ast_statement_type_fact_owner.pgy";
+import "../semantic/ast_statement_type_contract_owner.pgy";
 import "../semantic/ast_statement_type_query_owner.pgy";
 import "../semantic/ast_body_verdict_owner.pgy";
 import "../semantic/ast_body_type_bundle_owner.pgy";
@@ -26,6 +27,7 @@ import "machine_layer_declaration_consumer.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
+    if !ParserNumberSpellingContractReady() { return "parser_number_spelling"; }
     if !SemanticBuiltinSignatureContractReady() { return "builtin_signature"; }
     if !SemanticCallableResolutionContractReady() { return "callable_resolution"; }
     if !SemanticExpressionNormalizationContractReady() { return "expression_normalization"; }
@@ -67,7 +69,9 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !ParserExpressionDirectCallCalleeContractReady() { return "parser_direct_callee"; }
     if !SemanticExpressionCallTargetFactContractReady() { return "call_target_fact"; }
     if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
-    if !SelfMirIndexedAssignmentUseContractReady() { return "mir_indexed_assignment"; }
+    if !SelfMirAssignmentTargetGraphContractReady() {
+        return "mir_assignment_target_graph";
+    }
     if !MirFactGraphPayloadContractReady() { return "mir_fact_graph_payload"; }
     if TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) != "class" {
         return "typed_ast_nominal_subkind";
@@ -140,7 +144,8 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/str_array.pgy",
         "src/self_hosted/semantic/fixture/valid_array_builtins.pgy",
         "src/self_hosted/semantic/fixture/valid_option_none_literal.pgy",
-        "src/self_hosted/semantic/fixture/valid_call_int.pgy"
+        "src/self_hosted/semantic/fixture/valid_call_int.pgy",
+        "src/self_hosted/codegen/fixture/result_int_core.pgy"
     ];
 }
 

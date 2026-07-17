@@ -2,10 +2,76 @@
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
+import "../runtime_abi/string_runtime_owner.pgy";
+import "../../compiler/symbol_table_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
-import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
+import "expr_semantic_type_owner.pgy";
+import "runtime_call_rewrite_owner.pgy";
+
+func RewriteSemanticLeaf(
+    text: String,
+    env: CodegenTypeEnv
+) -> String {
+    if text == "true" { return "1"; }
+    if text == "false" { return "0"; }
+    if StartsWith(text, "await ") {
+        let awaited_text: String =
+            CompilerRuntimeCallAbiMachineLayerAwaitBinding(text);
+        if awaited_text == "" {
+            Die("self-host await requires a named future binding");
+        }
+        let awaited_type: String = LookupKindType(
+            env, awaited_text, "v"
+        );
+        let await_name: String =
+            CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
+                awaited_type
+            );
+        if await_name == "" {
+            Die("self-host await requires a supported RemoteFuture<T> ABI row");
+        }
+        return Concat(await_name, Concat("(", Concat(
+            RewriteSemanticLeaf(awaited_text, env), ")"
+        )));
+    }
+    if IsIdentifier(text) {
+        let enum_value: String = LookupKindType(env, text, "e");
+        if enum_value != "" { return enum_value; }
+        let call_target: String = LookupKindType(env, text, "call");
+        if call_target != "" {
+            return CompilerSymbolCIdentifier(call_target);
+        }
+        if LookupKindType(env, text, "f") != "" {
+            let runtime_target: Option<String> = RuntimeCallCName(text);
+            if IsSome(runtime_target) {
+                return UnwrapOption(runtime_target);
+            }
+            return CompilerSymbolCIdentifier(text);
+        }
+        if LookupKindType(env, text, "cbind") == "" {
+            Die(Concat(
+                "semantic leaf binding fact is missing: ", text
+            ));
+        }
+        return TypeEnvBindingCName(env, text);
+    }
+    if StringLength(text) > 0 && CodegenCharAt(text, 0) == "\"" {
+        return text;
+    }
+    if StringLength(text) > 0 &&
+        StringIndexOf("0123456789", CodegenCharAt(text, 0)) >= 0 {
+        if CodegenCharAt(text, StringLength(text) - 1) == "L" {
+            return Concat(
+                Substring(text, 0, StringLength(text) - 1), "LL"
+            );
+        }
+        return text;
+    }
+    Die(Concat("unsupported semantic leaf expression: ", text));
+    return "";
+}
 
 func RewriteExprFromSemanticGraph(
     graph: SemanticExpressionGraphFacts,
@@ -23,28 +89,12 @@ func RewriteExprFromSemanticGraph(
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
+    if kind == AstExpressionNodeFloatLiteral() {
+        if StringIndexOf(text, ".") >= 0 { return text; }
+        return Concat(text, ".0");
+    }
     if kind == AstExpressionNodeLeaf() {
-        if StartsWith(text, "await ") {
-            let awaited_text: String =
-                CompilerRuntimeCallAbiMachineLayerAwaitBinding(text);
-            if awaited_text == "" {
-                Die("self-host await requires a named future binding");
-            }
-            let awaited_type: String = LookupKindType(
-                env, awaited_text, "v"
-            );
-            let await_name: String =
-                CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
-                    awaited_type
-                );
-            if await_name == "" {
-                Die("self-host await requires a supported RemoteFuture<T> ABI row");
-            }
-            return Concat(await_name, Concat("(", Concat(
-                RewriteTokens(awaited_text, env), ")"
-            )));
-        }
-        return RewriteTokens(text, env);
+        return RewriteSemanticLeaf(text, env);
     }
     if AstExpressionNodeIsCallSpine(kind) {
         return RewriteSemanticCall(graph, node_id, env);
@@ -91,25 +141,34 @@ func RewriteExprFromSemanticGraph(
         Die("semantic expression graph right edge is missing");
     }
     let right_id: Int = UnwrapOption(right_opt);
-    if kind == AstExpressionNodeEquality() ||
-        kind == AstExpressionNodeInequality() {
-        let left_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, left_id
-        );
-        let right_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, right_id
-        );
-        if !IsSome(left_text) || !IsSome(right_text) {
-            Die("semantic equality operand is missing");
-        }
-        let projected: Option<String> = RewriteEqualityProjection(
-            UnwrapOption(left_text), UnwrapOption(right_text),
-            kind == AstExpressionNodeEquality(), env
-        );
-        if IsSome(projected) { return UnwrapOption(projected); }
-    }
     let left: String = RewriteExprFromSemanticGraph(graph, left_id, env);
     let right: String = RewriteExprFromSemanticGraph(graph, right_id, env);
+    if kind == AstExpressionNodeEquality() ||
+        kind == AstExpressionNodeInequality() {
+        let left_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, left_id, env
+        );
+        let right_type: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, right_id, env
+        );
+        if !IsSome(left_type) || !IsSome(right_type) {
+            Die("semantic equality operand type fact is missing");
+        }
+        if UnwrapOption(left_type) == "String" ||
+            UnwrapOption(right_type) == "String" {
+            let comparison: String = " == 0)";
+            if kind == AstExpressionNodeInequality() {
+                comparison = " != 0)";
+            }
+            return Concat("(", Concat(
+                StringRuntimeCStringCompareFn(), Concat(
+                    "(", Concat(left, Concat(
+                        ", ", Concat(right, Concat(")", comparison))
+                    ))
+                )
+            ));
+        }
+    }
     if kind == AstExpressionNodeIndex() {
         let left_text: Option<String> = SemanticExpressionGraphNodeText(
             graph, left_id
@@ -124,27 +183,31 @@ func RewriteExprFromSemanticGraph(
         }
         let runtime_kind: String = receiver_type;
         if StartsWith(runtime_kind, "Array<") {
-            runtime_kind = CollectionRuntimeKindFromTypeName(runtime_kind);
+            runtime_kind = CollectionRuntimeFactFromTypeName(
+                runtime_kind, env
+            ).kind;
         }
-        let get_fn: String = CollectionRuntimeCGetFn(
-            CollectionRuntimeKindCode(runtime_kind)
-        );
+        let get_fn: String =
+            CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
         return Concat(get_fn, Concat(
             "(", Concat(left, Concat(", ", Concat(right, ")")))
         ));
     }
     if kind == AstExpressionNodeAdd() {
-        let left_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, left_id
+        let left_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, left_id, env
         );
-        let right_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, right_id
+        let right_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(
+            graph, right_id, env
         );
-        if !IsSome(left_text) || !IsSome(right_text) {
-            Die("semantic addition operand is missing");
+        if !IsSome(left_kind_opt) || !IsSome(right_kind_opt) {
+            Die(Concat(
+                "semantic addition operand type fact is missing: ",
+                text
+            ));
         }
-        let left_kind: String = ExprKind(UnwrapOption(left_text), env);
-        let right_kind: String = ExprKind(UnwrapOption(right_text), env);
+        let left_kind: String = UnwrapOption(left_kind_opt);
+        let right_kind: String = UnwrapOption(right_kind_opt);
         if left_kind == right_kind {
             let op_name: String = LookupKindType(
                 env, Concat(left_kind, "+"), "op"

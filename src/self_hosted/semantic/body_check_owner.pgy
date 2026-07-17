@@ -53,7 +53,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 return let_call_error;
             }
             let let_expr: String = Substring(content, i, semi - i);
-            let let_undefined_error: String = CheckUndefinedIdentifiers(let_expr, names);
+            let let_undefined_error: String =
+                CheckUndefinedIdentifiers(let_expr, names, func_names);
             if StringLength(let_undefined_error) > 0 {
                 return let_undefined_error;
             }
@@ -95,7 +96,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 return return_call_error;
             }
             let return_expr: String = Substring(content, i, return_semi - i);
-            let return_undefined_error: String = CheckUndefinedIdentifiers(return_expr, names);
+            let return_undefined_error: String =
+                CheckUndefinedIdentifiers(return_expr, names, func_names);
             if StringLength(return_undefined_error) > 0 {
                 return return_undefined_error;
             }
@@ -130,7 +132,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             let block_open: Int = FindBlockOpen(content, cond_start, end);
             let cond_text: String = Trim(Substring(content, cond_start, block_open - cond_start));
             if StringLength(cond_text) > 0 {
-                let cond_undefined_error: String = CheckUndefinedIdentifiers(cond_text, names);
+                let cond_undefined_error: String =
+                    CheckUndefinedIdentifiers(cond_text, names, func_names);
                 if StringLength(cond_undefined_error) > 0 {
                     return cond_undefined_error;
                 }
@@ -194,7 +197,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
                 let for_in_pos: Int = UnwrapOption(for_in);
                 let iter_text: String = Trim(Substring(content, for_in_pos, for_open - for_in_pos));
                 if StringLength(iter_text) > 0 {
-                    let iter_undefined: String = CheckUndefinedIdentifiers(iter_text, names);
+                    let iter_undefined: String =
+                        CheckUndefinedIdentifiers(iter_text, names, func_names);
                     if StringLength(iter_undefined) > 0 {
                         return iter_undefined;
                     }
@@ -229,7 +233,8 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, inout
             if lhs_type != "Unknown" {
                 let asn_semi: Int = FindStatementEnd(content, asn_after + 1, end);
                 let rhs_expr: String = Substring(content, asn_after + 1, asn_semi - asn_after - 1);
-                let asn_undefined_error: String = CheckUndefinedIdentifiers(rhs_expr, names);
+                let asn_undefined_error: String =
+                    CheckUndefinedIdentifiers(rhs_expr, names, func_names);
                 if StringLength(asn_undefined_error) > 0 {
                     return asn_undefined_error;
                 }

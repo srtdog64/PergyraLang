@@ -71,19 +71,38 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                                 );
                             if !target.ok {
                                 valid = false;
-                            } else if target.kind ==
-                                SemanticCallTargetDirect() ||
-                                target.kind == SemanticCallTargetNamespace() ||
-                                target.kind == SemanticCallTargetMember() {
-                                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
-                                    target.kind;
-                                analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
-                                    target.name;
                             } else {
-                                analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
-                                    SemanticCallTargetNone();
-                                analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
-                                    "";
+                                let carried_kind: Int =
+                                    analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id];
+                                let carried_name: String =
+                                    analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id];
+                                if target.kind ==
+                                    SemanticCallTargetDirect() ||
+                                    target.kind == SemanticCallTargetNamespace() ||
+                                    target.kind == SemanticCallTargetMember() {
+                                    if carried_kind != SemanticCallTargetNone() ||
+                                        carried_name != "" {
+                                        if carried_kind != target.kind ||
+                                            carried_name != target.name {
+                                            valid = false;
+                                        }
+                                    } else {
+                                        analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
+                                            target.kind;
+                                        analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
+                                            target.name;
+                                    }
+                                } else {
+                                    if carried_kind != SemanticCallTargetNone() ||
+                                        carried_name != "" {
+                                        valid = false;
+                                    } else {
+                                        analysis.expression_surfaces.expression_graph.arena.call_target_kinds[node_id] =
+                                            SemanticCallTargetNone();
+                                        analysis.expression_surfaces.expression_graph.arena.call_target_names[node_id] =
+                                            "";
+                                    }
+                                }
                             }
                         }
                         node_id = node_id + 1;

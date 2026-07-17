@@ -93,12 +93,12 @@ grep -Fq -- 'machine_layer_physical_manifest_fingerprint' \
     exit 1
 }
 grep -Fq -- 'pgy_machine_layer_manifest_validate_site' \
-    "$ROOT_DIR/src/compiler/air_validate.c" || {
+    "$ROOT_DIR/src/compiler/air_validate_machine_layer.c" || {
     echo "[machine-layer-manifest] AIR site validation bypassed manifest owner" >&2
     exit 1
 }
 if grep -Fq -- 'pgy_machine_layer_manifest_operation_at' \
-    "$ROOT_DIR/src/compiler/air_validate.c"; then
+    "$ROOT_DIR/src/compiler/air_validate_machine_layer.c"; then
     echo "[machine-layer-manifest] AIR duplicated manifest operation traversal" >&2
     exit 1
 fi

@@ -79,6 +79,9 @@ parity and the examples scale probe.
     turbofish, `async {}`
     / `parallel (...) join with all {}` expression blocks, dollar string
     interpolation, and common duration suffixes.
+  - floating literals retain a parser-owned `FloatLiteral` graph kind, and
+    compact AST canonicalization preserves an integral fraction (`16.0`, not
+    `16`) so text artifact boundaries do not erase the same type fact.
 
 ## Output Contract
 

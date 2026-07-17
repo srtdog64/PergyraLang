@@ -30,7 +30,10 @@ participant, not a zone.
 
 - `EmissionZone` currently owns the emitted C text buffer.
 - `TypeEnvZone` owns type binding facts consumed by emitters as read-mostly
-  evidence.
+  evidence. Each value binding carries separate semantic type and runtime-kind
+  rows. Expression typing consumes the semantic row; collection and
+  Option/Result runtime lowering consumes the runtime-kind row. Neither side
+  may reconstruct its fact from the other's spelling.
 - `AbiLayoutZone` owns ABI/layout facts consumed by emitters as read-only
   evidence. C, LLVM, and self-hosted codegen must not infer field order, tags,
   niches, or pointer ownership from emitted text or backend-local spelling.
@@ -60,9 +63,19 @@ participant, not a zone.
   current AST-text bridge spelling `Array<Int: Int>` / `Array<String: String>` /
   `Array<CodegenAstTextNode: CodegenAstTextNode>` into canonical collection
   kind facts.
+- Declared nominal-record arrays are derived from semantic type-surface facts,
+  the declared-struct environment, and
+  `compiler/abi_layout_nominal_array_owner.pgy`. Emission consumes one typed
+  collection-runtime fact carrying the element type, C array type, and helper
+  symbols. A backend-local `Array<SpecificRecord>` spelling or an undeclared
+  element fallback is forbidden.
 - `MathRuntimeOwner` owns self-host C math/random helper and target-library
   symbol spelling for the supported `Abs` / `Min` / `Max` / `Sqrt` / `Pow` /
   `Floor` / `Ceil` / `SeedRandom` / `Random` subset.
+- `CompilerDriverPipeline` owns the hard source-to-typed-AST boundary. The
+  codegen run path consumes `CompileSourceToAstArtifact` so literal kinds and
+  expression edges survive without codegen importing parser implementation
+  owners.
 - `HostIORuntimeOwner` owns self-host C host file/stdin/argv/process entrypoint runtime
   helper and target-library symbol spelling for the supported file,
   byte-count stdin, directory-walk, `Args()`, and `Exit(Int)` subset. The
@@ -96,6 +109,12 @@ Target split rule: this rung is still the C-emission owner. It must not be
 described as a peer C/LLVM/SelfHosted backend replacement until the LLVM and
 SelfHosted emission zones consume the same fact rows and feed the same
 ArtifactZone comparison contract.
+
+Bootstrap build rule: parser parity and codegen bootstrap consume one
+fingerprinted parser-tool build owner. Reuse is allowed only when the complete
+self-host source set, parser source, backend, and compiler executable hashes
+match. This removes repeated whole-parser builds from one preparation run
+without treating a stale binary as evidence.
 
 Run-boundary rule: `run/codegen_run_owner.pgy` must consume
 `CompilerTargetCapabilityEnvelopeReady()` before `GenerateC`. The target
@@ -181,6 +200,11 @@ and `ArraySet` values across scalar, String, and struct element types.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
+`type_facts/type_env.pgy` preserves semantic value type (`type`) separately
+from runtime value kind (`v`). Function parameters, declared locals, readonly
+references, and loop bindings project both rows. Semantic expression graph
+typing reads only `type`; a missing row fails closed instead of treating
+`OptionInt`, `ArrayInt`, or another runtime spelling as a source type.
 `text/expr_sequence_owner.pgy` owns top-level comma-separated expression
 sequence facts for array literals, call arguments, and struct literal field
 lists while expression payloads remain string-backed.

@@ -29,6 +29,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/parser_tool_build_leg.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix_from_current_path)"
 
@@ -249,8 +250,14 @@ run_native_to_file() {
     local raw="$B/${label}.raw"
     local err="$B/${label}.err"
 
-    if ! run_native_capture "$ROOT_DIR" "$raw" "$err" "$bin" "$@"; then
+    local rc=0
+    run_native_capture "$ROOT_DIR" "$raw" "$err" "$bin" "$@" || rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        echo "[self-host-bootstrap] $label failed (rc=$rc): $bin $*" >&2
         cat "$err" >&2 || true
+        if [[ -s "$raw" ]]; then
+            awk 'NR <= 20 { print }' "$raw" >&2 || true
+        fi
         return 1
     fi
     tr -d '\r' < "$raw" > "$out"
@@ -322,9 +329,9 @@ compile_parser_ast_producer() {
     local compile_log="$B/parser_ast_producer.compile.log"
 
     echo "[self-host-bootstrap] building self parser AST producer..."
-    if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PARSER_SOURCE")" \
-        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$PARSER_BIN")" \
-        >"$compile_log" 2>&1); then
+    if ! pgy_selfhost_compile_parser_tool \
+        "self-host-bootstrap" "$PARSER_SOURCE" c \
+        "$PARSER_BIN" "$compile_log"; then
         echo "[self-host-bootstrap] parser AST producer failed to build" >&2
         cat "$compile_log" >&2
         exit 1
@@ -398,6 +405,11 @@ compile_c_artifact_with_bounded_log "gen1" "$B/gen1.c" "$B/gen1.exe" || {
 emit "$B/gen1.exe" "$B/gen2.c"
 compile_c_artifact_with_bounded_log "gen2" "$B/gen2.c" "$B/gen2.exe" || {
     echo "[self-host-bootstrap] gen2 C failed to compile" >&2; cat "$B/gen2_cc.log" >&2; exit 1; }
+
+if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
+    echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"
+    exit 0
+fi
 
 emit "$B/gen2.exe" "$B/gen3.c"
 
@@ -502,9 +514,9 @@ done
 # mir_lower binary so this is a real compiler-stage substitution check, not just
 # a successful C compile.
 if [[ -f "$MIR_LOWER_SOURCE" ]]; then
-    mir_ast_rel=".tmp/self_hosted/codegen/bootstrap/mir_lower_ast.txt"
-    emit_self_parser_ast "$MIR_LOWER_SOURCE" "$mir_ast_rel"
-    run_native_to_file "mir_lower_emit" "$B/gen2.exe" "$B/mir_lower_via_codegen.c" "$mir_ast_rel"
+    mir_source_rel="$(pgy_selfhost_path_relative_to_root "$MIR_LOWER_SOURCE")"
+    run_native_to_file "mir_lower_emit" "$B/gen2.exe" \
+        "$B/mir_lower_via_codegen.c" --source "$mir_source_rel"
     if grep -q '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c"; then
         echo "[self-host-bootstrap] mir_lower out of codegen subset" >&2
         grep '^CODEGEN ERROR' "$B/mir_lower_via_codegen.c" | head -3 >&2

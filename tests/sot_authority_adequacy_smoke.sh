@@ -26,9 +26,11 @@ TRY_VIEW="src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.p
 TRY_CONSUMER="src/self_hosted/codegen/emission/try_let_emit_owner.pgy"
 COLLECTION_CONSUMER="src/self_hosted/codegen/input/semantic_statement_codegen_view_owner.pgy"
 ENUM_CONSUMER="src/self_hosted/codegen/input/semantic_enum_codegen_view_owner.pgy"
-ENUM_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
+ENUM_EMITTER="src/self_hosted/codegen/emission/enum_emit_owner.pgy"
 NOMINAL_CONSUMER="src/self_hosted/codegen/input/semantic_nominal_codegen_view_owner.pgy"
+NOMINAL_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
 ROLE_CONSUMER="src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy"
+ROLE_EMITTER="src/self_hosted/codegen/emission/function_emit.pgy"
 EXPRESSION_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_expression_usage_owner.pgy"
 TYPE_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_type_usage_owner.pgy"
 KIND_USAGE_CONSUMER="src/self_hosted/codegen/input/ast_kind_usage_owner.pgy"
@@ -235,6 +237,8 @@ require_file "$TRY_CONSUMER"
 require_file "$COLLECTION_CONSUMER"
 require_file "$ENUM_CONSUMER"
 require_file "$ENUM_EMITTER"
+require_file "$NOMINAL_EMITTER"
+require_file "$ROLE_EMITTER"
 require_file "$NOMINAL_CONSUMER"
 require_file "$ROLE_CONSUMER"
 require_file "$EXPRESSION_USAGE_CONSUMER"
@@ -395,12 +399,12 @@ check_consumer_copy "$ROOT_DIR/$NOMINAL_CONSUMER" \
     fail "live nominal codegen consumer reopened arena recovery"
 require_text "$NOMINAL_CONSUMER" "CodegenSemanticNominalFieldNameOrDie("
 require_text "$NOMINAL_CONSUMER" "CodegenSemanticNominalFieldTypeOrDie("
-require_text "$ENUM_EMITTER" "SemanticAstNominalConstructorCount(facts)"
+require_text "$NOMINAL_EMITTER" "SemanticAstNominalConstructorCount(facts)"
 check_consumer_copy "$ROOT_DIR/$ROLE_CONSUMER" \
     "CodegenSemanticRoleNameOrDie(" ||
     fail "live role codegen consumer reopened arena recovery"
 require_text "$ROLE_CONSUMER" "CodegenSemanticRoleMethodNodeOrDie("
-require_text "$ENUM_EMITTER" "SemanticAstRoleCount(roles)"
+require_text "$ROLE_EMITTER" "SemanticAstRoleCount(roles)"
 check_consumer_copy "$ROOT_DIR/$EXPRESSION_USAGE_CONSUMER" \
     "CodegenExpressionUsageFactsFromSemantic(" ||
     fail "runtime usage projection reopened AST expression recovery"
@@ -524,7 +528,7 @@ for fallback in \
     "CodegenAstArenaRoleTargetTypeNameOrDie" \
     "CodegenAstArenaIsRoleDecl(arena, i)" \
     "CodegenAstArenaIsDescendantOf(arena, j, i)"; do
-    reject_text "$ENUM_EMITTER" "$fallback"
+    reject_text "$ROLE_EMITTER" "$fallback"
 done
 for fallback in \
     "CodegenAstArenaNominalNameOrDie" \
@@ -532,7 +536,7 @@ for fallback in \
     "CodegenAstArenaFieldTypeNameOrDie" \
     "CodegenAstArenaIsNominalDecl(arena, i)" \
     "CodegenAstArenaIsFieldsHeader(arena, j)"; do
-    reject_text "$ENUM_EMITTER" "$fallback"
+    reject_text "$NOMINAL_EMITTER" "$fallback"
 done
 reject_text "$ENUM_CONSUMER" "ExprSequenceItemCount"
 reject_text "$ENUM_CONSUMER" "ExprSequenceItemAt"

@@ -11,6 +11,10 @@ func CodegenParityExpectedDir() -> String {
     return "src/self_hosted/codegen/expected";
 }
 
+func CodegenParityFixtureExpectedCount() -> Int {
+    return 75;
+}
+
 func CodegenParityPathEndsWith(path: String, suffix: String) -> Bool {
     let path_len: Int = StringLength(path);
     let suffix_len: Int = StringLength(suffix);
@@ -63,4 +67,9 @@ func CodegenParityFixtureManifestRows() -> Array<String> {
         i = i + 1;
     }
     return rows;
+}
+
+func CodegenParityFixtureManifestReady() -> Bool {
+    return ArrayLength(CodegenParityFixtureManifestRows()) ==
+        CodegenParityFixtureExpectedCount();
 }
