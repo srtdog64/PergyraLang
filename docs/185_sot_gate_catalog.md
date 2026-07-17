@@ -291,19 +291,36 @@ repair before adding targets):
   `CheckedArith.v` `checked_f2i` (`f2i_none_iff` / `f2i_some_exact` /
   `f2i_some_representable` / `f2i_total`, machine-checked).
 
-Deferred with owners (blocked or workstream-scale, not forgotten):
+Campaign-close status (2026-07-18):
 
-- **Blocking-pool compensation mis-attribution** (docs/189 C13-④):
-  `g_pgy_pool_task_depth` TLS is shared by both pools while the tick
-  always spawns into `g_pgy_pool`; fix needs edits to
-  `pgy_parallel.h`/`pgy_parallel_pool_lifecycle.h`, which are in-flight
-  in the CI-repair track — land after those files settle.
-- **C-backend runtime prelink** (C14-③): moving the 14k-line inline
-  runtime include to a cached object is an emission-shape workstream
-  (every generated program changes), not a patch.
-- **Real compile-speed contract** (C14-④): `perf_contract_smoke.sh`
-  currently pins a synthetic log's format, not measured time; replacing
-  it with a measured-threshold gate waits on the same in-flight file.
+- ✅ **Blocking-pool compensation mis-attribution** (docs/189 C13-④,
+  commit `25fd43fa`): workers stamp a thread-local `g_pgy_thread_pool`;
+  the pool struct carries its own lifecycle wiring; the tick compensates
+  the resolved pool. NULL wiring refuses rather than guessing.
+- ✅ **Real compile-speed contract** (C14-④, commit `44f99988`):
+  `perf_contract_smoke.sh` gains a measured end-to-end C compile of a
+  60-statement fixture (catastrophic-only 60s ceiling,
+  `PGY_COMPILE_SPEED_CEILING_MS` overrides). The synthetic parser-unit
+  block stays as the summary-format + fail-open guard.
+- ✅ **Gate wiring** (commit `ee8fb209`): the four gates get Makefile
+  targets + a `redteam-repair-contract-test-smoke` aggregate, wired into
+  Linux CI; the differential-fuzz oracle (`fuzz-backend-parity-matrix`
+  fixed seeds + `fuzz-backend-parity-campaign` env-seed rotated by
+  `GITHUB_RUN_NUMBER`) is now gated, closing the "free oracle only ran on
+  a fixed corpus" gap.
+
+Genuine residues (workstream-scale or runner-gated, not forgotten):
+
+- **C-backend runtime prelink** (C14-③): the emitted C `#include`s the
+  runtime's static-inline bodies, so an object cache alone cannot skip
+  the 14k-line recompile — it needs an inline→extern ABI restructuring
+  of the runtime (with the twin discipline and strip list following). A
+  workstream, not a patch.
+- **asan + `.bc`-on CI jobs** (docs/189 C13/C5-②): both need the Linux
+  runner to verify — this box has no libasan (`make test-asan` hard-fails
+  rather than self-skipping) and CI never builds the `.bc`. Exact
+  ready-to-wire lines are staged in TODO board WO-RED2; they land with
+  the CI-repair track rather than blind.
 
 ## 7. Next Execution Order
 

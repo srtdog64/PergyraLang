@@ -10546,33 +10546,42 @@ RT 계열.
   디스크립터 heap 핸들 승격(복사=별칭, 클래스 소멸, 수명 스토리 필요)(B).
   B 채택 시 이 거절들은 합법 별칭으로 완화된다.
 
-#### WO-RED2 — docs/189 수리 캠페인 잔여 3건 + CI 배선 스니펫 (2026-07-18)
+#### WO-RED2 — docs/189 수리 캠페인 마감 상태 (2026-07-18)
 
-수리 캠페인(커밋 f5a305cc/8fb96279/490ef0ca + 후속)에서 착지 못 한
-3건과, CI-수리 트랙과 조정 후 배선할 스니펫. 게이트 상세는 docs/185 §6c.
+수리 캠페인 전체 착지 기록. 게이트 상세는 docs/185 §6c.
 
-- **① blocking-pool 보상 오귀속 (C13-④, dirty-블록)**:
-  `g_pgy_pool_task_depth` TLS가 두 풀 공용인데
-  `pgy_pool_channel_blocked_tick`은 무조건 `g_pgy_pool`에 스폰 →
-  blocking-pool 태스크의 채널 블록은 보상이 엉뚱한 풀로 감. fix 후보 =
-  depth TLS 풀별화 or task에 풀 태그. 대상 파일 2개가 CI-수리 트랙
-  in-flight라 그 착지 후 진행.
-- **② C-backend 런타임 prelink (C14-③, workstream)**: 방출 C가 런타임
-  14k줄을 매 빌드 인라인 재컴파일(`compiler_runtime_cache.c`가
-  `PGY_LLVM_ENABLED` 전용). 방출 형태가 바뀌는 워크스트림이라 패치 아님.
-- **③ 실측 컴파일-속도 계약 (C14-④, dirty-블록)**: perf_contract가
-  합성 로그 포맷 검사 — 실측 임계 게이트로 교체는 해당 파일 settle 후.
-- **CI 잡 스니펫 (배선은 CI-수리 트랙 소유자와 조정)**:
-  - asan: `ubuntu-latest` 잡 1개 → `make test-asan`(타겟 존재,
-    libasan 없으면 self-skip이라 안전).
-  - fuzz 캠페인: 기존 `fuzz-backend-parity-matrix-test-smoke`를
-    `ci_linux_steps.sh`에 1줄 추가 + `PGY_FUZZ_SEED=${GITHUB_RUN_NUMBER}`
-    회전(오라클-on, 현 CI는 생성기-안정성 8케이스만).
-  - `.bc`-on 레그: Linux 잡에서 `make runtime-bc` 후 backend-compare 샤드
-    1개 실행 — 로컬(bc-on)과 CI(bc-off)가 다른 구성을 테스트하는 비대칭
-    해소(docs/189 C5-②; 미채택 시 `.bc` 경로 experimental 격하 명시가
-    정직). 신설 4게이트(`runtime_bc_contract`/`surface_boundary_hygiene`/
-    `adversarial_input`/`emitted_c_warning_clean`)의 make 타겟 배선 포함.
+- **✅ ① blocking-pool 보상 오귀속 (C13-④, 커밋 25fd43fa)**: worker가
+  loop 진입 시 `g_pgy_thread_pool` TLS를 스탬프, pool 구조체가 자기
+  lifecycle 배선(mutex+active/shutting) 보유, tick이 현재 스레드의 풀에
+  보상. NULL 배선=보상 거부(추측 안 함). main-help는 main-pool 태스크라
+  NULL이 main pool로 해소 → main 동작 불변. starvation/backpressure 재검.
+- **✅ ③ 실측 컴파일-속도 계약 (C14-④, 커밋 44f99988)**: perf_contract에
+  60문장 fixture의 실측 end-to-end C 컴파일 추가(catastrophic-only
+  ceiling 60s, `PGY_COMPILE_SPEED_CEILING_MS` override). 합성 파서 유닛
+  블록은 summary 포맷+fail-open grep 가드로 유지. 실측 311ms.
+- **✅ 신설 4게이트 make 타겟 + CI 배선 (커밋 ee8fb209)**:
+  `runtime-bc-contract`/`surface-boundary-hygiene`/`adversarial-input`/
+  `emitted-c-warning-clean` 타겟 + `redteam-repair-contract` aggregate,
+  `ci_linux_steps.sh`에 aggregate 배선. **차분 퍼징 갭 닫음**: 오라클-on
+  fuzz matrix(3 고정 seed) + `fuzz-backend-parity-campaign`(env seed,
+  CI는 `GITHUB_RUN_NUMBER` 회전) 배선. dual 백엔드=무료 오라클이 고정
+  corpus만 돌던 것 해소.
+- **잔여 ② C-backend 런타임 prelink (C14-③, 진짜 workstream)**: 방출 C가
+  런타임 14k줄을 매 빌드 인라인 재컴파일. 런타임 헤더가 static-inline
+  본문이라 오브젝트 캐시(현 `PGY_LLVM_ENABLED` 전용)만으로 안 됨 —
+  inline→extern ABI 재구조화(트윈 규율·strip 목록 동반)가 필요한
+  워크스트림. 패치 아님, 별도 착수.
+- **잔여 asan + `.bc`-on CI 잡 (Linux-러너 검증 필요, 스테이징)**: 이
+  Windows 박스엔 libasan 없어 `make test-asan`이 hard-fail(self-skip
+  아님 — sanitizer_compile_smoke.sh:29), CI는 `.bc`를 안 만듦. 둘 다
+  Linux 러너에서만 green 확인 가능하므로 blind 배선 대신 정확한 라인만
+  준비:
+  - asan: `run 'make CC="$CI_LINUX_CC" test-asan'` (자체 ASAN_BUILD_DIR,
+    LLVM_ENABLED=0 — 메인 빌드 무간섭).
+  - `.bc`-on: Linux clang으로 `make runtime-bc` 후
+    `PGY_RUNTIME_BC=<path> make ... llvm-test-backend-compare` 샤드 1개
+    (로컬 bc-on↔CI bc-off 구성 비대칭 해소, docs/189 C5-②). 미채택 시
+    `.bc` 경로 experimental 격하 명시가 정직.
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
