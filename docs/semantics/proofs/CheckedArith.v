@@ -221,3 +221,84 @@ Proof.
       assert (Hrabs : Z.abs (Z.rem a b) <= 2147483647) by lia.
       apply Z.abs_le in Hrabs. unfold representable, INT_MIN, INT_MAX. lia.
 Qed.
+
+(* ---------------------------------------------------------------- *)
+(* Float->int conversion: fail-closed on NaN and out-of-range        *)
+(* (docs/189 C1; runtime pgy_checked_f2i_i32_export).                *)
+(*                                                                   *)
+(* Abstraction envelope, stated honestly: the runtime helper compares *)
+(* the ORIGINAL double against exact-double bounds                    *)
+(* (-2^31 - 1 < v < 2^31), which characterizes "trunc(v) fits i32";  *)
+(* the IEEE-representability argument for those bound constants lives *)
+(* as a C-level comment at the helper, at the same trust level as    *)
+(* modelling i32 as a Z interval elsewhere in this file. Here the    *)
+(* input is that characterization's OUTPUT: None models NaN (every   *)
+(* comparison false), Some t models a finite double whose truncation *)
+(* is t. What is then proven is the decision structure: the guard    *)
+(* panics on exactly NaN + out-of-range, passes values through       *)
+(* unchanged (no silent wrap), and every produced value is           *)
+(* representable.                                                    *)
+(* ---------------------------------------------------------------- *)
+
+Definition checked_f2i (x : option Z) : option Z :=
+  match x with
+  | None => None
+  | Some t => if andb (INT_MIN <=? t) (t <=? INT_MAX)
+              then Some t
+              else None
+  end.
+
+Lemma range_true_iff : forall t,
+  (andb (INT_MIN <=? t) (t <=? INT_MAX)) = true <-> representable t.
+Proof.
+  intro t. unfold representable.
+  rewrite andb_true_iff, !Z.leb_le. tauto.
+Qed.
+
+(* Fail-closed on exactly the two hazard inputs: NaN and non-representable
+   truncations. Nothing else panics, so no spurious rejection either. *)
+Theorem f2i_none_iff : forall x,
+  checked_f2i x = None <->
+  (x = None \/ exists t, x = Some t /\ ~ representable t).
+Proof.
+  intro x. unfold checked_f2i. destruct x as [t |].
+  - destruct (andb (INT_MIN <=? t) (t <=? INT_MAX)) eqn:Er.
+    + apply range_true_iff in Er. split.
+      * discriminate.
+      * intros [Hc | [t' [He Hn]]]; [discriminate|].
+        injection He; intro; subst t'. contradiction.
+    + split.
+      * intros _. right. exists t. split; [reflexivity|].
+        intro Hr. apply range_true_iff in Hr. rewrite Hr in Er. discriminate.
+      * reflexivity.
+  - split; [intros _; left; reflexivity | reflexivity].
+Qed.
+
+(* Value preservation: an admitted conversion is the truncation itself --
+   the guard never wraps, saturates, or otherwise rewrites the value. *)
+Theorem f2i_some_exact : forall t v,
+  checked_f2i (Some t) = Some v -> v = t.
+Proof.
+  intros t v H. unfold checked_f2i in H.
+  destruct (andb (INT_MIN <=? t) (t <=? INT_MAX)); [|discriminate].
+  injection H; intro; subst; reflexivity.
+Qed.
+
+Theorem f2i_some_representable : forall x v,
+  checked_f2i x = Some v -> representable v.
+Proof.
+  intros x v H. unfold checked_f2i in H.
+  destruct x as [t |]; [|discriminate].
+  destruct (andb (INT_MIN <=? t) (t <=? INT_MAX)) eqn:Er; [|discriminate].
+  injection H; intro; subst v. apply range_true_iff. exact Er.
+Qed.
+
+(* Totality: like division, every input lands in a clean panic or a
+   representable value -- never stuck, never UB, never poison. *)
+Theorem f2i_total : forall x,
+  checked_f2i x = None \/ exists v, checked_f2i x = Some v.
+Proof.
+  intro x. destruct (checked_f2i x) eqn:E.
+  - right; exists z; reflexivity.
+  - left; reflexivity.
+Qed.
