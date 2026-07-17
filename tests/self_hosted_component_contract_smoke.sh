@@ -4439,6 +4439,12 @@ reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteSemanticLeaf(" "RewriteTokens("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'LookupKindType(env, text, "call")'
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'LookupKindType(env, text, "f")'
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "RuntimeCallCName(text)"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeIndex()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "kind == AstExpressionNodeLogicalNot()"

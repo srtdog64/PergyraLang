@@ -567,14 +567,15 @@ deleted, and the component gate rejects their return.
 
 Forty-seventh executable active-rung delta, 2026-07-17: scalar leaf emission
 now consumes the parser-owned expression node and the canonical codegen binding
-or enum row directly. Bool, String, Int, Long, and bound identifiers no longer
-enter the broad `RewriteTokens` scanner, including literal-only call
+enum, callable-target, or runtime ABI row directly. Bool, String, Int, Long,
+bound identifiers, and callable references no longer enter the broad
+`RewriteTokens` scanner, including literal-only and higher-order call
 arguments. Unknown identifiers and unsupported leaf spellings fail closed
 instead of falling back to text recovery. The component gate rejects
 `RewriteTokens` from both the graph dispatcher and the bounded leaf projector.
-Leaf lexical classification is still a bridge until the parser carries
-separate Bool, String, Int, and Long node kinds, so the expression owner remains
-`BRIDGE`.
+Leaf lexical classification and callable-reference target carriage are still
+bridges until the parser and semantic graph carry those dedicated kinds, so
+the expression owner remains `BRIDGE`.
 
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage

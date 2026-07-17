@@ -2,10 +2,11 @@
 
 2026-07-17 executable delta: scalar expression leaves now emit from the
 parser-owned graph plus canonical binding/enum rows. Bool, String, Int, Long,
-and bound identifiers bypass the legacy `RewriteTokens` scanner, and
-unsupported leaves fail closed. Literal-only call arguments therefore consume
-the same graph path. Fine-grained scalar literal node kinds remain future work,
-so this narrows but does not close the mixed expression bridge.
+bound identifiers, and callable references bypass the legacy `RewriteTokens`
+scanner, and unsupported leaves fail closed. Literal-only and higher-order call
+arguments therefore consume the same graph path. Fine-grained scalar literal
+and callable-reference node kinds remain future work, so this narrows but does
+not close the mixed expression bridge.
 
 **This is the canonical progress measurement for Pergyra self-hosting.**
 The number that matters is *how much of the C/LLVM compiler has been
