@@ -125,6 +125,13 @@ docs/137(레드팀 계약서)·docs/166(프로덕션 바)과 같은 계열이며
   passthrough·WASM 간접) / ABSENT 7(**증분 컴파일**·핫리로드·docgen·
   프로파일러·compile_commands·유저 sanitizer). 개발자-대면 도구는 성숙
   언어급, 갭은 빌드-스케일(증분)과 생태계 축.
+- **레드팀 2차 — C-컴파일러 렌즈 (2026-07-18, docs/189)**: 축2/축4
+  부족분의 새 세목 14건. 급소 Top: Float→Int 무가드(양 백엔드
+  UB/poison), `.bc` 트윈 4건(플래그 divergence·strip 갭·freshness
+  불완전·로컬-CI 구성 비대칭), semantic 종료 계약 부재(파서 400 vs 0),
+  TSan 전무, Channel let-복사 열림. 반증거로 코어 동기화(seq_cst
+  eventcount ARM-정합)·할당 위생(realloc 오용 0)·aliasing 구조 봉쇄는
+  **공격 실패 확인**. "약점 세목" 질문은 docs/189가 이 원장의 부속.
 
 ## Related
 
