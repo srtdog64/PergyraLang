@@ -19,6 +19,18 @@ ownership_destructure_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static uint32_t
+ownership_destructure_binding_syntax_id(const ASTNode *node,
+                                        size_t binding_index)
+{
+    uint32_t field_id;
+
+    if (node == NULL)
+        return 0;
+    field_id = ast_let_destructure_binding_stable_id(node, binding_index);
+    return field_id != 0 ? field_id : ast_node_stable_id(node);
+}
+
 static bool
 type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                                 SemanticContext *ctx)
@@ -40,25 +52,29 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
             return false;
         }
         for (size_t i = 0; i < binds; i++) {
+            const char *binding_name = ast_let_destructure_name(node, i);
             Type *elem = type_tuple_get_element(init_type, i);
             if (init != NULL) {
                 semantic_validate_borrowed_escape(
                     node, init, ctx, init_type, NULL,
                     OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
-                    ast_let_destructure_name(node, i), NULL,
+                    binding_name, NULL,
                     false, NULL, NULL);
             }
             Symbol *s = symbol_create_variable(
-                ast_let_destructure_name(node, i),
+                binding_name,
                 elem != NULL ? elem : TYPE_UNKNOWN,
                 node->line, node->column);
-            symbol_mark_declaration(s, ast_node_stable_id(node), false);
+            symbol_mark_declaration(s,
+                ownership_destructure_binding_syntax_id(
+                    node, i), false);
             scope_declare(ctx->scope, s);
         }
         return true;
     }
 
     for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
+        const char *binding_name = ast_let_destructure_name(node, i);
         Type *elem_type = TYPE_UNKNOWN;
         if (type_is_constructed_named(init_type, "Array")
             || type_is_constructed_named(init_type, "Slice")) {
@@ -68,13 +84,15 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
             semantic_validate_borrowed_escape(
                 node, init, ctx, init_type, NULL,
                 OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
-                ast_let_destructure_name(node, i), NULL,
+                binding_name, NULL,
                 false, NULL, NULL);
         }
         Symbol *s = symbol_create_variable(
-            ast_let_destructure_name(node, i), elem_type,
+            binding_name, elem_type,
             node->line, node->column);
-        symbol_mark_declaration(s, ast_node_stable_id(node), false);
+        symbol_mark_declaration(s,
+            ownership_destructure_binding_syntax_id(
+                node, i), false);
         scope_declare(ctx->scope, s);
     }
 
@@ -120,6 +138,9 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     ast_let_destructure_name(node, 1);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     true, token_name, node->line, node->column);
+                symbol_mark_declaration(slot_sym,
+                    ownership_destructure_binding_syntax_id(
+                        node, 0), false);
                 scope_declare(ctx->scope, slot_sym);
                 Symbol *tok_sym = symbol_create_token(token_name,
                     slot_name, node->line, node->column);
@@ -128,6 +149,9 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     tok_sym->type = type_create_constructed(TYPE_TOKEN,
                         token_args, 1);
                 }
+                symbol_mark_declaration(tok_sym,
+                    ownership_destructure_binding_syntax_id(
+                        node, 1), false);
                 if (!scope_declare(ctx->scope, tok_sym))
                     symbol_destroy(tok_sym);
                 scope_register_slot(ctx->scope, slot_sym);
@@ -138,6 +162,9 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     ast_let_destructure_name(node, 0);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     false, NULL, node->line, node->column);
+                symbol_mark_declaration(slot_sym,
+                    ownership_destructure_binding_syntax_id(
+                        node, 0), false);
                 scope_declare(ctx->scope, slot_sym);
                 scope_register_slot(ctx->scope, slot_sym);
                 return true;

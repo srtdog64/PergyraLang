@@ -7,17 +7,34 @@ import "driver_rung2_owner.pgy";
 
 func Main() -> Void with caps env, io_read, io_write {
     let args: Array<String> = Args();
+    let machine_declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationEmpty();
     if ArrayLength(args) == 2 {
-        WriteFile(args[1], CompileSourceToCVerified(args[0]).payload);
+        WriteFile(
+            args[1],
+            CompileSourceToCVerified(
+                args[0], machine_declaration
+            ).payload
+        );
         return;
     }
     if ArrayLength(args) == 3 &&
         args[0] == "--emit-mir-json-verified" {
-        WriteFile(args[2], CompileSourceToMirJsonVerified(args[1]));
+        WriteFile(
+            args[2],
+            CompileSourceToMirJsonVerified(
+                args[1], machine_declaration
+            )
+        );
         return;
     }
     if ArrayLength(args) == 3 && args[0] == "--mir-json" {
-        WriteFile(args[2], CompileMirJsonToCVerified(args[1]).payload);
+        WriteFile(
+            args[2],
+            CompileMirJsonToCVerified(
+                args[1], machine_declaration
+            ).payload
+        );
         return;
     }
     Die("bootstrap driver requires source/output or MIR mode/input/output");

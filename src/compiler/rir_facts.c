@@ -202,6 +202,7 @@ add_resource_fact(RIRScope *scope,
                   const char *name,
                   ASTNode *type_node,
                   RIRResourceState state,
+                  uint32_t declaration_syntax_id,
                   ASTNode *ast)
 {
     RIRResourceKind kind = resource_kind_from_type(scope->program_root,
@@ -224,7 +225,7 @@ add_resource_fact(RIRScope *scope,
     fact.state = state;
     /* Capture the source identity at the RIR collection boundary.  Flow
      * enrichment consumes this typed field; it must not reopen fact->ast. */
-    fact.declaration_syntax_id = ast != NULL ? ast_node_stable_id(ast) : 0;
+    fact.declaration_syntax_id = declaration_syntax_id;
     fact.ast = ast;
     return scope_add_fact(scope, fact);
 }

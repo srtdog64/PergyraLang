@@ -1,20 +1,37 @@
 #ifndef PERGYRA_RUNTIME_PGY_PARALLEL_POOL_LIFECYCLE_H
 #define PERGYRA_RUNTIME_PGY_PARALLEL_POOL_LIFECYCLE_H
 
+/* Spare-worker headroom per pool (WO-RT-5 compensation): up to 4 extra
+ * runners per configured worker may be spawned by blocked channel waits.
+ * Beyond the cap a blocked wait degrades to the plain quantum park -- that
+ * residue is recorded on the board; the fiber lane is its candidate. */
+#ifndef PGY_POOL_SPARE_FACTOR
+#define PGY_POOL_SPARE_FACTOR 4
+#endif
+
 /* Caller holds the pool lifecycle mutex. On failure the pool is zeroed. */
 static inline bool
 pgy_pool_structure_init(PgyThreadPool *pool, size_t worker_count,
                         const char *op)
 {
-    if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))
+    size_t slot_headroom = worker_count * (PGY_POOL_SPARE_FACTOR + 1);
+
+    if (slot_headroom / (PGY_POOL_SPARE_FACTOR + 1) != worker_count
+        || !pgy_parallel_array_fits(slot_headroom, sizeof(pthread_t))
         || !pgy_parallel_array_fits(worker_count, sizeof(PgyTaskShard))
-        || !pgy_parallel_array_fits(worker_count, sizeof(PgyPoolWorkerSlot))) {
+        || !pgy_parallel_array_fits(slot_headroom, sizeof(PgyPoolWorkerSlot))) {
         pgy_parallel_warn(op, "worker array size overflow");
         return false;
     }
 
     memset(pool, 0, sizeof(*pool));
+    atomic_init(&pool->spare_count, 0);
+    atomic_init(&pool->push_cursor, 0);
+    atomic_init(&pool->steal_cursor, 0);
+    atomic_init(&pool->pending, 0);
+    atomic_init(&pool->sleepers, 0);
     pool->worker_count = worker_count;
+    pool->max_spares = worker_count * PGY_POOL_SPARE_FACTOR;
     pool->shard_count = worker_count;
     if (pthread_mutex_init(&pool->queue_mutex, NULL) != 0) {
         pgy_parallel_warn(op, "queue mutex initialization failed");
@@ -29,9 +46,10 @@ pgy_pool_structure_init(PgyThreadPool *pool, size_t worker_count,
     }
 
     pool->shards = (PgyTaskShard *)calloc(worker_count, sizeof(PgyTaskShard));
-    pool->workers = (pthread_t *)calloc(worker_count, sizeof(pthread_t));
+    /* Headroom for compensation spares so they join the same teardown. */
+    pool->workers = (pthread_t *)calloc(slot_headroom, sizeof(pthread_t));
     pool->worker_slots =
-        (PgyPoolWorkerSlot *)calloc(worker_count, sizeof(PgyPoolWorkerSlot));
+        (PgyPoolWorkerSlot *)calloc(slot_headroom, sizeof(PgyPoolWorkerSlot));
     if (pool->shards == NULL || pool->workers == NULL
         || pool->worker_slots == NULL) {
         pgy_parallel_warn(op, "worker array allocation failed");
@@ -159,6 +177,66 @@ pgy_pool_help_run_one(void)
     return true;
 }
 
+/* Compensation for UNBOUNDED channel waits (WO-RT-5, ForkJoin managedBlock
+ * shape): a pool task parked on a channel occupies its thread, and with
+ * every pool thread so parked, a queued task that would unblock them can
+ * never run -- the channel edition of the WO-RT-3 starvation class,
+ * witnessed RED by tests/channel_pool_starvation_probe.sh. Running a queued
+ * task INLINE on the parked thread was tried first and REFUTED by the
+ * backpressure gate: channel dependencies are cyclic, so the helped consumer
+ * can nest above the parked producer it depends on and self-deadlock the
+ * thread. Instead, each park quantum of a blocked pool task checks whether
+ * the pool still has an idle runner; if not (and work is queued), it spawns
+ * one capacity-bounded spare worker. No nesting, so no cyclic-dependency
+ * trap; the 10ms quantum makes it self-healing for work that arrives while
+ * everyone is blocked. Beyond the spare cap the wait degrades to the plain
+ * quantum park -- that residue is on the board; the fiber lane (docs/187
+ * memo 1) remains its candidate. */
+static inline void
+pgy_pool_spawn_spare_locked(PgyThreadPool *pool)
+{
+    size_t spare = atomic_load_explicit(&pool->spare_count,
+                                        memory_order_relaxed);
+    size_t idx;
+
+    if (spare >= pool->max_spares)
+        return;
+    idx = pool->worker_count + spare;
+    pool->worker_slots[idx].pool = pool;
+    pool->worker_slots[idx].index = idx % pool->shard_count;
+    if (pthread_create(&pool->workers[idx], NULL, pgy_worker_loop,
+                       &pool->worker_slots[idx]) != 0) {
+        pgy_parallel_warn("channel-blocked",
+            "compensation worker creation failed; wait degrades to park");
+        return;
+    }
+    atomic_store_explicit(&pool->spare_count, spare + 1,
+                          memory_order_release);
+}
+
+static inline void
+pgy_pool_channel_blocked_tick(void)
+{
+    if (g_pgy_pool_task_depth <= 0)
+        return;   /* not inside a pool task; pool parallelism unaffected */
+    if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire))
+        return;
+    if (atomic_load_explicit(&g_pgy_pool.sleepers, memory_order_seq_cst) != 0)
+        return;   /* an idle runner exists; enqueue signals reach it */
+    if (atomic_load_explicit(&g_pgy_pool.pending, memory_order_seq_cst) == 0)
+        return;   /* nothing queued for a spare to run */
+    if (atomic_load_explicit(&g_pgy_pool.spare_count, memory_order_acquire)
+        >= g_pgy_pool.max_spares)
+        return;
+
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)
+        && !atomic_load_explicit(&g_pgy_pool_shutting_down,
+                                 memory_order_acquire))
+        pgy_pool_spawn_spare_locked(&g_pgy_pool);
+    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+}
+
 static inline void
 pgy_pool_init(size_t worker_count)
 {
@@ -200,7 +278,11 @@ pgy_pool_shutdown(void)
     pthread_mutex_unlock(&g_pgy_pool.queue_mutex);
 
     pthread_t *workers = g_pgy_pool.workers;
-    size_t worker_count = g_pgy_pool.worker_count;
+    /* Spares join the same teardown; no new spare can spawn once the
+     * lifecycle flags above are set (the blocked tick re-checks them under
+     * this same mutex), so this count is final. */
+    size_t worker_count = g_pgy_pool.worker_count
+        + atomic_load_explicit(&g_pgy_pool.spare_count, memory_order_acquire);
     pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 
     for (size_t i = 0; i < worker_count; i++)

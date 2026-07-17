@@ -504,6 +504,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         node->data.let_destructure.names = NULL;
         node->data.let_destructure.name_count = 0;
         node->data.let_destructure.name_capacity = 0;
+        node->data.let_destructure.field_bindings = NULL;
         node->data.let_destructure.initializer = NULL;
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {

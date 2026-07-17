@@ -294,6 +294,7 @@ struct FuncParam {
  * Class field
  */
 struct ClassField {
+    uint32_t       stable_id;    /* declaration identity assigned with the AST */
     char*          name;
     ASTNode*       type;
     AccessModifier access;

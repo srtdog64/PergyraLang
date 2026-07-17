@@ -46,19 +46,50 @@ func ApplyPostfixFact(
         let nc: String = ParserCharAt(content, after_ws);
         if nc == "<" {
             // First prove this is a call suffix. Comparison `<` remains owned
-            // by precedence parsing and is never consumed here.
+            // by precedence parsing and is never consumed here. The probe is
+            // lexical and local: it must not search through an expression for
+            // an unrelated later `>(` pair.
             let tf: Int = after_ws + 1;
             let tf_depth: Int = 1;
             let tf_ok: Bool = false;
-            while tf < StringLength(content) && tf_depth > 0 {
-                if ParserCharAt(content, tf) == "<" {
+            let tf_first: Int = SkipWhitespaceAndComments(content, tf);
+            let tf_scanning: Bool = IsAlpha(
+                ParserCharAt(content, tf_first)
+            ) || (ParserCharAt(content, tf_first) == "(" &&
+                ParserCharAt(content, tf_first + 1) == ")");
+            while tf_scanning && tf < StringLength(content) &&
+                tf_depth > 0 {
+                let tf_after_trivia: Int =
+                    SkipWhitespaceAndComments(content, tf);
+                if tf_after_trivia > tf {
+                    tf = tf_after_trivia;
+                    continue;
+                }
+                let tc: String = ParserCharAt(content, tf);
+                if tc == "<" {
                     tf_depth = tf_depth + 1;
-                } else if ParserCharAt(content, tf) == ">" {
+                } else if tc == ">" {
                     tf_depth = tf_depth - 1;
+                } else if IsAlphaNum(tc) || tc == "," {
+                    // Written type-name surface.
+                } else if tc == "(" &&
+                    ParserCharAt(content, tf + 1) == ")" {
+                    // Written Void type `()`.
+                    tf = tf + 1;
+                } else if tc == "&" &&
+                    ParserCharAt(content, tf + 1) != "&" {
+                    // Type intersection.
+                } else if tc == "-" &&
+                    ParserCharAt(content, tf + 1) == ">" {
+                    // Function-type arrow; its `>` does not close the
+                    // surrounding generic actual list.
+                    tf = tf + 1;
+                } else {
+                    tf_scanning = false;
                 }
                 tf = tf + 1;
             }
-            if tf_depth == 0 {
+            if tf_scanning && tf_depth == 0 {
                 let after_gt: Int = SkipWhitespaceAndComments(content, tf);
                 if ParserCharAt(content, after_gt) == "(" {
                     tf_ok = true;
@@ -390,6 +421,40 @@ func ParserExpressionCallGraphContractReady() -> Bool {
 }
 
 func ParserExpressionExplicitGenericCallGraphContractReady() -> Bool {
+    let comparison_source: String =
+        "index.a[row] < 0 || (index.b[row] > (state_count))";
+    let comparison_cursor: Array<Int> = [0];
+    let comparison_fact: ParserExpressionFact = ParseExprFact(
+        comparison_source, 0, comparison_cursor
+    );
+    if !comparison_fact.ok ||
+        comparison_cursor[0] != StringLength(comparison_source) ||
+        comparison_fact.arena.node_kinds[comparison_fact.root] !=
+            AstExpressionNodeLogicalOr() {
+        return false;
+    }
+    let comparison_left: Int =
+        comparison_fact.arena.left_children[comparison_fact.root];
+    let comparison_right: Int =
+        comparison_fact.arena.right_children[comparison_fact.root];
+    if comparison_fact.arena.node_kinds[comparison_left] !=
+            AstExpressionNodeLess() ||
+        comparison_fact.arena.node_kinds[comparison_right] !=
+            AstExpressionNodeGreater() {
+        return false;
+    }
+
+    let void_source: String = "Make<()>()";
+    let void_cursor: Array<Int> = [0];
+    let void_fact: ParserExpressionFact = ParseExprFact(
+        void_source, 0, void_cursor
+    );
+    if !void_fact.ok || void_cursor[0] != StringLength(void_source) ||
+        void_fact.arena.node_kinds[void_fact.root] !=
+            AstExpressionNodeCall() {
+        return false;
+    }
+
     let source: String = "Pair<Array<Int>, String>(values)";
     let cursor: Array<Int> = [0];
     let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);

@@ -9,7 +9,8 @@
 
 static void
 class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
-                           Type *field_type, ASTNode *node)
+                           Type *field_type, uint32_t declaration_syntax_id,
+                           ASTNode *node)
 {
     Symbol *field_sym;
 
@@ -24,6 +25,7 @@ class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
         if (slot_sym == NULL)
             return;
 
+        symbol_mark_declaration(slot_sym, declaration_syntax_id, false);
         scope_declare(ctx->scope, slot_sym);
         scope_register_slot(ctx->scope, slot_sym);
         return;
@@ -31,8 +33,10 @@ class_declare_field_symbol(SemanticContext *ctx, const char *field_name,
 
     field_sym = symbol_create_variable(field_name, field_type,
         node->line, node->column);
-    if (field_sym != NULL)
+    if (field_sym != NULL) {
+        symbol_mark_declaration(field_sym, declaration_syntax_id, false);
         scope_declare(ctx->scope, field_sym);
+    }
 }
 
 static const char *
@@ -242,7 +246,8 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
                     fields[i].name);
             }
         }
-        class_declare_field_symbol(ctx, fields[i].name, field_type, node);
+        class_declare_field_symbol(ctx, fields[i].name, field_type,
+                                   fields[i].declaration_syntax_id, node);
     }
     pgy_decl_field_model_free(fields, field_count);
 

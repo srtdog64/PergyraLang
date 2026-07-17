@@ -274,6 +274,19 @@ struct PgyThreadPool {
     pthread_t         *workers;
     PgyPoolWorkerSlot *worker_slots;
     size_t             worker_count;
+    /* Compensation workers (WO-RT-5, the ForkJoin managedBlock idea): when a
+     * pool task parks in an UNBOUNDED channel wait it occupies its thread,
+     * and with every thread so parked a queued task that would unblock them
+     * can never run. Running that task inline on the parked thread was tried
+     * and REFUTED (producer/consumer channel deps are cyclic: the helped
+     * consumer nests above the parked producer it depends on -- witnessed by
+     * the backpressure gate). Instead the blocked thread spawns one spare
+     * worker, capacity-bounded below, so the pool keeps draining without
+     * stack nesting. Spares run the normal worker loop, park when idle, and
+     * retire at shutdown. workers/worker_slots are allocated with headroom
+     * for the cap so spares join the same teardown path. */
+    atomic_size_t      spare_count;   /* spawned spares (<= max_spares) */
+    size_t             max_spares;
     PgyTaskShard      *shards;
     size_t             shard_count;
     atomic_size_t      push_cursor;   /* producer round-robin over shards */
@@ -293,6 +306,12 @@ static atomic_bool   g_pgy_pool_active = false;
 static atomic_bool   g_pgy_pool_shutting_down = false;
 static pthread_mutex_t g_pgy_pool_lifecycle_mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread PgyTask *g_pgy_thread_current = NULL;
+/* How many pool tasks this thread is currently nested inside (a worker's
+ * top-level run counts 1; every help-run adds 1). A blocked channel wait
+ * compensates (spawns a spare worker) only when this thread is actually
+ * inside a pool task -- main blocking outside any task does not shrink the
+ * pool's parallelism, so it does not compensate. */
+static __thread int g_pgy_pool_task_depth = 0;
 
 /* Forward declaration — blocking pool shutdown called from pgy_pool_shutdown */
 static inline void pgy_blocking_pool_shutdown(void);
@@ -408,7 +427,9 @@ pgy_pool_run_task(PgyTask *task)
 
     prev = g_pgy_thread_current;
     g_pgy_thread_current = task;
+    g_pgy_pool_task_depth++;
     result = task->fn(task->arg);
+    g_pgy_pool_task_depth--;
     g_pgy_thread_current = prev;
 
     pthread_mutex_lock(&task->mutex);

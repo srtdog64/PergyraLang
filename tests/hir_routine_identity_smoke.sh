@@ -27,6 +27,15 @@ require_text() {
     fi
 }
 
+reject_text() {
+    local file="$1"
+    local text="$2"
+    if grep -Fq -- "$text" "$ROOT_DIR/$file"; then
+        echo "[hir-routine-identity] forbidden $file path returned: $text" >&2
+        exit 1
+    fi
+}
+
 reject_name_join() {
     local file="$1"
     if grep -Eq 'hir_(lookup|build)_routine_(index_)?by_name|direct_calls\[[^]]+\]' "$file"; then
@@ -55,7 +64,19 @@ require_text "src/compiler/rir.h" "uint32_t      source_syntax_id;"
 require_text "src/compiler/rir_flow.c" \
     "Source-backed HIR routines must not fall back to a name join"
 require_text "src/compiler/rir_flow.c" \
-    "RIR resource fact has no matching HIR stable identity"
+    "RIR resource fact has no matching ResourceFlow stable identity"
+require_text "src/parser/ast_identity.c" \
+    "field->stable_id = ast_take_stable_id(next_id);"
+require_text "src/semantic/type_checker_class_decl.c" \
+    "fields[i].declaration_syntax_id"
+require_text "src/semantic/type_checker_ownership_destructure.c" \
+    "ownership_destructure_binding_syntax_id"
+require_text "src/semantic/type_checker_ownership_destructure.c" \
+    "ast_let_destructure_binding_stable_id"
+reject_text "src/semantic/type_checker_ownership_destructure.c" \
+    "ast_class_fields("
+reject_text "src/semantic/type_checker_ownership_destructure.c" \
+    "pgy_class_decl_field_declaration_syntax_id"
 require_text "src/compiler/rir_builder.c" "case AST_ROLE_DECL:"
 require_text "src/compiler/rir_builder.c" "ast_impl_ability_method_count"
 require_text "src/compiler/rir_validation.c" \

@@ -21,6 +21,7 @@
 #include "pgy_runtime_channel_lifecycle_inline.h"
 #include "pgy_runtime_channel_result_inline.h"
 #include "pgy_runtime_cancel_probe.h"
+#include "pgy_parallel.h"
 
 /* Cancellable parked waits (docs/182 SS2.2): the unbounded blocking
  * ops sleep in short quanta and re-check the cancellation probe, so a
@@ -30,6 +31,19 @@
  * their give, lose the CAS, and retire. Timeout variants already
  * self-unblock by deadline and keep their exact shape. */
 #define PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS 10000000ULL
+
+/* Compensated channel waits (WO-RT-5): each park quantum of an UNBOUNDED
+ * wait inside a pool task lets the pool spawn a capacity-bounded spare
+ * worker when no idle runner remains -- a parked channel wait occupies its
+ * thread, and with every pool thread parked on receives a queued sender
+ * could never run (starvation class witnessed by
+ * tests/channel_pool_starvation_probe.sh). Running the queued task INLINE
+ * here instead was refuted by the backpressure gate: channel deps are
+ * cyclic, so the helped task can nest above the parked op it depends on.
+ * Timeout variants are excluded: they self-unblock by deadline. */
+#ifndef PGY_CHANNEL_BLOCKED_TICK
+#define PGY_CHANNEL_BLOCKED_TICK() pgy_pool_channel_blocked_tick()
+#endif
 
 /* Lifecycle guard (docs/179 3a; V1 bug class #8-R): an operation on a
  * NULL or uninitialized channel is a contract VIOLATION, never a contract
@@ -154,15 +168,22 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
             pgy_async_yield(); \
             pthread_mutex_lock(&ch->mutex); \
         } else { \
-            struct timespec _pgy_q = \
-                pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS); \
-            int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full, \
-                                                 &ch->mutex, &_pgy_q); \
-            if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) { \
-                pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
-                    "not-full condition wait failed"); \
-                pthread_mutex_unlock(&ch->mutex); \
-                return false; \
+            pthread_mutex_unlock(&ch->mutex); \
+            if (!pgy_async_progress_one()) { \
+                PGY_CHANNEL_BLOCKED_TICK(); \
+                pthread_mutex_lock(&ch->mutex); \
+                struct timespec _pgy_q = \
+                    pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS); \
+                int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full, \
+                                                     &ch->mutex, &_pgy_q); \
+                if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) { \
+                    pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
+                        "not-full condition wait failed"); \
+                    pthread_mutex_unlock(&ch->mutex); \
+                    return false; \
+                } \
+            } else { \
+                pthread_mutex_lock(&ch->mutex); \
             } \
         } \
     } \
@@ -324,6 +345,7 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
         } else { \
             pthread_mutex_unlock(&ch->mutex); \
             if (!pgy_async_progress_one()) { \
+                PGY_CHANNEL_BLOCKED_TICK(); \
                 pthread_mutex_lock(&ch->mutex); \
                 struct timespec _pgy_q = \
                     pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS); \

@@ -1,5 +1,6 @@
 #include "rir.h"
 #include "rir_internal.h"
+#include "decl_field_model.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -47,16 +48,23 @@ rir_collect_func_scope(RIRProgram *rir,
      * runtime ABI layout that a function-local slot binding would. Non-slot
      * fields produce no fact (add_resource_fact skips unknown kinds). */
     if (owner_decl != NULL && owner_decl->type == AST_CLASS_DECL) {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(owner_decl, &field_count);
+        PgyDeclField *fields = NULL;
+        size_t field_count =
+            pgy_class_decl_field_model_build(owner_decl, &fields);
         for (size_t i = 0; i < field_count; i++) {
-            ClassField *field = fields != NULL ? fields[i] : NULL;
-            if (field == NULL || field->name == NULL || field->type == NULL)
+            PgyDeclField *field = fields != NULL ? &fields[i] : NULL;
+            if (field == NULL || field->name == NULL
+                || field->type_ast == NULL)
                 continue;
-            if (!add_resource_fact(&scope, field->name, field->type,
-                                   RIR_STATE_OWNED, owner_decl))
+            if (!add_resource_fact(&scope, field->name, field->type_ast,
+                                   RIR_STATE_OWNED,
+                                   field->declaration_syntax_id,
+                                   owner_decl)) {
+                pgy_decl_field_model_free(fields, field_count);
                 goto oom;
+            }
         }
+        pgy_decl_field_model_free(fields, field_count);
     }
 
     if (!rir_walk_node(&scope, ast_func_body(func))) {

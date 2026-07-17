@@ -179,11 +179,16 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAs
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToCVerified(args[0]).payload)"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[0], machine_declaration"
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified(args[0])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--emit-mir-json-verified"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[2], CompileSourceToMirJsonVerified(args[1]))"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonVerified("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "args[1], machine_declaration"
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToMirJsonVerified(args[1])"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'args[0] == "--mir-json"'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[2], CompileMirJsonToCVerified(args[1]).payload)"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified("
+forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileMirJsonToCVerified(args[1])"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"

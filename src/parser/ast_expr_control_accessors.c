@@ -239,6 +239,19 @@ ast_let_destructure_name(const ASTNode* node, size_t index)
     return node->data.let_destructure.names[index];
 }
 
+uint32_t
+ast_let_destructure_binding_stable_id(const ASTNode* node, size_t index)
+{
+    ClassField *field;
+
+    if (node == NULL || node->type != AST_LET_DESTRUCTURE
+        || index >= node->data.let_destructure.name_count
+        || node->data.let_destructure.field_bindings == NULL)
+        return 0;
+    field = node->data.let_destructure.field_bindings[index];
+    return field != NULL ? field->stable_id : 0;
+}
+
 ASTNode*
 ast_let_destructure_initializer(const ASTNode* node)
 {

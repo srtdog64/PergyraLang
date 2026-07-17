@@ -31,6 +31,7 @@ bool add_resource_fact(RIRScope *scope,
                        const char *name,
                        ASTNode *type_node,
                        RIRResourceState state,
+                       uint32_t declaration_syntax_id,
                        ASTNode *ast);
 bool add_param_resource_fact(RIRScope *scope, const char *name, ASTNode *type_node, ASTNode *ast);
 bool add_domain_slot_fact(RIRScope *scope, ASTNode *slot);

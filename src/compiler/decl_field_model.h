@@ -20,6 +20,7 @@
  * is deliberately absent here.
  */
 typedef struct {
+    uint32_t        declaration_syntax_id;
     const char     *name;
     ASTNode        *type_ast;            /* type carrier; lossless rendering is F1-gated */
     AccessModifier  access;

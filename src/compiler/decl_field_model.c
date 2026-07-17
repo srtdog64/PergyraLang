@@ -27,6 +27,7 @@ pgy_class_decl_field_model_build(const ASTNode *class_decl, PgyDeclField **out)
         ClassField *f = (fields != NULL) ? fields[i] : NULL;
         if (f == NULL)
             continue;
+        model[i].declaration_syntax_id = f->stable_id;
         model[i].name                = f->name;
         model[i].type_ast            = f->type;
         model[i].access              = f->access;
@@ -81,7 +82,8 @@ pgy_class_decl_field_model_drift(const ASTNode *class_decl)
         PgyDeclField *m = &model[i];
         if (f == NULL)
             continue;
-        if (m->name != f->name
+        if (m->declaration_syntax_id != f->stable_id
+            || m->name != f->name
             || m->type_ast != f->type
             || m->access != f->access
             || m->has_explicit_access != f->has_explicit_access

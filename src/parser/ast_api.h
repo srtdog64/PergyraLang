@@ -96,6 +96,8 @@ bool ast_let_is_mutable(const ASTNode* node);
 bool ast_let_is_alias(const ASTNode* node);
 size_t ast_let_destructure_name_count(const ASTNode* node);
 const char* ast_let_destructure_name(const ASTNode* node, size_t index);
+uint32_t ast_let_destructure_binding_stable_id(
+    const ASTNode* node, size_t index);
 ASTNode* ast_let_destructure_initializer(const ASTNode* node);
 ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type);
 const char* ast_type_alias_name(const ASTNode* node);

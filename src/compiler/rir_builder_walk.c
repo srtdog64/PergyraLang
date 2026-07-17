@@ -215,6 +215,7 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                                    name,
                                    ast_let_type(node),
                                    state,
+                                   ast_node_stable_id(node),
                                    node))
                 return false;
             return rir_walk_node(scope, initializer);
@@ -225,6 +226,7 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                                    ast_with_alias(node),
                                    ast_with_slot_type(node),
                                    RIR_STATE_OWNED,
+                                   ast_node_stable_id(node),
                                    node))
                 return false;
             if (!add_op(scope, RIR_OP_CLAIM,

@@ -117,6 +117,10 @@ struct ASTNode
             char**   names;
             size_t   name_count;
             size_t   name_capacity;
+            /* Non-owning parser relation for class-body destructuring. Each
+             * entry names the placeholder ClassField that owns the binding's
+             * declaration identity; local destructuring leaves this NULL. */
+            ClassField** field_bindings;
             ASTNode* initializer;
         } let_destructure;
         

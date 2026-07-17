@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
 #
-# channel_pool_starvation_probe.sh -- EVIDENCE PROBE (not a pass/fail feature
-# gate) for the channel edition of the WO-RT-3 pool-starvation class, and the
-# measured basis for the B4 decision memo (docs/187 memo 1).
+# channel_pool_starvation_probe.sh -- HARD GATE for the channel edition of
+# the WO-RT-3 pool-starvation class (WO-RT-5).
 #
 # Class: THREAD-model channel waits park the OS thread in cancellation-quantum
-# pthread_cond_timedwait (pgy_runtime_channel_inline.h) -- a parked task
-# OCCUPIES its worker, and unlike pgy_await there is no help-first drain. If
-# every worker (and main, via help running INTO a parking task) is parked on
-# channel recv while the would-be sender is still QUEUED, nothing progresses.
-# Help-first await does NOT close this class: help runs a queued task to
-# completion on the helping thread, so helping into a receiver parks the
-# helper too.
+# pthread_cond_timedwait -- a parked task OCCUPIES its worker, and (pre-fix)
+# there was no help-first drain: with every worker and the helping main parked
+# on channel recv while the would-be sender was still QUEUED, nothing
+# progressed. Witnessed RED on both backends 2026-07-17 (this file's original
+# evidence-probe form, `79eb26b5`); help-first await alone could NOT close it
+# because helping into a receiver parked the helper too.
 #
-# Probe contract (asserts the DOCUMENTED state, fail-closed on change):
-#   control fixture completes  -> required GREEN (harness validity);
-#   starvation fixture times out -> documented gap holds, exit 0;
-#   starvation fixture COMPLETES -> exit 1: the class got fixed -- flip this
-#     probe into a hard gate (expect total=28) and update the board WO.
+# Fixed by capacity-bounded compensation workers. Before each 10ms park
+# quantum, a blocked pool task calls pgy_pool_channel_blocked_tick(). If work
+# is pending and no pool runner is idle, the lifecycle owner spawns a spare
+# that runs the normal queue loop. The tick is idempotent and rechecks under
+# the lifecycle mutex, so work arriving after an earlier empty observation
+# self-heals on the next quantum. Beyond the spare cap the wait degrades to
+# the plain quantum park; the fiber lane remains that residue's candidate.
 #
-# Deterministic shape (PGY_WORKERS=2, arms form, 7 recv arms then 7 send
-# arms): the two workers and the helping main all pick receiver arms first
-# (receivers occupy every shard head) and park; the send arms sit queued
-# behind them. No cancellation is in flight, so the cancellation quanta
-# re-arm forever.
+# Gate contract: BOTH fixtures must complete with their exact totals within
+# the timeout on both backends. A timeout here is the starvation class
+# regressing -- fail closed.
+#
+# Deterministic pre-fix shape (PGY_WORKERS=2, arms form, 7 recv arms then 7
+# send arms): workers and the helping main all picked receiver arms first and
+# parked; the send arms sat queued behind them forever.
 #
 # Usage: PGY_BIN=bin/pgy.exe bash tests/channel_pool_starvation_probe.sh
 set -euo pipefail
@@ -35,6 +37,43 @@ pgy_prepend_windows_runtime_paths
 LABEL="channel-pool-starvation"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY="$(pgy_select_optional_exe_binary "$PGY")"
+
+require_runtime_term() {
+    local rel="$1"
+    local term="$2"
+    if ! grep -Fq "$term" "$ROOT_DIR/$rel"; then
+        echo "[$LABEL] missing runtime contract in $rel: $term" >&2
+        exit 1
+    fi
+}
+
+require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
+    "pgy_pool_channel_blocked_tick(void)"
+require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
+    "atomic_init(&pool->spare_count, 0);"
+require_runtime_term "src/runtime/pgy_parallel_pool_lifecycle.h" \
+    "+ atomic_load_explicit(&g_pgy_pool.spare_count"
+require_runtime_term "src/runtime/pgy_runtime.h" \
+    "#include \"pgy_parallel.h\""
+require_runtime_term "src/runtime/pgy_runtime_channel_inline.h" \
+    "#include \"pgy_parallel.h\""
+require_runtime_term "src/runtime/pgy_runtime_channel_inline.h" \
+    "PGY_CHANNEL_BLOCKED_TICK();"
+require_runtime_term "src/runtime/pgy_runtime_channel_string_inline.h" \
+    "#include \"pgy_parallel.h\""
+require_runtime_term "src/runtime/pgy_runtime_channel_string_inline.h" \
+    "PGY_CHANNEL_BLOCKED_TICK();"
+if grep -R -Fq '#define PGY_CHANNEL_BLOCKED_TICK() ((void)0)' \
+        "$ROOT_DIR/src/runtime"; then
+    echo "[$LABEL] silent no-op compensation fallback reappeared" >&2
+    exit 1
+fi
+if grep -R -E -q "PGY_CHANNEL_POOL_HELP_ONE|pgy_pool_channel_wait_help_one" \
+        "$ROOT_DIR/src/runtime"; then
+    echo "[$LABEL] removed inline-help channel path reappeared" >&2
+    exit 1
+fi
+
 if [[ ! -x "$PGY" ]]; then
     echo "[$LABEL] SKIP missing compiler binary: $PGY"
     exit 0
@@ -165,14 +204,12 @@ for backend in $BACKENDS; do
 
     starve_res="$(PGY_WORKERS=2 run_with_timeout "$starve_bin" "$TIMEOUT_SECONDS")"
     case "$starve_res" in
-        TIMEOUT)
-            echo "[$LABEL] $backend/starvation: DOCUMENTED GAP holds (parked" \
-                 "channel waits starve the pool within ${TIMEOUT_SECONDS}s)"
-            ;;
         "COMPLETED rc=0 total=28")
-            echo "[$LABEL] $backend/starvation COMPLETED: the class got fixed." >&2
-            echo "[$LABEL] Flip this probe into a hard gate (expect total=28)" \
-                 "and close the board WO." >&2
+            echo "[$LABEL] PASS $backend/starvation (total=28 within ${TIMEOUT_SECONDS}s)"
+            ;;
+        TIMEOUT)
+            echo "[$LABEL] $backend/starvation REGRESSED: channel-parked pool" \
+                 "starvation is back (no exit within ${TIMEOUT_SECONDS}s)" >&2
             exit 1
             ;;
         *)
@@ -182,5 +219,4 @@ for backend in $BACKENDS; do
     esac
 done
 
-echo "[$LABEL] evidence recorded: channel-parked pool starvation is reachable;"
-echo "[$LABEL] fix candidates live in docs/187 memo 1 (help-in-channel-wait vs fiber lane)"
+echo "[$LABEL] blocked channel chains unwind via bounded compensation on both backends"

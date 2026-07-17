@@ -152,6 +152,7 @@ for required_parallel_sync_guard in \
     "worker condition wait failed"; do
     if ! grep -Fq "$required_parallel_sync_guard" \
         "$ROOT_DIR/src/runtime/pgy_parallel.h" \
+        "$ROOT_DIR/src/runtime/pgy_parallel_pool_lifecycle.h" \
         "$ROOT_DIR/src/runtime/pgy_parallel_blocking.h"; then
         echo "[memory-concurrency] parallel runtime missing sync init fail-closed guard: $required_parallel_sync_guard" >&2
         exit 1

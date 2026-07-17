@@ -175,6 +175,7 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.let_destructure.name_count; i++)
                 free(node->data.let_destructure.names[i]);
             free(node->data.let_destructure.names);
+            free(node->data.let_destructure.field_bindings);
             ast_destroy(node->data.let_destructure.initializer);
             break;
 

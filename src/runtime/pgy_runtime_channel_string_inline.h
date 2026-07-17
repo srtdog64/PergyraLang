@@ -14,6 +14,14 @@
 #define PGY_RUNTIME_CHANNEL_STRING_INLINE_H
 
 #include "pgy_runtime_channel_status.h"
+#include "pgy_parallel.h"
+
+/* Compensated channel waits (WO-RT-5) -- self-sufficient twin of the guard
+ * in pgy_runtime_channel_inline.h, so this header does not depend on
+ * include order for the pool hook. */
+#ifndef PGY_CHANNEL_BLOCKED_TICK
+#define PGY_CHANNEL_BLOCKED_TICK() pgy_pool_channel_blocked_tick()
+#endif
 
 /* Storage class for the externally-visible String channel ops (main ops here +
  * the Result adapters in pgy_runtime_channel_string_result_inline.h, included at
@@ -168,15 +176,24 @@ pgy_channel_send_String(PgyChannel_String *ch, char *value)
             pgy_async_yield();
             pthread_mutex_lock(&ch->mutex);
         } else {
-            struct timespec _pgy_q =
-                pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS);
-            int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full,
-                                                 &ch->mutex, &_pgy_q);
-            if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) {
-                pgy_runtime_warn_invalid_channel("send_String",
-                    "not-full condition wait failed");
-                pthread_mutex_unlock(&ch->mutex);
-                return false;
+            /* Capacity-bounded compensation tick (WO-RT-5), twin of the
+             * int-family shape in pgy_runtime_channel_inline.h. */
+            pthread_mutex_unlock(&ch->mutex);
+            if (!pgy_async_progress_one()) {
+                PGY_CHANNEL_BLOCKED_TICK();
+                pthread_mutex_lock(&ch->mutex);
+                struct timespec _pgy_q =
+                    pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS);
+                int _pgy_ws = pthread_cond_timedwait(&ch->cond_not_full,
+                                                     &ch->mutex, &_pgy_q);
+                if (_pgy_ws != 0 && _pgy_ws != ETIMEDOUT) {
+                    pgy_runtime_warn_invalid_channel("send_String",
+                        "not-full condition wait failed");
+                    pthread_mutex_unlock(&ch->mutex);
+                    return false;
+                }
+            } else {
+                pthread_mutex_lock(&ch->mutex);
             }
         }
     }
@@ -358,6 +375,7 @@ pgy_channel_recv_String(PgyChannel_String *ch, char **out)
         } else {
             pthread_mutex_unlock(&ch->mutex);
             if (!pgy_async_progress_one()) {
+                PGY_CHANNEL_BLOCKED_TICK();
                 pthread_mutex_lock(&ch->mutex);
                 struct timespec _pgy_q =
                     pgy_timespec_after_ns(PGY_CHANNEL_CANCEL_WAIT_QUANTUM_NS);

@@ -526,6 +526,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
                 destructure->data.let_destructure.names = NULL;
                 destructure->data.let_destructure.name_count = 0;
                 destructure->data.let_destructure.name_capacity = 0;
+                destructure->data.let_destructure.field_bindings = NULL;
                 destructure->data.let_destructure.initializer = NULL;
 
                 while (!parser_check(parser, TOKEN_RPAREN)
@@ -540,6 +541,18 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
                 }
                 parser_consume(parser, TOKEN_RPAREN,
                     "Expected ')' after class destructuring names");
+                if (destructure->data.let_destructure.name_count != 0) {
+                    destructure->data.let_destructure.field_bindings = calloc(
+                        destructure->data.let_destructure.name_count,
+                        sizeof(ClassField *));
+                    if (destructure->data.let_destructure.field_bindings
+                            == NULL) {
+                        parser_error(parser,
+                            "Out of memory linking class destructuring fields");
+                        ast_destroy(destructure);
+                        return class_decl;
+                    }
+                }
                 parser_consume(parser, TOKEN_ASSIGN,
                     "Expected '=' in class destructuring field");
                 destructure->data.let_destructure.initializer =
@@ -559,7 +572,14 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
                     df->type = NULL;
                     df->access = access;
                     df->has_explicit_access = explicit_access;
-                    parser_append_class_field(parser, class_decl, df);
+                    if (!parser_append_class_field(
+                            parser, class_decl, df)) {
+                        free(df->name);
+                        free(df);
+                        ast_destroy(destructure);
+                        return class_decl;
+                    }
+                    destructure->data.let_destructure.field_bindings[di] = df;
                 }
                 ast_class_append_field_destructure(class_decl, destructure);
 

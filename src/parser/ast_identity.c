@@ -78,8 +78,10 @@ ast_assign_fields(ClassField **fields, size_t count, AstIdentityState *next_id)
 {
     for (size_t i = 0; i < count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL)
-            ast_assign_node(field->type, next_id);
+        if (field == NULL)
+            continue;
+        field->stable_id = ast_take_stable_id(next_id);
+        ast_assign_node(field->type, next_id);
     }
 }
 
@@ -188,6 +190,9 @@ ast_assign_node(ASTNode *node, AstIdentityState *next_id)
     case AST_CLASS_DECL:
         ast_assign_fields(node->data.class_decl.fields,
                           node->data.class_decl.field_count, next_id);
+        ast_assign_array(node->data.class_decl.field_destructures,
+                         node->data.class_decl.field_destructure_count,
+                         next_id);
         ast_assign_decl_methods(node, next_id);
         ast_assign_generic_params(node->data.class_decl.generic_params, next_id);
         ast_assign_where_clause(node->data.class_decl.where_clause, next_id);
