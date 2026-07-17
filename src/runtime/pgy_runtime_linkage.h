@@ -61,4 +61,55 @@
 #  define PGY_RT_DECL static inline
 #endif
 
+/*
+ * Function body for the macro-generated runtime families (PGY_*_DEFINE). A real
+ * #ifndef body guard cannot appear inside a \-continued macro body, so those
+ * families write:
+ *
+ *     PGY_RT_DECL <ret> Name(<params>) PGY_RT_MACRO_BODY({ <body> })
+ *
+ * PGY_RT_MACRO_BODY is variadic, so commas, braces, parentheses, and nested
+ * macro calls in the body pass through untouched. The type definitions such a
+ * macro also emits stay outside the wrapper -- they are needed in every mode,
+ * including DECLS_ONLY. (Bodies containing preprocessor directives cannot use
+ * this wrapper; no runtime macro family has one.)
+ */
+#if defined(PGY_RUNTIME_DECLS_ONLY)
+#  define PGY_RT_MACRO_BODY(...) ;
+#else
+#  define PGY_RT_MACRO_BODY(...) __VA_ARGS__
+#endif
+
+/*
+ * Program-specialized generic families cannot live in the shared runtime
+ * object: their CType/ErrType definitions exist only in the generated TU.
+ * Keep those instantiations local in every runtime linkage mode.
+ */
+#define PGY_RT_PROGRAM_DECL static inline
+#define PGY_RT_PROGRAM_BODY(...) __VA_ARGS__
+
+/*
+ * Storage for a stateful runtime family's file-scope globals, so its state is
+ * a single instance in the linked object rather than one copy per translation
+ * unit. A converted global is written:
+ *
+ *     PGY_RT_GLOBAL <type> name
+ *     #ifndef PGY_RUNTIME_DECLS_ONLY
+ *         = <initializer>
+ *     #endif
+ *     ;
+ *
+ * so the initializer lands only where the global is defined (default / object),
+ * never on the extern declaration the emitted C sees. A whole family's funcs
+ * AND globals must convert together, or an inline func and an extern func would
+ * see two different copies of the state.
+ */
+#if defined(PGY_RUNTIME_DECLS_ONLY)
+#  define PGY_RT_GLOBAL extern
+#elif defined(PGY_RUNTIME_EXTERN_DEFS)
+#  define PGY_RT_GLOBAL /* external-linkage definition */
+#else
+#  define PGY_RT_GLOBAL static
+#endif
+
 #endif /* PGY_RUNTIME_LINKAGE_H */

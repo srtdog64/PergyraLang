@@ -1,10 +1,14 @@
 #ifndef PGY_RUNTIME_SECURITY_LOG_H
 #define PGY_RUNTIME_SECURITY_LOG_H
 
+#include "pgy_runtime_linkage.h"
+
 #include <stdio.h>
 
-static inline void
+PGY_RT_DECL void
 pgy_runtime_fprint_json_string(FILE *out, const char *text)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const unsigned char *p;
 
@@ -46,13 +50,19 @@ pgy_runtime_fprint_json_string(FILE *out, const char *text)
     }
     fputc('"', out);
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_runtime_log_authority_failure(FILE *out,
                                   const char *code,
                                   const char *reason,
                                   const char *zone,
                                   const char *participant)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     fputs("{\"component\":\"authority\",\"event\":\"authority_validation_failed\","
           "\"code\":", out);
@@ -68,5 +78,9 @@ pgy_runtime_log_authority_failure(FILE *out,
                                        : "<participant>");
     fputs("}\n", out);
 }
+#else
+;
+#endif
+
 
 #endif /* PGY_RUNTIME_SECURITY_LOG_H */

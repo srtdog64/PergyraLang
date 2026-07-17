@@ -1,16 +1,49 @@
+#include "pgy_runtime_linkage.h"
 /* =================================================================
  * Log — Type-safe Logging
  * ================================================================= */
 
 #include "../common/string_compat.h"
 
-static inline void pgy_log_int(int32_t v)    { printf("%d\n", v); }
-static inline void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
-static inline void pgy_log_float(float v)    { printf("%f\n", v); }
-static inline void pgy_log_double(double v)  { printf("%lf\n", v); }
-static inline void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
-static inline void
+PGY_RT_DECL void pgy_log_int(int32_t v)    
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ printf("%d\n", v); }
+#else
+;
+#endif
+
+PGY_RT_DECL void pgy_log_long(int64_t v)   
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ printf("%lld\n", (long long)v); }
+#else
+;
+#endif
+
+PGY_RT_DECL void pgy_log_float(float v)    
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ printf("%f\n", v); }
+#else
+;
+#endif
+
+PGY_RT_DECL void pgy_log_double(double v)  
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ printf("%lf\n", v); }
+#else
+;
+#endif
+
+PGY_RT_DECL void pgy_log_bool(bool v)      
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ printf("%s\n", v ? "true" : "false"); }
+#else
+;
+#endif
+
+PGY_RT_DECL void
 pgy_log_string(const char *v)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *msg = (v == NULL ? "(null)" : v);
     fputs(msg, stdout);
@@ -19,13 +52,23 @@ pgy_log_string(const char *v)
         fputc('\n', stdout);
     fflush(stdout);
 }
+#else
+;
+#endif
+
 
 /* Banner/raw log helper: keep multiline payload intact and avoid truncation. */
-static inline void
+PGY_RT_DECL void
 pgy_log_banner(const char *v)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_log_string(v);
 }
+#else
+;
+#endif
+
 
 #define pgy_log(x) _Generic((x), \
     int32_t:  pgy_log_int,    \
@@ -43,33 +86,149 @@ pgy_log_banner(const char *v)
 
 #include <math.h>
 
-static inline int32_t ToInt(const char *s)    { return s == NULL ? 0 : (int32_t)strtol(s, NULL, 10); }
-static inline float   ToFloat(const char *s)  { return s == NULL ? 0.0f : strtof(s, NULL); }
-static inline float  Sqrt(float x)            { return sqrtf(x); }
-static inline float  Pow(float x, float y)    { return powf(x, y); }
-static inline float  Floor(float x)           { return floorf(x); }
-static inline float  Ceil(float x)            { return ceilf(x); }
-static inline float  Round(float x)           { return roundf(x); }
-static inline float  Sin(float x)             { return sinf(x); }
-static inline float  Cos(float x)             { return cosf(x); }
-static inline float  Tan(float x)             { return tanf(x); }
-static inline float  Asin(float x)            { return asinf(x); }
-static inline float  Acos(float x)            { return acosf(x); }
-static inline float  Atan(float x)            { return atanf(x); }
-static inline float  Atan2(float y, float x)  { return atan2f(y, x); }
-static inline float  Exp(float x)             { return expf(x); }
-static inline float  MathLog(float x)         { return logf(x); }
-static inline float  Log10(float x)           { return log10f(x); }
-static inline float  Log2(float x)            { return log2f(x); }
+PGY_RT_DECL int32_t ToInt(const char *s)    
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return s == NULL ? 0 : (int32_t)strtol(s, NULL, 10); }
+#else
+;
+#endif
+
+PGY_RT_DECL float   ToFloat(const char *s)  
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return s == NULL ? 0.0f : strtof(s, NULL); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Sqrt(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return sqrtf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Pow(float x, float y)    
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return powf(x, y); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Floor(float x)           
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return floorf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Ceil(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return ceilf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Round(float x)           
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return roundf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Sin(float x)             
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return sinf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Cos(float x)             
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return cosf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Tan(float x)             
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return tanf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Asin(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return asinf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Acos(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return acosf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Atan(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return atanf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Atan2(float y, float x)  
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return atan2f(y, x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Exp(float x)             
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return expf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  MathLog(float x)         
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return logf(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Log10(float x)           
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return log10f(x); }
+#else
+;
+#endif
+
+PGY_RT_DECL float  Log2(float x)            
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{ return log2f(x); }
+#else
+;
+#endif
+
 #define PGY_PI 3.14159265358979323846f
 #define PGY_E  2.71828182845904523536f
 
-static inline int32_t Clamp(int32_t v, int32_t lo, int32_t hi) {
+PGY_RT_DECL int32_t Clamp(int32_t v, int32_t lo, int32_t hi) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     return v < lo ? lo : (v > hi ? hi : v);
 }
+#else
+;
+#endif
 
-static inline int32_t
+
+PGY_RT_DECL int32_t
 Random(int32_t max)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_cap_require_export(PGY_CAP_RANDOM, "random");
     if (max <= 0)
@@ -79,21 +238,33 @@ Random(int32_t max)
     pthread_mutex_unlock(&pgy_runtime_rng_mutex);
     return value;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 SeedRandom(int32_t seed)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_cap_require_export(PGY_CAP_RANDOM, "seed-random");
     pthread_mutex_lock(&pgy_runtime_rng_mutex);
     srand((unsigned int)seed);
     pthread_mutex_unlock(&pgy_runtime_rng_mutex);
 }
+#else
+;
+#endif
+
 
 /* =================================================================
  * Standard Library Helpers
  * ================================================================= */
 
-static inline char* pgy_int_to_string(int32_t val) {
+PGY_RT_DECL char* pgy_int_to_string(int32_t val) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     char *buf = pergyra_strdup_printf("%d", val);
 
     if (buf == NULL) {
@@ -106,8 +277,14 @@ static inline char* pgy_int_to_string(int32_t val) {
     }
     return buf;
 }
+#else
+;
+#endif
 
-static inline char* pgy_long_to_string(int64_t val) {
+
+PGY_RT_DECL char* pgy_long_to_string(int64_t val) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     char *buf = pergyra_strdup_printf("%lld", (long long)val);
     if (buf == NULL) {
         char *fallback = (char *)malloc(2);
@@ -119,8 +296,14 @@ static inline char* pgy_long_to_string(int64_t val) {
     }
     return buf;
 }
+#else
+;
+#endif
 
-static inline char* pgy_float_to_string(float val) {
+
+PGY_RT_DECL char* pgy_float_to_string(float val) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     char *buf = pergyra_strdup_printf("%g", (double)val);
     if (buf == NULL) {
         char *fallback = (char *)malloc(4);
@@ -129,8 +312,14 @@ static inline char* pgy_float_to_string(float val) {
     }
     return buf;
 }
+#else
+;
+#endif
 
-static inline char* pgy_double_to_string(double val) {
+
+PGY_RT_DECL char* pgy_double_to_string(double val) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     char *buf = pergyra_strdup_printf("%g", val);
     if (buf == NULL) {
         char *fallback = (char *)malloc(4);
@@ -139,14 +328,24 @@ static inline char* pgy_double_to_string(double val) {
     }
     return buf;
 }
+#else
+;
+#endif
 
-static inline char* pgy_bool_to_string(bool val) {
+
+PGY_RT_DECL char* pgy_bool_to_string(bool val) 
+#ifndef PGY_RUNTIME_DECLS_ONLY
+{
     const char *s = val ? "true" : "false";
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
     if (buf != NULL) memcpy(buf, s, len + 1);
     return buf;
 }
+#else
+;
+#endif
+
 
 /* Console I/O: Input(prompt), Print(msg) are already defined below as
  * pgy_input() and pgy_print(). See type_checker_builtins.c for semantic. */

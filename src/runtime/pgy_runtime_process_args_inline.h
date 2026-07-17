@@ -2,23 +2,37 @@
 #define PGY_RUNTIME_PROCESS_ARGS_INLINE_H
 
 #include <stdint.h>
+#include "pgy_runtime_linkage.h"
 
 /*
  * Process argument snapshot owner for C-backend generated binaries.
  * argv remains borrowed from main(); Args() returns an owned Array<String>.
  */
-static int32_t pgy_runtime_argc = 0;
-static char **pgy_runtime_argv = NULL;
+PGY_RT_GLOBAL int32_t pgy_runtime_argc
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = 0
+#endif
+;
+PGY_RT_GLOBAL char **pgy_runtime_argv
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = NULL
+#endif
+;
 
-static inline void
+PGY_RT_DECL void
 pgy_args_init(int32_t argc, char **argv)
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pgy_runtime_argc = argc;
     pgy_runtime_argv = argv;
 }
+#else
+;
+#endif
 
-static inline PgyArray_String
+PGY_RT_DECL PgyArray_String
 pgy_args(void)
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     int32_t count;
 
@@ -45,5 +59,8 @@ pgy_args(void)
 
     return out;
 }
+#else
+;
+#endif
 
 #endif /* PGY_RUNTIME_PROCESS_ARGS_INLINE_H */
