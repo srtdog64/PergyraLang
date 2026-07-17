@@ -15,6 +15,47 @@ llvm_expr_set_missing_type_error(LLVMGenCtx *ctx, ASTNode *node,
         surface != NULL ? surface : "expression");
 }
 
+/*
+ * Fail-closed float->int lowering (docs/189 C1).  A bare fptosi yields
+ * poison on NaN/out-of-range input; every float->int site routes through
+ * the checked runtime conversion instead, which panics with the
+ * arithmetic-overflow class.  The callee is declared on demand so no site
+ * depends on the builtin-decl table; the runtime object always defines it
+ * and the bitcode strip list keeps the guard out of the inlined leg.
+ */
+LLVMValueRef
+llvm_build_checked_fptosi(LLVMGenCtx *ctx, LLVMValueRef value,
+                          LLVMTypeRef target_int_type, const char *name)
+{
+    if (ctx == NULL || value == NULL || target_int_type == NULL)
+        return NULL;
+
+    LLVMValueRef operand = value;
+    if (LLVMTypeOf(operand) == ctx->type_f32)
+        operand = LLVMBuildFPExt(ctx->builder, operand, ctx->type_f64,
+                                 llvm_tmp_name(ctx));
+
+    bool to_i64 = target_int_type == ctx->type_i64;
+    const char *fn_name = to_i64 ? "pgy_checked_f2i_i64_export"
+                                 : "pgy_checked_f2i_i32_export";
+    LLVMTypeRef param_types[1] = { ctx->type_f64 };
+    LLVMTypeRef fn_type = LLVMFunctionType(
+        to_i64 ? ctx->type_i64 : ctx->type_i32, param_types, 1, 0);
+    LLVMValueRef fn = LLVMGetNamedFunction(ctx->module, fn_name);
+    if (fn == NULL)
+        fn = LLVMAddFunction(ctx->module, fn_name, fn_type);
+
+    LLVMValueRef args[1] = { operand };
+    LLVMValueRef converted = LLVMBuildCall2(ctx->builder, fn_type, fn,
+                                            args, 1, llvm_tmp_name(ctx));
+    /* Callers may want a narrower integer than the helper returns. */
+    if (target_int_type != ctx->type_i64 && target_int_type != ctx->type_i32)
+        return LLVMBuildIntCast2(ctx->builder, converted, target_int_type,
+                                 1, name != NULL ? name : llvm_tmp_name(ctx));
+    (void)name;
+    return converted;
+}
+
 LLVMValueRef
 llvm_emit_checked_collection_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
                                  LLVMTypeRef aggregate_type,

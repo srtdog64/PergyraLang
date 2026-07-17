@@ -124,7 +124,7 @@ llvm_rc_coerce_numeric(LLVMGenCtx *ctx, LLVMValueRef value, LLVMTypeRef target)
         return LLVMBuildSIToFP(ctx->builder, value, target,
                                llvm_tmp_name(ctx));
     if (source_is_fp && target_is_int)
-        return LLVMBuildFPToSI(ctx->builder, value, target,
+        return llvm_build_checked_fptosi(ctx, value, target,
                                llvm_tmp_name(ctx));
     if (source_is_fp && target_is_fp) {
         bool source_is_f32 = (source == ctx->type_f32);

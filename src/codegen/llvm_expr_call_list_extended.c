@@ -92,7 +92,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
             else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
@@ -210,7 +210,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+                value = llvm_build_checked_fptosi(ctx, value, elem_ty, llvm_tmp_name(ctx));
             else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));

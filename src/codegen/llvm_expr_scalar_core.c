@@ -218,7 +218,7 @@ llvm_scalar_coerce_payload(LLVMGenCtx *ctx, LLVMValueRef val,
         return LLVMBuildSIToFP(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
     if ((val_ty == ctx->type_f32 || val_ty == ctx->type_f64)
         && (target_ty == ctx->type_i32 || target_ty == ctx->type_i64))
-        return LLVMBuildFPToSI(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+        return llvm_build_checked_fptosi(ctx, val, target_ty, llvm_tmp_name(ctx));
     if ((val_ty == ctx->type_f32 && target_ty == ctx->type_f64))
         return LLVMBuildFPExt(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
     if ((val_ty == ctx->type_f64 && target_ty == ctx->type_f32))
@@ -549,9 +549,13 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             ? LLVMBuildFCmp(ctx->builder, LLVMRealOGE, left, right, tmp)
             : LLVMBuildICmp(ctx->builder, LLVMIntSGE, left, right, tmp);
     case TOKEN_AND:
-        return LLVMBuildAnd(ctx->builder, left, right, tmp);
     case TOKEN_OR:
-        return LLVMBuildOr(ctx->builder, left, right, tmp);
+        /* Logical operators are lowered by the dedicated short-circuit
+         * path at the top of llvm_emit_binary; reaching this eager arm
+         * would silently change evaluation semantics (docs/189 C3). */
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM logical operator reached the eager lowering path; "
+            "short-circuit lowering owns TOKEN_AND/TOKEN_OR");
     default:
         return llvm_scalar_expr_error(ctx, node,
             "LLVM binary expression uses an unsupported operator");

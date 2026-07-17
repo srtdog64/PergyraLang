@@ -137,6 +137,28 @@ func Main() -> Void {
 }
 PGY
 
+cat > "$WORK_DIR/float_to_int_oob.pgy" <<'PGY'
+func Main() -> Void {
+    let f: Float = 1000000000000000000000000000000.0;
+    Log(f as Int);
+}
+PGY
+
+cat > "$WORK_DIR/float_to_long_oob.pgy" <<'PGY'
+func Main() -> Void {
+    let f: Float = 1000000000000000000000000000000.0;
+    Log(f as Long);
+}
+PGY
+
+cat > "$WORK_DIR/float_nan_to_int.pgy" <<'PGY'
+func Main() -> Void {
+    let z: Float = 0.0;
+    let n: Float = z / z;
+    Log(n as Int);
+}
+PGY
+
 cat > "$WORK_DIR/result_unwrap_err.pgy" <<'PGY'
 func Main() -> Void {
     let r: Result<Int> = Err("boom");
@@ -230,6 +252,9 @@ expect_codegen_panic_backends "map_get_missing" "$WORK_DIR/map_get_missing.pgy" 
 expect_codegen_panic_backends "list_set_oob" "$WORK_DIR/list_set_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "list_remove_oob" "$WORK_DIR/list_remove_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "map_remove_missing" "$WORK_DIR/map_remove_missing.pgy" "out-of-bounds"
+expect_codegen_panic_backends "float_to_int_oob" "$WORK_DIR/float_to_int_oob.pgy" "arithmetic-overflow"
+expect_codegen_panic_backends "float_to_long_oob" "$WORK_DIR/float_to_long_oob.pgy" "arithmetic-overflow"
+expect_codegen_panic_backends "float_nan_to_int" "$WORK_DIR/float_nan_to_int.pgy" "arithmetic-overflow"
 expect_codegen_panic_backends "result_unwrap_err" "$WORK_DIR/result_unwrap_err.pgy" "internal-invariant"
 expect_codegen_panic_backends "result_try_err_void" "$WORK_DIR/result_try_err_void.pgy" "internal-invariant"
 expect_codegen_panic_backends "option_unwrap_none" "$WORK_DIR/option_unwrap_none.pgy" "internal-invariant"

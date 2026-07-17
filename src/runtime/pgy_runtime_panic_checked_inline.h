@@ -411,4 +411,25 @@ pgy_checked_mul_i32_export(int32_t lhs, int32_t rhs)
     return lhs * rhs;
 }
 
+/* Fail-closed float->int conversion twins (docs/189 C1); see
+ * pgy_runtime_lib_checked_arith_core.h for the bound rationale. Keep both
+ * homes in lockstep. */
+static inline int32_t
+pgy_checked_f2i_i32_export(double v)
+{
+    if (!(v > -2147483649.0 && v < 2147483648.0))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE);
+    return (int32_t)v;
+}
+
+static inline int64_t
+pgy_checked_f2i_i64_export(double v)
+{
+    if (!(v >= -9223372036854775808.0 && v < 9223372036854775808.0))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE);
+    return (int64_t)v;
+}
+
 #endif /* PGY_RUNTIME_PANIC_CHECKED_INLINE_H */

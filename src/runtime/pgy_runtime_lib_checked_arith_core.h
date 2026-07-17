@@ -108,4 +108,28 @@ pgy_checked_mul_i64_export(int64_t lhs, int64_t rhs)
     return lhs * rhs;
 }
 
+/* Fail-closed float->int conversion (docs/189 C1). Out-of-range float->int
+ * is hard UB in C and poison in LLVM; both backends route conversions here
+ * instead. Bounds are exact doubles: valid i32 truncation iff
+ * v in (-2^31 - 1, 2^31); valid i64 truncation iff v in [-2^63, 2^63)
+ * (doubles between -2^63-1 and -2^63 do not exist at that magnitude).
+ * NaN fails every comparison and therefore panics. */
+int32_t
+pgy_checked_f2i_i32_export(double v)
+{
+    if (!(v > -2147483649.0 && v < 2147483648.0))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE);
+    return (int32_t)v;
+}
+
+int64_t
+pgy_checked_f2i_i64_export(double v)
+{
+    if (!(v >= -9223372036854775808.0 && v < 9223372036854775808.0))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_ARITHMETIC_OVERFLOW,
+                          PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE);
+    return (int64_t)v;
+}
+
 #endif /* PGY_RUNTIME_LIB_CHECKED_ARITH_CORE_H */

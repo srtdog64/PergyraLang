@@ -219,7 +219,7 @@ llvm_coerce_result_option_payload(LLVMGenCtx *ctx,
         return LLVMBuildSIToFP(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
     if ((target_ty == ctx->type_i32 || target_ty == ctx->type_i64)
         && (val_ty == ctx->type_f32 || val_ty == ctx->type_f64))
-        return LLVMBuildFPToSI(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+        return llvm_build_checked_fptosi(ctx, val, target_ty, llvm_tmp_name(ctx));
     if (LLVMGetTypeKind(target_ty) == LLVMPointerTypeKind
         && LLVMGetTypeKind(val_ty) == LLVMPointerTypeKind)
         return LLVMBuildBitCast(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
@@ -265,7 +265,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 val = LLVMBuildSIToFP(ctx->builder, val, fields[1], llvm_tmp_name(ctx));
             } else if ((fields[1] == ctx->type_i32 || fields[1] == ctx->type_i64)
                        && (val_ty == ctx->type_f32 || val_ty == ctx->type_f64)) {
-                val = LLVMBuildFPToSI(ctx->builder, val, fields[1], llvm_tmp_name(ctx));
+                val = llvm_build_checked_fptosi(ctx, val, fields[1], llvm_tmp_name(ctx));
             } else if (LLVMGetTypeKind(fields[1]) == LLVMPointerTypeKind
                        && LLVMGetTypeKind(val_ty) == LLVMPointerTypeKind) {
                 val = LLVMBuildBitCast(ctx->builder, val, fields[1], llvm_tmp_name(ctx));
@@ -308,7 +308,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 val = LLVMBuildSIToFP(ctx->builder, val, fields[2], llvm_tmp_name(ctx));
             } else if ((fields[2] == ctx->type_i32 || fields[2] == ctx->type_i64)
                        && (val_ty == ctx->type_f32 || val_ty == ctx->type_f64)) {
-                val = LLVMBuildFPToSI(ctx->builder, val, fields[2], llvm_tmp_name(ctx));
+                val = llvm_build_checked_fptosi(ctx, val, fields[2], llvm_tmp_name(ctx));
             } else if (LLVMGetTypeKind(fields[2]) == LLVMPointerTypeKind
                        && LLVMGetTypeKind(val_ty) == LLVMPointerTypeKind) {
                 val = LLVMBuildBitCast(ctx->builder, val, fields[2], llvm_tmp_name(ctx));

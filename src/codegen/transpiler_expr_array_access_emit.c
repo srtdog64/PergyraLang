@@ -99,7 +99,18 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             "pgy_slice_get_%s(&_pgy_slice_get_%d, %s); })",
             slice_suffix, tmp_id, array, slice_suffix, tmp_id, index);
     } else {
-        result = strdup_fmt("%s[%s]", array, index);
+        /* Semantic admits only Array<T>/Slice<T> receivers here; any other
+         * type reaching this emitter is a compiler defect.  Fail closed
+         * instead of emitting an unchecked raw C subscript (docs/189 C3). */
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C index access requires an Array<T> or Slice<T> receiver, got '%s'",
+            array_type != NULL ? array_type : "<unknown>");
+        free(array);
+        free(index);
+        return NULL;
     }
     free(array);
     free(index);

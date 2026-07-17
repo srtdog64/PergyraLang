@@ -527,7 +527,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                                   || element_type == ctx->type_f64);
 
                 if (target_is_int && source_is_fp)
-                    element = LLVMBuildFPToSI(ctx->builder, element, elem_type,
+                    element = llvm_build_checked_fptosi(ctx, element, elem_type,
                                               llvm_tmp_name(ctx));
                 else if (target_is_fp && source_is_int)
                     element = LLVMBuildSIToFP(ctx->builder, element, elem_type,

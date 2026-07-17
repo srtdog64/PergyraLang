@@ -66,7 +66,7 @@ llvm_emit_current_host_field_assignment(ASTNode *node,
         if ((field_type == ctx->type_i32 || field_type == ctx->type_i64)
             && (LLVMTypeOf(val) == ctx->type_f32
                 || LLVMTypeOf(val) == ctx->type_f64)) {
-            val = LLVMBuildFPToSI(ctx->builder, val, field_type,
+            val = llvm_build_checked_fptosi(ctx, val, field_type,
                 llvm_tmp_name(ctx));
         } else if ((field_type == ctx->type_f32
                     || field_type == ctx->type_f64)
@@ -188,7 +188,7 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
                      || elem_type == ctx->type_i64)
                     && (LLVMTypeOf(val) == ctx->type_f32
                         || LLVMTypeOf(val) == ctx->type_f64)) {
-                    val = LLVMBuildFPToSI(ctx->builder, val,
+                    val = llvm_build_checked_fptosi(ctx, val,
                         elem_type, llvm_tmp_name(ctx));
                 } else if ((elem_type == ctx->type_f32
                             || elem_type == ctx->type_f64)
@@ -234,7 +234,7 @@ llvm_emit_assignment_parts(ASTNode *diagnostic_anchor,
         if (LLVMTypeOf(val) != field_type) {
             if ((field_type == ctx->type_i32 || field_type == ctx->type_i64)
                 && (LLVMTypeOf(val) == ctx->type_f32 || LLVMTypeOf(val) == ctx->type_f64)) {
-                val = LLVMBuildFPToSI(ctx->builder, val, field_type, llvm_tmp_name(ctx));
+                val = llvm_build_checked_fptosi(ctx, val, field_type, llvm_tmp_name(ctx));
             } else if ((field_type == ctx->type_f32 || field_type == ctx->type_f64)
                 && (LLVMTypeOf(val) == ctx->type_i32 || LLVMTypeOf(val) == ctx->type_i64)) {
                 val = LLVMBuildSIToFP(ctx->builder, val, field_type, llvm_tmp_name(ctx));

@@ -77,6 +77,8 @@
     "operation requires a capability the content manifest did not grant"
 #define PGY_RUNTIME_PANIC_REASON_BUDGET_EXCEEDED \
     "operation would exceed the resource budget the content manifest imposed"
+#define PGY_RUNTIME_PANIC_REASON_FLOAT_TO_INT_OUT_OF_RANGE \
+    "float-to-int conversion out of range (NaN or beyond the target bounds)"
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #  define PGY_RUNTIME_NORETURN _Noreturn

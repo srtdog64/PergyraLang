@@ -78,7 +78,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 bool val_is_fp  = (val_type == ctx->type_f32 || val_type == ctx->type_f64);
 
                 if (ret_is_int && val_is_fp)
-                    val = LLVMBuildFPToSI(ctx->builder, val, ret_type,
+                    val = llvm_build_checked_fptosi(ctx, val, ret_type,
                                            llvm_tmp_name(ctx));
                 else if (ret_is_fp && val_is_int)
                     val = LLVMBuildSIToFP(ctx->builder, val, ret_type,

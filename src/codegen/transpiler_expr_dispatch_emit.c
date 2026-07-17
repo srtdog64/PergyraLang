@@ -342,7 +342,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_CAST: {
         const char *target = ast_cast_target_type(node);
-        char *operand = emit_expression(ast_cast_operand(node), ctx);
+        ASTNode *operand_node = ast_cast_operand(node);
+        char *operand = emit_expression(operand_node, ctx);
         const char *c_cast = NULL;
         char *result;
         if (operand == NULL)
@@ -361,6 +362,22 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 "C backend: cast to '%s' is not lowered (numeric Int/Long/Float only)",
                 target != NULL ? target : "<type>");
             return NULL;
+        }
+        /* Float->Int is hard UB in C when the value is NaN or out of the
+         * target's range; route it through the fail-closed runtime
+         * conversion, mirroring the LLVM leg (docs/189 C1). */
+        if (strcmp(c_cast, "float") != 0) {
+            const char *operand_type =
+                transpiler_expr_infer_type_name(ctx, operand_node);
+            bool operand_is_fp = operand_type != NULL
+                && (strcmp(operand_type, "Float") == 0
+                    || strcmp(operand_type, "Double") == 0);
+            if (operand_is_fp) {
+                result = strdup_fmt("pgy_checked_f2i_%s_export((double)(%s))",
+                    strcmp(c_cast, "int64_t") == 0 ? "i64" : "i32", operand);
+                free(operand);
+                return result;
+            }
         }
         result = strdup_fmt("((%s)(%s))", c_cast, operand);
         free(operand);

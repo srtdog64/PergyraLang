@@ -39,7 +39,7 @@ llvm_mir_coerce_value_for_store(LLVMGenCtx *ctx,
         return LLVMBuildSIToFP(ctx->builder, value, target_type,
                                llvm_tmp_name(ctx));
     if (target_is_int && value_is_fp)
-        return LLVMBuildFPToSI(ctx->builder, value, target_type,
+        return llvm_build_checked_fptosi(ctx, value, target_type,
                                llvm_tmp_name(ctx));
     if (target_is_fp && value_is_fp)
         return target_type == ctx->type_f64

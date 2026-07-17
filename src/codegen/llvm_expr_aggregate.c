@@ -134,7 +134,7 @@ llvm_emit_seq_list_queue_literal(ASTNode *node, LLVMGenCtx *ctx,
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32
                     || LLVMTypeOf(value) == ctx->type_f64))
-                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty,
+                value = llvm_build_checked_fptosi(ctx, value, elem_ty,
                     llvm_tmp_name(ctx));
             else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32
@@ -521,7 +521,7 @@ llvm_emit_set_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32
                     || LLVMTypeOf(value) == ctx->type_f64))
-                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty,
+                value = llvm_build_checked_fptosi(ctx, value, elem_ty,
                     llvm_tmp_name(ctx));
             else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32
@@ -576,7 +576,7 @@ llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
     src = LLVMTypeOf(v);
     if (target != NULL && strcmp(target, "Int") == 0) {
         if (src == ctx->type_f32 || src == ctx->type_f64)
-            return LLVMBuildFPToSI(ctx->builder, v, ctx->type_i32,
+            return llvm_build_checked_fptosi(ctx, v, ctx->type_i32,
                 llvm_tmp_name(ctx));
         if (src == ctx->type_i64)
             return LLVMBuildTrunc(ctx->builder, v, ctx->type_i32,
@@ -585,7 +585,7 @@ llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (target != NULL && strcmp(target, "Long") == 0) {
         if (src == ctx->type_f32 || src == ctx->type_f64)
-            return LLVMBuildFPToSI(ctx->builder, v, ctx->type_i64,
+            return llvm_build_checked_fptosi(ctx, v, ctx->type_i64,
                 llvm_tmp_name(ctx));
         if (src == ctx->type_i32)
             return LLVMBuildSExt(ctx->builder, v, ctx->type_i64,

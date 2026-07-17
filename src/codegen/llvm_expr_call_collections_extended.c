@@ -111,7 +111,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (LLVMTypeOf(value) != value_ty) {
             if ((value_ty == ctx->type_i32 || value_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
-                value = LLVMBuildFPToSI(ctx->builder, value, value_ty, llvm_tmp_name(ctx));
+                value = llvm_build_checked_fptosi(ctx, value, value_ty, llvm_tmp_name(ctx));
             else if ((value_ty == ctx->type_f32 || value_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, value_ty, llvm_tmp_name(ctx));
