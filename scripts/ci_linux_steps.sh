@@ -112,9 +112,17 @@ run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_B
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-production-contract-test-smoke'
 # docs/189 C-compiler-dev red-team repair gates: bitcode-twin contract pins,
 # surface boundary hygiene (C-reserved words + channel copy edges),
-# adversarial-input termination contract, and emitted-C warning cleanliness.
-# Linux runs both backend voices natively and has gcc for the -Werror leg.
+# adversarial-input termination contract, emitted-C warning cleanliness,
+# and the runtime-bitcode-ON backend-compare shard (the bc-ON leg CI never
+# exercised). Linux runs both backend voices natively, has gcc for the
+# -Werror leg, and clang for the .bc build.
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" redteam-repair-contract-test-smoke'
+# Sanitizer gate (docs/189 C13): rebuild the compiler under ASan+UBSan in
+# its own build tree (LLVM_ENABLED=0, separate BUILD_DIR so the main build
+# is untouched) and run the sanitized fixtures + unit batteries. Verified
+# green on Ubuntu gcc 13.3 + libasan; MinGW ships no libasan so this only
+# runs on the Linux job.
+run 'make test-asan'
 # Differential fuzzing over the dual backend (docs/189 C14): three fixed
 # seeds for reproducibility plus one campaign seed rotated by the CI run
 # number so the oracle is not pinned to a fixed corpus.
