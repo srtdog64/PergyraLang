@@ -24,6 +24,38 @@ Related contracts:
 - `docs/semantics/pass_contract_manifest.md`
 - `docs/self_hosted/14_target_compiler_world.md`
 
+## 0. Anchored boundary deltas (2026-07-17)
+
+The current hardening pass makes the input-side identities explicit at their
+first real consumers:
+
+- `PgyTokenStreamHandle` fingerprints one lexer input and stamps every token
+  with a monotonic ordinal. The parser rejects a token whose stream anchor
+  changes, while token printing remains byte-compatible and does not expose
+  the internal handle.
+- `PgySourceModuleGraph` is built from the import-resolved AST's canonical
+  origin paths and syntax IDs. The native driver validates the graph before
+  lowering and destroys it at the pipeline boundary; it cannot silently fall
+  back to a path-only module identity.
+- DIR carries both `source_program_syntax_id` and `domain_graph_id`, and DIR
+  validation fails closed when either anchor is absent. The graph anchor is a
+  bridge until typed domain payload/entity rows move off the AST carrier.
+- Semantic for-loop header facts now survive into native MIR JSON and the
+  self-host MIR JSON producer. C/LLVM source-local capture and the self-host
+  rung-2 producer consume the same `(function_syntax_id,
+  iteration_syntax_id)` rows; no backend source-type guess is used.
+- The self-host compatibility-evolution manifest is validated by the native
+  diagnostic driver on the normal compile path. This validates the manifest
+  shape and coverage without turning the driver into a second compatibility
+  owner; diagnostic ABI trace and package-gate consumers remain a documented
+  bridge.
+
+The permanent gates for this slice are
+`lexer-token-stream-anchor-test-smoke`, `source-module-graph-test-smoke`,
+`iteration-type-fact-test-smoke`, `compatibility-evolution-native-test-smoke`,
+and `dir-domain-identity-test-smoke`. The C/LLVM producer-first rung-2 gate
+also exercises the for-range and identifier-foreach rows.
+
 ## 1. Current Logical Topology
 
 The native compiler currently behaves approximately as this graph:
@@ -45,10 +77,20 @@ source bytes
   -> artifacts
 ```
 
-This fan-out is current reality: DIR and initial RIR lowering independently
-consume the annotated AST. HIR enriches later analysis but is not yet the sole
-semantic input to DIR/RIR. The target diagram below is therefore a migration,
-not a description of an already-linear HIR -> DIR -> RIR pipeline.
+This fan-out is current reality: DIR and initial RIR lowering still collect
+their domain/state shape from the annotated AST, but the semantic
+`ResourceFlowUniverse` has one native adapter consumer. HIR receives the
+`SemanticResult` rows once, then DIR receives a copied HIR-derived snapshot
+through `dir_lower_with_hir_resource_flow_facts`; RIR joins source-backed
+routines by HIR source identity and consumes HIR-owned stable rows during flow
+enrichment. The qualified DIR slot nodes carry declaration and owner
+`SyntaxNodeId` values. RIR validation joins exact owner IDs and fails closed
+when they are absent. The demanded function-parameter flow summary is likewise
+snapshotted by semantic analysis and attached to HIR routines by stable
+`SyntaxNodeId`; unknown routine or duplicate parameter rows fail closed. HIR is
+not yet the sole semantic input for all DIR/RIR domain/state shape, so the
+target diagram below is still a migration, not a description of an already
+linear HIR -> DIR -> RIR pipeline.
 
 Two decisions are already correct:
 
@@ -77,6 +119,27 @@ Measured examples make this concrete:
   strings, so shadowing has no first-class identity;
 - dynamic ABI rows can be returned from temporary ring storage and therefore
   cannot serve as durable layout/runtime-call identity.
+- `ResourceFlowUniverse` snapshots function-local stable rows into
+`SemanticResult`; HIR is the single native adapter consumer and carries those
+  rows on the matching `RoutineId`. DIR receives only a copied HIR-derived
+  snapshot through its enriched lowering entry point. Its top-level node and
+  edge iteration also consumes the HIR declaration inventory; only the
+  declaration payload details remain AST-backed. RIR verifies HIR's
+  declaration/parameter identity before it enriches flow.
+- `FunctionParamFlowSummary` snapshots demanded interprocedural rows into
+  `SemanticResult`; HIR carries `(SyntaxNodeId, parameter_index, mask)` rows
+  with duplicate and unknown-routine rejection. RIR now copies and validates
+  those rows during HIR enrichment, and MIR materializes the same rows on each
+  routine with source syntax identity, duplicate/index checks, and a
+  program-level presence flag. AIR projects the MIR rows with the same stable
+  identity and fail-closed presence/index checks. The self-hosted MIR JSON
+  routine owner now consumes those rows and rejects malformed identity/count
+  facts; full self-hosted summary parity remains the final open seam.
+  The eventual HIR entity carrier for DIR's domain collection is still open.
+- RIR captures each resource fact's source `SyntaxNodeId` at its initial fact
+  collection boundary. HIR-to-RIR flow enrichment joins that typed ID and no
+  longer derives identity from `fact->ast`; the remaining AST ownership is the
+  initial RIR shape/resource collection itself, not a second identity source.
 
 ## 2. Target Logical Topology
 
@@ -141,16 +204,46 @@ AST, or source to rebuild it.
 | AST | syntax category, concrete provenance, recovery artifact | `SyntaxNodeId` scoped to a source unit | target: HIR lowering plus diagnostics/source maps | `PARTIAL`: parser-to-AST loss is documentation-only; per-module stable IDs are assigned before import merge; AST payloads currently survive into MIR/backend debt |
 | Semantic/Type DAG | binding, resolved type, generic/default/ability metadata | `EntityId`, `SymbolId`, `TypeId` mappings | HIR/DIR/RIR lowering and AIR evidence | `PARTIAL`: metadata is AST-pointer keyed and much of the semantic context is destroyed before later IR consumers, which then recapture type spellings |
 | HIR | typed normalized entities, declarations, routines, scopes, body facts | `EntityId`, `TypeId`, `ScopeId` | DIR/RIR/MIR and semantic tooling | `PARTIAL`: declaration/routine IDs and CFG exist, but HIR still borrows `ASTNode *` and is not a total owning semantic IR |
-| DIR | intent/domain declarations and typed relations | references to `EntityId`, domain-edge IDs | RIR and AIR verifier | `PARTIAL`: graph/validator exist; names and AST pointers still carry identity/provenance together |
-| RIR | resources, slot ownership, transfer, authority, state transitions | `ResourceId`, `BoundaryId` | MIR and AIR verifier | `PARTIAL`: state/flow facts exist; `slot_anchor` strings and AST pointers remain common joins |
+| DIR | intent/domain declarations and typed relations | references to `EntityId`, domain-edge IDs, source/owner `SyntaxNodeId` | RIR and AIR verifier | `PARTIAL`: HIR owns top-level declaration inventory and DIR uses it for node/edge iteration; qualified payload slots and remaining entity/type joins are still AST/name based |
+| RIR | resources, slot ownership, transfer, authority, state transitions | `ResourceId`, `BoundaryId` | MIR and AIR verifier | `PARTIAL`: HIR source identity, parameter-count facts, and stable resource rows are verified during enrichment; summary validation no longer rereads AST parameter bounds, while initial shape and `slot_anchor` joins remain |
 | MIR | routines, blocks, instructions, SSA values, cleanup, cancellation, abstract materialization requirements | routine-scoped block/value/instruction handles plus ABI references | Projection Planner, AIR verifier, diagnostics | `PARTIAL`: strong CFG/dataflow facts exist; statement inventories, expressions, match payloads, and some type recovery still carry AST |
 | AIR | evidence completeness, abstraction drift, compression disposition/explanation, diagnostics | `EvidenceId`, verified evidence certificate | current: driver/LSP/CI/compatibility; target: Projection Planner, Artifact Zone, verifier paths | `PASS` for backend isolation; `PARTIAL` for hosted-method boundary producer coverage and complete evidence lifetime/certificate projection |
-| ABI/Target Facts | type layout, call shape, target capability, ownership/materialization policy | `LayoutId`, `RuntimeCallAbiId`, `TargetProfileId` | Projection Planner and compatibility | `PARTIAL`: real rows and parity gates exist, but not every native consumer is row-only |
-| Verified Projection Plan | target-specific projection of already-owned facts | `ProjectionPlanId` and typed plan rows | backend emitters and Artifact Zone | `PARTIAL`: native plan row 1 maps MIR intent-observability usage to C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`; AIR certificate and remaining axes are absent |
+| ABI/Target Facts | type layout, call shape, target capability, ownership/materialization policy | `LayoutId`, `RuntimeCallAbiId`, `TargetProfileId` | compiler-owned Projection Planner (single native SoT consumer) | `PARTIAL`: the planner alone reads/validates the target-capability adapter and binds its fingerprint; C/LLVM receive only the derived plan row; artifact digest and complete target-profile binding remain open |
+| Verified Projection Plan | target-specific projection of already-owned facts | `ProjectionPlanId` and typed plan rows | backend emitters and Artifact Zone | `PARTIAL`: native plan row 1 maps MIR intent-observability usage to C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`, cites the AIR evidence certificate fingerprint, carries target-envelope plus abstract and physical machine-declaration fingerprints, and is the only row C/LLVM inspect; C/LLVM `CompilerResult` now carries the anchored plan revision/digest; persisted content digest and remaining axes are open |
 | Backend | mechanical emission only | object/text/debug artifacts | linker and Artifact Zone | `PARTIAL`: AIR is excluded, but native AST/type reconstruction and backend-local compatibility paths remain |
 | Runtime | only explicitly materialized state, guards, capabilities, quotas, and observability | runtime handles tied to plan rows | execution and runtime trace | `PARTIAL`: retained facilities exist; attribution and sandbox coverage are not total |
 | Artifact/Compatibility | schema-versioned outputs, hashes, parity, migration policy | `ArtifactId` | cache, CI, release, migration tooling | `PARTIAL`: many schemas and a seed corpus exist; historical compatibility corpus is incomplete |
 | Self-Hosted Compiler | a replacement implementation over the same handles and artifacts | the same MIR/AIR/ABI/diagnostic artifacts | bootstrap and Artifact Zone | `PARTIAL`: bounded fixed points exist; whole semantic/MIR/native-driver replacement does not |
+
+The target-capability owner is self-hosted, but it is not self-host-only. The
+compiler-owned projection planner is the single native consumer of the
+immutable adapter rows in `src/compiler/target_capability_contract.c` and the
+abstract machine manifest and its checked host-sim physical declaration in
+`src/compiler/machine_layer_manifest.c`; it
+validates both selected projections and forwards one fingerprinted plan row.
+C and LLVM consume that derived row only, so their physical representations
+remain backend-specific without duplicating target-envelope or machine-manifest
+reads. In particular, LLVM's `DeviceSlot<T>` projection retains a distinct
+named `%PgyDeviceSlot_<T>` IR aggregate instead of silently reusing the
+ordinary `%PgySlot_<T>` type. Self-hosted parity is an additional owner/proof
+path; it does not make
+C or LLVM reinterpret the machine layer or infer a target from command-line
+defaults. The current physical declaration is an explicit host-sim target
+record; it is not a claim that a board/MMIO/linker source has been imported.
+The self-host MIR reader validates explicit `machine_contact_kind` plus its
+`machine_layer` row, and the self-host AIR validator validates
+`machine_layer_sites`; both consume the native `pgy.machine-layer.declaration.v1`
+artifact through `machine_layer_declaration_consumer.pgy`, including the
+physical grant `base`, `size`, and access `mode`, and fail closed
+on a missing or mutated row. The self-host MIR producer now carries the same
+row from the semantic expression-graph call-target fact into its JSON output;
+`tests/self_hosted/mir_machine_layer_smoke.sh` exercises that producer-to-reader
+path for all five contacts.
+The native RIR owner also exposes the same contact rows through
+`--rir-json`/`rir_dump_json` as a clean `pgy.rir.v1` artifact. This is an
+inspection and handoff boundary, not a second machine contract: the RIR owner
+still owns classification, while later consumers validate the typed rows they
+receive.
 
 ## 4. When A Handle Is Required
 
@@ -288,7 +381,7 @@ migration vocabulary.
 | Boundary Migration Gate | compiler owner movement | `LANDED`; manifest-backed and blocking CI | add each live owner move before shadow facts are consumed; keep all retired paths absent |
 | Stable Identity Gate | AST/HIR/DIR/RIR/MIR/AIR joins | `PARTIAL`; merged-program `SyntaxNodeId`, semantic declaration placeholders, and HIR `RoutineId` call edges are blocking CI | add revision/source-unit identities; exact method/boundary/type/binding/value joins; stale/foreign ID rejection; remaining name/prefix/AST join prohibition |
 | HIR Totality Gate | AST -> typed semantic entities | `PARTIAL` | every stable declaration/local/body/type fact owned without semantic AST fallback |
-| DIR Referential Gate | HIR entity -> domain graph | `PARTIAL`; current initial lowering is AST-owned | make HIR/entity facts the input; typed references replace name/AST joins; edge totality corpus |
+| DIR Referential Gate | HIR entity -> domain graph | `PARTIAL`; source/owner `SyntaxNodeId` is carried and the RIR join is exact, but collection is still AST-owned | make HIR/entity facts the input; typed references replace name/AST joins; edge totality corpus |
 | RIR Transition Gate | HIR/DIR resource facts -> state graph | `PARTIAL`; current initial lowering is AST-owned | remove AST-call recovery in validation; stable resource/boundary handles across join/loop/transfer/authority cases |
 | MIR Verifier Gate | HIR/RIR -> executable graph | `PARTIAL`, comparatively strong | eliminate residual AST statement/expression/type recovery; complete cleanup/cancellation/body facts |
 | AIR Evidence Lifetime Gate | owner facts -> proof/disposition | `PARTIAL`; enum/manifest gate is not blocking CI | hosted-method/expression boundary producer totality; all evidence kinds prove producer, last consumer, erase/summarize/retain/reject behavior and the gate is CI-required |
@@ -325,27 +418,45 @@ one cannot be used as merged-program identity or backend symbol entropy.
 
 ### P0-B. HIR Semantic Totality
 
-HIR must stop being only an indexed borrowed AST view. Function signatures and
-local declarations have begun the move. Assignment/use/expression/body facts,
-scope/type references, declaration identity, and a Semantic/Type DAG lifetime
-that survives lowering are the next required owners.
+HIR must stop being only an indexed borrowed AST view. Function signatures,
+local declarations, and the first ResourceFlowUniverse stable-symbol carrier
+have begun the move. Assignment/use/expression/body facts, scope/type
+references, declaration identity, and a Semantic/Type DAG lifetime that
+survives lowering are the next required owners.
 
 ### P0-C. DIR/RIR Input Ownership
 
 Rebase DIR and RIR construction on HIR/entity facts instead of independent AST
-rescans. Remove RIR validation's AST-call recovery and add a missing-fact
-negative test. Until this closes, the target HIR -> DIR -> RIR spine is a design
-contract rather than the native data path.
+rescans. The first identity seams are now landed: DIR consumes the semantic
+HIR owns the `ResourceFlowUniverse` snapshot and its qualified slots carry
+source/owner `SyntaxNodeId`; DIR receives only the HIR-derived carrier, while
+RIR validation rejects missing owner identity instead of joining by owner name.
+RIR captures its initial resource-fact IDs once and HIR-owned `parameter_count`
+bounds RIR function-flow summaries without an AST reread. For the machine
+boundary specifically, MIR now carries a typed `machine_layer_fact_required`
+bit from the RIR contact owner; once RIR declares a contact, MIR validation
+does not recover contact identity by scanning AST/source call names.
+Remove the remaining AST domain collection, initial resource shape collection,
+and AST-call recovery paths and extend the missing-fact corpus. Until that
+closes, the target HIR -> DIR -> RIR spine is a design contract rather than the
+native data path.
 
 ### P0-D. Verified Projection Plan
 
 Extend the native plan owner beyond its first gate-backed intent-observability
-row. That row already turns the canonical MIR inventory fact plus the shared
-runtime-call ABI rows into C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`, and missing
-facts fail closed. The remaining work is to join AIR's verified evidence
-certificate, ABI layout, cleanup, target capability, Artifact Zone, and
-self-hosted rows into one immutable plan. Backends receive the verified plan,
-not AIR.
+row. That row turns the canonical MIR inventory fact plus the shared
+runtime-call ABI rows into C/LLVM `OBS0/ERASE` or `OBS1/MATERIALIZE`, and now
+requires an AIR evidence certificate whose fingerprint still matches the AIR
+owner facts. It also binds the abstract machine-layer manifest and checked
+physical host-sim declaration fingerprints, so machine contact projection
+cannot be silently changed behind the plan. Missing or mutated facts fail
+closed. The single native planner consumer reads the target-capability envelope
+and both machine declaration rows, so target defaults and command guessing are
+not an allowed native fallback. C and LLVM receive only the verified plan row.
+The remaining work is a persisted
+cryptographic/artifact identity plus ABI layout, cleanup, target capability,
+Artifact Zone, and self-hosted rows in one immutable plan. Backends receive the
+verified plan, not AIR.
 
 This closes the current wording tension between "AIR is verification-only" and
 "a backend needs a proof-gated compression/materialization decision."

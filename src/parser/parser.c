@@ -66,6 +66,9 @@ Parser* parser_create(Lexer* lexer) {
 
     // 첫 번째 토큰 읽기
     parser->current_token = lexer_next_token(lexer);
+    parser->token_stream = parser->current_token.stream;
+    if (parser->token_stream.source_fingerprint == 0)
+        parser_error(parser, "parser received an unanchored token stream");
 
     return parser;
 }
@@ -90,6 +93,10 @@ void parser_destroy(Parser* parser) {
 Token parser_advance(Parser* parser) {
     parser->previous_token = parser->current_token;
     parser->current_token = lexer_next_token(parser->lexer);
+    if (!lexer_token_stream_handle_equal(parser->token_stream,
+                                         parser->current_token.stream)) {
+        parser_error(parser, "parser token stream anchor changed during parse");
+    }
     return parser->previous_token;
 }
 

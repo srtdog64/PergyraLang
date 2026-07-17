@@ -525,7 +525,7 @@ stable owner identities in `docs/semantics/sot_owner_spine_registry.md`, and 13
 self-host fact carriers are explicitly classified as derivatives rather than
 alternate authorities. Matching `SpineFact` / `SpineOwner` constructors remain
 a checked Coq projection. The current split is
-`CLOSED=16 BRIDGE=7 ACTIVE=13`; only executable rung closure may promote a row.
+`CLOSED=16 BRIDGE=11 ACTIVE=10`; only executable rung closure may promote a row.
 `tests/sot_authority_edge_smoke.sh` consumes the registry without copying its
 owner list or status count. `src/self_hosted/OWNERS.md` remains only a physical
 module inventory.

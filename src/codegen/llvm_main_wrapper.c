@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../compiler/verified_projection_plan.h"
 #include <string.h>
 
 static bool
@@ -63,6 +64,71 @@ llvm_main_emit_thread_pool_init(LLVMGenCtx *ctx, bool needs_thread_pool)
     LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 0, 0) };
     LLVMBuildCall2(ctx->builder, init_fn->fn_type,
                    init_fn->fn, args, 1, "");
+    return true;
+}
+
+static bool
+llvm_main_emit_machine_layer_runtime_bind(LLVMGenCtx *ctx)
+{
+    const PgyVerifiedProjectionPlanRow *plan;
+    LLVMFuncEntry *bind_fn;
+    LLVMFuncEntry *panic_fn;
+    LLVMValueRef args[6];
+    LLVMValueRef bound;
+    LLVMValueRef ready;
+    LLVMBasicBlockRef ready_bb;
+    LLVMBasicBlockRef fail_bb;
+
+    if (!llvm_machine_layer_projection_is_bound(ctx))
+        return true;
+    plan = ctx->projection_plan;
+    bind_fn = llvm_lookup_function(ctx,
+                                   "pgy_machine_layer_runtime_bind_mapping_export");
+    panic_fn = llvm_lookup_function(ctx,
+                                    "pgy_runtime_panic_internal_invariant_export");
+    if (bind_fn == NULL || panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM machine-layer startup requires runtime bind and panic exports");
+        return false;
+    }
+    args[0] = LLVMConstInt(ctx->type_i64,
+                           plan->machine_layer_manifest_fingerprint, 0);
+    args[1] = LLVMConstInt(ctx->type_i64,
+                           plan->machine_layer_physical_manifest_fingerprint, 0);
+    args[2] = LLVMConstInt(ctx->type_i64,
+                           plan->machine_layer_physical_grant_base, 0);
+    args[3] = LLVMConstInt(ctx->type_i64,
+                           plan->machine_layer_physical_grant_size, 0);
+    args[4] = LLVMConstInt(ctx->type_i32,
+                           plan->machine_layer_physical_grant_mode, 0);
+    args[5] = LLVMConstInt(ctx->type_i32,
+                           plan->machine_layer_runtime_provider_required
+                               ? 1u : 0u, 0);
+    bound = LLVMBuildCall2(ctx->builder, bind_fn->fn_type,
+                           bind_fn->fn, args, 6, "machine_layer_bound");
+    ready = LLVMBuildICmp(ctx->builder, LLVMIntNE, bound,
+                          LLVMConstInt(ctx->type_i32, 0, 0),
+                          "machine_layer_bind_ready");
+    ready_bb = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "machine_layer_bind_ok");
+    fail_bb = LLVMAppendBasicBlockInContext(
+        ctx->context, ctx->current_function, "machine_layer_bind_fail");
+    LLVMBuildCondBr(ctx->builder, ready, ready_bb, fail_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    {
+        LLVMValueRef reason = LLVMBuildGlobalStringPtr(
+            ctx->builder, "machine-layer runtime bind rejected",
+            "machine_layer_bind_reason");
+        LLVMValueRef panic_args[] = { reason };
+        LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                       panic_args, 1, "");
+    }
+    LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 1, 0));
+    LLVMPositionBuilderAtEnd(ctx->builder, ready_bb);
     return true;
 }
 
@@ -263,6 +329,9 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         goto restore_state;
 
     if (!llvm_main_emit_args_init(ctx, argc_value, argv_value))
+        goto restore_state;
+
+    if (!llvm_main_emit_machine_layer_runtime_bind(ctx))
         goto restore_state;
 
     if (!llvm_main_emit_thread_pool_init(ctx, needs_thread_pool))

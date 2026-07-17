@@ -2,6 +2,7 @@
 
 import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_iteration_type_fact_owner.pgy";
+import "../compiler/machine_layer_declaration_consumer.pgy";
 
 struct SelfMirInitializerRows {
     node_ids: Array<Int>;
@@ -20,6 +21,7 @@ struct SelfMirRoutineInput {
     analysis: SemanticAstArtifactAnalysis;
     initializers: SelfMirInitializerRows;
     iterations: SelfMirIterationRows;
+    machine_declaration: SelfHostMachineLayerDeclaration;
 }
 
 func SelfMirInitializerRowsFromSemantic(

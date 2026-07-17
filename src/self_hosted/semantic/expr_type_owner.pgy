@@ -112,6 +112,47 @@ func CallReturnType(text: String, func_names: Array<String>, func_rets: Array<St
     }
     return "Unknown";
 }
+
+func MachineLayerBuiltinReturnType(
+    text: String,
+    names: Array<String>,
+    types: Array<String>,
+    func_names: Array<String>,
+    func_rets: Array<String>
+) -> String {
+    let n: Int = StringLength(text);
+    if n == 0 || CharAt(text, n - 1) != ")" {
+        return "";
+    }
+    let paren: Int = StringIndexOf(text, "(");
+    if paren <= 0 { return ""; }
+    let callee: String = Trim(Substring(text, 0, paren));
+    let args_src: String = Substring(text, paren + 1, n - paren - 2);
+    if callee == "ClaimDeviceSlot" {
+        return "DeviceSlot<Unknown>";
+    }
+    if callee == "DeviceRead" || callee == "SubmitDeviceRead" {
+        let argument: String = CallArgAt(args_src, 0);
+        let receiver_type: String =
+            ExprType(argument, names, types, func_names, func_rets);
+        let payload: Option<String> =
+            DeviceSlotPayloadTypeOpt(receiver_type);
+        if !IsSome(payload) {
+            return "";
+        }
+        if callee == "DeviceRead" {
+            return UnwrapOption(payload);
+        }
+        return Concat("RemoteFuture<", Concat(
+            UnwrapOption(payload), ">"
+        ));
+    }
+    if callee == "DeviceWrite" || callee == "ReleaseDeviceSlot" {
+        return "Void";
+    }
+    return "";
+}
+
 func ParamTypeOf(part: String) -> String {
     let colon: Int = StringIndexOf(part, ":");
     if colon < 0 {
@@ -351,6 +392,12 @@ func ExpressionAssignableTo(expected: String, actual: String, expr: String) -> B
     if IsResultType(expected) && actual == "Result<Unknown>" {
         return true;
     }
+    if IsDeviceSlotType(expected) && actual == "DeviceSlot<Unknown>" {
+        return true;
+    }
+    if IsRemoteFutureType(expected) && actual == "RemoteFuture<Unknown>" {
+        return true;
+    }
     if expected == "Long" && actual == "Int" && IsIntLiteral(Trim(expr)) {
         return true;
     }
@@ -361,11 +408,33 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     if StringLength(text) == 0 {
         return "Void";
     }
+    if StartsWith(text, "await ") {
+        let awaited_text: String =
+            Trim(Substring(text, 6, StringLength(text) - 6));
+        let awaited_type: String =
+            ExprType(awaited_text, names, types, func_names, func_rets);
+        let remote_payload: Option<String> =
+            RemoteFuturePayloadTypeOpt(awaited_type);
+        if IsSome(remote_payload) {
+            return Concat("Result<", Concat(
+                UnwrapOption(remote_payload), ">"
+            ));
+        }
+        let future_payload: Option<String> =
+            FuturePayloadTypeOpt(awaited_type);
+        if IsSome(future_payload) {
+            return UnwrapOption(future_payload);
+        }
+        return "Unknown";
+    }
     let try_bounds: Array<Int> = [0, 0];
     if TryOperandBounds(text, try_bounds) {
         let try_operand: String = Trim(Substring(text, try_bounds[0], try_bounds[1]));
         let try_operand_type: String = ExprType(try_operand, names, types, func_names, func_rets);
         if IsOptionType(try_operand_type) {
+            return Substring(try_operand_type, 7, StringLength(try_operand_type) - 8);
+        }
+        if IsResultType(try_operand_type) {
             return Substring(try_operand_type, 7, StringLength(try_operand_type) - 8);
         }
         return "Unknown";
@@ -410,6 +479,12 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     let result_type: String = ResultCallReturnType(text, names, types, func_names, func_rets);
     if StringLength(result_type) > 0 {
         return result_type;
+    }
+    let machine_layer_type: String = MachineLayerBuiltinReturnType(
+        text, names, types, func_names, func_rets
+    );
+    if machine_layer_type != "" {
+        return machine_layer_type;
     }
     let scalar_utility_type: String = ScalarUtilityReturnType(text, names, types, func_names, func_rets);
     if StringLength(scalar_utility_type) > 0 {

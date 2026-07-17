@@ -122,7 +122,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "return CompilerEmissionArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompileMirJsonTextToCVerified(json);"
+    "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MirExpressionGraphFactsForArtifact(json, artifact)"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

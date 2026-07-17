@@ -1,0 +1,178 @@
+// Executable proof that the self-host MIR producer carries machine rows.
+//
+// The graph is the semantic input boundary for this probe.  It deliberately
+// writes call-target identity into the graph and then exercises the same CFG,
+// machine projection, verifier, and JSON owner used by the driver.  No source
+// text scan or backend operation inference is involved.
+
+import "../../mir/json_projection_owner.pgy";
+import "../../semantic/ast_expression_graph_build_owner.pgy";
+import "../../compiler/machine_layer_declaration_consumer.pgy";
+
+func MachineProbeCallGraph(
+    target_name: String,
+    expression: String
+) -> SemanticExpressionGraphView {
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let target_kinds: Array<Int> = [];
+    let target_names: Array<String> = [];
+    let built: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            kinds, texts, left_children, right_children,
+            target_kinds, target_names, expression
+        );
+    if !built.ok || built.root_id < 0 ||
+        kinds[built.root_id] != AstExpressionNodeCall() {
+        Log(Concat("machine probe graph build failed: ", expression));
+        Exit(1);
+    }
+    ArraySet(target_kinds, built.root_id, SemanticCallTargetDirect());
+    ArraySet(target_names, built.root_id, target_name);
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        kinds, texts, left_children, right_children,
+        target_kinds, target_names
+    );
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [built.root_id], [true], arena
+    );
+    if !SemanticExpressionGraphFactsReady(graph, 1) {
+        Log(Concat("machine probe graph facts failed: ", expression));
+        Exit(1);
+    }
+    return SemanticExpressionGraphView(true, built.root_id, graph);
+}
+
+func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
+    let kinds: Array<Int> = [];
+    let texts: Array<String> = [];
+    let left_children: Array<Int> = [];
+    let right_children: Array<Int> = [];
+    let target_kinds: Array<Int> = [];
+    let target_names: Array<String> = [];
+    let built: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            kinds, texts, left_children, right_children,
+            target_kinds, target_names, "ClaimDeviceSlot()"
+        );
+    if !built.ok { Log("machine probe missing-target graph build failed"); Exit(1); }
+    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+        kinds, texts, left_children, right_children,
+        target_kinds, target_names
+    );
+    let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+        true, [built.root_id], [true], arena
+    );
+    return SemanticExpressionGraphView(true, built.root_id, graph);
+}
+
+func MachineProbeAddCall(
+    cfg: SelfMirCfgRows,
+    id: Int,
+    kind: String,
+    name: String,
+    result: String,
+    arg0: String,
+    arg1: String,
+    expression: String,
+    source_type: String,
+    uses: Array<String>,
+    target_name: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirCfgRows {
+    let added: SelfMirCfgRows = SelfMirCfgAddInstruction(
+        cfg, 0, id, kind, name, result, arg0, arg1, expression, "",
+        source_type, uses
+    );
+    return SelfMirCfgAttachLastExpr0Graph(
+        added, MachineProbeCallGraph(target_name, expression), declaration
+    );
+}
+
+func MachineProbeFacts(
+    declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirProgramFacts {
+    let cfg0: SelfMirCfgRows = SelfMirCfgAddBlock(SelfMirCfgRowsEmpty());
+    let no_uses: Array<String> = [];
+    let no_ints: Array<Int> = [];
+    let cfg1: SelfMirCfgRows = MachineProbeAddCall(
+        cfg0, 0, "def", "ssa-def", "dev.1", "dev", "",
+        "ClaimDeviceSlot()", "AST_LET_DECL", no_uses, "ClaimDeviceSlot",
+        declaration
+    );
+    let cfg2: SelfMirCfgRows = MachineProbeAddCall(
+        cfg1, 1, "def", "ssa-def", "current.1", "current", "",
+        "ClaimDeviceSlot()", "AST_LET_DECL", ["dev.1"], "DeviceRead",
+        declaration
+    );
+    let cfg3: SelfMirCfgRows = MachineProbeAddCall(
+        cfg2, 2, "stmt", "stmt", "", "DeviceWrite", "current",
+        "ClaimDeviceSlot()", "AST_CALL", ["dev.1", "current.1"],
+        "DeviceWrite", declaration
+    );
+    let cfg4: SelfMirCfgRows = MachineProbeAddCall(
+        cfg3, 3, "stmt", "stmt", "", "ReleaseDeviceSlot", "",
+        "ClaimDeviceSlot()", "AST_CALL", ["dev.1"], "ReleaseDeviceSlot",
+        declaration
+    );
+    let cfg5: SelfMirCfgRows = MachineProbeAddCall(
+        cfg4, 4, "stmt", "stmt", "", "SubmitDeviceRead", "",
+        "ClaimDeviceSlot()", "AST_CALL", ["dev.1"], "SubmitDeviceRead",
+        declaration
+    );
+    let routines: SelfMirRoutineRows = SelfMirRoutineRows(
+        [0], ["Main"], ["function"], [""], ["Void"],
+        [0], [0], no_uses, [0], [0], no_uses, no_uses, no_ints,
+        [0], [1], [0], [2], ["dev", "current"],
+        ["DeviceSlot<Int>", "Int"],
+        [0], [0], no_ints, no_uses, no_uses, no_ints
+    );
+    return SelfMirProgramFacts(
+        true, "", "", 1,
+        SelfMirDeclarationRowsEmpty(), SelfMirParallelCaptureRowsEmpty(),
+        routines, cfg5
+    );
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) > 0 && args[0] == "--missing-call-target" {
+        let view: SemanticExpressionGraphView =
+            MachineProbeGraphWithoutTarget();
+        let row: SelfMirMachineLayerProjection =
+            SelfMirMachineLayerProjectionForGraph(
+                view.graph, view.root_id,
+                SelfHostMachineLayerDeclarationEmpty()
+            );
+        if SelfMirMachineLayerProjectionReady(
+            row, SelfHostMachineLayerDeclarationEmpty()
+        ) {
+            Log("machine probe accepted missing call-target fact");
+            Exit(1);
+        }
+        Log("machine probe rejected missing call-target fact");
+        return;
+    }
+    if ArrayLength(args) != 1 {
+        Log("usage: machine_layer_mir_projection_probe <machine-manifest-json-file>");
+        Exit(1);
+    }
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationFromPath(args[0]);
+    let facts: SelfMirProgramFacts = MachineProbeFacts(declaration);
+    if !SelfMirProgramFactsReady(facts) {
+        Log(Concat(
+            "machine probe facts rejected: ",
+            SelfMirProgramFactsValidationError(facts)
+        ));
+        Exit(1);
+    }
+    let json: String = SelfMirProgramJson(facts);
+    if json == "" {
+        Log("machine probe JSON projection failed");
+        Exit(1);
+    }
+    Log(json);
+}

@@ -447,6 +447,12 @@ reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR pro
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "func SelfMirProgramJson"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldString("schema", "pgy.mir.v1")'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"parallel_capture_boundaries", JsonEmitArray(parallel_captures)'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbol_count"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbols"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summary_count"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summaries"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_state_count"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_states"'
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "TypedAstArenaProvenanceText"
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" ".tree_text"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "TypedAstArenaProvenanceText"
@@ -497,7 +503,7 @@ require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenPari
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "CodegenParityFixtureSourcePath"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityFixtureCount() -> Int"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "func MirParityCodegenFixtureExpectedCount"
-require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 71;"
+require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" "return 73;"
 require_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/mir_lower/fixture/let_log.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/write_file.pgy"'
 reject_text "src/self_hosted/mir_lower/fixture_manifest_owner.pgy" '"src/self_hosted/codegen/fixture/args_probe.pgy"'
@@ -507,8 +513,8 @@ require_text "src/self_hosted/mir_lower/run_owner.pgy" "EmitMirParityFixtureMani
 mir_clean_reject_count="$(grep -Ec '^base="unsupported_' "$PARITY_DIR/mir_json_parity.sh" || true)"
 [[ "$mir_clean_reject_count" -eq 0 ]] ||
     fail "mir_json_parity clean reject count drifted: $mir_clean_reject_count != 0"
-require_text "src/self_hosted/PROGRESS.md" "96 PASS / 0 gap plus 0 clean"
-require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "96 PASS / 0 gap plus 0 clean rejects"
+require_text "src/self_hosted/PROGRESS.md" "100 PASS / 0 gap plus 0 clean"
+require_text "docs/self_hosted/07_hard_self_host_scorecard.md" "100 PASS / 0 gap plus 0 clean rejects"
 require_text "tests/self_hosted/parity/mir_json_parity.sh" '"kind":"role","name":"IntMath","for_type":"Int"'
 require_text "tests/self_hosted/parity/mir_json_parity.sh" "Role: IntMath for Int"
 reject_text "tests/self_hosted/parity/mir_json_parity.sh" "unsupported MIR role declaration in self-host subset"
@@ -2703,7 +2709,7 @@ require_max_lines "src/self_hosted/semantic/ast_expression_call_target_contract_
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "call_target_names: Array<String>;"
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
-    "func SemanticExpressionGraphCallTargetsFromSignatures("
+    "func SemanticExpressionGraphCallTargetsFromCallableFacts("
 require_text "src/self_hosted/semantic/ast_expression_call_target_capture_owner.pgy" \
     "SemanticCallableIndex("
 reject_text "src/self_hosted/semantic/ast_expression_call_target_fact_owner.pgy" \
@@ -2726,6 +2732,33 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"call_target_kind"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"call_target_name"'
+require_file "src/self_hosted/mir/machine_layer_projection_owner.pgy"
+require_file "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy"
+require_max_lines "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy" 200
+require_text "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy" \
+    "CompilerRuntimeCallAbiMachineLayerContactNameForSource("
+require_file "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy"
+require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
+    "SelfHostMachineLayerDeclarationFromPath"
+require_text "src/self_hosted/compiler/machine_layer_declaration_consumer.pgy" \
+    "MachineDeclarationPhysicalManifestIdReady"
+require_text "src/self_hosted/mir/machine_layer_projection_owner.pgy" \
+    "SemanticExpressionGraphCallTargetName(graph, call_root)"
+require_text "src/self_hosted/mir/machine_layer_projection_owner.pgy" \
+    "declaration.grant_base"
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    "SelfMirJsonMachineLayer(machine)"
+require_file "src/self_hosted/tools/machine_layer_mir_projection_probe/main.pgy"
+require_file "src/self_hosted/tools/machine_layer_rir_validator/main.pgy"
+require_text "tests/self_hosted/mir_machine_layer_smoke.sh" \
+    "machine_layer_mir_projection_probe"
+require_text "tests/self_hosted/mir_machine_layer_smoke.sh" \
+    "machine_layer_rir_validator"
+require_text "Makefile" "self-host-mir-machine-layer-test-smoke: \$(PGY)"
+require_text "src/codegen/transpiler.c" "pgy_machine_layer_runtime_bind_mapping_export"
+require_text "src/codegen/llvm_main_wrapper.c" "pgy_machine_layer_runtime_bind_mapping_export"
+require_text "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_machine_layer_runtime_bind_mapping_export"
+require_text "Makefile" "PGY_BIN=\"\$(abspath \$(PGY))\""
 require_text "src/self_hosted/mir/routine_build_owner.pgy" \
     "MIR shadowed local type changed"
 require_file "src/self_hosted/mir/routine_let_owner.pgy"
@@ -2806,7 +2839,7 @@ require_text "tests/self_host_compiler_world_contract_smoke.sh" "pgy_selfhost_co
 reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'cmp -s'
 reject_text "tests/self_host_compiler_world_contract_smoke.sh" 'diff -u'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileMirJsonToCVerified"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput(mir_json_path)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirJsonReadInput("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "EmitMirProgramTree(json)"
 require_file "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 600
@@ -2827,9 +2860,11 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonTextToCVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "MirMachineLayerFactsReady(json, machine_declaration)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeWithExpressionGraph("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return CompileMirJsonTextToCVerified(json);"
+    "return CompileMirJsonTextToCVerified(json, machine_declaration);"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"emitted-c", CompileArtifactToCVerified(artifact)'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "MirFactGraphPayloadContractReady()"
@@ -2844,7 +2879,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CompileSour
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "func CanonicalizeMirJsonVerified"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramFactsFromArtifact("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "SelfMirProgramJson(mir_facts)"
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "let json: String = CompileSourceToMirJsonVerified(source_path);"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "CompileSourceToMirJsonVerified("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--emit-mir-json-verified"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" 'args[0] == "--canonicalize-mir-json"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/class_method.pgy"'
@@ -5138,6 +5173,9 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "BlockInstructionBoun
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionKind"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "func BlockInstructionOfKindBounds"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArrayNextObjectBounds(json, instruction_cursor, instructions_bounds[1], instruction_bounds)"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "loop_flow_fact_owner.pgy";'
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "resource_flow_fact_owner.pgy";'
+require_file "src/self_hosted/mir_lower/resource_flow_fact_owner.pgy"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, inst_start, inst_end, \"kind\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexBlockSuccessor(index, bs, false_edge)"
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "func MirRoutineFactIndexBlockBounds("
@@ -5593,6 +5631,14 @@ require_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmi
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" 'JsonEmitFieldString("artifact_kind", CompilerRunOutputArtifactKind())'
 reject_text "src/self_hosted/tools/backend_output_comparator/main.pgy" "CompilerArtifactKindAt(6)"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerEmittedCArtifactKind"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerArtifactPlanRevision"
+require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerArtifactIdentityReady"
+require_text "src/compiler/compiler.h" "artifact_plan_digest"
+require_text "src/compiler/compiler_result.c" "compiler_result_bind_artifact_identity"
+require_text "src/compiler/c_runner.c" "compiler_result_artifact_identity_ready"
+require_text "src/compiler/compiler_llvm.c" "emitted_llvm"
+require_file "tests/artifact_zone_plan_identity_smoke.sh"
+require_text "Makefile" "artifact-zone-plan-identity-test-smoke"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerDiagnosticsArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerAirJsonArtifactKind"
 require_text "src/self_hosted/compiler/artifact_zone_owner.pgy" "func CompilerMirJsonArtifactKind"
@@ -7119,6 +7165,47 @@ require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactCount(json, kp, inst_end, \"match_patterns\")"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_patterns\", 0)"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectArrayStringFactAt(json, kp, inst_end, \"match_bindings\", 0)"
+require_text "src/compiler/mir_json_dump.c" "resource_flow_symbol_count"
+require_text "src/compiler/mir_json_dump.c" "resource_flow_symbols"
+require_text "src/compiler/mir_json_dump.c" "loop_flow_summary_count"
+require_text "src/compiler/mir_json_dump.c" "loop_flow_summaries"
+require_text "src/compiler/mir_json_dump.c" "loop_flow_state_count"
+require_text "src/compiler/mir_json_dump.c" "loop_flow_states"
+require_text "src/compiler/mir_types.h" "PgyLoopFlowSummaryFact *loop_flow_summaries"
+require_text "src/compiler/mir_types.h" "PgyLoopFlowStateFact *loop_flow_states"
+require_text "src/compiler/mir_types.h" "MIRResourceFlowSymbol *resource_flow_symbols"
+require_text "src/compiler/mir.c" "mir_copy_resource_flow_symbols"
+require_text "src/compiler/mir.c" "mir_copy_loop_flow_facts"
+require_text "src/compiler/mir_program_validate.c" "mir_validate_resource_flow_symbols"
+require_text "src/compiler/mir_program_validate.c" "mir_validate_loop_flow_facts"
+require_text "src/compiler/rir.h" "RIRResourceFlowSymbol *resource_flow_symbols"
+require_text "src/compiler/rir_flow.c" "rir_copy_resource_flow_symbols"
+require_text "src/compiler/rir_validation.c" "rir_validate_resource_flow_symbols"
+require_text "src/compiler/rir_public_surface.c" "resource_flow_symbol_count"
+require_file "tests/rir_resource_flow_identity_smoke.sh"
+require_text "Makefile" "rir-resource-flow-identity-test-smoke"
+require_text "src/compiler/air.h" "mir_evidence_binding_fingerprint"
+require_file "src/compiler/air_verification_handle.h"
+require_text "src/compiler/compiler.h" "PgyAirVerification"
+require_text "src/compiler/air_evidence_mir.c" "air_mir_evidence_binding_fingerprint"
+require_text "src/compiler/air_evidence_certificate.c" "mir_evidence_bound"
+require_file "tests/air_mir_binding_smoke.sh"
+require_text "Makefile" "air-mir-binding-test-smoke"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "MirRoutineFactIndexResourceFlowFactsValid"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "resource_flow_stable_indices"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexResourceFlowFactsValid(index)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "routine ResourceFlowUniverse facts are incomplete"
+require_file "tests/self_hosted/mir_resource_flow_identity_smoke.sh"
+require_text "Makefile" "self-host-mir-resource-flow-identity-test-smoke"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "MirRoutineFactIndexLoopFlowFactsValid"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "loop_flow_summary_entry_starts"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirRoutineFactIndexLoopFlowFactsValid(index)"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "routine LoopFlowSummary facts are incomplete"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "LoopFlowSummaryProjectionReady"
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" "routine LoopFlowSummary facts do not match CFG loop projection"
+require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "MirRoutineFactIndexResourceFlowIndexKnown"
+require_file "tests/self_hosted/mir_loop_flow_summary_identity_smoke.sh"
+require_text "Makefile" "self-host-mir-loop-flow-summary-test-smoke"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"match_patterns\":['
@@ -7186,6 +7273,24 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Sin^Float^
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Atan2^Float^Float|Float"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Log2^Float^Float"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Join^String^Array<String>|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArraySort^Array<Int>^Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayReverse^Array<Int>^Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayMap^Array<Int>^Unknown|Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"ArrayFilter^Array<Int>^Unknown|Unknown"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileOpen^Int^String|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileRead^String^Int"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileWrite^Void^Int|String"'
+require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"FileClose^Void^Int"'
+require_text "src/self_hosted/semantic/ast_expression_graph_wrapper_value_owner.pgy" \
+    'if StringLength(signature_text) > 0'
+require_text "src/self_hosted/semantic/expr_validation_owner.pgy" \
+    '!IsOptionType(operand_type) && !IsResultType(operand_type)'
+require_text "src/self_hosted/semantic/expr_type_owner.pgy" \
+    'if IsResultType(try_operand_type)'
+require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" \
+    'func SemanticAstEnumExpressionIsPayloadFree'
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'UnwrapOption(declared) == "Int"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"StringSplit^Array<String>^String|String"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" '"Print^Unknown^Unknown"'
 require_text "src/self_hosted/semantic/text_scan_owner.pgy" "func SkipLineComment"
@@ -7429,7 +7534,7 @@ require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "DriverParityExpe
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureManifestRows()"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "CodegenParityFixtureSourcePath(base)"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return rows[index];"
-require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 71;"
+require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "return 73;"
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"examples/hello.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "src/self_hosted/compiler/driver_rung0_owner.pgy" '"src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7456,7 +7561,7 @@ require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$PARSER_BIN" "$
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"$manifest_bin" --fixture-manifest'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 71'
+require_text "tests/self_hosted/parity/driver_rung0_parity.sh" '!= 73'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung0_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7481,7 +7586,7 @@ require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"$manifest_bin" 
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" "-o"
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"ast_text"'
 require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '"emitted_c"'
-require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 71'
+require_text "tests/self_hosted/parity/driver_rung1_parity.sh" '!= 73'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "examples/hello.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/func_call.pgy"'
 reject_text "tests/self_hosted/parity/driver_rung1_parity.sh" '    "src/self_hosted/codegen/fixture/struct_param.pgy"'
@@ -7866,7 +7971,7 @@ require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'MIR_LOWER_SR
 require_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC="$ROOT_DIR/${harness_paths[1]}"'
 reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'MIR_LOWER_SRC="$ROOT_DIR/src/self_hosted/mir_lower/main.pgy"'
 reject_text "tests/self_hosted/parity/mir_json_coverage_probe.sh" 'CODEGEN_SRC="$ROOT_DIR/src/self_hosted/codegen/main.pgy"'
-require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, parity artifact gates |'
+require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" '| Artifact Zone evidence | `src/self_hosted/compiler/artifact_zone_owner.pgy`, `ArtifactZone` | `self-host-component-contract-test-smoke`, `artifact-zone-plan-identity-test-smoke`, parity artifact gates |'
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "Consumer parity scripts must not recompute artifact equality in shell"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "expected-JSON bootstrap comparison plus mismatch and missing-input fixtures"
 require_text "docs/self_hosted/15_pre_self_host_expansion_ledger.md" "backend_output_comparator_parity.sh now consumes its source, expected JSON, and comparable artifact paths from TestHarness"

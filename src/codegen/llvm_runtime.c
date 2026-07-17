@@ -104,14 +104,15 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         const char *device_abi_type_name;
         const char *suffix;
         LLVMTypeRef slot_ty;
+        LLVMTypeRef device_slot_ty;
         LLVMTypeRef val_ty;
     } slot_types[] = {
-        { "Slot<Int>",    "DeviceSlot<Int>",    "Int",    ctx->slot_type_Int,    ctx->type_i32   },
-        { "Slot<Long>",   "DeviceSlot<Long>",   "Long",   ctx->slot_type_Long,   ctx->type_i64   },
-        { "Slot<Float>",  "DeviceSlot<Float>",  "Float",  ctx->slot_type_Float,  ctx->type_f32   },
-        { "Slot<Double>", "DeviceSlot<Double>", "Double", ctx->slot_type_Double, ctx->type_f64   },
-        { "Slot<Bool>",   "DeviceSlot<Bool>",   "Bool",   ctx->slot_type_Bool,   ctx->type_i1    },
-        { "Slot<String>", "DeviceSlot<String>", "String", ctx->slot_type_String, ctx->type_i8ptr },
+        { "Slot<Int>",    "DeviceSlot<Int>",    "Int",    ctx->slot_type_Int,    ctx->device_slot_type_Int,    ctx->type_i32   },
+        { "Slot<Long>",   "DeviceSlot<Long>",   "Long",   ctx->slot_type_Long,   ctx->device_slot_type_Long,   ctx->type_i64   },
+        { "Slot<Float>",  "DeviceSlot<Float>",  "Float",  ctx->slot_type_Float,  ctx->device_slot_type_Float,  ctx->type_f32   },
+        { "Slot<Double>", "DeviceSlot<Double>", "Double", ctx->slot_type_Double, ctx->device_slot_type_Double, ctx->type_f64   },
+        { "Slot<Bool>",   "DeviceSlot<Bool>",   "Bool",   ctx->slot_type_Bool,   ctx->device_slot_type_Bool,   ctx->type_i1    },
+        { "Slot<String>", "DeviceSlot<String>", "String", ctx->slot_type_String, ctx->device_slot_type_String, ctx->type_i8ptr },
     };
 
     for (size_t i = 0; i < sizeof(slot_types) / sizeof(slot_types[0]); i++) {
@@ -119,8 +120,10 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         const char *device_abi_type_name = slot_types[i].device_abi_type_name;
         const char *suffix = slot_types[i].suffix;
         LLVMTypeRef slot_ty = slot_types[i].slot_ty;
+        LLVMTypeRef device_slot_ty = slot_types[i].device_slot_ty;
         LLVMTypeRef val_ty = slot_types[i].val_ty;
         LLVMTypeRef ptr_ty = LLVMPointerType(slot_ty, 0);
+        LLVMTypeRef device_ptr_ty = LLVMPointerType(device_slot_ty, 0);
 
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
           const MIRResourceRuntimeRow *row =
@@ -217,7 +220,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
-        { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
+        { LLVMTypeRef ft = LLVMFunctionType(device_slot_ty, NULL, 0, 0);
           const MIRResourceRuntimeRow *row =
               llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
                   "Claim", "returns_container",
@@ -226,8 +229,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               return;
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
-          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
-        { LLVMTypeRef params[] = { ptr_ty, val_ty };
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, device_slot_ty); }
+        { LLVMTypeRef params[] = { device_ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
           const MIRResourceRuntimeRow *row =
               llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
@@ -238,7 +241,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
-        { LLVMTypeRef params[] = { ptr_ty };
+        { LLVMTypeRef params[] = { device_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
           const MIRResourceRuntimeRow *row =
               llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
@@ -249,7 +252,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
-        { LLVMTypeRef params[] = { ptr_ty };
+        { LLVMTypeRef params[] = { device_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
           const MIRResourceRuntimeRow *row =
               llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,
@@ -260,7 +263,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, row->runtime_fn, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
-        { LLVMTypeRef params[] = { ptr_ty };
+        { LLVMTypeRef params[] = { device_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 1, 0);
           const MIRResourceRuntimeRow *row =
               llvm_runtime_resource_row_or_error(ctx, device_abi_type_name,

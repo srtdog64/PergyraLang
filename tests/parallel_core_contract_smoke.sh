@@ -64,6 +64,13 @@ run_literal_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_parallel_family.cases.h" "parallel-family: spawn expression returns Future<T>"
     require_literal "docs/semantics/05_parallel_execution.md" '`parallel` as the core execution primitive.'
     require_literal "docs/semantics/05_parallel_execution.md" "tests/parallel_core_contract_smoke.sh"
+    require_literal "docs/168_fortran_parallel_evidence.md" "## Current Compiler Structure"
+    require_literal "docs/168_fortran_parallel_evidence.md" "SemanticParallelCaptureBoundaryFact"
+    require_literal "docs/168_fortran_parallel_evidence.md" "BoundaryCaptureFact -> ExecutionLaneFact"
+    require_literal "docs/168_fortran_parallel_evidence.md" '`scaffold-synchronous`'
+    require_literal "docs/168_fortran_parallel_evidence.md" "one task per element"
+    require_literal "docs/168_fortran_parallel_evidence.md" 'general `ReductionFact` is not landed'
+    require_literal "docs/168_fortran_parallel_evidence.md" "not Fortran parity"
     echo "[parallel-core-contract] ok (literal fallback)"
 }
 
@@ -120,6 +127,19 @@ taxonomy = require_text(
     ],
 )
 require("fiber/coroutine" in taxonomy, "taxonomy must keep fiber/coroutine below core")
+
+require_text(
+    "docs/168_fortran_parallel_evidence.md",
+    [
+        "## Current Compiler Structure",
+        "SemanticParallelCaptureBoundaryFact",
+        "BoundaryCaptureFact -> ExecutionLaneFact",
+        "`scaffold-synchronous`",
+        "one task per element",
+        "general `ReductionFact` is not landed",
+        "not Fortran parity",
+    ],
+)
 
 manifest = json.loads(read("docs/language_module_manifest.json"))
 modules = {entry["name"]: entry for entry in manifest["modules"]}

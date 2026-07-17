@@ -97,7 +97,9 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem missing_required_fa
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem every_spine_fact_has_declared_authority"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_authority_unique"
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=15 BRIDGE=7 ACTIVE=14"
+require_text "docs/semantics/proofs/SoTAuthority.v" "SFMachineLayerTransition"
+require_text "docs/semantics/proofs/SoTAuthority.v" "SOMachineLayer"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=16 BRIDGE=11 ACTIVE=10"
 
 for term in \
     "Inductive ProofNode" \

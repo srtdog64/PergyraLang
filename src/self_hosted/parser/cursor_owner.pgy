@@ -43,11 +43,11 @@ func MatchKeyword(content: String, i: Int, kw: String) -> Bool {
     return !SourceByteIsAlphaNum(SourceByteAt(content, n, i + kl));
 }
 
-// Read a numeric literal (integer or float). Returns the text as the
-// C printer emits it: trailing zeros after the decimal point are
-// trimmed, and a bare trailing `.` is dropped - so `2.0` lexes to `2`,
-// `1.50` to `1.5`, and `3.14` stays `3.14`. Only consumes the `.` when
-// followed by a digit, so `0..10` lexes as `0`, `..`, `10`.
+// Read a numeric literal (integer or float). A decimal point is retained
+// even when its fractional digits are zero: the shared AST artifact must
+// preserve the source numeric lane (`2.0` is Float, while `2` is Int).
+// Only consumes the `.` when followed by a digit, so `0..10` lexes as
+// `0`, `..`, `10`.
 func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
     let i: Int = start;
@@ -55,11 +55,9 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
         i = i + 1;
     }
     let has_frac: Bool = false;
-    let frac_start: Int = 0;
     if i + 1 < n && SourceByteAt(content, n, i) == SourceByteOf(".") &&
         SourceByteIsDigit(SourceByteAt(content, n, i + 1)) {
         has_frac = true;
-        frac_start = i;
         i = i + 1;
         while i < n && SourceByteIsDigit(SourceByteAt(content, n, i)) {
             i = i + 1;
@@ -67,20 +65,7 @@ func ReadNumber(content: String, start: Int, inout cursor_out: Array<Int>) -> St
     }
     ArraySet(cursor_out, 0, i);
     let text: String = Substring(content, start, i - start);
-    if has_frac {
-        // dot_idx in `text` is (frac_start - start).
-        let dot_idx: Int = frac_start - start;
-        let trim_to: Int = StringLength(text);
-        let text_len: Int = StringLength(text);
-        while trim_to > dot_idx + 1 &&
-            SourceByteAt(text, text_len, trim_to - 1) == SourceByteOf("0") {
-            trim_to = trim_to - 1;
-        }
-        if trim_to == dot_idx + 1 {
-            trim_to = dot_idx;
-        }
-        text = Substring(text, 0, trim_to);
-    } else if StringLength(text) > 6 &&
+    if !has_frac && StringLength(text) > 6 &&
         SourceByteAt(text, StringLength(text), 0) == SourceByteOf("1") {
         let all_zero_tail: Bool = true;
         let zi: Int = 1;

@@ -564,6 +564,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->in_async_func = prev_async;
     ctx->current_module_path = prev_module_path;
     free(param_types);
+    if (!resource_flow_universe_capture_function_facts(
+            ctx, ast_node_stable_id(node))) {
+        semantic_error(ctx, node,
+            "ResourceFlowUniverse fact snapshot allocation failed");
+    }
     loop_flow_summary_end_function(ctx);
     resource_flow_universe_end(ctx);
     scope_exit(&ctx->scope);

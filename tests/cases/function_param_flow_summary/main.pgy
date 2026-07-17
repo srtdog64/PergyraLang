@@ -4,6 +4,7 @@ subject Vec2 {
 }
 
 func Recur(ref slot: Slot<Vec2>) -> Void {
+    let unrelated: Int = 7;
     Recur(slot);
     Write(slot, Vec2(1, 2));
 }

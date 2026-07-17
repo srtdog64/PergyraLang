@@ -472,6 +472,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
         sym = symbol_create_slot(name, decl_type,
             type_slot_is_secure(decl_type), paired_token, node->line, node->column);
+        symbol_mark_declaration(sym, ast_node_stable_id(node), false);
         scope_declare(ctx->scope, sym);
         if (type_slot_is_secure(decl_type)) {
             Symbol *tok = symbol_create_token(paired_token, name,

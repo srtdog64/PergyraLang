@@ -7,7 +7,7 @@
     "source": "src/self_hosted/mir_lower/main.pgy"
   },
   "owner": {
-    "owner_set_sha256": "AB3D76B658F3F6F23EBB44B74AE3F6A2777F5D3B7C5690E7AC41438AF8414476",
+    "owner_set_sha256": "E763CC18DD3E12806659168749C026CF09C61A50B568C10ADAFB0FB81C2F6F9B",
     "paths": [
       "src/self_hosted/lib/source_scan_owner.pgy",
       "src/self_hosted/parser/cursor_owner.pgy",

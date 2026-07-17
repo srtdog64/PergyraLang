@@ -6,6 +6,7 @@
 #include "mir_base_helpers.h"
 #include "mir_cfg_contract_validate.h"
 #include "mir_fact_validate.h"
+#include "mir_machine_layer.h"
 #include "mir_public_surface.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_validation.h"
@@ -43,6 +44,197 @@ mir_validate_non_cfg_fallback_state(const MIRRoutine *routine,
                 routine->name != NULL ? routine->name : "(anonymous)");
         }
         return false;
+    }
+    return true;
+}
+
+static bool
+mir_validate_function_param_flow_summaries(const MIRRoutine *routine,
+                                           char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->function_param_flow_summary_count == 0)
+        return routine->function_param_flow_summaries == NULL
+            || routine->function_param_flow_summary_capacity != 0;
+    if (routine->function_param_flow_summaries == NULL
+        || routine->function_param_flow_summary_count
+            > routine->function_param_flow_summary_capacity
+        || routine->ast == NULL
+        || routine->ast->type != AST_FUNC_DECL
+        || routine->source_syntax_id == 0
+        || (routine->hir_routine != NULL
+            && routine->hir_routine->source_syntax_id
+                != routine->source_syntax_id)) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' has incomplete function parameter flow summary identity",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    if (routine->function_param_flow_summary_count > routine->param_count) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' has too many function parameter flow summaries",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
+        const MIRFunctionParamFlowSummary *summary =
+            &routine->function_param_flow_summaries[i];
+        if (summary->parameter_index >= routine->param_count) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' function parameter flow summary index %zu is out of range",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (routine->function_param_flow_summaries[j].parameter_index
+                == summary->parameter_index) {
+                if (error_message != NULL)
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' function parameter flow summaries share index %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        i);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+mir_validate_resource_flow_symbols(const MIRRoutine *routine,
+                                   char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->resource_flow_symbol_count == 0)
+        return routine->resource_flow_symbols == NULL
+            || routine->resource_flow_symbol_capacity != 0;
+    if (routine->resource_flow_symbols == NULL
+        || routine->resource_flow_symbol_count
+            > routine->resource_flow_symbol_capacity) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' has incomplete resource-flow symbol storage",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    for (size_t i = 0; i < routine->resource_flow_symbol_count; i++) {
+        const MIRResourceFlowSymbol *symbol =
+            &routine->resource_flow_symbols[i];
+        if (symbol->name == NULL || symbol->name[0] == '\0') {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' resource-flow symbol[%zu] has no name",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const MIRResourceFlowSymbol *prior =
+                &routine->resource_flow_symbols[j];
+            if (prior->stable_index == symbol->stable_index
+                || (symbol->is_parameter && prior->is_parameter
+                    && prior->parameter_index == symbol->parameter_index)) {
+                if (error_message != NULL)
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' resource-flow rows share identity",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+mir_validate_loop_flow_resource_index(const MIRRoutine *routine,
+                                      size_t stable_index)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t i = 0; i < routine->resource_flow_symbol_count; i++) {
+        if (routine->resource_flow_symbols[i].stable_index == stable_index)
+            return true;
+    }
+    return false;
+}
+
+static bool
+mir_validate_loop_flow_facts(const MIRRoutine *routine,
+                             char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->loop_flow_summary_count == 0) {
+        if (routine->loop_flow_state_count != 0) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' has loop-flow states without summaries",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            return false;
+        }
+        return routine->loop_flow_summaries == NULL
+            || routine->loop_flow_summary_capacity == 0;
+    }
+    if (routine->loop_flow_summaries == NULL
+        || (routine->loop_flow_state_count > 0
+            && routine->loop_flow_states == NULL)
+        || routine->loop_flow_summary_count
+            > routine->loop_flow_summary_capacity
+        || routine->loop_flow_state_count > routine->loop_flow_state_capacity
+        || routine->source_syntax_id == 0) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' has incomplete loop-flow storage or identity",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    for (size_t i = 0; i < routine->loop_flow_summary_count; i++) {
+        const PgyLoopFlowSummaryFact *summary =
+            &routine->loop_flow_summaries[i];
+        if (summary->function_syntax_id != routine->source_syntax_id
+            || summary->loop_syntax_id == 0
+            || summary->kind > 1u
+            || summary->entry_state_start > routine->loop_flow_state_count
+            || summary->entry_state_count
+                > routine->loop_flow_state_count - summary->entry_state_start
+            || summary->exit_state_start > routine->loop_flow_state_count
+            || summary->exit_state_count
+                > routine->loop_flow_state_count - summary->exit_state_start) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' has an invalid loop-flow identity or range",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (routine->loop_flow_summaries[j].loop_syntax_id
+                == summary->loop_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' has duplicate loop-flow identity %u",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        summary->loop_syntax_id);
+                return false;
+            }
+        }
+    }
+    for (size_t i = 0; i < routine->loop_flow_state_count; i++) {
+        const PgyLoopFlowStateFact *state = &routine->loop_flow_states[i];
+        if (!mir_validate_loop_flow_resource_index(routine, state->stable_index)
+            || state->slot_state < 0
+            || state->semantic_state < 0) {
+            if (error_message != NULL)
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' has an invalid loop-flow state identity",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            return false;
+        }
     }
     return true;
 }
@@ -269,6 +461,42 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
 
     mir_routine_inventory_from_program(mir, &inventory);
+    {
+        size_t resource_flow_symbol_total = 0;
+        size_t function_param_flow_summary_total = 0;
+        size_t loop_flow_summary_total = 0;
+        for (size_t i = 0; i < inventory.count; i++) {
+            const MIRRoutine *routine =
+                mir_routine_inventory_get(&inventory, i);
+            if (routine != NULL) {
+                resource_flow_symbol_total +=
+                    routine->resource_flow_symbol_count;
+                function_param_flow_summary_total +=
+                    routine->function_param_flow_summary_count;
+                loop_flow_summary_total += routine->loop_flow_summary_count;
+            }
+        }
+        if (mir->has_resource_flow_facts
+            != (resource_flow_symbol_total > 0)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR ResourceFlowUniverse flag does not match carried rows");
+            return false;
+        }
+        if (mir->has_function_param_flow_facts
+            != (function_param_flow_summary_total > 0)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR function parameter flow summary flag does not match carried rows");
+            return false;
+        }
+        if (mir->has_loop_flow_facts != (loop_flow_summary_total > 0)) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "MIR LoopFlowSummary flag does not match carried rows");
+            return false;
+        }
+    }
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
         if (routine == NULL) {
@@ -280,6 +508,13 @@ mir_validate(const MIRProgram *mir, char **error_message)
         }
 
         if (!mir_validate_non_cfg_fallback_state(routine, error_message))
+            return false;
+        if (!mir_validate_resource_flow_symbols(routine, error_message))
+            return false;
+        if (!mir_validate_function_param_flow_summaries(routine,
+                                                        error_message))
+            return false;
+        if (!mir_validate_loop_flow_facts(routine, error_message))
             return false;
         if (!mir_validate_cfg_contract_state(routine, false, true, true,
                                              error_message)) {
@@ -368,6 +603,26 @@ mir_validate(const MIRProgram *mir, char **error_message)
                             k);
                     }
                     return false;
+                }
+                if (inst->machine_layer_fact_required
+                    || (inst->rir_op != NULL
+                        && rir_machine_contact_kind_is_present(
+                               inst->rir_op->machine_contact_kind))) {
+                    if (!mir_machine_layer_fact_is_valid(inst)
+                        || (inst->rir_op != NULL
+                            && rir_machine_contact_kind_is_present(
+                                   inst->rir_op->machine_contact_kind)
+                            && inst->machine_contact_kind
+                                   != inst->rir_op->machine_contact_kind)) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] instruction[%zu] is missing valid machine-layer fact",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j,
+                                k);
+                        }
+                        return false;
+                    }
                 }
                 if ((inst->kind == MIR_INST_RESOURCE_OP
                      || (inst->kind == MIR_INST_CLEANUP_EDGE && inst->rir_op != NULL))

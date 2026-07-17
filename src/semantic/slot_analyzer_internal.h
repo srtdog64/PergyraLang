@@ -54,6 +54,7 @@ unsigned function_param_flow_summary_demand(
     ASTNode *function_decl,
     size_t param_index);
 void function_param_flow_summary_store_destroy(SemanticContext *ctx);
+bool function_param_flow_summary_snapshot(SemanticContext *ctx);
 unsigned slot_access_mask_for_named_symbol(ASTNode *node,
                                            const char *symbol_name,
                                            const SlotFunctionLookup *lookup,
@@ -67,6 +68,13 @@ unsigned slot_param_summary_in_program(ASTNode *node, const char *slot_name,
                                        const SlotFunctionLookup *lookup,
                                        int depth,
                                        const SlotSummaryOrigin *origin);
+unsigned slot_param_summary_in_program_points(
+    ASTNode *const *nodes,
+    size_t node_count,
+    const char *slot_name,
+    const SlotFunctionLookup *lookup,
+    int depth,
+    const SlotSummaryOrigin *origin);
 bool collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                           size_t *count, size_t *capacity,
                           const SlotFunctionLookup *lookup, int depth,

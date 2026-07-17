@@ -6,6 +6,8 @@
 import "error_owner.pgy";
 import "json_fact_read.pgy";
 import "parallel_capture_fact_owner.pgy";
+import "machine_layer_fact_owner.pgy";
+import "../compiler/machine_layer_declaration_consumer.pgy";
 
 func MirJsonInputPath(args: Array<String>) -> String {
     if ArrayLength(args) < 1 {
@@ -14,7 +16,10 @@ func MirJsonInputPath(args: Array<String>) -> String {
     return args[0];
 }
 
-func MirJsonReadInput(path: String) -> String {
+func MirJsonReadInput(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> String {
     let json: String = ReadFile(path);
     if StringLength(json) == 0 {
         MirLowerFailClosed(Concat("empty or unreadable MIR-JSON file: ", path));
@@ -24,6 +29,9 @@ func MirJsonReadInput(path: String) -> String {
     }
     if !MirParallelCaptureFactsReady(json) {
         MirLowerFailClosed("MIR parallel capture facts are missing or invalid");
+    }
+    if !MirMachineLayerFactsReady(json, declaration) {
+        MirLowerFailClosed("MIR machine-layer facts are missing or invalid");
     }
     return json;
 }

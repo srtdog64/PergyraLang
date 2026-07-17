@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <limits.h>
+#include <inttypes.h>
 
 #include "transpiler.h"
 #include "transpiler_context.h"
@@ -49,6 +50,7 @@ void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 #include "transpiler_helpers.h"
 #include "transpiler_defer_emit.h"
+#include "../compiler/verified_projection_plan.h"
 #include "transpiler_base_a_emitters.h"
 #include "transpiler_base_b_emitters.h"
 #include "transpiler_intent_emit.h"
@@ -131,6 +133,37 @@ transpiler_is_synthetic_executable_func(ASTNode *fn)
 /* -----------------------------------------------------------------
  * Program emitter
  * ----------------------------------------------------------------- */
+
+static void
+transpiler_emit_machine_layer_runtime_bind(TranspilerCtx *ctx)
+{
+    const PgyVerifiedProjectionPlanRow *plan;
+
+    if (!transpiler_machine_layer_projection_is_bound(ctx))
+        return;
+    plan = ctx->projection_plan;
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "if (!pgy_machine_layer_runtime_bind_mapping_export(UINT64_C(%" PRIu64
+        "), UINT64_C(%" PRIu64 "), UINT64_C(%" PRIu64
+        "), UINT64_C(%" PRIu64 "), UINT32_C(%" PRIu32
+        "), UINT32_C(%" PRIu32 "))) {\n",
+        plan->machine_layer_manifest_fingerprint,
+        plan->machine_layer_physical_manifest_fingerprint,
+        plan->machine_layer_physical_grant_base,
+        plan->machine_layer_physical_grant_size,
+        plan->machine_layer_physical_grant_mode,
+        plan->machine_layer_runtime_provider_required ? 1u : 0u);
+    ctx->indent++;
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "fputs(\"machine-layer runtime bind rejected\\n\", stderr);\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "return 1;\n");
+    ctx->indent--;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "}\n");
+}
 
 void
 emit_program(TranspilerCtx *ctx)
@@ -445,6 +478,7 @@ emit_program(TranspilerCtx *ctx)
         /* Initialize runtime */
         write_indent(ctx);
         codebuf_write(ctx->out, "pgy_args_init(argc, argv);\n");
+        transpiler_emit_machine_layer_runtime_bind(ctx);
         if (needs_thread_pool) {
             write_indent(ctx);
             codebuf_write(ctx->out, "pgy_pool_init(0);\n");

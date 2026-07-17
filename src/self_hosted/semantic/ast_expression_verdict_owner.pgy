@@ -183,7 +183,7 @@ func SemanticAstExpressionVerdictFromGraph(
     }
     let identifier_fact: SemanticExpressionGraphIdentifierFact =
         SemanticExpressionGraphIdentifierEvidence(
-            graph, root_id, names, member_root_names
+            graph, root_id, names, function_names, member_root_names
         );
     if !identifier_fact.ok {
         return SemanticAstExpressionVerdictError(

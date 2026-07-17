@@ -13,6 +13,21 @@
 #include "mir_fact_validate.h"
 #include "mir_validation.h"
 
+const MIRIterationTypeFact *
+mir_routine_iteration_type_fact(const MIRRoutine *routine,
+                                uint32_t iteration_syntax_id)
+{
+    if (routine == NULL || iteration_syntax_id == 0)
+        return NULL;
+    for (size_t i = 0; i < routine->iteration_type_fact_count; i++) {
+        const MIRIterationTypeFact *fact =
+            &routine->iteration_type_facts[i];
+        if (fact->iteration_syntax_id == iteration_syntax_id)
+            return fact;
+    }
+    return NULL;
+}
+
 void
 mir_instruction_record_surface_usage(MIRInstruction *inst)
 {
@@ -315,4 +330,21 @@ mir_validate_emission_contract(const MIRRoutine *routine,
     }
     free(contract_error);
     return true;
+}
+
+size_t
+mir_routine_function_param_flow_summary_count(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->function_param_flow_summary_count : 0;
+}
+
+const MIRFunctionParamFlowSummary *
+mir_routine_function_param_flow_summary_at(const MIRRoutine *routine,
+                                           size_t index)
+{
+    if (routine == NULL
+        || index >= routine->function_param_flow_summary_count
+        || routine->function_param_flow_summaries == NULL)
+        return NULL;
+    return &routine->function_param_flow_summaries[index];
 }

@@ -2,6 +2,7 @@
 #define PERGYRA_COMPILER_INTERNAL_H
 
 #include "compiler.h"
+#include "verified_projection_plan.h"
 
 #ifndef PGY_SRC_DIR
 #define PGY_SRC_DIR "src"
@@ -31,5 +32,9 @@ CompilerResult *compiler_error_full(const char *message,
                                     const char *fix_source);
 CompilerResult *compiler_success(const char *output_c_path,
                                  const char *output_binary_path);
+bool compiler_result_bind_artifact_identity(
+    CompilerResult *result,
+    const PgyVerifiedProjectionPlanRow *plan,
+    const char *artifact_kind);
 
 #endif /* PERGYRA_COMPILER_INTERNAL_H */

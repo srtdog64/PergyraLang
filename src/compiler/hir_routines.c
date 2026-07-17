@@ -136,6 +136,11 @@ hir_discard_routine(HIRRoutine *routine)
     free((void *)routine->signature_type_refs);
     free((void *)routine->direct_calls);
     free(routine->direct_call_decl_ids);
+    for (size_t i = 0; i < routine->resource_flow_symbol_count; i++)
+        free((void *)routine->resource_flow_symbols[i].name);
+    free(routine->resource_flow_symbols);
+    free(routine->loop_flow_summaries);
+    free(routine->loop_flow_states);
     pgy_arena_destroy(&routine->scratch);
 }
 
@@ -159,6 +164,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
     routine.name = ast_declaration_name(method);
     routine.owner_name = owner_name;
     routine.owner_ast_type = owner_ast_type;
+    routine.parameter_count = ast_func_param_count(method);
     routine.ast = method;
     routine.body = hir_routine_body(method);
     routine.is_hosted = true;
@@ -401,6 +407,9 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
         routine.source_syntax_id = ast_node_stable_id(item.ast);
         routine.kind = item.kind;
         routine.name = item.name;
+        routine.parameter_count = item.ast != NULL
+            && item.ast->type == AST_FUNC_DECL
+            ? ast_func_param_count(item.ast) : 0;
         routine.ast = item.ast;
         routine.body = hir_routine_body(item.ast);
         routine.is_hosted = (item.ast != NULL

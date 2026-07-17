@@ -1,0 +1,186 @@
+// Routine-owned LoopFlowSummary and immutable state fact parser.
+//
+// This owner keeps loop transfer transport out of the CFG span index. The
+// native producer is the sole authority for these rows; malformed rows remain
+// invalid instead of being reconstructed from control-flow text.
+
+import "json_fact_read.pgy";
+
+struct MirLoopFlowFacts {
+    let valid: Bool;
+    let summary_declared_count: String;
+    let summary_loop_ids: Array<Int>;
+    let summary_kinds: Array<Int>;
+    let summary_effect_bases: Array<Int>;
+    let summary_effect_deltas: Array<Int>;
+    let summary_flags: Array<Int>;
+    let summary_entry_starts: Array<Int>;
+    let summary_entry_counts: Array<Int>;
+    let summary_exit_starts: Array<Int>;
+    let summary_exit_counts: Array<Int>;
+    let state_declared_count: String;
+    let state_stable_indices: Array<Int>;
+    let state_consumed_flags: Array<Int>;
+    let state_used_flags: Array<Int>;
+    let state_access_masks: Array<Int>;
+    let state_slot_states: Array<Int>;
+    let state_semantic_states: Array<Int>;
+    let state_pool_ids: Array<Int>;
+}
+
+func BuildMirLoopFlowFacts(
+    json: String,
+    routine_start: Int,
+    routine_end: Int
+) -> MirLoopFlowFacts {
+    let summary_declared_count: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "loop_flow_summary_count");
+    let summary_loop_ids: Array<Int> = [];
+    let summary_kinds: Array<Int> = [];
+    let summary_effect_bases: Array<Int> = [];
+    let summary_effect_deltas: Array<Int> = [];
+    let summary_flags: Array<Int> = [];
+    let summary_entry_starts: Array<Int> = [];
+    let summary_entry_counts: Array<Int> = [];
+    let summary_exit_starts: Array<Int> = [];
+    let summary_exit_counts: Array<Int> = [];
+    let state_declared_count: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "loop_flow_state_count");
+    let state_stable_indices: Array<Int> = [];
+    let state_consumed_flags: Array<Int> = [];
+    let state_used_flags: Array<Int> = [];
+    let state_access_masks: Array<Int> = [];
+    let state_slot_states: Array<Int> = [];
+    let state_semantic_states: Array<Int> = [];
+    let state_pool_ids: Array<Int> = [];
+    let valid: Bool = true;
+
+    let summary_bounds: Array<Int> = [0, 0];
+    if StringLength(summary_declared_count) == 0 ||
+        !MirObjectArrayBounds(
+            json, routine_start, routine_end,
+            "loop_flow_summaries", summary_bounds) {
+        valid = false;
+    } else {
+        let cursor: Int = summary_bounds[0] + 1;
+        let row_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, cursor, summary_bounds[1], row_bounds) {
+            let loop_id: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "loop_syntax_id");
+            let kind_name: String = MirObjectStringFact(
+                json, row_bounds[0], row_bounds[1], "kind");
+            let effect_base: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "effect_base");
+            let effect_delta: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "effect_delta");
+            let flags: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "flags");
+            let entry_start: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "entry_state_start");
+            let entry_count: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "entry_state_count");
+            let exit_start: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "exit_state_start");
+            let exit_count: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "exit_state_count");
+            let kind: Int = 0 - 1;
+            if kind_name == "while" {
+                kind = 0;
+            } else if kind_name == "for" {
+                kind = 1;
+            } else {
+                valid = false;
+            }
+            if StringLength(loop_id) == 0 || StringLength(kind_name) == 0 ||
+                StringLength(effect_base) == 0 || StringLength(effect_delta) == 0 ||
+                StringLength(flags) == 0 || StringLength(entry_start) == 0 ||
+                StringLength(entry_count) == 0 || StringLength(exit_start) == 0 ||
+                StringLength(exit_count) == 0 {
+                valid = false;
+            } else {
+                ArrayPush(summary_loop_ids, ToInt(loop_id));
+                ArrayPush(summary_kinds, kind);
+                ArrayPush(summary_effect_bases, ToInt(effect_base));
+                ArrayPush(summary_effect_deltas, ToInt(effect_delta));
+                ArrayPush(summary_flags, ToInt(flags));
+                ArrayPush(summary_entry_starts, ToInt(entry_start));
+                ArrayPush(summary_entry_counts, ToInt(entry_count));
+                ArrayPush(summary_exit_starts, ToInt(exit_start));
+                ArrayPush(summary_exit_counts, ToInt(exit_count));
+            }
+            cursor = row_bounds[1];
+        }
+    }
+    if StringLength(summary_declared_count) == 0 ||
+        ToInt(summary_declared_count) != ArrayLength(summary_loop_ids) {
+        valid = false;
+    }
+
+    let state_bounds: Array<Int> = [0, 0];
+    if StringLength(state_declared_count) == 0 ||
+        !MirObjectArrayBounds(
+            json, routine_start, routine_end,
+            "loop_flow_states", state_bounds) {
+        valid = false;
+    } else {
+        let cursor2: Int = state_bounds[0] + 1;
+        let row_bounds2: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, cursor2, state_bounds[1], row_bounds2) {
+            let stable_index: String = MirObjectNumberFact(
+                json, row_bounds2[0], row_bounds2[1], "stable_index");
+            let access_mask: String = MirObjectNumberFact(
+                json, row_bounds2[0], row_bounds2[1], "access_mask");
+            let slot_state: String = MirObjectNumberFact(
+                json, row_bounds2[0], row_bounds2[1], "slot_state");
+            let semantic_state: String = MirObjectNumberFact(
+                json, row_bounds2[0], row_bounds2[1], "semantic_state");
+            let pool_id: String = MirObjectNumberFact(
+                json, row_bounds2[0], row_bounds2[1], "pool_id");
+            let consumed: Int = 0;
+            let used: Int = 0;
+            if JsonObjectBoolFieldEquals(
+                json, row_bounds2[0], row_bounds2[1], "is_consumed", true) {
+                consumed = 1;
+            } else if !JsonObjectBoolFieldEquals(
+                json, row_bounds2[0], row_bounds2[1], "is_consumed", false) {
+                valid = false;
+            }
+            if JsonObjectBoolFieldEquals(
+                json, row_bounds2[0], row_bounds2[1], "is_used", true) {
+                used = 1;
+            } else if !JsonObjectBoolFieldEquals(
+                json, row_bounds2[0], row_bounds2[1], "is_used", false) {
+                valid = false;
+            }
+            if StringLength(stable_index) == 0 ||
+                StringLength(access_mask) == 0 || StringLength(slot_state) == 0 ||
+                StringLength(semantic_state) == 0 || StringLength(pool_id) == 0 {
+                valid = false;
+            } else {
+                ArrayPush(state_stable_indices, ToInt(stable_index));
+                ArrayPush(state_consumed_flags, consumed);
+                ArrayPush(state_used_flags, used);
+                ArrayPush(state_access_masks, ToInt(access_mask));
+                ArrayPush(state_slot_states, ToInt(slot_state));
+                ArrayPush(state_semantic_states, ToInt(semantic_state));
+                ArrayPush(state_pool_ids, ToInt(pool_id));
+            }
+            cursor2 = row_bounds2[1];
+        }
+    }
+    if StringLength(state_declared_count) == 0 ||
+        ToInt(state_declared_count) != ArrayLength(state_stable_indices) {
+        valid = false;
+    }
+
+    return MirLoopFlowFacts(
+        valid, summary_declared_count, summary_loop_ids, summary_kinds,
+        summary_effect_bases, summary_effect_deltas, summary_flags,
+        summary_entry_starts, summary_entry_counts, summary_exit_starts,
+        summary_exit_counts, state_declared_count, state_stable_indices,
+        state_consumed_flags, state_used_flags, state_access_masks,
+        state_slot_states, state_semantic_states, state_pool_ids);
+}
+

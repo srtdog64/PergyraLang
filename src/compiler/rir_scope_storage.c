@@ -230,6 +230,11 @@ scope_ensure_state_summary(RIRScope *scope, const RIRFact *fact)
     memset(&summary, 0, sizeof(summary));
     summary.name = fact->name;
     summary.slot_anchor = fact->slot_anchor;
+    summary.has_flow_identity = fact->has_flow_identity;
+    summary.stable_index = fact->stable_index;
+    summary.declaration_syntax_id = fact->declaration_syntax_id;
+    summary.is_parameter = fact->is_parameter;
+    summary.parameter_index = fact->parameter_index;
     summary.origin_kind = fact->kind;
     summary.resource_kind = fact->resource_kind;
     summary.initial_state = fact->state;

@@ -27,6 +27,8 @@
 #include "../compiler/mir.h"
 #include "../common/arena.h"
 
+typedef struct PgyVerifiedProjectionPlanRow PgyVerifiedProjectionPlanRow;
+
 /* -----------------------------------------------------------------
  * Output buffer: grows dynamically.
  * ----------------------------------------------------------------- */
@@ -149,6 +151,7 @@ typedef struct
     int               indent;       /* current indent level          */
     bool              in_parallel;  /* inside a Parallel block       */
     const MIRProgram *mir;          /* MIR program (required)        */
+    const PgyVerifiedProjectionPlanRow *projection_plan;
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
@@ -356,6 +359,10 @@ typedef struct
 
 TranspileResult *transpile_from_mir(const MIRProgram *mir,
                                     const char *output_path);
+TranspileResult *transpile_from_mir_with_projection_plan(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const char *output_path);
 TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const MIRProgram *mir,
                                     const char *output_path);

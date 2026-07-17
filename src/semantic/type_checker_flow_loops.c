@@ -54,6 +54,11 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     ASTNode *range_start = ast_for_range_start(node);
     ASTNode *range_end = ast_for_range_end(node);
     ASTNode *body = ast_for_body(node);
+    size_t header_diagnostic_base = ctx->diagnostic_count;
+    Type *iterable_type_fact = TYPE_INT;
+    bool iteration_fact_valid = true;
+    bool has_iteration_owner = ctx->current_function_decl != NULL
+        || ctx->program_root != NULL;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
         ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);
@@ -63,6 +68,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     if (iterable != NULL) {
         Type *coll_type = flow_normalize_type(
             type_check_expression(iterable, ctx));
+        iterable_type_fact = coll_type;
         if (type_is_constructed_named(coll_type, "Array")
             || type_is_constructed_named(coll_type, "Slice")
             || type_is_constructed_named(coll_type, "List")) {
@@ -73,6 +79,9 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
                 iterable,
                 "for-in requires Array<T>, Slice<T>, or List<T>, got '%s'",
                 type_name_or_unknown(coll_type));
+            iteration_fact_valid = false;
+        } else {
+            iteration_fact_valid = false;
         }
     }
 
@@ -90,6 +99,15 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         Type *t = flow_normalize_type(
             type_check_expression(range_end, ctx));
         require_assignable(t, TYPE_INT, range_end, ctx);
+    }
+
+    if (iteration_fact_valid && has_iteration_owner
+        && ctx->diagnostic_count == header_diagnostic_base
+        && !semantic_iteration_type_fact_record(
+                ctx, node, var_type, iterable_type_fact,
+                iterable != NULL && iterable->type != AST_IDENTIFIER)) {
+        semantic_error(ctx, node,
+            "Iteration type fact allocation or identity binding failed");
     }
 
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);

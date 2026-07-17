@@ -54,6 +54,7 @@ llvm_resolve_runnable_binary_path(const char *binary_path, bool do_run)
 int
 llvm_runner_execute(const DriverFlags *flags,
                     const CompilerIRBundle *bundle,
+                    const PgyAirVerification *air,
                     CompilerBackendTimings *backend_timings)
 {
     if (backend_timings != NULL)
@@ -61,10 +62,16 @@ llvm_runner_execute(const DriverFlags *flags,
 
     if (flags->emit_llvm_ir) {
         CompilerResult *result = flags->output_path != NULL
-            ? compiler_emit_llvm_ir_to_file(bundle, "pergyra_module", flags->output_path)
-            : compiler_emit_llvm_ir(bundle, "pergyra_module");
-        if (result == NULL || !result->success) {
-            const char *msg  = result != NULL ? result->error_message : "out of memory";
+            ? compiler_emit_llvm_ir_to_file(bundle, air, "pergyra_module", flags->output_path)
+            : compiler_emit_llvm_ir(bundle, air, "pergyra_module");
+        const char *identity_error = NULL;
+        bool identity_ready = result != NULL
+            && result->success
+            && compiler_result_artifact_identity_ready(result, &identity_error);
+        if (result == NULL || !result->success || !identity_ready) {
+            const char *msg  = result != NULL && result->error_message != NULL
+                ? result->error_message
+                : (identity_error != NULL ? identity_error : "out of memory");
             const char *code = result != NULL ? result->error_code : NULL;
             const char *cause = result != NULL ? result->error_cause_ir : NULL;
             const char *fix   = result != NULL ? result->error_fix_source : NULL;
@@ -109,10 +116,16 @@ llvm_runner_execute(const DriverFlags *flags,
                 bin_path, runnable_bin_path);
     }
 
-    result = compiler_build_native_llvm(bundle, obj_path, runnable_bin_path, flags->verbose,
+    result = compiler_build_native_llvm(bundle, air, obj_path, runnable_bin_path, flags->verbose,
                                         flags->opt_profile);
-    if (result == NULL || !result->success) {
-        const char *msg   = result != NULL ? result->error_message : "out of memory";
+    const char *identity_error = NULL;
+    bool identity_ready = result != NULL
+        && result->success
+        && compiler_result_artifact_identity_ready(result, &identity_error);
+    if (result == NULL || !result->success || !identity_ready) {
+        const char *msg   = result != NULL && result->error_message != NULL
+            ? result->error_message
+            : (identity_error != NULL ? identity_error : "out of memory");
         const char *code  = result != NULL ? result->error_code : NULL;
         const char *cause = result != NULL ? result->error_cause_ir : NULL;
         const char *fix   = result != NULL ? result->error_fix_source : NULL;
@@ -153,10 +166,12 @@ llvm_runner_execute(const DriverFlags *flags,
 int
 llvm_runner_execute(const DriverFlags *flags,
                     const CompilerIRBundle *bundle,
+                    const PgyAirVerification *air,
                     CompilerBackendTimings *backend_timings)
 {
     (void)flags;
     (void)bundle;
+    (void)air;
     (void)backend_timings;
     fprintf(stderr, "pgy: LLVM backend not available in this build\n");
     return 1;

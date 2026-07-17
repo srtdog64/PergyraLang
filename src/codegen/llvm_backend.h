@@ -27,6 +27,8 @@
 #include "../compiler/hir.h"
 #include "../compiler/mir.h"
 
+typedef struct PgyVerifiedProjectionPlanRow PgyVerifiedProjectionPlanRow;
+
 /* -----------------------------------------------------------------
  * Result type for LLVM code generation
  * ----------------------------------------------------------------- */
@@ -58,10 +60,22 @@ typedef struct
 LLVMGenResult *llvm_codegen_from_mir(const MIRProgram *mir,
                                      const char *module_name);
 
+LLVMGenResult *llvm_codegen_from_mir_with_projection_plan(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const char *module_name);
+
 LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                                const char *module_name,
                                                const char *output_path,
                                                bool release_opt);
+
+LLVMGenResult *llvm_codegen_to_object_from_mir_with_projection_plan(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const char *module_name,
+    const char *output_path,
+    bool release_opt);
 
 /*
  * Free an LLVMGenResult.

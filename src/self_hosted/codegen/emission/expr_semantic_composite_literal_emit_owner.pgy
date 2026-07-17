@@ -7,6 +7,8 @@ import "../abi_layout/abi_layout_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
+import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_rewrite.pgy";
 
 struct SemanticArrayLiteralView {
@@ -57,6 +59,32 @@ func RewriteSemanticExpectedValue(
 ) -> String {
     let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
     if !IsSome(kind) { Die("semantic expected-value kind is missing"); }
+    if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(expected_type) != "" &&
+        AstExpressionNodeIsCallSpine(UnwrapOption(kind)) {
+        let call: SemanticCallSpineView = SemanticCallSpineViewFromGraph(
+            graph, node_id
+        );
+        if !call.ok {
+            Die("semantic machine expected-value call graph is malformed");
+        }
+        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+            graph, call.call_node
+        );
+        if !IsSome(target_name) || UnwrapOption(target_name) != "ClaimDeviceSlot" {
+            Die("DeviceSlot<T> initializer must be ClaimDeviceSlot");
+        }
+        if ArrayLength(call.argument_nodes) != 0 {
+            Die("ClaimDeviceSlot takes no arguments");
+        }
+        let runtime_name: Option<String> =
+            CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(
+                "ClaimDeviceSlot", expected_type
+            );
+        if !IsSome(runtime_name) {
+            Die("ClaimDeviceSlot DeviceSlot<T> runtime ABI row is missing");
+        }
+        return Concat(UnwrapOption(runtime_name), "()");
+    }
     if AstExpressionNodeIsArrayLiteralSpine(UnwrapOption(kind)) {
         return RewriteSemanticArrayLiteralValue(
             graph, node_id, expected_type, env
@@ -66,6 +94,21 @@ func RewriteSemanticExpectedValue(
         return RewriteSemanticStructLiteralValue(
             graph, node_id, expected_type, env
         );
+    }
+    if LookupKindType(env, expected_type, "enum") == "payload_free" {
+        let source_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, node_id
+        );
+        if !IsSome(source_text) {
+            Die("semantic enum literal text fact is missing");
+        }
+        let enum_fact: Option<EnumLiteralProjectionFact> =
+            EnumPayloadFreeArgumentProjectionFactOpt(
+                UnwrapOption(source_text), expected_type, env
+            );
+        if IsSome(enum_fact) {
+            return UnwrapOption(enum_fact).c_value;
+        }
     }
     return RewriteExprFromSemanticGraph(graph, node_id, env);
 }

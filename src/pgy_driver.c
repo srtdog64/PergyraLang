@@ -54,10 +54,12 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--hir-ssa", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_SSA },
     { "--mir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir), true },
     { "--mir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir_json), true },
+    { "--machine-manifest-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_machine_manifest_json), true },
     { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
     { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
     { "--repl", DRIVER_OPTION_BOOL, offsetof(DriverFlags, repl), true },
     { "--rir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir), true },
+    { "--rir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir_json), true },
     { "--run", DRIVER_OPTION_BOOL, offsetof(DriverFlags, do_run), true },
     { "--runtime=default", DRIVER_OPTION_RUNTIME, 0, RUNTIME_DEFAULT },
     { "--runtime=none", DRIVER_OPTION_RUNTIME, 0, RUNTIME_NONE },
@@ -162,7 +164,8 @@ parse_args(int argc, char *argv[])
         }
     }
 
-    if (f.source_path == NULL && !f.repl) {
+    if (f.source_path == NULL && !f.repl
+        && !f.dump_machine_manifest_json) {
         driver_print_usage();
         exit(1);
     }

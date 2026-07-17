@@ -21,6 +21,16 @@ by the sibling modules:
   routine selection.
 - `routine_inventory_owner.pgy` owns routine discovery and bounded routine
   header facts.
+- `routine_fact_index_owner.pgy` owns routine-local CFG spans and consumes
+  `source_syntax_id` plus `function_param_flow_summaries` rows with duplicate,
+  count, and identity validation.
+- `machine_layer_fact_owner.pgy` consumes MIR `machine_layer` objects through
+  the checked self-host runtime-call projection row and the native
+  `pgy.machine-layer.declaration.v1` artifact passed as the second CLI path;
+  it validates manifest, contact operation, runtime operation, and
+  adequacy/authority/lease bits without rebuilding the native machine
+  contract. A missing or mutated declaration cannot be hidden behind an
+  abstract handle.
 - `routine_lower.pgy` owns CFG/body reconstruction for a selected routine.
 - `stmt_render.pgy` owns statement/expression rendering from MIR facts.
 - `error_owner.pgy` owns the stage-specific `MirLowerFailClosed` boundary so
@@ -29,7 +39,8 @@ by the sibling modules:
 
 Unsupported declaration or instruction facts must fail closed with
 `MIR-LOWER ERROR`; they must not be reconstructed by re-reading source AST text.
-The executable contract is `make self-host-mir-json-parity-test-smoke`.
+The executable contracts are `make self-host-mir-json-parity-test-smoke` and
+`make self-host-mir-machine-layer-test-smoke`.
 The integrated contract is
 `make self-host-driver-rung2-body-parity-test-smoke`; C still owns MIR JSON
 production, while the Pergyra driver owns MIR consumption, semantic

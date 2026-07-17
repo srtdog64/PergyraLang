@@ -1019,6 +1019,7 @@ Inductive SpineFact : Type :=
   | SFResourceFlowUniverse
   | SFLoopFlowSummary
   | SFFunctionParamFlowSummary
+  | SFMachineLayerTransition
   | SFHirTypedControlFlow
   | SFDirDomainGraph
   | SFRirResourceTransitionGraph
@@ -1057,6 +1058,7 @@ Inductive SpineOwner : Type :=
   | SOResourceFlowUniverse
   | SOLoopFlowSummary
   | SOFunctionParamFlowSummary
+  | SOMachineLayer
   | SOHir
   | SODir
   | SORir
@@ -1094,6 +1096,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFResourceFlowUniverse => SOResourceFlowUniverse
   | SFLoopFlowSummary => SOLoopFlowSummary
   | SFFunctionParamFlowSummary => SOFunctionParamFlowSummary
+  | SFMachineLayerTransition => SOMachineLayer
   | SFHirTypedControlFlow => SOHir
   | SFDirDomainGraph => SODir
   | SFRirResourceTransitionGraph => SORir

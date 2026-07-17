@@ -1,7 +1,6 @@
 // src/self_hosted/codegen/emission/program_emit.pgy
 //
 // Program-level C assembly owner for self-host C emission.
-
 import "../text/text_owner.pgy";
 import "../../hir/ast_text_inventory_owner.pgy";
 import "../../semantic/ast_artifact_verdict_owner.pgy";
@@ -22,8 +21,9 @@ import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../runtime_abi/string_runtime_owner.pgy";
 import "../runtime_abi/text_builder_runtime_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../../compiler/machine_layer_runtime_binding_owner.pgy";
 import "generic_function_emit_owner.pgy";
-
 func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                   local_bindings: SemanticAstLocalBindingFacts,
                   assignments: SemanticAstAssignmentFacts,
@@ -138,7 +138,6 @@ func CheckStmtList(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
     }
     return true;
 }
-
 func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena,
                    signatures: SemanticAstFunctionSignatureFacts,
                    local_bindings: SemanticAstLocalBindingFacts,
@@ -179,14 +178,12 @@ func CheckFunction(nodes: Array<CodegenAstTextNode>, count: Int, arena: AstArena
         f_indent + 6, cur
     );
 }
-
 func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     RejectUnsupportedCodegenBuiltins(tree_text);
 
     let nodes: Array<CodegenAstTextNode> = [];
     let node_count_box: Array<Int> = [0];
     CodegenAstTextNodeInventory(tree_text, nodes, node_count_box);
-
     let count: Int = node_count_box[0];
     if !CodegenTypedAstBridgeReady(nodes, count) {
         Die("codegen AST text bridge failed typed AST arena contract");
@@ -212,7 +209,6 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
         }
         main_scan = main_scan + 1;
     }
-
     let cur: Array<Int> = [0];
     let saw_function: Bool = false;
     while cur[0] < count {
@@ -298,12 +294,12 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     return true;
 }
-
 func GenerateCUnitFromSemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
     ref body_types: CodegenSemanticBodyTypeFacts,
-    require_entrypoint: Bool
+    require_entrypoint: Bool,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     RejectUnsupportedCodegenBuiltins(artifact.tree_text);
 
@@ -352,7 +348,6 @@ func GenerateCUnitFromSemanticFacts(
         }
         main_scan = main_scan + 1;
     }
-
     let first_fn: Option<Int> = CodegenSemanticSelectedFunctionNode(
         signatures, require_entrypoint
     );
@@ -389,7 +384,11 @@ func GenerateCUnitFromSemanticFacts(
             semantic_analysis.kind_surfaces
         );
     let uses_args: Bool = usage.uses_args;
-
+    if usage.uses_machine_layer &&
+        !SelfHostMachineLayerDeclarationReady(machine_declaration) {
+        Die("self-host machine-layer startup declaration is missing");
+    }
+    let machine_startup: String = CompilerMachineLayerRuntimeBindingStatement(machine_declaration);
     let defs: Array<String> = [];
     let cur: Array<Int> = [0];
     while cur[0] < count {
@@ -418,7 +417,7 @@ func GenerateCUnitFromSemanticFacts(
                         semantic_analysis.expression_surfaces,
                         specializations,
                         cur, method_indent,
-                        base_env, uses_args
+                    base_env, machine_startup, uses_args
                     );
                     ArrayPush(defs, Concat(mdef, "\n"));
                 } else {
@@ -437,7 +436,7 @@ func GenerateCUnitFromSemanticFacts(
                         semantic_analysis.expression_surfaces,
                         specializations,
                         cur, role_method_indent,
-                        base_env, uses_args
+                        base_env, machine_startup, uses_args
                     );
                     ArrayPush(defs, Concat(role_mdef, "\n"));
                 } else {
@@ -451,14 +450,13 @@ func GenerateCUnitFromSemanticFacts(
                 local_bindings, assignments, statements, body_types,
                 semantic_analysis.expression_surfaces,
                 specializations,
-                cur, f_indent, base_env, uses_args
+                cur, f_indent, base_env, machine_startup, uses_args
             );
             ArrayPush(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
         }
     }
-
     // Forward declarations come from a GenerateC-scope pre-pass.
     let proto_block: String = CollectProtos(
         signatures, semantic_analysis.roles, base_env, specializations
@@ -466,7 +464,6 @@ func GenerateCUnitFromSemanticFacts(
     let option_struct_block_fact: OptionStructDefinitionBlockFact =
         OptionResultRuntimeCStructOptionDefinitionBlock(base_env.global_rows);
     let option_struct_block: String = option_struct_block_fact.c_block;
-
     // String programs need the runtime string helpers; bool programs need
     // <stdbool.h>; array programs need the growable-array structs + stdlib;
     // int-only programs stay lean.
@@ -501,6 +498,7 @@ func GenerateCUnitFromSemanticFacts(
     let output_allocator: Allocator = AllocatorResult();
     let output: TextBuilder = TextBuilderNew(4096);
     TextBuilderAppend(output, "#include <stdio.h>\n");
+    if usage.uses_machine_layer { TextBuilderAppend(output, CompilerRuntimeCallAbiMachineLayerRuntimeCPreamble(uses_log)); }
     if uses_bool {
         TextBuilderAppend(output, "#include <stdbool.h>\n");
     }
@@ -538,9 +536,7 @@ func GenerateCUnitFromSemanticFacts(
     if uses_seed_random {
         TextBuilderAppend(output, MathRuntimeCSeedRandomBlock());
     }
-    if uses_result {
-        TextBuilderAppend(output, OptionResultRuntimeCResultIntBlock());
-    }
+    if uses_result { TextBuilderAppend(output, OptionResultRuntimeCResultIntBlock()); if usage.uses_remote_future { TextBuilderAppend(output, CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock()); } }
     if uses_option {
         TextBuilderAppend(output, OptionResultRuntimeCOptionScalarBlock());
     }
@@ -587,6 +583,11 @@ func GenerateCUnitFromSemanticFacts(
     TextBuilderAppend(output, typedef_block);
     TextBuilderAppend(output, option_struct_block);
     TextBuilderAppend(output, record_array_block);
+    if usage.uses_machine_layer {
+        TextBuilderAppend(output, CompilerMachineLayerRuntimeBindingBlock(
+            machine_declaration
+        ));
+    }
     TextBuilderAppend(output, proto_block);
     let definition_index: Int = 0;
     while definition_index < ArrayLength(defs) {

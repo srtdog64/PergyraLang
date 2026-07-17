@@ -415,25 +415,88 @@ Theorem delegation_distinguishes
 Theorem authority_beyond_cap_zone
 TERMS
 
-# The machine-layer corner (docs/19, layer BELOW the slot): a raw span carrying
-# extent/mode/provenance, grounded in a declared machine grant. Keystone:
-# place : Region -> Slot preserves the safety chain (every slot traces to a grant).
+# The machine-layer corner (docs/19): Region is address evidence; contact_step
+# is the explicit authority/lifetime/mode-gated machine state transition/event.
 MACHINE_LAYER_COQ="$PROOF_DIR/proofs/MachineLayerCore.v"
 require_file "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v"
 require_terms "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v" <<'TERMS'
 Theorem grant_yields_valid_region
 Theorem carve_preserves_validity
 Theorem carve_disjoint
+Record TypeLayout
 Theorem place_grounds_slot
+Theorem place_preserves_layout_identity
 Theorem chain_grant_carve_place_grounded
 Theorem no_wild_slot
 Theorem place_rejects_volatile
 Theorem place_oversize_fail_closed
 Theorem placed_slots_disjoint
+Theorem declared_grant_id_unique
+Theorem declared_grant_hardware_adequate
+Theorem declared_grants_nonoverlap
+Theorem declared_grant_address_bounded
+Theorem valid_region_address_bounded
+Theorem valid_region_has_declared_hardware_adequacy
+Inductive ContactOp
+Definition contact_mode_allowed
+Inductive LeaseState
+Record ContactEvent
+ce_base
+ce_prov
+Record ContactConfig
+Definition memory_write
+Definition contact_event_for
+Definition contact_apply
+Definition contact_has_cap
+Definition contact_lease_live
+Definition revoke_contact_lease
+Theorem revoke_contact_lease_revokes
+Inductive contact_step
+Theorem contact_step_constructible
+Definition sample_grant
+Definition sample_declaration
+Theorem sample_plain_read_contact
+Theorem contact_step_requires_valid_region
+Theorem contact_step_requires_hardware_adequacy
+Theorem contact_step_requires_capability
+Theorem contact_step_requires_live_lease
+Theorem contact_step_requires_mode
+Theorem volatile_contact_requires_volatile
+Theorem atomic_contact_requires_atomic
+Theorem contact_step_preserves_authority
+Theorem contact_step_preserves_lease
+Theorem contact_step_emits_event
+Theorem contact_step_reads_current_value
+Theorem contact_step_volatile_reads_current_value
+Theorem contact_step_writes_value
+Theorem contact_step_volatile_writes_value
+Theorem contact_step_atomic_rmw_reads_before_write
+Theorem contact_step_atomic_rmw_writes_value
+Theorem contact_step_fence_preserves_memory
 Theorem cap_gate_fail_closed
+Theorem revoked_lease_fail_closed
+Theorem contact_mode_fail_closed
+Theorem sample_plain_region_rejects_volatile_read
+Theorem sample_revoked_region_rejects_read
+Theorem no_ambient_machine_contact
 0 admits / 0 axioms
 Negative scope
 TERMS
+forbid_term "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v" "place_guarded"
+forbid_term "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v" "MachineContactCore"
+forbid_term "$MACHINE_LAYER_COQ" "docs/semantics/proofs/MachineLayerCore.v" "without the metal capability no region operation produces a slot"
+require_terms "$PROOF_DIR/proofs/MachineLayerCore.md" "docs/semantics/proofs/MachineLayerCore.md" <<'TERMS'
+Address evidence
+Actual contact is explicit
+contact_step
+MachineDeclaration
+contact_step_emits_event
+revoked_lease_fail_closed
+does not yet claim refinement to live board/MMU behavior
+Research lineage
+TERMS
+forbid_term "$PROOF_DIR/proofs/MachineLayerCore.md" "docs/semantics/proofs/MachineLayerCore.md" "??"
+forbid_term "$PROOF_DIR/proofs/MachineLayerCore.md" "docs/semantics/proofs/MachineLayerCore.md" "MachineContactCore"
 
 OPTION_TRY_COQ="$PROOF_DIR/proofs/OptionTry.v"
 require_file "$OPTION_TRY_COQ" "docs/semantics/proofs/OptionTry.v"

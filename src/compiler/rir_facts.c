@@ -222,6 +222,9 @@ add_resource_fact(RIRScope *scope,
     fact.arg0 = type_name(type_node);
     fact.resource_kind = kind;
     fact.state = state;
+    /* Capture the source identity at the RIR collection boundary.  Flow
+     * enrichment consumes this typed field; it must not reopen fact->ast. */
+    fact.declaration_syntax_id = ast != NULL ? ast_node_stable_id(ast) : 0;
     fact.ast = ast;
     return scope_add_fact(scope, fact);
 }
@@ -290,6 +293,9 @@ add_projection_fact(RIRScope *scope,
     fact.arg1 = mode;
     fact.resource_kind = kind;
     fact.state = state;
+    /* RIR owns the initial source identity snapshot; downstream joins use the
+     * copied ID and never derive it again from the borrowed AST pointer. */
+    fact.declaration_syntax_id = ast != NULL ? ast_node_stable_id(ast) : 0;
     fact.ast = ast;
     return scope_add_fact(scope, fact);
 }
@@ -351,6 +357,19 @@ add_op(RIRScope *scope,
        const char *arg1,
        ASTNode *ast)
 {
+    return add_op_with_machine_contact(scope, kind, subject, arg0, arg1,
+                                        RIR_MACHINE_CONTACT_NONE, ast);
+}
+
+bool
+add_op_with_machine_contact(RIRScope *scope,
+                            RIROpKind kind,
+                            const char *subject,
+                            const char *arg0,
+                            const char *arg1,
+                            RIRMachineContactKind machine_contact_kind,
+                            ASTNode *ast)
+{
     RIROp op;
     memset(&op, 0, sizeof(op));
     op.kind = kind;
@@ -358,6 +377,7 @@ add_op(RIRScope *scope,
     op.slot_anchor = subject != NULL ? subject : arg0;
     op.arg0 = arg0;
     op.arg1 = arg1;
+    op.machine_contact_kind = machine_contact_kind;
     op.ast = ast;
     return scope_add_op(scope, op);
 }

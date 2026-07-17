@@ -394,15 +394,16 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         return mir_source_local_type_capture_node(program, routine,
             ast_while_body(node));
     case AST_FOR_LOOP: {
-        MIRSourceLocalTypeScratch scratch = { 0 };
-        const char *loop_type = mir_source_local_for_loop_variable_type_name(
-            program, routine, &scratch, node);
-        bool ok = true;
-        if (loop_type != NULL)
-            ok = mir_source_local_type_append_name(program, routine,
-                ast_for_variable(node), loop_type);
-        return ok && mir_source_local_type_capture_node(program, routine,
-            ast_for_body(node));
+        const MIRIterationTypeFact *fact =
+            mir_routine_iteration_type_fact(
+                routine, ast_node_stable_id(node));
+        if (fact == NULL || fact->binding_type_name == NULL
+            || fact->binding_type_name[0] == '\0')
+            return false;
+        return mir_source_local_type_append_name(program, routine,
+                    ast_for_variable(node), fact->binding_type_name)
+            && mir_source_local_type_capture_node(program, routine,
+                    ast_for_body(node));
     }
     case AST_WITH_STMT: {
         const char *alias = ast_with_alias(node);

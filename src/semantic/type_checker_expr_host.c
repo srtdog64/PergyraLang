@@ -166,62 +166,6 @@ expr_host_method_function_type(SemanticContext *ctx,
     return sym->type;
 }
 
-/* Deep-substitute a method's declared type, replacing each generic param
- * (matched by the host class's generic-parameter order) with the receiver's
- * instantiation argument. Recurses through constructed types so `Array<T>`
- * becomes `Array<Int>` and `Map<K, V>` becomes `Map<Int, String>`. Returns
- * the original type when no substitution applies. */
-static Type *
-expr_host_subst_generics(Type *type, ASTNode *host_decl,
-                         const Type *receiver_type)
-{
-    if (type == NULL || host_decl == NULL
-        || host_decl->type != AST_CLASS_DECL || receiver_type == NULL
-        || receiver_type->kind != TYPE_KIND_CONSTRUCTED)
-        return type;
-
-    if (type->kind == TYPE_KIND_GENERIC && type->name != NULL) {
-        GenericParams *gp = ast_class_generic_params(host_decl);
-        size_t gpc = ast_generic_param_count(gp);
-        size_t argc = type_constructed_arg_count(receiver_type);
-        for (size_t i = 0; i < gpc && i < argc; i++) {
-            const char *pn =
-                ast_generic_param_name(ast_generic_param_at(gp, i));
-            if (pn != NULL && strcmp(pn, type->name) == 0) {
-                Type *sub = type_constructed_arg(receiver_type, i);
-                return sub != NULL ? sub : type;
-            }
-        }
-        return type;
-    }
-
-    if (type->kind == TYPE_KIND_CONSTRUCTED) {
-        size_t n = type_constructed_arg_count(type);
-        Type *ctor = type_constructed_constructor(type);
-        Type **new_args = n > 0 ? calloc(n, sizeof(Type *)) : NULL;
-        bool changed = false;
-        if (n > 0 && new_args == NULL)
-            return type;
-        for (size_t i = 0; i < n; i++) {
-            Type *orig = type_constructed_arg(type, i);
-            Type *subst =
-                expr_host_subst_generics(orig, host_decl, receiver_type);
-            new_args[i] = subst;
-            if (subst != orig)
-                changed = true;
-        }
-        if (changed) {
-            Type *result = type_create_constructed(ctor, new_args, n);
-            free(new_args);
-            return result != NULL ? result : type;
-        }
-        free(new_args);
-        return type;
-    }
-
-    return type;
-}
-
 static bool
 expr_host_type_contains_generic(const Type *type)
 {
@@ -257,6 +201,9 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
     const char *method_name;
     const char *method_display;
     char method_display_buf[256];
+    ExprHostMethodGenericBindings generic_bindings;
+    Type **param_types = NULL;
+    Type **arg_types = NULL;
 
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
@@ -311,20 +258,51 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
             ast_declaration_name(method) != NULL
                 ? ast_declaration_name(method) : "<method>",
             (unsigned long long) expected, (unsigned long long) provided);
-        return expr_host_resolve_func_return_type(method, ctx);
+        return TYPE_UNKNOWN;
     }
 
+    if (!expr_host_method_generic_bindings_init(
+            &generic_bindings, expr, method, ctx, method_display)) {
+        expr_host_method_generic_bindings_destroy(&generic_bindings);
+        return TYPE_UNKNOWN;
+    }
+    param_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+    arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+    if (param_types == NULL || arg_types == NULL) {
+        free(param_types);
+        free(arg_types);
+        expr_host_method_generic_bindings_destroy(&generic_bindings);
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+            PGY_CAUSE_RESOLUTION_OOM, PGY_FIX_REDUCE_SCOPE_OR_RETRY, expr,
+            "Could not allocate method-call type metadata for '%s'",
+            method_display);
+        return TYPE_UNKNOWN;
+    }
     for (size_t i = 0; i < provided; i++) {
         FuncParam *param = ast_func_param(method, i + implicit_self);
         ASTNode *arg = ast_call_argument(expr, i);
-        Type *param_type = expr_host_resolve_func_param_type(param, ctx);
-        Type *arg_type = expr_host_normalize_type(
+        param_types[i] = expr_host_resolve_func_param_type(param, ctx);
+        arg_types[i] = expr_host_normalize_type(
             type_check_expression(arg, ctx));
-        param_type = expr_host_subst_generics(
-            param_type, host_decl, receiver_type);
+        expr_host_method_generic_infer_argument(
+            &generic_bindings, param_types[i], arg_types[i],
+            host_decl, receiver_type);
+    }
+    if (!expr_host_method_generic_bindings_finalize(
+            &generic_bindings, expr, method, host_decl, receiver_type,
+            ctx, method_display)) {
+        free(param_types);
+        free(arg_types);
+        expr_host_method_generic_bindings_destroy(&generic_bindings);
+        return TYPE_UNKNOWN;
+    }
+    for (size_t i = 0; i < provided; i++) {
+        ASTNode *arg = ast_call_argument(expr, i);
+        Type *param_type = expr_host_method_generic_substitute(
+            param_types[i], host_decl, receiver_type, &generic_bindings);
         if (param_type != NULL
             && !expr_host_type_contains_generic(param_type)
-            && !type_is_assignable(arg_type, param_type)) {
+            && !type_is_assignable(arg_types[i], param_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
                 arg,
@@ -333,13 +311,21 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
                 ast_declaration_name(method) != NULL
                     ? ast_declaration_name(method) : "<method>",
                 type_name_or_unknown(param_type),
-                type_name_or_unknown(arg_type));
+                type_name_or_unknown(arg_types[i]));
         }
     }
 
     {
         Type *ret = expr_host_resolve_func_return_type(method, ctx);
-        return expr_host_subst_generics(ret, host_decl, receiver_type);
+        Type *resolved_ret;
+        expr_host_method_generic_validate_constraints(
+            &generic_bindings, expr, method, ctx, method_display);
+        resolved_ret = expr_host_method_generic_substitute(
+            ret, host_decl, receiver_type, &generic_bindings);
+        free(param_types);
+        free(arg_types);
+        expr_host_method_generic_bindings_destroy(&generic_bindings);
+        return resolved_ret;
     }
 }
 

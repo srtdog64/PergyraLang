@@ -17,6 +17,7 @@ func EmitFunctionSet(
     inout cur: Array<Int>,
     f_indent: Int,
     base_env: CodegenTypeEnv,
+    machine_startup: String,
     uses_args: Bool
 ) -> String {
     let function_node: Int = cur[0];
@@ -29,7 +30,7 @@ func EmitFunctionSet(
         return EmitFunction(
             count, arena, signatures, roles, local_bindings, assignments,
             statements, body_types, expression_surfaces, cur, f_indent,
-            base_env, uses_args
+            base_env, machine_startup, uses_args
         );
     }
 
@@ -49,6 +50,7 @@ func EmitFunctionSet(
                 count, arena, signatures, roles, local_bindings,
                 assignments, statements, body_types, expression_surfaces,
                 local_cur, f_indent, base_env, uses_args,
+                machine_startup,
                 specializations.c_names[specialization_index], actuals
             );
             if after_function < 0 { after_function = local_cur[0]; }

@@ -17,6 +17,20 @@ struct LexerTokenTextOwner
     PgyArena arena;
 };
 
+static uint64_t
+lexer_source_fingerprint(const char *source)
+{
+    /* FNV-1a over the NUL-terminated source.  Zero is reserved for an
+     * invalid/unbound stream, so an empty source still receives an anchor. */
+    uint64_t hash = UINT64_C(1469598103934665603);
+    const unsigned char *p = (const unsigned char *)(source != NULL ? source : "");
+    while (*p != '\0') {
+        hash ^= (uint64_t)*p++;
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash != 0 ? hash : UINT64_C(1);
+}
+
 static char *
 lexer_token_text_copy(Lexer *lexer, const char *start, size_t length)
 {
@@ -52,6 +66,8 @@ Lexer* lexer_create(const char* source) {
     lexer->line = 1;
     lexer->column = 1;
     lexer->hasError = false;
+    lexer->stream.source_fingerprint = lexer_source_fingerprint(source);
+    lexer->token_ordinal = 0;
     
     return lexer;
 }
@@ -189,13 +205,33 @@ static bool is_alnum(char c) {
 /* Create a token */
 static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length) {
     Token token;
+    memset(&token, 0, sizeof(token));
     token.type = type;
     token.text = lexer_token_text_copy(lexer, start, length);
     token.length = length;
     token.line = lexer->line;
     token.column = lexer->column - length;
+    token.stream = lexer->stream;
+    token.ordinal = lexer->token_ordinal++;
     
     return token;
+}
+
+PgyTokenStreamHandle
+lexer_token_stream_handle(const Lexer *lexer)
+{
+    PgyTokenStreamHandle handle = {0};
+    if (lexer != NULL)
+        handle = lexer->stream;
+    return handle;
+}
+
+bool
+lexer_token_stream_handle_equal(PgyTokenStreamHandle lhs,
+                                PgyTokenStreamHandle rhs)
+{
+    return lhs.source_fingerprint != 0
+        && lhs.source_fingerprint == rhs.source_fingerprint;
 }
 
 /* Create an error token */

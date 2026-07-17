@@ -16,6 +16,7 @@
 #include "diag_payload.h"
 #include "type_checker.h"
 #include "slot_analyzer.h"
+#include "slot_analyzer_internal.h"
 #include "lifecycle_analyze.h"
 #include "../compiler/import_resolver.h"
 
@@ -285,6 +286,14 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     }
 
     semantic_run_legacy_slot_resource_analysis(ast, ctx);
+    if (!function_param_flow_summary_snapshot(ctx)) {
+        semantic_error(ctx, ast,
+            "Function parameter flow summary snapshot allocation failed");
+    }
+    if (ctx->loop_flow_summary_capture_failed) {
+        semantic_error(ctx, ast,
+            "Loop flow summary snapshot allocation failed");
+    }
     if (timing) {
         t_legacy_slot = semantic_timing_now() - t_mark;
         fprintf(stderr,
@@ -318,6 +327,18 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         ctx->parallel_capture_boundaries;
     result->parallel_capture_boundary_count =
         ctx->parallel_capture_boundary_count;
+    result->resource_flow_facts = ctx->resource_flow_facts;
+    result->resource_flow_fact_count = ctx->resource_flow_fact_count;
+    result->function_param_flow_facts = ctx->function_param_flow_facts;
+    result->function_param_flow_fact_count =
+        ctx->function_param_flow_fact_count;
+    result->iteration_type_facts = ctx->iteration_type_facts;
+    result->iteration_type_fact_count = ctx->iteration_type_fact_count;
+    result->loop_flow_summary_facts = ctx->loop_flow_summary_facts;
+    result->loop_flow_summary_fact_count =
+        ctx->loop_flow_summary_fact_count;
+    result->loop_flow_state_facts = ctx->loop_flow_state_facts;
+    result->loop_flow_state_fact_count = ctx->loop_flow_state_fact_count;
     result->program_capabilities = ctx->program_capabilities;
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         DiagnosticLevel lvl = ctx->diagnostics[i]->level;
@@ -339,6 +360,21 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->parallel_capture_boundaries = NULL;
     ctx->parallel_capture_boundary_count = 0;
     ctx->parallel_capture_boundary_capacity = 0;
+    ctx->resource_flow_facts = NULL;
+    ctx->resource_flow_fact_count = 0;
+    ctx->resource_flow_fact_capacity = 0;
+    ctx->function_param_flow_facts = NULL;
+    ctx->function_param_flow_fact_count = 0;
+    ctx->function_param_flow_fact_capacity = 0;
+    ctx->iteration_type_facts = NULL;
+    ctx->iteration_type_fact_count = 0;
+    ctx->iteration_type_fact_capacity = 0;
+    ctx->loop_flow_summary_facts = NULL;
+    ctx->loop_flow_summary_fact_count = 0;
+    ctx->loop_flow_summary_fact_capacity = 0;
+    ctx->loop_flow_state_facts = NULL;
+    ctx->loop_flow_state_fact_count = 0;
+    ctx->loop_flow_state_fact_capacity = 0;
 
     semantic_context_destroy(ctx);
     /* Close the registry: types created from here on (there should be none)
@@ -363,6 +399,16 @@ semantic_result_destroy(SemanticResult *result)
     semantic_parallel_capture_facts_clear(
         result->parallel_capture_boundaries,
         result->parallel_capture_boundary_count);
+    pgy_resource_flow_facts_destroy(
+        result->resource_flow_facts,
+        result->resource_flow_fact_count);
+    pgy_function_param_flow_facts_destroy(
+        result->function_param_flow_facts);
+    pgy_iteration_type_facts_destroy(
+        result->iteration_type_facts,
+        result->iteration_type_fact_count);
+    free(result->loop_flow_summary_facts);
+    free(result->loop_flow_state_facts);
     /* Last: the IRs and the backend borrow Type* from here, and the driver
      * destroys them before this result. */
     type_registry_destroy(result->owned_types);

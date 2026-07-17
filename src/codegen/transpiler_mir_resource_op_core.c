@@ -13,6 +13,7 @@
 #include "transpiler_type_require.h"
 
 #include "../compiler/mir_abi_layout.h"
+#include "../compiler/mir_machine_layer.h"
 #include "../semantic/diag_codes.h"
 
 #include <stdio.h>
@@ -93,6 +94,30 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
 
     if (out == NULL || inst == NULL)
         return false;
+
+    if (rir_machine_contact_kind_is_present(inst->machine_contact_kind)
+        && !transpiler_machine_layer_projection_is_bound(ctx)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend rejected machine resource op '%s': C machine-layer projection is not admitted",
+            inst->name != NULL ? inst->name : "<op>");
+        return false;
+    }
+
+    if (rir_machine_contact_kind_is_present(inst->machine_contact_kind)
+        && !mir_machine_layer_fact_is_valid(inst)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend rejected machine resource op '%s': MIR machine-layer fact is missing or invalid",
+            inst->name != NULL ? inst->name : "<op>");
+        return false;
+    }
 
     slot_anchor = inst->slot_anchor;
     effective_abi_type_name = inst->abi_type_name;
@@ -247,6 +272,18 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     }
 
     if (runtime_row != NULL) {
+        if (rir_machine_contact_kind_is_present(inst->machine_contact_kind)
+            && !mir_machine_layer_fact_matches_runtime_operation(
+                inst, runtime_row->resource_op_name)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C MIR resource op '%s' disagrees with machine-layer runtime operation",
+                op_name != NULL ? op_name : "<op>");
+            return false;
+        }
         const char *expected_shape =
             transpiler_mir_resource_expected_call_shape(is_secure_slot,
                                                         op_name);

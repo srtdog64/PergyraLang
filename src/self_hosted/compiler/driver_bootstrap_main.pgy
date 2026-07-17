@@ -10,5 +10,10 @@ func Main() -> Void with caps env, io_read, io_write {
     if ArrayLength(args) != 2 {
         Die("bootstrap driver requires source and output paths");
     }
-    WriteFile(args[1], CompileSourceToCVerified(args[0]).payload);
+    WriteFile(
+        args[1],
+        CompileSourceToCVerified(
+            args[0], SelfHostMachineLayerDeclarationEmpty()
+        ).payload
+    );
 }

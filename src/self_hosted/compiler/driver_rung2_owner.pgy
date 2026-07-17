@@ -22,6 +22,7 @@ import "../mir_lower/program_lower.pgy";
 import "../mir_lower/expression_graph_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
+import "machine_layer_declaration_consumer.pgy";
 
 func CompilerDriverRung2ReadinessError() -> String {
     if !CompilerDriverPipelineReady() { return "driver_pipeline"; }
@@ -209,13 +210,15 @@ func VerifyArtifactForMirProduction(
 
 func CompileArtifactAnalysisToMirJsonVerified(
     artifact: AstTreeArtifact,
-    analysis: SemanticAstArtifactAnalysis
+    analysis: SemanticAstArtifactAnalysis,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     let verified: DriverRung2VerifiedFacts =
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, verified.analysis, verified.body_types.initializer_types,
-        verified.body_types.iteration_types
+        verified.body_types.iteration_types,
+        machine_declaration
     );
     if !SelfMirProgramFactsReady(mir_facts) {
         Log(SelfMirProgramFactsValidationError(mir_facts));
@@ -230,37 +233,48 @@ func CompileArtifactAnalysisToMirJsonVerified(
 }
 
 func CompileArtifactToMirJsonVerified(
-    artifact: AstTreeArtifact
+    artifact: AstTreeArtifact,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     return CompileArtifactAnalysisToMirJsonVerified(
-        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true)
+        artifact, SemanticAstArtifactAnalyzeTyped(artifact, true),
+        machine_declaration
     );
 }
 
 func CompileSourceToMirJsonVerified(
-    source_path: String
+    source_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
     return CompileArtifactToMirJsonVerified(
-        CompileSourceToAstArtifact(source_path)
+        CompileSourceToAstArtifact(source_path), machine_declaration
     );
 }
 
 func CanonicalizeMirJsonVerified(
-    mir_json_path: String
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String with caps io_read {
-    let json: String = MirJsonReadInput(mir_json_path);
+    let json: String = MirJsonReadInput(
+        mir_json_path, machine_declaration
+    );
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTree(json)
     );
     return CompileArtifactAnalysisToMirJsonVerified(
         artifact,
-        SemanticAstArtifactAnalyzeCompactBridge(artifact, true)
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true),
+        machine_declaration
     );
 }
 
 func CompileMirJsonTextToCVerified(
-    json: String
+    json: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> CompilerEmissionArtifact {
+    if !MirMachineLayerFactsReady(json, machine_declaration) {
+        Die("self-host C emission rejected invalid machine-layer facts");
+    }
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTree(json)
     );
@@ -284,23 +298,29 @@ func CompileMirJsonTextToCVerified(
     return CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
-            artifact, verified.analysis, body_types
+            artifact, verified.analysis, body_types, machine_declaration
         )
     );
 }
 
 func CompileSourceToCVerified(
-    source_path: String
+    source_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> CompilerEmissionArtifact with caps io_read {
-    let json: String = CompileSourceToMirJsonVerified(source_path);
-    return CompileMirJsonTextToCVerified(json);
+    let json: String = CompileSourceToMirJsonVerified(
+        source_path, machine_declaration
+    );
+    return CompileMirJsonTextToCVerified(json, machine_declaration);
 }
 
 func CompileMirJsonToCVerified(
-    mir_json_path: String
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> CompilerEmissionArtifact with caps io_read {
-    let json: String = MirJsonReadInput(mir_json_path);
-    return CompileMirJsonTextToCVerified(json);
+    let json: String = MirJsonReadInput(
+        mir_json_path, machine_declaration
+    );
+    return CompileMirJsonTextToCVerified(json, machine_declaration);
 }
 
 func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
@@ -312,26 +332,46 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
         EmitDriverRung2MirFixtureManifest();
         return;
     }
-    if ArrayLength(args) == 2 &&
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
         args[0] == "--emit-mir-json-verified" {
-        Log(CompileSourceToMirJsonVerified(args[1]));
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CompileSourceToMirJsonVerified(args[1], declaration));
         return;
     }
-    if ArrayLength(args) == 2 &&
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
         args[0] == "--canonicalize-mir-json" {
-        Log(CanonicalizeMirJsonVerified(args[1]));
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CanonicalizeMirJsonVerified(args[1], declaration));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--mir-json" {
-        if ArrayLength(args) != 2 {
-            Die("driver rung-2 --mir-json requires one MIR JSON path");
+        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
+            Die("driver rung-2 --mir-json requires MIR JSON and optional declaration path");
         }
-        Log(CompileMirJsonToCVerified(args[1]).payload);
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CompileMirJsonToCVerified(args[1], declaration).payload);
         return;
     }
     let source_path: String = ParserDefaultSourcePath(args);
-    if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
+    let declaration: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationEmpty();
+    if ArrayLength(args) == 3 &&
+        args[1] == "--machine-manifest-json" {
+        declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+    } else if ArrayLength(args) > 1 && args[1] != "--emit-c-verified" {
         Die(Concat("unknown driver rung-2 mode: ", args[1]));
     }
-    Log(CompileSourceToCVerified(source_path).payload);
+    Log(CompileSourceToCVerified(source_path, declaration).payload);
 }

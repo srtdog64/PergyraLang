@@ -1,6 +1,7 @@
 #include "compiler_internal.h"
 #include "compiler_toolchain.h"
 #include "path_utils.h"
+#include "verified_projection_plan.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,14 +12,18 @@
 
 static int
 invoke_c_backend(const CompilerIRBundle *bundle,
+                 const PgyAirVerification *air,
                  const char *output_c_path,
                  char **error_message,
                  char **error_code,
                  char **error_cause_ir,
                  char **error_fix_source,
+                 PgyVerifiedProjectionPlanRow *projection_plan_out,
                  bool *uses_intent_observability)
 {
     TranspileResult *transpile_result;
+    PgyVerifiedProjectionPlanRow projection_plan;
+    const char *projection_error = NULL;
     if (error_code != NULL)
         *error_code = NULL;
     if (error_cause_ir != NULL)
@@ -27,16 +32,33 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         *error_fix_source = NULL;
     if (error_message != NULL)
         *error_message = NULL;
+    if (projection_plan_out != NULL)
+        memset(projection_plan_out, 0, sizeof(*projection_plan_out));
     if (uses_intent_observability != NULL)
         *uses_intent_observability = false;
     if (bundle == NULL || bundle->dir == NULL
-        || bundle->rir == NULL || bundle->mir == NULL) {
+        || bundle->rir == NULL || bundle->mir == NULL
+        || air == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("IR bundle is incomplete");
         return 1;
     }
 
-    transpile_result = transpile_from_mir(bundle->mir, output_c_path);
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, bundle->mir, PGY_PROJECTION_TARGET_C,
+            &projection_plan, &projection_error)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                projection_error != NULL
+                    ? projection_error
+                    : "verified projection plan failed");
+        return 1;
+    }
+    if (projection_plan_out != NULL)
+        *projection_plan_out = projection_plan;
+
+    transpile_result = transpile_from_mir_with_projection_plan(
+        bundle->mir, &projection_plan, output_c_path);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;
@@ -64,15 +86,18 @@ invoke_c_backend(const CompilerIRBundle *bundle,
 }
 
 CompilerResult *
-compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path)
+compiler_emit_c(const CompilerIRBundle *bundle,
+                const PgyAirVerification *air,
+                const char *output_c_path)
 {
     char *error_message = NULL;
     char *error_code = NULL;
     char *error_cause_ir = NULL;
     char *error_fix_source = NULL;
-    int rc = invoke_c_backend(bundle, output_c_path, &error_message,
+    PgyVerifiedProjectionPlanRow projection_plan = {0};
+    int rc = invoke_c_backend(bundle, air, output_c_path, &error_message,
                               &error_code, &error_cause_ir,
-                              &error_fix_source, NULL);
+                              &error_fix_source, &projection_plan, NULL);
     if (rc != 0) {
         CompilerResult *result = compiler_error_full(
             error_message != NULL ? error_message : "C backend failed",
@@ -84,11 +109,21 @@ compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path)
         return result;
     }
 
-    return compiler_success(output_c_path, NULL);
+    CompilerResult *result = compiler_success(output_c_path, NULL);
+    if (result == NULL)
+        return NULL;
+    if (!compiler_result_bind_artifact_identity(
+            result, &projection_plan, "emitted_c")) {
+        compiler_result_destroy(result);
+        return compiler_error(
+            "C artifact identity could not bind the verified projection plan");
+    }
+    return result;
 }
 
 CompilerResult *
 compiler_build_native(const CompilerIRBundle *bundle,
+                      const PgyAirVerification *air,
                       const char *output_c_path,
                       const char *output_binary_path,
                       bool verbose,
@@ -101,9 +136,11 @@ compiler_build_native(const CompilerIRBundle *bundle,
     char *output_obj_path = NULL;
     double phase_start = compiler_now_seconds();
     bool uses_intent_observability = false;
-    int rc = invoke_c_backend(bundle, output_c_path, &error_message,
+    PgyVerifiedProjectionPlanRow projection_plan = {0};
+    int rc = invoke_c_backend(bundle, air, output_c_path, &error_message,
                               &error_code, &error_cause_ir,
-                              &error_fix_source, &uses_intent_observability);
+                              &error_fix_source, &projection_plan,
+                              &uses_intent_observability);
     if (rc != 0) {
         CompilerResult *result = compiler_error_full(
             error_message != NULL ? error_message : "C backend failed",
@@ -207,6 +244,13 @@ compiler_build_native(const CompilerIRBundle *bundle,
     if (result == NULL) {
         free(output_obj_path);
         return NULL;
+    }
+    if (!compiler_result_bind_artifact_identity(
+            result, &projection_plan, "emitted_c")) {
+        compiler_result_destroy(result);
+        free(output_obj_path);
+        return compiler_error(
+            "C artifact identity could not bind the verified projection plan");
     }
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
 

@@ -11,7 +11,7 @@ func MirParityCoreFixtureCount() -> Int {
 }
 
 func MirParityCodegenFixtureExpectedCount() -> Int {
-    return 71;
+    return 73;
 }
 
 func MirParityExampleFixtureCount() -> Int {

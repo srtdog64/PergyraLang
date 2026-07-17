@@ -352,6 +352,13 @@ func JsonObjectNumberFieldOpt(json: String, start: Int, end: Int, field: String)
     }
     let i: Int = bounds[0];
     let n: Int = StringLength(json);
+    if i < bounds[1] &&
+        JsonCharCodeAt(json, n, i) == JsonAsciiCode("-") {
+        i = i + 1;
+        if i >= bounds[1] {
+            return None;
+        }
+    }
     while i < bounds[1] {
         let c: Int = JsonCharCodeAt(json, n, i);
         if !JsonIsDigitCode(c) {

@@ -260,6 +260,23 @@ typedef struct {
     const char *routine;    /* the routine the slot op lives in */
 } AIRSlotSite;
 
+/* Machine-layer contact sites are separate from the generic slot table: AIR
+ * owns the target-manifest admission fact and its proof obligations. */
+typedef struct {
+    const char *slot;
+    const char *operation;
+    const char *manifest_id;
+    const char *physical_grant_id;
+    uint64_t    physical_base;
+    uint64_t    physical_size;
+    const char *physical_mode;
+    const char *runtime_operation;
+    const char *routine;
+    bool        hardware_adequate;
+    bool        authority_required;
+    bool        live_lease_required;
+} AIRMachineLayerSite;
+
 /* A per-operation effect site: a gated ambient builtin call (e.g. Random) bound
    to the capability it requires (RANDOM). This is what lets a capability machine
    gate each effect operation -- the per-operation granularity the program-wide
@@ -270,6 +287,17 @@ typedef struct {
     uint32_t    cap;        /* the PGY_CAP_* bit */
     const char *routine;    /* the routine the effect op lives in */
 } AIREffectSite;
+
+/* A MIR-owned function-parameter flow row projected into AIR.  AIR keeps the
+ * stable source identity and routine-local parameter index together so later
+ * evidence consumers do not reopen HIR/AST bodies to rediscover the summary. */
+typedef struct {
+    uint32_t    source_syntax_id;
+    const char *routine;
+    size_t      parameter_index;
+    size_t      parameter_count;
+    uint32_t    mask;
+} AIRFunctionParamFlowSummary;
 
 #define AIR_LIFECYCLE_NAME_LEN   64
 #define AIR_LIFECYCLE_MAX_STATES 32
@@ -307,6 +335,12 @@ typedef struct AIRProgram
     bool             has_hir_input;
     bool             has_rir_input;
     bool             has_mir_input;
+    /* MIR evidence is a one-shot anchored import.  AIR owns the copied
+       evidence after this boundary; a second collection would create a
+       second authority/lifetime and is therefore rejected. */
+    bool             mir_evidence_collection_started;
+    bool             mir_evidence_bound;
+    uint64_t         mir_evidence_binding_fingerprint;
     size_t           hir_routine_evidence_count;
     size_t           hir_cfg_evidence_count;
     size_t           rir_boundary_evidence_count;
@@ -351,16 +385,28 @@ typedef struct AIRProgram
     AIRSlotSite     *slot_sites;
     size_t           slot_site_count;
     size_t           slot_site_capacity;
+    AIRMachineLayerSite *machine_layer_sites;
+    size_t           machine_layer_site_count;
+    size_t           machine_layer_site_capacity;
     /* Per-operation effect sites (gated builtin calls bound to their cap),
        populated in air_collect_mir_evidence. */
     AIREffectSite   *effect_sites;
     size_t           effect_site_count;
     size_t           effect_site_capacity;
+    AIRFunctionParamFlowSummary *function_param_flow_summaries;
+    size_t           function_param_flow_summary_count;
+    size_t           function_param_flow_summary_capacity;
+    bool             has_function_param_flow_facts;
     /* Declared lifecycle state spaces from semantic lifecycle facts. This is
        the FUZZ-2 manifest surface: state-space tools consume the declared FSM
        here instead of reconstructing lifecycle rules from source text. */
     AIRLifecycleStateSpace *lifecycle_state_spaces;
     size_t           lifecycle_state_space_count;
+    /* Set only after the final MIR evidence pass and AIR verification.  The
+       projection planner consumes this immutable owner certificate instead of
+       rebuilding AIR evidence from source or backend state. */
+    bool             verification_certificate_valid;
+    uint64_t         verification_certificate_fingerprint;
 } AIRProgram;
 
 AIRProgram *air_synthesize(const HIRProgram *hir,
@@ -427,10 +473,17 @@ size_t      air_slot_capability_retain_count(const AIRProgram *air);
 uint32_t    air_program_capabilities(const AIRProgram *air);
 size_t      air_slot_site_count(const AIRProgram *air);
 const AIRSlotSite *air_slot_site_at(const AIRProgram *air, size_t index);
+size_t      air_machine_layer_site_count(const AIRProgram *air);
+const AIRMachineLayerSite *air_machine_layer_site_at(const AIRProgram *air,
+                                                     size_t index);
 bool        air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
                                    const char *routine_name);
 size_t      air_effect_site_count(const AIRProgram *air);
 const AIREffectSite *air_effect_site_at(const AIRProgram *air, size_t index);
+size_t      air_function_param_flow_summary_count(const AIRProgram *air);
+const AIRFunctionParamFlowSummary *air_function_param_flow_summary_at(
+                const AIRProgram *air,
+                size_t index);
 bool        air_collect_effect_sites(AIRProgram *air, const MIRRoutine *routine,
                                      const char *routine_name);
 size_t      air_lifecycle_state_space_count(const AIRProgram *air);

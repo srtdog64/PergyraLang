@@ -143,6 +143,34 @@ func SemanticAstEnumExpressionType(
     return None;
 }
 
+func SemanticAstEnumExpressionIsPayloadFree(
+    facts: SemanticAstEnumFacts,
+    expression: String
+) -> Bool {
+    let enum_name: Option<String> =
+        SemanticAstEnumExpressionType(facts, expression);
+    if !IsSome(enum_name) {
+        return false;
+    }
+    let count: Option<Int> = SemanticAstEnumVariantCountForName(
+        facts, UnwrapOption(enum_name)
+    );
+    if !IsSome(count) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < UnwrapOption(count) {
+        let params: Option<Int> = SemanticAstEnumVariantParamCountAt(
+            facts, UnwrapOption(enum_name), i
+        );
+        if !IsSome(params) || UnwrapOption(params) != 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
 func SemanticAstEnumCount(facts: SemanticAstEnumFacts) -> Int {
     return ArrayLength(facts.node_ids);
 }

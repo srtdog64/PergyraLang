@@ -868,6 +868,7 @@ main() {
         "tests/cases/backend_compare/file_handle_io"
         "tests/cases/backend_compare/runtime_time_sleep"
         "tests/cases/backend_compare/device_slot_remote"
+        "tests/cases/backend_compare/device_slot_machine_layer"
         "tests/cases/backend_compare/runtime_seeded_random"
         "tests/cases/backend_compare/process_args_count"
         "tests/cases/backend_compare/string_io"

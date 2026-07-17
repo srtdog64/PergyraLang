@@ -77,6 +77,38 @@ func SelfMirJsonExpressionGraph(
     ]);
 }
 
+func SelfMirJsonMachineLayer(
+    machine: SelfMirMachineLayerProjection
+) -> String {
+    if machine.contact_kind == "" {
+        return "null";
+    }
+    return JsonEmitObject([
+        JsonEmitFieldString("manifest", machine.manifest_id),
+        JsonEmitFieldString("operation", machine.contact_kind),
+        JsonEmitFieldString("physical_grant", machine.physical_grant),
+        JsonEmitFieldNumber(
+            "physical_base", ToString(machine.physical_base)
+        ),
+        JsonEmitFieldNumber(
+            "physical_size", ToString(machine.physical_size)
+        ),
+        JsonEmitFieldString("physical_mode", machine.physical_mode),
+        JsonEmitFieldString(
+            "runtime_operation", machine.runtime_operation
+        ),
+        JsonEmitFieldBool(
+            "hardware_adequate", machine.hardware_adequate == 1
+        ),
+        JsonEmitFieldBool(
+            "authority_required", machine.authority_required == 1
+        ),
+        JsonEmitFieldBool(
+            "live_lease_required", machine.live_lease_required == 1
+        )
+    ]);
+}
+
 func SelfMirJsonInstruction(
     facts: SelfMirProgramFacts,
     instruction_index: Int
@@ -93,6 +125,20 @@ func SelfMirJsonInstruction(
         );
         use_i = use_i + 1;
     }
+    let machine: SelfMirMachineLayerProjection =
+        SelfMirMachineLayerProjection(
+            true,
+            rows.machine_contact_kinds[instruction_index],
+            rows.machine_layer_manifest_ids[instruction_index],
+            rows.machine_layer_physical_grant_ids[instruction_index],
+            rows.machine_layer_physical_bases[instruction_index],
+            rows.machine_layer_physical_sizes[instruction_index],
+            rows.machine_layer_physical_modes[instruction_index],
+            rows.machine_layer_runtime_operations[instruction_index],
+            rows.machine_layer_hardware_adequate[instruction_index],
+            rows.machine_layer_authority_required[instruction_index],
+            rows.machine_layer_live_lease_required[instruction_index]
+        );
     let fields: Array<String> = [
         JsonEmitFieldNumber("id", ToString(rows.ids[instruction_index])),
         JsonEmitFieldString("kind", rows.kinds[instruction_index]),
@@ -137,6 +183,13 @@ func SelfMirJsonInstruction(
             SelfMirJsonOptionalString(
                 SelfMirOptionalString(rows.source_types[instruction_index])
             )
+        ),
+        JsonEmitFieldString(
+            "machine_contact_kind", machine.contact_kind
+        ),
+        JsonEmitFieldRaw(
+            "machine_layer",
+            SelfMirJsonMachineLayer(machine)
         ),
         JsonEmitFieldRaw("match_patterns", "[]"),
         JsonEmitFieldRaw("match_variant", "null"),
@@ -243,6 +296,44 @@ func SelfMirJsonRoutine(
         ArrayPush(locals, JsonEmitObject(fields2));
         local_i = local_i + 1;
     }
+    // The self-host MIR producer does not own native semantic
+    // ResourceFlowUniverse rows.  It still emits the schema's explicit empty
+    // projection so consumers never infer absence or recover rows from text.
+    let resource_flow_symbols: Array<String> = [];
+    let loop_flow_summaries: Array<String> = [];
+    let loop_flow_states: Array<String> = [];
+    let iteration_type_facts: Array<String> = [];
+    let iteration_start: Int = rows.iteration_starts[routine_index];
+    let iteration_i: Int = 0;
+    while iteration_i < rows.iteration_counts[routine_index] {
+        let iteration_row: Int = iteration_start + iteration_i;
+        ArrayPush(
+            iteration_type_facts,
+            JsonEmitObject([
+                JsonEmitFieldNumber(
+                    "function_syntax_id",
+                    ToString(rows.node_ids[routine_index])
+                ),
+                JsonEmitFieldNumber(
+                    "iteration_syntax_id",
+                    ToString(rows.iteration_node_ids[iteration_row])
+                ),
+                JsonEmitFieldString(
+                    "binding_type",
+                    rows.iteration_binding_types[iteration_row]
+                ),
+                JsonEmitFieldString(
+                    "iterable_type",
+                    rows.iteration_iterable_types[iteration_row]
+                ),
+                JsonEmitFieldBool(
+                    "collection_hoisted",
+                    rows.iteration_collection_hoists[iteration_row] == 1
+                )
+            ])
+        );
+        iteration_i = iteration_i + 1;
+    }
     let fields3: Array<String> = [
         JsonEmitFieldString("name", rows.names[routine_index]),
         JsonEmitFieldString("kind", rows.kinds[routine_index])
@@ -253,6 +344,34 @@ func SelfMirJsonRoutine(
     ArrayPush(fields3, JsonEmitFieldRaw("generics", JsonEmitArray(generics)));
     ArrayPush(fields3, JsonEmitFieldRaw("params", JsonEmitArray(params)));
     ArrayPush(fields3, JsonEmitFieldString("return", rows.return_types[routine_index]));
+    ArrayPush(fields3, JsonEmitFieldNumber(
+        "resource_flow_symbol_count", ToString(0)
+    ));
+    ArrayPush(fields3, JsonEmitFieldRaw(
+        "resource_flow_symbols", JsonEmitArray(resource_flow_symbols)
+    ));
+    // This bounded self-host producer does not own native semantic loop
+    // transfer rows.  Emit an explicit empty projection; mir_lower must not
+    // recover summaries or states from CFG text.
+    ArrayPush(fields3, JsonEmitFieldNumber(
+        "loop_flow_summary_count", ToString(0)
+    ));
+    ArrayPush(fields3, JsonEmitFieldRaw(
+        "loop_flow_summaries", JsonEmitArray(loop_flow_summaries)
+    ));
+    ArrayPush(fields3, JsonEmitFieldNumber(
+        "loop_flow_state_count", ToString(0)
+    ));
+    ArrayPush(fields3, JsonEmitFieldRaw(
+        "loop_flow_states", JsonEmitArray(loop_flow_states)
+    ));
+    ArrayPush(fields3, JsonEmitFieldNumber(
+        "iteration_type_fact_count",
+        ToString(rows.iteration_counts[routine_index])
+    ));
+    ArrayPush(fields3, JsonEmitFieldRaw(
+        "iteration_type_facts", JsonEmitArray(iteration_type_facts)
+    ));
     ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));
     ArrayPush(fields3, JsonEmitFieldRaw("source_locals", JsonEmitArray(locals)));
     return JsonEmitObject(fields3);

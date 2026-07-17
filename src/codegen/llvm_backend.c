@@ -118,6 +118,28 @@ llvm_ctx_create(const char *module_name)
         ctx->slot_type_String = LLVMStructCreateNamed(ctx->context, "PgySlot_String");
         LLVMStructSetBody(ctx->slot_type_String, fields_str, 2, 0);
 
+        /* DeviceSlot<T> is a distinct LLVM projection.  It intentionally
+         * keeps the stable two-field ABI shape while retaining the machine
+         * boundary in the IR type identity. */
+        ctx->device_slot_type_Int =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_Int");
+        LLVMStructSetBody(ctx->device_slot_type_Int, fields_int, 2, 0);
+        ctx->device_slot_type_Long =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_Long");
+        LLVMStructSetBody(ctx->device_slot_type_Long, fields_long, 2, 0);
+        ctx->device_slot_type_Float =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_Float");
+        LLVMStructSetBody(ctx->device_slot_type_Float, fields_float, 2, 0);
+        ctx->device_slot_type_Double =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_Double");
+        LLVMStructSetBody(ctx->device_slot_type_Double, fields_double, 2, 0);
+        ctx->device_slot_type_Bool =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_Bool");
+        LLVMStructSetBody(ctx->device_slot_type_Bool, fields_bool, 2, 0);
+        ctx->device_slot_type_String =
+            LLVMStructCreateNamed(ctx->context, "PgyDeviceSlot_String");
+        LLVMStructSetBody(ctx->device_slot_type_String, fields_str, 2, 0);
+
         LLVMTypeRef pinned_fields_int[] = {
             LLVMPointerType(ctx->slot_type_Int, 0), ctx->type_i1, ctx->type_i1
         };

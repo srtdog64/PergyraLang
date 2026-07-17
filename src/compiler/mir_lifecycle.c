@@ -80,6 +80,20 @@ mir_destroy(MIRProgram *mir)
                     free((void *)routine->value_summaries[j].name);
             }
             free(routine->value_summaries);
+            if (routine->resource_flow_symbols != NULL) {
+                for (size_t j = 0;
+                     j < routine->resource_flow_symbol_count; j++)
+                    free(routine->resource_flow_symbols[j].name);
+            }
+            free(routine->resource_flow_symbols);
+            free(routine->function_param_flow_summaries);
+            free(routine->loop_flow_summaries);
+            free(routine->loop_flow_states);
+            for (size_t k = 0; k < routine->iteration_type_fact_count; k++) {
+                free(routine->iteration_type_facts[k].binding_type_name);
+                free(routine->iteration_type_facts[k].iterable_type_name);
+            }
+            free(routine->iteration_type_facts);
             mir_routine_signature_metadata_clear(routine);
             mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);
@@ -225,8 +239,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
     }
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
-        fprintf(out,
-                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu dce=%zu noncfg=%zu\n",
+    fprintf(out,
+                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu dce=%zu noncfg=%zu param-flow=%zu\n",
                 i,
                 mir_scope_kind_name(routine->kind),
                 routine->name != NULL ? routine->name : "(anonymous)",
@@ -241,7 +255,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 routine->use_edge_count,
                 routine->live_value_count,
                 routine->dce_removed_count,
-                routine->non_cfg_body_fallback_count);
+                routine->non_cfg_body_fallback_count,
+                routine->function_param_flow_summary_count);
         if (routine->has_use_def_summary) {
             fprintf(out, "    values=%zu\n", routine->value_summary_count);
             if (routine->value_summary_count > 0

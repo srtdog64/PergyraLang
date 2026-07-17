@@ -33,12 +33,16 @@ required_owner_terms = (
     "FUNCTION_PARAM_FLOW_COMPLETE",
     "FUNCTION_PARAM_FLOW_WORK_BUDGET",
     "work_units",
+    "ast_contains_identifier_ref",
+    "slot_param_summary_in_program_points",
     "recursive summary work budget exceeded",
     "function_param_flow_summary_demand",
 )
 for term in required_owner_terms:
     if term not in owner:
         raise SystemExit(f"summary owner is missing {term!r}")
+if "slot_param_summary_in_program(" in owner:
+    raise SystemExit("summary owner reopened the full function-body transfer")
 
 for rel in (
     "src/semantic/slot_analyzer_access.c",
@@ -58,10 +62,11 @@ if re.search(r"slot_access_mask_for_named_symbol\s*\(\s*body\b", access):
 
 env = os.environ.copy()
 env["PGY_DEBUG_FUNCTION_PARAM_FLOW"] = "1"
+env["PGY_DEBUG_RESOURCE_FLOW_FACTS"] = "1"
 try:
     run = subprocess.run(
         [pgy, "--hir", fixture],
-        stdout=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
         timeout=10.0,
@@ -73,6 +78,27 @@ except subprocess.TimeoutExpired:
 if run.returncode != 0:
     sys.stderr.buffer.write(run.stderr)
     raise SystemExit(f"recursive summary fixture failed with {run.returncode}")
+
+resource_fixture = root / "tests/cases/slot_contract/positive/plain_read_write_release/main.pgy"
+resource_run = subprocess.run(
+    [pgy, "--hir", str(resource_fixture)],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    env=env,
+    timeout=10.0,
+    check=False,
+)
+if resource_run.returncode != 0:
+    sys.stderr.buffer.write(resource_run.stderr)
+    raise SystemExit(
+        f"resource-flow HIR fixture failed with {resource_run.returncode}"
+    )
+hir_symbols = re.findall(
+    rb"resource-flow-symbols=(\d+)", resource_run.stdout
+)
+if not hir_symbols or max(map(int, hir_symbols)) < 1:
+    sys.stderr.buffer.write(resource_run.stdout)
+    raise SystemExit("HIR did not carry ResourceFlowUniverse symbols")
 
 match = re.search(
     rb"pgy: function-param-flow entries=(\d+) body_evaluations=(\d+) "
@@ -97,10 +123,27 @@ if evaluations > 8 or passes > 6:
         "recursive component exceeded its bounded fixture budget: "
         f"evaluations={evaluations} passes={passes}"
     )
+sparse = re.search(
+    rb"pgy: function-param-flow-sparse functions=(\d+) "
+    rb"statement_visits=(\d+) program_points=(\d+)",
+    run.stderr,
+)
+if sparse is None:
+    sys.stderr.buffer.write(run.stderr)
+    raise SystemExit("function parameter flow sparse telemetry is missing")
+indexed_functions, statement_visits, program_points = map(int, sparse.groups())
+if indexed_functions < 1 or statement_visits <= 0:
+    raise SystemExit("sparse owner did not index the demanded function")
+if program_points >= statement_visits:
+    raise SystemExit(
+        "summary evaluator did not reduce the demanded program points: "
+        f"statement_visits={statement_visits} program_points={program_points}"
+    )
 print(
     "[function-param-flow-summary] "
     f"entries={entries} evaluations={evaluations} cache_hits={cache_hits} "
-    f"recursion_hits={recursion_hits} passes={passes}"
+    f"recursion_hits={recursion_hits} passes={passes} "
+    f"statement_visits={statement_visits} program_points={program_points}"
 )
 PY
 

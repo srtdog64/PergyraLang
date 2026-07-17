@@ -12,6 +12,7 @@
 
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loop_summary.h"
+#include "type_checker_flow_universe.h"
 
 typedef struct
 {
@@ -44,6 +45,132 @@ struct LoopFlowSummaryStore
     bool body_trace_enabled;
 };
 
+static bool
+loop_flow_fact_reserve(void **storage, size_t *capacity, size_t count,
+                       size_t element_size)
+{
+    size_t next;
+    void *grown;
+
+    if (storage == NULL || capacity == NULL || element_size == 0)
+        return false;
+    if (count <= *capacity)
+        return true;
+    next = *capacity == 0 ? 8 : *capacity;
+    while (next < count) {
+        if (next > SIZE_MAX / 2)
+            return false;
+        next *= 2;
+    }
+    if (next > SIZE_MAX / element_size)
+        return false;
+    grown = realloc(*storage, next * element_size);
+    if (grown == NULL)
+        return false;
+    *storage = grown;
+    *capacity = next;
+    return true;
+}
+
+static bool
+loop_flow_capture_states(SemanticContext *ctx,
+                         const ResourceConsumeSnapshot *snapshot,
+                         size_t *start_out,
+                         size_t *count_out)
+{
+    size_t start;
+
+    if (ctx == NULL || snapshot == NULL || start_out == NULL
+        || count_out == NULL || !snapshot->valid)
+        return false;
+    if (snapshot->count > 0
+        && (snapshot->symbol_indices == NULL || snapshot->states == NULL
+            || snapshot->used_states == NULL || snapshot->access_masks == NULL
+            || snapshot->slot_states == NULL || snapshot->sem_states == NULL
+            || snapshot->pool_ids == NULL))
+        return false;
+    if (snapshot->count > SIZE_MAX - ctx->loop_flow_state_fact_count)
+        return false;
+    start = ctx->loop_flow_state_fact_count;
+    if (!loop_flow_fact_reserve(
+            (void **)&ctx->loop_flow_state_facts,
+            &ctx->loop_flow_state_fact_capacity,
+            start + snapshot->count,
+            sizeof(*ctx->loop_flow_state_facts)))
+        return false;
+    for (size_t i = 0; i < snapshot->count; i++) {
+        if (snapshot->symbol_indices[i] == RESOURCE_FLOW_INDEX_NONE)
+            return false;
+        PgyLoopFlowStateFact *fact =
+            &ctx->loop_flow_state_facts[ctx->loop_flow_state_fact_count++];
+        fact->stable_index = snapshot->symbol_indices[i];
+        fact->is_consumed = snapshot->states[i];
+        fact->is_used = snapshot->used_states[i];
+        fact->access_mask = snapshot->access_masks[i];
+        fact->slot_state = (int32_t)snapshot->slot_states[i];
+        fact->semantic_state = (int32_t)snapshot->sem_states[i];
+        fact->pool_id = snapshot->pool_ids[i];
+    }
+    *start_out = start;
+    *count_out = snapshot->count;
+    return true;
+}
+
+static bool
+loop_flow_capture_summary(SemanticContext *ctx,
+                          const ASTNode *node,
+                          const ResourceConsumeSnapshot *entry,
+                          const ResourceConsumeSnapshot *exit,
+                          uint32_t effect_base,
+                          uint32_t effect_delta,
+                          FlowFlags flags)
+{
+    size_t entry_start = 0;
+    size_t exit_start = 0;
+    size_t entry_count = 0;
+    size_t exit_count = 0;
+    PgyLoopFlowSummaryFact *fact;
+    uint32_t function_id;
+
+    if (ctx == NULL || node == NULL || entry == NULL || exit == NULL)
+        return false;
+    function_id = ctx->current_function_decl != NULL
+        ? ast_node_stable_id(ctx->current_function_decl) : 0;
+    /* Match ResourceFlowUniverse's unit-level policy: only a function-owned
+     * loop has a downstream routine identity.  Top-level loop checking still
+     * proceeds, but it must not manufacture an unresolvable IR row. */
+    if (function_id == 0)
+        return true;
+    if (entry->count > SIZE_MAX - exit->count
+        || ctx->loop_flow_summary_fact_count == SIZE_MAX)
+        return false;
+    if (!loop_flow_fact_reserve(
+            (void **)&ctx->loop_flow_summary_facts,
+            &ctx->loop_flow_summary_fact_capacity,
+            ctx->loop_flow_summary_fact_count + 1,
+            sizeof(*ctx->loop_flow_summary_facts)))
+        return false;
+    if (!loop_flow_capture_states(ctx, entry, &entry_start, &entry_count))
+        return false;
+    if (!loop_flow_capture_states(ctx, exit, &exit_start, &exit_count))
+        return false;
+
+    fact = &ctx->loop_flow_summary_facts[
+        ctx->loop_flow_summary_fact_count++];
+    memset(fact, 0, sizeof(*fact));
+    fact->function_syntax_id = function_id;
+    fact->loop_syntax_id = ast_node_stable_id(node);
+    fact->kind = node->type == AST_FOR_LOOP ? 1u : 0u;
+    fact->effect_base = effect_base;
+    fact->effect_delta = effect_delta;
+    fact->flags = (uint32_t)flags;
+    fact->entry_state_start = entry_start;
+    fact->entry_state_count = entry_count;
+    fact->exit_state_start = exit_start;
+    fact->exit_state_count = exit_count;
+    return true;
+}
+
 static void
 loop_flow_summary_store_destroy(LoopFlowSummaryStore *store)
 {
@@ -71,6 +198,8 @@ loop_flow_summary_begin_function(SemanticContext *ctx)
     if (ctx->loop_flow_summaries != NULL)
         ctx->loop_flow_summaries->body_trace_enabled =
             getenv("PGY_DEBUG_LOOP_FLOW_BODY") != NULL;
+    else
+        ctx->loop_flow_summary_capture_failed = true;
 }
 
 static LoopFlowTrace *
@@ -209,6 +338,12 @@ loop_flow_summary_record(SemanticContext *ctx,
     summary->effect_delta = effect_delta;
     summary->flags = flags;
     store->summary_count++;
+    if (!loop_flow_capture_summary(ctx, node, entry, exit,
+                                   effect_base, effect_delta, flags)) {
+        ctx->loop_flow_summary_capture_failed = true;
+        /* The private summary remains usable for this semantic pass, while
+         * the exported carrier fails closed at the semantic result boundary. */
+    }
     LoopFlowTrace *trace = loop_flow_trace(ctx, node, NULL);
     if (trace != NULL)
         trace->summaries_recorded++;

@@ -35,6 +35,92 @@ rir_scope_resource_kind(const RIRScope *scope, const char *name)
     return RIR_RESOURCE_UNKNOWN;
 }
 
+static void
+rir_clear_resource_flow_symbols(RIRScope *scope)
+{
+    if (scope == NULL)
+        return;
+    for (size_t i = 0; i < scope->resource_flow_symbol_count; i++)
+        free(scope->resource_flow_symbols[i].name);
+    free(scope->resource_flow_symbols);
+    scope->resource_flow_symbols = NULL;
+    scope->resource_flow_symbol_count = 0;
+    scope->resource_flow_symbol_capacity = 0;
+}
+
+static bool
+rir_copy_resource_flow_symbols(RIRScope *scope,
+                                const HIRRoutine *hir_routine,
+                                char **error_message)
+{
+    size_t count;
+
+    if (scope == NULL || hir_routine == NULL)
+        return false;
+    count = hir_routine->resource_flow_symbol_count;
+    rir_clear_resource_flow_symbols(scope);
+    if (count == 0)
+        return true;
+    if (hir_routine->resource_flow_symbols == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "RIR ResourceFlowUniverse has incomplete HIR storage");
+        return false;
+    }
+    scope->resource_flow_symbols = calloc(
+        count, sizeof(*scope->resource_flow_symbols));
+    if (scope->resource_flow_symbols == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("out of memory");
+        return false;
+    }
+    scope->resource_flow_symbol_capacity = count;
+    for (size_t i = 0; i < count; i++) {
+        const HIRResourceFlowSymbol *source =
+            &hir_routine->resource_flow_symbols[i];
+        RIRResourceFlowSymbol *target = &scope->resource_flow_symbols[i];
+        if (source->name == NULL || source->name[0] == '\0') {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "RIR ResourceFlowUniverse row has no name");
+            goto fail;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const RIRResourceFlowSymbol *prior =
+                &scope->resource_flow_symbols[j];
+            if (prior->stable_index == source->stable_index
+                || (source->is_parameter && prior->is_parameter
+                    && prior->parameter_index == source->parameter_index)) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "RIR ResourceFlowUniverse rows have duplicate identity");
+                goto fail;
+            }
+        }
+        *target = (RIRResourceFlowSymbol){
+            .stable_index = source->stable_index,
+            .declaration_syntax_id = source->declaration_syntax_id,
+            .line = source->line,
+            .column = source->column,
+            .symbol_kind = source->symbol_kind,
+            .is_parameter = source->is_parameter,
+            .parameter_index = source->parameter_index,
+            .name = pergyra_strdup(source->name)
+        };
+        if (target->name == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            goto fail;
+        }
+    }
+    scope->resource_flow_symbol_count = count;
+    return true;
+
+fail:
+    rir_clear_resource_flow_symbols(scope);
+    return false;
+}
+
 static unsigned int
 rir_refine_flow_semantics(unsigned int flags)
 {
@@ -212,6 +298,17 @@ rir_find_matching_scope(const RIRMutableScopeInventory *inventory,
     if (inventory == NULL || routine == NULL || routine->name == NULL)
         return NULL;
     wanted_kind = rir_scope_kind_from_hir(routine);
+    if (routine->source_syntax_id != 0) {
+        for (size_t i = 0; i < inventory->count; i++) {
+            RIRScope *scope = rir_mutable_scope_inventory_get(inventory, i);
+            if (scope == NULL || scope->kind != wanted_kind)
+                continue;
+            if (scope->source_syntax_id == routine->source_syntax_id)
+                return scope;
+        }
+        /* Source-backed HIR routines must not fall back to a name join. */
+        return NULL;
+    }
     for (size_t i = 0; i < inventory->count; i++) {
         RIRScope *scope = rir_mutable_scope_inventory_get(inventory, i);
         if (scope == NULL)
@@ -223,6 +320,129 @@ rir_find_matching_scope(const RIRMutableScopeInventory *inventory,
         }
     }
     return NULL;
+}
+
+static bool
+rir_attach_resource_flow_identity(RIRScope *scope,
+                                  char **error_message)
+{
+    if (scope == NULL)
+        return false;
+
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        RIRFact *fact = (RIRFact *)rir_scope_fact_at(scope, i);
+        const RIRResourceFlowSymbol *match = NULL;
+
+        if (fact == NULL || fact->kind != RIR_FACT_RESOURCE)
+            continue;
+        for (size_t j = 0;
+             j < scope->resource_flow_symbol_count;
+             j++) {
+            const RIRResourceFlowSymbol *symbol =
+                &scope->resource_flow_symbols[j];
+            if (symbol == NULL)
+                continue;
+            if (fact->is_parameter) {
+                if (!symbol->is_parameter
+                    || symbol->parameter_index != fact->parameter_index)
+                    continue;
+            } else {
+                uint32_t declaration_id = fact->declaration_syntax_id;
+                if (declaration_id == 0
+                    || symbol->is_parameter
+                    || symbol->declaration_syntax_id != declaration_id)
+                    continue;
+            }
+            match = symbol;
+            break;
+        }
+        if (match == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "RIR resource fact has no matching ResourceFlow stable identity");
+            return false;
+        }
+        fact->has_flow_identity = true;
+        fact->stable_index = match->stable_index;
+        fact->declaration_syntax_id = match->declaration_syntax_id;
+        {
+            RIRStateSummary *summary =
+                scope_find_state_summary(scope, fact->name);
+            if (summary != NULL) {
+                summary->has_flow_identity = true;
+                summary->stable_index = match->stable_index;
+                summary->declaration_syntax_id =
+                    match->declaration_syntax_id;
+                summary->is_parameter = match->is_parameter;
+                summary->parameter_index = match->parameter_index;
+            }
+        }
+    }
+    scope->resource_identity_verified = true;
+    return true;
+}
+
+static bool
+rir_attach_function_param_flow_summaries(RIRScope *scope,
+                                         const HIRRoutine *hir_routine,
+                                         char **error_message)
+{
+    size_t count;
+
+    if (scope == NULL || hir_routine == NULL)
+        return false;
+    count = hir_routine->function_param_flow_summary_count;
+    if (count == 0)
+        return true;
+    if ((scope->kind != RIR_SCOPE_FUNCTION
+         && scope->kind != RIR_SCOPE_METHOD)
+        || scope->parameter_count != hir_routine->parameter_count
+        || count > scope->parameter_count) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "RIR function parameter flow summary has invalid scope or parameter count");
+        return false;
+    }
+    free(scope->function_param_flow_summaries);
+    scope->function_param_flow_summaries = calloc(
+        count, sizeof(*scope->function_param_flow_summaries));
+    if (scope->function_param_flow_summaries == NULL)
+        return false;
+    scope->function_param_flow_summary_count = 0;
+    scope->function_param_flow_summary_capacity = count;
+    for (size_t i = 0; i < count; i++) {
+        const HIRFunctionParamFlowSummary *summary =
+            &hir_routine->function_param_flow_summaries[i];
+        if (summary->parameter_index >= scope->parameter_count) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "RIR function parameter flow summary has out-of-range parameter index");
+            free(scope->function_param_flow_summaries);
+            scope->function_param_flow_summaries = NULL;
+            scope->function_param_flow_summary_capacity = 0;
+            return false;
+        }
+        for (size_t j = 0; j < scope->function_param_flow_summary_count; j++) {
+            if (scope->function_param_flow_summaries[j].parameter_index
+                == summary->parameter_index) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "RIR function parameter flow summaries share parameter identity");
+                free(scope->function_param_flow_summaries);
+                scope->function_param_flow_summaries = NULL;
+                scope->function_param_flow_summary_capacity = 0;
+                scope->function_param_flow_summary_count = 0;
+                return false;
+            }
+        }
+        scope->function_param_flow_summaries[
+            scope->function_param_flow_summary_count].parameter_index =
+            summary->parameter_index;
+        scope->function_param_flow_summaries[
+            scope->function_param_flow_summary_count].mask = summary->mask;
+        scope->function_param_flow_summary_count++;
+    }
+    return true;
 }
 
 static bool
@@ -285,6 +505,12 @@ rir_prepare_flow_blocks(RIRScope *scope, const HIRRoutine *hir_routine)
                 return false;
             flow->facts[j].name = summary->name;
             flow->facts[j].slot_anchor = summary->slot_anchor;
+            flow->facts[j].has_flow_identity = summary->has_flow_identity;
+            flow->facts[j].stable_index = summary->stable_index;
+            flow->facts[j].declaration_syntax_id =
+                summary->declaration_syntax_id;
+            flow->facts[j].is_parameter = summary->is_parameter;
+            flow->facts[j].parameter_index = summary->parameter_index;
             flow->facts[j].entry_state = RIR_STATE_UNINIT;
             flow->facts[j].exit_state = RIR_STATE_UNINIT;
             flow->facts[j].merged_from_join = false;
@@ -483,8 +709,25 @@ rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_me
             return false;
         }
         scope = rir_find_matching_scope(&rir_inventory, hir_routine);
-        if (scope == NULL)
+        if (scope == NULL) {
+            if (hir_routine->source_syntax_id != 0) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "RIR has no source-identity scope for HIR routine");
+                return false;
+            }
             continue;
+        }
+        if (hir->has_resource_flow_facts) {
+            if (!rir_copy_resource_flow_symbols(scope, hir_routine,
+                                                error_message)
+                || !rir_attach_resource_flow_identity(scope, error_message))
+                return false;
+        }
+        if (hir->has_function_param_flow_facts
+            && !rir_attach_function_param_flow_summaries(
+                scope, hir_routine, error_message))
+            return false;
         if (!rir_enrich_scope_with_hir_flow(scope, hir_routine)) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");

@@ -111,6 +111,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                                       slot_kind,
                                                       ast_zone_name(node),
                                                       slot_name,
+                                                      ast_node_stable_id(node),
                                                       slot);
         if (slot_node_id < 0)
             return false;
@@ -156,6 +157,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                                               DIR_NODE_AUTHORITY_SLOT,
                                                               ast_zone_name(node),
                                                               subject_slot,
+                                                              ast_node_stable_id(node),
                                                               auth);
         ssize_t subject_slot_id = dir_find_slot_node(dir,
                                                      DIR_NODE_ZONE_SLOT,
@@ -229,6 +231,7 @@ bool
 dir_collect_relation_effect_slot_edges(DIRProgram *dir,
                                        size_t from_id,
                                        const char *owner_name,
+                                       uint32_t owner_source_syntax_id,
                                        ASTNode **slots,
                                        size_t slot_count,
                                        ASTNode **refreshes,
@@ -251,6 +254,7 @@ dir_collect_relation_effect_slot_edges(DIRProgram *dir,
                                                       slot_kind,
                                                       owner_name,
                                                       ast_domain_slot_name(slot),
+                                                      owner_source_syntax_id,
                                                       slot);
         if (slot_node_id < 0)
             return false;

@@ -108,6 +108,23 @@ DIR, or RIR programs.
 - **Remaining obligation**: expand this from representative field snapshots to
   full structural hashes once the IRs expose stable hash helpers.
 
+## Theorem: Anchored MIR Evidence Lifetime
+
+The post-MIR AIR evidence pass is a one-shot import. Once
+`air_collect_mir_evidence(AIR, MIR)` succeeds, AIR owns the copied evidence and
+stores a deterministic MIR binding fingerprint; a second collection attempt is
+rejected instead of merging a second authority into the same certificate.
+
+- **Evidence**: `src/compiler/air_evidence_mir.c` issues the binding token and
+  seals `mir_evidence_bound`; `src/compiler/air_evidence_certificate.c` carries
+  the token through certificate fingerprinting and readiness checks;
+  `src/compiler/air_validate.c` rejects incomplete binding state;
+  `tests/air_mir_binding_smoke.sh` covers the negative rebind path and JSON
+  visibility.
+- **Boundary**: the token is an identity/mutation guard, not a cryptographic
+  attestation. Cross-process proof artifacts still require their own payload
+  digest.
+
 ## Theorem: Intent Node Coverage
 
 Every stable beta intent step is represented by exactly one AIR `Intent Node`.
@@ -234,6 +251,10 @@ AIR Phase 1 is beta-complete only when all of these are true:
 - `src/compiler/air.h` keeps independent AIR data structures,
   `src/compiler/air.c` keeps read-only synthesis, and
   `src/compiler/air_verify.c` keeps global validation/drift ownership.
+- `CompilerIRBundle` carries only HIR/DIR/RIR/MIR. Compiler orchestration
+  receives AIR through the opaque `PgyAirVerification` handle only long enough
+  to issue a verified projection-plan row; C and LLVM codegen receive that row,
+  not AIR or its evidence nodes.
 - `air_verify(...)` is the global AIR validation entry point. It validates AIR
   inventory invariants, evidence provenance invariants, and drift/evidence
   failures at the active compiler boundary: pre-MIR verification covers HIR/RIR

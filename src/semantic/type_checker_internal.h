@@ -163,6 +163,45 @@ ASTNode *expr_current_host_method_decl(SemanticContext *ctx,
 Type *expr_host_method_function_type(SemanticContext *ctx,
                                      ASTNode *host_decl,
                                      const char *method_name);
+typedef struct ExprHostMethodGenericBindings {
+    GenericParams *params;
+    Type **types;
+    size_t count;
+    bool valid;
+} ExprHostMethodGenericBindings;
+bool expr_host_method_generic_bindings_init(
+    ExprHostMethodGenericBindings *bindings,
+    ASTNode *call,
+    ASTNode *method,
+    SemanticContext *ctx,
+    const char *method_name);
+void expr_host_method_generic_infer_argument(
+    ExprHostMethodGenericBindings *bindings,
+    Type *formal,
+    Type *actual,
+    ASTNode *host_decl,
+    const Type *receiver_type);
+bool expr_host_method_generic_bindings_finalize(
+    ExprHostMethodGenericBindings *bindings,
+    ASTNode *call,
+    ASTNode *method,
+    ASTNode *host_decl,
+    const Type *receiver_type,
+    SemanticContext *ctx,
+    const char *method_name);
+Type *expr_host_method_generic_substitute(
+    Type *type,
+    ASTNode *host_decl,
+    const Type *receiver_type,
+    const ExprHostMethodGenericBindings *bindings);
+void expr_host_method_generic_validate_constraints(
+    const ExprHostMethodGenericBindings *bindings,
+    ASTNode *call,
+    ASTNode *method,
+    SemanticContext *ctx,
+    const char *method_name);
+void expr_host_method_generic_bindings_destroy(
+    ExprHostMethodGenericBindings *bindings);
 Type *expr_type_check_host_method_call_on_host(ASTNode *expr,
                                                ASTNode *host_decl,
                                                ASTNode *method,

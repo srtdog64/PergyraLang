@@ -29,6 +29,14 @@ struct ResourceFlowUniverse
     size_t capacity;
 };
 
+static bool
+resource_flow_universe_tracks_type(const Type *type)
+{
+    return type_is_resource_handle(type)
+        || type_is_constructed_named(type, "Future")
+        || type_is_constructed_named(type, "RemoteFuture");
+}
+
 static void
 resource_flow_universe_destroy(ResourceFlowUniverse *universe)
 {
@@ -154,4 +162,116 @@ resource_flow_universe_symbol(SemanticContext *ctx, size_t index)
     if (universe == NULL || index >= universe->count)
         return NULL;
     return universe->entries[index].current_symbol;
+}
+
+void
+pgy_resource_flow_facts_destroy(PgyResourceFlowFact *facts, size_t count)
+{
+    if (facts == NULL)
+        return;
+    for (size_t i = 0; i < count; i++)
+        free(facts[i].name);
+    free(facts);
+}
+
+static bool
+resource_flow_facts_reserve(SemanticContext *ctx, size_t minimum)
+{
+    PgyResourceFlowFact *grown;
+    size_t capacity;
+
+    if (ctx == NULL)
+        return false;
+    if (minimum <= ctx->resource_flow_fact_capacity)
+        return true;
+    capacity = ctx->resource_flow_fact_capacity == 0
+        ? 16 : ctx->resource_flow_fact_capacity;
+    while (capacity < minimum) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*grown))
+        return false;
+    grown = realloc(ctx->resource_flow_facts,
+                    capacity * sizeof(*grown));
+    if (grown == NULL)
+        return false;
+    memset(grown + ctx->resource_flow_fact_capacity, 0,
+           (capacity - ctx->resource_flow_fact_capacity) * sizeof(*grown));
+    ctx->resource_flow_facts = grown;
+    ctx->resource_flow_fact_capacity = capacity;
+    return true;
+}
+
+bool
+resource_flow_universe_capture_function_facts(
+    SemanticContext *ctx,
+    uint32_t function_syntax_id)
+{
+    ResourceFlowUniverse *universe;
+
+    if (ctx == NULL)
+        return false;
+    /* Unit-level semantic callers may build ASTs without merged-program
+     * SyntaxNodeIds. Preserve their diagnostic contract; the driver-owned HIR
+     * path only consumes snapshots for source nodes with a stable ID. */
+    if (function_syntax_id == 0)
+        return true;
+    universe = ctx->resource_flow_universe;
+    if (universe == NULL)
+        return false;
+    if (ctx->scope != NULL) {
+        for (Scope *scope = ctx->scope;
+             scope != NULL;
+             scope = scope->parent) {
+            for (size_t j = 0; j < scope->symbol_count; j++) {
+                Symbol *symbol = scope->symbols[j];
+                if (symbol == NULL || symbol->type == NULL
+                    || !resource_flow_universe_tracks_type(symbol->type))
+                    continue;
+                if (resource_flow_universe_bind(ctx, symbol)
+                    == RESOURCE_FLOW_INDEX_NONE)
+                    return false;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < universe->count; i++) {
+        ResourceFlowUniverseEntry *entry = &universe->entries[i];
+        PgyResourceFlowFact *fact;
+
+        if (!resource_flow_facts_reserve(
+                ctx, ctx->resource_flow_fact_count + 1))
+            return false;
+        fact = &ctx->resource_flow_facts[ctx->resource_flow_fact_count];
+        memset(fact, 0, sizeof(*fact));
+        fact->function_syntax_id = function_syntax_id;
+        fact->stable_index = i;
+        fact->declaration_syntax_id = entry->syntax_id;
+        fact->line = entry->line;
+        fact->column = entry->column;
+        fact->symbol_kind = (uint32_t)entry->kind;
+        fact->is_parameter = entry->current_symbol != NULL
+            && entry->current_symbol->is_parameter;
+        fact->parameter_index = 0;
+        if (fact->is_parameter) {
+            size_t parameter_index = 0;
+            for (size_t prior = 0; prior < i; prior++) {
+                if (universe->entries[prior].current_symbol != NULL
+                    && universe->entries[prior].current_symbol->is_parameter)
+                    parameter_index++;
+            }
+            fact->parameter_index = parameter_index;
+        }
+        if (entry->name != NULL) {
+            size_t length = strlen(entry->name) + 1;
+            fact->name = malloc(length);
+            if (fact->name == NULL)
+                return false;
+            memcpy(fact->name, entry->name, length);
+        }
+        ctx->resource_flow_fact_count++;
+    }
+    return true;
 }

@@ -117,6 +117,26 @@ and forbidden-hit paths across C/LLVM-built self-host tools under
 Slot/SecureSlot/DeviceSlot MIR resource runtime-call table as `native-resource`
 rows, so backend resource helper spellings are visible in the same runnable
 runtime-call ABI artifact as the self-host runtime helper rows.
+The self-hosted projection consumes the same native MIR operation/call-shape
+rows and the native `pgy.machine-layer.declaration.v1` artifact consumed by
+`compiler/machine_layer_declaration_consumer.pgy`; it does not repeat the
+physical grant literals or claim live-board physical-device agreement. The
+declaration also carries board/boot/linker provenance identifiers, which are
+bound by the native physical fingerprint; the self-host reader accepts only
+the native `pergyra.machine-declaration.*` namespace and requires nonempty
+target-specific provenance. C and
+LLVM remain peer projections with different representations, while self-hosting
+is an additional parity consumer. `mir_lower/machine_layer_fact_owner.pgy`
+validates explicit MIR contact rows, and
+`tools/machine_layer_air_validator/main.pgy` validates AIR
+`machine_layer_sites` rows against the passed declaration artifact.
+`tools/machine_layer_rir_validator/main.pgy` consumes the native `pgy.rir.v1`
+JSON contact rows before MIR lowering and rejects unknown contact identities
+against that same owner.
+`machine_layer_runtime_binding_owner.pgy` is the last self-host C consumer: it
+emits the verified declaration mapping bind at `Main` startup. The runtime also
+offers an embedder-owned board/MMU provider callback; the host-sim default keeps
+that callback unbound and therefore makes no live-hardware claim.
 
 The hard-self-host expansion owners live beside the world because they are
 compiler-world facts, not codegen implementation details:

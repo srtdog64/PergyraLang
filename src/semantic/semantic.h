@@ -17,6 +17,10 @@
 #include "boundary_witness.h"
 #include "lifecycle_state.h"
 #include "parallel_capture_facts.h"
+#include "resource_flow_fact.h"
+#include "loop_flow_fact.h"
+#include "function_param_flow_fact.h"
+#include "iteration_type_fact.h"
 #include "type_system.h"
 
 /*
@@ -51,6 +55,24 @@ typedef struct SemanticResult
      * projection of this table, never checker annotations on AST nodes. */
     SemanticParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t       parallel_capture_boundary_count;
+    /* Function-local ResourceFlowUniverse rows copied before semantic scope
+     * teardown. HIR consumes these stable identities instead of rebuilding
+     * them from Symbol pointers. */
+    PgyResourceFlowFact *resource_flow_facts;
+    size_t       resource_flow_fact_count;
+    /* Immutable whole-loop transfer rows.  State ranges are keyed by the
+     * function-local ResourceFlowUniverse stable index. */
+    PgyLoopFlowSummaryFact *loop_flow_summary_facts;
+    size_t                  loop_flow_summary_fact_count;
+    PgyLoopFlowStateFact *loop_flow_state_facts;
+    size_t                 loop_flow_state_fact_count;
+    /* Immutable snapshot of demanded interprocedural parameter summaries. */
+    PgyFunctionParamFlowFact *function_param_flow_facts;
+    size_t       function_param_flow_fact_count;
+    /* Semantic-owned for-loop header facts. MIR source-local capture consumes
+     * these rows; it must not infer a binding type from AST expressions. */
+    PgyIterationTypeFact *iteration_type_facts;
+    size_t       iteration_type_fact_count;
     /* Owns every Type this analysis allocated (WO-SEC-2). Borrowed Type*
      * held by symbols, IRs, or the backend stay valid until this result is
      * destroyed, which the driver does last. */

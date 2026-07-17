@@ -19,6 +19,10 @@
 #include "builtin_kind.h"
 #include "boundary_witness.h"
 #include "parallel_capture_facts.h"
+#include "resource_flow_fact.h"
+#include "loop_flow_fact.h"
+#include "function_param_flow_fact.h"
+#include "iteration_type_fact.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -131,6 +135,22 @@ struct SemanticContext
     LoopFlowSummaryStore *loop_flow_summaries;
     FunctionParamFlowSummaryStore *function_param_flow_summaries;
     size_t       resource_flow_epoch;
+    PgyResourceFlowFact *resource_flow_facts;
+    size_t       resource_flow_fact_count;
+    size_t       resource_flow_fact_capacity;
+    PgyFunctionParamFlowFact *function_param_flow_facts;
+    size_t       function_param_flow_fact_count;
+    size_t       function_param_flow_fact_capacity;
+    PgyLoopFlowSummaryFact *loop_flow_summary_facts;
+    size_t       loop_flow_summary_fact_count;
+    size_t       loop_flow_summary_fact_capacity;
+    PgyLoopFlowStateFact *loop_flow_state_facts;
+    size_t       loop_flow_state_fact_count;
+    size_t       loop_flow_state_fact_capacity;
+    bool         loop_flow_summary_capture_failed;
+    PgyIterationTypeFact *iteration_type_facts;
+    size_t       iteration_type_fact_count;
+    size_t       iteration_type_fact_capacity;
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;

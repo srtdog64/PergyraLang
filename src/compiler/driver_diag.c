@@ -6,7 +6,9 @@
 
 #include "../common/diagnostic_layer.h"
 #include "../common/numeric_parse.h"
+#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
+#include "path_utils.h"
 
 typedef struct DriverDiagCodeMap {
     const char *code;
@@ -36,6 +38,124 @@ static const DriverDiagCodeMap kDriverDiagCodeMaps[] = {
         PGY_FIX_CHECK_SYNTAX,
     },
 };
+
+static bool
+driver_diag_compatibility_status_known(const char *status)
+{
+    return status != NULL
+        && (strcmp(status, "codefix_available") == 0
+            || strcmp(status, "manual_migration") == 0
+            || strcmp(status, "no_codefix") == 0);
+}
+
+bool
+driver_diag_compatibility_manifest_validate_file(const char *path,
+                                                 char **error_message)
+{
+    char *text;
+    size_t row_count = 0;
+    char *seen_surfaces[16] = {0};
+
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (path == NULL || path[0] == '\0')
+        goto fail_input;
+    text = path_read_file(path);
+    if (text == NULL)
+        goto fail_input;
+
+    char *cursor = text;
+    while (cursor != NULL && *cursor != '\0') {
+        char *line_end = strchr(cursor, '\n');
+        if (line_end != NULL)
+            *line_end = '\0';
+        size_t line_length = strlen(cursor);
+        if (line_length > 0 && cursor[line_length - 1] == '\r')
+            cursor[line_length - 1] = '\0';
+        if (strncmp(cursor, "change|", 7) == 0) {
+            char *fields[11] = {0};
+            size_t field_count = 0;
+            size_t separator_count = 0;
+            for (const char *scan = cursor; *scan != '\0'; scan++) {
+                if (*scan == '|')
+                    separator_count++;
+            }
+            char *field = cursor;
+            while (field != NULL && field_count < 11) {
+                fields[field_count++] = field;
+                char *separator = strchr(field, '|');
+                if (separator == NULL)
+                    break;
+                *separator = '\0';
+                field = separator + 1;
+            }
+            if (separator_count != 10 || field_count != 11 || fields[10] == NULL
+                || strchr(fields[10], '|') != NULL
+                || fields[0][0] == '\0' || fields[1][0] == '\0'
+                || fields[2][0] == '\0' || fields[3][0] == '\0'
+                || fields[4][0] == '\0' || fields[5][0] == '\0'
+                || fields[6][0] == '\0'
+                || strncmp(fields[7], "PGYCOMPAT", 9) != 0
+                || strncmp(fields[9], "docs/compat/", 12) != 0
+                || !driver_diag_compatibility_status_known(fields[10])) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "compatibility manifest contains a malformed migration row");
+                free(text);
+                for (size_t i = 0; i < row_count; i++)
+                    free(seen_surfaces[i]);
+                return false;
+            }
+            for (size_t i = 0; i < row_count; i++) {
+                if (strcmp(seen_surfaces[i], fields[1]) == 0) {
+                    if (error_message != NULL)
+                        *error_message = pergyra_strdup(
+                            "compatibility manifest duplicates a surface row");
+                    free(text);
+                    for (size_t j = 0; j < row_count; j++)
+                        free(seen_surfaces[j]);
+                    return false;
+                }
+            }
+            if (row_count >= 16) {
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup(
+                        "compatibility manifest has too many migration rows");
+                free(text);
+                for (size_t i = 0; i < row_count; i++)
+                    free(seen_surfaces[i]);
+                return false;
+            }
+            seen_surfaces[row_count] = pergyra_strdup(fields[1]);
+            if (seen_surfaces[row_count] == NULL) {
+                free(text);
+                for (size_t i = 0; i < row_count; i++)
+                    free(seen_surfaces[i]);
+                return false;
+            }
+            row_count++;
+        }
+        if (line_end == NULL)
+            break;
+        cursor = line_end + 1;
+    }
+    free(text);
+    for (size_t i = 0; i < row_count; i++)
+        free(seen_surfaces[i]);
+    if (row_count != 9) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "compatibility manifest does not cover all evolution surfaces");
+        return false;
+    }
+    return true;
+
+fail_input:
+    if (error_message != NULL)
+        *error_message = pergyra_strdup(
+            "compatibility manifest cannot be read");
+    return false;
+}
 
 static size_t
 driver_diag_code_map_count(void)

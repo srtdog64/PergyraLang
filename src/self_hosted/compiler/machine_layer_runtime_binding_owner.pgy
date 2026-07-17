@@ -1,0 +1,46 @@
+// Final self-host C startup consumer for the native MachineDeclaration.
+// The declaration consumer remains the only physical fact owner; this file
+// only serializes its verified identity/window into the runtime bind call.
+
+import "machine_layer_declaration_consumer.pgy";
+
+func CompilerMachineLayerRuntimeBindingBlock(
+    declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    if !SelfHostMachineLayerDeclarationReady(declaration) {
+        return "";
+    }
+    let provider_required: String = "1";
+    if declaration.physical_manifest_id ==
+        "pergyra.machine-declaration.host-sim.v1" {
+        provider_required = "0";
+    }
+    let out: String =
+        "static void pgy_machine_layer_require_mapping(void) {\n";
+    out = Concat(out,
+        "    if (!pgy_machine_layer_runtime_bind_mapping_export(UINT64_C(");
+    out = Concat(out, declaration.manifest_fingerprint);
+    out = Concat(out, "), UINT64_C(");
+    out = Concat(out, declaration.physical_fingerprint);
+    out = Concat(out, "), UINT64_C(");
+    out = Concat(out, ToString(declaration.grant_base));
+    out = Concat(out, "), UINT64_C(");
+    out = Concat(out, ToString(declaration.grant_size));
+    out = Concat(out, "), UINT32_C(1), UINT32_C(");
+    out = Concat(out, Concat(provider_required,
+        "))) {\n        PGY_RUNTIME_PANIC(\n"));
+    out = Concat(out,
+        "            PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,\n");
+    out = Concat(out,
+        "            \"machine-layer runtime bind rejected\");\n    }\n}\n\n");
+    return out;
+}
+
+func CompilerMachineLayerRuntimeBindingStatement(
+    declaration: SelfHostMachineLayerDeclaration
+) -> String {
+    if !SelfHostMachineLayerDeclarationReady(declaration) {
+        return "";
+    }
+    return "    pgy_machine_layer_require_mapping();\n";
+}

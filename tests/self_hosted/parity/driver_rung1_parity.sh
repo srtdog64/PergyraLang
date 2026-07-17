@@ -114,8 +114,8 @@ read_driver_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$DRIVER_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 71 ]]; then
-        echo "[self-host-parity:driver-rung1] fixture manifest count drifted: ${#FIXTURES[@]} != 71" >&2
+    if [[ "${#FIXTURES[@]}" -ne 73 ]]; then
+        echo "[self-host-parity:driver-rung1] fixture manifest count drifted: ${#FIXTURES[@]} != 73" >&2
         exit 1
     fi
 }

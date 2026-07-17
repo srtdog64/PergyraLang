@@ -9,6 +9,7 @@ import "../semantic/ast_artifact_verdict_owner.pgy";
 import "../semantic/ast_signature_contract_owner.pgy";
 import "../semantic/ast_body_type_bundle_owner.pgy";
 import "../codegen/emission/program_entry_owner.pgy";
+import "machine_layer_declaration_consumer.pgy";
 
 struct CompilerEmissionArtifact {
     kind: String;
@@ -56,7 +57,8 @@ func CompileAstArtifactToC(
     return CompilerEmissionArtifact(
         "emitted-c",
         GenerateCFromVerifiedSemanticArtifact(
-            artifact, semantic_analysis, body_types
+            artifact, semantic_analysis, body_types,
+            SelfHostMachineLayerDeclarationEmpty()
         )
     );
 }

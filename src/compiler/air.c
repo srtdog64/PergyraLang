@@ -226,6 +226,20 @@ air_slot_site_at(const AIRProgram *air, size_t index)
 }
 
 size_t
+air_machine_layer_site_count(const AIRProgram *air)
+{
+    return air != NULL ? air->machine_layer_site_count : 0;
+}
+
+const AIRMachineLayerSite *
+air_machine_layer_site_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->machine_layer_site_count)
+        return NULL;
+    return &air->machine_layer_sites[index];
+}
+
+size_t
 air_effect_site_count(const AIRProgram *air)
 {
     return air != NULL ? air->effect_site_count : 0;
@@ -237,6 +251,20 @@ air_effect_site_at(const AIRProgram *air, size_t index)
     if (air == NULL || index >= air->effect_site_count)
         return NULL;
     return &air->effect_sites[index];
+}
+
+size_t
+air_function_param_flow_summary_count(const AIRProgram *air)
+{
+    return air != NULL ? air->function_param_flow_summary_count : 0;
+}
+
+const AIRFunctionParamFlowSummary *
+air_function_param_flow_summary_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->function_param_flow_summary_count)
+        return NULL;
+    return &air->function_param_flow_summaries[index];
 }
 
 size_t
@@ -633,7 +661,9 @@ air_destroy(AIRProgram *air)
         free(air->owned_names[i]);
     free(air->owned_names);
     free(air->slot_sites);
+    free(air->machine_layer_sites);
     free(air->effect_sites);
+    free(air->function_param_flow_summaries);
     free(air->lifecycle_state_spaces);
     free(air->intents);
     free(air->boundaries);

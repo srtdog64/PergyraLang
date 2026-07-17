@@ -2,10 +2,12 @@
 #define PERGYRA_COMPILER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "hir.h"
 #include "dir.h"
 #include "rir.h"
 #include "mir.h"
+#include "air_verification_handle.h"
 
 typedef enum
 {
@@ -38,8 +40,16 @@ typedef struct
     char *error_fix_source;
     char *c_output_path;
     char *binary_path;
+    /* Native artifacts retain the exact verified projection identity that
+     * authorized their emission.  Zero means no artifact was authorized. */
+    char *artifact_kind;
+    uint32_t artifact_plan_revision;
+    uint64_t artifact_plan_digest;
     CompilerBackendTimings backend_timings;
 } CompilerResult;
+
+bool compiler_result_artifact_identity_ready(
+    const CompilerResult *result, const char **error_out);
 
 typedef struct
 {
@@ -49,8 +59,11 @@ typedef struct
     const MIRProgram *mir;
 } CompilerIRBundle;
 
-CompilerResult *compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path);
+CompilerResult *compiler_emit_c(const CompilerIRBundle *bundle,
+                                const PgyAirVerification *air,
+                                const char *output_c_path);
 CompilerResult *compiler_build_native(const CompilerIRBundle *bundle,
+                                      const PgyAirVerification *air,
                                       const char *output_c_path,
                                       const char *output_binary_path,
                                       bool verbose,
@@ -62,6 +75,7 @@ void            compiler_result_destroy(CompilerResult *result);
  * LLVM backend: HIR → LLVM IR → object → link with GCC.
  */
 CompilerResult *compiler_build_native_llvm(const CompilerIRBundle *bundle,
+                                            const PgyAirVerification *air,
                                             const char *output_obj_path,
                                             const char *output_binary_path,
                                             bool verbose,
@@ -70,12 +84,15 @@ CompilerResult *compiler_build_native_llvm(const CompilerIRBundle *bundle,
 /*
  * Emit LLVM IR text to stdout (--emit-llvm mode).
  */
-CompilerResult *compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name);
+CompilerResult *compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
+                                      const PgyAirVerification *air,
+                                      const char *module_name);
 
 /*
  * Emit LLVM IR text to a file.
  */
 CompilerResult *compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
+                                              const PgyAirVerification *air,
                                               const char *module_name,
                                               const char *output_ir_path);
 

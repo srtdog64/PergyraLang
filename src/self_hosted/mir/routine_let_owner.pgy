@@ -70,6 +70,6 @@ func SelfMirLowerLetFromArtifact(
         build, SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
             node_id, AstExpressionLaneValue()
-        )
+        ), input.machine_declaration
     );
 }

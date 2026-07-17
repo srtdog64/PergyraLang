@@ -10,6 +10,7 @@
 #include "transpiler_symbols.h"
 #include "../common/string_compat.h"
 #include "../compiler/mir_abi_layout.h"
+#include "../compiler/mir_machine_layer.h"
 #include "../semantic/diag_codes.h"
 
 static char *
@@ -58,7 +59,24 @@ slot_builtin_runtime_row_by_kind(TranspilerCtx *ctx,
     const MIRResourceRuntimeRow *row =
         mir_abi_resource_runtime_row_by_kind(kind, inner_type, operation);
     if (row != NULL && row->runtime_fn != NULL && row->call_shape != NULL)
-        return row;
+        if (ctx == NULL || ctx->active_mir_instruction == NULL
+            || !rir_machine_contact_kind_is_present(
+                ctx->active_mir_instruction->machine_contact_kind)
+            || mir_machine_layer_fact_matches_runtime_operation(
+                ctx->active_mir_instruction, row->resource_op_name))
+            return row;
+
+    if (row != NULL && ctx != NULL && ctx->active_mir_instruction != NULL
+        && rir_machine_contact_kind_is_present(
+            ctx->active_mir_instruction->machine_contact_kind)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C slot builtin runtime row disagrees with machine-layer runtime operation");
+        return NULL;
+    }
 
     transpiler_set_backend_error_with_hints(
         ctx,
@@ -92,6 +110,36 @@ slot_builtin_runtime_fn(TranspilerCtx *ctx,
         secure ? MIR_RESOURCE_ABI_SECURE_SLOT : MIR_RESOURCE_ABI_SLOT,
         inner_type,
         operation);
+}
+
+static bool
+slot_builtin_require_machine_fact(TranspilerCtx *ctx,
+                                  RIRMachineContactKind expected)
+{
+    const MIRInstruction *inst = ctx != NULL ? ctx->active_mir_instruction : NULL;
+    if (!transpiler_machine_layer_projection_is_bound(ctx)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "C backend machine builtin projection is not admitted (operation=%s)",
+            rir_machine_contact_kind_name(expected));
+        return false;
+    }
+    if (inst != NULL
+        && inst->machine_contact_kind == expected
+        && mir_machine_layer_fact_is_valid(inst)) {
+        return true;
+    }
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "C backend machine builtin requires MIR machine-layer fact (operation=%s)",
+        rir_machine_contact_kind_name(expected));
+    return false;
 }
 
 static bool
@@ -164,6 +212,8 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
+    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_CLAIM))
+        return NULL;
     (void)call;
     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
     return NULL;
@@ -463,6 +513,8 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceWrite", 2))
         return NULL;
+    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_WRITE))
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
@@ -499,6 +551,8 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceRead", 1))
         return NULL;
+    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_READ))
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
@@ -525,6 +579,8 @@ char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "ReleaseDeviceSlot", 1))
+        return NULL;
+    if (!slot_builtin_require_machine_fact(ctx, RIR_MACHINE_CONTACT_RELEASE))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
@@ -553,6 +609,9 @@ char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "SubmitDeviceRead", 1))
+        return NULL;
+    if (!slot_builtin_require_machine_fact(ctx,
+            RIR_MACHINE_CONTACT_SUBMIT_READ))
         return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];

@@ -1,0 +1,184 @@
+// Self-host MIR machine-layer projection owner.
+//
+// This is a projection over the native machine contract, not a second
+// operation table.  It consumes semantic expression-graph call-target facts
+// already attached to the instruction and fills the checked self-host runtime
+// row.  It never searches source text or guesses a backend operation.
+
+import "../semantic/ast_expression_graph_fact_owner.pgy";
+import "../semantic/ast_expression_call_target_fact_owner.pgy";
+import "../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../compiler/machine_layer_declaration_consumer.pgy";
+
+struct SelfMirMachineLayerProjection {
+    ok: Bool;
+    contact_kind: String;
+    manifest_id: String;
+    physical_grant: String;
+    physical_base: Int;
+    physical_size: Int;
+    physical_mode: String;
+    runtime_operation: String;
+    hardware_adequate: Int;
+    authority_required: Int;
+    live_lease_required: Int;
+}
+
+func SelfMirMachineLayerProjectionEmpty() -> SelfMirMachineLayerProjection {
+    return SelfMirMachineLayerProjection(
+        true, "", "", "", 0, 0, "", "", 0, 0, 0
+    );
+}
+
+func SelfMirMachineLayerContactIndex(contact_kind: String) -> Int {
+    let i: Int = 0;
+    while i < CompilerRuntimeCallAbiMachineLayerContactCount() {
+        if CompilerRuntimeCallAbiMachineLayerContactNameAt(i) == contact_kind {
+            return i;
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+func SelfMirMachineLayerDeclarationMatchesContract(
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    if !SelfHostMachineLayerDeclarationReady(declaration) ||
+        declaration.manifest_id !=
+            CompilerRuntimeCallAbiMachineLayerManifestId() {
+        return false;
+    }
+    let i: Int = 0;
+    while i < CompilerRuntimeCallAbiMachineLayerContactCount() {
+        if declaration.operation_contacts[i] !=
+                CompilerRuntimeCallAbiMachineLayerContactNameAt(i) ||
+            declaration.operation_runtime_names[i] !=
+                CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(i) ||
+            declaration.operation_authority_required[i] != 1 ||
+            declaration.operation_live_lease_required[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return declaration.manifest_hardware_adequate == 1;
+}
+
+func SelfMirMachineLayerProjectionForGraph(
+    graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declaration: SelfHostMachineLayerDeclaration
+) -> SelfMirMachineLayerProjection {
+    if !graph.ok || root_id < 0 ||
+        root_id >= SemanticExpressionGraphArenaNodeCount(graph.arena) ||
+        (graph.arena.node_kinds[root_id] != AstExpressionNodeCall() &&
+         graph.arena.node_kinds[root_id] != AstExpressionNodeCallArgument()) {
+        return SelfMirMachineLayerProjectionEmpty();
+    }
+    // A call with arguments is represented by the parser-owned call-argument
+    // lane root. The call node beneath that wrapper still owns the resolved
+    // target fact; project that owner instead of treating the wrapper as a
+    // non-machine expression.
+    let call_root: Int = root_id;
+    while graph.arena.node_kinds[call_root] ==
+        AstExpressionNodeCallArgument() {
+        let call_root_opt: Option<Int> =
+            SemanticExpressionGraphLeftChild(graph, call_root);
+        if !IsSome(call_root_opt) ||
+            UnwrapOption(call_root_opt) < 0 ||
+            UnwrapOption(call_root_opt) >=
+                SemanticExpressionGraphArenaNodeCount(graph.arena) {
+            return SelfMirMachineLayerProjectionEmpty();
+        }
+        call_root = UnwrapOption(call_root_opt);
+    }
+    if graph.arena.node_kinds[call_root] != AstExpressionNodeCall() {
+        return SelfMirMachineLayerProjectionEmpty();
+    }
+    let source_name_opt: Option<String> =
+        SemanticExpressionGraphCallTargetName(graph, call_root);
+    if !IsSome(source_name_opt) || UnwrapOption(source_name_opt) == "" {
+        // A call node without its carried target is not a non-machine call.
+        // Preserve an invalid nonempty identity so the row verifier cannot
+        // silently treat the missing fact as an ordinary empty machine row.
+        return SelfMirMachineLayerProjection(
+            false, "__invalid-machine-contact__", "", "", 0, 0, "", "", 0,
+            0, 0
+        );
+    }
+    let contact_kind: String =
+        CompilerRuntimeCallAbiMachineLayerContactNameForSource(
+            UnwrapOption(source_name_opt)
+        );
+    if contact_kind == "" {
+        return SelfMirMachineLayerProjectionEmpty();
+    }
+    let contact_index: Int =
+        SelfMirMachineLayerContactIndex(contact_kind);
+    if contact_index < 0 ||
+        !CompilerRuntimeCallAbiMachineLayerProjectionReady() ||
+        !SelfMirMachineLayerDeclarationMatchesContract(declaration) {
+        return SelfMirMachineLayerProjection(
+            false, contact_kind, "", "", 0, 0, "", "", 0, 0, 0
+        );
+    }
+    return SelfMirMachineLayerProjection(
+        true,
+        contact_kind,
+        CompilerRuntimeCallAbiMachineLayerManifestId(),
+        declaration.grant_id,
+        declaration.grant_base,
+        declaration.grant_size,
+        declaration.grant_mode,
+        CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(contact_index),
+        1, 1, 1
+    );
+}
+
+func SelfMirMachineLayerProjectionReady(
+    row: SelfMirMachineLayerProjection,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    if !row.ok { return false; }
+    if row.contact_kind == "" {
+        return row.manifest_id == "" && row.physical_grant == "" &&
+            row.physical_base == 0 && row.physical_size == 0 &&
+            row.physical_mode == "" && row.runtime_operation == "" &&
+            row.hardware_adequate == 0 && row.authority_required == 0 &&
+            row.live_lease_required == 0;
+    }
+    let index: Int = SelfMirMachineLayerContactIndex(row.contact_kind);
+    return index >= 0 &&
+        SelfMirMachineLayerDeclarationMatchesContract(declaration) &&
+        row.manifest_id == CompilerRuntimeCallAbiMachineLayerManifestId() &&
+        row.physical_grant == declaration.grant_id &&
+        row.physical_base == declaration.grant_base &&
+        row.physical_size == declaration.grant_size &&
+        row.physical_mode == declaration.grant_mode &&
+        row.runtime_operation ==
+            CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(index) &&
+        row.hardware_adequate == 1 && row.authority_required == 1 &&
+        row.live_lease_required == 1;
+}
+
+// Structural verifier used after rows are copied into the program fact graph.
+// Canonical physical identity is checked at the declaration consumer boundary;
+// this owner only enforces that a copied row cannot become a partial object.
+func SelfMirMachineLayerProjectionShapeReady(
+    row: SelfMirMachineLayerProjection
+) -> Bool {
+    if !row.ok { return false; }
+    if row.contact_kind == "" {
+        return row.manifest_id == "" && row.physical_grant == "" &&
+            row.physical_base == 0 && row.physical_size == 0 &&
+            row.physical_mode == "" && row.runtime_operation == "" &&
+            row.hardware_adequate == 0 && row.authority_required == 0 &&
+            row.live_lease_required == 0;
+    }
+    return SelfMirMachineLayerContactIndex(row.contact_kind) >= 0 &&
+        row.manifest_id != "" && row.physical_grant != "" &&
+        row.physical_base >= 0 && row.physical_size > 0 &&
+        row.physical_mode != "" && row.runtime_operation != "" &&
+        row.hardware_adequate == 1 && row.authority_required == 1 &&
+        row.live_lease_required == 1;
+}

@@ -11,6 +11,7 @@
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 #include "../compiler/mir_abi_layout.h"
+#include "../compiler/mir_machine_layer.h"
 
 typedef enum LLVMSlotBuiltinOp {
     LLVM_SLOT_BUILTIN_OP_NONE = 0,
@@ -99,6 +100,30 @@ llvm_slot_builtin_error_out(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
+static bool
+llvm_slot_builtin_require_machine_fact(ASTNode *node,
+                                       LLVMGenCtx *ctx,
+                                       RIRMachineContactKind expected,
+                                       LLVMValueRef *out)
+{
+    const MIRInstruction *inst = ctx != NULL ? ctx->current_mir_instruction : NULL;
+    if (!llvm_machine_layer_projection_is_bound(ctx)) {
+        return llvm_slot_builtin_error_out(
+            node, ctx,
+            "LLVM machine-layer projection is not admitted",
+            out);
+    }
+    if (inst != NULL
+        && inst->machine_contact_kind == expected
+        && mir_machine_layer_fact_is_valid(inst)) {
+        return true;
+    }
+    return llvm_slot_builtin_error_out(
+        node, ctx,
+        "LLVM machine builtin requires valid MIR machine-layer fact",
+        out);
+}
+
 static const char *
 llvm_slot_runtime_expected_call_shape(MIRResourceAbiKind kind,
                                       const char *operation)
@@ -154,6 +179,20 @@ llvm_slot_runtime_row_or_error(ASTNode *node,
             *out = NULL;
         return NULL;
     }
+    if (ctx != NULL && ctx->current_mir_instruction != NULL
+        && rir_machine_contact_kind_is_present(
+            ctx->current_mir_instruction->machine_contact_kind)
+        && !mir_machine_layer_fact_matches_runtime_operation(
+            ctx->current_mir_instruction, row->resource_op_name)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM slot builtin runtime row disagrees with machine-layer runtime operation");
+        if (out != NULL)
+            *out = NULL;
+        return NULL;
+    }
     return row;
 }
 
@@ -182,6 +221,23 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     op = llvm_slot_builtin_lookup(callee_name);
+
+    if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ
+        && !llvm_slot_builtin_require_machine_fact(
+            node, ctx, RIR_MACHINE_CONTACT_READ, out))
+        return true;
+    if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_WRITE
+        && !llvm_slot_builtin_require_machine_fact(
+            node, ctx, RIR_MACHINE_CONTACT_WRITE, out))
+        return true;
+    if (op == LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT
+        && !llvm_slot_builtin_require_machine_fact(
+            node, ctx, RIR_MACHINE_CONTACT_RELEASE, out))
+        return true;
+    if (op == LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ
+        && !llvm_slot_builtin_require_machine_fact(
+            node, ctx, RIR_MACHINE_CONTACT_SUBMIT_READ, out))
+        return true;
 
     if (op == LLVM_SLOT_BUILTIN_OP_WRITE) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,

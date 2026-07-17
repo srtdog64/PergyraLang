@@ -202,6 +202,14 @@ typedef enum
     TOKEN_DOC_TAG_NEXT      /* [Next]: */
 } PgyTokenType;
 
+typedef struct LexerTokenTextOwner LexerTokenTextOwner;
+
+/* Stable content anchor for one lexer input stream. */
+typedef struct
+{
+    uint64_t source_fingerprint;
+} PgyTokenStreamHandle;
+
 /*
  * Token structure containing lexical information
  */
@@ -212,14 +220,14 @@ typedef struct
     size_t      length;
     uint32_t    line;
     uint32_t    column;
+    PgyTokenStreamHandle stream;
+    uint32_t    ordinal;
     union {
         int64_t intValue;
         double  floatValue;
         bool    boolValue;
     } value;
 } Token;
-
-typedef struct LexerTokenTextOwner LexerTokenTextOwner;
 
 /*
  * Lexer state structure
@@ -235,6 +243,8 @@ typedef struct
     char        errorMsg[256];
     /* Parse-lifetime owner shared by non-destructive lexer cursor copies. */
     LexerTokenTextOwner *token_text_owner;
+    PgyTokenStreamHandle stream;
+    uint32_t token_ordinal;
 } Lexer;
 
 /*
@@ -245,6 +255,9 @@ void        lexer_destroy(Lexer *lexer);
 Token       lexer_next_token(Lexer *lexer);
 bool        lexer_has_error(const Lexer *lexer);
 const char *lexer_get_error(const Lexer *lexer);
+PgyTokenStreamHandle lexer_token_stream_handle(const Lexer *lexer);
+bool        lexer_token_stream_handle_equal(PgyTokenStreamHandle lhs,
+                                             PgyTokenStreamHandle rhs);
 
 /*
  * Token utility functions

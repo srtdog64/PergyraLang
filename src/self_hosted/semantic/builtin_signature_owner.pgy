@@ -49,6 +49,10 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "ArrayPop^Unknown^Unknown",
         "ArraySet^Unknown^Unknown|Unknown|Unknown",
         "ArrayGet^Unknown^Unknown|Unknown",
+        "ArraySort^Array<Int>^Unknown",
+        "ArrayReverse^Array<Int>^Unknown",
+        "ArrayMap^Array<Int>^Unknown|Unknown",
+        "ArrayFilter^Array<Int>^Unknown|Unknown",
         "Args^Array<String>^none",
         "Log^Unknown^Unknown",
         "Print^Unknown^Unknown",
@@ -76,7 +80,16 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "TextBuilderNew^TextBuilder^Int",
         "TextBuilderAppend^Void^TextBuilder|String",
         "TextBuilderFinish^String^TextBuilder|Allocator",
-        "TextBuilderDrop^Void^TextBuilder"
+        "TextBuilderDrop^Void^TextBuilder",
+        "FileOpen^Int^String|String",
+        "FileRead^String^Int",
+        "FileWrite^Void^Int|String",
+        "FileClose^Void^Int",
+        "ClaimDeviceSlot^DeviceSlot<Unknown>^none",
+        "DeviceRead^Unknown^Unknown",
+        "DeviceWrite^Void^Unknown|Unknown",
+        "ReleaseDeviceSlot^Void^Unknown",
+        "SubmitDeviceRead^RemoteFuture<Unknown>^Unknown"
     ];
     return rows;
 }
@@ -110,11 +123,17 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let returns: Array<String> = [];
     let params: Array<String> = [];
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 75 && ArrayLength(returns) == 75 &&
-        ArrayLength(params) == 75 && names[0] == "StringLength" &&
+        ArrayLength(names) == 88 && ArrayLength(returns) == 88 &&
+        ArrayLength(params) == 88 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
-        names[47] == "Args" && params[47] == "" &&
-        names[51] == "StringJoin" &&
-        names[69] == "AllocatorResult" && returns[69] == "Allocator" &&
-        names[74] == "TextBuilderDrop" && params[74] == "TextBuilder";
+        names[51] == "Args" && params[51] == "" &&
+        names[55] == "StringJoin" &&
+        names[73] == "AllocatorResult" && returns[73] == "Allocator" &&
+        names[78] == "TextBuilderDrop" && params[78] == "TextBuilder" &&
+        names[79] == "FileOpen" && returns[79] == "Int" &&
+        names[80] == "FileRead" && params[80] == "Int" &&
+        names[81] == "FileWrite" && params[81] == "Int|String" &&
+        names[82] == "FileClose" && params[82] == "Int" &&
+        names[83] == "ClaimDeviceSlot" &&
+        names[87] == "SubmitDeviceRead";
 }

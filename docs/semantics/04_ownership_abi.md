@@ -25,6 +25,25 @@ Out of beta:
 - Universal move semantics for every aggregate shape.
 - Arbitrary runtime pointer ownership transfer.
 
+## Position: Affine Resource Discipline, Not a Whole-Language Affine Type System
+
+Pergyra has an affine-like rule for ownership-bearing resources: a moved,
+released, or otherwise consumed resource cannot be used again, and an explicit
+`own` boundary transfers that resource to one consumer. This rule is attached
+to the anchored resource/slot surfaces and is carried through semantic CFG
+facts and backend ABI rows.
+
+That does **not** make Pergyra a whole-language affine type system. Ordinary
+values may be copied, `ref` values are borrow-tracked only where the stable
+boundary defines that contract, and `Slot` remains a runtime capability
+boundary. The static ownership classifier plus CFG/body dataflow supplies the
+borrow-checker-equivalent layer for the covered subset; the runtime Slot
+checks are not a replacement for it.
+
+The accurate short description is therefore **affine resource discipline with
+anchored ownership boundaries**, not “Pergyra has Rust's general affine/borrow
+type system.”
+
 ## Judgments
 
 ```text

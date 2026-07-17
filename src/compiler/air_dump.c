@@ -17,7 +17,7 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out, "AIRProgram(null)\n");
         return;
     }
-    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s rir_input=%s mir_input=%s\n",
+    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s rir_input=%s mir_input=%s mir_evidence_started=%s mir_evidence_bound=%s mir_evidence_fingerprint=%llu\n",
             air_intent_node_count(air),
             air_boundary_node_count(air),
             air_evidence_node_count(air),
@@ -25,7 +25,10 @@ air_dump(const AIRProgram *air, FILE *out)
             air_requires_strict_evidence(air) ? "yes" : "no",
             air_has_hir_input(air) ? "yes" : "no",
             air_has_rir_input(air) ? "yes" : "no",
-            air_has_mir_input(air) ? "yes" : "no");
+            air_has_mir_input(air) ? "yes" : "no",
+            air->mir_evidence_collection_started ? "yes" : "no",
+            air->mir_evidence_bound ? "yes" : "no",
+            (unsigned long long)air->mir_evidence_binding_fingerprint);
     fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu mir_terminator=%zu mir_select_receive=%zu dag_metadata=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
@@ -52,6 +55,24 @@ air_dump(const AIRProgram *air, FILE *out)
             air_inherent_concurrency_count(air),
             air_slot_capability_retain_count(air),
             air_unproven_retain_count(air));
+    fprintf(out,
+            "  function_param_flow facts=%s rows=%zu\n",
+            air->has_function_param_flow_facts ? "yes" : "no",
+            air_function_param_flow_summary_count(air));
+    for (size_t i = 0; i < air_function_param_flow_summary_count(air); i++) {
+        const AIRFunctionParamFlowSummary *row =
+            air_function_param_flow_summary_at(air, i);
+        if (row == NULL)
+            continue;
+        fprintf(out,
+                "  function_param_flow[%zu] syntax_id=%u routine=%s parameter=%zu/%zu mask=0x%x\n",
+                i,
+                (unsigned)row->source_syntax_id,
+                row->routine != NULL ? row->routine : "<unknown>",
+                row->parameter_index,
+                row->parameter_count,
+                (unsigned)row->mask);
+    }
     for (size_t i = 0; i < air_intent_node_count(air); i++) {
         const AIRIntentNode *intent = air_intent_node_at(air, i);
         if (intent == NULL)

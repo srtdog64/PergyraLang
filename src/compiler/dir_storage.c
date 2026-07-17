@@ -1,5 +1,7 @@
 #include "dir_internal.h"
 
+#include "parser/ast_api.h"
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -253,6 +255,8 @@ dir_add_node(DIRProgram *dir, DIRNodeKind kind, const char *name, ASTNode *ast)
     node.kind = kind;
     node.name = name;
     node.ast = ast;
+    node.source_syntax_id = ast_node_stable_id(ast);
+    node.owner_source_syntax_id = 0;
     return append_node(&dir->nodes, &dir->node_count, &dir->node_capacity, node);
 }
 
@@ -261,6 +265,7 @@ dir_ensure_qualified_slot_node(DIRProgram *dir,
                                DIRNodeKind kind,
                                const char *owner_name,
                                const char *slot_name,
+                               uint32_t owner_source_syntax_id,
                                ASTNode *ast)
 {
     const char *qualified_name;
@@ -270,14 +275,24 @@ dir_ensure_qualified_slot_node(DIRProgram *dir,
         return -1;
 
     existing = dir_find_slot_node(dir, kind, owner_name, slot_name);
-    if (existing >= 0)
+    if (existing >= 0) {
+        DIRNode *node = &dir->nodes[(size_t)existing];
+        if (owner_source_syntax_id != 0
+            && node->owner_source_syntax_id != 0
+            && node->owner_source_syntax_id != owner_source_syntax_id)
+            return -1;
+        if (node->owner_source_syntax_id == 0)
+            node->owner_source_syntax_id = owner_source_syntax_id;
         return existing;
+    }
 
     qualified_name = dir_own_string_fmt(dir, "%s.%s", owner_name, slot_name);
     if (qualified_name == NULL)
         return -1;
     if (!dir_add_node(dir, kind, qualified_name, ast))
         return -1;
+    dir->nodes[dir->node_count - 1].owner_source_syntax_id =
+        owner_source_syntax_id;
     return (ssize_t)(dir->node_count - 1);
 }
 

@@ -4,6 +4,7 @@ import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../../mir/artifact_lower_owner.pgy";
 import "../../mir/program_verify_owner.pgy";
 import "../../codegen/emission/expr_semantic_graph_emit_owner.pgy";
+import "../../compiler/machine_layer_declaration_consumer.pgy";
 
 func ProbeInitializerFactsWithoutRows(
     facts: SemanticAstInitializerTypeFacts
@@ -492,7 +493,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     }
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, analysis, body_types.initializer_types,
-        body_types.iteration_types
+        body_types.iteration_types,
+        SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {
         Log(SelfMirProgramFactsValidationError(facts));
@@ -674,7 +676,8 @@ func Main() -> Void with caps env {
     let initializer_types: SemanticAstInitializerTypeFacts =
         ProbeInitializerFacts(body_types, mode);
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
-        artifact, analysis, initializer_types, body_types.iteration_types
+        artifact, analysis, initializer_types, body_types.iteration_types,
+        SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {
         Log(SelfMirProgramFactsValidationError(facts));

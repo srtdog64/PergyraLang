@@ -1,0 +1,200 @@
+import "runtime_call_abi_row_owner.pgy";
+import "abi_layout_row_owner.pgy";
+func CompilerRuntimeCallAbiMachineLayerManifestId() -> String {
+    return "pergyra.abstract-device-slot.v1";
+}
+func CompilerRuntimeCallAbiMachineLayerContactCount() -> Int {
+    return 5;
+}
+func CompilerRuntimeCallAbiMachineLayerContactNameAt(index: Int) -> String {
+    if index == 0 { return "claim"; }
+    if index == 1 { return "read"; }
+    if index == 2 { return "write"; }
+    if index == 3 { return "release"; }
+    if index == 4 { return "submit-read"; }
+    return "";
+}
+func CompilerRuntimeCallAbiMachineLayerContactNameForSource(source_name: String) -> String {
+    if source_name == "ClaimDeviceSlot" { return "claim"; }
+    if source_name == "DeviceRead" { return "read"; }
+    if source_name == "DeviceWrite" { return "write"; }
+    if source_name == "ReleaseDeviceSlot" { return "release"; }
+    if source_name == "SubmitDeviceRead" { return "submit-read"; }
+    return "";
+}
+func CompilerRuntimeCallAbiMachineLayerDeviceScalarType(type_name: String) -> String {
+    let prefix: String = "DeviceSlot<";
+    if !StartsWith(type_name, prefix) || StringLength(type_name) <= StringLength(prefix) {
+        return "";
+    }
+    if Substring(type_name, StringLength(type_name) - 1, 1) != ">" {
+        return "";
+    }
+    let scalar: String = Substring(
+        type_name,
+        StringLength(prefix),
+        StringLength(type_name) - StringLength(prefix) - 1
+    );
+    let i: Int = 0;
+    while i < 6 {
+        if CompilerRuntimeCallAbiNativeScalarTypeAt(i) == scalar {
+            return scalar;
+        }
+        i = i + 1;
+    }
+    return "";
+}
+func CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name: String) -> String {
+    let scalar: String = CompilerRuntimeCallAbiMachineLayerDeviceScalarType(
+        type_name
+    );
+    if scalar == "" {
+        return "";
+    }
+    return Concat("PgyDeviceSlot_", scalar);
+}
+func CompilerRuntimeCallAbiMachineLayerDeviceScalarIndex(type_name: String) -> Option<Int> {
+    let scalar: String = CompilerRuntimeCallAbiMachineLayerDeviceScalarType(
+        type_name
+    );
+    if scalar == "" {
+        return None;
+    }
+    let i: Int = 0;
+    while i < 6 {
+        if CompilerRuntimeCallAbiNativeScalarTypeAt(i) == scalar {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+func CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(source_name: String, type_name: String) -> Option<String> {
+    let scalar_index_opt: Option<Int> =
+        CompilerRuntimeCallAbiMachineLayerDeviceScalarIndex(type_name);
+    if !IsSome(scalar_index_opt) {
+        return None;
+    }
+    let scalar_index: Int = UnwrapOption(scalar_index_opt);
+    if source_name == "ClaimDeviceSlot" {
+        return Some(CompilerRuntimeCallAbiNativeResourceSymbol(2, scalar_index, 0));
+    }
+    if source_name == "DeviceRead" {
+        return Some(CompilerRuntimeCallAbiNativeResourceSymbol(2, scalar_index, 1));
+    }
+    if source_name == "ReleaseDeviceSlot" {
+        return Some(CompilerRuntimeCallAbiNativeResourceSymbol(2, scalar_index, 2));
+    }
+    if source_name == "DeviceWrite" {
+        return Some(CompilerRuntimeCallAbiNativeResourceSymbol(2, scalar_index, 3));
+    }
+    if source_name == "SubmitDeviceRead" {
+        return Some(CompilerRuntimeCallAbiNativeDeviceSubmitSymbol(scalar_index));
+    }
+    return None;
+}
+func CompilerRuntimeCallAbiMachineLayerAwaitBinding(text: String) -> String {
+    if !StartsWith(text, "await ") || StringLength(text) <= 6 { return ""; }
+    let binding: String = StringTrim(Substring(text, 6, StringLength(text) - 6));
+    if !IsIdentifier(binding) { return ""; }
+    return binding;
+}
+func CompilerRuntimeCallAbiMachineLayerRemoteFuturePayloadType(type_name: String) -> String {
+    let prefix: String = "RemoteFuture<";
+    if !StartsWith(type_name, prefix) || StringLength(type_name) <= StringLength(prefix) {
+        return "";
+    }
+    if Substring(type_name, StringLength(type_name) - 1, 1) != ">" {
+        return "";
+    }
+    let payload: String = Substring(
+        type_name,
+        StringLength(prefix),
+        StringLength(type_name) - StringLength(prefix) - 1
+    );
+    if payload != "Int" {
+        return "";
+    }
+    return payload;
+}
+
+func CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name: String) -> String {
+    if CompilerRuntimeCallAbiMachineLayerRemoteFuturePayloadType(type_name) == "" {
+        return "";
+    }
+    return "PgyTaskHandle";
+}
+
+func CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(type_name: String) -> String {
+    if CompilerRuntimeCallAbiMachineLayerRemoteFuturePayloadType(type_name) == "" {
+        return "";
+    }
+    return "pgy_machine_await_remote_Int";
+}
+
+func CompilerRuntimeCallAbiMachineLayerRemoteFutureRawCType() -> String {
+    return "int32_t";
+}
+
+func CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitHelperBlock() -> String {
+    let result_type: String = CompilerAbiLayoutResultIntCValueType();
+    let raw_type: String =
+        CompilerRuntimeCallAbiMachineLayerRemoteFutureRawCType();
+    let out: String = "static ";
+    out = Concat(out, Concat(result_type, " pgy_machine_await_remote_Int(PgyTaskHandle handle) {\n"));
+    out = Concat(out, "    void *_pgy_raw = pgy_await(handle);\n");
+    out = Concat(out, Concat("    ", Concat(result_type, " r;\n")));
+    out = Concat(out, "    if (_pgy_raw != NULL) {\n");
+    out = Concat(out, "        r.is_ok = true;\n");
+    out = Concat(out, Concat("        r.value = *((", Concat(raw_type, " *)_pgy_raw);\n")));
+    out = Concat(out, "        free(_pgy_raw);\n");
+    out = Concat(out, "    } else {\n        r.is_ok = false;\n        r.value = 0;\n    }\n    return r;\n}\n\n");
+    return out;
+}
+
+func CompilerRuntimeCallAbiMachineLayerRemoteFutureTryFailureStmt() -> String {
+    return "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);";
+}
+
+func CompilerRuntimeCallAbiMachineLayerRuntimeCPreamble(uses_log: Bool) -> String {
+    let out: String = "#include \"pgy_runtime.h\"\n";
+    if uses_log {
+        out = Concat(out, "#ifdef pgy_log\n#undef pgy_log\n#endif\n");
+    }
+    return out;
+}
+
+func CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(index: Int) -> String {
+    if index == 0 { return "Claim"; }
+    if index == 1 { return "Read"; }
+    if index == 2 { return "Write"; }
+    if index == 3 { return "Release"; }
+    if index == 4 { return "SubmitRead"; }
+    return "";
+}
+
+func CompilerRuntimeCallAbiMachineLayerRowAt(index: Int) -> String {
+    if index < 0 || index >= CompilerRuntimeCallAbiMachineLayerContactCount() {
+        return "";
+    }
+    let row: String = Concat(
+        "machine-layer|",
+        CompilerRuntimeCallAbiMachineLayerManifestId()
+    );
+    return Concat(row, Concat(
+        "|", Concat(
+            CompilerRuntimeCallAbiMachineLayerContactNameAt(index),
+            Concat(
+                "|", Concat(
+                    CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(index),
+                    "|authority|live-lease"
+                )
+            )
+        )
+    ));
+}
+
+func CompilerRuntimeCallAbiMachineLayerProjectionReady() -> Bool { return CompilerRuntimeCallAbiMachineLayerContactCount() == 5 &&
+    CompilerRuntimeCallAbiMachineLayerManifestId() != "" && CompilerRuntimeCallAbiMachineLayerContactNameAt(5) == "" &&
+    CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(5) == "" && CompilerRuntimeCallAbiMachineLayerRowAt(0) != "" && CompilerRuntimeCallAbiMachineLayerRowAt(4) != "";
+}

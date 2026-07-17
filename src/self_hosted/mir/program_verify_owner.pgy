@@ -43,7 +43,13 @@ func SelfMirIndexedAssignmentUseReady(
         return false;
     }
     if target == base_name {
-        return rows.expr1_graphs.has_roots[instruction_index] == 0;
+        if rows.expr1_graphs.has_roots[instruction_index] != 1 {
+            return false;
+        }
+        let target_root: Int = rows.expr1_graphs.roots[instruction_index];
+        return rows.expr1_graphs.node_kinds[target_root] ==
+                AstExpressionNodeLeaf() &&
+            rows.expr1_graphs.node_texts[target_root] == target;
     }
     if rows.expr1_graphs.has_roots[instruction_index] != 1 {
         return false;
@@ -121,6 +127,22 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         !SelfMirParallelStringCount(count, rows.expr0s) ||
         !SelfMirParallelStringCount(count, rows.expr1s) ||
         !SelfMirParallelStringCount(count, rows.source_types) ||
+        !SelfMirParallelStringCount(count, rows.machine_contact_kinds) ||
+        !SelfMirParallelStringCount(count, rows.machine_layer_manifest_ids) ||
+        !SelfMirParallelStringCount(
+            count, rows.machine_layer_physical_grant_ids
+        ) ||
+        !SelfMirParallelCount(count, rows.machine_layer_physical_bases) ||
+        !SelfMirParallelCount(count, rows.machine_layer_physical_sizes) ||
+        !SelfMirParallelStringCount(
+            count, rows.machine_layer_physical_modes
+        ) ||
+        !SelfMirParallelStringCount(
+            count, rows.machine_layer_runtime_operations
+        ) ||
+        !SelfMirParallelCount(count, rows.machine_layer_hardware_adequate) ||
+        !SelfMirParallelCount(count, rows.machine_layer_authority_required) ||
+        !SelfMirParallelCount(count, rows.machine_layer_live_lease_required) ||
         !SelfMirParallelCount(count, rows.use_starts) ||
         !SelfMirParallelCount(count, rows.use_counts) ||
         !SelfMirExpressionGraphRowsReady(rows.expr0_graphs, count) ||
@@ -169,6 +191,23 @@ func SelfMirInstructionRowsReady(rows: SelfMirInstructionRows) -> Bool {
         if !SelfMirIndexedAssignmentUseReady(rows, i) {
             return false;
         }
+        let machine_row: SelfMirMachineLayerProjection =
+            SelfMirMachineLayerProjection(
+                true,
+                rows.machine_contact_kinds[i],
+                rows.machine_layer_manifest_ids[i],
+                rows.machine_layer_physical_grant_ids[i],
+                rows.machine_layer_physical_bases[i],
+                rows.machine_layer_physical_sizes[i],
+                rows.machine_layer_physical_modes[i],
+                rows.machine_layer_runtime_operations[i],
+                rows.machine_layer_hardware_adequate[i],
+                rows.machine_layer_authority_required[i],
+                rows.machine_layer_live_lease_required[i]
+            );
+        if !SelfMirMachineLayerProjectionShapeReady(machine_row) {
+            return false;
+        }
         use_cursor = use_cursor + rows.use_counts[i];
         i = i + 1;
     }
@@ -192,24 +231,49 @@ func SelfMirIndexedAssignmentUseContractReady() -> Bool {
         );
     let valid: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
-        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
         value_graph, target_graph
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
-        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [2],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
         ["i.1", "j.1"], value_graph, target_graph
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
-        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"], [0], [3],
+        ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"], value_graph,
         SelfMirExpressionGraphRowsForInstructionCount(1)
     );
+    let simple_target_graph: SelfMirExpressionGraphRows =
+        SelfMirExpressionGraphRows(
+            [1], [0], [0], [1], [AstExpressionNodeLeaf()], ["value"],
+            [0], [0], [SemanticCallTargetNone()], [""]
+        );
+    let no_uses: Array<String> = [];
+    let simple: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["value.2"], ["value"], [""],
+        ["1"], ["value"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [0],
+        no_uses,
+        value_graph, simple_target_graph
+    );
+    let simple_missing_target: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["def"], ["ssa-def"], ["value.2"], ["value"], [""],
+        ["1"], ["value"], ["AST_ASSIGNMENT"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [0],
+        no_uses,
+        value_graph, SelfMirExpressionGraphRowsForInstructionCount(1)
+    );
     return SelfMirInstructionRowsReady(valid) &&
         !SelfMirInstructionRowsReady(missing_base_use) &&
-        !SelfMirInstructionRowsReady(missing_target_graph);
+        !SelfMirInstructionRowsReady(missing_target_graph) &&
+        SelfMirInstructionRowsReady(simple) &&
+        !SelfMirInstructionRowsReady(simple_missing_target);
 }
 
 func SelfMirBlockRowsValidationError(

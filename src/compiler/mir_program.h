@@ -56,6 +56,9 @@ struct MIRProgram
     bool        has_inventory_surface_usage_facts;
     bool        inventory_uses_thread_pool_surface;
     bool        inventory_uses_intent_observability_surface;
+    bool        has_resource_flow_facts;
+    bool        has_function_param_flow_facts;
+    bool        has_loop_flow_facts;
     bool        has_non_cfg_body_fallback_inventory;
     size_t      non_cfg_body_fallback_total;
     size_t      non_cfg_body_fallback_routine_count;

@@ -15,12 +15,13 @@
 #include "../compiler/verified_projection_plan.h"
 
 static TranspileResult *
-transpile_mir_only(const MIRProgram *mir, const char *output_path)
+transpile_mir_only(const MIRProgram *mir,
+                   const PgyVerifiedProjectionPlanRow *projection_plan,
+                   const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     TranspilerCtx *ctx;
     PgyVerifiedProjectionPlanRow observability_plan;
-    const char *projection_error = NULL;
 
     if (result == NULL)
         return NULL;
@@ -33,13 +34,25 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
     }
 
     ctx->mir = mir;
-    if (!pgy_verified_projection_plan_intent_observability(
-            mir, PGY_PROJECTION_TARGET_C, &observability_plan,
-            &projection_error)) {
+    ctx->projection_plan = projection_plan;
+    if (projection_plan == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "%s", "C backend: verified projection plan required");
+    } else if (!projection_plan->verified
+               || projection_plan->target != PGY_PROJECTION_TARGET_C) {
         transpiler_set_mir_inventory_missing(ctx, "%s",
-            projection_error != NULL ? projection_error
-                                     : "verified projection plan failed");
+            "C backend: projection plan is not verified for C");
+    } else if (projection_plan->target_capability_fingerprint == 0) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: target capability fingerprint is missing");
+    } else if (projection_plan->machine_layer_manifest_fingerprint == 0) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: machine-layer manifest fingerprint is missing");
+    } else if (projection_plan->machine_layer_physical_manifest_fingerprint == 0) {
+        transpiler_set_mir_inventory_missing(ctx, "%s",
+            "C backend: physical machine declaration fingerprint is missing");
     } else {
+        observability_plan = *projection_plan;
         ctx->uses_intent_observability =
             observability_plan.disposition == PGY_PROJECTION_MATERIALIZE;
         emit_program(ctx);
@@ -78,7 +91,16 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
 TranspileResult *
 transpile_from_mir(const MIRProgram *mir, const char *output_path)
 {
-    return transpile_mir_only(mir, output_path);
+    return transpile_mir_only(mir, NULL, output_path);
+}
+
+TranspileResult *
+transpile_from_mir_with_projection_plan(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const char *output_path)
+{
+    return transpile_mir_only(mir, projection_plan, output_path);
 }
 
 TranspileResult *
@@ -93,7 +115,7 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
         }
         return result;
     }
-    return transpile_mir_only(mir, output_path);
+    return transpile_mir_only(mir, NULL, output_path);
 }
 
 void

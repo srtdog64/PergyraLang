@@ -7,57 +7,14 @@
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
-static bool
-rir_split_qualified_name(const char *qualified_name,
-                         const char **owner_name,
-                         size_t *owner_len,
-                         const char **local_name)
-{
-    const char *dot;
-
-    if (owner_name != NULL)
-        *owner_name = NULL;
-    if (owner_len != NULL)
-        *owner_len = 0;
-    if (local_name != NULL)
-        *local_name = NULL;
-
-    if (qualified_name == NULL)
-        return false;
-
-    dot = strrchr(qualified_name, '.');
-    if (dot == NULL || dot == qualified_name || dot[1] == '\0')
-        return false;
-
-    if (owner_name != NULL)
-        *owner_name = qualified_name;
-    if (owner_len != NULL)
-        *owner_len = (size_t)(dot - qualified_name);
-    if (local_name != NULL)
-        *local_name = dot + 1;
-    return true;
-}
-
-static bool
-rir_scope_name_matches(const RIRScope *scope,
-                       const char *owner_name,
-                       size_t owner_len)
-{
-    const char *scope_name = rir_scope_name(scope);
-    return scope != NULL
-        && scope_name != NULL
-        && owner_name != NULL
-        && strlen(scope_name) == owner_len
-        && strncmp(scope_name, owner_name, owner_len) == 0;
-}
-
 static const RIRScope *
-rir_find_domain_scope_for_owner(const RIRProgram *rir,
-                                const char *owner_name,
-                                size_t owner_len)
+rir_find_domain_scope_for_source_id(const RIRProgram *rir,
+                                    uint32_t owner_source_syntax_id)
 {
     RIRScopeInventory inventory;
     rir_scope_inventory_from_program(rir, &inventory);
+    if (owner_source_syntax_id == 0)
+        return NULL;
     for (size_t i = 0; i < inventory.count; i++) {
         const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
         if (scope == NULL)
@@ -65,7 +22,7 @@ rir_find_domain_scope_for_owner(const RIRProgram *rir,
         if ((rir_scope_kind(scope) == RIR_SCOPE_ZONE
              || rir_scope_kind(scope) == RIR_SCOPE_RELATION
              || rir_scope_kind(scope) == RIR_SCOPE_EFFECT)
-            && rir_scope_name_matches(scope, owner_name, owner_len)) {
+            && scope->source_syntax_id == owner_source_syntax_id) {
             return scope;
         }
     }
@@ -89,9 +46,7 @@ rir_validate_against_dir(const RIRProgram *rir,
 
     for (size_t i = 0; i < dir->node_count; i++) {
         const DIRNode *node = &dir->nodes[i];
-        const char *owner_name = NULL;
         const char *local_name = NULL;
-        size_t owner_len = 0;
         const RIRScope *scope;
         const RIRFact *fact;
         const RIRStateSummary *summary;
@@ -103,22 +58,34 @@ rir_validate_against_dir(const RIRProgram *rir,
             continue;
         }
 
-        if (!rir_split_qualified_name(node->name, &owner_name,
-                                      &owner_len, &local_name)) {
+        if (node->name == NULL || node->owner_source_syntax_id == 0) {
             if (error_message != NULL) {
                 *error_message = rir_strdup_fmt(
-                    "DIR slot-contract node '%s' is not owner-qualified",
+                    "DIR slot-contract node '%s' is missing owner source identity",
                     node->name != NULL ? node->name : "(unnamed)");
             }
             return false;
         }
 
-        scope = rir_find_domain_scope_for_owner(rir, owner_name, owner_len);
+        local_name = strrchr(node->name, '.');
+        if (local_name == NULL || local_name[1] == '\0') {
+            if (error_message != NULL) {
+                *error_message = rir_strdup_fmt(
+                    "DIR slot-contract node '%s' is not owner-qualified",
+                    node->name);
+            }
+            return false;
+        }
+        local_name++;
+
+        scope = rir_find_domain_scope_for_source_id(
+            rir, node->owner_source_syntax_id);
         if (scope == NULL) {
             if (error_message != NULL) {
                 *error_message = rir_strdup_fmt(
-                    "DIR slot-contract '%s' has no matching RIR domain scope",
-                    node->name != NULL ? node->name : "(unnamed)");
+                    "DIR slot-contract '%s' has no RIR domain scope for owner source identity %u",
+                    node->name,
+                    (unsigned)node->owner_source_syntax_id);
             }
             return false;
         }

@@ -183,6 +183,24 @@ func SemanticExpressionGraphScalarTypeName(
                 function_names, function_returns
             );
         }
+        if (callee == "DeviceRead" || callee == "SubmitDeviceRead") &&
+            ArrayLength(call.argument_nodes) == 1 {
+            let receiver_type: String =
+                SemanticExpressionGraphScalarTypeName(
+                    graph, call.argument_nodes[0], constructors, names, types,
+                    function_names, function_returns
+                );
+            let payload: Option<String> =
+                DeviceSlotPayloadTypeOpt(receiver_type);
+            if IsSome(payload) {
+                if callee == "DeviceRead" {
+                    return UnwrapOption(payload);
+                }
+                return Concat("RemoteFuture<", Concat(
+                    UnwrapOption(payload), ">"
+                ));
+            }
+        }
         let resolved: Option<String> =
             SemanticExpressionGraphResolvedCallReturnTypeName(
                 graph, root_id, constructors, names, types,

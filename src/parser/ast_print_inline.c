@@ -83,6 +83,24 @@ inline_emitf(const char *fmt, ...)
 }
 
 static void
+inline_emit_number(const ASTNode *node)
+{
+    char rendered[64];
+    int written = snprintf(rendered, sizeof(rendered), "%g",
+                           node->data.number.value);
+    if (written < 0 || (size_t)written >= sizeof(rendered)) {
+        inline_emitf("0");
+        return;
+    }
+    if (node->data.number.is_float && strchr(rendered, '.') == NULL &&
+        strchr(rendered, 'e') == NULL && strchr(rendered, 'E') == NULL) {
+        inline_emitf("%s.0", rendered);
+        return;
+    }
+    inline_emitf("%s", rendered);
+}
+
+static void
 inline_emitc(int ch)
 {
     if (!g_inline_sink.to_buffer) {
@@ -252,7 +270,7 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_NUMBER:
-            inline_emitf("%g", node->data.number.value);
+            inline_emit_number(node);
             break;
 
         case AST_STRING:

@@ -548,7 +548,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
                 "DeviceSlot<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
         }
-        return llvm_slot_struct_type(ctx, inner_buf);
+        return llvm_device_slot_struct_type(ctx, inner_buf);
     }
     case PGY_TK_REMOTE_FUTURE:
         return ctx->type_task_handle;

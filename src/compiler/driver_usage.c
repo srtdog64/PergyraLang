@@ -45,6 +45,8 @@ driver_print_usage(void)
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
         "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"
         "  pgy --rir    <source.pgy>     dump lowered RIR summary\n"
+        "  pgy --rir-json <source.pgy>  dump stable RIR fact JSON (pgy.rir.v1)\n"
+        "  pgy --machine-manifest-json   dump native machine declaration JSON\n"
         "  pgy --air    <source.pgy>     dump AIR verification summary\n"
         "  pgy --air-json <source.pgy>   dump stable AIR graph JSON after MIR evidence\n"
         "  pgy --mir    <source.pgy>     dump lowered MIR summary\n"

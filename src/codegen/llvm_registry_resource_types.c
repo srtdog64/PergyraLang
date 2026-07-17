@@ -30,6 +30,26 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 }
 
 LLVMTypeRef
+llvm_device_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->device_slot_type_Int;
+    case PGY_TK_LONG:   return ctx->device_slot_type_Long;
+    case PGY_TK_FLOAT:  return ctx->device_slot_type_Float;
+    case PGY_TK_DOUBLE: return ctx->device_slot_type_Double;
+    case PGY_TK_BOOL:   return ctx->device_slot_type_Bool;
+    case PGY_TK_STRING: return ctx->device_slot_type_String;
+    default: {
+        LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || inner_ty == NULL)
+            return NULL;
+        LLVMTypeRef fields[] = { inner_ty, LLVMInt1TypeInContext(ctx->context) };
+        return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
+    }
+    }
+}
+
+LLVMTypeRef
 llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
     switch (pgy_classify_type(inner)) {

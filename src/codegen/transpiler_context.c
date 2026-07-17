@@ -12,9 +12,21 @@
 #include <stdint.h>
 
 #include "transpiler_context.h"
+#include "../compiler/verified_projection_plan.h"
 #include "../semantic/diag_codes.h"
 
 #define CODEBUF_INITIAL_CAP 4096
+
+bool
+transpiler_machine_layer_projection_is_bound(const TranspilerCtx *ctx)
+{
+    return ctx != NULL
+        && ctx->projection_plan != NULL
+        && ctx->projection_plan->verified
+        && ctx->projection_plan->target == PGY_PROJECTION_TARGET_C
+        && ctx->projection_plan->machine_layer_manifest_fingerprint != 0
+        && ctx->projection_plan->machine_layer_physical_manifest_fingerprint != 0;
+}
 
 static bool
 codebuf_reserve(CodeBuf *buf, size_t additional)

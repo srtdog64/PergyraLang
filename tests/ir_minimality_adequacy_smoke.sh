@@ -154,10 +154,13 @@ require_text "src/compiler/compiler.h" "const HIRProgram *hir"
 require_text "src/compiler/compiler.h" "const DIRProgram *dir"
 require_text "src/compiler/compiler.h" "const RIRProgram *rir"
 require_text "src/compiler/compiler.h" "const MIRProgram *mir"
-if grep -Fq -- "AIRProgram *air" "$ROOT_DIR/src/compiler/compiler.h"; then
-    echo "[ir-minimality] CompilerIRBundle must not carry AIR into backend codegen" >&2
-    exit 1
-fi
+# AIR may remain on the compiler-owned bundle as verification evidence.  The
+# minimality boundary is the backend call: compiler.c/compiler_llvm.c join AIR
+# to a verified projection plan, and src/codegen must not receive AIR itself.
+require_text "src/compiler/compiler.c" \
+    "pgy_verified_projection_plan_intent_observability_with_air"
+require_text "src/compiler/compiler_llvm.c" \
+    "pgy_verified_projection_plan_intent_observability_with_air"
 
 require_before "src/compiler/driver_app.c" "hir = hir_lower" "rir_enrich_with_hir_flow(rir, hir"
 require_before "src/compiler/driver_app.c" "rir = rir_lower" "rir_enrich_with_hir_flow(rir, hir"

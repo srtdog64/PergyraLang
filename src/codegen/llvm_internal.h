@@ -308,6 +308,7 @@ typedef struct
 typedef struct LLVMGenCtx
 {
     const MIRProgram *mir;  /* MIR-based emission support */
+    const PgyVerifiedProjectionPlanRow *projection_plan;
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
@@ -389,6 +390,15 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     slot_type_Double;
     LLVMTypeRef     slot_type_Bool;
     LLVMTypeRef     slot_type_String;
+
+    /* LLVM machine-layer projection: DeviceSlot<T> must not reuse the
+     * ordinary Slot<T> named type even when the field layout is identical. */
+    LLVMTypeRef     device_slot_type_Int;
+    LLVMTypeRef     device_slot_type_Long;
+    LLVMTypeRef     device_slot_type_Float;
+    LLVMTypeRef     device_slot_type_Double;
+    LLVMTypeRef     device_slot_type_Bool;
+    LLVMTypeRef     device_slot_type_String;
 
     LLVMTypeRef     pinned_slot_type_Int;
     LLVMTypeRef     pinned_slot_type_Long;

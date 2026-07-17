@@ -48,7 +48,27 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     *mir_out = NULL;
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
-        *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        if (sem->resource_flow_fact_count > 0
+            || sem->function_param_flow_fact_count > 0) {
+            *hir_out = hir_lower_with_resource_and_param_flow_facts(
+                sem->annotated_ast,
+                sem->resource_flow_facts,
+                sem->resource_flow_fact_count,
+                sem->function_param_flow_facts,
+                sem->function_param_flow_fact_count,
+                &hir_error);
+        } else {
+            *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        }
+        if (*hir_out != NULL
+            && !hir_attach_iteration_type_facts(
+                *hir_out,
+                sem->iteration_type_facts,
+                sem->iteration_type_fact_count,
+                &hir_error)) {
+            hir_destroy(*hir_out);
+            *hir_out = NULL;
+        }
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
@@ -572,6 +592,50 @@ runtime_call_abi_expected_native_rows_match(void)
     return native_index == mir_abi_resource_runtime_row_count();
 }
 
+static void
+test_mir_carries_function_param_flow_summary(void)
+{
+    static const char *source =
+        "subject Vec2 { let x: Int; let y: Int; }\n"
+        "func Recur(ref slot: Slot<Vec2>) -> Void {\n"
+        "  Recur(slot);\n"
+        "  Write(slot, Vec2(1, 2));\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "  let slot: Slot<Vec2> = Vec2(0, 0);\n"
+        "  Recur(slot);\n"
+        "  Release(slot);\n"
+        "}\n";
+    HIRProgram *hir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
+    const MIRRoutine *recur;
+    char *error = NULL;
+    bool carried = false;
+    bool validated = false;
+
+    if (!lower_mir_from_source(source, &hir, &rir, &mir)) {
+        TEST("MIR carries HIR function parameter flow summaries");
+        EXPECT(false);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        return;
+    }
+    recur = find_mir_routine(mir, "Recur", MIR_SCOPE_FUNCTION);
+    if (recur != NULL)
+        carried = mir_routine_function_param_flow_summary_count(recur) > 0
+            && recur->source_syntax_id != 0
+            && mir_routine_function_param_flow_summary_at(recur, 0) != NULL;
+    validated = mir_validate(mir, &error);
+    TEST("MIR carries HIR function parameter flow summaries by stable identity");
+    EXPECT(carried && validated);
+    free(error);
+    mir_destroy(mir);
+    rir_destroy(rir);
+    hir_destroy(hir);
+}
+
 #include "tests/mir/test_mir_lowering_part_a_1.cases.h"
 #include "tests/mir/test_mir_lowering_part_a_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_b_1.cases.h"
@@ -590,6 +654,7 @@ runtime_call_abi_expected_native_rows_match(void)
 static void
 test_mir_lowering(void)
 {
+    test_mir_carries_function_param_flow_summary();
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();
     test_mir_lowering_part_c();

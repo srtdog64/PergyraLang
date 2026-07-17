@@ -32,7 +32,21 @@ func SemanticAstExpressionMemberRootNames(
     while i < SemanticAstEnumCount(enums) {
         let enum_name: Option<String> = SemanticAstEnumNameAt(enums, i);
         if !IsSome(enum_name) { return false; }
-        ArrayPush(roots, UnwrapOption(enum_name));
+        let enum_text: String = UnwrapOption(enum_name);
+        ArrayPush(roots, enum_text);
+        let variant_count: Option<Int> =
+            SemanticAstEnumVariantCountForName(enums, enum_text);
+        if !IsSome(variant_count) { return false; }
+        let variant_index: Int = 0;
+        while variant_index < UnwrapOption(variant_count) {
+            let variant_name: Option<String> =
+                SemanticAstEnumVariantNameAt(
+                    enums, enum_text, variant_index
+                );
+            if !IsSome(variant_name) { return false; }
+            ArrayPush(roots, UnwrapOption(variant_name));
+            variant_index = variant_index + 1;
+        }
         i = i + 1;
     }
     return true;
@@ -359,7 +373,7 @@ func SemanticAstExpressionEnvironmentContractReady() -> Bool {
         types[0] == "Int" && types[1] == "Int" && types[2] == "Int" &&
         ArrayLength(modes) == 3 && modes[0] == "default_param" &&
         modes[1] == "local" && modes[2] == "local" &&
-        ArrayLength(function_names) == 84 &&
-        function_names[83] == "F" && function_returns[83] == "Void" &&
-        function_params[83] == "Int";
+        ArrayLength(function_names) == 89 &&
+        function_names[88] == "F" && function_returns[88] == "Void" &&
+        function_params[88] == "Int";
 }

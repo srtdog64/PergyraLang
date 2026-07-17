@@ -7,6 +7,7 @@
 #include "../semantic/capability_analyze.h"       /* capability_for_builtin */
 #include "mir_cfg_contract_cleanup_fact.h"
 #include "mir_cfg_contract_cleanup_root_membership.h"
+#include "mir_machine_layer.h"
 
 bool
 air_mir_cleanup_root_is_valid(const MIRRoutine *routine)
@@ -308,6 +309,59 @@ air_collect_slot_sites(AIRProgram *air, const MIRRoutine *routine,
             air->slot_sites[air->slot_site_count].op = inst->name;
             air->slot_sites[air->slot_site_count].routine = routine_name;
             air->slot_site_count++;
+        }
+    }
+    return true;
+}
+
+bool
+air_collect_machine_layer_sites(AIRProgram *air, const MIRRoutine *routine,
+                                const char *routine_name)
+{
+    if (air == NULL || routine == NULL)
+        return true;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return true;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            AIRMachineLayerSite *site;
+            if (inst->kind != MIR_INST_RESOURCE_OP
+                || !rir_machine_contact_kind_is_present(
+                    inst->machine_contact_kind))
+                continue;
+            if (!mir_machine_layer_fact_is_valid(inst))
+                return false;
+            if (air->machine_layer_site_count >=
+                    air->machine_layer_site_capacity) {
+                size_t newcap = air->machine_layer_site_capacity
+                    ? air->machine_layer_site_capacity * 2 : 4;
+                AIRMachineLayerSite *grown = realloc(
+                    air->machine_layer_sites,
+                    newcap * sizeof(AIRMachineLayerSite));
+                if (grown == NULL)
+                    return false;
+                air->machine_layer_sites = grown;
+                air->machine_layer_site_capacity = newcap;
+            }
+            site = &air->machine_layer_sites[air->machine_layer_site_count++];
+            site->slot = inst->slot_anchor != NULL
+                ? inst->slot_anchor : inst->arg0;
+            site->operation = rir_machine_contact_kind_name(
+                inst->machine_contact_kind);
+            site->manifest_id = inst->machine_layer_manifest_id;
+            site->physical_grant_id = inst->machine_layer_physical_grant_id;
+            site->physical_base = inst->machine_layer_physical_base;
+            site->physical_size = inst->machine_layer_physical_size;
+            site->physical_mode = inst->machine_layer_physical_mode;
+            site->runtime_operation = inst->machine_layer_runtime_operation;
+            site->routine = routine_name;
+            site->hardware_adequate = inst->machine_layer_hardware_adequate;
+            site->authority_required = inst->machine_layer_authority_required;
+            site->live_lease_required = inst->machine_layer_live_lease_required;
         }
     }
     return true;

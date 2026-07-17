@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../parser/ast.h"
 
@@ -107,6 +108,20 @@ typedef enum
     RIR_OP_COMPENSATE_INTENT_STEP
 } RIROpKind;
 
+/* Machine-layer contact is an owner-directed semantic fact.  It deliberately
+ * sits beside the generic RIR operation kind: the latter preserves resource
+ * flow, while this tag records that an operation crosses the abstract machine
+ * boundary and therefore needs the target manifest/lease/authority contract. */
+typedef enum
+{
+    RIR_MACHINE_CONTACT_NONE = 0,
+    RIR_MACHINE_CONTACT_CLAIM,
+    RIR_MACHINE_CONTACT_READ,
+    RIR_MACHINE_CONTACT_WRITE,
+    RIR_MACHINE_CONTACT_RELEASE,
+    RIR_MACHINE_CONTACT_SUBMIT_READ
+} RIRMachineContactKind;
+
 typedef enum
 {
     RIR_FLOW_NONE = 0,
@@ -118,10 +133,30 @@ typedef enum
     RIR_FLOW_PROJECTION_INVALIDATION = 1 << 5
 } RIRFlowSemanticFlags;
 
+/* RIR-owned routine-local projection of the semantic ResourceFlowUniverse.
+ * HIR is the lowering adapter; once enrichment succeeds, RIR consumers use
+ * this validated identity table instead of reopening HIR rows. */
+typedef struct
+{
+    size_t   stable_index;
+    uint32_t declaration_syntax_id;
+    uint32_t line;
+    uint32_t column;
+    uint32_t symbol_kind;
+    bool     is_parameter;
+    size_t   parameter_index;
+    char    *name;
+} RIRResourceFlowSymbol;
+
 typedef struct
 {
     const char       *name;
     const char       *slot_anchor;
+    bool              has_flow_identity;
+    size_t            stable_index;
+    uint32_t          declaration_syntax_id;
+    bool              is_parameter;
+    size_t            parameter_index;
     RIRFactKind       origin_kind;
     RIRResourceKind   resource_kind;
     RIRResourceState  initial_state;
@@ -135,6 +170,11 @@ typedef struct
 {
     const char       *name;
     const char       *slot_anchor;
+    bool              has_flow_identity;
+    size_t            stable_index;
+    uint32_t          declaration_syntax_id;
+    bool              is_parameter;
+    size_t            parameter_index;
     RIRResourceState  entry_state;
     RIRResourceState  exit_state;
     bool              merged_from_join;
@@ -142,6 +182,12 @@ typedef struct
     bool              entry_conflict;
     bool              has_merge_conflict;
 } RIRFlowFact;
+
+typedef struct
+{
+    size_t   parameter_index;
+    uint32_t mask;
+} RIRFunctionParamFlowSummary;
 
 typedef struct
 {
@@ -159,6 +205,11 @@ typedef struct
     RIRFactKind      kind;
     const char      *name;
     const char      *slot_anchor;
+    bool             has_flow_identity;
+    size_t           stable_index;
+    uint32_t         declaration_syntax_id;
+    bool             is_parameter;
+    size_t           parameter_index;
     const char      *arg0;
     const char      *arg1;
     RIRResourceKind  resource_kind;
@@ -173,6 +224,7 @@ typedef struct
     const char      *slot_anchor;
     const char      *arg0;
     const char      *arg1;
+    RIRMachineContactKind machine_contact_kind;
     ASTNode         *ast;
 } RIROp;
 
@@ -180,6 +232,10 @@ typedef struct
 {
     size_t        id;
     RIRScopeKind  kind;
+    uint32_t      source_syntax_id;
+    bool          resource_identity_verified;
+    /* RIR-owned callable signature cardinality copied from HIR. */
+    size_t        parameter_count;
     const char   *owner_name;
     const char   *name;
     ASTNode      *ast;
@@ -192,6 +248,12 @@ typedef struct
     RIRStateSummary *state_summaries;
     size_t           state_summary_count;
     size_t           state_summary_capacity;
+    RIRResourceFlowSymbol *resource_flow_symbols;
+    size_t           resource_flow_symbol_count;
+    size_t           resource_flow_symbol_capacity;
+    RIRFunctionParamFlowSummary *function_param_flow_summaries;
+    size_t           function_param_flow_summary_count;
+    size_t           function_param_flow_summary_capacity;
     bool             has_state_errors;
     unsigned int     conservative_semantics;
     ASTNode         *program_root;
@@ -253,6 +315,16 @@ const RIRStateSummary *rir_scope_state_summary_at(const RIRScope *scope,
                                                   size_t index);
 const RIRStateSummary *rir_scope_find_state_summary(const RIRScope *scope,
                                                     const char *name);
+size_t      rir_scope_function_param_flow_summary_count(
+                const RIRScope *scope);
+const RIRFunctionParamFlowSummary *
+            rir_scope_function_param_flow_summary_at(
+                const RIRScope *scope,
+                size_t index);
+size_t      rir_scope_resource_flow_symbol_count(const RIRScope *scope);
+const RIRResourceFlowSymbol *rir_scope_resource_flow_symbol_at(
+                const RIRScope *scope,
+                size_t index);
 const RIRFact *rir_scope_find_fact_by_name_kind(const RIRScope *scope,
                                                 RIRFactKind kind,
                                                 const char *name);
@@ -279,6 +351,10 @@ const char *rir_fact_kind_name(RIRFactKind kind);
 const char *rir_resource_kind_name(RIRResourceKind kind);
 const char *rir_resource_state_name(RIRResourceState state);
 const char *rir_op_kind_name(RIROpKind kind);
+const char *rir_machine_contact_kind_name(RIRMachineContactKind kind);
+bool        rir_machine_contact_kind_is_present(RIRMachineContactKind kind);
+const RIROp *rir_scope_find_op_by_ast(const RIRScope *scope,
+                                      const ASTNode *ast);
 RIRResourceState rir_merge_state_for_kind(RIRResourceKind kind,
                                           RIRResourceState a,
                                           RIRResourceState b,

@@ -219,6 +219,16 @@ semantic_context_destroy(SemanticContext *ctx)
     for (size_t i = 0; i < ctx->stdlib_use_module_count; i++)
         free(ctx->stdlib_use_module_names[i]);
     free(ctx->stdlib_use_module_names);
+    pgy_resource_flow_facts_destroy(
+        ctx->resource_flow_facts,
+        ctx->resource_flow_fact_count);
+    pgy_function_param_flow_facts_destroy(
+        ctx->function_param_flow_facts);
+    free(ctx->loop_flow_summary_facts);
+    free(ctx->loop_flow_state_facts);
+    pgy_iteration_type_facts_destroy(
+        ctx->iteration_type_facts,
+        ctx->iteration_type_fact_count);
     for (size_t i = 0; i < ctx->type_resolution_stage_alias_diagnostic_name_count; i++)
         free(ctx->type_resolution_stage_alias_diagnostic_names[i]);
     free(ctx->type_resolution_stage_alias_diagnostic_names);

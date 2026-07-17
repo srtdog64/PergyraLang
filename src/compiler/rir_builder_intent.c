@@ -73,6 +73,7 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
     steps = ast_intent_decl_steps(node, &step_count);
     scope.id = rir->scope_count;
     scope.kind = RIR_SCOPE_INTENT;
+    scope.source_syntax_id = ast_node_stable_id(node);
     scope.name = intent_name;
     scope.ast = node;
     scope.program_root = rir->program_root;

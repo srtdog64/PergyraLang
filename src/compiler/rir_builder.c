@@ -18,16 +18,28 @@ rir_collect_func_scope(RIRProgram *rir,
     memset(&scope, 0, sizeof(scope));
     scope.id = rir->scope_count;
     scope.kind = kind;
+    scope.source_syntax_id = ast_node_stable_id(func);
+    scope.parameter_count = ast_func_param_count(func);
     scope.owner_name = owner_name;
     scope.name = ast_declaration_name(func);
     scope.ast = func;
     scope.program_root = rir->program_root;
+    size_t resource_parameter_index = 0;
     for (size_t i = 0; i < ast_func_param_count(func); i++) {
         FuncParam *param = ast_func_param(func, i);
         if (param == NULL)
             continue;
+        size_t fact_count_before = scope.fact_count;
         if (!add_param_resource_fact(&scope, param->name, param->type, func))
             goto oom;
+        for (size_t fact_i = fact_count_before;
+             fact_i < scope.fact_count;
+             fact_i++) {
+            scope.facts[fact_i].is_parameter = true;
+            scope.facts[fact_i].parameter_index = resource_parameter_index;
+        }
+        if (scope.fact_count > fact_count_before)
+            resource_parameter_index++;
     }
 
     /* Seed resource facts for the enclosing class's owning slot fields so a
@@ -70,6 +82,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
     memset(&scope, 0, sizeof(scope));
     scope.id = rir->scope_count;
     scope.kind = kind;
+    scope.source_syntax_id = ast_node_stable_id(node);
     scope.name = name;
     scope.ast = node;
     scope.program_root = rir->program_root;
@@ -294,6 +307,20 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
                 }
                 break;
             }
+            case AST_ROLE_DECL:
+                for (size_t j = 0; ok && j < ast_role_impl_count(node); j++) {
+                    ASTNode *impl = ast_role_impl(node, j);
+                    if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+                        continue;
+                    for (size_t k = 0;
+                         ok && k < ast_impl_ability_method_count(impl);
+                         k++) {
+                        ok = rir_collect_func_scope(
+                            rir, RIR_SCOPE_METHOD, ast_role_name(node), NULL,
+                            ast_impl_ability_method(impl, k));
+                    }
+                }
+                break;
             case AST_ZONE_DECL:
                 ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_ZONE, ast_zone_name(node));
                 break;

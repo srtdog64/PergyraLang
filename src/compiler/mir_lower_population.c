@@ -8,6 +8,7 @@
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
 #include "mir_intent.h"
+#include "mir_machine_layer.h"
 #include "mir_non_cfg_stmt_population.h"
 #include "mir_stmt_population.h"
 #include "mir_type_helpers.h"
@@ -24,7 +25,8 @@ mir_resource_write_value_expr_from_call(ASTNode *call)
         return NULL;
     if (callee->type == AST_IDENTIFIER
         && ast_identifier_name(callee) != NULL
-        && strcmp(ast_identifier_name(callee), "Write") == 0
+        && (strcmp(ast_identifier_name(callee), "Write") == 0
+            || strcmp(ast_identifier_name(callee), "DeviceWrite") == 0)
         && ast_call_arg_count(call) >= 2) {
         return ast_call_argument(call, 1);
     }
@@ -257,6 +259,8 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    if (!mir_attach_machine_layer_fact(&inst, op))
+        return false;
     mir_instruction_capture_source_provenance(&inst, op->ast);
     if (op->kind == RIR_OP_WRITE)
         inst.expr0 = mir_resource_write_value_expr_from_call(op->ast);

@@ -72,6 +72,7 @@ c_runner_make_private_tmpdir(const char *base, char *out, size_t out_cap)
 int
 c_runner_execute(const DriverFlags *flags,
                  const CompilerIRBundle *bundle,
+                 const PgyAirVerification *air,
                  CompilerBackendTimings *backend_timings)
 {
     if (backend_timings != NULL)
@@ -91,9 +92,15 @@ CompilerResult *result;
         if (flags->verbose)
             printf("pgy: generating C → %s\n", output_c);
 
-        result = compiler_emit_c(bundle, output_c);
-        if (result == NULL || !result->success) {
-            const char *msg   = result != NULL ? result->error_message : "out of memory";
+        result = compiler_emit_c(bundle, air, output_c);
+        const char *identity_error = NULL;
+        bool identity_ready = result != NULL
+            && result->success
+            && compiler_result_artifact_identity_ready(result, &identity_error);
+        if (result == NULL || !result->success || !identity_ready) {
+            const char *msg   = result != NULL && result->error_message != NULL
+                ? result->error_message
+                : (identity_error != NULL ? identity_error : "out of memory");
             const char *code  = result != NULL ? result->error_code : NULL;
             const char *cause = result != NULL ? result->error_cause_ir : NULL;
             const char *fix   = result != NULL ? result->error_fix_source : NULL;
@@ -176,13 +183,19 @@ CompilerResult *result;
     if (flags->verbose)
         printf("pgy: generating C → %s\n", tmp_c);
 
-    result = compiler_build_native(bundle, tmp_c, bin_path, flags->verbose,
+    result = compiler_build_native(bundle, air, tmp_c, bin_path, flags->verbose,
                                    flags->opt_profile);
     remove(tmp_c);
     pgy_rmdir(tmp_dir);
 
-    if (result == NULL || !result->success) {
-        const char *msg   = result != NULL ? result->error_message : "out of memory";
+    const char *identity_error = NULL;
+    bool identity_ready = result != NULL
+        && result->success
+        && compiler_result_artifact_identity_ready(result, &identity_error);
+    if (result == NULL || !result->success || !identity_ready) {
+        const char *msg   = result != NULL && result->error_message != NULL
+            ? result->error_message
+            : (identity_error != NULL ? identity_error : "out of memory");
         const char *code  = result != NULL ? result->error_code : NULL;
         const char *cause = result != NULL ? result->error_cause_ir : NULL;
         const char *fix   = result != NULL ? result->error_fix_source : NULL;

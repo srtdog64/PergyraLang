@@ -5,6 +5,7 @@
  */
 
 #include "air_internal.h"
+#include "machine_layer_manifest.h"
 
 #include "../runtime/pgy_runtime_capability.h"
 #include "../semantic/capability_analyze.h"
@@ -205,6 +206,71 @@ air_validate_effect_site_inventory(const AIRProgram *air,
 }
 
 static bool
+air_validate_machine_layer_site_inventory(const AIRProgram *air,
+                                          char **error_message)
+{
+    if (air->machine_layer_site_count > 0
+        && air->machine_layer_sites == NULL) {
+        air_set_invariant_error(error_message,
+                                "AIR has machine-layer site count without array");
+        return false;
+    }
+    for (size_t i = 0; i < air_machine_layer_site_count(air); i++) {
+        const AIRMachineLayerSite *site =
+            air_machine_layer_site_at(air, i);
+        const PgyMachineLayerTargetManifest *manifest =
+            pgy_machine_layer_target_manifest();
+        PgyMachineLayerSiteFactView site_view;
+        const char *site_error = NULL;
+        if (site == NULL || air_name_is_empty(site->slot)
+            || air_name_is_empty(site->operation)
+            || air_name_is_empty(site->manifest_id)
+            || air_name_is_empty(site->physical_grant_id)
+            || air_name_is_empty(site->physical_mode)
+            || air_name_is_empty(site->runtime_operation)
+            || air_name_is_empty(site->routine)
+            || !site->hardware_adequate
+            || !site->authority_required
+            || !site->live_lease_required) {
+            air_set_invariant_error(error_message,
+                                    "AIR machine-layer site %zu is incomplete",
+                                    i);
+            return false;
+        }
+        site_view.manifest_id = site->manifest_id;
+        site_view.contact_name = site->operation;
+        site_view.physical_grant_id = site->physical_grant_id;
+        site_view.physical_base = site->physical_base;
+        site_view.physical_size = site->physical_size;
+        site_view.physical_mode = site->physical_mode != NULL
+            && strcmp(site->physical_mode, "plain") == 0
+            ? PGY_MACHINE_LAYER_ACCESS_PLAIN
+            : site->physical_mode != NULL
+                && strcmp(site->physical_mode, "volatile") == 0
+                ? PGY_MACHINE_LAYER_ACCESS_VOLATILE
+                : site->physical_mode != NULL
+                    && strcmp(site->physical_mode, "atomic") == 0
+                    ? PGY_MACHINE_LAYER_ACCESS_ATOMIC
+                    : (PgyMachineLayerPhysicalAccessMode)-1;
+        site_view.runtime_operation = site->runtime_operation;
+        site_view.hardware_adequate = site->hardware_adequate;
+        site_view.authority_required = site->authority_required;
+        site_view.live_lease_required = site->live_lease_required;
+        if (!pgy_machine_layer_manifest_validate_site(
+                manifest, &site_view, &site_error)) {
+            air_set_invariant_error(error_message,
+                                    "AIR machine-layer site %zu is invalid: %s",
+                                    i,
+                                    site_error != NULL
+                                        ? site_error
+                                        : "manifest validation failed");
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
 air_validate_lifecycle_state_space_inventory(const AIRProgram *air,
                                              char **error_message)
 {
@@ -273,12 +339,80 @@ air_validate_lifecycle_state_space_inventory(const AIRProgram *air,
 }
 
 static bool
+air_validate_function_param_flow_summary_inventory(
+    const AIRProgram *air,
+    char **error_message)
+{
+    const size_t count = air_function_param_flow_summary_count(air);
+
+    if (count > 0 && air->function_param_flow_summaries == NULL) {
+        air_set_invariant_error(
+            error_message,
+            "AIR has function parameter flow summary count without array");
+        return false;
+    }
+    if (air->has_function_param_flow_facts != (count > 0)) {
+        air_set_invariant_error(
+            error_message,
+            "AIR function parameter flow presence flag does not match rows");
+        return false;
+    }
+    if (count > 0 && !air_has_mir_input(air)) {
+        air_set_invariant_error(
+            error_message,
+            "AIR function parameter flow rows require MIR input");
+        return false;
+    }
+    for (size_t i = 0; i < count; i++) {
+        const AIRFunctionParamFlowSummary *row =
+            air_function_param_flow_summary_at(air, i);
+        if (row == NULL || row->source_syntax_id == 0
+            || air_name_is_empty(row->routine)
+            || row->parameter_count == 0
+            || row->parameter_index >= row->parameter_count) {
+            air_set_invariant_error(
+                error_message,
+                "AIR function parameter flow row %zu is incomplete",
+                i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const AIRFunctionParamFlowSummary *prior =
+                air_function_param_flow_summary_at(air, j);
+            if (prior != NULL
+                && prior->source_syntax_id == row->source_syntax_id
+                && prior->parameter_index == row->parameter_index) {
+                air_set_invariant_error(
+                    error_message,
+                    "AIR function parameter flow row %zu duplicates stable identity row %zu",
+                    i,
+                    j);
+                return false;
+            }
+            if (prior != NULL
+                && prior->source_syntax_id == row->source_syntax_id
+                && (!air_name_matches(prior->routine, row->routine)
+                    || prior->parameter_count != row->parameter_count)) {
+                air_set_invariant_error(
+                    error_message,
+                    "AIR function parameter flow rows disagree on routine identity");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
 air_validate_capability_machine(const AIRProgram *air,
                                 char **error_message)
 {
     return air_validate_slot_site_inventory(air, error_message)
         && air_validate_effect_site_inventory(air, error_message)
-        && air_validate_lifecycle_state_space_inventory(air, error_message);
+        && air_validate_machine_layer_site_inventory(air, error_message)
+        && air_validate_lifecycle_state_space_inventory(air, error_message)
+        && air_validate_function_param_flow_summary_inventory(air,
+                                                              error_message);
 }
 
 bool
@@ -286,6 +420,21 @@ air_validate(const AIRProgram *air, char **error_message)
 {
     if (air == NULL) {
         air_set_invariant_error(error_message, "AIR validation requires a program");
+        return false;
+    }
+    if (air->mir_evidence_bound
+        && (!air->mir_evidence_collection_started
+            || !air->has_mir_input
+            || air->mir_evidence_binding_fingerprint == 0)) {
+        air_set_invariant_error(
+            error_message,
+            "AIR MIR evidence binding is incomplete");
+        return false;
+    }
+    if (air->mir_evidence_collection_started && !air->has_mir_input) {
+        air_set_invariant_error(
+            error_message,
+            "AIR MIR evidence collection started without MIR input");
         return false;
     }
     if (!air_intent_storage_valid(air)) {

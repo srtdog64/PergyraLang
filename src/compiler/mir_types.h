@@ -8,6 +8,8 @@
 #include "hir.h"
 #include "mir_abi.h"
 #include "rir.h"
+#include "../semantic/loop_flow_fact.h"
+#include "../semantic/iteration_type_fact.h"
 
 typedef enum
 {
@@ -31,6 +33,18 @@ typedef struct
     MIRParallelCaptureDispositionRow *rows;
     size_t row_count;
 } MIRParallelCaptureBoundaryFact;
+
+typedef struct
+{
+    size_t  stable_index;
+    uint32_t declaration_syntax_id;
+    uint32_t line;
+    uint32_t column;
+    uint32_t symbol_kind;
+    bool    is_parameter;
+    size_t  parameter_index;
+    char   *name;
+} MIRResourceFlowSymbol;
 
 typedef struct
 {
@@ -155,6 +169,23 @@ typedef struct
     const char      *abi_type_name;
     const MIRTypeLayout *type_layout;
     const MIRTextBuilderRuntimeRow *text_builder_runtime_row;
+    /* Owner-directed machine contact fact. Backends must not infer this
+     * boundary from the source call or ABI type alone. */
+    RIRMachineContactKind machine_contact_kind;
+    /* The RIR owner has declared that this instruction crosses the machine
+     * boundary. Validation uses this typed requirement, never an AST/source
+     * spelling scan. */
+    bool                 machine_layer_fact_required;
+    bool                 machine_layer_fact_present;
+    const char          *machine_layer_manifest_id;
+    const char          *machine_layer_physical_grant_id;
+    uint64_t             machine_layer_physical_base;
+    uint64_t             machine_layer_physical_size;
+    const char          *machine_layer_physical_mode;
+    const char          *machine_layer_runtime_operation;
+    bool                 machine_layer_hardware_adequate;
+    bool                 machine_layer_authority_required;
+    bool                 machine_layer_live_lease_required;
 } MIRInstruction;
 
 typedef struct
@@ -272,6 +303,14 @@ typedef struct
 
 typedef struct
 {
+    size_t   parameter_index;
+    uint32_t mask;
+} MIRFunctionParamFlowSummary;
+
+typedef PgyIterationTypeFact MIRIterationTypeFact;
+
+typedef struct
+{
     size_t             id;
     MIRScopeKind       kind;
     const char        *owner_name;
@@ -297,6 +336,22 @@ typedef struct
     const char        *within_zone;
     const HIRRoutine  *hir_routine;
     const RIRScope    *rir_scope;
+    uint32_t           source_syntax_id;
+    MIRResourceFlowSymbol *resource_flow_symbols;
+    size_t             resource_flow_symbol_count;
+    size_t             resource_flow_symbol_capacity;
+    MIRFunctionParamFlowSummary *function_param_flow_summaries;
+    size_t             function_param_flow_summary_count;
+    size_t             function_param_flow_summary_capacity;
+    PgyLoopFlowSummaryFact *loop_flow_summaries;
+    size_t             loop_flow_summary_count;
+    size_t             loop_flow_summary_capacity;
+    PgyLoopFlowStateFact *loop_flow_states;
+    size_t             loop_flow_state_count;
+    size_t             loop_flow_state_capacity;
+    MIRIterationTypeFact *iteration_type_facts;
+    size_t             iteration_type_fact_count;
+    size_t             iteration_type_fact_capacity;
     MIRBasicBlock     *blocks;
     size_t             block_count;
     size_t             block_capacity;

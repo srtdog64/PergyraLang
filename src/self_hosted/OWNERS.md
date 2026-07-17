@@ -353,9 +353,13 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
+- `src/self_hosted/mir_lower/loop_flow_fact_owner.pgy` -- native
+  LoopFlowSummary and stable-indexed entry/exit state fact parsing.
 - `src/self_hosted/mir_lower/mir_fact_graph_contract_owner.pgy` -- MIR fact
   graph payload contract facts.
 - `src/self_hosted/mir_lower/mir_json_input_owner.pgy` -- MIR JSON input boundary.
+- `src/self_hosted/mir_lower/machine_layer_fact_owner.pgy` -- checked
+  machine-contact projection validation for MIR JSON rows.
 - `src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy` -- sealed parallel
   capture boundary/kind/writer fact validation for MIR JSON input.
 - `src/self_hosted/mir_lower/program_lower.pgy` -- document-order program assembly.
@@ -365,8 +369,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir_lower/run_owner.pgy` -- MIR-lower CLI run boundary and
   manifest mode selection.
 - `src/self_hosted/mir_lower/routine_fact_index_owner.pgy` -- per-routine
-  block, instruction, source-local, successor, backedge, and structural-merge
-  facts consumed by recursive CFG reconstruction.
+  block, instruction, source-local, successor, backedge, structural-merge, and
+  loop-flow index facts consumed by recursive CFG reconstruction.
+- `src/self_hosted/mir_lower/resource_flow_fact_owner.pgy` -- native
+  ResourceFlowUniverse identity row parsing and count validation.
 - `src/self_hosted/mir_lower/routine_inventory_owner.pgy` -- routine inventory facts.
 - `src/self_hosted/mir_lower/routine_lower.pgy` -- routine CFG/body reconstruction.
 - `src/self_hosted/mir_lower/stmt_render.pgy` -- instruction fact to AST text rendering.
@@ -479,6 +485,12 @@ inventory must not become a second fact-family owner registry.
 
 ## Tools
 
+- `src/self_hosted/tools/machine_layer_air_validator/main.pgy` -- AIR
+  `machine_layer_sites` projection validator over the checked machine owner
+  rows.
+- `src/self_hosted/tools/machine_layer_rir_validator/main.pgy` -- native RIR
+  `machine_contact` artifact validator over the same checked machine owner;
+  it never recovers contact identity from source text.
 - `src/self_hosted/tools/air_graph_id_uniqueness/main.pgy` -- AIR graph node ID
   duplicate analysis over scanner-owned AIR graph facts.
 - `src/self_hosted/tools/air_graph_id_uniqueness/report_owner.pgy` -- AIR graph
@@ -638,6 +650,16 @@ inventory must not become a second fact-family owner registry.
   projection over the ABI layout row owner for parity/golden comparison.
 - `src/self_hosted/compiler/runtime_call_abi_row_owner.pgy` -- runtime helper
   and target-library call ABI row projection over the runtime ABI owners.
+- `src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy` --
+  checked abstract machine-layer contact/runtime projection; physical
+  declaration literals are forbidden here.
+- `src/self_hosted/compiler/machine_layer_declaration_consumer.pgy` --
+  native `pgy.machine-layer.declaration.v1` JSON consumer owning the
+  self-hosted physical grant/provenance view and its fail-closed shape checks.
+- `src/self_hosted/compiler/machine_layer_runtime_binding_owner.pgy` --
+  final self-host C startup consumer that serializes the checked declaration
+  fingerprints and selected grant window into the runtime mapping bind; it is
+  not a second physical declaration owner.
 - `src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy` -- runnable
   runtime call ABI row projection for parity/golden comparison.
 - `src/self_hosted/compiler/symbol_table_owner.pgy` -- cross-backend symbol row

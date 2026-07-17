@@ -55,6 +55,134 @@ test_air_erasure_squiggle_policy(void)
 
 static AIRProgram *lower_air_from_source(const char *source);
 
+static void
+test_air_carries_function_param_flow_summary(void)
+{
+    static const char *source =
+        "subject Vec2 { let x: Int; let y: Int; }\n"
+        "func Recur(ref slot: Slot<Vec2>) -> Void {\n"
+        "  Recur(slot);\n"
+        "  Write(slot, Vec2(1, 2));\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "  let slot: Slot<Vec2> = Vec2(0, 0);\n"
+        "  Recur(slot);\n"
+        "  Release(slot);\n"
+        "}\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(ast);
+    HIRProgram *hir = NULL;
+    DIRProgram *dir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram mir;
+    MIRRoutine mir_routine;
+    MIRFunctionParamFlowSummary mir_flow_row;
+    AIRProgram *air = NULL;
+    char *error = NULL;
+    bool carried = false;
+    bool validated = false;
+    bool negative_rejected = false;
+
+    memset(&mir, 0, sizeof(mir));
+    memset(&mir_routine, 0, sizeof(mir_routine));
+    memset(&mir_flow_row, 0, sizeof(mir_flow_row));
+    mir_flow_row.parameter_index = 0;
+    mir_flow_row.mask = 0x5u;
+    mir_routine.name = "Recur";
+    mir_routine.owner_ast_type = AST_FUNC_DECL;
+    mir_routine.has_signature = true;
+    mir_routine.param_count = 1;
+    mir_routine.source_syntax_id = 42u;
+    mir_routine.function_param_flow_summaries = &mir_flow_row;
+    mir_routine.function_param_flow_summary_count = 1;
+    mir_routine.function_param_flow_summary_capacity = 1;
+    mir.routines = &mir_routine;
+    mir.routine_count = 1;
+    mir.has_function_param_flow_facts = true;
+
+    if (!parser_has_error(parser) && sem != NULL && sem->success) {
+        hir = hir_lower_with_resource_and_param_flow_facts(
+            sem->annotated_ast,
+            sem->resource_flow_facts,
+            sem->resource_flow_fact_count,
+            sem->function_param_flow_facts,
+            sem->function_param_flow_fact_count,
+            &error);
+        dir = dir_lower(sem->annotated_ast, &error);
+        rir = rir_lower(sem->annotated_ast, &error);
+        if (hir != NULL && rir != NULL)
+            (void)rir_enrich_with_hir_flow(rir, hir, &error);
+        if (hir != NULL && dir != NULL && rir != NULL)
+            air = air_synthesize(hir, dir, rir, &error);
+        if (air != NULL)
+            carried = air_collect_mir_evidence(air, &mir, &error);
+        if (carried)
+            validated = air_verify(air, &error);
+    }
+
+    if (air != NULL && carried && validated) {
+        carried = air_function_param_flow_summary_count(air) > 0;
+        for (size_t i = 0; i < air_function_param_flow_summary_count(air); i++) {
+            const AIRFunctionParamFlowSummary *row =
+                air_function_param_flow_summary_at(air, i);
+            if (row != NULL && row->source_syntax_id != 0
+                && row->routine != NULL
+                && row->parameter_index < row->parameter_count) {
+                carried = true;
+                break;
+            }
+            carried = false;
+        }
+        if (carried) {
+            AIRFunctionParamFlowSummary *row =
+                &air->function_param_flow_summaries[0];
+            const size_t original_index = row->parameter_index;
+            row->parameter_index = row->parameter_count;
+            negative_rejected = !air_verify(air, &error);
+            row->parameter_index = original_index;
+            free(error);
+            error = NULL;
+        }
+    } else {
+        carried = false;
+    }
+    TEST("AIR carries MIR function parameter flow summaries by stable identity");
+    EXPECT(carried && validated && negative_rejected);
+    free(error);
+    air_destroy(air);
+    rir_destroy(rir);
+    dir_destroy(dir);
+    hir_destroy(hir);
+    semantic_result_destroy(sem);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+}
+
+static bool
+test_air_rejects_mir_evidence_rebind(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(*air));
+    MIRProgram mir = {0};
+    char *error = NULL;
+    bool first = air != NULL
+        && air_collect_mir_evidence(air, &mir, &error);
+    bool anchored = air != NULL
+        && air->mir_evidence_collection_started
+        && air->mir_evidence_bound
+        && air->mir_evidence_binding_fingerprint != 0;
+    free(error);
+    error = NULL;
+    bool second = air != NULL
+        && air_collect_mir_evidence(air, &mir, &error);
+    bool rejected = !second && error != NULL
+        && strstr(error, "already anchored") != NULL;
+    free(error);
+    air_destroy(air);
+    return first && anchored && rejected;
+}
+
 /* docs/140 slice 5b: the collector turns SUMMARIZE AIR nodes into BLUE squiggle
  * sites. Lowered from real source — a zone-bound intent step summarizes (its
  * domain meaning is compressed to a digest, i.e. erasable). */
@@ -173,6 +301,11 @@ main(void)
 
     TEST("AIR synthesis creates intent and boundary nodes");
     EXPECT(test_air_synthesizes_intent_and_boundary());
+
+    test_air_carries_function_param_flow_summary();
+
+    TEST("AIR rejects a second MIR evidence binding");
+    EXPECT(test_air_rejects_mir_evidence_rebind());
 
     TEST("AIR who inference does not imply authority");
     EXPECT(test_air_who_inference_does_not_imply_authority());

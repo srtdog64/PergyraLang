@@ -28,6 +28,7 @@ ssize_t dir_ensure_qualified_slot_node(DIRProgram *dir,
                                        DIRNodeKind kind,
                                        const char *owner_name,
                                        const char *slot_name,
+                                       uint32_t owner_source_syntax_id,
                                        ASTNode *ast);
 bool dir_add_named_edge(DIRProgram *dir,
                         DIREdgeKind kind,
@@ -39,15 +40,20 @@ const char *type_name(DIRProgram *dir, ASTNode *type_node);
 bool dir_domain_slot_is_projection(ASTNode *slot);
 
 bool dir_collect_nodes(DIRProgram *dir, ASTNode *program);
+bool dir_collect_nodes_from_hir(DIRProgram *dir, const HIRProgram *hir);
 bool dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node);
 bool dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node);
 bool dir_collect_relation_effect_slot_edges(DIRProgram *dir,
-                                            size_t from_id,
-                                            const char *owner_name,
-                                            ASTNode **slots,
+                                             size_t from_id,
+                                             const char *owner_name,
+                                             uint32_t owner_source_syntax_id,
+                                             ASTNode **slots,
                                             size_t slot_count,
                                             ASTNode **refreshes,
                                             size_t refresh_count);
 bool dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program);
+bool dir_collect_edges_and_intents_from_hir(DIRProgram *dir,
+                                             ASTNode *program,
+                                             const HIRProgram *hir);
 
 #endif

@@ -132,7 +132,8 @@ func SelfMirSyntheticLocalExpressionGraph(
 func SelfMirPrepareIterationCollection(
     build: SelfMirRoutineBuild,
     fact: SelfMirIterationLoweringFact,
-    source_graph: SemanticExpressionGraphView
+    source_graph: SemanticExpressionGraphView,
+    declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirRoutineBuild {
     if !fact.collection_hoisted { return build; }
     let uses: Array<String> = SelfMirExpressionUses(
@@ -146,7 +147,9 @@ func SelfMirPrepareIterationCollection(
         fact.synthetic_name, "", fact.source_expression,
         fact.iterable_type_name, "AST_LET_DECL", uses
     );
-    return SelfMirRoutineAttachLastExpressionGraph(build, source_graph);
+    return SelfMirRoutineAttachLastExpressionGraph(
+        build, source_graph, declaration
+    );
 }
 
 func SelfMirIterationBranchUses(

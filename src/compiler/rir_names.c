@@ -115,3 +115,23 @@ rir_op_kind_name(RIROpKind kind)
         default: return "unknown";
     }
 }
+
+const char *
+rir_machine_contact_kind_name(RIRMachineContactKind kind)
+{
+    switch (kind) {
+        case RIR_MACHINE_CONTACT_CLAIM: return "claim";
+        case RIR_MACHINE_CONTACT_READ: return "read";
+        case RIR_MACHINE_CONTACT_WRITE: return "write";
+        case RIR_MACHINE_CONTACT_RELEASE: return "release";
+        case RIR_MACHINE_CONTACT_SUBMIT_READ: return "submit-read";
+        case RIR_MACHINE_CONTACT_NONE:
+        default: return "none";
+    }
+}
+
+bool
+rir_machine_contact_kind_is_present(RIRMachineContactKind kind)
+{
+    return kind != RIR_MACHINE_CONTACT_NONE;
+}

@@ -153,8 +153,8 @@ read_mir_fixture_manifest() {
         FIXTURES+=("$line")
     done <"$MIR_FIXTURE_MANIFEST_FILE"
 
-    if [[ "${#FIXTURES[@]}" -ne 96 ]]; then
-        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 96" >&2
+    if [[ "${#FIXTURES[@]}" -ne 100 ]]; then
+        echo "[self-host-parity:mir-json] fixture manifest count drifted: ${#FIXTURES[@]} != 100" >&2
         exit 1
     fi
 
@@ -328,8 +328,9 @@ for fixture_entry in "${FIXTURES[@]}"; do
     fi
     if [[ "$base" == "class_method" ]]; then
         for required in \
-            '"methods":[{"name":"Length","return":"Int"}]' \
-            '"name":"Length","kind":"method","owner":"Vec2"'; do
+            '"methods":[{"name":"LengthPlus","return":"Int"}]' \
+            '"name":"LengthPlus","kind":"method"' \
+            '"owner":"Vec2"'; do
             if ! grep -Fq "$required" "$mj"; then
                 echo "[self-host-parity:mir-json] class_method: missing MIR class method fact: $required" >&2
                 exit 1
@@ -490,8 +491,8 @@ for fixture_entry in "${FIXTURES[@]}"; do
         for required in \
             'Class: Vec2' \
             'Methods:' \
-            'Function: Length' \
-            'Log(v.Length())'; do
+            'Function: LengthPlus' \
+            'Return: (v.LengthPlus(5) - 15)'; do
             if ! grep -Fq "$required" "$reast"; then
                 echo "[self-host-parity:mir-json] class_method: mir_lower did not reconstruct class method fact: $required" >&2
                 exit 1
@@ -509,28 +510,28 @@ for fixture_entry in "${FIXTURES[@]}"; do
                 ast_label="Subject"
                 nominal_name="Hero"
                 local_name="hero"
-                init_expr="Hero(hp: 7)"
+                init_expr="Hero { hp: 7 }"
                 log_expr="Log(hero.hp)"
                 ;;
             nominal_object)
                 ast_label="Object"
                 nominal_name="PlayerView"
                 local_name="view"
-                init_expr="PlayerView(score: 11)"
+                init_expr="PlayerView { score: 11 }"
                 log_expr="Log(view.score)"
                 ;;
             nominal_tobject)
                 ast_label="TObject"
                 nominal_name="PlayerDto"
                 local_name="dto"
-                init_expr="PlayerDto(score: 12)"
+                init_expr="PlayerDto { score: 12 }"
                 log_expr="Log(dto.score)"
                 ;;
             nominal_vessel)
                 ast_label="Vessel"
                 nominal_name="HP"
                 local_name="hp"
-                init_expr="HP(value: 13)"
+                init_expr="HP { value: 13 }"
                 log_expr="Log(hp.value)"
                 ;;
         esac
@@ -589,6 +590,12 @@ for fixture_entry in "${FIXTURES[@]}"; do
         fi
         if ! grep -q 'If: (largest == cur)' "$reast"; then
             echo "[self-host-parity:mir-json] nested_if_in_loop: mir_lower did not preserve the inner break guard as if" >&2
+            exit 1
+        fi
+    fi
+    if [[ "$base" == "break_after_stmt" ]]; then
+        if grep -q 'While: (i == 3)' "$reast" || ! grep -q 'If: (i == 3)' "$reast"; then
+            echo "[self-host-parity:mir-json] break_after_stmt: inner break guard was not reconstructed as an if" >&2
             exit 1
         fi
     fi

@@ -54,7 +54,7 @@
     "llvm_candidate_byte_identical": true
   },
   "current_semantic_bundle": {
-    "owner_set_sha256": "565D9F081627EFAD0B40BF53B67D82D9022E23477B4464542104499E35AA75E7",
+    "owner_set_sha256": "EB9D3ABC152573E02FAA23263AFD7EA6DC204038DFDC719D33C7264E69E14574",
     "input_artifact": ".tmp/self_hosted/codegen/benchmark_codegen_final.ast.txt",
     "input_bytes": 1367585,
     "input_sha256": "18F0F1AE351AE917CAEB93E8F1553F8989514E5BE6A941A2DB71A470234CD906",

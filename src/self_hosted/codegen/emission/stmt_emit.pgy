@@ -78,6 +78,26 @@ func EmitLet(
             Concat(" ", Concat(c_name, Concat(" = ",
                 Concat(WrapExprWithSemanticGraph(expr, env, graph), ";")))));
     }
+    if CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name) != "" {
+        CodegenTypeEnvStateAppendValueBinding(
+            env_state, name, type_name, c_name
+        );
+        let value: String = RewriteExpectedValueWithSemanticGraph(
+            expr, type_name, env, graph
+        );
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+            Concat(c_name, Concat(" = ", Concat(value, ";")))));
+    }
+    if CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name) != "" {
+        CodegenTypeEnvStateAppendValueBinding(
+            env_state, name, type_name, c_name
+        );
+        let value: String = RewriteExpectedValueWithSemanticGraph(
+            expr, type_name, env, graph
+        );
+        return Concat(AbiLayoutCLocalType(type_name, env), Concat(" ",
+            Concat(c_name, Concat(" = ", Concat(value, ";")))));
+    }
     if StartsWith(type_name, "Array<") {
         // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
         // `[a, b, c]` literal lowers to `new()` plus one `push` per element;

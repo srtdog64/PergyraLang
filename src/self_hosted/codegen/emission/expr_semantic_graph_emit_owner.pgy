@@ -2,6 +2,7 @@
 
 import "../input/semantic_expression_codegen_view_owner.pgy";
 import "../text/text_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_composite_literal_emit_owner.pgy";
 import "expr_semantic_call_emit_owner.pgy";
@@ -23,6 +24,26 @@ func RewriteExprFromSemanticGraph(
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
     if kind == AstExpressionNodeLeaf() {
+        if StartsWith(text, "await ") {
+            let awaited_text: String =
+                CompilerRuntimeCallAbiMachineLayerAwaitBinding(text);
+            if awaited_text == "" {
+                Die("self-host await requires a named future binding");
+            }
+            let awaited_type: String = LookupKindType(
+                env, awaited_text, "v"
+            );
+            let await_name: String =
+                CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
+                    awaited_type
+                );
+            if await_name == "" {
+                Die("self-host await requires a supported RemoteFuture<T> ABI row");
+            }
+            return Concat(await_name, Concat("(", Concat(
+                RewriteTokens(awaited_text, env), ")"
+            )));
+        }
         return RewriteTokens(text, env);
     }
     if AstExpressionNodeIsCallSpine(kind) {

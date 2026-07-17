@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "compiler.h"
 #include "driver_scaffold.h"
+#include "machine_layer_manifest.h"
 
 typedef enum
 {
@@ -62,6 +63,8 @@ typedef struct
     bool        dump_capability_manifest;  /* --capability-manifest */
     bool        dump_dir;
     bool        dump_rir;
+    bool        dump_rir_json;
+    bool        dump_machine_manifest_json;
     bool        dump_air;
     bool        dump_air_json;
     bool        dump_mir;
@@ -76,6 +79,9 @@ typedef struct
     PgyOptProfile opt_profile;
     DiagnosticFormat diag_format;  /* --error-format=text|json (default text) */
     RuntimeMode runtime_mode;       /* --runtime=default|none */
+    /* Optional immutable target declaration supplied by an embedding host.
+     * NULL retains the checked host-sim default. */
+    const PgyMachineLayerPhysicalManifest *machine_layer_physical_manifest;
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);

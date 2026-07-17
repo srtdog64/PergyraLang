@@ -39,6 +39,8 @@ hir_dump(const HIRProgram *hir, FILE *out)
             "  events: %zu\n"
             "  functions: %zu\n"
             "  executables: %zu\n"
+            "  has_resource_flow_facts: %s\n"
+            "  has_function_param_flow_facts: %s\n"
             "  has_main: %s\n",
             hir->item_count,
             hir->decl_count,
@@ -54,6 +56,8 @@ hir_dump(const HIRProgram *hir, FILE *out)
             hir->event_count,
             hir->function_count,
             hir->executable_count,
+            hir->has_resource_flow_facts ? "true" : "false",
+            hir->has_function_param_flow_facts ? "true" : "false",
             hir->has_main_function ? "true" : "false");
 
     for (size_t i = 0; i < hir->item_count; i++) {
@@ -83,6 +87,44 @@ hir_dump(const HIRProgram *hir, FILE *out)
                     routine->is_exported ? "true" : "false",
                     routine->is_entry_reachable ? "true" : "false",
                     routine->has_control_flow ? "true" : "false");
+            if (getenv("PGY_DEBUG_RESOURCE_FLOW_FACTS") != NULL) {
+                fprintf(out,
+                        "         resource-flow-symbols=%zu\n",
+                        routine->resource_flow_symbol_count);
+                for (size_t j = 0;
+                     j < routine->resource_flow_symbol_count;
+                     j++) {
+                    const HIRResourceFlowSymbol *symbol =
+                        &routine->resource_flow_symbols[j];
+                    fprintf(out,
+                            "           resource-flow[%02zu] stable=%zu decl=%u parameter=%s parameter-index=%zu line=%u column=%u kind=%u name=%s\n",
+                            j,
+                            symbol->stable_index,
+                            symbol->declaration_syntax_id,
+                            symbol->is_parameter ? "true" : "false",
+                            symbol->parameter_index,
+                            symbol->line,
+                            symbol->column,
+                            symbol->symbol_kind,
+                            symbol->name != NULL ? symbol->name : "<missing>");
+                }
+            }
+            if (getenv("PGY_DEBUG_FUNCTION_PARAM_FLOW") != NULL) {
+                fprintf(out,
+                        "         function-param-flow-summaries=%zu\n",
+                        routine->function_param_flow_summary_count);
+                for (size_t j = 0;
+                     j < routine->function_param_flow_summary_count;
+                     j++) {
+                    const HIRFunctionParamFlowSummary *summary =
+                        &routine->function_param_flow_summaries[j];
+                    fprintf(out,
+                            "           function-param-flow[%02zu] parameter-index=%zu mask=%u\n",
+                            j,
+                            summary->parameter_index,
+                            summary->mask);
+                }
+            }
             if (routine->signature_type_ref_count > 0) {
                 fprintf(out, "         types=");
                 for (size_t j = 0; j < routine->signature_type_ref_count; j++) {
@@ -278,6 +320,20 @@ hir_find_routine_by_id(const HIRProgram *hir, uint32_t routine_id)
         return NULL;
     routine = &hir->routines[(size_t)routine_id - 1];
     return routine->routine_id == routine_id ? routine : NULL;
+}
+
+size_t
+hir_resource_flow_symbol_count(const HIRRoutine *routine)
+{
+    return routine != NULL ? routine->resource_flow_symbol_count : 0;
+}
+
+const HIRResourceFlowSymbol *
+hir_resource_flow_symbol_at(const HIRRoutine *routine, size_t index)
+{
+    if (routine == NULL || index >= routine->resource_flow_symbol_count)
+        return NULL;
+    return &routine->resource_flow_symbols[index];
 }
 
 void

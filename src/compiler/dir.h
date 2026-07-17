@@ -3,10 +3,13 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../parser/ast.h"
+#include "../semantic/resource_flow_fact.h"
 
 typedef struct DIRProgram DIRProgram;
+typedef struct HIRProgram HIRProgram;
 
 typedef enum
 {
@@ -63,6 +66,10 @@ typedef struct
     DIRNodeKind kind;
     const char *name;
     ASTNode    *ast;
+    /* Stable identity of the declaration represented by this node. */
+    uint32_t    source_syntax_id;
+    /* Stable identity of the owning domain declaration for qualified slots. */
+    uint32_t    owner_source_syntax_id;
 } DIRNode;
 
 typedef struct
@@ -136,6 +143,10 @@ typedef struct
 
 struct DIRProgram
 {
+    /* Domain graph anchor: all DIR nodes/edges are a projection of this
+     * source program identity, not a name-only reconstruction. */
+    uint32_t source_program_syntax_id;
+    uint64_t domain_graph_id;
     DIRNode       *nodes;
     size_t         node_count;
     size_t         node_capacity;
@@ -145,6 +156,10 @@ struct DIRProgram
     DIRIntentInfo *intents;
     size_t         intent_count;
     size_t         intent_capacity;
+    /* Owned semantic ResourceFlowUniverse snapshot. */
+    PgyResourceFlowFact *resource_flow_facts;
+    size_t               resource_flow_fact_count;
+    bool                 has_resource_flow_facts;
     char         **owned_names;
     size_t         owned_name_count;
     size_t         owned_name_capacity;
@@ -153,6 +168,18 @@ struct DIRProgram
 };
 
 DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message);
+DIRProgram *dir_lower_with_resource_flow_facts(
+        ASTNode *annotated_ast,
+        const PgyResourceFlowFact *facts,
+        size_t fact_count,
+        char **error_message);
+/* Production lowering consumes the HIR-owned snapshot.  The legacy fact
+ * entry point remains available for isolated DIR fixtures, but the compiler
+ * driver must not read SemanticResult resource rows a second time. */
+DIRProgram *dir_lower_with_hir_resource_flow_facts(
+        ASTNode *annotated_ast,
+        const HIRProgram *hir,
+        char **error_message);
 bool        dir_validate(const DIRProgram *dir, char **error_message);
 void        dir_destroy(DIRProgram *dir);
 void        dir_dump(const DIRProgram *dir, FILE *out);

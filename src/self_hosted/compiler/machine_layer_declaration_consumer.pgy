@@ -1,0 +1,237 @@
+// Native machine declaration JSON consumer.
+//
+// The native manifest serializer is the only physical declaration source.
+// Self-hosted MIR/AIR owners consume this checked view; they must not repeat
+// host-sim grant literals or infer a grant from backend output.
+
+import "../lib/json_fact_table.pgy";
+
+struct SelfHostMachineLayerDeclaration {
+    ok: Bool;
+    manifest_id: String;
+    manifest_hardware_adequate: Int;
+    manifest_fingerprint: String;
+    operation_contacts: Array<String>;
+    operation_runtime_names: Array<String>;
+    operation_authority_required: Array<Int>;
+    operation_live_lease_required: Array<Int>;
+    physical_manifest_id: String;
+    physical_target_kind: String;
+    physical_board_id: String;
+    physical_boot_contract: String;
+    physical_linker_contract: String;
+    physical_address_limit: Int;
+    physical_hardware_adequate: Int;
+    physical_fingerprint: String;
+    physical_device_grant: String;
+    grant_id: String;
+    grant_base: Int;
+    grant_size: Int;
+    grant_mode: String;
+    grant_hardware_adequate: Int;
+}
+
+func SelfHostMachineLayerDeclarationEmpty() -> SelfHostMachineLayerDeclaration {
+    let strings: Array<String> = [];
+    let ints: Array<Int> = [];
+    return SelfHostMachineLayerDeclaration(
+        false, "", 0, "", strings, strings, ints, ints,
+        "", "", "", "", "", -1, 0, "", "", "", -1, 0, "", 0
+    );
+}
+
+func MachineDeclarationBoolFact(
+    table: JsonObjectFactTable,
+    field: String
+) -> Option<Int> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactValueBounds(table, field, bounds) {
+        return None;
+    }
+    let token: String = Substring(
+        table.json, bounds[0], bounds[1] - bounds[0]
+    );
+    if token == "true" { return Some(1); }
+    if token == "false" { return Some(0); }
+    return None;
+}
+
+func MachineDeclarationStringFact(
+    table: JsonObjectFactTable,
+    field: String
+) -> String {
+    let value: Option<String> = JsonObjectFactStringFieldOpt(table, field);
+    if !IsSome(value) { return ""; }
+    return UnwrapOption(value);
+}
+
+func MachineDeclarationNumberFact(
+    table: JsonObjectFactTable,
+    field: String
+) -> Option<Int> {
+    let value: Option<String> = JsonObjectFactNumberFieldOpt(table, field);
+    if !IsSome(value) { return None; }
+    return Some(ToInt(UnwrapOption(value)));
+}
+
+func MachineDeclarationFingerprintFact(
+    table: JsonObjectFactTable
+) -> String {
+    let value: Option<String> =
+        JsonObjectFactNumberFieldOpt(table, "fingerprint");
+    if IsSome(value) { return UnwrapOption(value); }
+    return MachineDeclarationStringFact(table, "fingerprint");
+}
+
+func SelfHostMachineLayerDeclarationFromJson(
+    json: String
+) -> SelfHostMachineLayerDeclaration {
+    let empty: SelfHostMachineLayerDeclaration =
+        SelfHostMachineLayerDeclarationEmpty();
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    if !JsonObjectFactTableReady(root) ||
+        !JsonObjectFactStringFieldEquals(
+            root, "schema", "pgy.machine-layer.declaration.v1"
+        ) {
+        return empty;
+    }
+    let manifest: JsonObjectFactTable =
+        JsonObjectFactObjectTable(root, "manifest");
+    let physical: JsonObjectFactTable =
+        JsonObjectFactObjectTable(root, "physical");
+    if !JsonObjectFactTableReady(manifest) ||
+        !JsonObjectFactTableReady(physical) {
+        return empty;
+    }
+    let operations: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(manifest, "operations");
+    let grants: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(physical, "grants");
+    if !JsonArrayObjectFactTableReady(operations) ||
+        !JsonArrayObjectFactTableReady(grants) ||
+        JsonArrayObjectFactCount(operations) != 5 ||
+        JsonArrayObjectFactCount(grants) != 1 {
+        return empty;
+    }
+    let contacts: Array<String> = [];
+    let runtime_names: Array<String> = [];
+    let authority: Array<Int> = [];
+    let lease: Array<Int> = [];
+    let operation_i: Int = 0;
+    while operation_i < JsonArrayObjectFactCount(operations) {
+        let operation: JsonObjectFactTable =
+            JsonArrayObjectFactAt(operations, operation_i);
+        let contact: String =
+            MachineDeclarationStringFact(operation, "contact");
+        let runtime_name: String =
+            MachineDeclarationStringFact(operation, "runtime_operation");
+        let authority_value: Option<Int> =
+            MachineDeclarationBoolFact(operation, "requires_authority");
+        let lease_value: Option<Int> =
+            MachineDeclarationBoolFact(operation, "requires_live_lease");
+        if !JsonObjectFactTableReady(operation) || contact == "" ||
+            runtime_name == "" || !IsSome(authority_value) ||
+            !IsSome(lease_value) {
+            return empty;
+        }
+        ArrayPush(contacts, contact);
+        ArrayPush(runtime_names, runtime_name);
+        ArrayPush(authority, UnwrapOption(authority_value));
+        ArrayPush(lease, UnwrapOption(lease_value));
+        operation_i = operation_i + 1;
+    }
+    let grant: JsonObjectFactTable = JsonArrayObjectFactAt(grants, 0);
+    let manifest_hardware: Option<Int> =
+        MachineDeclarationBoolFact(manifest, "hardware_adequate");
+    let physical_limit: Option<Int> =
+        MachineDeclarationNumberFact(physical, "address_limit");
+    let physical_hardware: Option<Int> =
+        MachineDeclarationBoolFact(physical, "hardware_adequate");
+    let grant_base: Option<Int> =
+        MachineDeclarationNumberFact(grant, "base");
+    let grant_size: Option<Int> =
+        MachineDeclarationNumberFact(grant, "size");
+    let grant_hardware: Option<Int> =
+        MachineDeclarationBoolFact(grant, "hardware_adequate");
+    if !IsSome(manifest_hardware) || !IsSome(physical_limit) ||
+        !IsSome(physical_hardware) || !IsSome(grant_base) ||
+        !IsSome(grant_size) || !IsSome(grant_hardware) {
+        return empty;
+    }
+    return SelfHostMachineLayerDeclaration(
+        true,
+        MachineDeclarationStringFact(manifest, "id"),
+        UnwrapOption(manifest_hardware),
+        MachineDeclarationFingerprintFact(manifest),
+        contacts, runtime_names, authority, lease,
+        MachineDeclarationStringFact(physical, "id"),
+        MachineDeclarationStringFact(physical, "target_kind"),
+        MachineDeclarationStringFact(physical, "board_id"),
+        MachineDeclarationStringFact(physical, "boot_contract"),
+        MachineDeclarationStringFact(physical, "linker_contract"),
+        UnwrapOption(physical_limit),
+        UnwrapOption(physical_hardware),
+        MachineDeclarationFingerprintFact(physical),
+        MachineDeclarationStringFact(physical, "device_grant"),
+        MachineDeclarationStringFact(grant, "id"),
+        UnwrapOption(grant_base),
+        UnwrapOption(grant_size),
+        MachineDeclarationStringFact(grant, "mode"),
+        UnwrapOption(grant_hardware)
+    );
+}
+
+func SelfHostMachineLayerDeclarationFromPath(
+    path: String
+) -> SelfHostMachineLayerDeclaration {
+    if path == "" { return SelfHostMachineLayerDeclarationEmpty(); }
+    return SelfHostMachineLayerDeclarationFromJson(ReadFile(path));
+}
+
+func MachineDeclarationPhysicalManifestIdReady(id: String) -> Bool {
+    let prefix: String = "pergyra.machine-declaration.";
+    return StringLength(id) > StringLength(prefix) &&
+        Substring(id, 0, StringLength(prefix)) == prefix;
+}
+
+func SelfHostMachineLayerDeclarationReady(
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    if !declaration.ok || declaration.manifest_id == "" ||
+        !MachineDeclarationPhysicalManifestIdReady(
+            declaration.physical_manifest_id
+        ) ||
+        declaration.physical_target_kind == "" ||
+        declaration.physical_board_id == "" ||
+        declaration.physical_boot_contract == "" ||
+        declaration.physical_linker_contract == "" ||
+        declaration.physical_address_limit <= 0 ||
+        declaration.physical_hardware_adequate != 1 ||
+        declaration.grant_id == "" || declaration.grant_base < 0 ||
+        declaration.grant_size <= 0 || declaration.grant_mode == "" ||
+        declaration.grant_hardware_adequate != 1 ||
+        declaration.physical_device_grant == "" ||
+        declaration.physical_device_grant != declaration.grant_id ||
+        declaration.grant_mode != "volatile" ||
+        declaration.manifest_fingerprint == "" ||
+        declaration.physical_fingerprint == "" ||
+        declaration.grant_base + declaration.grant_size >
+            declaration.physical_address_limit ||
+        ArrayLength(declaration.operation_contacts) != 5 ||
+        ArrayLength(declaration.operation_runtime_names) != 5 ||
+        ArrayLength(declaration.operation_authority_required) != 5 ||
+        ArrayLength(declaration.operation_live_lease_required) != 5 {
+        return false;
+    }
+    let i: Int = 0;
+    while i < 5 {
+        if declaration.operation_contacts[i] == "" ||
+            declaration.operation_runtime_names[i] == "" ||
+            declaration.operation_authority_required[i] != 1 ||
+            declaration.operation_live_lease_required[i] != 1 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}

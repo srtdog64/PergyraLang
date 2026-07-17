@@ -4,6 +4,7 @@
 #include "mir_parallel_capture_facts.h"
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -422,6 +423,40 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     mir_json_emit_str_or_null(out, inst->arg0);
     fputs(",\"arg1\":", out);
     mir_json_emit_str_or_null(out, inst->arg1);
+    fputs(",\"machine_layer\":", out);
+    if (inst->machine_layer_fact_present) {
+        fputs("{\"operation\":", out);
+        mir_json_emit_str(out,
+            rir_machine_contact_kind_name(inst->machine_contact_kind));
+        fputs(",\"manifest\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_manifest_id);
+        fputs(",\"physical_grant\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_physical_grant_id);
+        fprintf(out, ",\"physical_base\":%" PRIu64
+                     ",\"physical_size\":%" PRIu64
+                     ",\"physical_mode\":",
+                inst->machine_layer_physical_base,
+                inst->machine_layer_physical_size);
+        mir_json_emit_str_or_null(out, inst->machine_layer_physical_mode);
+        fputs(",\"runtime_operation\":", out);
+        mir_json_emit_str_or_null(out, inst->machine_layer_runtime_operation);
+        fprintf(out, ",\"hardware_adequate\":%s,\"authority_required\":%s,\"live_lease_required\":%s}",
+            inst->machine_layer_hardware_adequate ? "true" : "false",
+            inst->machine_layer_authority_required ? "true" : "false",
+            inst->machine_layer_live_lease_required ? "true" : "false");
+    } else {
+        fputs("null", out);
+    }
+    /* Keep the semantic contact kind explicit even when the rich owner fact
+     * is null.  Self-host MIR consumers can therefore reject a missing
+     * machine-layer object instead of guessing from expression spelling. */
+    fputs(",\"machine_contact_kind\":", out);
+    if (rir_machine_contact_kind_is_present(inst->machine_contact_kind)) {
+        mir_json_emit_str(out,
+            rir_machine_contact_kind_name(inst->machine_contact_kind));
+    } else {
+        fputs("null", out);
+    }
     fputs(",\"expr0\":", out);
     mir_json_emit_expr_or_null(out, inst->expr0);
     fputs(",\"expr1\":", out);
@@ -529,17 +564,138 @@ mir_json_emit_source_locals(FILE *out, const MIRRoutine *routine)
 }
 
 static void
+mir_json_emit_resource_flow_symbols(FILE *out, const MIRRoutine *routine)
+{
+    size_t count = routine != NULL
+        ? routine->resource_flow_symbol_count : 0;
+
+    fprintf(out, ",\"resource_flow_symbol_count\":%zu"
+                 ",\"resource_flow_symbols\":[", count);
+    for (size_t i = 0; i < count; i++) {
+        const MIRResourceFlowSymbol *symbol =
+            &routine->resource_flow_symbols[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out, "{\"stable_index\":%zu,\"declaration_syntax_id\":%u"
+                     ",\"line\":%u,\"column\":%u,\"symbol_kind\":%u"
+                     ",\"is_parameter\":%s,\"parameter_index\":%zu"
+                     ",\"name\":",
+                symbol->stable_index,
+                symbol->declaration_syntax_id,
+                symbol->line,
+                symbol->column,
+                symbol->symbol_kind,
+                symbol->is_parameter ? "true" : "false",
+                symbol->parameter_index);
+        mir_json_emit_str_or_null(out, symbol->name);
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_loop_flow_facts(FILE *out, const MIRRoutine *routine)
+{
+    size_t summary_count = routine != NULL
+        ? routine->loop_flow_summary_count : 0;
+    size_t state_count = routine != NULL
+        ? routine->loop_flow_state_count : 0;
+
+    fprintf(out, ",\"loop_flow_summary_count\":%zu"
+                 ",\"loop_flow_summaries\":[", summary_count);
+    for (size_t i = 0; i < summary_count; i++) {
+        const PgyLoopFlowSummaryFact *summary =
+            &routine->loop_flow_summaries[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+                "{\"loop_syntax_id\":%u,\"kind\":\"%s\""
+                ",\"effect_base\":%u,\"effect_delta\":%u"
+                ",\"flags\":%u,\"entry_state_start\":%zu"
+                ",\"entry_state_count\":%zu"
+                ",\"exit_state_start\":%zu,\"exit_state_count\":%zu}",
+                summary->loop_syntax_id,
+                summary->kind == 1u ? "for" : "while",
+                summary->effect_base,
+                summary->effect_delta,
+                summary->flags,
+                summary->entry_state_start,
+                summary->entry_state_count,
+                summary->exit_state_start,
+                summary->exit_state_count);
+    }
+    fprintf(out, "],\"loop_flow_state_count\":%zu,\"loop_flow_states\":[",
+            state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        const PgyLoopFlowStateFact *state = &routine->loop_flow_states[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out,
+                "{\"stable_index\":%zu,\"is_consumed\":%s"
+                ",\"is_used\":%s,\"access_mask\":%u"
+                ",\"slot_state\":%d,\"semantic_state\":%d"
+                ",\"pool_id\":%d}",
+                state->stable_index,
+                state->is_consumed ? "true" : "false",
+                state->is_used ? "true" : "false",
+                (unsigned)state->access_mask,
+                state->slot_state,
+                state->semantic_state,
+                state->pool_id);
+    }
+    fputc(']', out);
+}
+
+static void
+mir_json_emit_iteration_type_facts(FILE *out, const MIRRoutine *routine)
+{
+    size_t count = routine != NULL ? routine->iteration_type_fact_count : 0;
+    fprintf(out, ",\"iteration_type_fact_count\":%zu"
+                 ",\"iteration_type_facts\":[", count);
+    for (size_t i = 0; i < count; i++) {
+        const MIRIterationTypeFact *fact = &routine->iteration_type_facts[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out, "{\"function_syntax_id\":%u"
+                     ",\"iteration_syntax_id\":%u"
+                     ",\"binding_type\":",
+                fact->function_syntax_id, fact->iteration_syntax_id);
+        mir_json_emit_str_or_null(out, fact->binding_type_name);
+        fputs(",\"iterable_type\":", out);
+        mir_json_emit_str_or_null(out, fact->iterable_type_name);
+        fprintf(out, ",\"collection_hoisted\":%s}",
+                fact->collection_hoisted ? "true" : "false");
+    }
+    fputc(']', out);
+}
+
+static void
 mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
 {
     fputs("{\"name\":", out);
     mir_json_emit_str_or_null(out, routine->name);
     fputs(",\"kind\":", out);
     mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
+    fprintf(out, ",\"source_syntax_id\":%u,\"function_param_flow_summary_count\":%zu",
+            routine->source_syntax_id,
+            routine->function_param_flow_summary_count);
+    fputs(",\"function_param_flow_summaries\":[", out);
+    for (size_t i = 0; i < routine->function_param_flow_summary_count; i++) {
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out, "{\"parameter_index\":%zu,\"mask\":%u}",
+                routine->function_param_flow_summaries[i].parameter_index,
+                routine->function_param_flow_summaries[i].mask);
+    }
+    fputc(']', out);
     if (routine->owner_name != NULL) {
         fputs(",\"owner\":", out);
         mir_json_emit_str(out, routine->owner_name);
     }
     mir_json_emit_routine_signature(out, routine);
+    mir_json_emit_resource_flow_symbols(out, routine);
+    mir_json_emit_loop_flow_facts(out, routine);
+    mir_json_emit_iteration_type_facts(out, routine);
     fputs(",\"blocks\":[", out);
     for (size_t j = 0;
          j < routine->block_count && routine->blocks != NULL; j++) {

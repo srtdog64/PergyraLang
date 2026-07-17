@@ -7,6 +7,7 @@ import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 
 func AbiLayoutRequireCompilerRows() -> Void {
     if !CompilerAbiLayoutRowsReady() {
@@ -16,6 +17,16 @@ func AbiLayoutRequireCompilerRows() -> Void {
 
 func AbiLayoutCValueType(type_name: String, struct_env: CodegenTypeEnv) -> String {
     AbiLayoutRequireCompilerRows();
+    let machine_type: String =
+        CompilerRuntimeCallAbiMachineLayerDeviceCValueType(type_name);
+    if machine_type != "" {
+        return machine_type;
+    }
+    let remote_future_type: String =
+        CompilerRuntimeCallAbiMachineLayerRemoteFutureCValueType(type_name);
+    if remote_future_type != "" {
+        return remote_future_type;
+    }
     let row: Option<Int> = CompilerAbiLayoutRowIndex(type_name);
     if IsSome(row) {
         return CompilerAbiLayoutRowCValueTypeAt(UnwrapOption(row));

@@ -9,6 +9,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     );
     let signatures: SemanticAstFunctionSignatureFacts =
         SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
@@ -28,13 +30,13 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         build.ok, [build.root_id], [build.ok], arena
     );
     let carried: SemanticExpressionGraphFacts =
-        SemanticExpressionGraphCallTargetsFromSignatures(
-            source, signatures, false
+        SemanticExpressionGraphCallTargetsFromCallableFacts(
+            source, signatures, constructors, false
         );
     if !carried.ok ||
         carried.arena.call_target_names[build.root_id] != "Math_Add" ||
-        !SemanticExpressionGraphCallTargetsFromSignatures(
-            carried, signatures, true
+        !SemanticExpressionGraphCallTargetsFromCallableFacts(
+            carried, signatures, constructors, true
         ).ok {
         return false;
     }
@@ -49,7 +51,55 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, carried.roots, carried.has_roots, missing_arena
     );
-    return !SemanticExpressionGraphCallTargetsFromSignatures(
-        missing, signatures, true
-    ).ok;
+    if SemanticExpressionGraphCallTargetsFromCallableFacts(
+        missing, signatures, constructors, true
+    ).ok {
+        return false;
+    }
+    let constructor_artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Pair\n    Fields:\n      left: Int\n"
+    );
+    let constructor_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(constructor_artifact);
+    let constructor_facts: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(constructor_artifact);
+    let constructor_kinds: Array<Int> = [];
+    let constructor_texts: Array<String> = [];
+    let constructor_left: Array<Int> = [];
+    let constructor_right: Array<Int> = [];
+    let constructor_target_kinds: Array<Int> = [];
+    let constructor_target_names: Array<String> = [];
+    let constructor_build: SemanticExpressionGraphBuild =
+        SemanticExpressionGraphBuildCompactBridgeFromText(
+            constructor_kinds, constructor_texts,
+            constructor_left, constructor_right,
+            constructor_target_kinds, constructor_target_names, "Pair()"
+        );
+    let constructor_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            constructor_kinds, constructor_texts,
+            constructor_left, constructor_right,
+            constructor_target_kinds, constructor_target_names
+        );
+    let constructor_source: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFacts(
+            constructor_build.ok, [constructor_build.root_id],
+            [constructor_build.ok], constructor_arena
+        );
+    let constructor_carried: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphCallTargetsFromCallableFacts(
+            constructor_source, constructor_signatures,
+            constructor_facts, false
+        );
+    return constructor_carried.ok &&
+        constructor_carried.arena.call_target_kinds[
+            constructor_build.root_id
+        ] == SemanticCallTargetDirect() &&
+        constructor_carried.arena.call_target_names[
+            constructor_build.root_id
+        ] == "Pair" &&
+        SemanticExpressionGraphCallTargetsFromCallableFacts(
+            constructor_carried, constructor_signatures,
+            constructor_facts, true
+        ).ok;
 }

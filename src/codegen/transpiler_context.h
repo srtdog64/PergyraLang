@@ -20,6 +20,8 @@ void transpiler_set_backend_error_with_hints(TranspilerCtx *ctx,
                                              const char *fmt, ...);
 void transpiler_set_mir_inventory_missing(TranspilerCtx *ctx,
                                           const char *fmt, ...);
+bool transpiler_machine_layer_projection_is_bound(
+    const TranspilerCtx *ctx);
 void transpiler_set_mir_topology_invalid(TranspilerCtx *ctx,
                                          const char *fmt, ...);
 void transpiler_set_mir_intent_carrier_missing(TranspilerCtx *ctx,

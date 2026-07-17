@@ -1,0 +1,96 @@
+// Self-hosted consumer for the native RIR machine-contact artifact.
+//
+// RIR owns contact classification. This tool only validates the serialized
+// rows against the existing machine projection owner; it does not recover
+// meaning from source text or define a second operation table.
+
+import "../../lib/json_fact_table.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+
+func MachineRirFail(message: String) -> Void {
+    Log(Concat("MACHINE-RIR ERROR: ", message));
+    Exit(1);
+}
+
+func MachineRirContactIndex(contact: String) -> Int {
+    let row: Int = 0;
+    while row < CompilerRuntimeCallAbiMachineLayerContactCount() {
+        if CompilerRuntimeCallAbiMachineLayerContactNameAt(row) == contact {
+            return row;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+func MachineRirOpReady(op: JsonObjectFactTable) -> Bool {
+    if !JsonObjectFactTableReady(op) {
+        return false;
+    }
+    let contact_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(op, "machine_contact");
+    if !IsSome(contact_opt) {
+        return false;
+    }
+    let contact: String = UnwrapOption(contact_opt);
+    if contact == "none" {
+        return true;
+    }
+    return MachineRirContactIndex(contact) >= 0;
+}
+
+func MachineRirValidate(path: String) -> Void {
+    let content: String = ReadFile(path);
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
+    let version_opt: Option<String> =
+        JsonObjectFactNumberFieldOpt(root, "rir_version");
+    if !JsonObjectFactTableReady(root) ||
+        !IsSome(version_opt) || UnwrapOption(version_opt) != "1" {
+        MachineRirFail("RIR JSON schema is missing or invalid");
+    }
+    let scopes: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(root, "scopes");
+    if !JsonArrayObjectFactTableReady(scopes) ||
+        JsonArrayObjectFactCount(scopes) <= 0 {
+        MachineRirFail("RIR scopes are missing or empty");
+    }
+
+    let contact_count: Int = 0;
+    let scope_row: Int = 0;
+    while scope_row < JsonArrayObjectFactCount(scopes) {
+        let scope: JsonObjectFactTable =
+            JsonArrayObjectFactAt(scopes, scope_row);
+        let ops: JsonArrayObjectFactTable =
+            JsonObjectFactArrayObjectTable(scope, "ops");
+        if !JsonArrayObjectFactTableReady(ops) {
+            MachineRirFail("RIR scope ops are missing");
+        }
+        let op_row: Int = 0;
+        while op_row < JsonArrayObjectFactCount(ops) {
+            let op: JsonObjectFactTable = JsonArrayObjectFactAt(ops, op_row);
+            if !MachineRirOpReady(op) {
+                MachineRirFail("RIR machine contact is missing or unknown");
+            }
+            let contact_opt: Option<String> =
+                JsonObjectFactStringFieldOpt(op, "machine_contact");
+            if IsSome(contact_opt) && UnwrapOption(contact_opt) != "none" {
+                contact_count = contact_count + 1;
+            }
+            op_row = op_row + 1;
+        }
+        scope_row = scope_row + 1;
+    }
+    if contact_count <= 0 {
+        MachineRirFail("RIR contains no machine contact rows");
+    }
+    Log(Concat("pgy.selfhost.machine-layer-rir.v1|contacts=",
+        ToString(contact_count)));
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 1 {
+        MachineRirFail("usage: machine_layer_rir_validator <rir-json-file>");
+    }
+    MachineRirValidate(args[0]);
+}

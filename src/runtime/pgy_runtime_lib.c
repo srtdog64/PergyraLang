@@ -10,6 +10,7 @@
 
 #include "pgy_runtime_lib_authority_file_core.h"
 #include "pgy_runtime_lib_core_exports.h"
+#include "pgy_runtime_lib_machine_layer_exports.h"
 #include "pgy_runtime_lib_list_raw_exports.h"
 #include "pgy_runtime_lib_raw_collection_exports.h"
 #include "pgy_runtime_lib_set_intent_trace_exports.c"

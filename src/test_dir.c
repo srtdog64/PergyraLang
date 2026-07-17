@@ -101,6 +101,81 @@ dir_has_edge(const DIRProgram *dir,
     return false;
 }
 
+static void
+test_dir_resource_flow_universe_carriage(void)
+{
+    const char *source = "func Main() -> Void { Log(1); }\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    PgyResourceFlowFact facts[2] = {
+        {
+            .function_syntax_id = 42,
+            .stable_index = 0,
+            .declaration_syntax_id = 100,
+            .line = 1,
+            .column = 25,
+            .symbol_kind = 7,
+            .is_parameter = false,
+            .parameter_index = 0,
+            .name = (char *)"slot",
+        },
+        {
+            .function_syntax_id = 42,
+            .stable_index = 1,
+            .declaration_syntax_id = 101,
+            .line = 1,
+            .column = 30,
+            .symbol_kind = 7,
+            .is_parameter = false,
+            .parameter_index = 0,
+            .name = (char *)"future",
+        },
+    };
+    char *error = NULL;
+    DIRProgram *dir = NULL;
+
+    TEST("DIR carries semantic ResourceFlowUniverse rows by stable identity");
+    if (!parser_has_error(parser)) {
+        dir = dir_lower_with_resource_flow_facts(
+            ast, facts, 2, &error);
+    }
+    EXPECT(dir != NULL
+           && dir->has_resource_flow_facts
+           && dir->resource_flow_fact_count == 2
+           && dir_validate(dir, &error));
+    EXPECT(dir != NULL
+           && dir->resource_flow_facts[0].name != facts[0].name
+           && strcmp(dir->resource_flow_facts[0].name, "slot") == 0
+           && dir->resource_flow_facts[0].stable_index == 0
+           && dir->resource_flow_facts[1].stable_index == 1);
+    dir_destroy(dir);
+    dir = NULL;
+    free(error);
+    error = NULL;
+
+    TEST("DIR rejects a missing ResourceFlowUniverse fact array");
+    dir = dir_lower_with_resource_flow_facts(ast, NULL, 1, &error);
+    EXPECT(dir == NULL
+           && error != NULL
+           && strstr(error, "ResourceFlowUniverse") != NULL);
+    dir_destroy(dir);
+    free(error);
+    error = NULL;
+
+    TEST("DIR rejects duplicate function/stable resource identities");
+    facts[1].stable_index = facts[0].stable_index;
+    dir = dir_lower_with_resource_flow_facts(ast, facts, 2, &error);
+    EXPECT(dir != NULL && !dir_validate(dir, &error));
+    dir_destroy(dir);
+    free(error);
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+
+    printf("[dir-resource-flow] semantic ResourceFlowUniverse rows are copied, validated, and fail closed\n");
+}
+
 #include "tests/dir/test_dir_lowering.cases.h"
 
 int
@@ -108,6 +183,7 @@ main(void)
 {
     printf("=== Pergyra DIR Lowering Test Suite ===\n");
     test_dir_lowering();
+    test_dir_resource_flow_universe_carriage();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

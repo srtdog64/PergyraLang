@@ -92,6 +92,7 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
     }
     sym = symbol_create_slot(name, slot_type, is_secure, paired_token,
                              node->line, node->column);
+    symbol_mark_declaration(sym, ast_node_stable_id(node), false);
     scope_declare(ctx->scope, sym);
     if (is_secure) {
         Symbol *tok = symbol_create_token(paired_token, name,

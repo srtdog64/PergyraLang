@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "mir_program.h"
 
@@ -158,6 +159,15 @@ const char *mir_routine_return_type_name(const MIRRoutine *routine);
 const MIRCallableSig *mir_routine_param_callable_sig(const MIRRoutine *routine,
                                                     size_t index);
 const MIRCallableSig *mir_routine_return_callable_sig(const MIRRoutine *routine);
+size_t      mir_routine_function_param_flow_summary_count(
+                const MIRRoutine *routine);
+const MIRFunctionParamFlowSummary *
+            mir_routine_function_param_flow_summary_at(
+                const MIRRoutine *routine,
+                size_t index);
+const MIRIterationTypeFact *mir_routine_iteration_type_fact(
+                const MIRRoutine *routine,
+                uint32_t iteration_syntax_id);
 /* Source-local binding type facts are materialized during MIR lowering so
  * backends do not rescan function bodies. */
 const char *mir_routine_source_local_type_name(

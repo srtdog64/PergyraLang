@@ -111,7 +111,8 @@ func SelfMirRoutineAddInstruction(
 
 func SelfMirRoutineAttachLastExpressionGraph(
     build: SelfMirRoutineBuild,
-    view: SemanticExpressionGraphView
+    view: SemanticExpressionGraphView,
+    declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirRoutineBuild {
     if !view.ok {
         return SelfMirRoutineBuildError(
@@ -119,7 +120,7 @@ func SelfMirRoutineAttachLastExpressionGraph(
         );
     }
     let cfg: SelfMirCfgRows = SelfMirCfgAttachLastExpr0Graph(
-        build.cfg, view
+        build.cfg, view, declaration
     );
     let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
     if instruction_index < 0 ||

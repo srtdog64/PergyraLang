@@ -1,5 +1,6 @@
 #include "compiler_internal.h"
 #include "compiler_toolchain.h"
+#include "verified_projection_plan.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,14 +11,27 @@
 #include "../codegen/llvm_backend.h"
 
 CompilerResult *
-compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
+compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
+                      const AIRProgram *air,
+                      const char *module_name)
 {
+    PgyVerifiedProjectionPlanRow projection_plan;
+    const char *projection_error = NULL;
     if (bundle == NULL || bundle->dir == NULL
-        || bundle->rir == NULL || bundle->mir == NULL) {
+        || bundle->rir == NULL || bundle->mir == NULL
+        || air == NULL) {
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen_from_mir(bundle->mir, module_name);
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, bundle->mir, PGY_PROJECTION_TARGET_LLVM,
+            &projection_plan, &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified projection plan failed");
+    }
+
+    LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plan(
+        bundle->mir, &projection_plan, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -37,22 +51,43 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
         printf("%s", gen->ir_text);
 
     llvm_gen_result_destroy(gen);
-    return compiler_success(NULL, NULL);
+    CompilerResult *result = compiler_success(NULL, NULL);
+    if (result == NULL)
+        return NULL;
+    if (!compiler_result_bind_artifact_identity(
+            result, &projection_plan, "emitted_llvm")) {
+        compiler_result_destroy(result);
+        return compiler_error(
+            "LLVM artifact identity could not bind the verified projection plan");
+    }
+    return result;
 }
 
 CompilerResult *
 compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
+                              const AIRProgram *air,
                               const char *module_name,
                               const char *output_ir_path)
 {
+    PgyVerifiedProjectionPlanRow projection_plan;
+    const char *projection_error = NULL;
     if (!pgy_path_is_safe(output_ir_path))
         return compiler_error("Unsafe characters in file path");
     if (bundle == NULL || bundle->dir == NULL
-        || bundle->rir == NULL || bundle->mir == NULL) {
+        || bundle->rir == NULL || bundle->mir == NULL
+        || air == NULL) {
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen_from_mir(bundle->mir, module_name);
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, bundle->mir, PGY_PROJECTION_TARGET_LLVM,
+            &projection_plan, &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified projection plan failed");
+    }
+
+    LLVMGenResult *gen = llvm_codegen_from_mir_with_projection_plan(
+        bundle->mir, &projection_plan, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -79,11 +114,21 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
     fclose(out);
 
     llvm_gen_result_destroy(gen);
-    return compiler_success(output_ir_path, NULL);
+    CompilerResult *result = compiler_success(output_ir_path, NULL);
+    if (result == NULL)
+        return NULL;
+    if (!compiler_result_bind_artifact_identity(
+            result, &projection_plan, "emitted_llvm")) {
+        compiler_result_destroy(result);
+        return compiler_error(
+            "LLVM artifact identity could not bind the verified projection plan");
+    }
+    return result;
 }
 
 CompilerResult *
 compiler_build_native_llvm(const CompilerIRBundle *bundle,
+                           const AIRProgram *air,
                            const char *output_obj_path,
                            const char *output_binary_path,
                            bool verbose,
@@ -94,18 +139,27 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     CompilerResult *result = NULL;
     bool compiled_runtime = false;
     bool uses_intent_observability = false;
+    PgyVerifiedProjectionPlanRow projection_plan;
+    const char *projection_error = NULL;
 
     if (bundle == NULL || bundle->dir == NULL
-        || bundle->rir == NULL || bundle->mir == NULL) {
+        || bundle->rir == NULL || bundle->mir == NULL
+        || air == NULL) {
         return compiler_error("IR bundle is incomplete");
+    }
+    if (!pgy_verified_projection_plan_intent_observability_with_air(
+            air, bundle->mir, PGY_PROJECTION_TARGET_LLVM,
+            &projection_plan, &projection_error)) {
+        return compiler_error(projection_error != NULL
+            ? projection_error : "verified projection plan failed");
     }
     if (verbose)
         printf("pgy: LLVM codegen -> %s\n", output_obj_path);
 
     compiler_debug_llvm_host_stage("codegen_begin");
     phase_start = compiler_now_seconds();
-    LLVMGenResult *gen = llvm_codegen_to_object_from_mir(
-        bundle->mir,
+    LLVMGenResult *gen = llvm_codegen_to_object_from_mir_with_projection_plan(
+        bundle->mir, &projection_plan,
         "pergyra_module",
         output_obj_path,
         opt_profile == PGY_OPT_RELEASE);
@@ -166,6 +220,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     if (result == NULL) {
         free(runtime_obj_path);
         return NULL;
+    }
+    if (!compiler_result_bind_artifact_identity(
+            result, &projection_plan, "emitted_llvm")) {
+        compiler_result_destroy(result);
+        free(runtime_obj_path);
+        return compiler_error(
+            "LLVM artifact identity could not bind the verified projection plan");
     }
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
     compiler_debug_llvm_host_stage("runtime_prepare");
@@ -340,19 +401,24 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
 #else
 
 CompilerResult *
-compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
+compiler_emit_llvm_ir(const CompilerIRBundle *bundle,
+                      const AIRProgram *air,
+                      const char *module_name)
 {
     (void)bundle;
+    (void)air;
     (void)module_name;
     return compiler_error("LLVM backend not available in this build");
 }
 
 CompilerResult *
 compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
+                              const AIRProgram *air,
                               const char *module_name,
                               const char *output_ir_path)
 {
     (void)bundle;
+    (void)air;
     (void)module_name;
     (void)output_ir_path;
     return compiler_error("LLVM backend not available in this build");
@@ -360,12 +426,14 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
 
 CompilerResult *
 compiler_build_native_llvm(const CompilerIRBundle *bundle,
+                           const AIRProgram *air,
                            const char *output_obj_path,
                            const char *output_binary_path,
                            bool verbose,
                            PgyOptProfile opt_profile)
 {
     (void)bundle;
+    (void)air;
     (void)output_obj_path;
     (void)output_binary_path;
     (void)verbose;

@@ -9,6 +9,14 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
     local missing_graph
 
     if [[ "$base" == "forloop" ]]; then
+        grep -Fq '"iteration_type_fact_count":1' "$self_mir_json" || {
+            echo "[self-host-parity:driver-rung2] $backend range iteration type fact missing" >&2
+            exit 1
+        }
+        grep -Fq '"binding_type":"Int","iterable_type":"Int"' "$self_mir_json" || {
+            echo "[self-host-parity:driver-rung2] $backend range iteration type fact drifted" >&2
+            exit 1
+        }
         grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"0"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-start graph drifted" >&2
@@ -23,6 +31,18 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
         sed 's/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph"/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph_removed"/g' \
             "$self_mir_json" >"$missing_graph"
     elif [[ "$base" == "for_each" ]]; then
+        grep -Fq '"iteration_type_fact_count":2' "$self_mir_json" || {
+            echo "[self-host-parity:driver-rung2] $backend foreach iteration type fact count drifted" >&2
+            exit 1
+        }
+        for iteration_fact in \
+            '"binding_type":"Int","iterable_type":"Array<Int>"' \
+            '"binding_type":"String","iterable_type":"Array<String>"'; do
+            grep -Fq "$iteration_fact" "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend foreach iteration type fact drifted: $iteration_fact" >&2
+                exit 1
+            }
+        done
         for collection in nums names; do
             grep -Fq "\"expr0\":\"$collection\",\"expr0_graph\":{\"root\":0,\"nodes\":[{\"kind\":\"leaf\",\"text\":\"$collection\"" \
                 "$self_mir_json" || {

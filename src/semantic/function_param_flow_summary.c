@@ -8,7 +8,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "../parser/ast_analysis.h"
 #include "slot_analyzer_internal.h"
 #include "type_checker_internal.h"
 
@@ -31,6 +33,24 @@ typedef struct
     FunctionParamFlowSummaryState state;
 } FunctionParamFlowSummaryEntry;
 
+/*
+ * Function-local sparse program-point owner.  The rows are deliberately
+ * rooted at source statements, not copied summaries: the last consumer still
+ * runs the existing access/escape transfer over the selected roots, while the
+ * owner removes unrelated statements from every demanded parameter walk.
+ */
+typedef struct
+{
+    uint32_t function_id;
+    ASTNode *function_decl;
+    ASTNode ***roots_by_param;
+    size_t *root_counts;
+    size_t *root_capacities;
+    size_t param_count;
+    size_t statement_count;
+    size_t relevant_root_count;
+} FunctionParamFlowProgramPointIndex;
+
 struct FunctionParamFlowSummaryStore
 {
     SemanticContext *ctx;
@@ -40,6 +60,9 @@ struct FunctionParamFlowSummaryStore
     size_t capacity;
     size_t *hash;
     size_t hash_capacity;
+    FunctionParamFlowProgramPointIndex *program_point_indexes;
+    size_t program_point_index_count;
+    size_t program_point_index_capacity;
     size_t active_start;
     bool solving;
     bool changed;
@@ -51,7 +74,30 @@ struct FunctionParamFlowSummaryStore
     size_t fixed_point_passes;
     size_t work_units;
     size_t work_budget;
+    size_t indexed_statement_visits;
+    size_t indexed_program_points;
 };
+
+void
+pgy_function_param_flow_facts_destroy(PgyFunctionParamFlowFact *facts)
+{
+    free(facts);
+}
+
+static bool
+function_param_flow_identifier_matches(const char *candidate, void *userdata)
+{
+    const char *name = userdata;
+    return candidate != NULL && name != NULL && strcmp(candidate, name) == 0;
+}
+
+static bool
+function_param_flow_has_identifier_ref(const ASTNode *node, const char *name)
+{
+    return node != NULL && name != NULL
+        && ast_contains_identifier_ref(
+            node, function_param_flow_identifier_matches, (void *)name);
+}
 
 static size_t
 function_param_flow_key_hash(uint32_t function_id, size_t param_index)
@@ -125,6 +171,201 @@ function_param_flow_find(const FunctionParamFlowSummaryStore *store,
         slot = (slot + 1) & (store->hash_capacity - 1);
     }
     return SIZE_MAX;
+}
+
+static void
+function_param_flow_program_point_index_destroy(
+    FunctionParamFlowProgramPointIndex *index)
+{
+    if (index == NULL)
+        return;
+    if (index->roots_by_param != NULL) {
+        for (size_t i = 0; i < index->param_count; i++)
+            free(index->roots_by_param[i]);
+    }
+    free(index->roots_by_param);
+    free(index->root_counts);
+    free(index->root_capacities);
+    memset(index, 0, sizeof(*index));
+}
+
+static size_t
+function_param_flow_program_point_index_find(
+    const FunctionParamFlowSummaryStore *store,
+    uint32_t function_id)
+{
+    if (store == NULL || function_id == 0)
+        return SIZE_MAX;
+    for (size_t i = 0; i < store->program_point_index_count; i++) {
+        if (store->program_point_indexes[i].function_id == function_id)
+            return i;
+    }
+    return SIZE_MAX;
+}
+
+static bool
+function_param_flow_program_point_index_reserve(
+    FunctionParamFlowSummaryStore *store,
+    size_t minimum)
+{
+    FunctionParamFlowProgramPointIndex *grown;
+    size_t capacity;
+
+    if (store == NULL)
+        return false;
+    if (minimum <= store->program_point_index_capacity)
+        return true;
+    capacity = store->program_point_index_capacity == 0
+        ? 8 : store->program_point_index_capacity;
+    while (capacity < minimum) {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+    }
+    if (capacity > SIZE_MAX / sizeof(*grown))
+        return false;
+    grown = realloc(store->program_point_indexes,
+                    capacity * sizeof(*grown));
+    if (grown == NULL)
+        return false;
+    memset(grown + store->program_point_index_capacity, 0,
+           (capacity - store->program_point_index_capacity) * sizeof(*grown));
+    store->program_point_indexes = grown;
+    store->program_point_index_capacity = capacity;
+    return true;
+}
+
+static bool
+function_param_flow_program_point_append(
+    FunctionParamFlowProgramPointIndex *index,
+    size_t param_index,
+    ASTNode *root)
+{
+    ASTNode **grown;
+    size_t capacity;
+
+    if (index == NULL || root == NULL || param_index >= index->param_count)
+        return false;
+    if (index->root_counts[param_index]
+            == index->root_capacities[param_index]) {
+        capacity = index->root_capacities[param_index] == 0
+            ? 8 : index->root_capacities[param_index];
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        capacity *= 2;
+        if (capacity > SIZE_MAX / sizeof(*grown))
+            return false;
+        grown = realloc(index->roots_by_param[param_index],
+                        capacity * sizeof(*grown));
+        if (grown == NULL)
+            return false;
+        index->roots_by_param[param_index] = grown;
+        index->root_capacities[param_index] = capacity;
+    }
+    index->roots_by_param[param_index][index->root_counts[param_index]++] = root;
+    index->relevant_root_count++;
+    return true;
+}
+
+static bool
+function_param_flow_program_point_index_build(
+    FunctionParamFlowSummaryStore *store,
+    ASTNode *function_decl,
+    FunctionParamFlowProgramPointIndex **index_out)
+{
+    FunctionParamFlowProgramPointIndex *index;
+    ASTNode *body;
+    uint32_t function_id;
+    size_t existing;
+    size_t param_count;
+
+    if (store == NULL || function_decl == NULL || index_out == NULL)
+        return false;
+    function_id = ast_node_stable_id(function_decl);
+    if (function_id == 0)
+        return false;
+    existing = function_param_flow_program_point_index_find(
+        store, function_id);
+    if (existing != SIZE_MAX) {
+        *index_out = &store->program_point_indexes[existing];
+        return true;
+    }
+
+    param_count = ast_func_param_count(function_decl);
+    if (!function_param_flow_program_point_index_reserve(
+            store, store->program_point_index_count + 1)
+        || (param_count > SIZE_MAX / sizeof(ASTNode **))
+        || (param_count > SIZE_MAX / sizeof(size_t))) {
+        return false;
+    }
+
+    existing = store->program_point_index_count++;
+    index = &store->program_point_indexes[existing];
+    memset(index, 0, sizeof(*index));
+    index->function_id = function_id;
+    index->function_decl = function_decl;
+    index->param_count = param_count;
+    if (param_count > 0) {
+        index->roots_by_param = calloc(param_count, sizeof(ASTNode **));
+        index->root_counts = calloc(param_count, sizeof(size_t));
+        index->root_capacities = calloc(param_count, sizeof(size_t));
+        if (index->roots_by_param == NULL
+            || index->root_counts == NULL
+            || index->root_capacities == NULL) {
+            function_param_flow_program_point_index_destroy(index);
+            store->program_point_index_count--;
+            return false;
+        }
+    }
+
+    body = ast_func_body(function_decl);
+    if (body == NULL) {
+        *index_out = index;
+        return true;
+    }
+
+    if (body->type == AST_BLOCK) {
+        for (size_t s = 0; s < ast_block_statement_count(body); s++) {
+            ASTNode *statement = ast_block_statement(body, s);
+            index->statement_count++;
+            store->indexed_statement_visits++;
+            for (size_t p = 0; p < param_count; p++) {
+                FuncParam *param = ast_func_param(function_decl, p);
+                if (param == NULL || param->name == NULL
+                    || !function_param_flow_has_identifier_ref(
+                        statement, param->name))
+                    continue;
+                if (!function_param_flow_program_point_append(
+                        index, p, statement)) {
+                    store->indexed_program_points -=
+                        index->relevant_root_count;
+                    function_param_flow_program_point_index_destroy(index);
+                    store->program_point_index_count--;
+                    return false;
+                }
+                store->indexed_program_points++;
+            }
+        }
+    } else {
+        index->statement_count = 1;
+        store->indexed_statement_visits++;
+        for (size_t p = 0; p < param_count; p++) {
+            FuncParam *param = ast_func_param(function_decl, p);
+            if (param == NULL || param->name == NULL
+                || !function_param_flow_has_identifier_ref(body, param->name))
+                continue;
+            if (!function_param_flow_program_point_append(index, p, body)) {
+                store->indexed_program_points -= index->relevant_root_count;
+                function_param_flow_program_point_index_destroy(index);
+                store->program_point_index_count--;
+                return false;
+            }
+            store->indexed_program_points++;
+        }
+    }
+
+    *index_out = index;
+    return true;
 }
 
 static bool
@@ -244,6 +485,9 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
 {
     ASTNode *function_decl;
     FuncParam *param;
+    FunctionParamFlowProgramPointIndex *program_points;
+    ASTNode *const *roots;
+    size_t root_count;
     SlotSummaryOrigin origin;
     SlotFunctionLookup lookup;
     unsigned candidate;
@@ -289,8 +533,20 @@ function_param_flow_evaluate(FunctionParamFlowSummaryStore *store,
     origin.param_name = param->name;
     lookup.ctx = store->ctx;
     lookup.program_root = store->program_root;
-    candidate = slot_param_summary_in_program(
-        ast_func_body(function_decl), param->name, &lookup, 0, &origin);
+    if (!function_param_flow_program_point_index_build(
+            store, function_decl, &program_points)
+        || program_points == NULL
+        || store->entries[index].param_index >= program_points->param_count) {
+        function_param_flow_fail(store, function_decl,
+            "parameter program-point index allocation failed");
+        store->entries[index].mask = SLOT_PARAM_SUMMARY_ALL;
+        store->entries[index].state = FUNCTION_PARAM_FLOW_EVALUATED;
+        return SLOT_PARAM_SUMMARY_ALL;
+    }
+    roots = program_points->roots_by_param[store->entries[index].param_index];
+    root_count = program_points->root_counts[store->entries[index].param_index];
+    candidate = slot_param_summary_in_program_points(
+        roots, root_count, param->name, &lookup, 0, &origin);
 
     /* Recursive demands may grow the entries array, so reacquire by index. */
     previous = store->entries[index].mask;
@@ -415,6 +671,47 @@ function_param_flow_summary_demand(const SlotFunctionLookup *lookup,
     return store->entries[root_index].mask;
 }
 
+bool
+function_param_flow_summary_snapshot(SemanticContext *ctx)
+{
+    FunctionParamFlowSummaryStore *store;
+    PgyFunctionParamFlowFact *facts;
+    size_t count = 0;
+
+    if (ctx == NULL)
+        return false;
+    store = ctx->function_param_flow_summaries;
+    if (store == NULL)
+        return true;
+    if (store->failed)
+        return false;
+    if (store->count > SIZE_MAX / sizeof(*facts))
+        return false;
+
+    facts = store->count == 0
+        ? NULL
+        : calloc(store->count, sizeof(*facts));
+    if (store->count != 0 && facts == NULL)
+        return false;
+    for (size_t i = 0; i < store->count; i++) {
+        const FunctionParamFlowSummaryEntry *entry = &store->entries[i];
+        if (entry->state != FUNCTION_PARAM_FLOW_COMPLETE)
+            continue;
+        facts[count].function_syntax_id = entry->function_id;
+        facts[count].parameter_index = entry->param_index;
+        facts[count].mask = entry->mask;
+        count++;
+    }
+    if (count == 0) {
+        free(facts);
+        facts = NULL;
+    }
+    ctx->function_param_flow_facts = facts;
+    ctx->function_param_flow_fact_count = count;
+    ctx->function_param_flow_fact_capacity = count;
+    return true;
+}
+
 void
 function_param_flow_summary_store_destroy(SemanticContext *ctx)
 {
@@ -429,7 +726,17 @@ function_param_flow_summary_store_destroy(SemanticContext *ctx)
             " cache_hits=%zu recursion_hits=%zu fixed_point_passes=%zu\n",
             store->count, store->body_evaluations, store->cache_hits,
             store->recursion_hits, store->fixed_point_passes);
+        fprintf(stderr,
+            "pgy: function-param-flow-sparse functions=%zu"
+            " statement_visits=%zu program_points=%zu\n",
+            store->program_point_index_count,
+            store->indexed_statement_visits,
+            store->indexed_program_points);
     }
+    for (size_t i = 0; i < store->program_point_index_count; i++)
+        function_param_flow_program_point_index_destroy(
+            &store->program_point_indexes[i]);
+    free(store->program_point_indexes);
     free(store->entries);
     free(store->hash);
     free(store);

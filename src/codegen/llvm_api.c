@@ -22,17 +22,46 @@ llvm_debug_stage(const char *stage)
         fprintf(stderr, "[llvm stage] %s\n", stage);
 }
 
+bool
+llvm_machine_layer_projection_is_bound(const LLVMGenCtx *ctx)
+{
+    return ctx != NULL
+        && ctx->projection_plan != NULL
+        && ctx->projection_plan->verified
+        && ctx->projection_plan->target == PGY_PROJECTION_TARGET_LLVM
+        && ctx->projection_plan->machine_layer_manifest_fingerprint != 0
+        && ctx->projection_plan->machine_layer_physical_manifest_fingerprint != 0;
+}
+
 static bool
 llvm_apply_intent_observability_projection_plan(LLVMGenCtx *ctx)
 {
     PgyVerifiedProjectionPlanRow row;
-    const char *error = NULL;
 
-    if (!pgy_verified_projection_plan_intent_observability(
-            ctx != NULL ? ctx->mir : NULL,
-            PGY_PROJECTION_TARGET_LLVM, &row, &error)) {
+    if (ctx == NULL || ctx->projection_plan == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "%s", "LLVM backend: verified projection plan required");
+        return false;
+    }
+    row = *ctx->projection_plan;
+    if (!row.verified || row.target != PGY_PROJECTION_TARGET_LLVM) {
         llvm_set_mir_inventory_missing(ctx, "%s",
-            error != NULL ? error : "verified projection plan failed");
+            "LLVM backend: projection plan is not verified for LLVM");
+        return false;
+    }
+    if (row.target_capability_fingerprint == 0) {
+        llvm_set_mir_inventory_missing(ctx, "%s",
+            "LLVM backend: target capability fingerprint is missing");
+        return false;
+    }
+    if (row.machine_layer_manifest_fingerprint == 0) {
+        llvm_set_mir_inventory_missing(ctx, "%s",
+            "LLVM backend: machine-layer manifest fingerprint is missing");
+        return false;
+    }
+    if (row.machine_layer_physical_manifest_fingerprint == 0) {
+        llvm_set_mir_inventory_missing(ctx,
+            "%s", "LLVM backend: physical machine declaration fingerprint is missing");
         return false;
     }
     ctx->uses_intent_observability =
@@ -382,7 +411,9 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 }
 
 static LLVMGenResult *
-llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
+llvm_codegen_mir_only(const MIRProgram *mir,
+                      const PgyVerifiedProjectionPlanRow *projection_plan,
+                      const char *module_name)
 {
     llvm_debug_stage("codegen_with_mir:ctx_create");
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
@@ -392,6 +423,7 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
+    ctx->projection_plan = projection_plan;
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
@@ -444,11 +476,21 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
 LLVMGenResult *
 llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
 {
-    return llvm_codegen_mir_only(mir, module_name);
+    return llvm_codegen_mir_only(mir, NULL, module_name);
+}
+
+LLVMGenResult *
+llvm_codegen_from_mir_with_projection_plan(
+    const MIRProgram *mir,
+    const PgyVerifiedProjectionPlanRow *projection_plan,
+    const char *module_name)
+{
+    return llvm_codegen_mir_only(mir, projection_plan, module_name);
 }
 
 static LLVMGenResult *
 llvm_codegen_to_object_core(const MIRProgram *mir,
+                            const PgyVerifiedProjectionPlanRow *projection_plan,
                             const char *module_name,
                             const char *output_path,
                             bool release_opt)
@@ -465,6 +507,7 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
+    ctx->projection_plan = projection_plan;
 
     llvm_debug_stage("codegen_to_object:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
@@ -570,7 +613,19 @@ llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                 const char *output_path,
                                 bool release_opt)
 {
-    return llvm_codegen_to_object_core(mir, module_name, output_path,
+    return llvm_codegen_to_object_core(mir, NULL, module_name, output_path,
+                                       release_opt);
+}
+
+LLVMGenResult *
+llvm_codegen_to_object_from_mir_with_projection_plan(
+                                         const MIRProgram *mir,
+                                         const PgyVerifiedProjectionPlanRow *projection_plan,
+                                         const char *module_name,
+                                         const char *output_path,
+                                         bool release_opt)
+{
+    return llvm_codegen_to_object_core(mir, projection_plan, module_name, output_path,
                                        release_opt);
 }
 

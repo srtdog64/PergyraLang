@@ -10,6 +10,24 @@ func CompilerArtifactKindCount() -> Int {
     return 24;
 }
 
+// Native C/LLVM artifacts are valid only when they carry the planner's
+// anchored identity. The digest is an identity/mutation guard, not crypto.
+func CompilerArtifactPlanRevision() -> Int {
+    return 1;
+}
+
+func CompilerArtifactIdentityReady(
+    kind: String,
+    plan_revision: Int,
+    plan_digest: Int
+) -> Bool {
+    return CompilerArtifactKindKnown(kind) &&
+        (kind == CompilerEmittedCArtifactKind() ||
+         kind == CompilerEmittedLlvmArtifactKind()) &&
+        plan_revision == CompilerArtifactPlanRevision() &&
+        plan_digest != 0;
+}
+
 func CompilerDiagnosticsArtifactKind() -> String {
     return "diagnostics";
 }

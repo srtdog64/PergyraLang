@@ -29,6 +29,7 @@
 #include "llvm_runner.h"
 #include "c_runner.h"
 #include "driver_diag.h"
+#include "machine_layer_manifest.h"
 
 /* Path utilities are now in path_utils.h/c */
 
@@ -115,6 +116,7 @@ int
 driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 {
     ASTNode *ast = NULL;
+    PgySourceModuleGraph *module_graph = NULL;
     SemanticResult *sem = NULL;
     DIRProgram *dir = NULL;
     RIRProgram *rir = NULL;
@@ -125,11 +127,30 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     int exit_code = 1;
     char *load_error = NULL;
     char *hir_error = NULL;
+    char *compatibility_manifest_path = NULL;
     double phase_start = 0.0;
     double total_start = driver_now_seconds();
     memset(&bundle, 0, sizeof(bundle));
     if (timings != NULL)
         memset(timings, 0, sizeof(*timings));
+
+    if (flags != NULL && flags->machine_layer_physical_manifest != NULL) {
+        const char *machine_manifest_error = NULL;
+        if (!pgy_machine_layer_physical_manifest_bind(
+                flags->machine_layer_physical_manifest,
+                &machine_manifest_error)) {
+            fprintf(stderr, "pgy: machine-layer target declaration rejected: %s\n",
+                    machine_manifest_error != NULL
+                        ? machine_manifest_error
+                        : "invalid physical declaration");
+            return 1;
+        }
+    }
+
+    if (flags->dump_machine_manifest_json) {
+        pgy_machine_layer_manifest_dump_json(stdout);
+        return 0;
+    }
 
     if (flags->dump_tokens) {
         char *source = path_read_file(flags->source_path);
@@ -140,12 +161,29 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         return rc;
     }
 
+#ifdef PGY_PROJECT_ROOT
+    compatibility_manifest_path = path_join_dup(
+        PGY_PROJECT_ROOT,
+        "src/self_hosted/compiler/expected/compatibility_evolution.txt");
+    if (!driver_diag_compatibility_manifest_validate_file(
+            compatibility_manifest_path, &load_error)) {
+        driver_emit_stage_fail(flags, "compatibility",
+            "compatibility evolution manifest validation failed",
+            load_error != NULL ? load_error
+                               : "compatibility evolution manifest is invalid");
+        goto cleanup;
+    }
+    free(load_error);
+    load_error = NULL;
+#endif
+
     if (flags->verbose)
         printf("pgy: loading modules\n");
 
     driver_debug_stage("module_load");
     phase_start = driver_now_seconds();
-    ast = module_loader_load_program(flags->source_path, &load_error);
+    ast = module_loader_load_program_with_graph(
+        flags->source_path, &module_graph, &load_error);
     if (timings != NULL)
         timings->module_load = driver_now_seconds() - phase_start;
     if (ast == NULL) {
@@ -169,6 +207,13 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         } else {
             fprintf(stderr, "pgy: %s\n", msg);
         }
+        goto cleanup;
+    }
+    if (!module_loader_validate_graph(module_graph, &load_error)) {
+        driver_emit_stage_fail(flags, "module_load",
+            "module graph validation failed",
+            load_error != NULL ? load_error
+                               : "unanchored source module graph");
         goto cleanup;
     }
 
@@ -202,7 +247,11 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
      * Backend runners emit their own error array on failure; we emit the
      * semantic array only at terminal points (semantic-fail here, or the
      * pipeline-success site near the end of this function). */
-    if (flags == NULL || flags->diag_format != DIAG_FORMAT_JSON) {
+    /* Machine-readable stage dumps own stdout as an artifact boundary. Do not
+     * prefix the RIR JSON document with the human semantic summary; errors
+     * still route to stderr through the normal fail-closed path. */
+    if ((flags == NULL || flags->diag_format != DIAG_FORMAT_JSON)
+        && (flags == NULL || !flags->dump_rir_json)) {
         semantic_result_print(sem);
     }
 
@@ -248,12 +297,41 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 
     driver_debug_stage("hir_lower");
     phase_start = driver_now_seconds();
-    hir = hir_lower(sem->annotated_ast, &hir_error);
+    hir = hir_lower_with_resource_and_param_flow_facts(
+        sem->annotated_ast,
+        sem->resource_flow_facts,
+        sem->resource_flow_fact_count,
+        sem->function_param_flow_facts,
+        sem->function_param_flow_fact_count,
+        &hir_error);
     if (timings != NULL)
         timings->hir_lower = driver_now_seconds() - phase_start;
     if (hir == NULL) {
         driver_emit_stage_fail(flags, "hir_lower",
             "HIR lowering failed", hir_error);
+        goto cleanup;
+    }
+    if (!hir_attach_loop_flow_facts(
+            hir,
+            sem->loop_flow_summary_facts,
+            sem->loop_flow_summary_fact_count,
+            sem->loop_flow_state_facts,
+            sem->loop_flow_state_fact_count,
+            &hir_error)) {
+        driver_emit_stage_fail(flags, "hir_lower",
+            "HIR loop-flow fact attachment failed",
+            hir_error != NULL ? hir_error : "invalid LoopFlowSummary facts");
+        goto cleanup;
+    }
+    if (!hir_attach_iteration_type_facts(
+            hir,
+            sem->iteration_type_facts,
+            sem->iteration_type_fact_count,
+            &hir_error)) {
+        driver_emit_stage_fail(flags, "hir_lower",
+            "HIR iteration type fact attachment failed",
+            hir_error != NULL ? hir_error
+                               : "invalid iteration type facts");
         goto cleanup;
     }
     driver_debug_stage("hir_validate");
@@ -266,7 +344,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 
     driver_debug_stage("dir_lower");
     phase_start = driver_now_seconds();
-    dir = dir_lower(sem->annotated_ast, &hir_error);
+    dir = dir_lower_with_hir_resource_flow_facts(
+        sem->annotated_ast, hir, &hir_error);
     if (timings != NULL)
         timings->dir_lower = driver_now_seconds() - phase_start;
     if (dir == NULL) {
@@ -424,8 +503,14 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
-    if (flags->dump_rir) {
+    if (flags->dump_rir && !flags->dump_rir_json) {
         rir_dump(rir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
+    if (flags->dump_rir_json) {
+        rir_dump_json(rir, stdout);
         exit_code = 0;
         goto cleanup;
     }
@@ -460,7 +545,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     phase_start = driver_now_seconds();
     if (flags->backend == BACKEND_LLVM && !flags->emit_c_only) {
         CompilerBackendTimings backend_timings = {0};
-        exit_code = llvm_runner_execute(flags, &bundle,
+        exit_code = llvm_runner_execute(flags, &bundle, air,
                                         timings != NULL ? &backend_timings : NULL);
         if (timings != NULL) {
             timings->backend_codegen = backend_timings.codegen;
@@ -469,7 +554,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         }
     } else {
         CompilerBackendTimings backend_timings = {0};
-        exit_code = c_runner_execute(flags, &bundle,
+        exit_code = c_runner_execute(flags, &bundle, air,
                                      timings != NULL ? &backend_timings : NULL);
         if (timings != NULL) {
             timings->backend_codegen = backend_timings.codegen;
@@ -497,6 +582,8 @@ cleanup:
     if (timings != NULL)
         (void)fflush(stdout);
     free(load_error);
+    module_loader_destroy_graph(module_graph);
+    free(compatibility_manifest_path);
     free(hir_error);
     dir_destroy(dir);
     air_destroy(air);

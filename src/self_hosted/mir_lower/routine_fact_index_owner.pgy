@@ -5,9 +5,13 @@
 // does not rediscover array rows from the beginning of the JSON document.
 
 import "json_fact_read.pgy";
+import "loop_flow_fact_owner.pgy";
+import "resource_flow_fact_owner.pgy";
 
 struct MirRoutineFactIndex {
     let valid: Bool;
+    let validation_stage: String;
+    let loop_flow_facts_valid: Bool;
     let routine_start: Int;
     let routine_end: Int;
     let block_starts: Array<Int>;
@@ -23,6 +27,34 @@ struct MirRoutineFactIndex {
     let instruction_ends: Array<Int>;
     let source_local_names: Array<String>;
     let source_local_types: Array<String>;
+    let source_syntax_id: String;
+    let function_param_flow_parameter_indices: Array<Int>;
+    let function_param_flow_masks: Array<Int>;
+    let resource_flow_symbol_declared_count: String;
+    let resource_flow_stable_indices: Array<Int>;
+    let resource_flow_declaration_syntax_ids: Array<Int>;
+    let resource_flow_symbol_kinds: Array<Int>;
+    let resource_flow_parameter_flags: Array<Int>;
+    let resource_flow_parameter_indices: Array<Int>;
+    let resource_flow_names: Array<String>;
+    let loop_flow_summary_declared_count: String;
+    let loop_flow_summary_loop_ids: Array<Int>;
+    let loop_flow_summary_kinds: Array<Int>;
+    let loop_flow_summary_effect_bases: Array<Int>;
+    let loop_flow_summary_effect_deltas: Array<Int>;
+    let loop_flow_summary_flags: Array<Int>;
+    let loop_flow_summary_entry_starts: Array<Int>;
+    let loop_flow_summary_entry_counts: Array<Int>;
+    let loop_flow_summary_exit_starts: Array<Int>;
+    let loop_flow_summary_exit_counts: Array<Int>;
+    let loop_flow_state_declared_count: String;
+    let loop_flow_state_stable_indices: Array<Int>;
+    let loop_flow_state_consumed_flags: Array<Int>;
+    let loop_flow_state_used_flags: Array<Int>;
+    let loop_flow_state_access_masks: Array<Int>;
+    let loop_flow_state_slot_states: Array<Int>;
+    let loop_flow_state_semantic_states: Array<Int>;
+    let loop_flow_state_pool_ids: Array<Int>;
 }
 
 func MirRoutineGraphDistances(
@@ -79,11 +111,95 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
     let instruction_ends: Array<Int> = [];
     let source_local_names: Array<String> = [];
     let source_local_types: Array<String> = [];
+    let source_syntax_id: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "source_syntax_id");
+    let function_param_flow_summary_count: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "function_param_flow_summary_count");
+    let function_param_flow_parameter_indices: Array<Int> = [];
+    let function_param_flow_masks: Array<Int> = [];
+    let resource_flow_symbol_declared_count: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "resource_flow_symbol_count");
     let valid: Bool = true;
+    let validation_stage: String = "ok";
+    let resource_facts: MirResourceFlowFacts = BuildMirResourceFlowFacts(
+        json, routine_start, routine_end);
+    let resource_flow_stable_indices: Array<Int> =
+        resource_facts.stable_indices;
+    let resource_flow_declaration_syntax_ids: Array<Int> =
+        resource_facts.declaration_syntax_ids;
+    let resource_flow_symbol_kinds: Array<Int> = resource_facts.symbol_kinds;
+    let resource_flow_parameter_flags: Array<Int> = resource_facts.parameter_flags;
+    let resource_flow_parameter_indices: Array<Int> =
+        resource_facts.parameter_indices;
+    let resource_flow_names: Array<String> = resource_facts.names;
+    if !resource_facts.valid {
+        valid = false;
+        validation_stage = "resource_flow";
+    }
+    let loop_facts: MirLoopFlowFacts = BuildMirLoopFlowFacts(
+        json, routine_start, routine_end);
+    let loop_flow_summary_declared_count: String =
+        loop_facts.summary_declared_count;
+    let loop_flow_summary_loop_ids: Array<Int> = loop_facts.summary_loop_ids;
+    let loop_flow_summary_kinds: Array<Int> = loop_facts.summary_kinds;
+    let loop_flow_summary_effect_bases: Array<Int> =
+        loop_facts.summary_effect_bases;
+    let loop_flow_summary_effect_deltas: Array<Int> =
+        loop_facts.summary_effect_deltas;
+    let loop_flow_summary_flags: Array<Int> = loop_facts.summary_flags;
+    let loop_flow_summary_entry_starts: Array<Int> =
+        loop_facts.summary_entry_starts;
+    let loop_flow_summary_entry_counts: Array<Int> =
+        loop_facts.summary_entry_counts;
+    let loop_flow_summary_exit_starts: Array<Int> =
+        loop_facts.summary_exit_starts;
+    let loop_flow_summary_exit_counts: Array<Int> =
+        loop_facts.summary_exit_counts;
+    let loop_flow_state_declared_count: String = loop_facts.state_declared_count;
+    let loop_flow_state_stable_indices: Array<Int> =
+        loop_facts.state_stable_indices;
+    let loop_flow_state_consumed_flags: Array<Int> =
+        loop_facts.state_consumed_flags;
+    let loop_flow_state_used_flags: Array<Int> = loop_facts.state_used_flags;
+    let loop_flow_state_access_masks: Array<Int> = loop_facts.state_access_masks;
+    let loop_flow_state_slot_states: Array<Int> = loop_facts.state_slot_states;
+    let loop_flow_state_semantic_states: Array<Int> =
+        loop_facts.state_semantic_states;
+    let loop_flow_state_pool_ids: Array<Int> = loop_facts.state_pool_ids;
+    let loop_flow_facts_valid: Bool = loop_facts.valid;
+
+    let flow_bounds: Array<Int> = [0, 0];
+    if MirObjectArrayBounds(
+        json, routine_start, routine_end,
+        "function_param_flow_summaries", flow_bounds) {
+        let flow_cursor: Int = flow_bounds[0] + 1;
+        let flow_row_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, flow_cursor, flow_bounds[1], flow_row_bounds) {
+            let parameter_index: String = MirObjectNumberFact(
+                json, flow_row_bounds[0], flow_row_bounds[1], "parameter_index");
+            let mask: String = MirObjectNumberFact(
+                json, flow_row_bounds[0], flow_row_bounds[1], "mask");
+            if StringLength(parameter_index) == 0 || StringLength(mask) == 0 {
+                valid = false;
+            } else {
+                ArrayPush(function_param_flow_parameter_indices, ToInt(parameter_index));
+                ArrayPush(function_param_flow_masks, ToInt(mask));
+            }
+            flow_cursor = flow_row_bounds[1];
+        }
+    }
+    if StringLength(function_param_flow_summary_count) > 0 &&
+        ToInt(function_param_flow_summary_count) !=
+            ArrayLength(function_param_flow_parameter_indices) {
+        valid = false;
+        validation_stage = "function_param_count";
+    }
 
     let blocks_bounds: Array<Int> = [0, 0];
     if !MirObjectArrayBounds(json, routine_start, routine_end, "blocks", blocks_bounds) {
         valid = false;
+        validation_stage = "blocks_bounds";
     } else {
         let block_cursor: Int = blocks_bounds[0] + 1;
         let block_bounds: Array<Int> = [0, 0];
@@ -124,21 +240,30 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
         }
     }
 
+    // A numerically backward edge is not necessarily a CFG backedge: an
+    // if/else arm can legitimately flow to an earlier merge block.  Mark an
+    // edge as a loop backedge only when the target can actually reach the
+    // source, i.e. the edge closes a cycle in the owner-directed CFG.
     let block_row: Int = 0;
     while block_row < ArrayLength(block_starts) {
-        let true_succ: String = block_succ_true[block_row];
-        if StringLength(true_succ) > 0 {
-            let target: Int = ToInt(true_succ);
-            if target >= 0 && target <= block_row && target < ArrayLength(backedge_headers) {
-                ArraySet(backedge_headers, target, 1);
+        let edge_row: Int = 0;
+        while edge_row < 2 {
+            let successor: String = block_succ_true[block_row];
+            if edge_row == 1 {
+                successor = block_succ_false[block_row];
             }
-        }
-        let false_succ: String = block_succ_false[block_row];
-        if StringLength(false_succ) > 0 {
-            let target: Int = ToInt(false_succ);
-            if target >= 0 && target <= block_row && target < ArrayLength(backedge_headers) {
-                ArraySet(backedge_headers, target, 1);
+            if StringLength(successor) > 0 {
+                let target: Int = ToInt(successor);
+                if target >= 0 && target <= block_row &&
+                    target < ArrayLength(backedge_headers) {
+                    let target_distances: Array<Int> = MirRoutineGraphDistances(
+                        block_succ_true, block_succ_false, target);
+                    if target_distances[block_row] >= 0 {
+                        ArraySet(backedge_headers, target, 1);
+                    }
+                }
             }
+            edge_row = edge_row + 1;
         }
         block_row = block_row + 1;
     }
@@ -195,12 +320,189 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
         }
     }
 
-    return MirRoutineFactIndex(valid, routine_start, routine_end,
+    return MirRoutineFactIndex(valid, validation_stage, loop_flow_facts_valid,
+        routine_start, routine_end,
         block_starts, block_ends, backedge_headers, block_succ_true,
         block_succ_false, block_has_conditional_branch, block_structural_merges,
         block_instruction_starts,
         block_instruction_counts, instruction_starts, instruction_ends,
-        source_local_names, source_local_types);
+        source_local_names, source_local_types, source_syntax_id,
+        function_param_flow_parameter_indices, function_param_flow_masks,
+        resource_flow_symbol_declared_count, resource_flow_stable_indices,
+        resource_flow_declaration_syntax_ids, resource_flow_symbol_kinds,
+        resource_flow_parameter_flags, resource_flow_parameter_indices,
+        resource_flow_names,
+        loop_flow_summary_declared_count, loop_flow_summary_loop_ids,
+        loop_flow_summary_kinds, loop_flow_summary_effect_bases,
+        loop_flow_summary_effect_deltas, loop_flow_summary_flags,
+        loop_flow_summary_entry_starts, loop_flow_summary_entry_counts,
+        loop_flow_summary_exit_starts, loop_flow_summary_exit_counts,
+        loop_flow_state_declared_count, loop_flow_state_stable_indices,
+        loop_flow_state_consumed_flags, loop_flow_state_used_flags,
+        loop_flow_state_access_masks, loop_flow_state_slot_states,
+        loop_flow_state_semantic_states, loop_flow_state_pool_ids);
+}
+
+func MirRoutineFactIndexResourceFlowFactsValid(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !index.valid || StringLength(index.resource_flow_symbol_declared_count) == 0 {
+        return false;
+    }
+    let count: Int = ArrayLength(index.resource_flow_stable_indices);
+    if ToInt(index.resource_flow_symbol_declared_count) != count ||
+        count != ArrayLength(index.resource_flow_declaration_syntax_ids) ||
+        count != ArrayLength(index.resource_flow_symbol_kinds) ||
+        count != ArrayLength(index.resource_flow_parameter_flags) ||
+        count != ArrayLength(index.resource_flow_parameter_indices) ||
+        count != ArrayLength(index.resource_flow_names) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if index.resource_flow_stable_indices[row] < 0 ||
+            index.resource_flow_declaration_syntax_ids[row] < 0 ||
+            index.resource_flow_symbol_kinds[row] < 0 ||
+            (index.resource_flow_parameter_flags[row] != 0 &&
+                index.resource_flow_parameter_flags[row] != 1) ||
+            index.resource_flow_parameter_indices[row] < 0 ||
+            StringLength(index.resource_flow_names[row]) == 0 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if index.resource_flow_stable_indices[prior] ==
+                index.resource_flow_stable_indices[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func MirRoutineFactIndexResourceFlowIndexKnown(ref index: MirRoutineFactIndex, stable_index: Int) -> Bool {
+    let row: Int = 0;
+    while row < ArrayLength(index.resource_flow_stable_indices) {
+        if index.resource_flow_stable_indices[row] == stable_index {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func MirRoutineFactIndexLoopFlowFactsValid(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !index.valid || !index.loop_flow_facts_valid ||
+        StringLength(index.loop_flow_summary_declared_count) == 0 ||
+        StringLength(index.loop_flow_state_declared_count) == 0 {
+        return false;
+    }
+    let summary_count: Int = ArrayLength(index.loop_flow_summary_loop_ids);
+    let state_count: Int = ArrayLength(index.loop_flow_state_stable_indices);
+    if ToInt(index.loop_flow_summary_declared_count) != summary_count ||
+        ToInt(index.loop_flow_state_declared_count) != state_count ||
+        summary_count != ArrayLength(index.loop_flow_summary_kinds) ||
+        summary_count != ArrayLength(index.loop_flow_summary_effect_bases) ||
+        summary_count != ArrayLength(index.loop_flow_summary_effect_deltas) ||
+        summary_count != ArrayLength(index.loop_flow_summary_flags) ||
+        summary_count != ArrayLength(index.loop_flow_summary_entry_starts) ||
+        summary_count != ArrayLength(index.loop_flow_summary_entry_counts) ||
+        summary_count != ArrayLength(index.loop_flow_summary_exit_starts) ||
+        summary_count != ArrayLength(index.loop_flow_summary_exit_counts) ||
+        state_count != ArrayLength(index.loop_flow_state_consumed_flags) ||
+        state_count != ArrayLength(index.loop_flow_state_used_flags) ||
+        state_count != ArrayLength(index.loop_flow_state_access_masks) ||
+        state_count != ArrayLength(index.loop_flow_state_slot_states) ||
+        state_count != ArrayLength(index.loop_flow_state_semantic_states) ||
+        state_count != ArrayLength(index.loop_flow_state_pool_ids) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < summary_count {
+        if index.loop_flow_summary_loop_ids[row] <= 0 ||
+            (index.loop_flow_summary_kinds[row] != 0 &&
+                index.loop_flow_summary_kinds[row] != 1) ||
+            index.loop_flow_summary_effect_bases[row] < 0 ||
+            index.loop_flow_summary_effect_deltas[row] < 0 ||
+            index.loop_flow_summary_flags[row] < 0 ||
+            index.loop_flow_summary_entry_starts[row] < 0 ||
+            index.loop_flow_summary_entry_counts[row] < 0 ||
+            index.loop_flow_summary_exit_starts[row] < 0 ||
+            index.loop_flow_summary_exit_counts[row] < 0 ||
+            index.loop_flow_summary_entry_starts[row] > state_count ||
+            index.loop_flow_summary_entry_counts[row] >
+                state_count - index.loop_flow_summary_entry_starts[row] ||
+            index.loop_flow_summary_exit_starts[row] > state_count ||
+            index.loop_flow_summary_exit_counts[row] >
+                state_count - index.loop_flow_summary_exit_starts[row] {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if index.loop_flow_summary_loop_ids[prior] ==
+                index.loop_flow_summary_loop_ids[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    row = 0;
+    while row < state_count {
+        if index.loop_flow_state_stable_indices[row] < 0 ||
+            !MirRoutineFactIndexResourceFlowIndexKnown(
+                index, index.loop_flow_state_stable_indices[row]) ||
+            (index.loop_flow_state_consumed_flags[row] != 0 &&
+                index.loop_flow_state_consumed_flags[row] != 1) ||
+            (index.loop_flow_state_used_flags[row] != 0 &&
+                index.loop_flow_state_used_flags[row] != 1) ||
+            index.loop_flow_state_access_masks[row] < 0 ||
+            index.loop_flow_state_slot_states[row] < 0 ||
+            index.loop_flow_state_semantic_states[row] < 0 {
+            return false;
+        }
+        row = row + 1;
+    }
+    return true;
+}
+
+func MirRoutineFactIndexFunctionParamFlowFactsValid(
+    ref index: MirRoutineFactIndex
+) -> Bool {
+    if !index.valid {
+        return false;
+    }
+    let count: Int = ArrayLength(index.function_param_flow_parameter_indices);
+    if count == 0 {
+        return true;
+    }
+    if StringLength(index.source_syntax_id) == 0 || ToInt(index.source_syntax_id) <= 0 {
+        return false;
+    }
+    if count != ArrayLength(index.function_param_flow_masks) {
+        return false;
+    }
+    let row: Int = 0;
+    while row < count {
+        if index.function_param_flow_parameter_indices[row] < 0 ||
+            index.function_param_flow_masks[row] < 0 {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < row {
+            if index.function_param_flow_parameter_indices[prior] ==
+                index.function_param_flow_parameter_indices[row] {
+                return false;
+            }
+            prior = prior + 1;
+        }
+        row = row + 1;
+    }
+    return true;
 }
 
 func MirRoutineFactIndexHasIncomingBackedge(ref index: MirRoutineFactIndex, block_id: Int) -> Bool {

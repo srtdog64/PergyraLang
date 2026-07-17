@@ -347,6 +347,12 @@ func CompilerRuntimeCallAbiNativeDeviceSubmitRowAt(index: Int) -> String {
         CompilerRuntimeCallAbiMaterialMirResourceRow()));
 }
 
+func CompilerRuntimeCallAbiNativeDeviceSubmitSymbol(index: Int) -> String {
+    let scalar: String = CompilerRuntimeCallAbiNativeScalarTypeAt(index);
+    if scalar == "" { return ""; }
+    return Concat("pgy_submit_device_read_", scalar);
+}
+
 func CompilerRuntimeCallAbiCollectionRowAt(index: Int) -> String {
     if index == 0 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.new", CollectionRuntimeCNewFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }
     if index == 1 { return CompilerRuntimeCallAbiRow(CompilerRuntimeCallAbiRowInput("collection", "array-int.push", CollectionRuntimeCPushFn(1), CompilerRuntimeCallAbiMaterialGeneratedHelper())); }

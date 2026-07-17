@@ -1,6 +1,6 @@
 # Legacy Slot Interprocedural Hash Lookup
 
-Status: `implemented-rung-2; symbol-sparsification-pending`
+Status: `implemented-rung-3; symbol-sparsification-landed`
 
 Date: 2026-07-15
 
@@ -129,21 +129,25 @@ Pergyra reproduces their full algorithms or reported speedups.
 | --- | --- | --- |
 | Schiebel et al., *Scaling Interprocedural Static Data-Flow Analysis to Large C/C++ Applications: An Experience Report*, ECOOP 2024, [DOI](https://doi.org/10.4230/LIPIcs.ECOOP.2024.36) | Engineering the interprocedural implementation and summary machinery produced substantial time and memory reductions at large scale. | Adopted now: make declaration lookup an indexed owner seam and measure a fixed large input. Not claimed: their reported speedup transfers to Pergyra. |
 | Stein et al., *Interactive Abstract Interpretation with Demanded Summarization*, ACM TOPLAS 2024, [DOI](https://doi.org/10.1145/3648441) | Compute procedure summaries on demand, track dependencies, and use a recursion fixed point while preserving from-scratch consistency. | Adopted now at the narrow owner boundary: demanded stable-key summaries, explicit computing/complete states, and monotone recursion convergence. Not claimed: the paper's interactive incremental framework. |
-| Karakaya and Bodden, *Symbol-Specific Sparsification of Interprocedural Distributive Environment Problems*, ICSE 2024, [DOI](https://doi.org/10.1145/3597503.3639092) | Restrict propagation to symbol-relevant program points to reduce analysis time and memory. | Planned rung 3: use stable symbol indices to avoid rescanning statements irrelevant to a parameter/resource. Not implemented in this patch. |
+| Karakaya and Bodden, *Symbol-Specific Sparsification of Interprocedural Distributive Environment Problems*, ICSE 2024, [DOI](https://doi.org/10.1145/3597503.3639092) | Restrict propagation to symbol-relevant program points to reduce analysis time and memory. | Adopted at the summary owner boundary: binding-aware, function-local parameter rows select relevant source statements before the existing access/escape transfer. Not claimed: their full distributive-environment implementation. |
 | Yang et al., *Taming and Dissecting Recursions Through Interprocedural Weak Topological Ordering*, ECOOP 2025, [DOI](https://doi.org/10.4230/LIPIcs.ECOOP.2025.34) | Build targeted interprocedural weak topological orders at recursion boundaries instead of imposing an expensive imprecise whole-program order. | Adopted only as a scheduling invariant: revisit the demanded recursive closure, not the whole program. Pergyra does not claim to implement RecTopo or an interprocedural weak topological order. |
 
-## 7. Next Executable Rung
+## 7. Landed Symbol-Specific Sparsification
 
-The remaining optimization rung is symbol-specific sparsification. The summary
-owner still walks every statement in a demanded function body once per fixed-
-point evaluation. The existing function-local stable symbol indices should be
-extended with parameter-relevant program-point rows so a summary evaluates
-only statements that can read, mutate, release, or escape that parameter.
+The summary owner now builds one function-local program-point index per
+demanded function. Each parameter row contains only source statements with an
+identifier reference to that parameter, using the parser-owned
+`ast_contains_identifier_ref` walk. The reference index is intentionally an
+over-approximation of the legacy name-based transfer, so shadowing cannot
+silently change diagnostic bytes. The existing access and escape transfers
+consume those rows directly, so the summary no longer re-enters unrelated
+statements on every fixed-point pass.
 
-That rung must preserve the current summary owner and diagnostic bytes. It may
-not create a second per-function fact serialization, and it must demonstrate a
-reduction in visited program points on the fixed self-host input before the
-registry row advances.
+The index is an optimization view owned by `FunctionParamFlowSummaryStore`,
+not a second semantic fact serialization. It preserves the same summary mask,
+recursive fixed point, and diagnostic paths. Telemetry reports indexed
+statement visits and selected program-point count; the permanent fixture gate
+requires a strict reduction.
 
 ## 8. Permanent Gates
 
@@ -154,7 +158,9 @@ registry row advances.
   may contain an AST compatibility fallback.
 - `function-param-flow-summary-test-smoke` requires the stable hash key and
   recursion states, rejects callee-body reopen in both consumers, and proves a
-  recursive may-fact needs and receives a bounded fixed-point revisit.
+  recursive may-fact needs and receives a bounded fixed-point revisit. It also
+  requires `function-param-flow-sparse` telemetry to show fewer selected
+  program points than indexed statements.
 - `test-semantic` protects semantic and diagnostic behavior.
 - Diagnostic registry/JSON/catalog parity gates protect code and rendered
   diagnostic contracts.

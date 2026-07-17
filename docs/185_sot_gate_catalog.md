@@ -105,7 +105,7 @@ negative gate prevents reintroduction
 ```
 
 The current registry contains 36 authority rows and 11 explicitly derived
-self-host fact carriers. Status is `CLOSED=16 BRIDGE=7 ACTIVE=13` after the
+self-host fact carriers. Status is `CLOSED=16 BRIDGE=11 ACTIVE=10` after the
 call-target identity rung changed that evidence.
 
 `selfhost.assignment_type_verdict` reached `CLOSED` on 2026-07-15. The

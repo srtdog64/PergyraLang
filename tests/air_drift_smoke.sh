@@ -940,6 +940,7 @@ summary_allowed = {
     root / "src" / "compiler" / "air_evidence_rir.c",
     root / "src" / "compiler" / "air_validate_evidence.c",
     root / "src" / "compiler" / "air_validate_boundary_summary.c",
+    root / "src" / "compiler" / "air_evidence_certificate.c",
 }
 for path in (root / "src" / "compiler").glob("*.c"):
     if path in summary_allowed:

@@ -1,4 +1,5 @@
 #include "dir_internal.h"
+#include "hir.h"
 #include "parser/ast_api.h"
 
 #include <stdint.h>
@@ -103,6 +104,55 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
     return true;
 }
 
+bool
+dir_collect_nodes_from_hir(DIRProgram *dir, const HIRProgram *hir)
+{
+    if (dir == NULL || hir == NULL)
+        return false;
+    for (size_t i = 0; i < hir->decl_count; i++) {
+        const HIRDecl *decl = &hir->decls[i];
+        DIRNodeKind kind;
+        switch (decl->kind) {
+            case HIR_TOPLEVEL_TYPE:
+                kind = DIR_NODE_TYPE;
+                break;
+            case HIR_TOPLEVEL_ABILITY:
+                kind = DIR_NODE_ABILITY;
+                break;
+            case HIR_TOPLEVEL_ROLE:
+                kind = DIR_NODE_ROLE;
+                break;
+            case HIR_TOPLEVEL_PARTY:
+                kind = DIR_NODE_PARTY;
+                break;
+            case HIR_TOPLEVEL_SYSTEMIC:
+                kind = DIR_NODE_SYSTEMIC;
+                break;
+            case HIR_TOPLEVEL_WORLD:
+                kind = DIR_NODE_WORLD;
+                break;
+            case HIR_TOPLEVEL_RELATION:
+                kind = DIR_NODE_RELATION;
+                break;
+            case HIR_TOPLEVEL_EFFECT:
+                kind = DIR_NODE_EFFECT;
+                break;
+            case HIR_TOPLEVEL_ZONE:
+                kind = DIR_NODE_ZONE;
+                break;
+            case HIR_TOPLEVEL_INTENT:
+                kind = DIR_NODE_INTENT;
+                break;
+            default:
+                continue;
+        }
+        if (decl->ast == NULL
+            || !dir_add_node(dir, kind, decl->name, decl->ast))
+            return false;
+    }
+    return true;
+}
+
 static bool
 dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNode *node)
 {
@@ -189,6 +239,7 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                                  DIR_NODE_PARTY_SLOT,
                                                  ast_party_name(node),
                                                  slot_name,
+                                                 ast_node_stable_id(node),
                                                  slot);
         if (slot_id < 0)
             return false;
@@ -268,13 +319,13 @@ dir_collect_world_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     return true;
 }
 
-bool
-dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
+static bool
+dir_collect_edges_for_node(DIRProgram *dir, ASTNode *program, ASTNode *node)
 {
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *node = ast_program_statement(program, i);
-        ssize_t from = -1;
-        switch (node->type) {
+    if (dir == NULL || program == NULL || node == NULL)
+        return false;
+    ssize_t from = -1;
+    switch (node->type) {
             case AST_ROLE_DECL:
                 from = dir_find_role_node_by_name(dir, ast_role_name(node));
                 if (from >= 0 && !dir_collect_role_edges(dir, program, (size_t)from, node))
@@ -305,6 +356,7 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                     if (!dir_collect_relation_effect_slot_edges(dir,
                                                                 (size_t)from,
                                                                 ast_relation_name(node),
+                                                                ast_node_stable_id(node),
                                                                 slots,
                                                                 slot_count,
                                                                 refreshes,
@@ -322,6 +374,7 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                     if (!dir_collect_relation_effect_slot_edges(dir,
                                                                 (size_t)from,
                                                                 ast_effect_name(node),
+                                                                ast_node_stable_id(node),
                                                                 slots,
                                                                 slot_count,
                                                                 refreshes,
@@ -342,7 +395,31 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                 break;
             default:
                 break;
-        }
+    }
+    return true;
+}
+
+bool
+dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
+{
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        if (!dir_collect_edges_for_node(
+                dir, program, ast_program_statement(program, i)))
+            return false;
+    }
+    return true;
+}
+
+bool
+dir_collect_edges_and_intents_from_hir(DIRProgram *dir,
+                                       ASTNode *program,
+                                       const HIRProgram *hir)
+{
+    if (dir == NULL || program == NULL || hir == NULL)
+        return false;
+    for (size_t i = 0; i < hir->decl_count; i++) {
+        if (!dir_collect_edges_for_node(dir, program, hir->decls[i].ast))
+            return false;
     }
     return true;
 }

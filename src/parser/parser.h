@@ -41,6 +41,7 @@ typedef struct
     Lexer  *lexer;
     Token   current_token;
     Token   previous_token;
+    PgyTokenStreamHandle token_stream;
     bool    has_error;
     /* Owned, heap-exact. A diagnostic is the compiler's product, so it must
      * not be silently clipped: the previous fixed 512-byte buffer dropped

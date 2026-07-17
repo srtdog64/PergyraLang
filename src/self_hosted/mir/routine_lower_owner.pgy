@@ -111,18 +111,14 @@ func SelfMirLowerBlockFromArtifact(
                 build, SemanticAstExpressionGraphForNode(
                     state.input.analysis.expression_surfaces,
                     node_id, AstExpressionLaneValue()
+                ), state.input.machine_declaration
+            );
+            build = SelfMirRoutineAttachLastTargetExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    state.input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneAtom()
                 )
             );
-            if state.input.analysis.assignments.target_is_indexed[
-                assignment_index
-            ] == 1 {
-                build = SelfMirRoutineAttachLastTargetExpressionGraph(
-                    build, SemanticAstExpressionGraphForNode(
-                        state.input.analysis.expression_surfaces,
-                        node_id, AstExpressionLaneAuxiliary()
-                    )
-                );
-            }
         } else if kind == TypedAstKindBreakStmtTag() ||
             kind == TypedAstKindContinueStmtTag() {
             let control_name: String = "break";
@@ -188,7 +184,7 @@ func SelfMirLowerBlockFromArtifact(
                         build, SemanticAstExpressionGraphForNode(
                             state.input.analysis.expression_surfaces,
                             node_id, UnwrapOption(graph_lane)
-                        )
+                        ), state.input.machine_declaration
                     );
                 }
             } else if kind == TypedAstKindBareReturnStmtTag() ||
@@ -209,7 +205,7 @@ func SelfMirLowerBlockFromArtifact(
                         build, SemanticAstExpressionGraphForNode(
                             state.input.analysis.expression_surfaces,
                             node_id, AstExpressionLaneAtom()
-                        )
+                        ), state.input.machine_declaration
                     );
                 }
                 build = SelfMirRoutineTerminate(build);
@@ -227,7 +223,7 @@ func SelfMirLowerBlockFromArtifact(
                     build, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
                         node_id, AstExpressionLaneAtom()
-                    )
+                    ), state.input.machine_declaration
                 );
                 let body_opt: Option<Int> = SelfMirControlBodyBlock(
                     state.input.artifact.arena, node_id
@@ -386,7 +382,7 @@ func SelfMirLowerBlockFromArtifact(
                     build, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
                         node_id, AstExpressionLaneAtom()
-                    )
+                    ), state.input.machine_declaration
                 );
                 build = SelfMirRoutineAddBlock(build);
                 let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
@@ -444,7 +440,7 @@ func SelfMirLowerBlockFromArtifact(
                     build, iteration, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
                         node_id, AstExpressionLaneValue()
-                    )
+                    ), state.input.machine_declaration
                 );
                 build = SelfMirRoutineAddLocal(
                     build, binding, iteration.binding_type_name, 0
@@ -464,7 +460,7 @@ func SelfMirLowerBlockFromArtifact(
                         SelfMirSyntheticLocalExpressionGraph(start);
                 }
                 build = SelfMirRoutineAttachLastExpressionGraph(
-                    build, loop_init_graph
+                    build, loop_init_graph, state.input.machine_declaration
                 );
                 build = SelfMirRoutineAddBlock(build);
                 let for_header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
@@ -483,7 +479,7 @@ func SelfMirLowerBlockFromArtifact(
                         build, SemanticAstExpressionGraphForNode(
                         state.input.analysis.expression_surfaces,
                             node_id, AstExpressionLaneAuxiliary()
-                        )
+                        ), state.input.machine_declaration
                     );
                 }
                 build = SelfMirRoutineAddBlock(build);

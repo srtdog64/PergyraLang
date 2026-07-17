@@ -15,6 +15,8 @@ struct CodegenTypeUsageFacts {
     let has_float: Bool;
     let has_allocator: Bool;
     let has_text_builder: Bool;
+    let has_machine_layer: Bool;
+    let has_remote_future: Bool;
 }
 
 func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> CodegenTypeUsageFacts {
@@ -27,6 +29,8 @@ func CodegenTypeUsageFactsFromSemantic(facts: SemanticAstTypeSurfaceFacts) -> Co
         SemanticAstTypeSurfaceContains(facts, "Array<CodegenAstTextNode"),
         SemanticAstTypeSurfaceContains(facts, "Float"),
         SemanticAstTypeSurfaceContains(facts, "Allocator"),
-        SemanticAstTypeSurfaceContains(facts, "TextBuilder")
+        SemanticAstTypeSurfaceContains(facts, "TextBuilder"),
+        SemanticAstTypeSurfaceContains(facts, "DeviceSlot<"),
+        SemanticAstTypeSurfaceContains(facts, "RemoteFuture<")
     );
 }

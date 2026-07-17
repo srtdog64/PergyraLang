@@ -24,6 +24,75 @@ rir_direct_projection_kind_from_ast(const ASTNode *ast)
     return RIR_RESOURCE_UNKNOWN;
 }
 
+static bool
+rir_validate_resource_flow_symbols(const RIRScope *scope,
+                                   char **error_message)
+{
+    size_t count;
+
+    if (scope == NULL)
+        return false;
+    count = scope->resource_flow_symbol_count;
+    if (count == 0) {
+        if (scope->resource_flow_symbols != NULL
+            || scope->resource_flow_symbol_capacity != 0) {
+            if (error_message != NULL)
+                *error_message = rir_strdup_fmt(
+                    "RIR scope '%s' has ResourceFlow storage without rows",
+                    rir_scope_display_name(scope));
+            return false;
+        }
+        return true;
+    }
+    if (scope->resource_flow_symbols == NULL
+        || count > scope->resource_flow_symbol_capacity) {
+        if (error_message != NULL)
+            *error_message = rir_strdup_fmt(
+                "RIR scope '%s' has incomplete ResourceFlow symbol storage",
+                rir_scope_display_name(scope));
+        return false;
+    }
+    for (size_t i = 0; i < count; i++) {
+        const RIRResourceFlowSymbol *symbol =
+            &scope->resource_flow_symbols[i];
+        if (symbol->name == NULL || symbol->name[0] == '\0') {
+            if (error_message != NULL)
+                *error_message = rir_strdup_fmt(
+                    "RIR scope '%s' ResourceFlow symbol[%llu] has no name",
+                    rir_scope_display_name(scope),
+                    (unsigned long long)i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            const RIRResourceFlowSymbol *prior =
+                &scope->resource_flow_symbols[j];
+            if (prior->stable_index == symbol->stable_index
+                || (symbol->is_parameter && prior->is_parameter
+                    && prior->parameter_index == symbol->parameter_index)) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' ResourceFlow symbols share identity",
+                        rir_scope_display_name(scope));
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+rir_scope_resource_flow_index_known(const RIRScope *scope,
+                                    size_t stable_index)
+{
+    if (scope == NULL)
+        return false;
+    for (size_t i = 0; i < scope->resource_flow_symbol_count; i++) {
+        if (scope->resource_flow_symbols[i].stable_index == stable_index)
+            return true;
+    }
+    return false;
+}
+
 RIRResourceState
 rir_merge_state_for_kind(RIRResourceKind kind,
                          RIRResourceState a,
@@ -57,6 +126,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
                                    (unsigned long long)i);
             return false;
         }
+        if (!rir_validate_resource_flow_symbols(scope, error_message))
+            return false;
         for (size_t j = 0; j < rir_scope_state_summary_count(scope); j++) {
             const char *scope_name = rir_scope_display_name(scope);
             const RIRStateSummary *summary =
@@ -88,6 +159,70 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 }
                 return false;
             }
+            if (scope->resource_identity_verified
+                && summary->origin_kind == RIR_FACT_RESOURCE
+                && !summary->has_flow_identity) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' state summary '%s' is missing HIR stable identity",
+                        scope_name,
+                        summary->name != NULL ? summary->name : "(unnamed)");
+                return false;
+            }
+            if (scope->resource_identity_verified
+                && summary->origin_kind == RIR_FACT_RESOURCE
+                && !rir_scope_resource_flow_index_known(
+                    scope, summary->stable_index)) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' state summary '%s' references unknown ResourceFlow identity",
+                        scope_name,
+                        summary->name != NULL ? summary->name : "(unnamed)");
+                return false;
+            }
+        }
+
+        if (rir_scope_function_param_flow_summary_count(scope) > 0) {
+            if (scope->function_param_flow_summaries == NULL
+                || scope->function_param_flow_summary_count
+                    > scope->function_param_flow_summary_capacity
+                || (scope->kind != RIR_SCOPE_FUNCTION
+                    && scope->kind != RIR_SCOPE_METHOD)) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' has incomplete function parameter flow summary storage",
+                        rir_scope_display_name(scope),
+                        0);
+                return false;
+            }
+            for (size_t j = 0;
+                 j < rir_scope_function_param_flow_summary_count(scope);
+                 j++) {
+                const RIRFunctionParamFlowSummary *summary =
+                    rir_scope_function_param_flow_summary_at(scope, j);
+                if (summary == NULL
+                    || summary->parameter_index >= scope->parameter_count) {
+                    if (error_message != NULL)
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' has invalid function parameter flow summary[%llu]",
+                            rir_scope_display_name(scope),
+                            (unsigned long long)j);
+                    return false;
+                }
+                for (size_t k = 0; k < j; k++) {
+                    const RIRFunctionParamFlowSummary *prior =
+                        rir_scope_function_param_flow_summary_at(scope, k);
+                    if (prior != NULL
+                        && prior->parameter_index == summary->parameter_index) {
+                        if (error_message != NULL)
+                            *error_message = rir_strdup_fmt(
+                                "RIR scope '%s' function parameter flow summaries share parameter identity",
+                                rir_scope_display_name(scope),
+                                (unsigned long long)summary->parameter_index);
+                        return false;
+                    }
+                }
+            }
         }
 
         for (size_t j = 0; j < rir_scope_fact_count(scope); j++) {
@@ -109,6 +244,27 @@ rir_validate(const RIRProgram *rir, char **error_message)
                         scope_name,
                         fact->name != NULL ? fact->name : "(unnamed)");
                 }
+                return false;
+            }
+            if (scope->resource_identity_verified
+                && fact->kind == RIR_FACT_RESOURCE
+                && !fact->has_flow_identity) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' resource fact '%s' is missing HIR stable identity",
+                        scope_name,
+                        fact->name != NULL ? fact->name : "(unnamed)");
+                return false;
+            }
+            if (scope->resource_identity_verified
+                && fact->kind == RIR_FACT_RESOURCE
+                && !rir_scope_resource_flow_index_known(
+                    scope, fact->stable_index)) {
+                if (error_message != NULL)
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' resource fact '%s' references unknown ResourceFlow identity",
+                        scope_name,
+                        fact->name != NULL ? fact->name : "(unnamed)");
                 return false;
             }
             if (fact->kind == RIR_FACT_PROJECTION) {

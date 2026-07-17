@@ -1,11 +1,13 @@
 // Public semantic and source entrypoints for the program emission core.
 
 import "program_emit.pgy";
+import "../../compiler/machine_layer_declaration_consumer.pgy";
 
 func GenerateCUnitFromSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    require_entrypoint: Bool
+    require_entrypoint: Bool,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
@@ -14,17 +16,19 @@ func GenerateCUnitFromSemanticArtifact(
             artifact, semantic_analysis, bundle
         );
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, body_types, require_entrypoint
+        artifact, semantic_analysis, body_types, require_entrypoint,
+        machine_declaration
     );
 }
 
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    ref body_types: CodegenSemanticBodyTypeFacts
+    ref body_types: CodegenSemanticBodyTypeFacts,
+    machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     return GenerateCUnitFromSemanticFacts(
-        artifact, semantic_analysis, body_types, true
+        artifact, semantic_analysis, body_types, true, machine_declaration
     );
 }
 
@@ -43,7 +47,8 @@ func GenerateCUnitFromAstArtifact(
             artifact, require_entrypoint
         );
     return GenerateCUnitFromSemanticArtifact(
-        artifact, semantic_analysis, require_entrypoint
+        artifact, semantic_analysis, require_entrypoint,
+        SelfHostMachineLayerDeclarationEmpty()
     );
 }
 
@@ -52,7 +57,8 @@ func GenerateCFromSemanticArtifact(
     semantic_analysis: SemanticAstArtifactAnalysis
 ) -> String {
     return GenerateCUnitFromSemanticArtifact(
-        artifact, semantic_analysis, true
+        artifact, semantic_analysis, true,
+        SelfHostMachineLayerDeclarationEmpty()
     );
 }
 

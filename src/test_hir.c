@@ -9,6 +9,7 @@
 
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "parser/ast_api.h"
 #include "semantic/semantic.h"
 #include "compiler/hir.h"
 
@@ -92,6 +93,65 @@ count_blocks_pass(const HIRProgram *hir,
     return true;
 }
 
+static void
+test_hir_function_param_flow_carriage(void)
+{
+    const char *source =
+        "func Param(value: Int) -> Int { return value; }\n";
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(ast);
+    ASTNode *function_decl = NULL;
+    PgyFunctionParamFlowFact fact;
+    HIRProgram *hir = NULL;
+    char *error_message = NULL;
+    bool carried = false;
+
+    if (sem != NULL && sem->annotated_ast != NULL) {
+        for (size_t i = 0;
+             i < ast_program_statement_count(sem->annotated_ast);
+             i++) {
+            ASTNode *statement = ast_program_statement(
+                sem->annotated_ast, i);
+            if (statement != NULL && statement->type == AST_FUNC_DECL) {
+                function_decl = statement;
+                break;
+            }
+        }
+    }
+    memset(&fact, 0, sizeof(fact));
+    fact.function_syntax_id = ast_node_stable_id(function_decl);
+    fact.parameter_index = 0;
+    fact.mask = 0x5u;
+    if (!parser_has_error(parser) && sem != NULL && sem->success
+        && function_decl != NULL && fact.function_syntax_id != 0) {
+        hir = hir_lower_with_resource_and_param_flow_facts(
+            sem->annotated_ast, NULL, 0, &fact, 1, &error_message);
+        if (hir != NULL && hir_validate(hir, &error_message)) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                const HIRRoutine *routine = &hir->routines[i];
+                if (routine->source_syntax_id == fact.function_syntax_id
+                    && routine->function_param_flow_summary_count == 1
+                    && routine->function_param_flow_summaries[0].parameter_index == 0
+                    && routine->function_param_flow_summaries[0].mask == fact.mask) {
+                    carried = true;
+                    break;
+                }
+            }
+        }
+    }
+    TEST("HIR carries function parameter flow summaries by stable SyntaxNodeId");
+    EXPECT(carried);
+    if (hir != NULL)
+        hir_destroy(hir);
+    free(error_message);
+    semantic_result_destroy(sem);
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+}
+
 #include "tests/hir/test_hir_lowering_part_a.cases.h"
 #include "tests/hir/test_hir_lowering_part_b.cases.h"
 
@@ -101,6 +161,7 @@ main(void)
     printf("=== Pergyra HIR Lowering Test Suite ===\n");
     test_hir_lowering_part_a();
     test_hir_lowering_part_b();
+    test_hir_function_param_flow_carriage();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

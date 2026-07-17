@@ -1,0 +1,117 @@
+// Pergyra-origin AIR machine-layer projection validator.
+//
+// AIR is verification input, not a new machine contract.  This tool consumes
+// the native machine_layer_sites rows and checks them against the self-hosted
+// projection artifact before reporting a compact result.
+
+import "../../lib/json_fact_table.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
+import "../../compiler/machine_layer_declaration_consumer.pgy";
+
+func MachineAirFail(message: String) -> Void {
+    Log(Concat("MACHINE-AIR ERROR: ", message));
+    Exit(1);
+}
+
+func MachineAirOperationIndex(operation: String) -> Int {
+    let row: Int = 0;
+    while row < CompilerRuntimeCallAbiMachineLayerContactCount() {
+        if CompilerRuntimeCallAbiMachineLayerContactNameAt(row) == operation {
+            return row;
+        }
+        row = row + 1;
+    }
+    return 0 - 1;
+}
+
+func MachineAirSiteReady(
+    site: JsonObjectFactTable,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Bool {
+    if !JsonObjectFactTableReady(site) {
+        return false;
+    }
+    let operation_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(site, "operation");
+    let manifest_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(site, "manifest");
+    let physical_grant_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(site, "physical_grant");
+    let physical_base_opt: Option<String> =
+        JsonObjectNumberFieldOpt(site.json, site.start, site.end,
+            "physical_base");
+    let physical_size_opt: Option<String> =
+        JsonObjectNumberFieldOpt(site.json, site.start, site.end,
+            "physical_size");
+    let physical_mode_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(site, "physical_mode");
+    let runtime_opt: Option<String> =
+        JsonObjectFactStringFieldOpt(site, "runtime_operation");
+    if !IsSome(operation_opt) || !IsSome(manifest_opt) ||
+        !IsSome(physical_grant_opt) || !IsSome(physical_base_opt) ||
+        !IsSome(physical_size_opt) || !IsSome(physical_mode_opt) ||
+        !IsSome(runtime_opt) {
+        return false;
+    }
+    let operation: String = UnwrapOption(operation_opt);
+    let row: Int = MachineAirOperationIndex(operation);
+    return row >= 0 &&
+        SelfHostMachineLayerDeclarationReady(declaration) &&
+        UnwrapOption(manifest_opt) ==
+            CompilerRuntimeCallAbiMachineLayerManifestId() &&
+        UnwrapOption(physical_grant_opt) ==
+            declaration.grant_id &&
+        UnwrapOption(physical_base_opt) == ToString(declaration.grant_base) &&
+        UnwrapOption(physical_size_opt) == ToString(declaration.grant_size) &&
+        UnwrapOption(physical_mode_opt) ==
+            declaration.grant_mode &&
+        UnwrapOption(runtime_opt) ==
+            CompilerRuntimeCallAbiMachineLayerRuntimeOperationAt(row) &&
+        JsonObjectBoolFieldEquals(site.json, site.start, site.end,
+            "hardware_adequate", true) &&
+        JsonObjectBoolFieldEquals(site.json, site.start, site.end,
+            "authority_required", true) &&
+        JsonObjectBoolFieldEquals(site.json, site.start, site.end,
+            "live_lease_required", true);
+}
+
+func MachineAirValidate(
+    path: String,
+    declaration: SelfHostMachineLayerDeclaration
+) -> Void {
+    let content: String = ReadFile(path);
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(content);
+    if !JsonObjectFactTableReady(root) ||
+        !JsonObjectFactStringFieldEquals(root, "schema", "pgy.air.graph.v1") {
+        MachineAirFail("AIR graph schema is missing or invalid");
+    }
+    let sites: JsonArrayObjectFactTable =
+        JsonObjectFactArrayObjectTable(root, "machine_layer_sites");
+    if !JsonArrayObjectFactTableReady(sites) ||
+        JsonArrayObjectFactCount(sites) <= 0 {
+        MachineAirFail("AIR machine_layer_sites are missing or empty");
+    }
+    let row: Int = 0;
+    while row < JsonArrayObjectFactCount(sites) {
+        if !MachineAirSiteReady(
+            JsonArrayObjectFactAt(sites, row), declaration
+        ) {
+            MachineAirFail("AIR machine-layer site is missing owner facts");
+        }
+        row = row + 1;
+    }
+    Log(Concat("pgy.selfhost.machine-layer-air.v1|sites=",
+        ToString(JsonArrayObjectFactCount(sites))));
+}
+
+func Main() -> Void with caps io_read, env {
+    let args: Array<String> = Args();
+    if ArrayLength(args) != 2 {
+        MachineAirFail(
+            "usage: machine_layer_air_validator <air-json-file> <machine-manifest-json-file>"
+        );
+    }
+    MachineAirValidate(
+        args[0], SelfHostMachineLayerDeclarationFromPath(args[1])
+    );
+}

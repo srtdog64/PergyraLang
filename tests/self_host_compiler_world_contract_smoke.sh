@@ -179,7 +179,9 @@ forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileAs
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "func CompileSourceToC("
 forbid_text "src/self_hosted/compiler/driver_pipeline_owner.pgy" "let ast_text: String = CompileSourceToAst(source_path)"
 require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" 'import "driver_rung2_owner.pgy";'
-require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile(args[1], CompileSourceToCVerified(args[0]).payload)"
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "WriteFile("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCVerified("
+require_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "SelfHostMachineLayerDeclarationEmpty()"
 forbid_text "src/self_hosted/compiler/driver_bootstrap_main.pgy" "CompileSourceToCArtifact"
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" 'import "driver_pipeline_owner.pgy";'
 require_text "src/self_hosted/compiler/driver_rung0_owner.pgy" "func CompilerDriverRung0Ready"

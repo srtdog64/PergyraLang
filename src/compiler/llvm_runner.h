@@ -9,10 +9,11 @@
 #include "driver_app.h"
 #include "compiler.h"
 
-/* Run the LLVM backend pipeline: IR bundle → LLVM IR → object → binary.
+/* Run the LLVM backend pipeline: IR bundle + verified AIR handle → LLVM IR → object → binary.
  * Returns 0 on success. */
 int llvm_runner_execute(const DriverFlags *flags,
                         const CompilerIRBundle *bundle,
+                        const PgyAirVerification *air,
                         CompilerBackendTimings *backend_timings);
 
 #endif /* PGY_LLVM_RUNNER_H */

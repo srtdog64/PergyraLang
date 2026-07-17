@@ -51,6 +51,17 @@ require_text "src/compiler/hir_callgraph.c" \
     "HIR direct-call identity facts are incomplete"
 require_text "src/compiler/hir_callgraph.c" \
     "HIR internal call target has no RoutineId"
+require_text "src/compiler/rir.h" "uint32_t      source_syntax_id;"
+require_text "src/compiler/rir_flow.c" \
+    "Source-backed HIR routines must not fall back to a name join"
+require_text "src/compiler/rir_flow.c" \
+    "RIR resource fact has no matching HIR stable identity"
+require_text "src/compiler/rir_builder.c" "case AST_ROLE_DECL:"
+require_text "src/compiler/rir_builder.c" "ast_impl_ability_method_count"
+require_text "src/compiler/rir_validation.c" \
+    "RIR scope '%s' resource fact '%s' is missing HIR stable identity"
+require_text "src/test_rir.c" \
+    "RIR validation rejects a verified scope with missing HIR identity"
 reject_name_join "$ROOT_DIR/src/compiler/hir_callgraph.c"
 
 # The detector must reject the old name-carried edge shape, not merely accept
@@ -78,6 +89,18 @@ fi
 if ! grep -Eq 'Helper.*hosted=false.*reachable=true' "$WORK_DIR/hir.out"; then
     echo "[hir-routine-identity] top-level Helper was not reached" >&2
     cat "$WORK_DIR/hir.out" >&2
+    exit 1
+fi
+
+resource_source="$ROOT_DIR/tests/cases/slot_contract/positive/plain_read_write_release/main.pgy"
+resource_arg="$(pgy_path_for_compiler "$PGY" "$resource_source")"
+if ! "$PGY" --rir "$resource_arg" >"$WORK_DIR/rir.out" 2>"$WORK_DIR/rir.err"; then
+    cat "$WORK_DIR/rir.err" >&2
+    exit 1
+fi
+if ! grep -Eq 'identity=verified.*stable=0' "$WORK_DIR/rir.out"; then
+    echo "[hir-routine-identity] RIR did not carry a verified HIR stable resource identity" >&2
+    cat "$WORK_DIR/rir.out" >&2
     exit 1
 fi
 

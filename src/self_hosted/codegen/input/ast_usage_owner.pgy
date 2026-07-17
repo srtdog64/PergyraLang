@@ -34,6 +34,8 @@ struct CodegenRuntimeUsageFacts {
     let uses_random: Bool;
     let uses_allocator: Bool;
     let uses_text_builder: Bool;
+    let uses_machine_layer: Bool;
+    let uses_remote_future: Bool;
 }
 
 func CodegenRuntimeUsageFactsFromSemantic(
@@ -55,7 +57,7 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_array_reverse: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayReverse());
     let uses_array_map: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayMap());
     let uses_array_filter: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupArrayFilter());
-    let uses_result: Bool = type_usage.has_result
+    let uses_result: Bool = type_usage.has_result || type_usage.has_remote_future
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupResult());
     let uses_option: Bool = type_usage.has_option
         || CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupOption())
@@ -90,6 +92,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
     let uses_random: Bool = uses_random_value || uses_seed_random;
     let uses_allocator: Bool = type_usage.has_allocator;
     let uses_text_builder: Bool = type_usage.has_text_builder;
+    let uses_machine_layer: Bool = type_usage.has_machine_layer;
+    let uses_remote_future: Bool = type_usage.has_remote_future;
     return CodegenRuntimeUsageFacts(
         uses_args,
         uses_str,
@@ -116,6 +120,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
         uses_seed_random,
         uses_random,
         uses_allocator,
-        uses_text_builder
+        uses_text_builder,
+        uses_machine_layer,
+        uses_remote_future
     );
 }

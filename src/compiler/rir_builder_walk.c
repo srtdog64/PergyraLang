@@ -61,6 +61,31 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
             if (!add_op(scope, RIR_OP_READ,
                         expr_name(ast_call_argument(node, 0)), NULL, NULL, node))
                 return false;
+        } else if (strcmp(name, "DeviceRead") == 0 && argc >= 1) {
+            if (!add_op_with_machine_contact(
+                    scope, RIR_OP_READ,
+                    expr_name(ast_call_argument(node, 0)), NULL, NULL,
+                    RIR_MACHINE_CONTACT_READ, node))
+                return false;
+        } else if (strcmp(name, "DeviceWrite") == 0 && argc >= 2) {
+            if (!add_op_with_machine_contact(
+                    scope, RIR_OP_WRITE,
+                    expr_name(ast_call_argument(node, 0)),
+                    expr_name(ast_call_argument(node, 1)), NULL,
+                    RIR_MACHINE_CONTACT_WRITE, node))
+                return false;
+        } else if (strcmp(name, "ReleaseDeviceSlot") == 0 && argc >= 1) {
+            if (!add_op_with_machine_contact(
+                    scope, RIR_OP_RELEASE,
+                    expr_name(ast_call_argument(node, 0)), NULL, NULL,
+                    RIR_MACHINE_CONTACT_RELEASE, node))
+                return false;
+        } else if (strcmp(name, "SubmitDeviceRead") == 0 && argc >= 1) {
+            if (!add_op_with_machine_contact(
+                    scope, RIR_OP_AWAIT_REMOTE,
+                    expr_name(ast_call_argument(node, 0)), NULL, NULL,
+                    RIR_MACHINE_CONTACT_SUBMIT_READ, node))
+                return false;
         } else if (strcmp(name, "Write") == 0 && argc >= 1) {
             if (!add_op(scope, RIR_OP_WRITE,
                         expr_name(ast_call_argument(node, 0)),
@@ -159,8 +184,9 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                         return false;
                 } else if (strcmp(init_name, "ClaimDeviceSlot") == 0) {
                     state = RIR_STATE_OWNED;
-                    if (!add_op(scope, RIR_OP_CLAIM, name, "DeviceSlot", NULL,
-                                initializer))
+                    if (!add_op_with_machine_contact(
+                            scope, RIR_OP_CLAIM, name, "DeviceSlot", NULL,
+                            RIR_MACHINE_CONTACT_CLAIM, initializer))
                         return false;
                 } else if (strcmp(init_name, "ViewRead") == 0
                            && ast_call_arg_count(initializer) >= 1) {

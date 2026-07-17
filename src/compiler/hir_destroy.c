@@ -50,6 +50,20 @@ hir_destroy(HIRProgram *hir)
             free((void *)hir->routines[i].direct_calls);
             free(hir->routines[i].direct_call_decl_ids);
             free(hir->routines[i].callee_routine_ids);
+            for (size_t k = 0;
+                 k < hir->routines[i].resource_flow_symbol_count;
+                 k++)
+                free((void *)hir->routines[i].resource_flow_symbols[k].name);
+            free(hir->routines[i].resource_flow_symbols);
+            free(hir->routines[i].function_param_flow_summaries);
+            free(hir->routines[i].loop_flow_summaries);
+            free(hir->routines[i].loop_flow_states);
+            for (size_t k = 0;
+                 k < hir->routines[i].iteration_type_fact_count; k++) {
+                free(hir->routines[i].iteration_type_facts[k].binding_type_name);
+                free(hir->routines[i].iteration_type_facts[k].iterable_type_name);
+            }
+            free(hir->routines[i].iteration_type_facts);
             pgy_arena_destroy(&hir->routines[i].scratch);
         }
     }

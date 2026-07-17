@@ -24,6 +24,27 @@ graph -> pgy.mir.v1` producer used by DRV-2.
 - `program_verify_owner.pgy`: structural range/topology/fact verifier.
 - `json_projection_owner.pgy`: verified fact graph to MIR JSON projection.
 
+The self-host producer also emits the `resource_flow_symbol_count` and
+`resource_flow_symbols` routine fields explicitly.  This producer owns the
+bounded typed-artifact graph, not the native semantic `ResourceFlowUniverse`,
+so its current projection is an explicit empty inventory; the native compiler
+MIR JSON path is the owner-directed HIR snapshot path.  Consumers must treat
+missing fields as invalid rather than recovering resource identity from source
+text or routine names.
+
+The producer also emits explicit empty `loop_flow_summaries` and
+`loop_flow_states` fields. Native loop transfer evidence is owned by semantic
+analysis; HIR is only the adapter, MIR routines own the validated rows emitted
+by native JSON, and self-host `mir_lower` consumes that projection. CFG shape
+or source text is not a fallback owner.
+
+At the self-host consumer boundary, `routine_lower.pgy` uses the native rows as
+loop-projection admission facts: the rendered CFG loop headers must match the
+summary count and `while`/`for` kinds. A mismatch is rejected rather than
+recovered from CFG or source text. Each state snapshot stable index is also
+resolved against the routine's ResourceFlowUniverse rows; it is not accepted
+as an unrelated numeric array.
+
 The C compiler remains the whole-language oracle and default native producer.
 For the bounded DRV-2 source frontier, however, C MIR is comparison evidence
 only: the live replacement path produces and consumes MIR in Pergyra. DRV-2

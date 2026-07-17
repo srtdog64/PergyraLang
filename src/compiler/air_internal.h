@@ -71,6 +71,7 @@ bool        air_has_hir_input(const AIRProgram *air);
 bool        air_has_rir_input(const AIRProgram *air);
 bool        air_has_mir_input(const AIRProgram *air);
 bool        air_requires_strict_evidence(const AIRProgram *air);
+uint64_t    air_mir_evidence_binding_fingerprint(const MIRProgram *mir);
 void        air_mark_hir_input(AIRProgram *air);
 void        air_mark_rir_input(AIRProgram *air);
 void        air_mark_mir_input(AIRProgram *air);
@@ -130,6 +131,14 @@ bool        air_collect_mir_pin_block_evidence(AIRProgram *air,
                                                const MIRBasicBlock *block,
                                                const char *routine_name,
                                                char **error_message);
+bool        air_collect_machine_layer_sites(AIRProgram *air,
+                                            const MIRRoutine *routine,
+                                            const char *routine_name);
+bool        air_collect_function_param_flow_summaries(
+                AIRProgram *air,
+                const MIRRoutine *routine,
+                const char *routine_name,
+                char **error_message);
 void        air_refresh_execution_lane_facts(AIRProgram *air);
 const char *air_rir_scope_provider_name(const RIRScope *scope);
 bool        air_require_rir_scope_provider(const RIRScope *scope,

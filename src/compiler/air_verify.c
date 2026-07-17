@@ -5,6 +5,7 @@
  */
 
 #include "air_internal.h"
+#include "air_evidence_certificate.h"
 
 #include "../semantic/diag_codes.h"
 
@@ -24,6 +25,10 @@ air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
 bool
 air_verify(AIRProgram *air, char **error_message)
 {
+    if (air != NULL) {
+        air->verification_certificate_valid = false;
+        air->verification_certificate_fingerprint = 0;
+    }
     if (!air_validate(air, error_message))
         return false;
 
@@ -204,7 +209,17 @@ air_verify(AIRProgram *air, char **error_message)
         }
         free(provenance);
     }
-    return air_verify_global_evidence_requirements(air, error_message);
+    if (!air_verify_global_evidence_requirements(air, error_message))
+        return false;
+    /* The first AIR verification happens before MIR lowering.  Only the final
+       MIR-backed pass is allowed to issue the planner certificate. */
+    if (air != NULL && air->has_mir_input && air->drift_count == 0
+        && !pgy_air_evidence_certificate_issue(air, NULL)) {
+        air_set_error(error_message,
+                      "AIR evidence certificate could not be issued");
+        return false;
+    }
+    return true;
 }
 
 bool

@@ -8,10 +8,36 @@
 
 #include "../parser/ast.h"
 #include "../common/arena.h"
+#include "../semantic/resource_flow_fact.h"
+#include "../semantic/loop_flow_fact.h"
+#include "../semantic/function_param_flow_fact.h"
+#include "../semantic/iteration_type_fact.h"
 
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
 typedef struct HIRPhiNode HIRPhiNode;
+
+typedef struct
+{
+    size_t       stable_index;
+    uint32_t     declaration_syntax_id;
+    uint32_t     line;
+    uint32_t     column;
+    uint32_t     symbol_kind;
+    bool         is_parameter;
+    size_t       parameter_index;
+    const char  *name;
+} HIRResourceFlowSymbol;
+
+typedef struct
+{
+    size_t   parameter_index;
+    uint32_t mask;
+} HIRFunctionParamFlowSummary;
+
+typedef PgyLoopFlowStateFact HIRLoopFlowStateFact;
+typedef PgyLoopFlowSummaryFact HIRLoopFlowSummaryFact;
+typedef PgyIterationTypeFact HIRIterationTypeFact;
 
 typedef enum
 {
@@ -67,6 +93,9 @@ typedef struct
     HIRTopLevelKind  kind;
     const char      *name;
     const char      *owner_name;
+    /* HIR-owned callable signature cardinality.  Downstream flow validators
+       must not reopen the AST to recover parameter bounds. */
+    size_t           parameter_count;
     ASTNodeType      owner_ast_type;
     ASTNode         *ast;
     ASTNode         *body;
@@ -91,6 +120,21 @@ typedef struct
     size_t           normal_exit_block_count;
     size_t           phi_candidate_count;
     size_t           phi_candidate_block_count;
+    HIRResourceFlowSymbol *resource_flow_symbols;
+    size_t                resource_flow_symbol_count;
+    size_t                resource_flow_symbol_capacity;
+    HIRFunctionParamFlowSummary *function_param_flow_summaries;
+    size_t                        function_param_flow_summary_count;
+    size_t                        function_param_flow_summary_capacity;
+    HIRLoopFlowSummaryFact       *loop_flow_summaries;
+    size_t                        loop_flow_summary_count;
+    size_t                        loop_flow_summary_capacity;
+    HIRLoopFlowStateFact         *loop_flow_states;
+    size_t                        loop_flow_state_count;
+    size_t                        loop_flow_state_capacity;
+    HIRIterationTypeFact         *iteration_type_facts;
+    size_t                        iteration_type_fact_count;
+    size_t                        iteration_type_fact_capacity;
     struct {
         struct HIRBasicBlock *blocks;
         size_t                block_count;
@@ -300,9 +344,38 @@ struct HIRProgram
     ASTNode          *synthetic_executable_func;
 
     bool              has_main_function;
+    bool              has_resource_flow_facts;
+    bool              has_function_param_flow_facts;
+    bool              has_loop_flow_facts;
+    bool              has_iteration_type_facts;
+    uint32_t          source_program_syntax_id;
 };
 
 HIRProgram *hir_lower(ASTNode *annotated_ast, char **error_message);
+HIRProgram *hir_lower_with_resource_flow_facts(
+        ASTNode *annotated_ast,
+        const PgyResourceFlowFact *facts,
+        size_t fact_count,
+        char **error_message);
+HIRProgram *hir_lower_with_resource_and_param_flow_facts(
+        ASTNode *annotated_ast,
+        const PgyResourceFlowFact *resource_facts,
+        size_t resource_fact_count,
+        const PgyFunctionParamFlowFact *param_facts,
+        size_t param_fact_count,
+        char **error_message);
+bool hir_attach_loop_flow_facts(
+        HIRProgram *hir,
+        const PgyLoopFlowSummaryFact *facts,
+        size_t fact_count,
+        const PgyLoopFlowStateFact *states,
+        size_t state_count,
+        char **error_message);
+bool hir_attach_iteration_type_facts(
+        HIRProgram *hir,
+        const PgyIterationTypeFact *facts,
+        size_t fact_count,
+        char **error_message);
 void        hir_destroy(HIRProgram *hir);
 bool        hir_validate(const HIRProgram *hir, char **error_message);
 void        hir_dump(const HIRProgram *hir, FILE *out);
@@ -317,6 +390,10 @@ const HIRRoutine *hir_find_routine(const HIRProgram *hir,
                                    HIRTopLevelKind kind);
 const HIRRoutine *hir_find_routine_by_id(const HIRProgram *hir,
                                          uint32_t routine_id);
+size_t hir_resource_flow_symbol_count(const HIRRoutine *routine);
+const HIRResourceFlowSymbol *hir_resource_flow_symbol_at(
+        const HIRRoutine *routine,
+        size_t index);
 void hir_routine_inventory_from_program(
         const HIRProgram *hir,
         HIRRoutineInventory *inventory);

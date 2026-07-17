@@ -127,6 +127,52 @@ func MirDeclObjectBoundsAt(json: String, row: Int, inout bounds: Array<Int>) -> 
     return true;
 }
 
+// Resolve a payload-free enum variant to its declaration owner from the MIR
+// declaration facts.  An empty result is deliberately ambiguous/unknown; the
+// lowering layer must then fail closed instead of guessing a qualification.
+func MirEnumOwnerForVariant(json: String, variant: String) -> String {
+    if StringLength(variant) == 0 {
+        return "";
+    }
+    let owner: String = "";
+    let ambiguous: Bool = false;
+    let decl_bounds: Array<Int> = [0, 0];
+    let row: Int = 0;
+    while MirDeclObjectBoundsAt(json, row, decl_bounds) {
+        if MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "kind") == "enum" {
+            let variants_bounds: Array<Int> = [0, 0];
+            if MirObjectArrayBounds(json, decl_bounds[0], decl_bounds[1], "variants", variants_bounds) {
+                let variant_bounds: Array<Int> = [0, 0];
+                let variant_row: Int = 0;
+                while MirObjectArrayObjectBoundsAt(
+                    json, decl_bounds[0], decl_bounds[1], "variants",
+                    variant_row, variant_bounds
+                ) {
+                    let name: String = MirObjectStringFact(
+                        json, variant_bounds[0], variant_bounds[1], "name");
+                    if name == variant {
+                        let enum_name: String = MirObjectStringFact(
+                            json, decl_bounds[0], decl_bounds[1], "name");
+                        if StringLength(enum_name) > 0 {
+                            if StringLength(owner) == 0 {
+                                owner = enum_name;
+                            } else if owner != enum_name {
+                                ambiguous = true;
+                            }
+                        }
+                    }
+                    variant_row = variant_row + 1;
+                }
+            }
+        }
+        row = row + 1;
+    }
+    if ambiguous {
+        return "";
+    }
+    return owner;
+}
+
 func MirRoutineArrayObjectFactTable(json: String) -> JsonArrayObjectFactTable {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
     return JsonObjectFactArrayObjectTable(root, "routines");

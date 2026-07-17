@@ -142,6 +142,11 @@ func SemanticAstInitializerTypeFactsFromArtifact(
                 inferred = UnwrapOption(enum_type);
             }
         }
+        if expression_verdict.ok && IsSome(declared) &&
+            UnwrapOption(declared) == "Int" &&
+            SemanticAstEnumExpressionIsPayloadFree(enum_facts, expression) {
+            inferred = "Int";
+        }
         if expression_verdict.ok &&
             (inferred == "Unknown" || inferred == "") {
             let member_type: Option<String> =

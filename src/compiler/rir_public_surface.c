@@ -57,10 +57,45 @@ rir_destroy(RIRProgram *rir)
         free(rir->scopes[i].facts);
         free(rir->scopes[i].ops);
         free(rir->scopes[i].state_summaries);
+        if (rir->scopes[i].resource_flow_symbols != NULL) {
+            for (size_t j = 0;
+                 j < rir->scopes[i].resource_flow_symbol_count; j++)
+                free(rir->scopes[i].resource_flow_symbols[j].name);
+        }
+        free(rir->scopes[i].resource_flow_symbols);
+        free(rir->scopes[i].function_param_flow_summaries);
         rir_free_flow_blocks(&rir->scopes[i]);
     }
     free(rir->scopes);
     free(rir);
+}
+
+size_t
+rir_scope_function_param_flow_summary_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->function_param_flow_summary_count : 0;
+}
+
+const RIRFunctionParamFlowSummary *
+rir_scope_function_param_flow_summary_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || index >= scope->function_param_flow_summary_count)
+        return NULL;
+    return &scope->function_param_flow_summaries[index];
+}
+
+size_t
+rir_scope_resource_flow_symbol_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->resource_flow_symbol_count : 0;
+}
+
+const RIRResourceFlowSymbol *
+rir_scope_resource_flow_symbol_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || index >= scope->resource_flow_symbol_count)
+        return NULL;
+    return &scope->resource_flow_symbols[index];
 }
 
 void
@@ -169,6 +204,18 @@ rir_scope_op_at(const RIRScope *scope, size_t index)
     if (scope == NULL || scope->ops == NULL || index >= scope->op_count)
         return NULL;
     return &scope->ops[index];
+}
+
+const RIROp *
+rir_scope_find_op_by_ast(const RIRScope *scope, const ASTNode *ast)
+{
+    if (scope == NULL || ast == NULL)
+        return NULL;
+    for (size_t i = 0; i < scope->op_count; i++) {
+        if (scope->ops[i].ast == ast)
+            return &scope->ops[i];
+    }
+    return NULL;
 }
 
 size_t
@@ -353,8 +400,35 @@ rir_dump_json_fact(FILE *out, const RIRFact *f)
     json_write_str(out, f->arg0);
     fprintf(out, ",\"arg1\":");
     json_write_str(out, f->arg1);
-    fprintf(out, ",\"state\":\"%s\"}",
-        rir_resource_state_name(f->state));
+    fprintf(out, ",\"state\":\"%s\",\"flow_identity\":%s",
+        rir_resource_state_name(f->state),
+        f->has_flow_identity ? "true" : "false");
+    if (f->has_flow_identity) {
+        fprintf(out,
+                ",\"stable_index\":%zu,\"declaration_syntax_id\":%u",
+                f->stable_index,
+                f->declaration_syntax_id);
+    }
+    fputs("}", out);
+}
+
+static void
+rir_dump_json_resource_flow_symbol(FILE *out,
+                                   const RIRResourceFlowSymbol *symbol)
+{
+    fprintf(out,
+            "      {\"stable_index\":%zu,\"declaration_syntax_id\":%u"
+            ",\"line\":%u,\"column\":%u,\"symbol_kind\":%u"
+            ",\"is_parameter\":%s,\"parameter_index\":%zu,\"name\":",
+            symbol->stable_index,
+            symbol->declaration_syntax_id,
+            symbol->line,
+            symbol->column,
+            symbol->symbol_kind,
+            symbol->is_parameter ? "true" : "false",
+            symbol->parameter_index);
+    json_write_str(out, symbol->name);
+    fputs("}", out);
 }
 
 static void
@@ -369,6 +443,8 @@ rir_dump_json_op(FILE *out, const RIROp *op)
     json_write_str(out, op->arg0);
     fprintf(out, ",\"arg1\":");
     json_write_str(out, op->arg1);
+    fprintf(out, ",\"machine_contact\":\"%s\"",
+        rir_machine_contact_kind_name(op->machine_contact_kind));
     fputs("}", out);
 }
 
@@ -387,8 +463,16 @@ rir_dump_json_summary(FILE *out, const RIRStateSummary *s)
         rir_resource_state_name(s->final_state));
     fprintf(out, "\"last_op\":");
     json_write_str(out, s->last_op_name);
-    fprintf(out, ",\"has_error\":%s}",
-        s->has_transition_error ? "true" : "false");
+    fprintf(out, ",\"has_error\":%s,\"flow_identity\":%s",
+        s->has_transition_error ? "true" : "false",
+        s->has_flow_identity ? "true" : "false");
+    if (s->has_flow_identity) {
+        fprintf(out,
+                ",\"stable_index\":%zu,\"declaration_syntax_id\":%u",
+                s->stable_index,
+                s->declaration_syntax_id);
+    }
+    fputs("}", out);
 }
 
 void
@@ -423,17 +507,39 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
             "    {\n"
             "      \"index\": %zu,\n"
             "      \"kind\": \"%s\",\n"
+            "      \"source_syntax_id\": %u,\n"
+            "      \"resource_identity_verified\": %s,\n"
+            "      \"resource_flow_symbol_count\": %zu,\n"
+            "      \"function_param_flow_summary_count\": %zu,\n"
             "      \"name\": ",
-            i, rir_scope_kind_name(rir_scope_kind(scope)));
+            i,
+            rir_scope_kind_name(rir_scope_kind(scope)),
+            scope->source_syntax_id,
+            scope->resource_identity_verified ? "true" : "false",
+            rir_scope_resource_flow_symbol_count(scope),
+            rir_scope_function_param_flow_summary_count(scope));
         json_write_str(out, rir_scope_name(scope));
         fprintf(out, ",\n"
                      "      \"owner\": ");
         json_write_str(out, rir_scope_owner_name(scope));
         fprintf(out, ",\n"
                      "      \"fact_count\": %zu,\n"
-                     "      \"op_count\": %zu,\n"
-                     "      \"facts\": [\n",
+                     "      \"op_count\": %zu,\n",
                 fact_count, op_count);
+        fputs("      \"resource_flow_symbols\": [\n", out);
+        for (size_t j = 0;
+             j < rir_scope_resource_flow_symbol_count(scope); j++) {
+            const RIRResourceFlowSymbol *symbol =
+                rir_scope_resource_flow_symbol_at(scope, j);
+            if (j > 0)
+                fputs(",\n", out);
+            if (symbol != NULL)
+                rir_dump_json_resource_flow_symbol(out, symbol);
+            else
+                fputs("null", out);
+        }
+        fputs("\n      ],\n"
+              "      \"facts\": [\n", out);
         for (size_t j = 0; j < fact_count; j++) {
             const RIRFact *fact = rir_scope_fact_at(scope, j);
             if (j > 0) fputs(",\n", out);
@@ -501,12 +607,14 @@ rir_dump(const RIRProgram *rir, FILE *out)
         fact_count = rir_scope_fact_count(scope);
         op_count = rir_scope_op_count(scope);
         summary_count = rir_scope_state_summary_count(scope);
-        fprintf(out, "  scope[%02zu] %-8s %s%s%s facts=%zu ops=%zu\n",
+        fprintf(out, "  scope[%02zu] %-8s %s%s%s source=%u identity=%s facts=%zu ops=%zu\n",
                 i,
                 rir_scope_kind_name(rir_scope_kind(scope)),
                 rir_scope_owner_name(scope) != NULL ? rir_scope_owner_name(scope) : "",
                 rir_scope_owner_name(scope) != NULL ? "." : "",
                 rir_scope_display_name(scope),
+                scope->source_syntax_id,
+                scope->resource_identity_verified ? "verified" : "pending",
                 fact_count,
                 op_count);
         fprintf(out, "    normalize summaries=%zu state-errors=%s semantics=",
@@ -514,13 +622,44 @@ rir_dump(const RIRProgram *rir, FILE *out)
                 rir_scope_has_state_errors(scope) ? "yes" : "no");
         rir_dump_flow_semantics(out, rir_scope_conservative_semantics(scope));
         fputc('\n', out);
+        fprintf(out,
+                "    function-param-flow-summaries=%zu\n",
+                rir_scope_function_param_flow_summary_count(scope));
+        for (size_t j = 0;
+             j < rir_scope_function_param_flow_summary_count(scope);
+             j++) {
+            const RIRFunctionParamFlowSummary *summary =
+                rir_scope_function_param_flow_summary_at(scope, j);
+            fprintf(out,
+                    "    function-param-flow[%02zu] parameter-index=%zu mask=%u\n",
+                    j,
+                    summary != NULL ? summary->parameter_index : 0,
+                    summary != NULL ? summary->mask : 0);
+        }
+        fprintf(out,
+                "    resource-flow-symbols=%zu\n",
+                rir_scope_resource_flow_symbol_count(scope));
+        for (size_t j = 0;
+             j < rir_scope_resource_flow_symbol_count(scope); j++) {
+            const RIRResourceFlowSymbol *symbol =
+                rir_scope_resource_flow_symbol_at(scope, j);
+            fprintf(out,
+                    "    resource-flow[%02zu] name=%s stable=%zu declaration=%u parameter=%s parameter-index=%zu\n",
+                    j,
+                    symbol != NULL && symbol->name != NULL
+                        ? symbol->name : "-",
+                    symbol != NULL ? symbol->stable_index : 0,
+                    symbol != NULL ? symbol->declaration_syntax_id : 0,
+                    symbol != NULL && symbol->is_parameter ? "true" : "false",
+                    symbol != NULL ? symbol->parameter_index : 0);
+        }
         for (size_t j = 0; j < fact_count; j++) {
             const RIRFact *fact = rir_scope_fact_at(scope, j);
             if (fact == NULL) {
                 fprintf(out, "    fact[%02zu] <invalid>\n", j);
                 continue;
             }
-            fprintf(out, "    fact[%02zu] %-13s name=%s slot=%s arg0=%s arg1=%s kind=%s state=%s\n",
+            fprintf(out, "    fact[%02zu] %-13s name=%s slot=%s arg0=%s arg1=%s kind=%s state=%s identity=%s stable=%zu\n",
                     j,
                     rir_fact_kind_name(fact->kind),
                     fact->name != NULL ? fact->name : "-",
@@ -528,7 +667,9 @@ rir_dump(const RIRProgram *rir, FILE *out)
                     fact->arg0 != NULL ? fact->arg0 : "-",
                     fact->arg1 != NULL ? fact->arg1 : "-",
                     rir_resource_kind_name(fact->resource_kind),
-                    rir_resource_state_name(fact->state));
+                     rir_resource_state_name(fact->state),
+                     fact->has_flow_identity ? "verified" : "missing",
+                     fact->has_flow_identity ? fact->stable_index : 0);
         }
         for (size_t j = 0; j < op_count; j++) {
             const RIROp *op = rir_scope_op_at(scope, j);
@@ -536,13 +677,14 @@ rir_dump(const RIRProgram *rir, FILE *out)
                 fprintf(out, "    op[%02zu] <invalid>\n", j);
                 continue;
             }
-            fprintf(out, "    op[%02zu] %-20s subject=%s slot=%s arg0=%s arg1=%s\n",
+            fprintf(out, "    op[%02zu] %-20s subject=%s slot=%s arg0=%s arg1=%s machine=%s\n",
                     j,
                     rir_op_kind_name(op->kind),
                     op->subject != NULL ? op->subject : "-",
                     op->slot_anchor != NULL ? op->slot_anchor : "-",
                     op->arg0 != NULL ? op->arg0 : "-",
-                    op->arg1 != NULL ? op->arg1 : "-");
+                    op->arg1 != NULL ? op->arg1 : "-",
+                    rir_machine_contact_kind_name(op->machine_contact_kind));
         }
         for (size_t j = 0; j < summary_count; j++) {
             const RIRStateSummary *summary =
@@ -552,7 +694,7 @@ rir_dump(const RIRProgram *rir, FILE *out)
                 continue;
             }
             fprintf(out,
-                    "    state[%02zu] %-13s name=%s slot=%s kind=%s init=%s final=%s last-op=%s error=%s\n",
+                    "    state[%02zu] %-13s name=%s slot=%s kind=%s init=%s final=%s last-op=%s error=%s identity=%s stable=%zu\n",
                     j,
                     rir_fact_kind_name(summary->origin_kind),
                     summary->name != NULL ? summary->name : "-",
@@ -561,7 +703,9 @@ rir_dump(const RIRProgram *rir, FILE *out)
                     rir_resource_state_name(summary->initial_state),
                     rir_resource_state_name(summary->final_state),
                     summary->last_op_name != NULL ? summary->last_op_name : "-",
-                    summary->has_transition_error ? "yes" : "no");
+                     summary->has_transition_error ? "yes" : "no",
+                     summary->has_flow_identity ? "verified" : "missing",
+                     summary->has_flow_identity ? summary->stable_index : 0);
         }
         for (size_t j = 0; j < rir_scope_flow_block_count(scope); j++) {
             const RIRFlowBlock *block = rir_scope_flow_block_at(scope, j);

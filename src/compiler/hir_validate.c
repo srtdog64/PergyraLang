@@ -116,6 +116,189 @@ hir_validate_predecessors(const HIRRoutine *routine,
     return true;
 }
 
+static bool
+hir_validate_resource_flow_symbols(const HIRRoutine *routine,
+                                   char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->resource_flow_symbol_count == 0)
+        return routine->resource_flow_symbols == NULL
+            || routine->resource_flow_symbol_capacity != 0;
+    if (routine->resource_flow_symbols == NULL
+        || routine->resource_flow_symbol_count
+            > routine->resource_flow_symbol_capacity) {
+        if (error_message != NULL)
+            *error_message = hir_validate_strdup_fmt(
+                "HIR routine '%s' has incomplete resource-flow symbol storage",
+                routine->name,
+                0);
+        return false;
+    }
+    for (size_t i = 0; i < routine->resource_flow_symbol_count; i++) {
+        const HIRResourceFlowSymbol *symbol =
+            &routine->resource_flow_symbols[i];
+        if (symbol->name == NULL || symbol->name[0] == '\0') {
+            if (error_message != NULL)
+                *error_message = hir_validate_strdup_fmt(
+                    "HIR routine '%s' resource-flow symbol[%zu] has no name",
+                    routine->name,
+                    i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (routine->resource_flow_symbols[j].stable_index
+                == symbol->stable_index) {
+                if (error_message != NULL)
+                    *error_message = hir_validate_strdup_fmt(
+                        "HIR routine '%s' resource-flow symbols share stable index %zu",
+                        routine->name,
+                        symbol->stable_index);
+                return false;
+            }
+            if (symbol->is_parameter
+                && routine->resource_flow_symbols[j].is_parameter
+                && routine->resource_flow_symbols[j].parameter_index
+                    == symbol->parameter_index) {
+                if (error_message != NULL)
+                    *error_message = hir_validate_strdup_fmt(
+                        "HIR routine '%s' resource-flow parameters share index %zu",
+                        routine->name,
+                        symbol->parameter_index);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+hir_validate_function_param_flow_summaries(const HIRRoutine *routine,
+                                           char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->function_param_flow_summary_count == 0)
+        return routine->function_param_flow_summaries == NULL
+            || routine->function_param_flow_summary_capacity != 0;
+    if (routine->function_param_flow_summaries == NULL
+        || routine->function_param_flow_summary_count
+            > routine->function_param_flow_summary_capacity) {
+        if (error_message != NULL)
+            *error_message = hir_validate_strdup_fmt(
+                "HIR routine '%s' has incomplete function parameter flow summary storage",
+                routine->name,
+                0);
+        return false;
+    }
+    for (size_t i = 0;
+         i < routine->function_param_flow_summary_count;
+         i++) {
+        const HIRFunctionParamFlowSummary *summary =
+            &routine->function_param_flow_summaries[i];
+        if (summary->parameter_index >= routine->parameter_count) {
+            if (error_message != NULL)
+                *error_message = hir_validate_strdup_fmt(
+                    "HIR routine '%s' function parameter flow summary[%zu] has out-of-range parameter index",
+                    routine->name,
+                    i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (routine->function_param_flow_summaries[j].parameter_index
+                == summary->parameter_index) {
+                if (error_message != NULL)
+                    *error_message = hir_validate_strdup_fmt(
+                        "HIR routine '%s' function parameter flow summaries share index %zu",
+                        routine->name,
+                        summary->parameter_index);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+hir_validate_loop_flow_summaries(const HIRRoutine *routine,
+                                 char **error_message)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->loop_flow_state_count > 0
+        && (routine->loop_flow_states == NULL
+            || routine->loop_flow_state_count
+                > routine->loop_flow_state_capacity)) {
+        if (error_message != NULL)
+            *error_message = hir_validate_strdup_fmt(
+                "HIR routine '%s' has incomplete loop-flow state storage",
+                routine->name, 0);
+        return false;
+    }
+    if (routine->loop_flow_summary_count == 0) {
+        if (routine->loop_flow_state_count != 0) {
+            if (error_message != NULL)
+                *error_message = hir_validate_strdup_fmt(
+                    "HIR routine '%s' has loop-flow states without summaries",
+                    routine->name, 0);
+            return false;
+        }
+        return routine->loop_flow_summaries == NULL
+            || routine->loop_flow_summary_capacity != 0;
+    }
+    if (routine->loop_flow_summaries == NULL
+        || routine->loop_flow_summary_count
+            > routine->loop_flow_summary_capacity) {
+        if (error_message != NULL)
+            *error_message = hir_validate_strdup_fmt(
+                "HIR routine '%s' has incomplete loop-flow summary storage",
+                routine->name, 0);
+        return false;
+    }
+    for (size_t i = 0; i < routine->loop_flow_summary_count; i++) {
+        const HIRLoopFlowSummaryFact *summary =
+            &routine->loop_flow_summaries[i];
+        if (summary->function_syntax_id != routine->source_syntax_id
+            || summary->loop_syntax_id == 0
+            || summary->kind > 1u
+            || summary->entry_state_start > routine->loop_flow_state_count
+            || summary->entry_state_count
+                > routine->loop_flow_state_count - summary->entry_state_start
+            || summary->exit_state_start > routine->loop_flow_state_count
+            || summary->exit_state_count
+                > routine->loop_flow_state_count - summary->exit_state_start) {
+            if (error_message != NULL)
+                *error_message = hir_validate_strdup_fmt(
+                    "HIR routine '%s' has an invalid loop-flow summary[%zu]",
+                    routine->name, i);
+            return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (routine->loop_flow_summaries[j].loop_syntax_id
+                == summary->loop_syntax_id) {
+                if (error_message != NULL)
+                    *error_message = hir_validate_strdup_fmt(
+                        "HIR routine '%s' loop-flow summaries share loop SyntaxNodeId %u",
+                        routine->name,
+                        summary->loop_syntax_id);
+                return false;
+            }
+        }
+    }
+    for (size_t i = 0; i < routine->loop_flow_state_count; i++) {
+        const HIRLoopFlowStateFact *state = &routine->loop_flow_states[i];
+        for (size_t j = 0; j < i; j++) {
+            /* A state row is a snapshot, so repeated stable indices are
+             * expected across entry/exit and across loops.  Only storage and
+             * value-domain checks belong here; identity uniqueness is owned by
+             * ResourceFlowUniverse validation. */
+            (void)state;
+            (void)j;
+        }
+    }
+    return true;
+}
+
 bool
 hir_validate(const HIRProgram *hir, char **error_message)
 {
@@ -197,6 +380,13 @@ hir_validate(const HIRProgram *hir, char **error_message)
                 return false;
             }
         }
+        if (!hir_validate_resource_flow_symbols(routine, error_message))
+            return false;
+        if (!hir_validate_function_param_flow_summaries(routine,
+                                                        error_message))
+            return false;
+        if (!hir_validate_loop_flow_summaries(routine, error_message))
+            return false;
         if (!routine->has_cfg) {
             if (routine->cfg.blocks != NULL || routine->cfg.block_count != 0) {
                 if (error_message != NULL) {
@@ -272,6 +462,36 @@ hir_validate(const HIRProgram *hir, char **error_message)
                 }
                 return false;
             }
+        }
+    }
+
+    if (hir->has_function_param_flow_facts) {
+        size_t summary_count = 0;
+        for (size_t i = 0; i < inventory.count; i++) {
+            const HIRRoutine *routine = hir_routine_inventory_get(&inventory, i);
+            if (routine != NULL)
+                summary_count += routine->function_param_flow_summary_count;
+        }
+        if (summary_count == 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR declares function parameter flow facts but carries no summaries");
+            return false;
+        }
+    }
+
+    if (hir->has_loop_flow_facts) {
+        size_t summary_count = 0;
+        for (size_t i = 0; i < inventory.count; i++) {
+            const HIRRoutine *routine = hir_routine_inventory_get(&inventory, i);
+            if (routine != NULL)
+                summary_count += routine->loop_flow_summary_count;
+        }
+        if (summary_count == 0) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup(
+                    "HIR declares loop-flow facts but carries no summaries");
+            return false;
         }
     }
 

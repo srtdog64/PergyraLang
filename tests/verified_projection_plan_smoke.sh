@@ -37,6 +37,18 @@ require_text src/common/intent_observability_abi.h \
 require_text src/common/intent_observability_abi.h "return_kind"
 require_text src/compiler/verified_projection_plan.h \
     "typedef struct PgyVerifiedProjectionPlanRow"
+require_text src/compiler/verified_projection_plan.h \
+    "target_capability_fingerprint"
+require_text src/compiler/verified_projection_plan.h \
+    "machine_layer_manifest_fingerprint"
+require_text src/compiler/verified_projection_plan.h \
+    "machine_layer_physical_manifest_fingerprint"
+require_text src/compiler/verified_projection_plan.h \
+    "machine_layer_physical_grant_base"
+require_text src/compiler/verified_projection_plan.h \
+    "machine_layer_physical_grant_size"
+require_text src/compiler/verified_projection_plan.h \
+    "machine_layer_physical_grant_mode"
 for term in \
     PGY_PROJECTION_TARGET_C \
     PGY_PROJECTION_TARGET_LLVM \
@@ -51,6 +63,60 @@ require_text src/compiler/verified_projection_plan.c \
     "verified projection plan: MIR program is missing inventory surface usage facts"
 require_text src/compiler/verified_projection_plan.c \
     "mir_program_recorded_inventory_uses_intent_observability_surface(mir)"
+require_text src/compiler/verified_projection_plan.c \
+    "pgy_verified_projection_plan_intent_observability_with_air"
+require_text src/compiler/air_evidence_certificate.h \
+    "PGY_AIR_EVIDENCE_CERTIFICATE_SCHEMA"
+require_text src/compiler/air_evidence_certificate.c \
+    "owner facts changed after verification"
+require_text src/compiler/air_verify.c \
+    "pgy_air_evidence_certificate_issue"
+require_text src/compiler/verified_projection_plan.c \
+    "target capability fingerprint is missing"
+require_text src/compiler/verified_projection_plan.c \
+    "machine-layer manifest fingerprint is missing"
+require_text src/compiler/verified_projection_plan.c \
+    "pgy_machine_layer_manifest_fingerprint"
+require_text src/compiler/verified_projection_plan.c \
+    "pgy_machine_layer_physical_manifest_fingerprint"
+require_text tests/verified_projection_plan_probe.c \
+    "pergyra.machine-declaration.probe-v1"
+require_text tests/verified_projection_plan_probe.c \
+    "machine_layer_physical_grant_base != grant->base"
+require_text tests/verified_projection_plan_probe.c \
+    "pgy_machine_layer_runtime_bind_mapping_export"
+require_text src/compiler/verified_projection_plan.c \
+    "pgy_target_capability_ready_for_projection"
+require_text src/codegen/transpiler_entry.c \
+    "target capability fingerprint is missing"
+require_text src/codegen/llvm_api.c \
+    "target capability fingerprint is missing"
+require_text src/codegen/transpiler_entry.c \
+    "machine-layer manifest fingerprint is missing"
+require_text src/codegen/llvm_api.c \
+    "machine-layer manifest fingerprint is missing"
+require_text src/codegen/transpiler_entry.c \
+    "physical machine declaration fingerprint is missing"
+require_text src/codegen/llvm_api.c \
+    "physical machine declaration fingerprint is missing"
+if grep -Fq "pgy_target_capability_ready_for_projection" \
+        "$ROOT_DIR/src/codegen/transpiler_entry.c" \
+        "$ROOT_DIR/src/codegen/llvm_api.c"; then
+    echo "[verified-projection-plan] backend directly consumed target capability SoT" >&2
+    exit 1
+fi
+if grep -Fq "pgy_target_capability_fingerprint" \
+        "$ROOT_DIR/src/codegen/transpiler_entry.c" \
+        "$ROOT_DIR/src/codegen/llvm_api.c"; then
+    echo "[verified-projection-plan] backend recomputed target capability fingerprint" >&2
+    exit 1
+fi
+if grep -Fq "pgy_target_capability_envelope" \
+        "$ROOT_DIR/src/codegen/transpiler_entry.c" \
+        "$ROOT_DIR/src/codegen/llvm_api.c"; then
+    echo "[verified-projection-plan] backend directly read target capability envelope" >&2
+    exit 1
+fi
 
 if grep -Eq 'ast_|hir_|direct_calls|expr0|expr1|source_ast|mir_routine_inventory' \
         "$ROOT_DIR/src/compiler/verified_projection_plan.c"; then
@@ -75,6 +141,12 @@ require_text src/codegen/transpiler_entry.c \
     "PGY_PROJECTION_TARGET_C"
 require_text src/codegen/llvm_api.c \
     "PGY_PROJECTION_TARGET_LLVM"
+if grep -Fq "pgy_verified_projection_plan_intent_observability(" \
+        "$ROOT_DIR/src/codegen/transpiler_entry.c" \
+        "$ROOT_DIR/src/codegen/llvm_api.c"; then
+    echo "[verified-projection-plan] production backend retained MIR-only planner path" >&2
+    exit 1
+fi
 require_text scripts/ci_linux_steps.sh \
     'BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" verified-projection-plan-test-smoke'
 require_text scripts/ci_macos_steps.sh \

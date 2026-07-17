@@ -100,6 +100,96 @@ dir_validate(const DIRProgram *dir, char **error_message)
         return false;
     }
 
+    if (dir->source_program_syntax_id == 0 || dir->domain_graph_id == 0) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "DIR domain graph is missing its anchored source identity");
+        return false;
+    }
+
+    if ((dir->resource_flow_fact_count != 0
+         && dir->resource_flow_facts == NULL)
+        || (dir->has_resource_flow_facts
+            && dir->resource_flow_fact_count == 0)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup(
+                "DIR ResourceFlowUniverse snapshot is incomplete");
+        return false;
+    }
+    for (size_t i = 0; i < dir->resource_flow_fact_count; i++) {
+        const PgyResourceFlowFact *fact = &dir->resource_flow_facts[i];
+        if (fact->function_syntax_id == 0
+            || fact->stable_index == SIZE_MAX
+            || fact->name == NULL
+            || fact->name[0] == '\0') {
+            if (error_message != NULL)
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR ResourceFlowUniverse fact[%llu] has incomplete stable identity",
+                    (unsigned long long)i);
+            return false;
+        }
+        for (size_t j = i + 1; j < dir->resource_flow_fact_count; j++) {
+            const PgyResourceFlowFact *other =
+                &dir->resource_flow_facts[j];
+            if (fact->function_syntax_id == other->function_syntax_id
+                && fact->stable_index == other->stable_index) {
+                if (error_message != NULL)
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR ResourceFlowUniverse facts duplicate function %u stable index %llu",
+                        (unsigned)fact->function_syntax_id,
+                        (unsigned long long)fact->stable_index);
+                return false;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < dir->node_count; i++) {
+        const DIRNode *node = &dir->nodes[i];
+        const bool is_domain_owner =
+            node->kind == DIR_NODE_ZONE
+            || node->kind == DIR_NODE_RELATION
+            || node->kind == DIR_NODE_EFFECT;
+        const bool is_qualified_slot =
+            node->kind == DIR_NODE_ZONE_SLOT
+            || node->kind == DIR_NODE_PROJECTION_SLOT
+            || node->kind == DIR_NODE_AUTHORITY_SLOT;
+
+        if (is_domain_owner && node->ast != NULL
+            && node->source_syntax_id == 0) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR domain node '%s' is missing source syntax identity",
+                    node->name != NULL ? node->name : "(unnamed)");
+            }
+            return false;
+        }
+        if (is_qualified_slot && node->ast != NULL
+            && (node->source_syntax_id == 0
+                || node->owner_source_syntax_id == 0)) {
+            if (error_message != NULL) {
+                *error_message = dir_validate_strdup_fmt(
+                    "DIR slot-contract node '%s' is missing source or owner syntax identity",
+                    node->name != NULL ? node->name : "(unnamed)");
+            }
+            return false;
+        }
+        if (node->source_syntax_id != 0) {
+            for (size_t j = i + 1; j < dir->node_count; j++) {
+                if (dir->nodes[j].source_syntax_id == node->source_syntax_id) {
+                    if (error_message != NULL) {
+                        *error_message = dir_validate_strdup_fmt(
+                            "DIR nodes '%s' and '%s' duplicate source syntax identity %u",
+                            node->name != NULL ? node->name : "(unnamed)",
+                            dir->nodes[j].name != NULL
+                                ? dir->nodes[j].name : "(unnamed)",
+                            (unsigned)node->source_syntax_id);
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
     for (size_t i = 0; i < dir->edge_count; i++) {
         const DIREdge *edge = &dir->edges[i];
         if (edge->from_node_id >= dir->node_count) {
@@ -236,12 +326,15 @@ dir_dump(const DIRProgram *dir, FILE *out)
 
     fprintf(out, "DIR Program\n  nodes: %zu\n  edges: %zu\n  intents: %zu\n",
             dir->node_count, dir->edge_count, dir->intent_count);
+    fprintf(out, "  resource_flow_facts: %zu\n", dir->resource_flow_fact_count);
 
     for (size_t i = 0; i < dir->node_count; i++) {
-        fprintf(out, "  node[%02zu] %-8s %s\n",
+        fprintf(out, "  node[%02zu] %-8s %s source=%u owner_source=%u\n",
                 i,
                 dir_node_kind_name(dir->nodes[i].kind),
-                dir->nodes[i].name != NULL ? dir->nodes[i].name : "(anonymous)");
+                dir->nodes[i].name != NULL ? dir->nodes[i].name : "(anonymous)",
+                (unsigned)dir->nodes[i].source_syntax_id,
+                (unsigned)dir->nodes[i].owner_source_syntax_id);
     }
 
     for (size_t i = 0; i < dir->edge_count; i++) {

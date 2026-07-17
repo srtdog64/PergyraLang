@@ -12,6 +12,7 @@ import "routine_fact_index_owner.pgy";
 import "routine_lower.pgy";
 import "decl_lower.pgy";
 import "program_lower.pgy";
+import "../compiler/machine_layer_declaration_consumer.pgy";
 
 func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read {
     if ArrayLength(args) > 0 && args[0] == "--fixture-manifest" {
@@ -19,14 +20,27 @@ func RunMirLowerFromArgs(args: Array<String>) -> Void with caps io_read {
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--verify-input" {
-        if ArrayLength(args) != 2 {
-            MirLowerFailClosed("usage: mir_lower --verify-input <mir-json-file>");
+        if ArrayLength(args) != 2 && ArrayLength(args) != 3 {
+            MirLowerFailClosed(
+                "usage: mir_lower --verify-input <mir-json-file> [machine-manifest-json-file]"
+            );
         }
-        MirJsonReadInput(args[1]);
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        MirJsonReadInput(
+            args[1], declaration
+        );
         Log("pgy.mir.v1 input verified");
         return;
     }
     let path: String = MirJsonInputPath(args);
-    let json: String = MirJsonReadInput(path);
+    let declaration_path: String = "";
+    if ArrayLength(args) > 1 { declaration_path = args[1]; }
+    let json: String = MirJsonReadInput(
+        path, SelfHostMachineLayerDeclarationFromPath(declaration_path)
+    );
     Print(EmitMirProgramTree(json));
 }

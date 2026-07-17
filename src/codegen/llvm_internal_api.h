@@ -17,6 +17,7 @@
  * ================================================================= */
 LLVMGenCtx *llvm_ctx_create(const char *module_name);
 void         llvm_ctx_destroy(LLVMGenCtx *ctx);
+bool         llvm_machine_layer_projection_is_bound(const LLVMGenCtx *ctx);
 
 /* =================================================================
  * Scope management (llvm_backend.c)
@@ -150,6 +151,8 @@ void          llvm_register_view_var_binding(LLVMGenCtx *ctx,
                                              bool is_move_token);
 LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_device_slot_struct_type(LLVMGenCtx *ctx,
+                                           const char *inner);
 LLVMTypeRef   llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef   llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef   llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);

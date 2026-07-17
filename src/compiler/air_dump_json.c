@@ -3,6 +3,7 @@
  * AIR stable JSON graph dump owner.
  */
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -196,6 +197,12 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
     air_json_bool(out, air_has_rir_input(air));
     fputs(",\"mir_input\":", out);
     air_json_bool(out, air_has_mir_input(air));
+    fputs(",\"mir_evidence_collection_started\":", out);
+    air_json_bool(out, air->mir_evidence_collection_started);
+    fputs(",\"mir_evidence_bound\":", out);
+    air_json_bool(out, air->mir_evidence_bound);
+    fprintf(out, ",\"mir_evidence_binding_fingerprint\":%llu",
+            (unsigned long long)air->mir_evidence_binding_fingerprint);
     fprintf(out,
             ",\"hir_routine_evidence_count\":%zu,\"hir_cfg_evidence_count\":%zu,"
             "\"rir_boundary_evidence_count\":%zu,\"rir_authority_evidence_count\":%zu,"
@@ -210,7 +217,9 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             "\"unproven_retain_count\":%zu,"
             "\"inherent_concurrency_count\":%zu,"
             "\"slot_capability_retain_count\":%zu,"
-            "\"lifecycle_state_space_count\":%zu}",
+            "\"lifecycle_state_space_count\":%zu,"
+            "\"function_param_flow_facts\":%s,"
+            "\"function_param_flow_summary_count\":%zu}",
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
             air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
             air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
@@ -232,7 +241,9 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             air_unproven_retain_count(air),
             air_inherent_concurrency_count(air),
             air_slot_capability_retain_count(air),
-            air_lifecycle_state_space_count(air));
+            air_lifecycle_state_space_count(air),
+            air->has_function_param_flow_facts ? "true" : "false",
+            air_function_param_flow_summary_count(air));
 }
 
 static void
@@ -266,6 +277,28 @@ air_dump_json_lifecycle_state_spaces(const AIRProgram *air, FILE *out)
             }
         }
         fputs("]}", out);
+    }
+    fputs("]", out);
+}
+
+static void
+air_dump_json_function_param_flow_summaries(const AIRProgram *air, FILE *out)
+{
+    fputs("\"function_param_flow_summaries\":[", out);
+    for (size_t i = 0; i < air_function_param_flow_summary_count(air); i++) {
+        const AIRFunctionParamFlowSummary *row =
+            air_function_param_flow_summary_at(air, i);
+        if (i != 0)
+            fputs(",", out);
+        fputs("{\"source_syntax_id\":", out);
+        fprintf(out, "%u,\"routine\":", row != NULL
+                    ? (unsigned)row->source_syntax_id : 0u);
+        air_json_string(out, row != NULL ? row->routine : "");
+        fprintf(out,
+                ",\"parameter_index\":%zu,\"parameter_count\":%zu,\"mask\":\"0x%x\"}",
+                row != NULL ? row->parameter_index : 0,
+                row != NULL ? row->parameter_count : 0,
+                row != NULL ? (unsigned)row->mask : 0u);
     }
     fputs("]", out);
 }
@@ -576,6 +609,29 @@ air_dump_json(const AIRProgram *air, FILE *out)
     }
     fputs("]", out);
     air_json_next_top_level_field(out, &has_field);
+    fputs("\"machine_layer_sites\":[", out);
+    for (size_t mi = 0; mi < air_machine_layer_site_count(air); mi++) {
+        const AIRMachineLayerSite *site =
+            air_machine_layer_site_at(air, mi);
+        if (mi != 0)
+            fputs(",", out);
+        fprintf(out,
+                "{\"slot\":\"%s\",\"operation\":\"%s\",\"manifest\":\"%s\",\"physical_grant\":\"%s\",\"physical_base\":%" PRIu64 ",\"physical_size\":%" PRIu64 ",\"physical_mode\":\"%s\",\"runtime_operation\":\"%s\",\"routine\":\"%s\",\"hardware_adequate\":%s,\"authority_required\":%s,\"live_lease_required\":%s}",
+                site != NULL && site->slot != NULL ? site->slot : "",
+                site != NULL && site->operation != NULL ? site->operation : "",
+                site != NULL && site->manifest_id != NULL ? site->manifest_id : "",
+                site != NULL && site->physical_grant_id != NULL ? site->physical_grant_id : "",
+                site != NULL ? site->physical_base : 0,
+                site != NULL ? site->physical_size : 0,
+                site != NULL && site->physical_mode != NULL ? site->physical_mode : "",
+                site != NULL && site->runtime_operation != NULL ? site->runtime_operation : "",
+                site != NULL && site->routine != NULL ? site->routine : "",
+                site != NULL && site->hardware_adequate ? "true" : "false",
+                site != NULL && site->authority_required ? "true" : "false",
+                site != NULL && site->live_lease_required ? "true" : "false");
+    }
+    fputs("]", out);
+    air_json_next_top_level_field(out, &has_field);
     /* Per-operation effect sites: each gated builtin call bound to the capability
        it requires (op + effect + per-op capability_mask). This is the
        per-operation granularity a capability machine gates on, unlike the
@@ -596,6 +652,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
     fputs("]", out);
     air_json_next_top_level_field(out, &has_field);
     air_dump_json_lifecycle_state_spaces(air, out);
+    air_json_next_top_level_field(out, &has_field);
+    air_dump_json_function_param_flow_summaries(air, out);
     air_json_next_top_level_field(out, &has_field);
     air_dump_json_summary(air, out);
     air_json_next_top_level_field(out, &has_field);

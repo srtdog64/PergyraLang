@@ -347,3 +347,19 @@ Three additions, all `coqc`-checked (0 admits / 0 axioms) and smoke-wired:
 The `formal_semantics_smoke` coqc loop now compiles the **30-file smoke-wired
 proof corpus**. Additional experimental `.v` files must be added to the smoke
 before they count as part of the cited proof pack.
+
+### Machine-layer contact fragment landed (2026-07-15)
+
+`docs/semantics/proofs/MachineLayerCore.v` adds the machine-facing contact
+fragment beneath the plain-data `Slot` bridge. Its `Grant`/`Region` records own
+address evidence, while `contact_step` owns the abstract machine event and
+memory transition under adequacy, authority, lease, and mode witnesses.
+
+The compiler now carries the existing abstract `DeviceSlot<T>` contact facts
+from RIR to MIR to AIR. `machine_layer_manifest.c` is the single target-manifest
+owner for the contact family and its abstract runtime ABI operation identity;
+C and LLVM admission consume that fact and fail closed when it is absent or
+inconsistent. This is an implementation binding, not a proof of a physical
+board, MMIO ordering, linker/MMU agreement, or device side effects. Stable
+surface syntax for `Region`/`Grant` and a concrete hardware refinement remain
+separate closure obligations.

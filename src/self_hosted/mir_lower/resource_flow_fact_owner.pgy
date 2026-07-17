@@ -1,0 +1,84 @@
+// Routine-owned ResourceFlowUniverse MIR JSON projection parser.
+//
+// The native HIR adapter is the only producer of these rows. This owner only
+// decodes explicit identity fields and never reopens source text.
+
+import "json_fact_read.pgy";
+
+struct MirResourceFlowFacts {
+    let valid: Bool;
+    let stable_indices: Array<Int>;
+    let declaration_syntax_ids: Array<Int>;
+    let symbol_kinds: Array<Int>;
+    let parameter_flags: Array<Int>;
+    let parameter_indices: Array<Int>;
+    let names: Array<String>;
+}
+
+func BuildMirResourceFlowFacts(
+    json: String,
+    routine_start: Int,
+    routine_end: Int
+) -> MirResourceFlowFacts {
+    let stable_indices: Array<Int> = [];
+    let declaration_syntax_ids: Array<Int> = [];
+    let symbol_kinds: Array<Int> = [];
+    let parameter_flags: Array<Int> = [];
+    let parameter_indices: Array<Int> = [];
+    let names: Array<String> = [];
+    let declared: String = MirObjectNumberFact(
+        json, routine_start, routine_end, "resource_flow_symbol_count");
+    let valid: Bool = true;
+    let bounds: Array<Int> = [0, 0];
+    if StringLength(declared) == 0 ||
+        !MirObjectArrayBounds(
+            json, routine_start, routine_end,
+            "resource_flow_symbols", bounds) {
+        valid = false;
+    } else {
+        let cursor: Int = bounds[0] + 1;
+        let row_bounds: Array<Int> = [0, 0];
+        while JsonArrayNextObjectBounds(
+            json, cursor, bounds[1], row_bounds) {
+            let stable: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "stable_index");
+            let syntax: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "declaration_syntax_id");
+            let kind: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "symbol_kind");
+            let parameter: String = MirObjectNumberFact(
+                json, row_bounds[0], row_bounds[1], "parameter_index");
+            let name: String = MirObjectStringFact(
+                json, row_bounds[0], row_bounds[1], "name");
+            let parameter_flag: Int = 0;
+            if JsonObjectBoolFieldEquals(
+                json, row_bounds[0], row_bounds[1], "is_parameter", true) {
+                parameter_flag = 1;
+            } else if !JsonObjectBoolFieldEquals(
+                json, row_bounds[0], row_bounds[1], "is_parameter", false) {
+                valid = false;
+            }
+            if StringLength(stable) == 0 || StringLength(syntax) == 0 ||
+                StringLength(kind) == 0 || StringLength(parameter) == 0 ||
+                StringLength(name) == 0 {
+                valid = false;
+            } else {
+                ArrayPush(stable_indices, ToInt(stable));
+                ArrayPush(declaration_syntax_ids, ToInt(syntax));
+                ArrayPush(symbol_kinds, ToInt(kind));
+                ArrayPush(parameter_flags, parameter_flag);
+                ArrayPush(parameter_indices, ToInt(parameter));
+                ArrayPush(names, name);
+            }
+            cursor = row_bounds[1];
+        }
+    }
+    if StringLength(declared) == 0 ||
+        ToInt(declared) != ArrayLength(stable_indices) {
+        valid = false;
+    }
+    return MirResourceFlowFacts(
+        valid, stable_indices, declaration_syntax_ids, symbol_kinds,
+        parameter_flags, parameter_indices, names);
+}
+
