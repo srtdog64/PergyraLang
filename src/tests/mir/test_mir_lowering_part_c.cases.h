@@ -551,7 +551,8 @@ test_mir_lowering_part_c(void)
     TEST("MIR captures select receive source-local types");
     {
         const char *src =
-            "func SelectReceiveLocalFact(ch: Channel<Int>) -> Int {\n"
+            "func SelectReceiveLocalFact() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 7;\n"
             "    select {\n"
             "        case v = <-ch:\n"

@@ -4,7 +4,8 @@ test_mir_lowering_part_g(void)
     TEST("MIR DCE removes dead pure-query statements while preserving routine validity");
     {
         const char *src =
-            "func Probe(ch: Channel<Int>) -> Int {\n"
+            "func Probe() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ChannelLength(ch);\n"
             "    return 1;\n"
             "}\n";

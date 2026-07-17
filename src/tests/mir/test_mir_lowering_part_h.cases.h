@@ -4,7 +4,8 @@ test_mir_lowering_part_h(void)
     TEST("MIR validator rejects missing channel receive emit fact");
     {
         const char *src =
-            "func ChannelReceiveFact(ch: Channel<Int>) -> Int {\n"
+            "func ChannelReceiveFact() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 7;\n"
             "    let other: Int = 1;\n"
             "    let value: Int = <- ch;\n"
@@ -77,7 +78,8 @@ test_mir_lowering_part_h(void)
     TEST("MIR validator rejects invalid select receive emit fact");
     {
         const char *src =
-            "func SelectReceiveFact(ch: Channel<Int>) -> Int {\n"
+            "func SelectReceiveFact() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    ch <- 7;\n"
             "    let regular: Int = <- ch;\n"
             "    ch <- 9;\n"
