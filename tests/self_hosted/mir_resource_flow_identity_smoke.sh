@@ -19,10 +19,8 @@ DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy.exe}"
-if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
-    PGY="${PGY}.exe"
-fi
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+PGY="$(pgy_select_optional_exe_binary "$PGY")"
 if [[ ! -x "$PGY" ]]; then
     echo "[self-host-mir-resource-flow] missing compiler binary: $PGY" >&2
     exit 1

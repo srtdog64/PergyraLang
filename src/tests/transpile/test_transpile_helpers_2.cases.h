@@ -21,7 +21,7 @@ lower_pipeline_from_source_ex(const char *source,
     *mir_out = NULL;
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
-        *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
@@ -70,6 +70,62 @@ lower_pipeline_from_source_quiet(const char *source,
 {
     return lower_pipeline_from_source_ex(source, program_out, hir_out, rir_out,
         mir_out, false);
+}
+
+/* Backend emission tests must cross the same verified projection boundary as
+ * production. The test owns a minimal AIR verification handle because these
+ * cases exercise MIR-to-C shape, not AIR synthesis; target and machine facts
+ * are still supplied by the real projection-plan owner. */
+static bool
+issue_test_c_projection_plan(const MIRProgram *mir,
+                             PgyVerifiedProjectionPlanRow *plan,
+                             const char **error)
+{
+    AIRProgram air = {0};
+
+    air.has_hir_input = true;
+    air.has_rir_input = true;
+    air.has_mir_input = true;
+    return pgy_air_evidence_certificate_issue(&air, error)
+        && pgy_verified_projection_plan_intent_observability_with_air(
+            &air, mir, PGY_PROJECTION_TARGET_C, plan, error);
+}
+
+static TranspileResult *
+transpile_mir_with_test_evidence(const MIRProgram *mir,
+                                 const char *output_path)
+{
+    PgyVerifiedProjectionPlanRow plan = {0};
+    const char *error = NULL;
+
+    if (!issue_test_c_projection_plan(mir, &plan, &error)) {
+        TranspileResult *result = calloc(1, sizeof(*result));
+        if (result != NULL) {
+            result->success = false;
+            result->error_message = pergyra_strdup(
+                error != NULL ? error : "test projection plan failed");
+        }
+        return result;
+    }
+    return transpile_from_mir_with_projection_plan(mir, &plan, output_path);
+}
+
+static bool
+bind_test_c_projection_plan(TranspilerCtx *ctx, const MIRProgram *mir)
+{
+    static PgyVerifiedProjectionPlanRow plan;
+    const char *error = NULL;
+
+    if (ctx == NULL || mir == NULL)
+        return false;
+    if (!issue_test_c_projection_plan(mir, &plan, &error)) {
+        free(ctx->backend_error);
+        ctx->backend_error = pergyra_strdup(
+            error != NULL ? error : "test projection plan failed");
+        return false;
+    }
+    ctx->projection_plan = &plan;
+    return true;
 }
 
 static char *

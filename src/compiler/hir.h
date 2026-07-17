@@ -16,6 +16,16 @@
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
 typedef struct HIRPhiNode HIRPhiNode;
+struct SemanticResult;
+
+typedef enum
+{
+    HIR_SEMANTIC_PROJECTION_NONE = 0,
+    HIR_SEMANTIC_PROJECTION_LOWER,
+    HIR_SEMANTIC_PROJECTION_LOOP_FLOW,
+    HIR_SEMANTIC_PROJECTION_ITERATION_TYPE,
+    HIR_SEMANTIC_PROJECTION_VALIDATE
+} HIRSemanticProjectionFailure;
 
 typedef struct
 {
@@ -352,6 +362,10 @@ struct HIRProgram
 };
 
 HIRProgram *hir_lower(ASTNode *annotated_ast, char **error_message);
+HIRProgram *hir_lower_with_semantic_facts(
+    const struct SemanticResult *semantic,
+    HIRSemanticProjectionFailure *failure,
+    char **error_message);
 HIRProgram *hir_lower_with_resource_flow_facts(
         ASTNode *annotated_ast,
         const PgyResourceFlowFact *facts,

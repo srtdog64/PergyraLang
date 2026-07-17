@@ -107,7 +107,7 @@ test_mir_vertical_slice_emit(void)
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score: pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -166,7 +166,7 @@ test_mir_vertical_slice_emit(void)
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(phi): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -216,7 +216,7 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -258,7 +258,7 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -309,7 +309,7 @@ test_mir_vertical_slice_emit(void)
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(stmt): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -365,7 +365,7 @@ test_mir_vertical_slice_emit(void)
         if (ok) {
             if (!check_function_mir_emitability(hir, mir, "Score"))
                 fprintf(stderr, "  -> MIR emitability warning for Score(destructure-cfg): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             if (res != NULL && !res->success && res->error_message != NULL)
                 fprintf(stderr, "  -> destructure-cfg transpile error: %s\n", res->error_message);
@@ -433,7 +433,7 @@ test_mir_vertical_slice_emit(void)
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Purchase"))
                 fprintf(stderr, "  -> MIR emitability warning for Purchase(intent): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }

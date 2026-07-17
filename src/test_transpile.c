@@ -25,8 +25,11 @@
 #include "semantic/semantic.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
+#include "compiler/air.h"
+#include "compiler/air_evidence_certificate.h"
 #include "compiler/mir_ability_ref.h"
 #include "compiler/mir_decl_headers.h"
+#include "compiler/verified_projection_plan.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
 

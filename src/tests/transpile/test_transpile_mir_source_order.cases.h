@@ -22,7 +22,9 @@ test_source_order_mir_emit(void)
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            emit_program(ctx);
+            ok = bind_test_c_projection_plan(ctx, mir);
+            if (ok)
+                emit_program(ctx);
         }
 
         if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
@@ -77,7 +79,9 @@ test_source_order_mir_emit(void)
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            emit_program(ctx);
+            ok = bind_test_c_projection_plan(ctx, mir);
+            if (ok)
+                emit_program(ctx);
         }
 
         if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
@@ -143,7 +147,9 @@ test_source_order_mir_emit(void)
         if (ok) {
             ctx = transpiler_ctx_create();
             ctx->mir = mir;
-            emit_program(ctx);
+            ok = bind_test_c_projection_plan(ctx, mir);
+            if (ok)
+                emit_program(ctx);
         }
 
         if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {

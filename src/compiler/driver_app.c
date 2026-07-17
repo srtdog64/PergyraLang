@@ -122,6 +122,8 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     HIRProgram *hir = NULL;
+    HIRSemanticProjectionFailure hir_projection_failure =
+        HIR_SEMANTIC_PROJECTION_NONE;
     AIRProgram *air = NULL;
     CompilerIRBundle bundle;
     int exit_code = 1;
@@ -297,51 +299,33 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
 
     driver_debug_stage("hir_lower");
     phase_start = driver_now_seconds();
-    hir = hir_lower_with_resource_and_param_flow_facts(
-        sem->annotated_ast,
-        sem->resource_flow_facts,
-        sem->resource_flow_fact_count,
-        sem->function_param_flow_facts,
-        sem->function_param_flow_fact_count,
-        &hir_error);
+    hir = hir_lower_with_semantic_facts(
+        sem, &hir_projection_failure, &hir_error);
     if (timings != NULL)
         timings->hir_lower = driver_now_seconds() - phase_start;
     if (hir == NULL) {
-        driver_emit_stage_fail(flags, "hir_lower",
-            "HIR lowering failed", hir_error);
+        if (hir_projection_failure == HIR_SEMANTIC_PROJECTION_LOOP_FLOW) {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR loop-flow fact attachment failed",
+                hir_error != NULL ? hir_error
+                                  : "invalid LoopFlowSummary facts");
+        } else if (hir_projection_failure
+                   == HIR_SEMANTIC_PROJECTION_ITERATION_TYPE) {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR iteration type fact attachment failed",
+                hir_error != NULL ? hir_error
+                                  : "invalid iteration type facts");
+        } else if (hir_projection_failure
+                   == HIR_SEMANTIC_PROJECTION_VALIDATE) {
+            driver_emit_stage_fail(flags, "hir_validate",
+                "HIR validation failed",
+                hir_error != NULL ? hir_error : "invalid HIR");
+        } else {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR lowering failed", hir_error);
+        }
         goto cleanup;
     }
-    if (!hir_attach_loop_flow_facts(
-            hir,
-            sem->loop_flow_summary_facts,
-            sem->loop_flow_summary_fact_count,
-            sem->loop_flow_state_facts,
-            sem->loop_flow_state_fact_count,
-            &hir_error)) {
-        driver_emit_stage_fail(flags, "hir_lower",
-            "HIR loop-flow fact attachment failed",
-            hir_error != NULL ? hir_error : "invalid LoopFlowSummary facts");
-        goto cleanup;
-    }
-    if (!hir_attach_iteration_type_facts(
-            hir,
-            sem->iteration_type_facts,
-            sem->iteration_type_fact_count,
-            &hir_error)) {
-        driver_emit_stage_fail(flags, "hir_lower",
-            "HIR iteration type fact attachment failed",
-            hir_error != NULL ? hir_error
-                               : "invalid iteration type facts");
-        goto cleanup;
-    }
-    driver_debug_stage("hir_validate");
-    if (!hir_validate(hir, &hir_error)) {
-        driver_emit_stage_fail(flags, "hir_validate",
-            "HIR validation failed",
-            hir_error != NULL ? hir_error : "invalid HIR");
-        goto cleanup;
-    }
-
     driver_debug_stage("dir_lower");
     phase_start = driver_now_seconds();
     dir = dir_lower_with_hir_resource_flow_facts(

@@ -53,7 +53,7 @@ test_mir_select_dispatch_emit(void)
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_dispatch.c");
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -134,7 +134,7 @@ test_mir_select_dispatch_emit(void)
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_bound.c");
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -223,7 +223,7 @@ test_mir_select_dispatch_emit(void)
 
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_select_field_channel.c");
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path_buf);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path_buf);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }

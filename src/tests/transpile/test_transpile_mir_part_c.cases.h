@@ -39,7 +39,7 @@ test_intent_observability_emit(void)
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_no_trace_fast_path.c");
         path = path_buf;
         if (ok) {
-            res = transpile_with_mir(hir, mir, path);
+            res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
         }
         if (ok)
@@ -103,7 +103,7 @@ test_intent_observability_emit(void)
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_prescan.c");
         path = path_buf;
         if (ok) {
-            res = transpile_with_mir(hir, mir, path);
+            res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
         }
         if (ok)
@@ -148,7 +148,7 @@ test_intent_observability_emit(void)
         make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_init_fact.c");
         path = path_buf;
         if (ok) {
-            res = transpile_with_mir(hir, mir, path);
+            res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
         }
         if (ok)

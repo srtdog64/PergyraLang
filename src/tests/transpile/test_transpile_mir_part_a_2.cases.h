@@ -35,7 +35,7 @@
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -98,7 +98,7 @@
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -156,7 +156,7 @@
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent-value): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -217,7 +217,7 @@
         if (ok) {
             if (!check_intent_mir_emitability(hir, mir, "Checkout"))
                 fprintf(stderr, "  -> MIR emitability warning for Checkout(intent-interleaved): pipeline emitted with MIR fallback checks only\n");
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -295,7 +295,7 @@
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }
@@ -342,7 +342,7 @@
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
-            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            TranspileResult *res = transpile_mir_with_test_evidence(mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
         }

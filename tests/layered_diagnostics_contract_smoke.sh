@@ -39,7 +39,7 @@ require_text "src/common/diagnostic_layer.c" "_CHANNEL_"
 require_text "src/common/diagnostic_layer.c" "_INTENT_"
 require_text "src/semantic/diagnostic_types.h" "DiagnosticLayer layer;"
 
-require_text "src/semantic/semantic.c" "\\\"layer\\\":"
+require_text "src/semantic/semantic_diagnostic_json.c" "\\\"layer\\\":"
 require_text "tests/diagnostics_json_smoke.sh" ".get(\"layer\")"
 require_text "src/compiler/driver_diag.c" "diagnostic_layer_from_tags"
 require_text "src/compiler/driver_diag.c" "\\\"layer\\\":"

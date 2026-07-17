@@ -109,6 +109,7 @@ run 'make CC="$CI_LINUX_CC" runtime-frontier-policy-test-smoke'
 run 'make runtime-intent-observability-contract-test-smoke'
 run 'make parallel-core-contract-test-smoke'
 run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" PGY_BACKPRESSURE_STRESS_ITERATIONS=32 parallel-backpressure-stress-test-smoke'
+run 'make CC="$CI_LINUX_CC" BUILD_DIR="$CI_LINUX_BUILD_DIR" BIN_DIR="$CI_LINUX_BIN_DIR" parallel-production-contract-test-smoke'
 # Parallel boundary evidence gates (docs/178): disjoint-split admission,
 # reader-snapshot admission, and ability coherence. Linux runs both backend
 # voices natively (the LLVM voice is load-bearing for ability-coherence:

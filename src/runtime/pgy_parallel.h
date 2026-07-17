@@ -16,7 +16,11 @@
 #include <pthread.h>
 #include <stdio.h>
 #ifndef _WIN32
-#include <unistd.h>   /* sysconf(_SC_NPROCESSORS_ONLN) for pgy_default_worker_count */
+#include <unistd.h>
+#ifdef __APPLE__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 #endif
 
 #include "../common/execution_lane_kind.h"

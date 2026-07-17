@@ -48,6 +48,7 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_cfg_contract_validate_cleanup.h"
         "src/compiler/mir_cfg_contract_validate_cleanup.c"
         "src/compiler/mir_cfg_contract_control.c"
+        "src/compiler/hir_semantic_fact_projection.c"
         "src/compiler/mir_ssa_rename.c"
         "src/test_mir.c"
         "src/semantic/type_checker_ownership_let.c"
@@ -230,6 +231,17 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/hir_analysis.c" "next_capacity > SIZE_MAX / elem_size"
     require_literal "src/compiler/hir_routines.c" "hir_routines_next_capacity"
     require_literal "src/compiler/hir_routines.c" "next_capacity > SIZE_MAX / elem_size"
+    require_literal "src/compiler/hir_semantic_fact_projection.c" "hir_lower_with_semantic_facts"
+    require_literal "src/compiler/hir_semantic_fact_projection.c" "hir_attach_loop_flow_facts"
+    require_literal "src/compiler/hir_semantic_fact_projection.c" "hir_attach_iteration_type_facts"
+    require_literal "src/compiler/hir_semantic_fact_projection.c" "hir_validate(hir, error_message)"
+    require_literal "src/compiler/driver_app.c" "sem, &hir_projection_failure, &hir_error"
+    require_literal "src/compiler/driver_app.c" "HIR_SEMANTIC_PROJECTION_VALIDATE"
+    if grep -Fq "hir_attach_iteration_type_facts(" "$ROOT_DIR/src/compiler/driver_app.c" \
+        || grep -Fq "hir_attach_loop_flow_facts(" "$ROOT_DIR/src/compiler/driver_app.c"; then
+        echo "driver must consume the single HIR semantic-fact projection owner" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_ssa_use_edges.c" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_use_edges.c" "return inst->expr0"
     require_literal "src/compiler/mir_ssa_use_edges.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
@@ -999,6 +1011,7 @@ mir_cfg_contract_validate_impl_path = root / "src" / "compiler" / "mir_cfg_contr
 mir_cfg_contract_validate_cleanup_path = root / "src" / "compiler" / "mir_cfg_contract_validate_cleanup.h"
 mir_cfg_contract_validate_cleanup_impl_path = root / "src" / "compiler" / "mir_cfg_contract_validate_cleanup.c"
 mir_path = root / "src" / "compiler" / "mir.c"
+mir_hir_block_projection_path = root / "src" / "compiler" / "mir_hir_block_projection.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_ssa_rename_impl_path = root / "src" / "compiler" / "mir_ssa_rename.c"
 mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.c"
@@ -1117,6 +1130,7 @@ for path in (
     mir_cfg_contract_validate_cleanup_path,
     mir_cfg_contract_validate_cleanup_impl_path,
     mir_path,
+    mir_hir_block_projection_path,
     mir_ssa_rename_path,
     mir_ssa_rename_impl_path,
     mir_ssa_use_edges_path,
@@ -1518,6 +1532,7 @@ for forbidden in [
 
 mir_owner_limits = {
     mir_path: 600,
+    mir_hir_block_projection_path: 600,
     mir_ssa_rename_path: 600,
     mir_ssa_rename_impl_path: 600,
     mir_ssa_use_edges_path: 600,
@@ -1548,8 +1563,13 @@ required_mir_owner_terms = {
         "#include \"mir_ssa_rename.h\"",
         "#include \"mir_liveness_dce.h\"",
         "#include \"mir_stmt_population.h\"",
-        "mir_build_blocks_from_hir",
+        "#include \"mir_hir_block_projection.h\"",
         "mir_populate_instructions",
+    ],
+    "src/compiler/mir_hir_block_projection.c": [
+        "mir_build_blocks_from_hir",
+        "mir_add_phi_placeholders",
+        "mir_add_terminator_instruction",
     ],
     "src/compiler/mir_ssa_rename.h": [
         "mir_apply_ssa_rename",
@@ -1661,6 +1681,7 @@ if "ast_func_body(func_decl)" in mir_non_cfg_stmt_population:
     )
 mir_owner_text = {
     "src/compiler/mir.c": mir,
+    "src/compiler/mir_hir_block_projection.c": mir_hir_block_projection_path.read_text(encoding="utf-8"),
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
     "src/compiler/mir_ssa_rename.c": mir_ssa_rename_impl,
     "src/compiler/mir_ssa_use_edges.c": mir_ssa_use_edges,
