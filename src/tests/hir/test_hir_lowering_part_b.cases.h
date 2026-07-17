@@ -314,7 +314,8 @@ test_hir_lowering_part_b(void)
     TEST("HIR CFG lowers select cases and default as explicit edges");
     {
         const char *src =
-            "func SelectEdges(ch: Channel<Int>) -> Int {\n"
+            "func SelectEdges() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(1);\n"
             "    select {\n"
             "        case v = <-ch:\n"
             "            return v;\n"
