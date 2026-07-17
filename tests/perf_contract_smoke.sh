@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'rc=$?; printf "[perf-contract] unhandled failure at line %s (rc=%s)\n" "$LINENO" "$rc" >&2' ERR
 
 case ":$PATH:" in
     *:/usr/bin:*) ;;
@@ -2707,10 +2708,12 @@ grep -Fq "mir_routine_inventory_from_program(mir, &inventory)" "$ROOT_DIR/src/co
 grep -Fq "MIR_BRANCH_FOR_RANGE" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/compiler/mir_types.h"
 grep -Fq "MIR_BRANCH_MATCH_CASE" "$ROOT_DIR/src/compiler/mir_types.h"
-grep -Fq "branch_shape = mir_branch_shape_from_ast" "$ROOT_DIR/src/compiler/mir.c"
+grep -Fq "branch_shape = mir_branch_shape_from_ast" \
+    "$ROOT_DIR/src/compiler/mir_hir_block_projection.c"
 grep -Fq "mir_branch_shape_name" "$ROOT_DIR/src/compiler/mir_names.c"
 grep -Fq "source-branch-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
-grep -Fq "inst.requires_source_branch_emit" "$ROOT_DIR/src/compiler/mir.c"
+grep -Fq "inst.requires_source_branch_emit" \
+    "$ROOT_DIR/src/compiler/mir_hir_block_projection.c"
 grep -Fq "mir_instruction_record_surface_usage(MIRInstruction *inst)" "$ROOT_DIR/src/compiler/mir_public_surface.c"
 grep -Fq "mir_instruction_record_surface_usage(&inst);" "$ROOT_DIR/src/compiler/mir_base_helpers.c"
 grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_cleanup.c"

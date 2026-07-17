@@ -7,6 +7,7 @@
 import "parallel_capture_fact_owner.pgy";
 import "expression_graph_fact_owner.pgy";
 import "machine_layer_projection_owner.pgy";
+import "loop_flow_rows_owner.pgy";
 
 struct SelfMirInstructionRows {
     ids: Array<Int>;
@@ -95,6 +96,7 @@ struct SelfMirRoutineRows {
     iteration_binding_types: Array<String>;
     iteration_iterable_types: Array<String>;
     iteration_collection_hoists: Array<Int>;
+    loop_flows: SelfMirLoopFlowRows;
 }
 
 struct SelfMirProgramFacts {
@@ -159,7 +161,8 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
         ints, strings, strings, strings, strings,
         ints, ints, strings, ints, ints, strings,
         strings, ints, ints, ints, ints, ints, strings, strings,
-        ints, ints, ints, strings, strings, ints
+        ints, ints, ints, strings, strings, ints,
+        SelfMirLoopFlowRowsEmpty()
     );
 }
 

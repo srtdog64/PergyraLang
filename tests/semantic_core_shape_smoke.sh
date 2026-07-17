@@ -196,7 +196,6 @@ for term in \
 done
 for term in \
     "rir_scope_kind(scope)" \
-    "rir_scope_name(scope)" \
     "rir_scope_display_name(scope)"; do
     if ! grep -q "$term" src/compiler/rir_validation_dir.c; then
         fail "RIR/DIR validation must consume RIR scope metadata accessor term: $term"

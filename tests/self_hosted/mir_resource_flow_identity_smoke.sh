@@ -17,6 +17,7 @@ LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
 DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -78,8 +79,8 @@ if ! (cd "$ROOT_DIR" && "$LOWER_BIN" "$MIR_REL" >"$VALID_OUT" 2>&1); then
 fi
 grep -Fq -- "Function: Recur" "$VALID_OUT"
 
-sed '0,/"resource_flow_symbol_count":1/s//"resource_flow_symbol_count":0/' \
-    "$MIR_JSON" >"$BAD_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_JSON" \
+    '"resource_flow_symbol_count":1' '"resource_flow_symbol_count":0'
 BAD_REL="${BAD_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_REL" >"$BAD_OUT" 2>&1); then
     echo "[self-host-mir-resource-flow] missing ResourceFlowUniverse row was accepted" >&2

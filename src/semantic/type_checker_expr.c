@@ -401,6 +401,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     if (expr == NULL)
         return TYPE_VOID;
+    if (!semantic_termination_contract_tick(ctx, expr))
+        return TYPE_UNKNOWN;
     if (!expr_visit_census_enabled())
         return type_check_expression_dispatch(expr, ctx);
     ExprVisitCensus *census = expr_visit_census();

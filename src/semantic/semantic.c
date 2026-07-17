@@ -252,6 +252,10 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     if (result == NULL)
         return NULL;
 
+    /* Fresh termination-contract budget per analysis (docs/189 C8); keeps
+     * LSP per-request analyses independent of each other. */
+    semantic_termination_contract_reset();
+
     /* Open the Type registry before anything can allocate a Type. It is
      * handed to the result below, and freed by semantic_result_destroy --
      * i.e. after every IR and the backend have stopped reading types. */

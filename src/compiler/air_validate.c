@@ -359,14 +359,14 @@ air_validate(const AIRProgram *air, char **error_message)
     }
     if (air->mir_evidence_bound
         && (!air->mir_evidence_collection_started
-            || !air->has_mir_input
+            || !air_has_mir_input(air)
             || air->mir_evidence_binding_fingerprint == 0)) {
         air_set_invariant_error(
             error_message,
             "AIR MIR evidence binding is incomplete");
         return false;
     }
-    if (air->mir_evidence_collection_started && !air->has_mir_input) {
+    if (air->mir_evidence_collection_started && !air_has_mir_input(air)) {
         air_set_invariant_error(
             error_message,
             "AIR MIR evidence collection started without MIR input");

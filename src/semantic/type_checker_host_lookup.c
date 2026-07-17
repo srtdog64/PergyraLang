@@ -8,6 +8,19 @@ host_lookup_program(SemanticContext *ctx)
     return ctx != NULL ? ctx->program_root : NULL;
 }
 
+uint32_t
+semantic_current_routine_syntax_id(SemanticContext *ctx)
+{
+    ASTNode *owner;
+
+    if (ctx == NULL)
+        return 0;
+    owner = ctx->current_function_decl != NULL
+        ? ctx->current_function_decl
+        : host_lookup_program(ctx);
+    return ast_node_stable_id(owner);
+}
+
 static ASTNode *
 host_find_type_decl_by_name(ASTNode *program, const char *type_name)
 {

@@ -55,12 +55,12 @@ air_mir_evidence_binding_fingerprint(const MIRProgram *mir)
     if (mir == NULL)
         return 0;
 
+    mir_routine_inventory_from_program(mir, &inventory);
     air_mir_binding_mix_text(&hash, "pgy.air.mir-binding.v1");
-    air_mir_binding_mix_u64(&hash, mir->routine_count);
+    air_mir_binding_mix_u64(&hash, inventory.count);
     air_mir_binding_mix_bool(&hash, mir->has_resource_flow_facts);
     air_mir_binding_mix_bool(&hash, mir->has_function_param_flow_facts);
     air_mir_binding_mix_bool(&hash, mir->has_loop_flow_facts);
-    mir_routine_inventory_from_program(mir, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
         if (routine == NULL) {

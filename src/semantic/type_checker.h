@@ -449,4 +449,16 @@ Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
 bool require_assignable(Type* from, Type* to,
                          const ASTNode* site, SemanticContext* ctx);
 
+/* -----------------------------------------------------------------
+ * Semantic termination contract (docs/189 C8)
+ *
+ * Deterministic fail-closed backstops for the "semantic analysis must
+ * terminate on every input" contract: a statement-flow depth cap and a
+ * global step budget over statement/expression dispatches. Reset once
+ * per semantic_analyze entry; tick returns false (after reporting once)
+ * when the budget is exhausted so dispatchers unwind immediately.
+ * ----------------------------------------------------------------- */
+void semantic_termination_contract_reset(void);
+bool semantic_termination_contract_tick(SemanticContext *ctx, ASTNode *site);
+
 #endif /* PERGYRA_TYPE_CHECKER_H */

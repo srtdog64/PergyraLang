@@ -300,6 +300,10 @@ func SelfMirAppendRoutine(
     let iteration_iterable_types: Array<String> = rows.iteration_iterable_types;
     let iteration_collection_hoists: Array<Int> =
         rows.iteration_collection_hoists;
+    let loop_flows: SelfMirLoopFlowRows = SelfMirLoopFlowRowsAppendRoutine(
+        rows.loop_flows, analysis.statements,
+        analysis.signatures.function_node_ids[signature_index]
+    );
     ArrayPush(node_ids, analysis.signatures.function_node_ids[signature_index]);
     ArrayPush(names, analysis.signatures.names[signature_index]);
     let owner: String = analysis.signatures.owner_names[signature_index];
@@ -407,7 +411,7 @@ func SelfMirAppendRoutine(
             local_names, local_types,
             iteration_starts, iteration_counts, iteration_node_ids,
             iteration_binding_types, iteration_iterable_types,
-            iteration_collection_hoists
+            iteration_collection_hoists, loop_flows
         ),
         SelfMirAppendCfg(facts.cfg, build.cfg)
     );

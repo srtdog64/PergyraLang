@@ -248,7 +248,9 @@ rir_attach_resource_flow_identity(RIRScope *scope,
         RIRFact *fact = (RIRFact *)rir_scope_fact_at(scope, i);
         const RIRResourceFlowSymbol *match = NULL;
 
-        if (fact == NULL || fact->kind != RIR_FACT_RESOURCE)
+        if (fact == NULL || fact->kind != RIR_FACT_RESOURCE
+            || !rir_resource_kind_has_semantic_flow_identity(
+                fact->resource_kind))
             continue;
         for (size_t j = 0;
              j < scope->resource_flow_symbol_count;
@@ -273,8 +275,12 @@ rir_attach_resource_flow_identity(RIRScope *scope,
         }
         if (match == NULL) {
             if (error_message != NULL)
-                *error_message = pergyra_strdup(
-                    "RIR resource fact has no matching ResourceFlow stable identity");
+                *error_message = pergyra_strdup_printf(
+                    "RIR resource fact has no matching ResourceFlow stable identity: name=%s declaration_syntax_id=%u is_parameter=%s parameter_index=%zu",
+                    fact->name != NULL ? fact->name : "<unnamed>",
+                    fact->declaration_syntax_id,
+                    fact->is_parameter ? "true" : "false",
+                    fact->parameter_index);
             return false;
         }
         fact->has_flow_identity = true;
@@ -635,9 +641,18 @@ rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_me
         }
         if (hir->has_resource_flow_facts) {
             if (!rir_copy_resource_flow_symbols(scope, hir_routine,
-                                                error_message)
-                || !rir_attach_resource_flow_identity(scope, error_message))
+                                                error_message))
                 return false;
+            /* ResourceFlowUniverse is currently a function-local semantic
+             * owner. Intent participants remain RIR domain facts until an
+             * intent producer emits HIR rows; do not falsely certify an empty
+             * intent projection. Functions and methods still fail closed when
+             * a RIR resource has no matching semantic identity. */
+            if (hir_routine->kind != HIR_TOPLEVEL_INTENT
+                || hir_routine->resource_flow_symbol_count != 0) {
+                if (!rir_attach_resource_flow_identity(scope, error_message))
+                    return false;
+            }
         }
         if (hir->has_function_param_flow_facts
             && !rir_attach_function_param_flow_summaries(

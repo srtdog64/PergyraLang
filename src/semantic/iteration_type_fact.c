@@ -53,9 +53,7 @@ semantic_iteration_type_fact_record(SemanticContext *ctx,
     if (ctx == NULL || iteration_node == NULL || binding_type == NULL
         || iterable_type == NULL)
         return false;
-    function_id = ctx->current_function_decl != NULL
-        ? ast_node_stable_id(ctx->current_function_decl)
-        : ast_node_stable_id(ctx->program_root);
+    function_id = semantic_current_routine_syntax_id(ctx);
     iteration_id = ast_node_stable_id(iteration_node);
     binding_name = type_name_or_unknown(binding_type);
     iterable_name = type_name_or_unknown(iterable_type);

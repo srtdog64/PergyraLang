@@ -7,6 +7,7 @@ import "../type_facts/type_env.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
 import "../../compiler/abi_layout_row_owner.pgy";
 import "../../compiler/abi_layout_nominal_array_owner.pgy";
+import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/array_type_shape_owner.pgy";
 

@@ -301,7 +301,80 @@ func SelfMirJsonRoutine(
     // projection so consumers never infer absence or recover rows from text.
     let resource_flow_symbols: Array<String> = [];
     let loop_flow_summaries: Array<String> = [];
+    let loop_rows: SelfMirLoopFlowRows = rows.loop_flows;
+    let summary_start: Int = loop_rows.routine_starts[routine_index];
+    let summary_i: Int = 0;
+    while summary_i < loop_rows.routine_counts[routine_index] {
+        let summary_row: Int = summary_start + summary_i;
+        let summary_kind: String = "while";
+        if loop_rows.summaries.kinds[summary_row] == 1 {
+            summary_kind = "for";
+        }
+        ArrayPush(loop_flow_summaries, JsonEmitObject([
+            JsonEmitFieldNumber(
+                "loop_syntax_id",
+                ToString(loop_rows.summaries.loop_node_ids[summary_row])
+            ),
+            JsonEmitFieldString("kind", summary_kind),
+            JsonEmitFieldNumber(
+                "effect_base",
+                ToString(loop_rows.summaries.effect_bases[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "effect_delta",
+                ToString(loop_rows.summaries.effect_deltas[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "flags", ToString(loop_rows.summaries.flags[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "entry_state_start",
+                ToString(loop_rows.summaries.entry_state_starts[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "entry_state_count",
+                ToString(loop_rows.summaries.entry_state_counts[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "exit_state_start",
+                ToString(loop_rows.summaries.exit_state_starts[summary_row])
+            ),
+            JsonEmitFieldNumber(
+                "exit_state_count",
+                ToString(loop_rows.summaries.exit_state_counts[summary_row])
+            )
+        ]));
+        summary_i = summary_i + 1;
+    }
     let loop_flow_states: Array<String> = [];
+    let state_i: Int = 0;
+    while state_i < ArrayLength(loop_rows.states.stable_indices) {
+        ArrayPush(loop_flow_states, JsonEmitObject([
+            JsonEmitFieldNumber(
+                "stable_index", ToString(loop_rows.states.stable_indices[state_i])
+            ),
+            JsonEmitFieldBool(
+                "is_consumed", loop_rows.states.consumed_flags[state_i] == 1
+            ),
+            JsonEmitFieldBool(
+                "is_used", loop_rows.states.used_flags[state_i] == 1
+            ),
+            JsonEmitFieldNumber(
+                "access_mask", ToString(loop_rows.states.access_masks[state_i])
+            ),
+            JsonEmitFieldNumber(
+                "slot_state", ToString(loop_rows.states.slot_states[state_i])
+            ),
+            JsonEmitFieldNumber(
+                "semantic_state",
+                ToString(loop_rows.states.semantic_states[state_i])
+            ),
+            JsonEmitFieldNumber(
+                "pool_id", ToString(loop_rows.states.pool_ids[state_i])
+            )
+        ]));
+        state_i = state_i + 1;
+    }
     let iteration_type_facts: Array<String> = [];
     let iteration_start: Int = rows.iteration_starts[routine_index];
     let iteration_i: Int = 0;
@@ -350,17 +423,14 @@ func SelfMirJsonRoutine(
     ArrayPush(fields3, JsonEmitFieldRaw(
         "resource_flow_symbols", JsonEmitArray(resource_flow_symbols)
     ));
-    // This bounded self-host producer does not own native semantic loop
-    // transfer rows.  Emit an explicit empty projection; mir_lower must not
-    // recover summaries or states from CFG text.
     ArrayPush(fields3, JsonEmitFieldNumber(
-        "loop_flow_summary_count", ToString(0)
+        "loop_flow_summary_count", ToString(ArrayLength(loop_flow_summaries))
     ));
     ArrayPush(fields3, JsonEmitFieldRaw(
         "loop_flow_summaries", JsonEmitArray(loop_flow_summaries)
     ));
     ArrayPush(fields3, JsonEmitFieldNumber(
-        "loop_flow_state_count", ToString(0)
+        "loop_flow_state_count", ToString(ArrayLength(loop_flow_states))
     ));
     ArrayPush(fields3, JsonEmitFieldRaw(
         "loop_flow_states", JsonEmitArray(loop_flow_states)

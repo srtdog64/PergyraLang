@@ -177,6 +177,21 @@ path_read_file(const char *path)
         return NULL;
     }
 
+    /* The lexer is NUL-terminated: an embedded NUL would silently truncate
+     * everything after it (code present on disk, invisible to the compiler
+     * — a review/supply-chain hazard, docs/189 C10).  Fail closed with an
+     * observable cause instead. */
+    const char *embedded_nul = memchr(buf, '\0', (size_t)sz);
+    if (embedded_nul != NULL) {
+        fprintf(stderr,
+            "pgy: error: source file '%s' contains an embedded NUL byte at "
+            "offset %ld; refusing to compile a partially visible file\n",
+            path, (long)(embedded_nul - buf));
+        fclose(f);
+        free(buf);
+        return NULL;
+    }
+
     buf[sz] = '\0';
     fclose(f);
     return buf;

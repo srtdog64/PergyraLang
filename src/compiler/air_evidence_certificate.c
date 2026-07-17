@@ -71,30 +71,40 @@ uint64_t
 pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
 {
     uint64_t hash = PGY_AIR_CERTIFICATE_FNV_OFFSET;
+    size_t intent_count;
+    size_t boundary_count;
+    size_t drift_count;
+    size_t evidence_count;
+    size_t propagation_requirement_count;
+    size_t machine_layer_site_count;
 
     if (air == NULL
-        || (air->intent_count > 0 && air->intents == NULL)
-        || (air->boundary_count > 0 && air->boundaries == NULL)
-        || (air->drift_count > 0 && air->drifts == NULL)
-        || (air->evidence_count > 0 && air->evidence_nodes == NULL)
-        || (air->propagation_requirement_count > 0
-            && air->propagation_requirements == NULL)) {
+        || !air_intent_storage_valid(air)
+        || !air_boundary_storage_valid(air)
+        || !air_drift_storage_valid(air)
+        || !air_evidence_inventory_storage_valid(air)) {
         return 0;
     }
+    intent_count = air_intent_node_count(air);
+    boundary_count = air_boundary_node_count(air);
+    drift_count = air_drift_count(air);
+    evidence_count = air_evidence_node_count(air);
+    propagation_requirement_count = air_propagation_requirement_count(air);
+    machine_layer_site_count = air_machine_layer_site_count(air);
 
     mix_text(&hash, PGY_AIR_EVIDENCE_CERTIFICATE_SCHEMA);
     mix_bool(&hash, air_requires_strict_evidence(air));
-    mix_bool(&hash, air->has_hir_input);
-    mix_bool(&hash, air->has_rir_input);
-    mix_bool(&hash, air->has_mir_input);
+    mix_bool(&hash, air_has_hir_input(air));
+    mix_bool(&hash, air_has_rir_input(air));
+    mix_bool(&hash, air_has_mir_input(air));
     mix_bool(&hash, air->mir_evidence_collection_started);
     mix_bool(&hash, air->mir_evidence_bound);
     mix_u64(&hash, air->mir_evidence_binding_fingerprint);
-    mix_u64(&hash, air->intent_count);
-    mix_u64(&hash, air->boundary_count);
-    mix_u64(&hash, air->drift_count);
-    mix_u64(&hash, air->evidence_count);
-    mix_u64(&hash, air->propagation_requirement_count);
+    mix_u64(&hash, intent_count);
+    mix_u64(&hash, boundary_count);
+    mix_u64(&hash, drift_count);
+    mix_u64(&hash, evidence_count);
+    mix_u64(&hash, propagation_requirement_count);
     mix_u64(&hash, air->hir_routine_evidence_count);
     mix_u64(&hash, air->hir_cfg_evidence_count);
     mix_u64(&hash, air->rir_boundary_evidence_count);
@@ -117,14 +127,16 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
     mix_u64(&hash, air->slot_capability_retain_count);
     mix_u64(&hash, air->program_capabilities);
     mix_u64(&hash, air->slot_site_count);
-    mix_u64(&hash, air->machine_layer_site_count);
+    mix_u64(&hash, machine_layer_site_count);
     mix_u64(&hash, air->effect_site_count);
     mix_u64(&hash, air->function_param_flow_summary_count);
     mix_bool(&hash, air->has_function_param_flow_facts);
     mix_u64(&hash, air->lifecycle_state_space_count);
 
-    for (size_t i = 0; i < air->intent_count; i++) {
-        const AIRIntentNode *intent = &air->intents[i];
+    for (size_t i = 0; i < intent_count; i++) {
+        const AIRIntentNode *intent = air_intent_node_at(air, i);
+        if (intent == NULL)
+            return 0;
         mix_text(&hash, intent->intent_owner);
         mix_text(&hash, intent->step_name);
         mix_u64(&hash, intent->step_index);
@@ -138,8 +150,10 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         mix_bool(&hash, intent->causes_from_action);
     }
 
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        const AIRBoundaryNode *boundary = &air->boundaries[i];
+    for (size_t i = 0; i < boundary_count; i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        if (boundary == NULL)
+            return 0;
         mix_u64(&hash, boundary->kind);
         mix_text(&hash, boundary->owner_name);
         mix_text(&hash, boundary->source_name);
@@ -178,8 +192,10 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         mix_u64(&hash, boundary->execution_lane);
     }
 
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+    for (size_t i = 0; i < evidence_count; i++) {
+        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
+        if (evidence == NULL)
+            return 0;
         mix_u64(&hash, air_evidence_node_kind(evidence));
         mix_u64(&hash, air_evidence_node_provider_kind(evidence));
         mix_u64(&hash, air_evidence_node_subject_kind(evidence));
@@ -198,16 +214,20 @@ pgy_air_evidence_certificate_fingerprint(const AIRProgram *air)
         mix_u64(&hash, air_evidence_node_fallback_count(evidence));
     }
 
-    for (size_t i = 0; i < air->propagation_requirement_count; i++) {
+    for (size_t i = 0; i < propagation_requirement_count; i++) {
         const AIRPropagationRequirement *requirement =
-            &air->propagation_requirements[i];
+            air_propagation_requirement_at(air, i);
+        if (requirement == NULL)
+            return 0;
         mix_u64(&hash, requirement->kind);
         mix_text(&hash, requirement->provider_name);
         mix_text(&hash, requirement->subject_name);
     }
 
-    for (size_t i = 0; i < air->machine_layer_site_count; i++) {
-        const AIRMachineLayerSite *site = &air->machine_layer_sites[i];
+    for (size_t i = 0; i < machine_layer_site_count; i++) {
+        const AIRMachineLayerSite *site = air_machine_layer_site_at(air, i);
+        if (site == NULL)
+            return 0;
         mix_text(&hash, site->slot);
         mix_text(&hash, site->operation);
         mix_text(&hash, site->manifest_id);
@@ -239,7 +259,7 @@ pgy_air_evidence_certificate_issue(AIRProgram *air, const char **error_out)
     }
     air->verification_certificate_valid = false;
     air->verification_certificate_fingerprint = 0;
-    if (!air->has_mir_input
+    if (!air_has_mir_input(air)
         || (air->mir_evidence_collection_started
             && (!air->mir_evidence_bound
                 || air->mir_evidence_binding_fingerprint == 0))) {
@@ -247,7 +267,7 @@ pgy_air_evidence_certificate_issue(AIRProgram *air, const char **error_out)
             *error_out = "AIR evidence certificate: MIR evidence is missing";
         return false;
     }
-    if (air->drift_count != 0) {
+    if (air_drift_count(air) != 0) {
         if (error_out != NULL)
             *error_out = "AIR evidence certificate: AIR drift is not discharged";
         return false;
@@ -275,7 +295,7 @@ pgy_air_evidence_certificate_ready(const AIRProgram *air, const char **error_out
             *error_out = "AIR evidence certificate: missing AIR program";
         return false;
     }
-    if (!air->verification_certificate_valid || !air->has_mir_input
+    if (!air->verification_certificate_valid || !air_has_mir_input(air)
         || (air->mir_evidence_collection_started
             && (!air->mir_evidence_bound
                 || air->mir_evidence_binding_fingerprint == 0))) {

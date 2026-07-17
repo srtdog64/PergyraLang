@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "rir_flow_state.h"
+#include "rir_resource_flow_symbols.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
@@ -161,6 +162,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
             if (scope->resource_identity_verified
                 && summary->origin_kind == RIR_FACT_RESOURCE
+                && rir_resource_kind_has_semantic_flow_identity(
+                    summary->resource_kind)
                 && !summary->has_flow_identity) {
                 if (error_message != NULL)
                     *error_message = rir_strdup_fmt(
@@ -171,6 +174,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
             if (scope->resource_identity_verified
                 && summary->origin_kind == RIR_FACT_RESOURCE
+                && rir_resource_kind_has_semantic_flow_identity(
+                    summary->resource_kind)
                 && !rir_scope_resource_flow_index_known(
                     scope, summary->stable_index)) {
                 if (error_message != NULL)
@@ -186,8 +191,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             if (scope->function_param_flow_summaries == NULL
                 || scope->function_param_flow_summary_count
                     > scope->function_param_flow_summary_capacity
-                || (scope->kind != RIR_SCOPE_FUNCTION
-                    && scope->kind != RIR_SCOPE_METHOD)) {
+                || (rir_scope_kind(scope) != RIR_SCOPE_FUNCTION
+                    && rir_scope_kind(scope) != RIR_SCOPE_METHOD)) {
                 if (error_message != NULL)
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' has incomplete function parameter flow summary storage",
@@ -248,6 +253,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
             if (scope->resource_identity_verified
                 && fact->kind == RIR_FACT_RESOURCE
+                && rir_resource_kind_has_semantic_flow_identity(
+                    fact->resource_kind)
                 && !fact->has_flow_identity) {
                 if (error_message != NULL)
                     *error_message = rir_strdup_fmt(
@@ -258,6 +265,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
             if (scope->resource_identity_verified
                 && fact->kind == RIR_FACT_RESOURCE
+                && rir_resource_kind_has_semantic_flow_identity(
+                    fact->resource_kind)
                 && !rir_scope_resource_flow_index_known(
                     scope, fact->stable_index)) {
                 if (error_message != NULL)

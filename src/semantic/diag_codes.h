@@ -276,6 +276,8 @@
 #define PGY_CAUSE_CLASS_DUPLICATE_NAME          "semantic:class:duplicate_name"
 #define PGY_CAUSE_DOMAIN_SLOT_DUPLICATE_NAME    "semantic:domain_slot:duplicate_name"
 #define PGY_CAUSE_FUNCTION_DUPLICATE_NAME       "semantic:function:duplicate_name"
+#define PGY_CAUSE_IDENTIFIER_C_RESERVED         "semantic:identifier:c_reserved_word"
+#define PGY_CAUSE_SEMANTIC_STEP_BUDGET          "semantic:analysis:step_budget_exceeded"
 #define PGY_CAUSE_INTENT_DUPLICATE_NAME         "semantic:intent:duplicate_name"
 #define PGY_CAUSE_OVERLAY_DUPLICATE_NAME        "semantic:overlay:duplicate_name"
 #define PGY_CAUSE_PARTY_DUPLICATE_NAME          "semantic:party:duplicate_name"
@@ -385,6 +387,8 @@
                                                 "use-boundary-visible-type-or-drop-qualifier"
 #define PGY_FIX_USE_CALLABLE_DECLARATION        "use-callable-declaration"
 #define PGY_FIX_USE_INT_INDEX                   "use-int-index"
+#define PGY_FIX_RENAME_IDENTIFIER               "rename-identifier"
+#define PGY_FIX_REPORT_INPUT_OR_RAISE_STEP_BUDGET "report-input-or-raise-step-budget"
 #define PGY_FIX_USE_INT_OR_LONG_CAPACITY        "use-int-or-long-capacity"
 #define PGY_FIX_USE_INT_PRIORITY                "use-int-priority"
 #define PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER \

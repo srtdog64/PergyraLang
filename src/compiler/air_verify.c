@@ -213,7 +213,7 @@ air_verify(AIRProgram *air, char **error_message)
         return false;
     /* The first AIR verification happens before MIR lowering.  Only the final
        MIR-backed pass is allowed to issue the planner certificate. */
-    if (air != NULL && air->has_mir_input && air->drift_count == 0
+    if (air != NULL && air_has_mir_input(air) && air_drift_count(air) == 0
         && !pgy_air_evidence_certificate_issue(air, NULL)) {
         air_set_error(error_message,
                       "AIR evidence certificate could not be issued");

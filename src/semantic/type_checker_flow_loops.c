@@ -57,8 +57,8 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     size_t header_diagnostic_base = ctx->diagnostic_count;
     Type *iterable_type_fact = TYPE_INT;
     bool iteration_fact_valid = true;
-    bool has_iteration_owner = ctx->current_function_decl != NULL
-        || ctx->program_root != NULL;
+    bool has_iteration_owner =
+        semantic_current_routine_syntax_id(ctx) != 0;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
         ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);

@@ -11,6 +11,7 @@ MACHINE_OWNER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_runtime_projecti
 MACHINE_BINDING_OWNER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_runtime_binding_owner.pgy"
 DECLARATION_CONSUMER="$ROOT_DIR/src/self_hosted/compiler/machine_layer_declaration_consumer.pgy"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 
@@ -134,8 +135,9 @@ for contact in claim read write release submit-read; do
         exit 1
     }
 done
-sed '0,/"runtime_operation":"Claim"/s//"runtime_operation":"BadClaim"/' \
-    "$MACHINE_MANIFEST_JSON" >"$BAD_MACHINE_MANIFEST_JSON"
+pgy_replace_first_literal "$MACHINE_MANIFEST_JSON" \
+    "$BAD_MACHINE_MANIFEST_JSON" \
+    '"runtime_operation":"Claim"' '"runtime_operation":"BadClaim"'
 BAD_MACHINE_MANIFEST_REL=".tmp/self_hosted/mir_machine_layer/machine-layer-declaration.bad.json"
 if (cd "$ROOT_DIR" && "$PROBE_BIN" "$BAD_MACHINE_MANIFEST_REL" \
     >"$BAD_MACHINE_MANIFEST_OUT" 2>&1); then
@@ -143,8 +145,10 @@ if (cd "$ROOT_DIR" && "$PROBE_BIN" "$BAD_MACHINE_MANIFEST_REL" \
     exit 1
 fi
 grep -Fq -- 'machine probe facts rejected' "$BAD_MACHINE_MANIFEST_OUT"
-sed '0,/"device_grant":"device-slot0"/s//"device_grant":"pergyra.invalid-grant"/' \
-    "$MACHINE_MANIFEST_JSON" >"$BAD_GRANT_MACHINE_MANIFEST_JSON"
+pgy_replace_first_literal "$MACHINE_MANIFEST_JSON" \
+    "$BAD_GRANT_MACHINE_MANIFEST_JSON" \
+    '"device_grant":"device-slot0"' \
+    '"device_grant":"pergyra.invalid-grant"'
 BAD_GRANT_MACHINE_MANIFEST_REL=".tmp/self_hosted/mir_machine_layer/machine-layer-declaration.bad-grant.json"
 if (cd "$ROOT_DIR" && "$PROBE_BIN" "$BAD_GRANT_MACHINE_MANIFEST_REL" \
     >"$BAD_GRANT_MACHINE_MANIFEST_OUT" 2>&1); then
@@ -152,8 +156,10 @@ if (cd "$ROOT_DIR" && "$PROBE_BIN" "$BAD_GRANT_MACHINE_MANIFEST_REL" \
     exit 1
 fi
 grep -Fq -- 'machine probe facts rejected' "$BAD_GRANT_MACHINE_MANIFEST_OUT"
-sed '0,/"id":"pergyra.machine-declaration.host-sim.v1"/s//"id":"pergyra.invalid-target.v1"/' \
-    "$MACHINE_MANIFEST_JSON" >"$BAD_PROVENANCE_MACHINE_MANIFEST_JSON"
+pgy_replace_first_literal "$MACHINE_MANIFEST_JSON" \
+    "$BAD_PROVENANCE_MACHINE_MANIFEST_JSON" \
+    '"id":"pergyra.machine-declaration.host-sim.v1"' \
+    '"id":"pergyra.invalid-target.v1"'
 BAD_PROVENANCE_MACHINE_MANIFEST_REL=".tmp/self_hosted/mir_machine_layer/machine-layer-declaration.bad-provenance.json"
 if (cd "$ROOT_DIR" && "$PROBE_BIN" "$BAD_PROVENANCE_MACHINE_MANIFEST_REL" \
     >"$BAD_PROVENANCE_MACHINE_MANIFEST_OUT" 2>&1); then
@@ -302,8 +308,9 @@ if ! (cd "$ROOT_DIR" && "$RIR_VALIDATOR_BIN" "$RIR_REL" >"$RIR_OUT" 2>&1); then
 fi
 grep -Fq -- 'pgy.selfhost.machine-layer-rir.v1|contacts=' "$RIR_OUT"
 grep -Fq -- '"machine_contact":"submit-read"' "$RIR_JSON"
-sed '0,/"machine_contact":"claim"/s//"machine_contact":"pergyra.invalid-contact"/' \
-    "$RIR_JSON" >"$RIR_BAD_JSON"
+pgy_replace_first_literal "$RIR_JSON" "$RIR_BAD_JSON" \
+    '"machine_contact":"claim"' \
+    '"machine_contact":"pergyra.invalid-contact"'
 RIR_BAD_REL="${RIR_BAD_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$RIR_VALIDATOR_BIN" "$RIR_BAD_REL" >"$RIR_BAD_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated machine RIR contact was accepted" >&2
@@ -338,8 +345,9 @@ if ! (cd "$ROOT_DIR" && "$AIR_VALIDATOR_BIN" "$AIR_REL" "$MACHINE_MANIFEST_REL" 
 fi
 grep -Fq -- 'pgy.selfhost.machine-layer-air.v1|sites=' "$AIR_OUT"
 
-sed '0,/"manifest":"pergyra.abstract-device-slot.v1"/s//"manifest":"pergyra.invalid-device-slot.v1"/' \
-    "$AIR_JSON" >"$AIR_BAD_JSON"
+pgy_replace_first_literal "$AIR_JSON" "$AIR_BAD_JSON" \
+    '"manifest":"pergyra.abstract-device-slot.v1"' \
+    '"manifest":"pergyra.invalid-device-slot.v1"'
 AIR_BAD_REL="${AIR_BAD_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$AIR_VALIDATOR_BIN" "$AIR_BAD_REL" "$MACHINE_MANIFEST_REL" >"$AIR_BAD_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated machine AIR manifest was accepted" >&2
@@ -347,8 +355,9 @@ if (cd "$ROOT_DIR" && "$AIR_VALIDATOR_BIN" "$AIR_BAD_REL" "$MACHINE_MANIFEST_REL
 fi
 grep -Fq -- 'MACHINE-AIR ERROR: AIR machine-layer site is missing owner facts' "$AIR_BAD_OUT"
 
-sed '0,/\"manifest\":\"pergyra.abstract-device-slot.v1\"/s//\"manifest\":\"pergyra.invalid-device-slot.v1\"/' \
-    "$MIR_JSON" >"$BAD_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_JSON" \
+    '"manifest":"pergyra.abstract-device-slot.v1"' \
+    '"manifest":"pergyra.invalid-device-slot.v1"'
 BAD_REL="${BAD_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_REL" "$MACHINE_MANIFEST_REL" >"$BAD_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated machine manifest was accepted" >&2
@@ -356,8 +365,9 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_REL" "$MACHINE_MANIFEST_REL" >"$BAD_OUT
 fi
 grep -Fq -- 'MIR machine-layer facts are missing or invalid' "$BAD_OUT"
 
-sed '0,/\"physical_grant\":\"device-slot0\"/s//\"physical_grant\":\"pergyra.invalid-grant\"/' \
-    "$MIR_JSON" >"$BAD_PHYSICAL_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_PHYSICAL_JSON" \
+    '"physical_grant":"device-slot0"' \
+    '"physical_grant":"pergyra.invalid-grant"'
 BAD_PHYSICAL_REL="${BAD_PHYSICAL_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_PHYSICAL_REL" "$MACHINE_MANIFEST_REL" >"$BAD_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated physical grant was accepted" >&2
@@ -365,8 +375,8 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_PHYSICAL_REL" "$MACHINE_MANIFEST_REL" >
 fi
 grep -Fq -- 'MIR machine-layer facts are missing or invalid' "$BAD_OUT"
 
-sed '0,/\"physical_base\":268435456/s//\"physical_base\":268435457/' \
-    "$MIR_JSON" >"$BAD_PHYSICAL_SHAPE_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_PHYSICAL_SHAPE_JSON" \
+    '"physical_base":268435456' '"physical_base":268435457'
 BAD_PHYSICAL_SHAPE_REL="${BAD_PHYSICAL_SHAPE_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_PHYSICAL_SHAPE_REL" "$MACHINE_MANIFEST_REL" >"$BAD_OUT" 2>&1); then
     echo "[self-host-mir-machine-layer] mutated physical grant shape was accepted" >&2

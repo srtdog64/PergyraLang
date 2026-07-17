@@ -783,13 +783,17 @@ for term in \
     "atomic_bool   g_pgy_pool_active" \
     "atomic_bool   g_pgy_pool_shutting_down" \
     "g_pgy_pool_lifecycle_mutex" \
-    "atomic_store_explicit(&g_pgy_pool_shutting_down, true" \
-    "pthread_t *workers = g_pgy_pool.workers" \
-    "atomic_load_explicit(&g_pgy_pool_active" \
-    "atomic_store_explicit(&g_pgy_pool_active" \
-    "worker array size overflow"; do
+    "atomic_load_explicit(&g_pgy_pool_active"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel.h" ||
         fail "parallel runtime task/worker arrays must guard null and allocation sizes: $term"
+done
+for term in \
+    "atomic_store_explicit(&g_pgy_pool_active" \
+    "atomic_store_explicit(&g_pgy_pool_shutting_down, true" \
+    "pthread_t *workers = g_pgy_pool.workers" \
+    "worker array size overflow"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel_pool_lifecycle.h" ||
+        fail "parallel pool lifecycle must own worker allocation and shutdown: $term"
 done
 for term in \
     "parallel task array is null" \

@@ -7,6 +7,7 @@ INDEX="$ROOT_DIR/src/self_hosted/mir_lower/routine_fact_index_owner.pgy"
 LOWER="$ROOT_DIR/src/self_hosted/mir_lower/routine_lower.pgy"
 DUMP="$ROOT_DIR/src/compiler/mir_json_dump_flow.c"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 pgy_prepend_windows_runtime_paths
 export PATH
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -60,8 +61,9 @@ if ! (cd "$ROOT_DIR" && "$LOWER_BIN" "$MIR_REL" >"$VALID_OUT" 2>&1); then
 fi
 grep -Fq -- "Function: Main" "$VALID_OUT"
 
-sed '0,/"loop_flow_summary_count":[1-9][0-9]*/s//"loop_flow_summary_count":0/' \
-    "$MIR_JSON" >"$BAD_COUNT_JSON"
+pgy_replace_first_regex "$MIR_JSON" "$BAD_COUNT_JSON" \
+    '"loop_flow_summary_count":[1-9][0-9]*' \
+    '"loop_flow_summary_count":0'
 BAD_COUNT_REL="${BAD_COUNT_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_COUNT_REL" >"$BAD_COUNT_OUT" 2>&1); then
     echo "inconsistent summary count was accepted" >&2
@@ -69,8 +71,9 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_COUNT_REL" >"$BAD_COUNT_OUT" 2>&1); the
 fi
 grep -Eq -- "routine LoopFlowSummary facts are incomplete|routine MIR fact index is incomplete" "$BAD_COUNT_OUT"
 
-sed '0,/"entry_state_count":[0-9][0-9]*/s//"entry_state_count":999999/' \
-    "$MIR_JSON" >"$BAD_RANGE_JSON"
+pgy_replace_first_regex "$MIR_JSON" "$BAD_RANGE_JSON" \
+    '"entry_state_count":[0-9][0-9]*' \
+    '"entry_state_count":999999'
 BAD_RANGE_REL="${BAD_RANGE_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_RANGE_REL" >"$BAD_RANGE_OUT" 2>&1); then
     echo "out-of-range state span was accepted" >&2
@@ -78,8 +81,8 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_RANGE_REL" >"$BAD_RANGE_OUT" 2>&1); the
 fi
 grep -Eq -- "routine LoopFlowSummary facts are incomplete|routine MIR fact index is incomplete" "$BAD_RANGE_OUT"
 
-sed '0,/"kind":"while"/s//"kind":"for"/' \
-    "$MIR_JSON" >"$BAD_KIND_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_KIND_JSON" \
+    '"kind":"while"' '"kind":"for"'
 BAD_KIND_REL="${BAD_KIND_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_KIND_REL" >"$BAD_KIND_OUT" 2>&1); then
     echo "CFG/kind-mismatched summary was accepted" >&2
@@ -87,8 +90,9 @@ if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_KIND_REL" >"$BAD_KIND_OUT" 2>&1); then
 fi
 grep -Fq -- "routine LoopFlowSummary facts do not match CFG loop projection" "$BAD_KIND_OUT"
 
-sed 's/"loop_flow_states":\[{"stable_index":[0-9][0-9]*/"loop_flow_states":[{"stable_index":999999/' \
-    "$MIR_JSON" >"$BAD_STATE_INDEX_JSON"
+pgy_replace_first_literal "$MIR_JSON" "$BAD_STATE_INDEX_JSON" \
+    '"loop_flow_states":[{"stable_index":0' \
+    '"loop_flow_states":[{"stable_index":999999'
 BAD_STATE_INDEX_REL="${BAD_STATE_INDEX_JSON#$ROOT_DIR/}"
 if (cd "$ROOT_DIR" && "$LOWER_BIN" "$BAD_STATE_INDEX_REL" >"$BAD_STATE_INDEX_OUT" 2>&1); then
     echo "state stable index without a ResourceFlow owner was accepted" >&2

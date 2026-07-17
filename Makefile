@@ -1480,6 +1480,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/machine_layer_manifest.o \
                    $(BUILD_DIR)/compiler/mir_machine_layer.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_hir_block_projection.o \
                    $(BUILD_DIR)/compiler/mir_hir_fact_transfer.o \
                    $(BUILD_DIR)/compiler/mir_iteration_type_facts.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_flow.o \
@@ -2932,8 +2933,9 @@ debug-hygiene-test-smoke:
 memory-string-safety-test-smoke:
 	"$(BASH)" tests/memory_string_safety_smoke.sh
 
-security-portability-contract-test-smoke:
+security-portability-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/security_portability_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/semantic_termination_security_smoke.sh
 
 llvm-campaign-projection-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)

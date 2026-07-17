@@ -9,6 +9,7 @@
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loops.h"
+#include "../common/numeric_parse.h"
 
 /* PGY_DEBUG_SEMANTIC_TIMING statement census: per-kind INCLUSIVE time for
  * body statements (parents such as blocks/ifs double-count their children;
@@ -147,6 +148,129 @@ flow_reject_dynamic_defer_control(SemanticContext *ctx,
         control_kind != NULL ? control_kind : "flow");
 }
 
+/* =================================================================
+ * Semantic termination contract (docs/189 C8).
+ *
+ * The parser caps recursion at 400 and operators at 4096, but semantic
+ * analysis had no bound of any kind: the census below is an env-gated
+ * print-only instrument, and the 2026-07 escape-analysis hang proved the
+ * "semantic must terminate on every input" contract can break in
+ * practice. Two deterministic backstops close the class fail-closed:
+ *
+ * - a statement-flow depth cap (512 -- above the parser's 400, so any
+ *   parser-accepted input can never trip it; it only fires for a
+ *   non-parser AST producer or a future transform that deepens trees);
+ * - a global step budget over statement-flow + expression dispatches
+ *   (default 1<<28 steps, PGY_SEMANTIC_STEP_BUDGET overrides, 0
+ *   disables). Deterministic by construction -- unlike a wall-clock
+ *   watchdog, the same input always trips at the same step.
+ *
+ * Once tripped, every subsequent dispatch returns immediately so the
+ * recursion unwinds and the compile ends with a diagnostic instead of a
+ * hang. Thread-local so the LSP's per-request analyses stay independent.
+ * Honest coverage note: subsystems that do not route through these two
+ * dispatchers (e.g. the escape analyzer's own walks) are outside this
+ * budget; their guards live with them.
+ * ================================================================= */
+
+#define SEMANTIC_STMT_FLOW_MAX_DEPTH 512
+#define SEMANTIC_STEP_BUDGET_DEFAULT ((size_t)1 << 28)
+
+typedef struct
+{
+    size_t stmt_flow_depth;
+    size_t steps_used;
+    size_t step_budget;
+    bool contract_tripped;
+} SemanticTerminationContractState;
+
+static SemanticTerminationContractState *
+semantic_termination_contract_state(void)
+{
+    static _Thread_local SemanticTerminationContractState state;
+    return &state;
+}
+
+void
+semantic_termination_contract_reset(void)
+{
+    const char *env = getenv("PGY_SEMANTIC_STEP_BUDGET");
+    SemanticTerminationContractState *state =
+        semantic_termination_contract_state();
+    size_t configured_budget;
+
+    state->stmt_flow_depth = 0;
+    state->steps_used = 0;
+    state->contract_tripped = false;
+    state->step_budget = SEMANTIC_STEP_BUDGET_DEFAULT;
+    if (env != NULL && env[0] != '\0'
+        && pgy_parse_size_strict_allow_zero(env, &configured_budget))
+        state->step_budget = configured_budget;
+}
+
+bool
+semantic_termination_contract_tick(SemanticContext *ctx, ASTNode *site)
+{
+    SemanticTerminationContractState *state =
+        semantic_termination_contract_state();
+
+    if (state->contract_tripped)
+        return false;
+    if (state->step_budget == 0)
+        return true;
+    if (++state->steps_used <= state->step_budget)
+        return true;
+    state->contract_tripped = true;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_SEMANTIC_STEP_BUDGET,
+        PGY_FIX_REPORT_INPUT_OR_RAISE_STEP_BUDGET,
+        site,
+        "semantic analysis exceeded its termination-contract step budget (%llu steps).\n"
+        "Reason:\n"
+        "- the compiler must terminate on every input; this deterministic budget is the fail-closed backstop for analysis blow-ups\n"
+        "Fix:\n"
+        "- report this input as a compiler performance defect\n"
+        "- or raise PGY_SEMANTIC_STEP_BUDGET (0 disables) if the program is legitimately this large",
+        (unsigned long long)state->step_budget);
+    return false;
+}
+
+static bool
+semantic_stmt_flow_depth_enter(SemanticContext *ctx, ASTNode *site)
+{
+    SemanticTerminationContractState *state =
+        semantic_termination_contract_state();
+
+    if (state->contract_tripped)
+        return false;
+    if (++state->stmt_flow_depth <= SEMANTIC_STMT_FLOW_MAX_DEPTH)
+        return true;
+    state->stmt_flow_depth--;
+    state->contract_tripped = true;
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_SEMANTIC_STEP_BUDGET,
+        PGY_FIX_REPORT_INPUT_OR_RAISE_STEP_BUDGET,
+        site,
+        "semantic statement nesting exceeded the analyzer's depth cap (%d).\n"
+        "Reason:\n"
+        "- the parser caps nesting at 400, so parser-accepted programs cannot reach this; an AST this deep indicates a non-parser producer or a compiler defect\n"
+        "Fix:\n"
+        "- flatten the nesting, or report this input as a compiler defect",
+        SEMANTIC_STMT_FLOW_MAX_DEPTH);
+    return false;
+}
+
+static void
+semantic_stmt_flow_depth_leave(void)
+{
+    SemanticTerminationContractState *state =
+        semantic_termination_contract_state();
+    if (state->stmt_flow_depth > 0)
+        state->stmt_flow_depth--;
+}
+
 FlowFlags
 type_check_block_flow(ASTNode *node, SemanticContext *ctx,
                       LoopFlowState *loop_flow)
@@ -271,8 +395,15 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
 
     if (node == NULL)
         return FLOW_FALLTHROUGH;
-    if (!stmt_census_enabled())
-        return type_check_statement_flow_dispatch(node, ctx, loop_flow);
+    if (!semantic_termination_contract_tick(ctx, node))
+        return FLOW_FALLTHROUGH;
+    if (!semantic_stmt_flow_depth_enter(ctx, node))
+        return FLOW_FALLTHROUGH;
+    if (!stmt_census_enabled()) {
+        flags = type_check_statement_flow_dispatch(node, ctx, loop_flow);
+        semantic_stmt_flow_depth_leave();
+        return flags;
+    }
     StmtVisitCensus *census = stmt_visit_census();
 
     if ((size_t)node->type < 512)
@@ -281,6 +412,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
     flags = type_check_statement_flow_dispatch(node, ctx, loop_flow);
     if ((size_t)node->type < 512)
         census->seconds_by_kind[(size_t)node->type] += stmt_census_now() - t0;
+    semantic_stmt_flow_depth_leave();
     return flags;
 }
 

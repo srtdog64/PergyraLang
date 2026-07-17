@@ -65,6 +65,17 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             echo "[self-host-parity:driver-rung2] $backend self MIR reopened AST compatibility text: $base" >&2
             exit 1
         fi
+        if [[ "$base" == "forloop" ]]; then
+            grep -Fq '"loop_flow_summary_count":1' "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend loop summary owner row was lost" >&2
+                exit 1
+            }
+            grep -Eq '"loop_syntax_id":[1-9][0-9]*,"kind":"for","effect_base":0,"effect_delta":0,"flags":1,"entry_state_start":0,"entry_state_count":0,"exit_state_start":0,"exit_state_count":0' \
+                "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend loop summary owner row drifted" >&2
+                exit 1
+            }
+        fi
         pgy_selfhost_verify_driver_rung2_call_target "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_iteration_graph "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_foreach_call_type "$backend" "$base" "$self_mir_json" "$driver_bin"

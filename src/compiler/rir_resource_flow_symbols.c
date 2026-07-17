@@ -6,6 +6,22 @@
 
 #include <stdlib.h>
 
+bool
+rir_resource_kind_has_semantic_flow_identity(RIRResourceKind kind)
+{
+    switch (kind) {
+        case RIR_RESOURCE_LOCAL_SLOT:
+        case RIR_RESOURCE_SECURE_SLOT:
+        case RIR_RESOURCE_DEVICE_SLOT:
+        case RIR_RESOURCE_QUBIT_HANDLE:
+        case RIR_RESOURCE_LOCAL_FUTURE_HANDLE:
+        case RIR_RESOURCE_REMOTE_FUTURE_HANDLE:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static void
 rir_clear_resource_flow_symbols(RIRScope *scope)
 {

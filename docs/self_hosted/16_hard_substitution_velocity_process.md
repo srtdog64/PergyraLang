@@ -635,7 +635,7 @@ namespace/member targets. The body fixpoint independently resolves
 `Math.Add()` from the qualified callable inventory and `v.LengthPlus()` from
 the receiver type plus method signature, then rejects any carried mismatch
 instead of trusting or overwriting it. The full C DRV-2 frontier passes 20
-source fixtures and 31 MIR producer fixtures with this comparison active.
+source fixtures and 32 MIR producer fixtures with this comparison active.
 
 Mechanized closure delta, 2026-07-12: `SoTAuthority.v` now defines rung closure
 as required-owner completeness, authority uniqueness, required consumption,

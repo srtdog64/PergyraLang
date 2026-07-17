@@ -1,0 +1,182 @@
+// Routine-owned loop transfer rows for the bounded self-host MIR producer.
+//
+// The typed semantic statement owner supplies loop identity and kind.  This
+// producer does not yet carry ResourceFlow state, so every admitted summary
+// has an explicit empty entry/exit state range rather than recovering state
+// from CFG text in the MIR consumer.
+
+import "../semantic/ast_statement_fact_owner.pgy";
+
+struct SelfMirLoopFlowSummaryRows {
+    loop_node_ids: Array<Int>;
+    kinds: Array<Int>;
+    effect_bases: Array<Int>;
+    effect_deltas: Array<Int>;
+    flags: Array<Int>;
+    entry_state_starts: Array<Int>;
+    entry_state_counts: Array<Int>;
+    exit_state_starts: Array<Int>;
+    exit_state_counts: Array<Int>;
+}
+
+struct SelfMirLoopFlowStateRows {
+    stable_indices: Array<Int>;
+    consumed_flags: Array<Int>;
+    used_flags: Array<Int>;
+    access_masks: Array<Int>;
+    slot_states: Array<Int>;
+    semantic_states: Array<Int>;
+    pool_ids: Array<Int>;
+}
+
+struct SelfMirLoopFlowRows {
+    routine_starts: Array<Int>;
+    routine_counts: Array<Int>;
+    summaries: SelfMirLoopFlowSummaryRows;
+    states: SelfMirLoopFlowStateRows;
+}
+
+func SelfMirLoopFlowRowsEmpty() -> SelfMirLoopFlowRows {
+    let ints: Array<Int> = [];
+    return SelfMirLoopFlowRows(
+        ints, ints,
+        SelfMirLoopFlowSummaryRows(
+            ints, ints, ints, ints, ints, ints, ints, ints, ints
+        ),
+        SelfMirLoopFlowStateRows(
+            ints, ints, ints, ints, ints, ints, ints
+        )
+    );
+}
+
+func SelfMirLoopFlowRowsWithoutLoops(
+    routine_count: Int
+) -> SelfMirLoopFlowRows {
+    let rows: SelfMirLoopFlowRows = SelfMirLoopFlowRowsEmpty();
+    let routine_starts: Array<Int> = rows.routine_starts;
+    let routine_counts: Array<Int> = rows.routine_counts;
+    let i: Int = 0;
+    while i < routine_count {
+        ArrayPush(routine_starts, 0);
+        ArrayPush(routine_counts, 0);
+        i = i + 1;
+    }
+    return SelfMirLoopFlowRows(
+        routine_starts, routine_counts, rows.summaries, rows.states
+    );
+}
+
+func SelfMirLoopFlowRowsAppendRoutine(
+    rows: SelfMirLoopFlowRows,
+    statements: SemanticAstStatementFacts,
+    function_node_id: Int
+) -> SelfMirLoopFlowRows {
+    let routine_starts: Array<Int> = rows.routine_starts;
+    let routine_counts: Array<Int> = rows.routine_counts;
+    let summaries: SelfMirLoopFlowSummaryRows = rows.summaries;
+    let loop_node_ids: Array<Int> = summaries.loop_node_ids;
+    let kinds: Array<Int> = summaries.kinds;
+    let effect_bases: Array<Int> = summaries.effect_bases;
+    let effect_deltas: Array<Int> = summaries.effect_deltas;
+    let flags: Array<Int> = summaries.flags;
+    let entry_state_starts: Array<Int> = summaries.entry_state_starts;
+    let entry_state_counts: Array<Int> = summaries.entry_state_counts;
+    let exit_state_starts: Array<Int> = summaries.exit_state_starts;
+    let exit_state_counts: Array<Int> = summaries.exit_state_counts;
+    let state_count: Int = ArrayLength(rows.states.stable_indices);
+    ArrayPush(routine_starts, ArrayLength(loop_node_ids));
+    let routine_count: Int = 0;
+    let i: Int = 0;
+    while i < SemanticAstStatementCount(statements) {
+        let kind: Int = statements.kind_tags[i];
+        if statements.function_node_ids[i] == function_node_id &&
+            (kind == TypedAstKindWhileStmtTag() ||
+             kind == TypedAstKindForStmtTag()) {
+            ArrayPush(loop_node_ids, statements.node_ids[i]);
+            if kind == TypedAstKindForStmtTag() {
+                ArrayPush(kinds, 1);
+            } else {
+                ArrayPush(kinds, 0);
+            }
+            ArrayPush(effect_bases, 0);
+            ArrayPush(effect_deltas, 0);
+            ArrayPush(flags, 1);
+            ArrayPush(entry_state_starts, state_count);
+            ArrayPush(entry_state_counts, 0);
+            ArrayPush(exit_state_starts, state_count);
+            ArrayPush(exit_state_counts, 0);
+            routine_count = routine_count + 1;
+        }
+        i = i + 1;
+    }
+    ArrayPush(routine_counts, routine_count);
+    return SelfMirLoopFlowRows(
+        routine_starts, routine_counts,
+        SelfMirLoopFlowSummaryRows(
+            loop_node_ids, kinds, effect_bases, effect_deltas, flags,
+            entry_state_starts, entry_state_counts,
+            exit_state_starts, exit_state_counts
+        ),
+        rows.states
+    );
+}
+
+func SelfMirLoopFlowRowsReady(
+    rows: SelfMirLoopFlowRows,
+    routine_count: Int
+) -> Bool {
+    let summaries: SelfMirLoopFlowSummaryRows = rows.summaries;
+    let summary_count: Int = ArrayLength(summaries.loop_node_ids);
+    let states: SelfMirLoopFlowStateRows = rows.states;
+    let state_count: Int = ArrayLength(states.stable_indices);
+    if ArrayLength(rows.routine_starts) != routine_count ||
+        ArrayLength(rows.routine_counts) != routine_count ||
+        ArrayLength(summaries.kinds) != summary_count ||
+        ArrayLength(summaries.effect_bases) != summary_count ||
+        ArrayLength(summaries.effect_deltas) != summary_count ||
+        ArrayLength(summaries.flags) != summary_count ||
+        ArrayLength(summaries.entry_state_starts) != summary_count ||
+        ArrayLength(summaries.entry_state_counts) != summary_count ||
+        ArrayLength(summaries.exit_state_starts) != summary_count ||
+        ArrayLength(summaries.exit_state_counts) != summary_count ||
+        ArrayLength(states.consumed_flags) != state_count ||
+        ArrayLength(states.used_flags) != state_count ||
+        ArrayLength(states.access_masks) != state_count ||
+        ArrayLength(states.slot_states) != state_count ||
+        ArrayLength(states.semantic_states) != state_count ||
+        ArrayLength(states.pool_ids) != state_count {
+        return false;
+    }
+    let cursor: Int = 0;
+    let routine_i: Int = 0;
+    while routine_i < routine_count {
+        if rows.routine_starts[routine_i] != cursor ||
+            rows.routine_counts[routine_i] < 0 ||
+            rows.routine_counts[routine_i] > summary_count - cursor {
+            return false;
+        }
+        cursor = cursor + rows.routine_counts[routine_i];
+        routine_i = routine_i + 1;
+    }
+    let i: Int = 0;
+    while i < summary_count {
+        if summaries.loop_node_ids[i] <= 0 ||
+            (summaries.kinds[i] != 0 && summaries.kinds[i] != 1) ||
+            summaries.effect_bases[i] < 0 || summaries.effect_deltas[i] < 0 ||
+            summaries.flags[i] < 0 ||
+            summaries.entry_state_starts[i] < 0 ||
+            summaries.entry_state_counts[i] < 0 ||
+            summaries.entry_state_starts[i] > state_count ||
+            summaries.entry_state_counts[i] >
+                state_count - summaries.entry_state_starts[i] ||
+            summaries.exit_state_starts[i] < 0 ||
+            summaries.exit_state_counts[i] < 0 ||
+            summaries.exit_state_starts[i] > state_count ||
+            summaries.exit_state_counts[i] >
+                state_count - summaries.exit_state_starts[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return cursor == summary_count;
+}

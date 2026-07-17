@@ -309,6 +309,7 @@ ASTNode *semantic_find_function_decl_by_name(SemanticContext *ctx,
                                              const char *name);
 ASTNode *semantic_find_callable_decl_by_name(SemanticContext *ctx,
                                              const char *name);
+uint32_t semantic_current_routine_syntax_id(SemanticContext *ctx);
 ASTNode *semantic_constructor_decl_for_symbol_kind(SemanticContext *ctx,
                                                   SymbolKind kind,
                                                   const char *name);

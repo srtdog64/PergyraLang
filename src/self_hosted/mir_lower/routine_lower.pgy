@@ -250,7 +250,7 @@ func BlockHasLoopTransfer(ref index: MirRoutineFactIndex, json: String,
         condition == "true";
 }
 
-// The native semantic owner is the only source of loop transfer facts.  The
+// A semantic producer is the only source of loop transfer facts.  The
 // self-host projection may use CFG shape to locate the loop headers it will
 // render, but it must admit exactly the already-proven summary rows and may
 // not synthesize a replacement summary from those edges.

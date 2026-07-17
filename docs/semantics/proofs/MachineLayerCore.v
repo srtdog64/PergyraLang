@@ -65,11 +65,11 @@
   adequacy remain explicit refinement obligations.
 *)
 
-Require Import Stdlib.Init.Nat.
-Require Import Stdlib.Arith.PeanoNat.
-Require Import Stdlib.Bool.Bool.
-Require Import Stdlib.Lists.List.
-Require Import Stdlib.micromega.Lia.
+Require Import Coq.Init.Nat.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Bool.Bool.
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
 Import ListNotations.
 
 Section MachineLayerCore.

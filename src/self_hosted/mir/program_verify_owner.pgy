@@ -399,7 +399,8 @@ func SelfMirRoutineRowsReady(
         !SelfMirParallelCount(count, rows.local_counts) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_abi_kinds) ||
-        ArrayLength(rows.local_names) != ArrayLength(rows.local_types) {
+        ArrayLength(rows.local_names) != ArrayLength(rows.local_types) ||
+        !SelfMirLoopFlowRowsReady(rows.loop_flows, count) {
         return false;
     }
     let param_cursor: Int = 0;

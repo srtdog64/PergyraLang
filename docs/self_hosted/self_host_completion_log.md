@@ -7815,7 +7815,7 @@ Released/default replacement remains 0%.
   Namespace targets are re-derived from qualified callable inventory and
   member targets from receiver type plus method signature. A carried mismatch
   now fails closed rather than being silently replaced.
-- Verified the complete C DRV-2 frontier: 20 source fixtures and 31 MIR
+- Verified the complete C DRV-2 frontier: 20 source fixtures and 32 MIR
   producer fixtures pass producer-first parity with these checks enabled.
 - The component contract rejects restoring the return-expression scanner.
   Other legacy expression leaves remain bridged; released/default substitution

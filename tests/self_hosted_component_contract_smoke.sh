@@ -462,6 +462,12 @@ require_text "src/self_hosted/mir/json_projection_owner.pgy" '"parallel_capture_
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbol_count"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"resource_flow_symbols"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summary_count"'
+require_file "src/self_hosted/mir/loop_flow_rows_owner.pgy"
+require_text "src/self_hosted/mir/loop_flow_rows_owner.pgy" "SelfMirLoopFlowRowsAppendRoutine"
+require_text "src/self_hosted/mir/loop_flow_rows_owner.pgy" \
+    "does not yet carry ResourceFlow state"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" "loop_flows: SelfMirLoopFlowRows"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" "SelfMirLoopFlowRowsReady"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summaries"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_state_count"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_states"'
@@ -3144,9 +3150,9 @@ require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parit
 require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 31;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 32;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 31'
+    'mir_fixture_rows[@]}" -ne 32'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'inferred return drift was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
@@ -3311,9 +3317,9 @@ reject_text "src/self_hosted/codegen/emission/value_return_emit_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/result_int_core.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 31;"
+    "return 32;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 31'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 32'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
