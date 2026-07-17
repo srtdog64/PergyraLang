@@ -14,7 +14,6 @@ struct MirResourceFlowFacts {
     let parameter_indices: Array<Int>;
     let names: Array<String>;
 }
-
 func BuildMirResourceFlowFacts(
     json: String,
     routine_start: Int,
@@ -81,4 +80,3 @@ func BuildMirResourceFlowFacts(
         valid, stable_indices, declaration_syntax_ids, symbol_kinds,
         parameter_flags, parameter_indices, names);
 }
-

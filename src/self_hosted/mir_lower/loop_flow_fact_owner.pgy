@@ -27,7 +27,6 @@ struct MirLoopFlowFacts {
     let state_semantic_states: Array<Int>;
     let state_pool_ids: Array<Int>;
 }
-
 func BuildMirLoopFlowFacts(
     json: String,
     routine_start: Int,
@@ -183,4 +182,3 @@ func BuildMirLoopFlowFacts(
         state_consumed_flags, state_used_flags, state_access_masks,
         state_slot_states, state_semantic_states, state_pool_ids);
 }
-
