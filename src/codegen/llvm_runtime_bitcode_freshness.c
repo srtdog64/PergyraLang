@@ -2,7 +2,10 @@
 
 #include "llvm_runtime_bitcode_freshness.h"
 
+#include <dirent.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include <time.h>
 #ifdef _WIN32
 #include <sys/stat.h>
@@ -35,50 +38,69 @@ llvm_runtime_file_mtime(const char *path, time_t *mtime_out)
     return true;
 }
 
+/* Freshness used to be gated on a hand-maintained header list; every header
+ * added to the runtime after the list was written became a silent blind spot
+ * (edit it and a stale .bc still passed as "fresh", inlining old semantics
+ * into the LLVM leg only — docs/189 C6).  Fail closed instead: any .h/.c
+ * source in the runtime directory newer than the bitcode makes it stale; an
+ * unreadable directory refuses freshness outright. */
+static bool
+llvm_runtime_dir_has_newer_source(const char *dir_path, time_t bc_mtime)
+{
+    DIR *dir = opendir(dir_path);
+    if (dir == NULL)
+        return true; /* fail closed: cannot prove freshness */
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        const char *name = entry->d_name;
+        size_t len = strlen(name);
+        bool is_source = (len > 2 && strcmp(name + len - 2, ".h") == 0)
+            || (len > 2 && strcmp(name + len - 2, ".c") == 0);
+        if (!is_source)
+            continue;
+
+        char path[1024];
+        int written = snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+        if (written < 0 || (size_t)written >= sizeof(path)) {
+            closedir(dir);
+            return true; /* fail closed on unrepresentable path */
+        }
+
+        time_t dep_mtime;
+        if (!llvm_runtime_file_mtime(path, &dep_mtime)
+            || bc_mtime < dep_mtime) {
+            closedir(dir);
+            return true;
+        }
+    }
+    closedir(dir);
+    return false;
+}
+
 bool
 llvm_runtime_bitcode_is_fresh(const char *bc_path)
 {
     time_t bc_mtime;
-    const char *deps[] = {
+    /* Sources living outside the runtime directory that the runtime TU
+     * still includes; keep this list to out-of-directory files only. */
+    const char *extra_deps[] = {
         PGY_RUNTIME_LIB_C,
-        PGY_RUNTIME_DIR "/pgy_runtime.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_status.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_lane_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_lane_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_option_bool_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_int_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_text_builder_exports.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_text_builder_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_panic_contract.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_panic_checked_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_authority_file_core.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_quantum_exports.h",
         PGY_RUNTIME_DIR "/../common/execution_lane_kind.h",
-        PGY_RUNTIME_DIR "/pgy_lane_scheduler.h",
-        PGY_RUNTIME_DIR "/pgy_parallel.h",
-        PGY_RUNTIME_DIR "/pgy_parallel_blocking.h",
-        PGY_RUNTIME_DIR "/pgy_parallel_coroutine.h",
-        PGY_RUNTIME_DIR "/pgy_parallel_task_ops.h",
-        PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_array_exports.h",
         NULL
     };
 
     if (!llvm_runtime_file_mtime(bc_path, &bc_mtime))
         return false;
-    for (size_t i = 0; deps[i] != NULL; i++) {
+    for (size_t i = 0; extra_deps[i] != NULL; i++) {
         time_t dep_mtime;
-        if (!llvm_runtime_file_mtime(deps[i], &dep_mtime))
+        if (!llvm_runtime_file_mtime(extra_deps[i], &dep_mtime))
             return false;
         if (bc_mtime < dep_mtime)
             return false;
     }
+    if (llvm_runtime_dir_has_newer_source(PGY_RUNTIME_DIR, bc_mtime))
+        return false;
     return true;
 }
 

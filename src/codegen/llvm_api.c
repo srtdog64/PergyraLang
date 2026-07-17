@@ -287,12 +287,21 @@ llvm_exclude_critical_runtime_from_bitcode(LLVMModuleRef runtime_module)
         bool strip_noreturn = llvm_fn_never_returns(name);
         if (name != NULL && strcmp(name, "pgy_runtime_panic_emit") == 0)
             strip_noreturn = false;
+        /* Only external symbols may be stripped: replacing a static
+         * (internal-linkage) body with a declaration cannot be resolved by
+         * the linker against the runtime object and broke HashMap on the
+         * LLVM backend once (pgy_map_grow_raw_export). Enforce that
+         * structurally here instead of relying on predicate discipline
+         * alone (docs/189 C5). */
+        if (LLVMGetLinkage(fn) != LLVMExternalLinkage)
+            continue;
         if (!LLVMIsDeclaration(fn)
             && (llvm_fn_is_checked_arith(name)
                 || llvm_fn_is_lifecycle_runtime(name)
                 || llvm_fn_is_capability_runtime(name)
                 || llvm_fn_is_budget_runtime(name)
                 || llvm_fn_is_bounds_checked_accessor(name)
+                || llvm_fn_is_stateful_runtime(name)
                 || strip_noreturn))
             llvm_strip_function_body(fn);
     }

@@ -75,9 +75,14 @@ case "$(uname -s 2>/dev/null)" in
         ;;
 esac
 
-# Mirror the macro/define set the runtime .c is compiled with for the C backend
-# so the bitcode is ABI-identical to the externally linked runtime object.
+# Mirror the macro/define set AND the semantics-relevant codegen flags the
+# runtime .c is compiled with for the C backend, so the bitcode is
+# ABI- and semantics-identical to the externally linked runtime object.
+# -fwrapv / -fno-strict-aliasing are load-bearing: without them the inlined
+# primitives are optimized under UB rules the native legs have disabled,
+# which is a silent backend-selective behavior split (docs/189 C4).
 "$CLANG" "${TARGET_FLAGS[@]}" -emit-llvm -O2 -g0 -std=c11 \
+    -fwrapv -fno-strict-aliasing \
     "${DEFS[@]}" \
     -I"$ROOT/src" -I"$ROOT/third_party" \
     -c "$ROOT/src/runtime/pgy_runtime_lib.c" -o "$OUT"

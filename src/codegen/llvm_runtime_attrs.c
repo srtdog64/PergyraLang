@@ -31,7 +31,10 @@ llvm_fn_is_checked_arith(const char *fn_name)
         && (strstr(fn_name, "pgy_checked_div_") != NULL
             || strstr(fn_name, "pgy_checked_mod_") != NULL
             || strstr(fn_name, "pgy_checked_add_") != NULL
-            || strstr(fn_name, "pgy_checked_mul_") != NULL);
+            || strstr(fn_name, "pgy_checked_mul_") != NULL
+            /* fail-closed float->int conversion (docs/189 C1) carries the
+             * same inline panic guard and takes the same treatment */
+            || strstr(fn_name, "pgy_checked_f2i_") != NULL);
 }
 
 /*
@@ -142,6 +145,36 @@ llvm_fn_is_budget_runtime(const char *fn_name)
             || strcmp(fn_name, "pgy_budget_reset_export") == 0
             || strcmp(fn_name, "pgy_budget_used_export") == 0
             || strcmp(fn_name, "pgy_budget_wall_arm_export") == 0);
+}
+
+/*
+ * Stateful runtime families whose process-wide state (or fail-closed inline
+ * panic body) lives in the separately compiled runtime object: the virtual
+ * clock (static atomic mode/ns pair), zone-authority checks and their
+ * last-error TLS record, thread-pool lifecycle/spawn/await, and channels
+ * (whose blocked-wait quantum feeds the pool compensation tick). Inlining
+ * their bitcode bodies would duplicate that state per leg -- the exact
+ * split-brain class that hit cap/budget before those got the
+ * PGY_RUNTIME_BC_BUILD guard -- and the zone-authority checks additionally
+ * carry the inline PGY_RUNTIME_PANIC body that mis-lowers when folded
+ * (docs/189 C5+C7). Strip them so every call resolves to the one runtime
+ * object. Prefix-matched; the exclusion loop's external-linkage guard keeps
+ * a stray static helper from being stripped into a link error.
+ */
+bool
+llvm_fn_is_stateful_runtime(const char *fn_name)
+{
+    if (fn_name == NULL)
+        return false;
+    return strncmp(fn_name, "pgy_zone_authority_", 19) == 0
+        || strncmp(fn_name, "pgy_clock_", 10) == 0
+        || strncmp(fn_name, "pgy_pool_", 9) == 0
+        || strncmp(fn_name, "pgy_lane_", 9) == 0
+        || strncmp(fn_name, "pgy_parallel_", 13) == 0
+        || strncmp(fn_name, "pgy_spawn", 9) == 0
+        || strncmp(fn_name, "pgy_await", 9) == 0
+        || strncmp(fn_name, "pgy_channel_", 12) == 0
+        || strncmp(fn_name, "pgy_select_", 11) == 0;
 }
 
 /*

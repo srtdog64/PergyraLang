@@ -15,21 +15,29 @@
 #ifndef PGY_RUNTIME_CANCEL_PROBE_H
 #define PGY_RUNTIME_CANCEL_PROBE_H
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-static bool (*g_pgy_cancel_probe)(void);
+/* Installed by spawner threads and read by channel-waiting threads with no
+ * common lock; a plain pointer would be a formal C11 data race the compiler
+ * may miscompile at -O2 even where an aligned store is atomic in hardware
+ * (docs/189 C13). release/acquire pairs the install with the reads. */
+static _Atomic(bool (*)(void)) g_pgy_cancel_probe;
 
 static inline bool
 pgy_cancel_probe_cancelled(void)
 {
-    return g_pgy_cancel_probe != NULL && g_pgy_cancel_probe();
+    bool (*probe)(void) = atomic_load_explicit(&g_pgy_cancel_probe,
+                                               memory_order_acquire);
+    return probe != NULL && probe();
 }
 
 static inline void
 pgy_cancel_probe_install(bool (*probe)(void))
 {
-    g_pgy_cancel_probe = probe;
+    atomic_store_explicit(&g_pgy_cancel_probe, probe,
+                          memory_order_release);
 }
 
 #endif /* PGY_RUNTIME_CANCEL_PROBE_H */
