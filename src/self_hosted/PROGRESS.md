@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: statement-return array-literal typing now consumes
+the parser-owned expression graph. The final semantic consumer of
+`SemanticProjectionArrayLiteralMatchesDeclaredType` moved to
+`SemanticExpressionGraphArrayLiteralMatchesDeclaredType`, and the dead
+text-reparsing owner was deleted instead of retained as a compatibility alias.
+`array_return_literal` is DRV-2 MIR fixture 37. Focused C-built and LLVM-built
+self-host drivers produced matching canonical MIR, matching emitted C, and
+run-equal output; the return instruction retains its array graph and the
+existing missing-graph mutation remains fail-closed. This closes array-literal
+typing for initializer, assignment, and statement-return lanes. It does not
+close all expression typing or released/default compiler substitution.
+
 2026-07-19 executable delta: assignment array-literal typing now consumes the
 parser-owned expression graph through
 `SemanticExpressionGraphArrayLiteralMatchesDeclaredType`; the assignment type
@@ -8,8 +20,9 @@ helper. The self-host assignment emitter also consumes the existing semantic
 expected-type row for `Array<T>` instead of dropping the composite literal into
 the untyped expression path. `array_literal_assignment` is DRV-2 MIR fixture 36
 and passes the focused source-to-MIR-to-C producer/consumer comparison with
-both C-built and LLVM-built self-host drivers. This closes one assignment
-array-literal lane, not statement-return array projection or whole-driver
+both C-built and LLVM-built self-host drivers. This closed the assignment lane;
+the later statement-return delta above closes the remaining semantic consumer
+of the text array-literal projection. Neither delta closes whole-driver
 substitution.
 
 2026-07-17 executable delta: scalar expression leaves now emit from the

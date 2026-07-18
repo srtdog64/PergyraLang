@@ -6,6 +6,24 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-19 - Array returns consume the parser expression graph
+
+- `SemanticAstStatementTypeFacts` now resolves array-literal return values from
+  the parser-owned expression graph. A missing return graph produces a
+  structural diagnostic instead of reparsing the return text.
+- The last external consumer of
+  `SemanticProjectionArrayLiteralMatchesDeclaredType` was removed, then the
+  dead recursive text parser itself was deleted. The component contract rejects
+  its return in the projection owner and in initializer, assignment, and return
+  consumers.
+- Added `array_return_literal` as DRV-2 MIR fixture 37. C-built and LLVM-built
+  self-host drivers produced equal canonical MIR, equal emitted C, and the same
+  runtime output as the native oracle. The dedicated graph gate pins the return
+  instruction, array root, final element edge, and typed C array construction.
+- This closes the semantic array-literal text-projection seam across
+  initializer, assignment, and return lanes. It does not close arbitrary
+  expression typing, the integrated producer, or released compiler replacement.
+
 ## 2026-07-19 - Assignment array literals consume graph and expected-type facts
 
 - `SemanticAstAssignmentTypeFacts` now checks array literals through the

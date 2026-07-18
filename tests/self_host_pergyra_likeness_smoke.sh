@@ -253,7 +253,10 @@ SENTINEL_MAX=0
 # 1935 -> 2006 (2026-07-17): merged self-host owners preserve the expanded
 # errors-as-data surface.
 # 2039 -> 2072 (2026-07-19): array-literal graph typing keeps absence explicit.
-RESULT_USE_MIN=2072
+# 2072 -> 2071 (2026-07-19): deleting the final dead text-reparsing array
+# literal owner removes one unreachable Option occurrence; no live error path
+# was flattened or replaced with a sentinel.
+RESULT_USE_MIN=2071
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19
