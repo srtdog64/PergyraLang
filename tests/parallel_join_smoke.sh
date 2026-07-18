@@ -78,6 +78,32 @@ trap 'rm -rf "$OUT_DIR"' EXIT
 
 fail() { echo "[parallel-join] FAIL: $*" >&2; exit 1; }
 
+# A hung binary is the join/cancellation class regressing -- a cancelled
+# join-any loser parked forever, or is_cancelled() reading a split state copy
+# (docs/190 A2). Bound every run so that regression fails closed in seconds
+# instead of hanging the CI job the full 360-min default (docs/190 C1). Uses
+# `timeout` where present, else a portable python fallback (Windows/macOS
+# runners may lack coreutils timeout).
+JOIN_TIMEOUT_SECONDS="${PGY_PARALLEL_JOIN_TIMEOUT_SECONDS:-30}"
+JOIN_PYTHON_BIN="$(command -v python3 || command -v python || true)"
+bounded_run() { # $1=binary; passes child stdout through; rc = child rc, or 124 on timeout
+    local bin="$1"
+    if command -v timeout >/dev/null 2>&1; then
+        timeout -k 5s "${JOIN_TIMEOUT_SECONDS}s" "$bin"
+    elif [ -n "$JOIN_PYTHON_BIN" ]; then
+        "$JOIN_PYTHON_BIN" - "$bin" "$JOIN_TIMEOUT_SECONDS" <<'PY'
+import subprocess, sys
+binary, t = sys.argv[1], float(sys.argv[2])
+try:
+    raise SystemExit(subprocess.run([binary], timeout=t).returncode)
+except subprocess.TimeoutExpired:
+    raise SystemExit(124)
+PY
+    else
+        "$bin"
+    fi
+}
+
 # Join capture disposition is executable truth. Semantic analysis owns the
 # verdict and both emitters consume the MIR projection; AST compatibility
 # storage would restore a second source of truth.
@@ -132,8 +158,13 @@ expect_runs() {
     local exe="run_${backend}_${name}.exe"
     compile "$backend" "$src" "$exe" ||
         fail "$backend/$name must compile: $(tail -2 "$OUT_DIR/$exe.log")"
-    local got
-    got="$("$OUT_DIR/$exe" | tr -d '\r')" || fail "$backend/$name crashed at runtime"
+    local got rc
+    set +e
+    got="$(bounded_run "$OUT_DIR/$exe" | tr -d '\r')"; rc=$?
+    set -e
+    [ "$rc" -ne 124 ] ||
+        fail "$backend/$name hung (>${JOIN_TIMEOUT_SECONDS}s) -- join/cancel regression, fail closed"
+    [ "$rc" -eq 0 ] || fail "$backend/$name crashed at runtime (rc=$rc)"
     [ "$got" = "$want" ] || fail "$backend/$name printed '$got', expected '$want'"
 }
 
@@ -145,9 +176,11 @@ expect_panics() {
     compile "$backend" "$src" "$exe" ||
         fail "$backend/$name must compile: $(tail -2 "$OUT_DIR/$exe.log")"
     set +e
-    "$OUT_DIR/$exe" >"$OUT_DIR/$exe.out" 2>&1
+    bounded_run "$OUT_DIR/$exe" >"$OUT_DIR/$exe.out" 2>&1
     local rc=$?
     set -e
+    [ "$rc" -ne 124 ] ||
+        fail "$backend/$name hung (>${JOIN_TIMEOUT_SECONDS}s) but must panic fast, not hang"
     [ "$rc" -ne 0 ] || fail "$backend/$name exited clean but must panic"
     grep -Fq "$needle" "$OUT_DIR/$exe.out" ||
         fail "$backend/$name died without the shared panic reason: $needle"

@@ -2404,7 +2404,8 @@ redteam-repair-contract-test-smoke: \
 		surface-boundary-hygiene-test-smoke \
 		adversarial-input-test-smoke \
 		emitted-c-warning-clean-test-smoke \
-		backend-compare-bc-on-test-smoke
+		backend-compare-bc-on-test-smoke \
+		parallel-join-test-smoke
 
 backend-wasm-pointer-closure-test-smoke:
 	"$(BASH)" tests/backend_wasm_pointer_closure_smoke.sh

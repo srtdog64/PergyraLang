@@ -13,6 +13,10 @@ concurrency:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    # Hang budget (docs/190 C1): a deadlocked runtime test must fail the job in
+    # minutes, not burn the 360-min GitHub default. Generous vs the ~32-min
+    # green wall-clock, tight vs a hang.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
 
@@ -70,6 +74,7 @@ jobs:
 
   formal-proofs-rocq9:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # hang budget (docs/190 C1)
     # build-linux machine-checks the proof corpus with Ubuntu's apt Coq (8.x),
     # but development happens against Rocq 9 -- so the prover actually used day
     # to day was never gated, and what Rocq 9 says about the corpus (starting
@@ -105,6 +110,7 @@ jobs:
 
   backend-compare-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # hang budget (docs/190 C1): a leg-deadlock shard dies fast
     strategy:
       fail-fast: false
       matrix:
@@ -128,6 +134,7 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 45  # hang budget (docs/190 C1)
     # ci-windows runs the SoT-authority adequacy gate, which machine-checks
     # SoTAuthority.v -- but this runner ships no Coq/Rocq. Those Coq checks are
     # fail-closed on a missing prover (they used to skip quietly and still
@@ -156,6 +163,7 @@ jobs:
 
   build-macos-c-only:
     runs-on: macos-latest
+    timeout-minutes: 45  # hang budget (docs/190 C1)
     # ci-macos runs the formal-semantics gate, but the macOS runner ships no
     # Coq/Rocq. That gate is fail-closed on a missing prover (it used to skip
     # quietly and still report green, so a green gate did not mean the proofs
