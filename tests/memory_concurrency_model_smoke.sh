@@ -139,7 +139,7 @@ if ! grep -Fq "parallel task spawn failed" \
     exit 1
 fi
 if ! grep -Fq "PGY_RUNTIME_PANIC_CLASS_OOM" \
-    "$ROOT_DIR/src/runtime/pgy_parallel.h"; then
+    "$ROOT_DIR/src/runtime/pgy_parallel_task_foundation.h"; then
     echo "[memory-concurrency] parallel runtime allocation failure must panic" >&2
     exit 1
 fi

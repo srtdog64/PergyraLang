@@ -133,11 +133,11 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MIR instruction expression graph is missing or invalid"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "producer-first source/MIR parity ok"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     "missing expression graph was accepted"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     "invalid expression graph was accepted"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     '"expr0_graph_removed"'
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CheckProgram("
