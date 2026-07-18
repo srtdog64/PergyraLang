@@ -10723,7 +10723,34 @@ C 백엔드를 처음 2-TU 세계로 바꾸며 미변환 능력/예산/취소 �
   - **★부수 확인(B4 실증)**: A4 검증 중 backend-compare 가 **stale LLVM 런타임
     오브젝트 캐시**로 링크 실패 → 캐시 삭제 후 전부 green. B4(캐시키/freshness)
     가 실제로 무는 것을 확인. **증분 로컬 빌드 한정**(CI 는 fresh 체크아웃)이라
-    CI 영향 없음. 잔여 B2~B7·C3~C7 은 미착수.
+    CI 영향 없음.
+
+- **✅ 2차 수리: 캐시 견고성 + 링키지 모드 (2026-07-19)**:
+  - **B6/B7 `1a3c99c8`**: freshness 맹점 3개. ① **삭제 맹목**(삭제된 소스는
+    "더 새로운 파일"을 안 남겨서 stale 오브젝트가 계속 링크) → 디렉토리 자체
+    mtime 을 의존성으로(생성/삭제/rename 이 이걸 올림) ② **동초 staleness**
+    (`<` → `<=`; st_mtime 1초 granularity + 소스와 오브젝트가 다른 파일시스템)
+    ③ 스캔 재귀화. **③은 방어적 — 실측 결과 `src/runtime/async/` 는 현재 양
+    런타임 TU 어디서도 도달 불가**(party_runtime.h 가 끌지만 그걸 끄는 헤더가
+    두 TU 트리에 없음). 검증: 무변경 재빌드=재사용(스퓨리어스 없음), 삭제
+    시뮬레이션=무효화.
+  - **B2 `70a92682`**: 최종 캐시경로 직접 `-o` → **per-process temp + rename**.
+    torn 오브젝트가 newer-mtime 때문에 "fresh" 로 영속하던 것(중도 kill 은 cc
+    비0 을 안 내므로 기존 remove 가 안 걸림) 봉인. 검증: 동시 2빌드 둘 다 성공·
+    정상출력·temp 잔여 0.
+  - **C3 `6295c2ae`**: `PGY_RUNTIME_INLINE=1` opt-out 과 **extern-기본** 둘 다
+    게이트 0개였음 → `runtime_inline_optout_smoke.sh` 신설(각 모드가 진짜 그
+    모드인지 cold-cache 오브젝트 생성 여부로 판별 + 두 모드 출력 일치).
+    redteam-repair aggregate 편입. *게이트 자작 함정 기록*: Windows temp 의
+    백슬래시가 bash glob 에서 escape 라 패턴이 무매치 → 처음엔 "드라이버가
+    오브젝트를 안 만든다" 는 **허위 양성**을 냈다(정규화로 수정).
+  - **B4 보류(판단)**: 캐시키에 컴파일러·소스트리 identity 추가는 ① 이름 변경
+    시 `Makefile:1622` abi-perf 하드코딩 경로와 충돌(부수적으로 B2-오염은 고쳐
+    지나 perf 타겟 영향) ② stamp 사이드카 방식은 양 레그(compiler_llvm.c 포함)
+    배선 필요 → "사소한 잔여" 범위를 넘음. 워크스트림으로 분리.
+  - **잔여**: B3(캐시키 identity=위 B4)·B5(/tmp 공유 예측가능 이름)·
+    C4(both-hang PASS, compare_backends.sh 는 BDFL 활성 레인이라 미접촉)·
+    C5(asan 미실행프로그램)·C6(플랫폼 비대칭)·C7(게이트 grep 편중).
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
