@@ -255,8 +255,9 @@ compiler_runtime_object_ensure(PgyOptProfile opt_profile,
      * Same arithmetic/aliasing flags as the emitted-C compile (-fwrapv /
      * -fno-strict-aliasing keep checked arithmetic UB-free under -O3), so the
      * linked runtime body behaves identically to the inline body it replaces.
-     * -DPGY_RUNTIME_EXTERN_DEFS makes PGY_RT_DECL expand to an external-linkage
-     * definition, turning the *_inline.h bodies into the one linked runtime.
+     * pgy_runtime_cext_lib.c owns PGY_RUNTIME_EXTERN_DEFS, making PGY_RT_DECL
+     * expand to an external-linkage definition and turning the *_inline.h
+     * bodies into the one linked runtime.
      */
     const char *argv[24];
     int argc = 0;
@@ -284,7 +285,6 @@ compiler_runtime_object_ensure(PgyOptProfile opt_profile,
     argv[argc++] = "-fopenmp";
 #endif
     argv[argc++] = obs_flag;
-    argv[argc++] = "-DPGY_RUNTIME_EXTERN_DEFS";
     argv[argc++] = "-I";
     argv[argc++] = PGY_SRC_DIR;
     argv[argc++] = "-c";

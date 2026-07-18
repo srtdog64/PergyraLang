@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <pthread.h>
+#include "pgy_runtime_linkage.h"
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/stat.h>
@@ -58,12 +59,31 @@ extern char *realpath(const char *path, char *resolved_path);
 static PGY_RUNTIME_NOINLINE char *pgy_runtime_strdup(const char *src);
 static pthread_mutex_t pgy_runtime_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static _Thread_local bool pgy_zone_authority_last_ok = true;
-static _Thread_local char pgy_zone_authority_last_zone[128] = "";
-static _Thread_local char pgy_zone_authority_last_participant[128] = "";
-static _Thread_local char pgy_zone_authority_last_code[64] =
-    PGY_ZONE_AUTHORITY_CODE_OK;
-static _Thread_local char pgy_zone_authority_last_reason[192] = "";
+PGY_RT_GLOBAL _Thread_local bool pgy_zone_authority_last_ok
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = true
+#endif
+    ;
+PGY_RT_GLOBAL _Thread_local char pgy_zone_authority_last_zone[128]
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = ""
+#endif
+    ;
+PGY_RT_GLOBAL _Thread_local char pgy_zone_authority_last_participant[128]
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = ""
+#endif
+    ;
+PGY_RT_GLOBAL _Thread_local char pgy_zone_authority_last_code[64]
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = PGY_ZONE_AUTHORITY_CODE_OK
+#endif
+    ;
+PGY_RT_GLOBAL _Thread_local char pgy_zone_authority_last_reason[192]
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = ""
+#endif
+    ;
 
 static inline void
 pgy_runtime_warn_intent_enter_failure(const char *name, const char *reason,

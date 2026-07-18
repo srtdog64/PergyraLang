@@ -22,7 +22,7 @@ PGY_RT_GLOBAL uint64_t pgy_machine_layer_bound_grant_size;
 PGY_RT_GLOBAL uint32_t pgy_machine_layer_bound_grant_mode;
 PGY_RT_GLOBAL PgyMachineLayerRuntimeMappingProvider
     pgy_machine_layer_mapping_provider;
-static void *pgy_machine_layer_mapping_provider_context;
+PGY_RT_GLOBAL void *pgy_machine_layer_mapping_provider_context;
 
 PGY_RT_DECL int32_t
 pgy_machine_layer_runtime_provider_bind_export(

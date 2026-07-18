@@ -45,6 +45,12 @@ require_term "src/runtime/pgy_runtime_linkage.h" \
     "#define PGY_RT_PROGRAM_DECL static inline"
 require_term "src/runtime/pgy_runtime_linkage.h" \
     "#define PGY_RT_PROGRAM_BODY(...) __VA_ARGS__"
+require_term "src/runtime/pgy_runtime_platform_io_core.h" \
+    "#include \"pgy_runtime_linkage.h\""
+require_term "src/runtime/pgy_runtime_cext_lib.c" \
+    "#define PGY_RUNTIME_EXTERN_DEFS"
+reject_term "src/compiler/compiler_runtime_cache.c" \
+    'argv[argc++] = "-DPGY_RUNTIME_EXTERN_DEFS";'
 
 # CType/ErrType for these families may be declared only by the generated TU.
 # They must never become declarations whose definitions are expected from the
@@ -74,4 +80,26 @@ reject_term_after_marker \
     "src/runtime/pgy_runtime_builtin_hashmap_inline.h" \
     "#define PGY_HASHMAP_DEFINE" "PGY_RT_MACRO_BODY"
 
-echo "[runtime-cext-contract] program-specialized generic families stay TU-local"
+# Stateful extern families must not leave a private emitted-TU copy beside the
+# runtime object's storage. PGY_RT_GLOBAL is a definition in the object/default
+# modes and an extern declaration in PGY_RUNTIME_DECLS_ONLY mode.
+require_term "src/runtime/pgy_runtime_machine_layer_inline.h" \
+    "PGY_RT_GLOBAL void *pgy_machine_layer_mapping_provider_context;"
+reject_term "src/runtime/pgy_runtime_machine_layer_inline.h" \
+    "static void *pgy_machine_layer_mapping_provider_context;"
+require_term "src/runtime/pgy_runtime_platform_io_core.h" \
+    "PGY_RT_GLOBAL _Thread_local bool pgy_zone_authority_last_ok"
+for name in \
+    pgy_zone_authority_last_zone \
+    pgy_zone_authority_last_participant \
+    pgy_zone_authority_last_code \
+    pgy_zone_authority_last_reason; do
+    require_term "src/runtime/pgy_runtime_platform_io_core.h" \
+        "PGY_RT_GLOBAL _Thread_local char ${name}"
+done
+reject_term "src/runtime/pgy_runtime_platform_io_core.h" \
+    "static _Thread_local bool pgy_zone_authority_last_ok"
+reject_term "src/runtime/pgy_runtime_platform_io_core.h" \
+    "static _Thread_local char pgy_zone_authority_last_"
+
+echo "[runtime-cext-contract] program generics stay local; stateful extern storage has one owner"

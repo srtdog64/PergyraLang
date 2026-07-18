@@ -403,7 +403,7 @@ grep -Fq '{ "StringSplit", ctx->array_type_String,' \
     "$ROOT_DIR/src/codegen/llvm_runtime_core_builtin_decl.c" ||
     fail "LLVM runtime registry must declare StringSplit as Array<String>"
 grep -Fq "dup_key = pgy_runtime_strdup" \
-    "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
+    "$ROOT_DIR/src/runtime/pgy_runtime_map_keys_inline.h" ||
     fail "inline MapKeys<String> must duplicate keys before pushing into Array<String>"
 grep -Fq "dup_value = pgy_runtime_strdup" \
     "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
@@ -1061,11 +1061,13 @@ for term in \
     "PGY_RUNTIME_STRING_SET_IS_INITIALIZED" \
     "list get on invalid list" \
     "return PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t) ? (int32_t)l->count : 0;" \
-    "return PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) ? (int32_t)s->count : 0;" \
-    "if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) return;"; do
+    "return PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) ? (int32_t)s->count : 0;"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
         fail "inline List/Set initialized guard missing: $term"
 done
+grep -Fq "if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) return;" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_set_generic_inline.h" ||
+    fail "generic inline Set initialized guard missing"
 for term in \
     "if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType))" \
     "list get on invalid list" \

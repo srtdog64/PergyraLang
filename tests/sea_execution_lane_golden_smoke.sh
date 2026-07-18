@@ -53,7 +53,8 @@ async func Inc(x: Int) -> Int {
     return x + 1;
 }
 
-func RoutineBoundaryAir(ch: Channel<Int>) -> Void {
+func RoutineBoundaryAir() -> Void {
+    let ch: Channel<Int> = Channel(1);
     ch <- 7;
     let v: Int = <-ch;
     let task: Future<Int> = spawn Inc(v);
