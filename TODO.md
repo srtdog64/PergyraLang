@@ -10696,6 +10696,35 @@ C 백엔드를 처음 2-TU 세계로 바꾸며 미변환 능력/예산/취소 �
   공존불가·무음 fallback 무·기본모드 토큰중립성 전부 건전. CI 는 HEAD green
   (샤드 16/17/18 포함 20/20 — 수리 유효 확인).
 
+- **✅ 수리 착지 (BDFL "상태 클래스 통째 닫기" + "A4=교집합" 판정, 2026-07-19)**:
+  - **B1 `4b4ff518`**: `PGY_RUNTIME_CEXT_LIB_C` 를 `PGY_RUNTIME_DIR` 앵커
+    절대경로로(형제 3개와 동일). 검증: 캐시 삭제 후 **비-루트 CWD**에서
+    `--backend=c` 컴파일·실행 성공(이전엔 하드페일).
+  - **C1/C2 `2575f9a7`**: CI 5잡 `timeout-minutes`(60/45/45/30/30, 전 8잡 보유)
+    + `parallel_join_smoke` 에 `bounded_run`(timeout→124=fail-closed, python
+    폴백) + `parallel-join-test-smoke` 를 `redteam-repair-contract` 편입.
+    검증: join smoke C green(blocked/spinloop 은퇴 + panic 목격자 3), YAML 유효.
+  - **A2 `d86b1b3d`**: strip predicate 에 `pgy_task_`/`pgy_async_` 추가.
+    **행동 목격자**: bc-ON `join_any_blocked` → **42**(패자 은퇴, hang 없음).
+    bc-ON 슬라이스에 join_any_blocked/spinloop 편입(**13/13**), bc-contract 유지.
+    `.bc` 는 gitignore(CI 가 매번 재생성)라 산출물 커밋 없음.
+  - **A1/A3 `6f5ffba1`**: `pgy_cap_granted_slot`/`pgy_budget_state_slot` 만
+    `PGY_RT_DECL` 로 → 함수-로컬 static 이 cext 오브젝트 단일 정의에 귀속,
+    나머지 accessor 는 static inline 인 채 그 단일 slot 경유. **실측: 링크드
+    바이너리에 `granted`/`st` 각 1개**(이전 st.0+st.2). 인라인/LLVM 모드는
+    기본확장이 `static inline` 이라 무영향. cext-contract green, 샤드 114/114.
+  - **A4 `16d91839`**: 양 트윈을 **env ∩ manifest**(교집합, fail-closed)로 통일
+    — 어느 쪽도 상대를 넓힐 수 없음, `grant_all` 은 manifest 성분만 리셋.
+    두 성분 기본 `PGY_CAP_ALL` 이라 **현 배포 동작 불변**(manifest 미배선).
+    게이트: `test_capability_gate intersect` 모드(자기완결) + 신설
+    `run_cap_env_manifest_parity.sh`(양 트윈 소스 핀) → `test-sandbox-gates`
+    (CI 배선됨). 검증: `env{io_read,clock} & manifest{io_read,audio}=io_read`,
+    C 런타임-강제 17/17 fail-closed, backend-compare 6/6 byte-identical.
+  - **★부수 확인(B4 실증)**: A4 검증 중 backend-compare 가 **stale LLVM 런타임
+    오브젝트 캐시**로 링크 실패 → 캐시 삭제 후 전부 green. B4(캐시키/freshness)
+    가 실제로 무는 것을 확인. **증분 로컬 빌드 한정**(CI 는 fresh 체크아웃)이라
+    CI 영향 없음. 잔여 B2~B7·C3~C7 은 미착수.
+
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
 - **해제 근거**: docs/187 ★판정 C — ① 명시 시작(world-층 선언 + code-층
