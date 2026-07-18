@@ -1496,9 +1496,16 @@ beyond the lexer:
   missing or invalid graph. The native C oracle now projects the bounded
   `let`/`Log` scalar, binary, direct-call, array-literal, postfix-try, and named
   struct-literal slice into that same graph schema without reparsing expression
-  text. The public
+  text. Explicit generic calls additionally carry each parser-owned actual as
+  an ordered `generic_type_actual` / `generic_callee` spine, so native MIR no
+  longer compresses `Identity<Int>` to `Identity`. The public
   `--self-driver` live gate compares canonical facts and runtime output for
-  `let_log`, `array_return_literal`, `option_try`, and `struct_point`.
+  `let_log`, `array_return_literal`, `option_try`, `struct_point`, and
+  `generic_struct_field_value_flow` through freshly built C and LLVM
+  self-drivers.
+  The adjacent `generic_return_probe/explicit_ok` live row verifies ordered
+  multi-actual carriage for `PickSecond<Int, String>` rather than inferring
+  ordering from a single-actual example.
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.

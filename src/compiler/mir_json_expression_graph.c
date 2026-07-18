@@ -146,6 +146,90 @@ static int mir_json_expression_graph_build(MIRJsonExpressionGraph *graph,
                                            ASTNode *expr);
 
 static char *
+mir_json_expression_graph_generic_callee_text(const char *callee,
+                                              const char *actual,
+                                              bool continues)
+{
+    size_t callee_length;
+    size_t actual_length;
+    size_t stem_length;
+    size_t separator_length = continues ? 2 : 1;
+    size_t base_length;
+    char *text;
+
+    if (callee == NULL || actual == NULL)
+        return NULL;
+    callee_length = strlen(callee);
+    actual_length = strlen(actual);
+    if (continues && (callee_length == 0
+        || callee[callee_length - 1] != '>')) {
+        return NULL;
+    }
+    stem_length = continues ? callee_length - 1 : callee_length;
+    if (stem_length > SIZE_MAX - separator_length - 2)
+        return NULL;
+    base_length = stem_length + separator_length + 2;
+    if (actual_length > SIZE_MAX - base_length)
+        return NULL;
+    text = malloc(base_length + actual_length);
+    if (text == NULL)
+        return NULL;
+    memcpy(text, callee, stem_length);
+    memcpy(text + stem_length, continues ? ", " : "<", separator_length);
+    memcpy(text + stem_length + separator_length, actual, actual_length);
+    text[stem_length + separator_length + actual_length] = '>';
+    text[stem_length + separator_length + actual_length + 1] = '\0';
+    return text;
+}
+
+static int
+mir_json_expression_graph_build_generic_callee(
+    MIRJsonExpressionGraph *graph,
+    ASTNode *expr,
+    int callee_root)
+{
+    size_t generic_count = ast_call_generic_arg_count(expr);
+
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *param = ast_call_generic_arg(expr, i);
+        ASTNode *type_node;
+        const char *type_name;
+        char *actual_text;
+        char *callee_text;
+        int actual_root;
+        int generic_root;
+
+        if (param == NULL)
+            return -1;
+        type_node = ast_generic_param_constraint(param);
+        if (type_node == NULL)
+            type_node = ast_generic_param_default_type(param);
+        type_name = ast_generic_param_name(param);
+        actual_text = type_node != NULL
+            ? ast_capture_inline(type_node)
+            : mir_json_expression_graph_copy_text(type_name);
+        actual_root = mir_json_expression_graph_append(
+            graph, "generic_type_actual", actual_text,
+            -1, -1, "none", "");
+        if (actual_root < 0) {
+            free(actual_text);
+            return -1;
+        }
+        callee_text = mir_json_expression_graph_generic_callee_text(
+            graph->nodes[callee_root].text, actual_text, i > 0);
+        generic_root = mir_json_expression_graph_append(
+            graph, "generic_callee", callee_text,
+            callee_root, actual_root, "none", "");
+        if (generic_root < 0) {
+            free(callee_text);
+            return -1;
+        }
+        callee_root = generic_root;
+    }
+    return callee_root;
+}
+
+static char *
 mir_json_expression_graph_array_text(const char *prefix,
                                      const char *element)
 {
@@ -236,6 +320,10 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     callee_root = mir_json_expression_graph_build(graph, callee);
     if (callee_root < 0)
         return -1;
+    callee_root = mir_json_expression_graph_build_generic_callee(
+        graph, expr, callee_root);
+    if (callee_root < 0)
+        return -1;
     if (callee->type == AST_IDENTIFIER) {
         target_kind = "direct";
         target_name = ast_identifier_name(callee);
@@ -243,7 +331,8 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
         target_kind = "member";
         target_name = ast_member_name(callee);
     }
-    ast_init_call_borrowed_view(&borrowed, callee, NULL, 0);
+    ast_init_call_borrowed_view(
+        &borrowed, callee, NULL, 0, ast_call_generic_args(expr));
     text = ast_capture_inline(&borrowed);
     call_root = mir_json_expression_graph_append(
         graph, "call", text, callee_root, -1, target_kind, target_name);
@@ -257,7 +346,9 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
         int argument_root = mir_json_expression_graph_build(graph, arguments[i]);
         if (argument_root < 0)
             return -1;
-        ast_init_call_borrowed_view(&borrowed, callee, arguments, i + 1);
+        ast_init_call_borrowed_view(
+            &borrowed, callee, arguments, i + 1,
+            ast_call_generic_args(expr));
         text = ast_capture_inline(&borrowed);
         call_root = mir_json_expression_graph_append(
             graph, "call_argument", text, call_root, argument_root,

@@ -32,6 +32,8 @@ mir_source="src/self_hosted/mir_lower/fixture/let_log.pgy"
 array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"
 try_mir_source="src/self_hosted/codegen/fixture/option_try.pgy"
 struct_mir_source="src/self_hosted/codegen/fixture/struct_point.pgy"
+generic_mir_source="src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy"
+generic_multi_mir_source="src/self_hosted/tools/generic_return_probe/explicit_ok.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
@@ -137,6 +139,8 @@ check_live_mir_source "$mir_source" "let-log"
 check_live_mir_source "$array_mir_source" "array-return-literal"
 check_live_mir_source "$try_mir_source" "option-try"
 check_live_mir_source "$struct_mir_source" "struct-point"
+check_live_mir_source "$generic_mir_source" "generic-struct-field"
+check_live_mir_source "$generic_multi_mir_source" "generic-multi-actual"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \

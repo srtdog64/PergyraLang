@@ -189,7 +189,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         synthetic_args[new_argc - 1] = token_arg_node;
 
                     ast_init_call_borrowed_view(&fake_call, callee,
-                        synthetic_args, new_argc);
+                        synthetic_args, new_argc,
+                        ast_call_generic_args(expr));
                     fake_call.line = expr->line;
                     fake_call.column = expr->column;
 

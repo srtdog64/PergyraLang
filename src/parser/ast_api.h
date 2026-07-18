@@ -244,7 +244,8 @@ const char* ast_call_argument_name(const ASTNode* node, size_t index);
 bool ast_call_has_named_arguments(const ASTNode* node);
 ASTNode* ast_call_find_named_argument(const ASTNode* node, const char* field_name);
 void ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
-                                 ASTNode** arguments, size_t arg_count);
+                                 ASTNode** arguments, size_t arg_count,
+                                 GenericParams* generic_args);
 
 /* Async AST creation functions */
 ASTNode* ast_create_async_function(const char* name, bool is_async);

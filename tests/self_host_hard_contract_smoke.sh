@@ -155,6 +155,10 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     'if (type == TOKEN_QUESTION)'
 require_text "src/compiler/mir_json_expression_graph.c" \
     'if (ast_call_uses_braced_initializer_syntax(expr))'
+require_text "src/compiler/mir_json_expression_graph.c" \
+    'graph, "generic_type_actual", actual_text'
+require_text "src/compiler/mir_json_expression_graph.c" \
+    'graph, "generic_callee", callee_text'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
@@ -163,6 +167,10 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$try_mir_source" "option-try"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$struct_mir_source" "struct-point"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_mir_source" "generic-struct-field"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_multi_mir_source" "generic-multi-actual"'
 forbid_text "src/compiler/mir_json_expression_graph.c" \
     "parser_parse"
 forbid_text "src/compiler/mir_json_expression_graph.c" \

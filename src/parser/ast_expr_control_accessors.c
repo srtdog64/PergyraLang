@@ -163,7 +163,8 @@ ast_replace_identifier_name_copy(ASTNode* node, const char* name)
 
 void
 ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
-                            ASTNode** arguments, size_t arg_count)
+                            ASTNode** arguments, size_t arg_count,
+                            GenericParams* generic_args)
 {
     if (node == NULL)
         return;
@@ -172,6 +173,7 @@ ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
     node->data.call.callee = callee;
     node->data.call.arguments = arguments;
     node->data.call.arg_count = arg_count;
+    node->data.call.generic_args = generic_args;
 }
 
 ASTNode*
