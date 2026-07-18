@@ -247,7 +247,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let expression_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             graph_ok, graph_roots, graph_has_roots,
-            SemanticExpressionGraphArena(
+            SemanticExpressionGraphArenaUnclassified(
                 graph_node_kinds, graph_node_texts, graph_left_children,
                 graph_right_children, graph_call_target_kinds,
                 graph_call_target_names

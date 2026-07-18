@@ -29,7 +29,8 @@ func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
             call_target_kinds, call_target_names, expression
         );
     if !built.ok { Die("assignment projection probe graph build failed"); }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         node_kinds, node_texts, left_children, right_children,
         call_target_kinds, call_target_names
     );

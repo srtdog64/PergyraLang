@@ -10,7 +10,6 @@ import "../../semantic/wrapper_type_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_rewrite.pgy";
 import "expr_semantic_type_owner.pgy";
-import "expr_semantic_addressability_owner.pgy";
 
 func RewriteSemanticCallArgument(
     graph: SemanticExpressionGraphFacts,
@@ -25,26 +24,23 @@ func RewriteSemanticCallArgument(
     if !IsSome(text) {
         Die("semantic call argument fact is missing");
     }
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
-        graph, node_id
-    );
-    if !IsSome(kind) {
-        Die("semantic call argument kind fact is missing");
-    }
     let source: String = UnwrapOption(text);
-    let argument_kind: Int = UnwrapOption(kind);
-    let addressability: Option<Bool> =
-        CodegenExpressionAddressabilityFromGraph(graph, node_id, env);
-    if !IsSome(addressability) {
-        Die("semantic call argument addressability fact is missing");
-    }
-    let addressable: Bool = UnwrapOption(addressability);
-    let direct_binding: Bool =
-        argument_kind == AstExpressionNodeLeaf() &&
-        addressable;
     let rendered: String = RewriteSemanticExpectedValue(
         graph, node_id, expected_type, env
     );
+    if mode != "inout" && mode != "ref" { return rendered; }
+    let place_kind: Option<Int> = SemanticExpressionGraphPlaceKind(
+        graph, node_id
+    );
+    if !IsSome(place_kind) {
+        Die("semantic call argument place fact is missing");
+    }
+    let carried_place_kind: Int = UnwrapOption(place_kind);
+    let addressable: Bool = SemanticExpressionPlaceKindAddressable(
+        carried_place_kind
+    );
+    let direct_binding: Bool =
+        SemanticExpressionPlaceKindDirectBinding(carried_place_kind);
     if mode == "inout" {
         if !direct_binding {
             Die(Concat("inout argument must be a variable: ", source));
@@ -52,8 +48,8 @@ func RewriteSemanticCallArgument(
         return Concat("&", rendered);
     }
     if mode == "ref" {
-        let already_ref: Bool = direct_binding &&
-            TypeEnvBindingIsReadonlyRef(env, source);
+        let already_ref: Bool = carried_place_kind ==
+            SemanticExpressionPlaceReadonlyRefBinding();
         if already_ref {
             let c_name: Option<String> = TypeEnvReadonlyRefCName(env, source);
             if !IsSome(c_name) {

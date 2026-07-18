@@ -75,7 +75,7 @@ func GenericReturnProbeWithTarget(
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
         graph.arena.node_kinds, graph.arena.node_texts,
         graph.arena.left_children, graph.arena.right_children,
-        graph.arena.call_target_kinds, targets
+        graph.arena.call_target_kinds, targets, graph.arena.place_kinds
     );
     let damaged_graph: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(

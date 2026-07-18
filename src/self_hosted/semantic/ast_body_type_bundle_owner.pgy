@@ -8,6 +8,7 @@ import "ast_body_verdict_owner.pgy";
 import "ast_body_call_target_resolution_owner.pgy";
 import "ast_generic_specialization_fact_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
+import "ast_expression_place_fact_owner.pgy";
 
 struct SemanticAstBodyTypeBundle {
     verdict: SemanticAstBodyVerdict;
@@ -44,6 +45,10 @@ func SemanticAstBodyTypeBundleFromAnalysis(
             analysis.local_bindings, analysis.expression_surfaces,
             analysis.statements, iteration_types
         );
+    let expression_places_resolved: Bool =
+        SemanticAstAnalysisResolveExpressionPlacesFromBody(
+            artifact, analysis, initializer_types, iteration_types
+        );
     let assignment_types: SemanticAstAssignmentTypeFacts =
         SemanticAstAssignmentTypeFactsFromArtifact(
             artifact, analysis.signatures, analysis.constructors,
@@ -72,6 +77,12 @@ func SemanticAstBodyTypeBundleFromAnalysis(
         verdict = SemanticAstBodyVerdictError(
             "call_target_unresolved",
             "semantic call target rows are incomplete after body fixpoint",
+            -1
+        );
+    } else if verdict.ok && !expression_places_resolved {
+        verdict = SemanticAstBodyVerdictError(
+            "expression_place_unresolved",
+            "semantic expression place rows are incomplete after body fixpoint",
             -1
         );
     } else if verdict.ok && !generic_specializations.ok {
@@ -127,6 +138,9 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !SemanticExpressionGraphCarriedCallTargetsReady(
         analysis.expression_surfaces.expression_graph
     ) { return "call_target_rows"; }
+    if !SemanticExpressionGraphPlaceKindsReady(
+        analysis.expression_surfaces.expression_graph
+    ) { return "expression_place_rows"; }
     if !bundle.initializer_types.ok { return "initializer_types"; }
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
@@ -157,11 +171,30 @@ func SemanticAstBodyTypeBundleContractError() -> String {
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
-    return SemanticAstBodyTypeBundleReadinessError(
-        artifact, analysis, bundle
-    );
+    return SemanticAstBodyTypeBundleReadinessError(artifact, analysis, bundle);
 }
 
 func SemanticAstBodyTypeBundleContractReady() -> Bool {
-    return SemanticAstBodyTypeBundleContractError() == "";
+    return SemanticAstBodyTypeBundleContractError() == "" &&
+        SemanticExpressionPlaceKindContractReady() &&
+        SemanticAstBodyTypeBundleMissingPlaceContractReady();
+}
+
+func SemanticAstBodyTypeBundleMissingPlaceContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        Return: x\n"
+    );
+    let analysis: SemanticAstArtifactAnalysis =
+        SemanticAstArtifactAnalyzeCompactBridge(artifact, true);
+    let bundle: SemanticAstBodyTypeBundle =
+        SemanticAstBodyTypeBundleFromAnalysis(artifact, analysis);
+    if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) ||
+        SemanticExpressionGraphArenaNodeCount(
+            analysis.expression_surfaces.expression_graph.arena) == 0 {
+        return false;
+    }
+    analysis.expression_surfaces.expression_graph.arena.place_kinds[0] =
+        SemanticExpressionPlaceUnknown();
+    return SemanticAstBodyTypeBundleReadinessError(
+        artifact, analysis, bundle) == "expression_place_rows";
 }

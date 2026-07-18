@@ -303,6 +303,19 @@ member reject fixture is the executable negative. The component contract is
 the fallback ratchet and codegen parity/bootstrap are the executable gates.
 This bounded codegen substitution does not change the released/default
 compiler replacement percentage.
+
+Thirtieth executable active-rung delta, 2026-07-18: addressability authority
+moved out of codegen. `SemanticAstAnalysisResolveExpressionPlacesFromBody`
+classifies each stable expression node after initializer/iteration fixpoint as
+value, direct binding, readonly-ref binding, or member place. The classification
+is carried in the semantic expression arena. `RewriteSemanticCallArgument`
+consumes only that row for `ref`/`inout`; the recursive codegen owner and its
+`cbind` lookup are deleted. A missing row mutates the canonical body bundle to
+`expression_place_rows` and fails closed. Focused C- and LLVM-built codegen
+tools preserve the `ref_param` and `inout_return_forward` outputs and reject
+`MakePair().left`. Persisted MIR JSON carriage remains outside this bounded
+delta; a consumer that re-runs the semantic body fixpoint receives the same
+owner fact, while a future direct-MIR backend must carry the row explicitly.
 Parser-canonical root spelling is checked against the surface by
 the same compact parser owner instead of being treated as a second semantic
 spelling. Arguments containing nested calls, generic/aggregate signatures,

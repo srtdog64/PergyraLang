@@ -28,9 +28,10 @@ owners and gates. It is not a production-readiness declaration.
   allocation remains an open blocker. The later 976.7 MB result is the distinct
   Pergyra `mir_lower`/codegen consumer over a native-oracle MIR artifact; it
   does not close source-to-MIR production.
-- Ref/inout addressability is now graph-owned and negative-gated, but its final
-  owner is still a codegen graph walker. Semantic value/place/borrow facts and
-  HIR/MIR carriage remain open.
+- Ref/inout addressability now consumes semantic body-fixpoint place-kind rows.
+  The codegen graph walker and its `cbind`-based recovery owner are deleted;
+  missing place rows fail the body-bundle readiness contract. MIR JSON carriage
+  of these rows remains a later widening requirement, not an alternate owner.
 - `VerifiedProjectionPlan` is the correct executable owner, but its current
   native row covers intent observability only. Layout, cleanup, checks,
   capability retention, composed loss, and artifact residue remain partial.
@@ -90,11 +91,10 @@ The abstraction-loss smoke gate now ratchets this wording.
 
 ## Next Executable Order
 
-1. Add semantic value-category/place facts for the currently gated ref/inout
-   slice, carry them through HIR/MIR, migrate the codegen consumer, then delete
-   `CodegenExpressionAddressabilityFromGraph`.
-2. Profile the Pergyra source-to-MIR producer by owner and allocation site;
+1. Profile the Pergyra source-to-MIR producer by owner and allocation site;
    preserve the native-oracle MIR path only as a bridge, not as closure.
+2. Carry semantic place-kind rows through persisted MIR JSON before any backend
+   consumes that artifact without re-running the semantic body fixpoint.
 3. Expand projection-plan rows one family at a time, beginning with runtime
    checks and cleanup because both already have MIR owners and backend
    consumers.

@@ -4837,19 +4837,34 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     'mode == "ref"'
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "semantic call argument kind fact is missing"
+    "SemanticExpressionGraphPlaceKind("
 require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "CodegenExpressionAddressabilityFromGraph("
-require_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
-    "semantic call argument addressability fact is missing"
+    "semantic call argument place fact is missing"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArgument(" "IsIdentifier("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArgument(" "StringIndexOf("
 require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     "func CodegenExpressionMemberFieldTypeFromGraph("
-require_text "src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy" \
-    "func CodegenExpressionAddressabilityFromGraph("
+require_file "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy"
+require_text "src/self_hosted/semantic/ast_expression_place_fact_owner.pgy" \
+    "func SemanticAstAnalysisResolveExpressionPlacesFromBody("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "SemanticAstAnalysisResolveExpressionPlacesFromBody("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    "func SemanticAstBodyTypeBundleMissingPlaceContractReady("
+require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
+    '== "expression_place_rows"'
+# Registry fallback IDs: expr_semantic_addressability_owner.pgy,
+# CodegenExpressionAddressabilityFromGraph,
+# codegen_cbind_addressability_recovery.
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "place_kinds: Array<Int>;"
+reject_file "src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy"
+reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "CodegenExpressionAddressabilityFromGraph("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
+    "func RewriteSemanticCallArgument(" "LookupKindType("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticDirectCall(" "RewriteInoutCallArgs("
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \

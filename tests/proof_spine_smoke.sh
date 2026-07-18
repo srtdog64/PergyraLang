@@ -113,7 +113,7 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_auth
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SFMachineLayerTransition"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SOMachineLayer"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=20 BRIDGE=17 ACTIVE=0"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=21 BRIDGE=17 ACTIVE=0"
 require_text "docs/semantics/sot_owner_spine_registry.md" "docs/semantics/proofs/ResourceMachineBridge.v"
 require_text "docs/semantics/sot_owner_spine_registry.md" "resource_identity_as_machine_address"
 require_text "docs/semantics/sot_owner_spine_registry.md" "machine_address_as_resource_authority"

@@ -203,6 +203,9 @@ inventory must not become a second fact-family owner registry.
   facts plus readiness diagnostics consumed by driver and codegen projections.
 - `src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy` --
   body-fixpoint resolution of canonical expression call-target rows.
+- `src/self_hosted/semantic/ast_expression_place_fact_owner.pgy` --
+  body-fixpoint value-category and place-kind rows for ref/inout argument
+  lowering; codegen consumes the carried node fact without binding lookup.
 - `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
   semantic-owned direct generic call bindings keyed by expression call node;
   explicit calls and bounded inferred initializer calls share these rows.
@@ -465,9 +468,6 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy` --
   expression type projection from semantic graph handles plus codegen type
   rows; migrated emitters must not reparse node text to recover these types.
-- `src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy` --
-  recursive storage-addressability proof from expression node kind, stable
-  codegen binding, nominal field, and member receiver graph facts.
 - `src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy` --
   call-spine and simple member-access consumption, ordered argument projection,
   parameter-mode handling, receiver insertion, and runtime/constructor/method

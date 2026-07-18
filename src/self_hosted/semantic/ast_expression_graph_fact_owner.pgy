@@ -15,6 +15,9 @@ struct SemanticExpressionGraphArena {
     // These rows jointly carry the canonical callable identity.
     call_target_kinds: Array<Int>;
     call_target_names: Array<String>;
+    // Semantic value-category facts. Parser/MIR construction leaves these
+    // unknown; the body fixpoint classifies every carried node once.
+    place_kinds: Array<Int>;
 }
 
 struct SemanticExpressionGraphFacts {
@@ -42,9 +45,36 @@ func SemanticExpressionGraphArenaEmpty() -> SemanticExpressionGraphArena {
     let right_children: Array<Int> = [];
     let call_target_kinds: Array<Int> = [];
     let call_target_names: Array<String> = [];
+    let place_kinds: Array<Int> = [];
     return SemanticExpressionGraphArena(
         node_kinds, node_texts, left_children, right_children,
-        call_target_kinds, call_target_names
+        call_target_kinds, call_target_names, place_kinds
+    );
+}
+
+func SemanticExpressionPlaceUnknown() -> Int { return 0; }
+func SemanticExpressionPlaceValue() -> Int { return 1; }
+func SemanticExpressionPlaceBinding() -> Int { return 2; }
+func SemanticExpressionPlaceReadonlyRefBinding() -> Int { return 3; }
+func SemanticExpressionPlaceMember() -> Int { return 4; }
+
+func SemanticExpressionGraphArenaUnclassified(
+    node_kinds: Array<Int>,
+    node_texts: Array<String>,
+    left_children: Array<Int>,
+    right_children: Array<Int>,
+    call_target_kinds: Array<Int>,
+    call_target_names: Array<String>
+) -> SemanticExpressionGraphArena {
+    let place_kinds: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(node_kinds) {
+        ArrayPush(place_kinds, SemanticExpressionPlaceUnknown());
+        i = i + 1;
+    }
+    return SemanticExpressionGraphArena(
+        node_kinds, node_texts, left_children, right_children,
+        call_target_kinds, call_target_names, place_kinds
     );
 }
 
@@ -104,7 +134,8 @@ func SemanticExpressionGraphFactsFromAstRows(
         }
         i = i + 1;
     }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         kinds, texts, left_children, right_children,
         call_target_kinds, call_target_names
     );
@@ -131,7 +162,8 @@ func SemanticExpressionGraphArenaReady(
         ArrayLength(arena.left_children) != count ||
         ArrayLength(arena.right_children) != count ||
         ArrayLength(arena.call_target_kinds) != count ||
-        ArrayLength(arena.call_target_names) != count {
+        ArrayLength(arena.call_target_names) != count ||
+        ArrayLength(arena.place_kinds) != count {
         return false;
     }
     let i: Int = 0;
@@ -157,6 +189,11 @@ func SemanticExpressionGraphArenaReady(
         }
         let call_target_kind: Int = arena.call_target_kinds[i];
         let call_target_name: String = arena.call_target_names[i];
+        let place_kind: Int = arena.place_kinds[i];
+        if place_kind < SemanticExpressionPlaceUnknown() ||
+            place_kind > SemanticExpressionPlaceMember() {
+            return false;
+        }
         if call_target_kind == SemanticCallTargetNone() {
             if call_target_name != "" { return false; }
         } else if call_target_kind == SemanticCallTargetDirect() ||
@@ -318,6 +355,32 @@ func SemanticExpressionGraphNodeKind(
     return Some(facts.arena.node_kinds[node_id]);
 }
 
+func SemanticExpressionGraphPlaceKind(
+    ref facts: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 ||
+        node_id >= SemanticExpressionGraphArenaNodeCount(facts.arena) {
+        return None;
+    }
+    let place_kind: Int = facts.arena.place_kinds[node_id];
+    if place_kind == SemanticExpressionPlaceUnknown() {
+        return None;
+    }
+    return Some(place_kind);
+}
+
+func SemanticExpressionPlaceKindAddressable(place_kind: Int) -> Bool {
+    return place_kind == SemanticExpressionPlaceBinding() ||
+        place_kind == SemanticExpressionPlaceReadonlyRefBinding() ||
+        place_kind == SemanticExpressionPlaceMember();
+}
+
+func SemanticExpressionPlaceKindDirectBinding(place_kind: Int) -> Bool {
+    return place_kind == SemanticExpressionPlaceBinding() ||
+        place_kind == SemanticExpressionPlaceReadonlyRefBinding();
+}
+
 func SemanticExpressionGraphLeftChild(
     ref facts: SemanticExpressionGraphFacts,
     node_id: Int
@@ -365,7 +428,8 @@ func SemanticExpressionGraphFactsEqual(
             left.arena.call_target_kinds[i] !=
                 right.arena.call_target_kinds[i] ||
             left.arena.call_target_names[i] !=
-                right.arena.call_target_names[i] {
+                right.arena.call_target_names[i] ||
+            left.arena.place_kinds[i] != right.arena.place_kinds[i] {
             return false;
         }
         i = i + 1;

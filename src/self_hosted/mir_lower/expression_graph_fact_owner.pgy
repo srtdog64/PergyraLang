@@ -260,7 +260,8 @@ func MirExpressionGraphSequenceAppend(
     }
     let roots: Array<Int> = sequence.roots;
     ArrayPush(roots, offset + local_root);
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         kinds, texts, left_children, right_children,
         call_target_kinds, call_target_names
     );

@@ -31,7 +31,8 @@ func MachineProbeCallGraph(
     }
     ArraySet(target_kinds, built.root_id, SemanticCallTargetDirect());
     ArraySet(target_names, built.root_id, target_name);
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         kinds, texts, left_children, right_children,
         target_kinds, target_names
     );
@@ -58,7 +59,8 @@ func MachineProbeGraphWithoutTarget() -> SemanticExpressionGraphView {
             target_kinds, target_names, "ClaimDeviceSlot()"
         );
     if !built.ok { Log("machine probe missing-target graph build failed"); Exit(1); }
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         kinds, texts, left_children, right_children,
         target_kinds, target_names
     );

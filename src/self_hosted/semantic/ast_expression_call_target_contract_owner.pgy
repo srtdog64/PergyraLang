@@ -23,7 +23,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
             node_kinds, node_texts, left_children, right_children,
             call_target_kinds, call_target_names, "Math.Add()"
         );
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         node_kinds, node_texts, left_children, right_children,
         call_target_kinds, call_target_names
     );
@@ -47,7 +48,8 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
         SemanticExpressionGraphArena(
             carried.arena.node_kinds, carried.arena.node_texts,
             carried.arena.left_children, carried.arena.right_children,
-            carried.arena.call_target_kinds, missing_names
+            carried.arena.call_target_kinds, missing_names,
+            carried.arena.place_kinds
         );
     let missing: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, carried.roots, carried.has_roots, missing_arena
@@ -73,7 +75,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let constructor_source: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             constructor_build.ok, [constructor_build.root_id],
-            [constructor_build.ok], SemanticExpressionGraphArena(
+            [constructor_build.ok], SemanticExpressionGraphArenaUnclassified(
                 constructor_kinds, constructor_texts,
                 constructor_left, constructor_right,
                 constructor_target_kinds, constructor_target_names
@@ -110,7 +112,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let member_unbound: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             member_build.ok, [member_build.root_id],
-            [member_build.ok], SemanticExpressionGraphArena(
+            [member_build.ok], SemanticExpressionGraphArenaUnclassified(
                 member_kinds, member_texts, member_left, member_right,
                 member_target_kinds, member_target_names
             )
@@ -128,7 +130,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let wrong_member: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             true, member_unbound.roots, member_unbound.has_roots,
-            SemanticExpressionGraphArena(
+            SemanticExpressionGraphArenaUnclassified(
                 member_kinds, member_texts, member_left, member_right,
                 member_target_kinds, member_target_names
             )
@@ -152,7 +154,7 @@ func SemanticExpressionCallTargetFactContractReady() -> Bool {
     let member_carried: SemanticExpressionGraphFacts =
         SemanticExpressionGraphFacts(
             true, member_unbound.roots, member_unbound.has_roots,
-            SemanticExpressionGraphArena(
+            SemanticExpressionGraphArenaUnclassified(
                 member_kinds, member_texts, member_left, member_right,
                 member_target_kinds, member_target_names
             )

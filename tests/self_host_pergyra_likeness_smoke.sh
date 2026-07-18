@@ -252,7 +252,8 @@ SENTINEL_MAX=0
 # refinement preserve missing layout and loop-binding facts explicitly.
 # 1935 -> 2006 (2026-07-17): merged self-host owners preserve the expanded
 # errors-as-data surface.
-RESULT_USE_MIN=2032
+# 2032 -> 2033 (2026-07-18): missing semantic place rows fail the body bundle.
+RESULT_USE_MIN=2033
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

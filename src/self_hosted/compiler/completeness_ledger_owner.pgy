@@ -236,9 +236,6 @@ func CompilerCompletenessSemanticCheckTarget(path: String) -> CompilerCompletene
     if path == "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }
-    if path == "src/self_hosted/codegen/emission/expr_semantic_addressability_owner.pgy" {
-        return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
-    }
     if path == "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" {
         return CompilerCompletenessCheckTarget("src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy");
     }

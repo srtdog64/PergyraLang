@@ -119,7 +119,8 @@ func SelfMirSyntheticLocalExpressionGraph(
     let targets: Array<String> = [""];
     let roots: Array<Int> = [0];
     let has_roots: Array<Bool> = [true];
-    let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
+    let arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArenaUnclassified(
         kinds, texts, left_children, right_children, target_kinds, targets
     );
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
