@@ -1492,10 +1492,13 @@ beyond the lexer:
   and receiver-typed method targets, then rejects any mismatch. The complete C
   DRV-2 frontier passes 20 source and 33 MIR producer fixtures with this rule.
 - **Canonical MIR expression ownership** -- self-produced MIR canonicalization
-  now consumes `expr0_graph` through the MIR expression owner and rejects a
-  missing or invalid graph. The graph-less native C-oracle input is isolated
-  behind `--canonicalize-oracle-mir-json`; it is not a fallback available to
-  the hard self-host consumer.
+  consumes `expr0_graph` through the MIR expression owner and rejects a
+  missing or invalid graph. The native C oracle now projects the bounded
+  `let`/`Log` scalar, binary, and direct-call slice into that same graph schema
+  without reparsing expression text. The public `--self-driver` live gate
+  compares its canonical facts with the self producer. Unsupported native AST
+  shapes remain fail-closed; the named oracle bridge is retained only for old
+  graph-less artifacts and is unavailable to the hard consumer.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+void mir_json_emit_str(FILE *out, const char *s);
 void mir_json_emit_str_or_null(FILE *out, const char *s);
 
 #endif

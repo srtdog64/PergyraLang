@@ -2,6 +2,7 @@
 #include "mir_abi_layout.h"
 #include "mir_decl_headers.h"
 #include "mir_json_dump_flow.h"
+#include "mir_json_expression_graph.h"
 #include "mir_json_dump_internal.h"
 #include "mir_parallel_capture_facts.h"
 
@@ -14,7 +15,7 @@
 
 /* --- Lossless MIR JSON serialization (schema pgy.mir.v1) ------------------- */
 
-static void
+void
 mir_json_emit_str(FILE *out, const char *s)
 {
     fputc('"', out);
@@ -461,8 +462,12 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     }
     fputs(",\"expr0\":", out);
     mir_json_emit_expr_or_null(out, inst->expr0);
+    fputs(",\"expr0_graph\":", out);
+    mir_json_emit_instruction_expression_graph(out, inst, 0);
     fputs(",\"expr1\":", out);
     mir_json_emit_expr_or_null(out, inst->expr1);
+    fputs(",\"expr1_graph\":", out);
+    mir_json_emit_instruction_expression_graph(out, inst, 1);
     if (inst->text_builder_runtime_row != NULL) {
         const MIRTextBuilderRuntimeRow *row =
             inst->text_builder_runtime_row;

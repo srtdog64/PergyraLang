@@ -1,0 +1,364 @@
+#include "mir_json_expression_graph.h"
+
+#include "mir.h"
+#include "mir_json_dump_internal.h"
+
+#include <stdbool.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../parser/ast_api.h"
+
+typedef struct {
+    const char *kind;
+    char *text;
+    const char *call_target_kind;
+    const char *call_target_name;
+    int left;
+    int right;
+} MIRJsonExpressionGraphNode;
+
+typedef struct {
+    MIRJsonExpressionGraphNode *nodes;
+    size_t count;
+    size_t capacity;
+} MIRJsonExpressionGraph;
+
+static void
+mir_json_expression_graph_dispose(MIRJsonExpressionGraph *graph)
+{
+    if (graph == NULL)
+        return;
+    for (size_t i = 0; i < graph->count; i++)
+        free(graph->nodes[i].text);
+    free(graph->nodes);
+    memset(graph, 0, sizeof(*graph));
+}
+
+static int
+mir_json_expression_graph_append(MIRJsonExpressionGraph *graph,
+                                 const char *kind,
+                                 char *text,
+                                 int left,
+                                 int right,
+                                 const char *target_kind,
+                                 const char *target_name)
+{
+    MIRJsonExpressionGraphNode *grown;
+    size_t capacity;
+
+    if (graph == NULL || kind == NULL || text == NULL)
+        return -1;
+    if (graph->count > INT_MAX)
+        return -1;
+    if (graph->count == graph->capacity) {
+        capacity = graph->capacity == 0 ? 8 : graph->capacity * 2;
+        if (capacity < graph->capacity
+            || capacity > SIZE_MAX / sizeof(*graph->nodes)) {
+            return -1;
+        }
+        grown = realloc(graph->nodes, capacity * sizeof(*graph->nodes));
+        if (grown == NULL)
+            return -1;
+        graph->nodes = grown;
+        graph->capacity = capacity;
+    }
+    graph->nodes[graph->count] = (MIRJsonExpressionGraphNode){
+        kind,
+        text,
+        target_kind != NULL ? target_kind : "none",
+        target_name != NULL ? target_name : "",
+        left,
+        right
+    };
+    return (int)graph->count++;
+}
+
+static char *
+mir_json_expression_graph_copy_text(const char *text)
+{
+    size_t length;
+    char *copy;
+
+    if (text == NULL)
+        return NULL;
+    length = strlen(text);
+    copy = malloc(length + 1);
+    if (copy != NULL)
+        memcpy(copy, text, length + 1);
+    return copy;
+}
+
+static char *
+mir_json_expression_graph_capture_text(ASTNode *expr)
+{
+    char *text = ast_capture_inline(expr);
+    size_t length;
+
+    if (text == NULL || expr == NULL || expr->type != AST_BINARY)
+        return text;
+    length = strlen(text);
+    if (length >= 2 && text[0] == '(' && text[length - 1] == ')') {
+        memmove(text, text + 1, length - 2);
+        text[length - 2] = '\0';
+    }
+    return text;
+}
+
+static const char *
+mir_json_binary_graph_kind(PgyTokenType type)
+{
+    switch (type) {
+    case TOKEN_OR: return "logical_or";
+    case TOKEN_AND: return "logical_and";
+    case TOKEN_EQUAL: return "equality";
+    case TOKEN_NOT_EQUAL: return "inequality";
+    case TOKEN_LESS: return "less";
+    case TOKEN_LESS_EQUAL: return "less_equal";
+    case TOKEN_GREATER: return "greater";
+    case TOKEN_GREATER_EQUAL: return "greater_equal";
+    case TOKEN_PLUS: return "add";
+    case TOKEN_MINUS: return "subtract";
+    case TOKEN_STAR: return "multiply";
+    case TOKEN_SLASH: return "divide";
+    case TOKEN_PERCENT: return "modulo";
+    default: return NULL;
+    }
+}
+
+static const char *
+mir_json_unary_graph_kind(PgyTokenType type)
+{
+    if (type == TOKEN_NOT)
+        return "logical_not";
+    if (type == TOKEN_MINUS)
+        return "negate";
+    return NULL;
+}
+
+static int mir_json_expression_graph_build(MIRJsonExpressionGraph *graph,
+                                           ASTNode *expr);
+
+static int
+mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
+                                     ASTNode *expr)
+{
+    ASTNode *callee = ast_call_callee(expr);
+    ASTNode borrowed;
+    ASTNode **arguments = NULL;
+    size_t argument_count = 0;
+    const char *target_kind = "none";
+    const char *target_name = "";
+    int call_root;
+    int callee_root;
+    char *text;
+
+    if (callee == NULL)
+        return -1;
+    callee_root = mir_json_expression_graph_build(graph, callee);
+    if (callee_root < 0)
+        return -1;
+    if (callee->type == AST_IDENTIFIER) {
+        target_kind = "direct";
+        target_name = ast_identifier_name(callee);
+    } else if (callee->type == AST_MEMBER_ACCESS) {
+        target_kind = "member";
+        target_name = ast_member_name(callee);
+    }
+    ast_init_call_borrowed_view(&borrowed, callee, NULL, 0);
+    text = ast_capture_inline(&borrowed);
+    call_root = mir_json_expression_graph_append(
+        graph, "call", text, callee_root, -1, target_kind, target_name);
+    if (call_root < 0) {
+        free(text);
+        return -1;
+    }
+
+    arguments = ast_call_arguments(expr, &argument_count);
+    for (size_t i = 0; i < argument_count; i++) {
+        int argument_root = mir_json_expression_graph_build(graph, arguments[i]);
+        if (argument_root < 0)
+            return -1;
+        ast_init_call_borrowed_view(&borrowed, callee, arguments, i + 1);
+        text = ast_capture_inline(&borrowed);
+        call_root = mir_json_expression_graph_append(
+            graph, "call_argument", text, call_root, argument_root,
+            "none", "");
+        if (call_root < 0) {
+            free(text);
+            return -1;
+        }
+    }
+    return call_root;
+}
+
+static int
+mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
+{
+    const char *kind = NULL;
+    int left = -1;
+    int right = -1;
+    char *text;
+
+    if (graph == NULL || expr == NULL)
+        return -1;
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+        kind = "leaf";
+        break;
+    case AST_NUMBER:
+        kind = ast_number_is_long(expr)
+            ? "long_literal"
+            : ast_number_is_float(expr)
+                ? "float_literal"
+                : "integer_literal";
+        break;
+    case AST_STRING:
+        kind = "string_literal";
+        break;
+    case AST_BOOLEAN:
+        kind = "bool_literal";
+        break;
+    case AST_BINARY: {
+        Token token = ast_binary_operator(expr);
+        kind = mir_json_binary_graph_kind(token.type);
+        if (kind == NULL)
+            return -1;
+        left = mir_json_expression_graph_build(graph, ast_binary_left(expr));
+        right = mir_json_expression_graph_build(graph, ast_binary_right(expr));
+        if (left < 0 || right < 0)
+            return -1;
+        break;
+    }
+    case AST_UNARY: {
+        Token token = ast_unary_operator(expr);
+        kind = mir_json_unary_graph_kind(token.type);
+        if (kind == NULL)
+            return -1;
+        left = mir_json_expression_graph_build(graph, ast_unary_operand(expr));
+        if (left < 0)
+            return -1;
+        break;
+    }
+    case AST_CALL:
+        return mir_json_expression_graph_build_call(graph, expr);
+    case AST_MEMBER_ACCESS:
+    {
+        char *member_text;
+
+        left = mir_json_expression_graph_build(graph, ast_member_object(expr));
+        member_text = mir_json_expression_graph_copy_text(
+            ast_member_name(expr));
+        right = mir_json_expression_graph_append(
+            graph, "leaf", member_text, -1, -1, "none", "");
+        if (right < 0)
+            free(member_text);
+        if (left < 0 || right < 0)
+            return -1;
+        kind = "member_access";
+        break;
+    }
+    case AST_ARRAY_ACCESS:
+        left = mir_json_expression_graph_build(
+            graph, ast_array_access_array(expr));
+        right = mir_json_expression_graph_build(
+            graph, ast_array_access_index(expr));
+        if (left < 0 || right < 0)
+            return -1;
+        kind = "index";
+        break;
+    default:
+        return -1;
+    }
+    text = mir_json_expression_graph_capture_text(expr);
+    if (text == NULL)
+        return -1;
+    left = mir_json_expression_graph_append(
+        graph, kind, text, left, right, "none", "");
+    if (left < 0)
+        free(text);
+    return left;
+}
+
+static ASTNode *
+mir_json_instruction_expression(const MIRInstruction *inst, int lane)
+{
+    ASTNode *expr;
+
+    if (inst == NULL || lane < 0 || lane > 1)
+        return NULL;
+    if (lane == 1) {
+        if (inst->kind == MIR_INST_DEF
+            && mir_instruction_source_node_type_or(inst, AST_PROGRAM)
+                == AST_ASSIGNMENT) {
+            return inst->expr1;
+        }
+        return NULL;
+    }
+    expr = inst->expr0;
+    if (inst->kind != MIR_INST_STMT || expr == NULL
+        || expr->type != AST_CALL || inst->arg0 == NULL) {
+        return expr;
+    }
+    if (strcmp(inst->arg0, "Log") == 0)
+        return ast_call_arg_count(expr) > 0
+            ? ast_call_argument(expr, 0)
+            : NULL;
+    if (strcmp(inst->arg0, "ArrayPush") == 0)
+        return ast_call_arg_count(expr) > 1
+            ? ast_call_argument(expr, 1)
+            : NULL;
+    if (strcmp(inst->arg0, "ArraySet") == 0)
+        return ast_call_arg_count(expr) > 2
+            ? ast_call_argument(expr, 2)
+            : NULL;
+    return expr;
+}
+
+void
+mir_json_emit_instruction_expression_graph(FILE *out,
+                                           const MIRInstruction *inst,
+                                           int lane)
+{
+    MIRJsonExpressionGraph graph = {0};
+    ASTNode *expr = mir_json_instruction_expression(inst, lane);
+    int root;
+
+    if (out == NULL)
+        return;
+    root = mir_json_expression_graph_build(&graph, expr);
+    if (root < 0) {
+        fputs("null", out);
+        mir_json_expression_graph_dispose(&graph);
+        return;
+    }
+    fprintf(out, "{\"root\":%d,\"nodes\":[", root);
+    for (size_t i = 0; i < graph.count; i++) {
+        const MIRJsonExpressionGraphNode *node = &graph.nodes[i];
+        if (i > 0)
+            fputc(',', out);
+        fputs("{\"kind\":", out);
+        mir_json_emit_str(out, node->kind);
+        fputs(",\"text\":", out);
+        mir_json_emit_str(out, node->text);
+        fputs(",\"call_target_kind\":", out);
+        mir_json_emit_str(out, node->call_target_kind);
+        fputs(",\"call_target_name\":", out);
+        mir_json_emit_str(out, node->call_target_name);
+        fputs(",\"left\":", out);
+        if (node->left < 0)
+            fputs("null", out);
+        else
+            fprintf(out, "%d", node->left);
+        fputs(",\"right\":", out);
+        if (node->right < 0)
+            fputs("null", out);
+        else
+            fprintf(out, "%d", node->right);
+        fputc('}', out);
+    }
+    fputs("]}", out);
+    mir_json_expression_graph_dispose(&graph);
+}

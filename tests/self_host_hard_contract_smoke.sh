@@ -139,6 +139,20 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
     "invalid expression graph was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     '"expr0_graph_removed"'
+require_file "src/compiler/mir_json_expression_graph.c"
+require_file "src/compiler/mir_json_expression_graph.h"
+require_text "src/compiler/mir_json_dump.c" \
+    "mir_json_emit_instruction_expression_graph(out, inst, 0);"
+require_text "src/compiler/mir_json_dump.c" \
+    "mir_json_emit_instruction_expression_graph(out, inst, 1);"
+require_text "src/compiler/mir_json_expression_graph.c" \
+    "mir_json_instruction_expression(const MIRInstruction *inst, int lane)"
+require_text "src/compiler/mir_json_expression_graph.c" \
+    "mir_json_expression_graph_build(&graph, expr)"
+forbid_text "src/compiler/mir_json_expression_graph.c" \
+    "parser_parse"
+forbid_text "src/compiler/mir_json_expression_graph.c" \
+    "ParseExpr"
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CheckProgram("
 forbid_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \

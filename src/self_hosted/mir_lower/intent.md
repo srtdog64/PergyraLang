@@ -80,11 +80,15 @@ kinds, postorder child edges, root bounds, and reconstructed-artifact lane
 binding before semantic/codegen consumption. The direct DRV-2 `--mir-json`
 path requires this fact and never
 rebuilds it from `expr0`. `--canonicalize-mir-json` is also graph-only and
-fails closed when `expr0_graph` is missing or malformed. Older native MIR JSON
-is upgraded only by the explicitly named `--canonicalize-oracle-mir-json`
-compatibility boundary, which reuses the canonical Pergyra expression parser
-through `SemanticAstArtifactAnalyzeCompactBridge`. The hard consumer cannot
-invoke that bridge.
+fails closed when `expr0_graph` is missing or malformed. The native MIR JSON
+writer now projects the bounded scalar/binary/direct-call graph slice directly
+from its instruction AST into the same graph schema. It does not parse
+`expr0`; unsupported AST shapes remain `null` and therefore fail closed when
+the hard consumer requires them. Older graph-less artifacts can be upgraded
+only by the explicitly named `--canonicalize-oracle-mir-json` compatibility
+boundary, which reuses the canonical Pergyra expression parser through
+`SemanticAstArtifactAnalyzeCompactBridge`. The hard consumer cannot invoke
+that bridge.
 
 `parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
 task count, unique row names, and the closed `snapshot_copy` /
