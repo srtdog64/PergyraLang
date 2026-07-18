@@ -20,7 +20,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
     fi
 
     drifted="${self_mir_json%.json}.inferred-actual-drift.mir.json"
-    sed 's/"text":"41"/"text":"\\"bad\\""/g' \
+    sed 's/"kind":"integer_literal","text":"41"/"kind":"leaf","text":"\\"bad\\""/g' \
         "$self_mir_json" >"$drifted"
     if [[ "$(<"$self_mir_json")" == "$(<"$drifted")" ]]; then
         echo "[self-host-parity:driver-rung2] $backend inferred actual mutation did not apply" >&2

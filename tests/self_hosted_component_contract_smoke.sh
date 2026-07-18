@@ -3154,6 +3154,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     'pgy_selfhost_verify_driver_rung2_inferred_generic_value'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'inferred actual drift was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    's/"kind":"integer_literal","text":"41"/"kind":"leaf"'
 require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"'
