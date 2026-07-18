@@ -12,6 +12,7 @@ import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
 import "array_type_owner.pgy";
 import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
@@ -174,10 +175,11 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         if expression_verdict.ok &&
             (inferred == "Unknown" || inferred == "") &&
             IsSome(declared) &&
-            SemanticProjectionArrayLiteralMatchesDeclaredType(
-                expression, UnwrapOption(declared), constructors,
-                names, types, modes,
-                function_names, function_returns, function_params
+            SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+                expression_surfaces.expression_graph,
+                UnwrapOption(graph_root), UnwrapOption(declared),
+                constructors, names, types,
+                function_names, function_returns
             ) {
             inferred = UnwrapOption(declared);
         }
@@ -374,6 +376,7 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
 }
 
 func SemanticAstInitializerTypeFactsContractReady() -> Bool {
+    if !SemanticExpressionGraphArrayLiteralContractReady() { return false; }
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: true\n          Then:\n            Block:\n              Let: y : Int = x\n"
     );

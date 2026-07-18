@@ -98,7 +98,10 @@ payload. Residual assignment MIR JSON also carries target/value graphs in
 consumer owns this lane distinction instead of reparsing text. LLVM
 source-local resource constructor LET emission also consumes MIR
 initializer/type facts instead of reopening the source local declaration
-payload. C source-local LET DEF emission, generic DEF expression emission, and
+payload. Array-literal initializer typing now consumes a semantic-owned graph
+spine shared with codegen instead of trimming brackets and splitting element
+text; assignment and statement array-literal typing remain bridge work. C
+source-local LET DEF emission, generic DEF expression emission, and
 receive-payload type inference now consume instruction `arg0` / `expr0` /
 `expr1` facts directly, so C codegen no longer calls
 `mir_instruction_source_payload`. MIR surface validation now checks payload

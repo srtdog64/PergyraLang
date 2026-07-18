@@ -2980,6 +2980,8 @@ require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     '"Args^Array<String>^none"'
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "SemanticExpressionGraphArrayLiteralMatchesDeclaredType("
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticProjectionArrayLiteralMatchesDeclaredType("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "func SemanticAstAssignmentArrayElementType"
@@ -4766,7 +4768,17 @@ reject_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy"
     "struct SemanticMemberAccessView"
 require_file "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy"
 require_max_lines "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" 300
+require_file "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" 500
+require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
+    "struct SemanticArrayLiteralView"
+require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
+    "func SemanticExpressionGraphArrayLiteralMatchesDeclaredType("
+require_text "src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy" \
+    "func SemanticExpressionGraphArrayLiteralContractReady()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    'import "../../semantic/ast_expression_graph_array_literal_owner.pgy";'
+reject_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "struct SemanticArrayLiteralView"
 require_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
     "func RewriteSemanticArrayLiteralValue("

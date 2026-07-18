@@ -1525,6 +1525,14 @@ beyond the lexer:
   C/LLVM parity proved byte-equal canonical MIR, byte-equal directly consumed
   native/self C, and equal execution output; removing either native graph
   fails closed. The complete 35-case MIR matrix was not rerun here.
+  Array-literal initializer type checking now consumes that same parser graph.
+  The array spine view moved from codegen into a semantic owner, and declared
+  element checks recurse over ordered element handles instead of trimming
+  brackets or splitting arguments. `ast_node_array_literal` passed the focused
+  C/LLVM DRV-2 source/MIR/runtime gate; the initializer owner is statically
+  forbidden from calling the legacy text projection. Assignment and statement
+  array-literal checks still use that legacy projection, so expression-result
+  classification remains a bridge.
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.

@@ -8,48 +8,9 @@ import "../runtime_abi/collection_runtime_owner.pgy";
 import "../../compiler/symbol_table_owner.pgy";
 import "../../semantic/ast_expression_graph_struct_view_owner.pgy";
 import "../../semantic/ast_expression_graph_call_view_owner.pgy";
+import "../../semantic/ast_expression_graph_array_literal_owner.pgy";
 import "../../compiler/machine_layer_runtime_projection_owner.pgy";
 import "expr_rewrite.pgy";
-
-struct SemanticArrayLiteralView {
-    ok: Bool;
-    element_nodes: Array<Int>;
-}
-
-func SemanticArrayLiteralViewFromGraph(
-    graph: SemanticExpressionGraphFacts,
-    root_id: Int
-) -> SemanticArrayLiteralView {
-    let reversed: Array<Int> = [];
-    let node: Int = root_id;
-    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
-    while IsSome(kind) &&
-        UnwrapOption(kind) == AstExpressionNodeArrayElement() {
-        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
-            graph, node
-        );
-        let element: Option<Int> = SemanticExpressionGraphRightChild(
-            graph, node
-        );
-        if !IsSome(previous) || !IsSome(element) {
-            return SemanticArrayLiteralView(false, reversed);
-        }
-        ArrayPush(reversed, UnwrapOption(element));
-        node = UnwrapOption(previous);
-        kind = SemanticExpressionGraphNodeKind(graph, node);
-    }
-    if !IsSome(kind) ||
-        UnwrapOption(kind) != AstExpressionNodeArrayLiteral() {
-        return SemanticArrayLiteralView(false, reversed);
-    }
-    let elements: Array<Int> = [];
-    let i: Int = ArrayLength(reversed) - 1;
-    while i >= 0 {
-        ArrayPush(elements, reversed[i]);
-        i = i - 1;
-    }
-    return SemanticArrayLiteralView(true, elements);
-}
 
 func RewriteSemanticExpectedValue(
     graph: SemanticExpressionGraphFacts,

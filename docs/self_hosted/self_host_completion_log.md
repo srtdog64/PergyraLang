@@ -7982,3 +7982,16 @@ Released/default replacement remains 0%.
   matched C-oracle execution. Removing either native graph fails closed with
   the structured MIR graph diagnostic. The complete 35-fixture MIR matrix was
   not rerun for this slice.
+
+### 2026-07-19 -- Array initializer typing consumes the expression graph
+
+- Moved `SemanticArrayLiteralView` from the codegen participant into
+  `ast_expression_graph_array_literal_owner.pgy`, making semantic typing and
+  emission consume one ordered array-spine projection.
+- Typed `let` initializers now check declared array element types by walking
+  graph handles. The initializer owner cannot trim brackets, split arguments,
+  or call `SemanticProjectionArrayLiteralMatchesDeclaredType`.
+- Focused C/LLVM DRV-2 parity for `ast_node_array_literal` matched canonical
+  MIR, emitted C, and runtime output. Existing array graph negatives still
+  reject missing or invalid roots. Assignment and statement array-literal
+  checks remain on the legacy projection, so the broader bridge remains open.

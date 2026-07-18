@@ -97,6 +97,9 @@ subset.
   payload. Residual assignment MIR JSON carries target/value graphs in
   `expr0_graph` / `expr1_graph`; self SSA definitions carry value/target, and
   hard canonicalization consumes both forms in target-before-value order.
+- Typed array-literal initializers and codegen consume one semantic-owned array
+  spine view. The initializer type owner no longer trims brackets or splits
+  element text; assignment and statement array-literal typing remain a bridge.
 - MIR surface validation no longer reopens source payloads. Payload presence is
   checked through source-shape predicates, and thread-pool / intent
   observability surface-usage validation consumes MIR `expr0` / `expr1` facts.

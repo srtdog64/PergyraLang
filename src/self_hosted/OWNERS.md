@@ -157,6 +157,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_call_view_owner.pgy` --
   canonical ordered callee/argument projection over parser-owned call spines;
   semantic and codegen consumers share this view.
+- `src/self_hosted/semantic/ast_expression_graph_array_literal_owner.pgy` --
+  canonical ordered element projection and declared-element compatibility over
+  parser-owned array-literal spines; initializer typing and codegen share this
+  view without bracket trimming or argument splitting.
 - `src/self_hosted/semantic/ast_expression_graph_member_view_owner.pgy` --
   canonical receiver/member handle projection over parser-owned member-access
   nodes; semantic and codegen consumers share this view.

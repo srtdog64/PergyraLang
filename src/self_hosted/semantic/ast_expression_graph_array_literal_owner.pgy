@@ -1,0 +1,150 @@
+// Array-literal topology and declared-type checks over parser-owned graph rows.
+
+import "ast_expression_graph_fact_owner.pgy";
+import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_type_owner.pgy";
+import "ast_nominal_constructor_fact_owner.pgy";
+import "array_type_owner.pgy";
+import "expr_type_owner.pgy";
+
+struct SemanticArrayLiteralView {
+    ok: Bool;
+    element_nodes: Array<Int>;
+}
+
+func SemanticArrayLiteralViewFromGraph(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int
+) -> SemanticArrayLiteralView {
+    let reversed: Array<Int> = [];
+    let node: Int = root_id;
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node);
+    while IsSome(kind) &&
+        UnwrapOption(kind) == AstExpressionNodeArrayElement() {
+        let previous: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node
+        );
+        let element: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node
+        );
+        if !IsSome(previous) || !IsSome(element) {
+            return SemanticArrayLiteralView(false, reversed);
+        }
+        ArrayPush(reversed, UnwrapOption(element));
+        node = UnwrapOption(previous);
+        kind = SemanticExpressionGraphNodeKind(graph, node);
+    }
+    if !IsSome(kind) ||
+        UnwrapOption(kind) != AstExpressionNodeArrayLiteral() {
+        return SemanticArrayLiteralView(false, reversed);
+    }
+    let elements: Array<Int> = [];
+    let i: Int = ArrayLength(reversed) - 1;
+    while i >= 0 {
+        ArrayPush(elements, reversed[i]);
+        i = i - 1;
+    }
+    return SemanticArrayLiteralView(true, elements);
+}
+
+func SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    declared_type: String,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Bool {
+    let element_type_opt: Option<String> =
+        SemanticArrayElementType(declared_type);
+    if !IsSome(element_type_opt) { return false; }
+    let view: SemanticArrayLiteralView =
+        SemanticArrayLiteralViewFromGraph(graph, root_id);
+    if !view.ok { return false; }
+    let element_type: String = UnwrapOption(element_type_opt);
+    let i: Int = 0;
+    while i < ArrayLength(view.element_nodes) {
+        let element: Int = view.element_nodes[i];
+        let nested_type: Option<String> =
+            SemanticArrayElementType(element_type);
+        if IsSome(nested_type) &&
+            SemanticArrayLiteralViewFromGraph(graph, element).ok {
+            if !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+                graph, element, element_type, constructors, names, types,
+                function_names, function_returns
+            ) {
+                return false;
+            }
+            i = i + 1;
+            continue;
+        }
+        let actual: String = SemanticExpressionGraphScalarTypeName(
+            graph, element, constructors, names, types,
+            function_names, function_returns
+        );
+        if actual == "Unknown" || actual == "" {
+            let intrinsic: Option<String> =
+                SemanticExpressionGraphIntrinsicTypeName(
+                    graph, element, function_names, function_returns
+                );
+            if IsSome(intrinsic) { actual = UnwrapOption(intrinsic); }
+        }
+        let element_text: Option<String> =
+            SemanticExpressionGraphNodeText(graph, element);
+        if !IsSome(element_text) || actual == "Unknown" || actual == "" ||
+            !ExpressionAssignableTo(
+                element_type, actual, UnwrapOption(element_text)
+            ) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SemanticExpressionGraphArrayLiteralContractReady() -> Bool {
+    let source: String = "[1, 2]";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    if !fact.ok || cursor[0] != StringLength(source) { return false; }
+    let graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [fact.root], fact.arena
+            ), [0], 1
+        );
+    let nested_source: String = "[[1], [2]]";
+    let nested_cursor: Array<Int> = [0];
+    let nested_fact: ParserExpressionFact = ParseExprFact(
+        nested_source, 0, nested_cursor
+    );
+    if !nested_fact.ok ||
+        nested_cursor[0] != StringLength(nested_source) {
+        return false;
+    }
+    let nested_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindLetStmtTag()],
+                [AstExpressionLaneValue()], [nested_fact.root],
+                nested_fact.arena
+            ), [0], 1
+        );
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let empty: Array<String> = [];
+    return SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            graph, fact.root, "Array<Int>", constructors,
+            empty, empty, empty, empty
+        ) && !SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            graph, fact.root, "Array<String>", constructors,
+            empty, empty, empty, empty
+        ) && SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+            nested_graph, nested_fact.root, "Array<Array<Int>>",
+            constructors, empty, empty, empty, empty
+        );
+}

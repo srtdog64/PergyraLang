@@ -642,6 +642,20 @@ self C, ran it against the C oracle, and rejected removal of either native
 graph. This closes the residual-assignment graph bridge for this executable
 slice only; the mixed expression owner remains `BRIDGE`.
 
+Fifty-first executable active-rung delta, 2026-07-19: typed array-literal
+initializers no longer reparse their payload with bracket trimming and
+`CallArgAt`. `ast_expression_graph_array_literal_owner.pgy` now owns the array
+spine view and declared-element compatibility walk; codegen and semantic
+initializer checking consume that one view. Nested arrays recurse through
+graph handles, while scalar and nominal elements consume existing graph type
+owners. The initializer owner is statically forbidden from calling
+`SemanticProjectionArrayLiteralMatchesDeclaredType`. Focused C/LLVM DRV-2
+parity for `ast_node_array_literal` matched canonical MIR, emitted C, and
+runtime output, and the existing graph-negative gate still rejects missing or
+invalid array roots. Assignment and statement array-literal checks remain on
+the legacy projection, so this is an executable slice, not global result-type
+closure.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel
