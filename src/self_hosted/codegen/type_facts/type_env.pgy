@@ -11,20 +11,48 @@ struct CodegenTypeEnv {
 }
 
 func LookupKindTypeRows(rows: String, name: String, kind: String) -> String {
-    let needle: String = Concat("|", Concat(name, Concat("=", Concat(kind, ":"))));
-    let idx: Int = StringIndexOf(rows, needle);
-    if idx < 0 {
+    let rows_length: Int = StringLength(rows);
+    let name_length: Int = StringLength(name);
+    let kind_length: Int = StringLength(kind);
+    if name_length == 0 {
         return "";
     }
-    let start: Int = idx + StringLength(needle);
-    let env_length: Int = StringLength(rows);
-    let bar: Int = SubIndexOfWithLen(
-        rows, env_length, start, env_length - start, "|"
-    );
-    if bar < 0 {
-        return Substring(rows, start, env_length - start);
+    let cursor: Int = 0;
+    while cursor < rows_length {
+        let name_offset: Int = SubIndexOfWithLen(
+            rows, rows_length, cursor, rows_length - cursor, name
+        );
+        if name_offset < 0 {
+            return "";
+        }
+        let name_start: Int = cursor + name_offset;
+        let kind_start: Int = name_start + name_length + 1;
+        let value_start: Int = kind_start + kind_length + 1;
+        if name_start > 0 && value_start <= rows_length &&
+            SubEqualsWithLen(rows, rows_length, name_start - 1, 1, "|") &&
+            SubEqualsWithLen(
+                rows, rows_length, name_start + name_length, 1, "="
+            ) &&
+            SubEqualsWithLen(
+                rows, rows_length, kind_start, kind_length, kind
+            ) &&
+            SubEqualsWithLen(
+                rows, rows_length, kind_start + kind_length, 1, ":"
+            ) {
+            let value_length: Int = SubIndexOfWithLen(
+                rows, rows_length, value_start,
+                rows_length - value_start, "|"
+            );
+            if value_length < 0 {
+                return Substring(
+                    rows, value_start, rows_length - value_start
+                );
+            }
+            return Substring(rows, value_start, value_length);
+        }
+        cursor = name_start + name_length;
     }
-    return Substring(rows, start, bar);
+    return "";
 }
 
 func LookupKindType(env: CodegenTypeEnv, name: String, kind: String) -> String {

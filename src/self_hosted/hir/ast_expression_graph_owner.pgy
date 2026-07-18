@@ -132,13 +132,7 @@ func AstExpressionGraphRowsEmpty() -> AstExpressionGraphRows {
 }
 
 func AstExpressionOwnerKindKnown(kind: Int) -> Bool {
-    let tags: Array<Int> = TypedAstKindTags();
-    let i: Int = 0;
-    while i < ArrayLength(tags) {
-        if tags[i] == kind { return true; }
-        i = i + 1;
-    }
-    return false;
+    return TypedAstKindKnown(kind);
 }
 
 func AstExpressionArenaNodeCount(ref arena: AstExpressionArena) -> Int {

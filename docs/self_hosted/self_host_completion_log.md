@@ -6,6 +6,29 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-18 - Codegen fixed point stops rebuilding kind tables
+
+- The exact Pergyra-built `mir_lower` input previously crossed 25.6 GB private
+  memory before termination. Allocation tracing found that the expression-graph
+  kind predicate rebuilt `TypedAstKindTags()` for every query: the same growth
+  sites reconstructed the 37-tag array 202,626 times.
+- `TypedAstKindOwnerReady()` now proves that the canonical tags form one
+  contiguous interval. The hot expression-graph consumer uses the owner's
+  bounded `TypedAstKindKnown()` predicate instead of allocating and scanning a
+  fresh array. Type-row lookup and bounded substring search also avoid temporary
+  needle strings on this compiler-scale path.
+- The same full `mir_lower` input completed in 68.5 seconds at 976.7 MB peak
+  private memory. Codegen bootstrap reached `gen2 == gen3` at 32,805 generated-C
+  lines and completed `SELF-HOSTING OK`; default extern-runtime C codegen was
+  run-equal on 75 fixtures.
+- Extern-runtime generic families now remain program-local because their
+  `CType`/`ErrType` can exist only in the generated translation unit. A static
+  runtime-cext contract and the executable codegen parity prevent these bodies
+  from being silently moved into the shared runtime object again.
+- This closes a codegen bootstrap resource blocker and one executable codegen
+  rung. It does not claim whole-compiler self-hosting or native driver
+  substitution.
+
 ## 2026-07-17 - Driver fixed point is split by validation budget
 
 - The native-oracle MIR boundary removed the previous 68 GB full-source

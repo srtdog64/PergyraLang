@@ -2514,8 +2514,15 @@ require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "let param_inden
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "param_indent = indent + 2"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" "kind = TypedAstKindParamTag()"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindOwnerReady"
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindKnown"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "let tags: Array<Int> = ["
+require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" \
+    "tags[i] != TypedAstKindUnknownTag() + i"
 reject_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "return ["
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "return TypedAstKindKnown(kind);"
+reject_function_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionOwnerKindKnown" "TypedAstKindTags()"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindProgramTag"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindFuncDeclTag"
 require_text "src/self_hosted/hir/ast_node_kind_owner.pgy" "func TypedAstKindParamTag"

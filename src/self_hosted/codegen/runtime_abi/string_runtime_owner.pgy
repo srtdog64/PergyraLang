@@ -163,7 +163,7 @@ func StringRuntimeCStringCoreBlock() -> String {
     block = Concat(block, "    if (s == NULL || needle == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return -1;\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t nl = strlen(needle);\n    if (nl == 0) return 0;\n    if ((size_t)len < nl) return -1;\n");
     block = Concat(block, "    if (nl == 1) { const char *m = (const char *)memchr(s + start, needle[0], (size_t)len); return m ? (long long)(m - (s + start)) : -1; }\n");
-    block = Concat(block, "    long long limit = len - (long long)nl;\n    for (long long i = 0; i <= limit; i++) { if (memcmp(s + start + i, needle, nl) == 0) return i; }\n    return -1;\n}\n\n");
+    block = Concat(block, "    const char *base = s + start; const char *cur = base; size_t remaining = (size_t)len;\n    while (remaining >= nl) { const char *m = (const char *)memchr(cur, (unsigned char)needle[0], remaining - nl + 1u); if (m == NULL) return -1; if (memcmp(m, needle, nl) == 0) return (long long)(m - base); size_t advanced = (size_t)(m - cur) + 1u; cur += advanced; remaining -= advanced; }\n    return -1;\n}\n\n");
     block = Concat(block, Concat("static int ", Concat(StringRuntimeCSubEqualsWithLenFn(), "(const char *s, long long source_len, long long start, long long len, const char *other)\n{\n")));
     block = Concat(block, "    if (other == NULL) return 0;\n    if (s == NULL || source_len < 0 || start < 0 || start >= source_len || len <= 0) return strlen(other) == 0 ? 1 : 0;\n");
     block = Concat(block, "    if (len > source_len - start) len = source_len - start;\n    size_t n = strlen(other);\n    if ((size_t)len != n) return 0;\n");

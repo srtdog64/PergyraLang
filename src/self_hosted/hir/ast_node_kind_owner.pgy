@@ -38,6 +38,11 @@ func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
 func TypedAstKindGenericParamsTag() -> Int { return 37; }
 
+func TypedAstKindKnown(kind: Int) -> Bool {
+    return kind >= TypedAstKindUnknownTag() &&
+        kind <= TypedAstKindGenericParamsTag();
+}
+
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
     if callee == "Log" { return TypedAstKindLogStmtTag(); }
     if callee == "ArrayPop" { return TypedAstKindArrayPopStmtTag(); }
@@ -97,7 +102,7 @@ func TypedAstKindOwnerReady() -> Bool {
     }
     let i: Int = 0;
     while i < ArrayLength(tags) {
-        if tags[i] <= 0 {
+        if tags[i] != TypedAstKindUnknownTag() + i {
             return false;
         }
         let j: Int = i + 1;
@@ -109,7 +114,11 @@ func TypedAstKindOwnerReady() -> Bool {
         }
         i = i + 1;
     }
-    return TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
+    return TypedAstKindKnown(TypedAstKindUnknownTag()) &&
+        TypedAstKindKnown(TypedAstKindGenericParamsTag()) &&
+        !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
+        !TypedAstKindKnown(TypedAstKindGenericParamsTag() + 1) &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindSubject()) ==
