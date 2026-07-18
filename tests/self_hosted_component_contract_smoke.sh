@@ -3408,6 +3408,10 @@ require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver -
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 300
+require_file "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_mir_graph_negative_owner.sh"
 require_file "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" 100
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "driver_rung2_mir_producer_parity_owner.sh"
@@ -3434,9 +3438,9 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" "self MIR reopened AST compatibility text"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     '"expr0_graph":{'
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     "missing expression graph was accepted"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
     "invalid expression graph was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "producer-first source/MIR parity ok"
 require_text "tests/self_host_progress_metric_smoke.sh" '"$ROOT_DIR/src/self_hosted/mir"'

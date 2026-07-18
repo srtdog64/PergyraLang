@@ -114,5 +114,11 @@ require_term "src/runtime/pgy_runtime_cancel_probe.h" \
     "PGY_RT_DECL void"
 reject_term "src/runtime/pgy_runtime_cancel_probe.h" \
     "static _Atomic(bool (*)(void)) g_pgy_cancel_probe;"
+require_term "src/runtime/pgy_parallel.h" \
+    '#include "runtime/pgy_parallel_task_foundation.h"'
+require_term "src/runtime/pgy_parallel_task_foundation.h" \
+    "pgy_cancel_node_create(PgyCancelNode *parent)"
+reject_term "src/runtime/pgy_parallel.h" \
+    "pgy_cancel_node_create(PgyCancelNode *parent)"
 
 echo "[runtime-cext-contract] program generics stay local; stateful extern storage has one owner"
