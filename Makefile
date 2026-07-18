@@ -1895,6 +1895,7 @@ test-capability: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
 	    -o $(BUILD_DIR)/test_capability$(EXEEXT) \
 	    $(if $(filter .exe,$(EXEEXT)),$(THREAD_LINK_LIB) -lbcrypt -ladvapi32 -liphlpapi,$(THREAD_LINK_LIB) -lssl -lcrypto)
 	$(call pgy_run_native,$(BUILD_DIR)/test_capability$(EXEEXT))
+	$(call pgy_run_native,$(BUILD_DIR)/test_capability$(EXEEXT) intersect)
 
 # Resource budget gate (the quantitative sandbox axis): a per-kind budget the
 # loader imposes; metered ops charge their kind and panic fail-closed on overrun.
@@ -1968,6 +1969,13 @@ test-budget-twin-parity:
 	@echo "=== Budget-Charge Twin Parity (source SoT) ==="
 	$(BASH) tests/capability/run_budget_twin_parity.sh
 
+# Capability grant-policy twin parity (docs/190 A4): both the C-inline and
+# LLVM-object twins must compute env INTERSECT manifest, or the two backends
+# diverge on capability decisions. Pure textual -- always load-bearing.
+test-cap-env-manifest-parity:
+	@echo "=== Capability env-INTERSECT-manifest Twin Parity (source SoT) ==="
+	$(BASH) tests/capability/run_cap_env_manifest_parity.sh
+
 # Channel runtime twin op-set SoT guard (target #4 dual-backend unification):
 # every op the C-inline channel twin exposes must have a matching LLVM export, or
 # a program using that op compiles on C but diverges/fails on LLVM. Catches
@@ -1983,7 +1991,7 @@ test-channel-twin-parity:
 # and both the static (declared>=used) and dynamic (runtime fail-close, C/LLVM
 # parity) enforcement gates. Wire this into CI to keep the sandbox enforcement
 # continuously protected.
-test-sandbox-gates: test-capability test-budget test-budget-twin-parity test-channel-twin-parity test-capability-manifest test-capability-runtime
+test-sandbox-gates: test-capability test-budget test-budget-twin-parity test-cap-env-manifest-parity test-channel-twin-parity test-capability-manifest test-capability-runtime
 	@echo "=== Sandbox gate family (capability + budget) PASS ==="
 
 test-abi: $(ABI_TEST) $(PGY)

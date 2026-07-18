@@ -266,7 +266,11 @@ pgy_runtime_panic_authority_mismatch_export(const char *reason)
 
 /* Content capability gate -- external (non-inline) twins of the static-inline
  * definitions in pgy_runtime_panic_checked_inline.h, for the LLVM-linked runtime
- * object. One process-wide granted set; gated ops panic fail-closed outside it.
+ * object. The effective grant is env INTERSECT manifest (docs/190 A4): the host
+ * env (PGY_CAP_GRANT) and a loader's manifest restrict independently and the
+ * more restrictive wins (fail-closed) -- policy-identical to the C twin, which
+ * this used to disagree with (LLVM let env overwrite the manifest, C let the
+ * manifest overwrite env). Both components default to PGY_CAP_ALL.
  * See pgy_runtime_capability.h and docs/semantics/15.
  *
  * pgy_runtime_lib.c is compiled twice -- once to the .bc (clang, runtime module
@@ -277,16 +281,18 @@ pgy_runtime_panic_authority_mismatch_export(const char *reason)
  * only the native object defines it; the .bc build (PGY_RUNTIME_BC_BUILD)
  * declares it extern so every reference resolves to that single definition. */
 #ifdef PGY_RUNTIME_BC_BUILD
-extern uint32_t g_pgy_cap_granted;
+extern uint32_t g_pgy_cap_manifest;
+extern uint32_t g_pgy_cap_env;
 #else
-uint32_t g_pgy_cap_granted = PGY_CAP_ALL;
+uint32_t g_pgy_cap_manifest = PGY_CAP_ALL;
+uint32_t g_pgy_cap_env = PGY_CAP_ALL;
 #endif
 
-/* Apply the host PGY_CAP_GRANT restriction exactly once, before the first gated
- * op observes the granted set (mirror of the inline twin's env latch in
- * pgy_runtime_panic_checked_inline.h). pgy_cap_require_export -- the critical
- * path every gated ambient op goes through -- is bitcode-stripped to this one
- * runtime object, so this latch runs on the single shared g_pgy_cap_granted. */
+/* Latch the host PGY_CAP_GRANT restriction into the env component exactly once,
+ * before the first gated op observes the grant (mirror of the inline twin's env
+ * latch in pgy_runtime_panic_checked_inline.h). pgy_cap_require_export -- the
+ * critical path every gated ambient op goes through -- is bitcode-stripped to
+ * this one runtime object, so this latch runs on the single shared masks. */
 static int g_pgy_cap_env_applied = 0;
 
 static void
@@ -298,36 +304,46 @@ pgy_cap_apply_env_once(void)
         return;
     g_pgy_cap_env_applied = 1;
     if (pgy_cap_env_grant(&env_mask))
-        g_pgy_cap_granted = env_mask;
+        g_pgy_cap_env = env_mask;
+}
+
+/* Effective grant = intersection; the more restrictive of env and manifest
+ * wins (fail-closed). */
+static uint32_t
+pgy_cap_effective(void)
+{
+    pgy_cap_apply_env_once();
+    return g_pgy_cap_env & g_pgy_cap_manifest;
 }
 
 void
 pgy_cap_set_manifest_export(uint32_t mask)
 {
-    g_pgy_cap_granted = mask;
+    g_pgy_cap_manifest = mask;
 }
 
 void
 pgy_cap_grant_all_export(void)
 {
-    g_pgy_cap_granted = PGY_CAP_ALL;
+    /* Resets only the manifest component; a host env restriction still holds. */
+    g_pgy_cap_manifest = PGY_CAP_ALL;
 }
 
 uint32_t
 pgy_cap_granted_export(void)
 {
-    pgy_cap_apply_env_once();
-    return g_pgy_cap_granted;
+    return pgy_cap_effective();
 }
 
 void
 pgy_cap_require_export(uint32_t cap, const char *op)
 {
-    pgy_cap_apply_env_once();
-    if ((g_pgy_cap_granted & cap) != cap) {
+    uint32_t granted = pgy_cap_effective();
+
+    if ((granted & cap) != cap) {
         fprintf(stderr, "%s capability op=%s required=0x%x granted=0x%x\n",
                 PGY_RUNTIME_PANIC_PREFIX, op != NULL ? op : "<op>",
-                (unsigned)cap, (unsigned)g_pgy_cap_granted);
+                (unsigned)cap, (unsigned)granted);
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_CAPABILITY_DENIED,
                           PGY_RUNTIME_PANIC_REASON_CAPABILITY_DENIED);
     }
@@ -337,7 +353,7 @@ pgy_cap_require_export(uint32_t cap, const char *op)
  * pgy_runtime_panic_checked_inline.h. One process-wide per-kind budget; metered
  * ops panic fail-closed on overrun. See pgy_runtime_budget.h and docs/15. */
 /* Single instance across the .bc and the native cache object (see the
- * g_pgy_cap_granted note above for why) -- the .bc build only declares it. */
+ * capability-mask note above for why) -- the .bc build only declares it. */
 #ifdef PGY_RUNTIME_BC_BUILD
 extern PgyBudgetState g_pgy_budget;
 #else

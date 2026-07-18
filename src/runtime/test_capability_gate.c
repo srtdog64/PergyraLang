@@ -14,6 +14,7 @@
 #include "pgy_runtime.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int
@@ -42,6 +43,36 @@ main(int argc, char **argv)
         pgy_render_clear(0);          /* must panic: RENDER not granted */
         printf("ERROR: render op returned without a capability panic\n");
         return 1;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "intersect") == 0) {
+        /* env INTERSECT manifest (docs/190 A4): the host env restricts to
+         * {io_read, clock}, a loader's manifest restricts to {io_read, audio};
+         * the effective grant is the intersection {io_read} -- neither side can
+         * widen the other (fail-closed). Set the env before the first gated
+         * access so the env component latches from it. */
+        uint32_t eff;
+        uint32_t expect = PGY_CAP_IO_READ;   /* {io_read,clock} & {io_read,audio} */
+#ifdef _WIN32
+        _putenv_s("PGY_CAP_GRANT", "io_read,clock");
+#else
+        setenv("PGY_CAP_GRANT", "io_read,clock", 1);
+#endif
+        pgy_cap_set_manifest_export(PGY_CAP_IO_READ | PGY_CAP_AUDIO);
+        eff = pgy_cap_granted_export();
+        if (eff != expect) {
+            printf("  [FAIL] intersect: got 0x%x expected 0x%x (env & manifest)\n",
+                   (unsigned)eff, (unsigned)expect);
+            return 1;
+        }
+        if ((eff & PGY_CAP_CLOCK) != 0 || (eff & PGY_CAP_AUDIO) != 0) {
+            printf("  [FAIL] intersect: a one-sided cap leaked past the"
+                   " intersection (0x%x)\n", (unsigned)eff);
+            return 1;
+        }
+        printf("  [PASS] intersect: env{io_read,clock} & manifest{io_read,audio}"
+               " = 0x%x (clock/audio each excluded)\n", (unsigned)eff);
+        return 0;
     }
 
     printf("=== Capability Gate Test ===\n");

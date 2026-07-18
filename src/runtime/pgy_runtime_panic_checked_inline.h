@@ -173,64 +173,85 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
  * PGY_CAP_ALL so trusted programs are unaffected; a loader imposes a restricted
  * manifest before running untrusted content. See pgy_runtime_capability.h.
  *
- * The granted set must be a single process-wide value. The C backend used to
- * hold it in a function-local static on the premise of "one single-TU C
+ * The effective grant is env INTERSECT manifest (docs/190 A4): the host env
+ * (PGY_CAP_GRANT) and a loader's manifest each restrict independently, and the
+ * more restrictive of the two always wins (fail-closed) -- neither can widen
+ * the other, so content cannot grant itself past a host restriction. Both
+ * components default to PGY_CAP_ALL (unrestricted). This matches the LLVM twin
+ * in pgy_runtime_lib_authority_file_core.h byte-for-byte in policy; the two
+ * backends used to disagree (C let the manifest win, LLVM let env win).
+ *
+ * The mask pair must be a single process-wide value. The C backend used to
+ * hold the grant in a function-local static on the premise of "one single-TU C
  * output" -- but the extern runtime object made the C leg a two-TU world
- * (emitted program + cext object), which split this state across two copies
- * (docs/190 A1). So pgy_cap_granted_slot is PGY_RT_DECL: the cext object owns
- * the one definition (and thus the one `granted`), the emitted program links
- * to it, and every accessor below -- inlined per TU or not -- routes through
- * this single slot, so a loader's set_manifest and an ambient gate's require
- * see the same mask. In inline mode (PGY_RUNTIME_INLINE / the .bc default
- * build) it collapses to the old static-inline form. The LLVM build resolves
- * to the separate external twin in the runtime object (excluded from inlined
- * bitcode, llvm_fn_is_capability_runtime).
+ * (emitted program + cext object), which split the state across two copies
+ * (docs/190 A1). So pgy_cap_masks_slot is PGY_RT_DECL: the cext object owns the
+ * one definition, the emitted program links to it, and every accessor below --
+ * inlined per TU or not -- routes through this single slot, so a loader's
+ * set_manifest and an ambient gate's require see the same masks. In inline mode
+ * (PGY_RUNTIME_INLINE / the .bc default build) it collapses to the old
+ * static-inline form. The LLVM build resolves to the separate external twin in
+ * the runtime object (excluded from inlined bitcode, llvm_fn_is_capability_runtime).
  * ================================================================= */
 
-PGY_RT_DECL uint32_t *
-pgy_cap_granted_slot(void)
+typedef struct {
+    uint32_t manifest;    /* loader grant (pgy_cap_set_manifest_export) */
+    uint32_t env;         /* host PGY_CAP_GRANT, latched once */
+    int      env_latched;
+} PgyCapMasks;
+
+PGY_RT_DECL PgyCapMasks *
+pgy_cap_masks_slot(void)
 #ifndef PGY_RUNTIME_DECLS_ONLY
 {
-    static uint32_t granted = PGY_CAP_ALL;
-    static int env_applied = 0;
+    static PgyCapMasks m = { PGY_CAP_ALL, PGY_CAP_ALL, 0 };
 
-    if (!env_applied) {
+    if (!m.env_latched) {
         unsigned env_mask;
 
-        env_applied = 1;
+        m.env_latched = 1;
         if (pgy_cap_env_grant(&env_mask))
-            granted = env_mask;   /* host PGY_CAP_GRANT restricts the grant */
+            m.env = env_mask;   /* host PGY_CAP_GRANT restricts the grant */
     }
-    return &granted;
+    return &m;
 }
 #else
 ;
 #endif
 
+/* The effective grant every gate checks: intersection of both restrictions. */
+static inline uint32_t
+pgy_cap_effective_grant(void)
+{
+    PgyCapMasks *m = pgy_cap_masks_slot();
+    return m->env & m->manifest;
+}
+
 static inline void
 pgy_cap_set_manifest_export(uint32_t mask)
 {
-    *pgy_cap_granted_slot() = mask;
+    pgy_cap_masks_slot()->manifest = mask;
 }
 
 static inline void
 pgy_cap_grant_all_export(void)
 {
-    *pgy_cap_granted_slot() = PGY_CAP_ALL;
+    /* Resets only the manifest component; a host env restriction still holds. */
+    pgy_cap_masks_slot()->manifest = PGY_CAP_ALL;
 }
 
 static inline uint32_t
 pgy_cap_granted_export(void)
 {
-    return *pgy_cap_granted_slot();
+    return pgy_cap_effective_grant();
 }
 
-/* Fail-closed gate: every bit in `cap` must be granted, else panic with a
- * traceable record naming the operation and the required/granted masks. */
+/* Fail-closed gate: every bit in `cap` must be in the effective grant, else
+ * panic with a traceable record naming the operation and the masks. */
 static inline void
 pgy_cap_require_export(uint32_t cap, const char *op)
 {
-    uint32_t granted = *pgy_cap_granted_slot();
+    uint32_t granted = pgy_cap_effective_grant();
 
     if ((granted & cap) != cap) {
         fprintf(stderr, "%s capability op=%s required=0x%x granted=0x%x\n",
