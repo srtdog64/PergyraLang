@@ -10631,9 +10631,18 @@ RT 계열.
     슬롯 정합(WO-RT·C7·C13·slot always-on)을 marginal 이득에 리스크 ③ `.bc`
     strip-list가 바로 이 계열을 제외하는 것과 같은 민감도 신호. qubit/intent_
     trace/io_qubit(뮤텍스/IO/feature state)=변환가능하나 동일 margin으로 보류.
-  - **잔여**: `.bc` regen(default모드 no-op이라 내용불변, mtime만), cext-
-    contract 게이트 Makefile/CI 배선, 협업 트리 full backend-compare(현 msys
-    fork-exhaustion으로 shard 필요).
+  - **잔여**: `.bc` regen(default모드 no-op이라 내용불변, mtime만), 협업 트리
+    full backend-compare(현 msys fork-exhaustion으로 shard 필요).
+  - **동시성 클러스터(pgy_parallel*.h + lane_scheduler, 8파일·~74전역·~57함수)
+    — full-send 지시받았으나 원자적 미완**: 착수했다 revert. 이유=**교차파일
+    forward decl**(`pgy_blocking_pool_shutdown`는 parallel.h 선언/blocking.h
+    정의; `pgy_current_cancel_node`도 유사) → 8파일 원자 변환 필수, 부분변환은
+    빌드 깨짐(DECLS_ONLY에서 static-inline 정의 vs extern 선언 충돌 실증). +
+    C13/WO-RT 동시성 코어라 state-split 버그가 단일TU backend-compare에 안 잡힘
+    (parallel-suite 필요). **단일TU 이득 0**(inline이 이미 단일인스턴스). →
+    racing-commit 맥락에서 concurrency 코어 8파일 원자 변환은 리스크 과다 판정,
+    **비-racing 전용 패스**(8파일 동시 변환 + parallel-suite 게이트)로 분리
+    권고. 채널/큐/slot은 제네릭이라 program-local(BDFL 도메인).
 
 **BDFL 판정 2건(수리 아님 — 언어 정체성 결정)**:
 - **C2 `+ - *` wrap**: 이미 **정착된 결정**(signed-default 메모: wrap은
