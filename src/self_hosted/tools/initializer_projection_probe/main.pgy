@@ -47,7 +47,8 @@ func ProbeInitializerFacts(
 func ProbeExpressionSurfacesWithScalarOperand(
     artifact: AstTreeArtifact,
     surfaces: SemanticAstExpressionSurfaceFacts,
-    replacement: String
+    replacement: String,
+    replacement_kind: Int
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
     let kinds: Array<Int> = graph.arena.node_kinds;
@@ -57,7 +58,7 @@ func ProbeExpressionSurfacesWithScalarOperand(
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
         if kinds[i] == AstExpressionNodeIntegerLiteral() &&
             texts[i] == "2" {
-            ArraySet(kinds, i, AstExpressionNodeLeaf());
+            ArraySet(kinds, i, replacement_kind);
             ArraySet(texts, i, replacement);
             changed = true;
             break;
@@ -412,7 +413,8 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
         mode == "--direct-call-nested-mismatch" {
         let damaged_arguments: SemanticAstExpressionSurfaceFacts =
             ProbeExpressionSurfacesWithScalarOperand(
-                artifact, analysis.expression_surfaces, "\"bad\""
+                artifact, analysis.expression_surfaces, "\"bad\"",
+                AstExpressionNodeStringLiteral()
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             artifact, true, damaged_arguments, false
@@ -635,12 +637,15 @@ func Main() -> Void with caps env {
     if mode == "--unknown-scalar-operand" ||
         mode == "--scalar-type-mismatch" {
         let replacement: String = "missing_scalar_operand";
+        let replacement_kind: Int = AstExpressionNodeLeaf();
         if mode == "--scalar-type-mismatch" {
             replacement = "\"bad\"";
+            replacement_kind = AstExpressionNodeStringLiteral();
         }
         let damaged_surfaces: SemanticAstExpressionSurfaceFacts =
             ProbeExpressionSurfacesWithScalarOperand(
-                artifact, analysis.expression_surfaces, replacement
+                artifact, analysis.expression_surfaces, replacement,
+                replacement_kind
             );
         analysis = SemanticAstArtifactAnalyzeFromExpressionSurfaces(
             artifact, true, damaged_surfaces, false
