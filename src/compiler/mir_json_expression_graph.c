@@ -270,6 +270,153 @@ mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
     return call_root;
 }
 
+static char *
+mir_json_expression_graph_struct_literal_text(const char *name)
+{
+    size_t name_length;
+    char *text;
+
+    if (name == NULL)
+        return NULL;
+    name_length = strlen(name);
+    if (name_length > SIZE_MAX - 5)
+        return NULL;
+    text = malloc(name_length + 5);
+    if (text == NULL)
+        return NULL;
+    memcpy(text, name, name_length);
+    memcpy(text + name_length, " { }", 5);
+    return text;
+}
+
+static char *
+mir_json_expression_graph_struct_binding_text(const char *name,
+                                               const char *value)
+{
+    size_t name_length;
+    size_t value_length;
+    char *text;
+
+    if (name == NULL || value == NULL)
+        return NULL;
+    name_length = strlen(name);
+    value_length = strlen(value);
+    if (name_length > SIZE_MAX - 3
+        || value_length > SIZE_MAX - name_length - 3) {
+        return NULL;
+    }
+    text = malloc(name_length + value_length + 3);
+    if (text == NULL)
+        return NULL;
+    memcpy(text, name, name_length);
+    memcpy(text + name_length, ": ", 2);
+    memcpy(text + name_length + 2, value, value_length + 1);
+    return text;
+}
+
+static char *
+mir_json_expression_graph_struct_field_text(const char *prefix,
+                                             const char *binding)
+{
+    size_t prefix_length;
+    size_t binding_length;
+    size_t separator_length;
+    size_t stem_length;
+    char *text;
+
+    if (prefix == NULL || binding == NULL)
+        return NULL;
+    prefix_length = strlen(prefix);
+    binding_length = strlen(binding);
+    if (prefix_length < 4
+        || prefix[prefix_length - 2] != ' '
+        || prefix[prefix_length - 1] != '}') {
+        return NULL;
+    }
+    stem_length = prefix_length - 2;
+    separator_length = prefix[stem_length - 1] == '{' ? 1 : 2;
+    if (stem_length > SIZE_MAX - separator_length - 3
+        || binding_length > SIZE_MAX - stem_length - separator_length - 3) {
+        return NULL;
+    }
+    text = malloc(stem_length + separator_length + binding_length + 3);
+    if (text == NULL)
+        return NULL;
+    memcpy(text, prefix, stem_length);
+    memcpy(text + stem_length,
+           separator_length == 1 ? " " : ", ", separator_length);
+    memcpy(text + stem_length + separator_length, binding, binding_length);
+    memcpy(text + stem_length + separator_length + binding_length, " }", 3);
+    return text;
+}
+
+static int
+mir_json_expression_graph_build_struct(MIRJsonExpressionGraph *graph,
+                                       ASTNode *expr)
+{
+    ASTNode *callee = ast_call_callee(expr);
+    const char *name;
+    int literal_root;
+    int nominal_root;
+    char *text;
+
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return -1;
+    name = ast_identifier_name(callee);
+    nominal_root = mir_json_expression_graph_build(graph, callee);
+    if (nominal_root < 0)
+        return -1;
+    text = mir_json_expression_graph_struct_literal_text(name);
+    literal_root = mir_json_expression_graph_append(
+        graph, "struct_literal", text, nominal_root, -1, "none", "");
+    if (literal_root < 0) {
+        free(text);
+        return -1;
+    }
+    for (size_t i = 0; i < ast_call_arg_count(expr); i++) {
+        const char *field_name = ast_call_argument_name(expr, i);
+        ASTNode *field_value = ast_call_argument(expr, i);
+        char *field_name_text;
+        int field_name_root;
+        int field_value_root;
+        int binding_root;
+
+        if (field_name == NULL || field_value == NULL)
+            return -1;
+        field_name_text = mir_json_expression_graph_copy_text(field_name);
+        field_name_root = mir_json_expression_graph_append(
+            graph, "struct_field_name", field_name_text,
+            -1, -1, "none", "");
+        if (field_name_root < 0) {
+            free(field_name_text);
+            return -1;
+        }
+        field_value_root = mir_json_expression_graph_build(graph, field_value);
+        if (field_value_root < 0)
+            return -1;
+        text = mir_json_expression_graph_struct_binding_text(
+            field_name, graph->nodes[field_value_root].text);
+        binding_root = mir_json_expression_graph_append(
+            graph, "struct_field_binding", text,
+            field_name_root, field_value_root, "none", "");
+        if (binding_root < 0) {
+            free(text);
+            return -1;
+        }
+        text = mir_json_expression_graph_struct_field_text(
+            graph->nodes[literal_root].text,
+            graph->nodes[binding_root].text);
+        literal_root = mir_json_expression_graph_append(
+            graph, "struct_field", text,
+            literal_root, binding_root, "none", "");
+        if (literal_root < 0) {
+            free(text);
+            return -1;
+        }
+    }
+    return literal_root;
+}
+
 static int
 mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
 {
@@ -319,6 +466,8 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
         break;
     }
     case AST_CALL:
+        if (ast_call_uses_braced_initializer_syntax(expr))
+            return mir_json_expression_graph_build_struct(graph, expr);
         return mir_json_expression_graph_build_call(graph, expr);
     case AST_ARRAY_LITERAL:
         return mir_json_expression_graph_build_array(graph, expr);

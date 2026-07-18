@@ -1494,12 +1494,14 @@ beyond the lexer:
 - **Canonical MIR expression ownership** -- self-produced MIR canonicalization
   consumes `expr0_graph` through the MIR expression owner and rejects a
   missing or invalid graph. The native C oracle now projects the bounded
-  `let`/`Log` scalar, binary, direct-call, array-literal, and postfix-try slice
-  into that same graph schema without reparsing expression text. The public
+  `let`/`Log` scalar, binary, direct-call, array-literal, postfix-try, and named
+  struct-literal slice into that same graph schema without reparsing expression
+  text. The public
   `--self-driver` live gate compares canonical facts and runtime output for
-  `let_log`, `array_return_literal`, and `option_try`. Unsupported native AST
-  shapes remain fail-closed; the named oracle bridge is retained only for old
-  graph-less artifacts and is unavailable to the hard consumer.
+  `let_log`, `array_return_literal`, `option_try`, and `struct_point`.
+  Unsupported native AST shapes remain fail-closed; the named oracle bridge is
+  retained only for old graph-less artifacts and is unavailable to the hard
+  consumer.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core
