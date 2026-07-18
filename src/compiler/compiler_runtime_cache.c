@@ -31,6 +31,8 @@
 #ifdef _WIN32
 #include <sys/stat.h>
 #include <process.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #define PGY_STAT _stat
 #define PGY_STAT_STRUCT struct _stat
 #define PGY_GETPID _getpid
@@ -255,6 +257,45 @@ compiler_cext_object_path(PgyOptProfile opt_profile,
 }
 
 /*
+ * Publish a freshly built object into the shared cache path (docs/190 B2).
+ *
+ * Writing cc's output straight to the cache path let a concurrent builder --
+ * the local compare harness defaults to 8 jobs -- or a killed cc leave a torn
+ * object behind, and because a partial write still carries a NEWER mtime than
+ * every source, the freshness check would call that garbage "fresh" forever.
+ * So each builder compiles to its own scratch path and publishes here.
+ *
+ * The publish must be a single step. POSIX rename() replaces atomically. Plain
+ * rename() on Windows REFUSES an existing target, and remove()-then-rename()
+ * is not equivalent: besides losing the race when a peer recreates the target
+ * in between, it leaves a window where the cache path does not exist at all,
+ * so a concurrent build that already passed the freshness check fails to link.
+ * MoveFileEx(MOVEFILE_REPLACE_EXISTING) is the Windows one-step replace.
+ */
+static bool
+compiler_publish_runtime_object(const char *tmp_path, const char *final_path)
+{
+    time_t published;
+
+#ifdef _WIN32
+    if (MoveFileExA(tmp_path, final_path, MOVEFILE_REPLACE_EXISTING))
+        return true;
+#else
+    if (rename(tmp_path, final_path) == 0)
+        return true;
+#endif
+
+    /* A peer publisher may simply have won the race. Every builder compiles the
+     * same sources with the same recipe, so a peer's object is ours too: keep
+     * theirs and drop our scratch copy rather than failing the build. */
+    if (compiler_file_mtime(final_path, &published)) {
+        remove(tmp_path);
+        return true;
+    }
+    return false;
+}
+
+/*
  * Ensure a fresh runtime object exists for (opt_profile, observability) and
  * return its path (caller frees). The single build recipe both backends share.
  *
@@ -373,18 +414,7 @@ compiler_runtime_object_ensure(PgyOptProfile opt_profile,
         return NULL;
     }
 
-    /* Publish atomically (docs/190 B2). Writing straight to the cache path let
-     * a concurrent builder -- the local compare harness defaults to 8 jobs --
-     * or a killed cc leave a torn object behind, and because a partial write
-     * still carries a NEWER mtime than every source, the freshness check would
-     * then call that garbage "fresh" forever. rename replaces atomically on
-     * POSIX; Windows cannot replace an existing target, so unlink first, which
-     * is still far tighter than leaving the real path truncated for the whole
-     * compile. Two racing builders now each publish a complete object. */
-#ifdef _WIN32
-    remove(obj_path);
-#endif
-    if (rename(tmp_path, obj_path) != 0) {
+    if (!compiler_publish_runtime_object(tmp_path, obj_path)) {
         remove(tmp_path);
         free(tmp_path);
         free(obj_path);
