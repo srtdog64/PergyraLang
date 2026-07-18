@@ -79,38 +79,88 @@ compiler_file_mtime(const char *path, time_t *mtime_out)
  * emitted binary (the same failure mode as the .bc list, docs/189 C6). Fail
  * closed instead: any .h/.c under the runtime directory newer than the object
  * makes it stale, and an unreadable directory refuses freshness outright.
+ *
+ * Three further blind spots are closed here (docs/190 B6/B7):
+ *   - the scan RECURSES; the flat readdir never saw src/runtime/async/, whose
+ *     scheduler/fiber sources the runtime TU includes, so editing them left the
+ *     object "fresh";
+ *   - each directory's own mtime is a dependency, which is what catches a
+ *     DELETED source: removing a file leaves no surviving file newer than the
+ *     object, but it does bump the containing directory's mtime;
+ *   - the comparison is `<=`, not `<`. st_mtime has 1-second granularity, so an
+ *     edit landing in the same second the object was written otherwise reads as
+ *     fresh -- a wide window when sources and the object sit on different
+ *     filesystems (E:\ source tree vs C:\...\Temp object). At worst `<=` costs
+ *     one redundant rebuild; `<` costs a silently stale link.
+ * The depth cap is a cheap guard against a symlinked cycle under the tree.
  */
+#define PGY_RUNTIME_SCAN_MAX_DEPTH 8
+
 static bool
-compiler_runtime_dir_has_newer_source(const char *dir_path, time_t obj_mtime)
+compiler_runtime_dir_has_newer_source_at(const char *dir_path, time_t obj_mtime,
+                                         int depth)
 {
-    DIR *dir = opendir(dir_path);
+    DIR *dir;
+    struct dirent *entry;
+    time_t dir_mtime;
+
+    if (depth > PGY_RUNTIME_SCAN_MAX_DEPTH)
+        return true; /* fail closed: refuse to prove freshness past the cap */
+
+    /* A create/delete/rename in this directory bumps its own mtime. */
+    if (!compiler_file_mtime(dir_path, &dir_mtime) || obj_mtime <= dir_mtime)
+        return true;
+
+    dir = opendir(dir_path);
     if (dir == NULL)
         return true; /* fail closed: cannot prove freshness */
 
-    struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
         const char *name = entry->d_name;
         size_t len = strlen(name);
-        bool is_source = (len > 2 && strcmp(name + len - 2, ".h") == 0)
-            || (len > 2 && strcmp(name + len - 2, ".c") == 0);
-        if (!is_source)
+        char path[1024];
+        int written;
+        PGY_STAT_STRUCT st;
+
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
             continue;
 
-        char path[1024];
-        int written = snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+        written = snprintf(path, sizeof(path), "%s/%s", dir_path, name);
         if (written < 0 || (size_t)written >= sizeof(path)) {
             closedir(dir);
             return true; /* fail closed on unrepresentable path */
         }
+        if (PGY_STAT(path, &st) != 0) {
+            closedir(dir);
+            return true; /* fail closed: cannot stat a tree entry */
+        }
 
-        time_t dep_mtime;
-        if (!compiler_file_mtime(path, &dep_mtime) || obj_mtime < dep_mtime) {
+        if ((st.st_mode & S_IFMT) == S_IFDIR) {
+            if (compiler_runtime_dir_has_newer_source_at(path, obj_mtime,
+                                                         depth + 1)) {
+                closedir(dir);
+                return true;
+            }
+            continue;
+        }
+
+        if (!(len > 2 && (strcmp(name + len - 2, ".h") == 0
+                          || strcmp(name + len - 2, ".c") == 0)))
+            continue;
+
+        if (obj_mtime <= st.st_mtime) {
             closedir(dir);
             return true;
         }
     }
     closedir(dir);
     return false;
+}
+
+static bool
+compiler_runtime_dir_has_newer_source(const char *dir_path, time_t obj_mtime)
+{
+    return compiler_runtime_dir_has_newer_source_at(dir_path, obj_mtime, 0);
 }
 
 bool
@@ -133,7 +183,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
 
         if (!compiler_file_mtime(extra_deps[i], &dep_mtime))
             return false;
-        if (cache_mtime < dep_mtime)
+        if (cache_mtime <= dep_mtime)   /* `<=`: same-second edits (docs/190 B7) */
             return false;
     }
     if (compiler_runtime_dir_has_newer_source(PGY_RUNTIME_DIR, cache_mtime))
