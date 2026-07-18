@@ -10633,16 +10633,22 @@ RT 계열.
     trace/io_qubit(뮤텍스/IO/feature state)=변환가능하나 동일 margin으로 보류.
   - **잔여**: `.bc` regen(default모드 no-op이라 내용불변, mtime만), 협업 트리
     full backend-compare(현 msys fork-exhaustion으로 shard 필요).
-  - **동시성 클러스터(pgy_parallel*.h + lane_scheduler, 8파일·~74전역·~57함수)
-    — full-send 지시받았으나 원자적 미완**: 착수했다 revert. 이유=**교차파일
-    forward decl**(`pgy_blocking_pool_shutdown`는 parallel.h 선언/blocking.h
-    정의; `pgy_current_cancel_node`도 유사) → 8파일 원자 변환 필수, 부분변환은
-    빌드 깨짐(DECLS_ONLY에서 static-inline 정의 vs extern 선언 충돌 실증). +
-    C13/WO-RT 동시성 코어라 state-split 버그가 단일TU backend-compare에 안 잡힘
-    (parallel-suite 필요). **단일TU 이득 0**(inline이 이미 단일인스턴스). →
-    racing-commit 맥락에서 concurrency 코어 8파일 원자 변환은 리스크 과다 판정,
-    **비-racing 전용 패스**(8파일 동시 변환 + parallel-suite 게이트)로 분리
-    권고. 채널/큐/slot은 제네릭이라 program-local(BDFL 도메인).
+  - **✅ 동시성 클러스터 extern 완료 (커밋 c16459d4, 8파일 원자 변환)**:
+    pgy_parallel*.h + lane_scheduler(pool/lane/coroutine/blocking/task_ops/run/
+    chunk). 2회 시도·revert 후(교차파일 forward decl `pgy_blocking_pool_shutdown`
+    parallel.h선언/blocking.h정의 → 원자 변환 필수), 원자적으로 완료: 함수→
+    PGY_RT_DECL+본문가드, forward decl→PGY_RT_DECL, pool 전역(g_pgy_pool/
+    g_pgy_blocking_pool/__thread g_pgy_coro/lifecycle mutex·atomics/worker TLS)
+    →PGY_RT_GLOBAL 단일인스턴스(init 가드), **내부 non-inline static 헬퍼
+    (worker main·cancel probe·Windows coro 콜백)는 object-local 유지**(object
+    함수만 참조). 채널/큐/slot=제네릭이라 TU-local 불변. **검증**: 3모드 컴파일
+    +parallel-suite byte-identical(channel_sum·backpressure·disjoint_split·
+    join_*·select·scheduler)+parallel-core-contract ok+backend-compare 6샤드
+    byte-identical(C-extern vs LLVM)+emitted-c-warning-clean(-Wall -Wextra
+    -Werror). 단일TU 이득 0이나 아키텍처 균일성 착지(inline이 이미 단일인스턴스).
+  - **★워크스트림 완료**: monomorphic(fb8778c5)+독립 stateful(13553d91)+동시성
+    클러스터(c16459d4) extern / 제네릭 program-local + extern-state 통일(BDFL
+    997c319f 등). `.bc` regen(내용불변). 잔여 없음.
 
 **BDFL 판정 2건(수리 아님 — 언어 정체성 결정)**:
 - **C2 `+ - *` wrap**: 이미 **정착된 결정**(signed-default 메모: wrap은
