@@ -151,10 +151,14 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_expression_graph_build(&graph, expr)"
 require_text "src/compiler/mir_json_expression_graph.c" \
     "case AST_ARRAY_LITERAL:"
+require_text "src/compiler/mir_json_expression_graph.c" \
+    'if (type == TOKEN_QUESTION)'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$array_mir_source" "array-return-literal"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$try_mir_source" "option-try"'
 forbid_text "src/compiler/mir_json_expression_graph.c" \
     "parser_parse"
 forbid_text "src/compiler/mir_json_expression_graph.c" \

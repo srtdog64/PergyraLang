@@ -97,8 +97,10 @@ mir_json_expression_graph_capture_text(ASTNode *expr)
     char *text = ast_capture_inline(expr);
     size_t length;
 
-    if (text == NULL || expr == NULL || expr->type != AST_BINARY)
+    if (text == NULL || expr == NULL
+        || (expr->type != AST_BINARY && expr->type != AST_UNARY)) {
         return text;
+    }
     length = strlen(text);
     if (length >= 2 && text[0] == '(' && text[length - 1] == ')') {
         memmove(text, text + 1, length - 2);
@@ -135,6 +137,8 @@ mir_json_unary_graph_kind(PgyTokenType type)
         return "logical_not";
     if (type == TOKEN_MINUS)
         return "negate";
+    if (type == TOKEN_QUESTION)
+        return "try";
     return NULL;
 }
 

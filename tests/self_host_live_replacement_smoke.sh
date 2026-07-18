@@ -29,6 +29,7 @@ positive="src/self_hosted/semantic/fixture/valid_call_int.pgy"
 negative="src/self_hosted/semantic/fixture/bad_return_type.pgy"
 mir_source="src/self_hosted/mir_lower/fixture/let_log.pgy"
 array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"
+try_mir_source="src/self_hosted/codegen/fixture/option_try.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
@@ -132,6 +133,7 @@ check_live_mir_source() {
 
 check_live_mir_source "$mir_source" "let-log"
 check_live_mir_source "$array_mir_source" "array-return-literal"
+check_live_mir_source "$try_mir_source" "option-try"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \
