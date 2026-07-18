@@ -29,17 +29,32 @@ func ParserExpressionFloatLiteral(text: String) -> ParserExpressionFact {
     if text == "" { return ParserExpressionInvalid(); }
     let kinds: Array<Int> = [AstExpressionNodeFloatLiteral()];
     let texts: Array<String> = [text];
-    let children: Array<Int> = [0];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
     return ParserExpressionFact(
-        true, text, 0, AstExpressionArena(kinds, texts, children, children)
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
+    );
+}
+
+func ParserExpressionIntegerLiteral(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeIntegerLiteral()];
+    let texts: Array<String> = [text];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
     );
 }
 
 func ParserExpressionFactContractReady() -> Bool {
-    let integer: ParserExpressionFact = ParserExpressionLeaf("16");
+    let integer: ParserExpressionFact = ParserExpressionIntegerLiteral("16");
     let floating: ParserExpressionFact = ParserExpressionFloatLiteral("16");
     return integer.ok && floating.ok &&
-        integer.arena.node_kinds[integer.root] == AstExpressionNodeLeaf() &&
+        integer.arena.node_kinds[integer.root] ==
+            AstExpressionNodeIntegerLiteral() &&
         floating.arena.node_kinds[floating.root] ==
             AstExpressionNodeFloatLiteral() &&
         integer.text == floating.text;

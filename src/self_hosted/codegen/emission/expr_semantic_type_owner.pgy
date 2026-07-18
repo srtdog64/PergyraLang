@@ -29,14 +29,6 @@ func CodegenExpressionLeafTypeFromGraph(
         if LookupKindType(env, value, "e") != "" { return Some("Int"); }
         return None;
     }
-    if StringLength(value) > 0 &&
-        CodegenCharAt(value, StringLength(value) - 1) == "L" {
-        return Some("Long");
-    }
-    if StringLength(value) > 0 &&
-        StringIndexOf("0123456789", CodegenCharAt(value, 0)) >= 0 {
-        return Some("Int");
-    }
     return None;
 }
 
@@ -166,6 +158,7 @@ func CodegenExpressionTypeFromGraph(
     );
     if !IsSome(kind_opt) { return None; }
     let kind: Int = UnwrapOption(kind_opt);
+    if kind == AstExpressionNodeIntegerLiteral() { return Some("Int"); }
     if kind == AstExpressionNodeFloatLiteral() { return Some("Float"); }
     if kind == AstExpressionNodeLeaf() {
         return CodegenExpressionLeafTypeFromGraph(graph, node_id, env);

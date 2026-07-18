@@ -51,15 +51,17 @@ func AstExpressionNodeStructFieldName() -> Int { return 26; }
 func AstExpressionNodeGenericTypeActual() -> Int { return 27; }
 func AstExpressionNodeGenericCallee() -> Int { return 28; }
 func AstExpressionNodeFloatLiteral() -> Int { return 29; }
+func AstExpressionNodeIntegerLiteral() -> Int { return 30; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeFloatLiteral();
+        kind <= AstExpressionNodeIntegerLiteral();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
     return kind == AstExpressionNodeLeaf() ||
-        kind == AstExpressionNodeFloatLiteral();
+        kind == AstExpressionNodeFloatLiteral() ||
+        kind == AstExpressionNodeIntegerLiteral();
 }
 
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {

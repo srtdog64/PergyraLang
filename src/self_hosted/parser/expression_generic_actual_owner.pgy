@@ -6,10 +6,11 @@ func ParserExpressionGenericTypeActual(type_name: String) -> ParserExpressionFac
     if type_name == "" { return ParserExpressionInvalid(); }
     let kinds: Array<Int> = [AstExpressionNodeGenericTypeActual()];
     let texts: Array<String> = [type_name];
-    let children: Array<Int> = [0];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
     return ParserExpressionFact(
         true, type_name, 0,
-        AstExpressionArena(kinds, texts, children, children)
+        AstExpressionArena(kinds, texts, left_children, right_children)
     );
 }
 

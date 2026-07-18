@@ -3716,6 +3716,7 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeCallArgument()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeMemberAccess()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeFloatLiteral()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIntegerLiteral()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsScalarLeaf("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArityOpt("
@@ -3733,6 +3734,7 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeName("
 require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExpressionDirectCallCalleeContractReady("
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionFloatLiteral(base);"
+require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionIntegerLiteral(base);"
 reject_file "src/self_hosted/codegen/input/source_artifact_owner.pgy"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     'import "../../compiler/driver_pipeline_owner.pgy";'
@@ -3763,10 +3765,27 @@ reject_text "tests/self_hosted/parity/codegen_role_parity_leg.sh" \
     "PARSER_BIN"
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     'if kind == AstExpressionNodeFloatLiteral() { return "Float"; }'
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    'if kind == AstExpressionNodeIntegerLiteral() { return "Int"; }'
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "if kind == AstExpressionNodeFloatLiteral()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'if kind == AstExpressionNodeIntegerLiteral() { return text; }'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" 'StringIndexOf("0123456789"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "func CodegenExpressionLeafTypeFromGraph(" 'StringIndexOf("0123456789"'
+reject_function_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "func SemanticExpressionGraphLeafScalarTypeName(" "IsIntLiteral("
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeFloatLiteral() { return "float_literal"; }'
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'AstExpressionNodeIntegerLiteral() { return "integer_literal"; }'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'if kind == "integer_literal" {'
+reject_regex_under "src/self_hosted" "children, children"
+require_text "tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh" \
+    "misclassified integer literal was accepted"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParserExpressionPipeGraphContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPipeGraphContractReady()"

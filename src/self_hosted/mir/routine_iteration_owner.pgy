@@ -113,13 +113,14 @@ func SelfMirSyntheticLocalExpressionGraph(
 ) -> SemanticExpressionGraphView {
     let kinds: Array<Int> = [AstExpressionNodeLeaf()];
     let texts: Array<String> = [name];
-    let children: Array<Int> = [0];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
     let target_kinds: Array<Int> = [SemanticCallTargetNone()];
     let targets: Array<String> = [""];
     let roots: Array<Int> = [0];
     let has_roots: Array<Bool> = [true];
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        kinds, texts, children, children, target_kinds, targets
+        kinds, texts, left_children, right_children, target_kinds, targets
     );
     let graph: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         SemanticExpressionGraphArenaReady(arena), roots, has_roots, arena

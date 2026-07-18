@@ -17,12 +17,12 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
             echo "[self-host-parity:driver-rung2] $backend range iteration type fact drifted" >&2
             exit 1
         }
-        grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"0"' \
+        grep -Fq '"kind":"loop-init","name":"loop-init","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"0"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-start graph drifted" >&2
             exit 1
         }
-        grep -Fq '"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"3"' \
+        grep -Fq '"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph":{"root":0,"nodes":[{"kind":"integer_literal","text":"3"' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend range-stop graph drifted" >&2
             exit 1
@@ -30,6 +30,8 @@ pgy_selfhost_verify_driver_rung2_iteration_graph() {
         missing_graph="${self_mir_json%.json}.missing-range-stop.mir.json"
         sed 's/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph"/"kind":"branch","name":"branch","result":null,"arg0":"i","arg1":null,"expr0":"0","expr0_graph_removed"/g' \
             "$self_mir_json" >"$missing_graph"
+        pgy_selfhost_verify_driver_rung2_integer_literal_kind \
+            "$backend" "$self_mir_json" "$driver_bin"
     elif [[ "$base" == "for_each" ]]; then
         grep -Fq '"iteration_type_fact_count":2' "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend foreach iteration type fact count drifted" >&2

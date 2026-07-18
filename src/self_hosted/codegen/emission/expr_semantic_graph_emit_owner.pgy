@@ -60,15 +60,6 @@ func RewriteSemanticLeaf(
     if StringLength(text) > 0 && CodegenCharAt(text, 0) == "\"" {
         return text;
     }
-    if StringLength(text) > 0 &&
-        StringIndexOf("0123456789", CodegenCharAt(text, 0)) >= 0 {
-        if CodegenCharAt(text, StringLength(text) - 1) == "L" {
-            return Concat(
-                Substring(text, 0, StringLength(text) - 1), "LL"
-            );
-        }
-        return text;
-    }
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
 }
@@ -89,6 +80,7 @@ func RewriteExprFromSemanticGraph(
     }
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
+    if kind == AstExpressionNodeIntegerLiteral() { return text; }
     if kind == AstExpressionNodeFloatLiteral() {
         if StringIndexOf(text, ".") >= 0 { return text; }
         return Concat(text, ".0");
