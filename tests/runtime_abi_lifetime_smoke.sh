@@ -778,8 +778,10 @@ done
 grep -Fq "scheduler failed to requeue ready fiber" \
     "$ROOT_DIR/src/runtime/async/scheduler.c" ||
     fail "async scheduler worker loop must fail closed on ready-fiber requeue failure"
+grep -Fq "pgy_parallel_array_fits" \
+    "$ROOT_DIR/src/runtime/pgy_parallel_task_foundation.h" ||
+    fail "parallel task foundation must guard allocation sizes"
 for term in \
-    "pgy_parallel_array_fits" \
     "atomic_bool   g_pgy_pool_active" \
     "atomic_bool   g_pgy_pool_shutting_down" \
     "g_pgy_pool_lifecycle_mutex" \
