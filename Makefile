@@ -2389,6 +2389,12 @@ runtime-bc-contract-test-smoke:
 runtime-cext-contract-test-smoke:
 	"$(BASH)" tests/runtime_cext_contract_smoke.sh
 
+# C-leg runtime linkage modes (docs/190 C3): the PGY_RUNTIME_INLINE=1 opt-out
+# and extern-as-default were both unexercised. Proves each mode is really that
+# mode and that they agree on output.
+runtime-inline-optout-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_inline_optout_smoke.sh
+
 surface-boundary-hygiene-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/surface_boundary_hygiene_smoke.sh
 
@@ -2411,6 +2417,7 @@ backend-compare-bc-on-test-smoke: $(PGY)
 redteam-repair-contract-test-smoke: \
 		runtime-bc-contract-test-smoke \
 		runtime-cext-contract-test-smoke \
+		runtime-inline-optout-test-smoke \
 		surface-boundary-hygiene-test-smoke \
 		adversarial-input-test-smoke \
 		emitted-c-warning-clean-test-smoke \
