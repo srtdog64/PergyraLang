@@ -1,0 +1,14 @@
+func Main() -> Void
+{
+    let i: Int = 9
+    let f: Float = i as Float
+    Log(f as Int)
+
+    let g: Float = 7.8
+    Log(g as Int)
+    let wide: Long = g as Long
+    Log(wide)
+
+    let sum: Int = (i as Float + g) as Int
+    Log(sum)
+}

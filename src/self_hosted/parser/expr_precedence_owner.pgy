@@ -2,6 +2,7 @@
 
 import "cursor_owner.pgy";
 import "expression_graph_owner.pgy";
+import "type_name_owner.pgy";
 
 func ParseUnaryFact(
     content: String,
@@ -50,12 +51,51 @@ func ParseUnaryFact(
     return ParsePrimaryFact(content, i, cursor_out);
 }
 
+func ParseCastFact(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>
+) -> ParserExpressionFact {
+    let left: ParserExpressionFact = ParseUnaryFact(
+        content, start, cursor_out
+    );
+    let i: Int = cursor_out[0];
+    while true {
+        let before_ws: Int = i;
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "as") {
+            ArraySet(cursor_out, 0, before_ws);
+            return left;
+        }
+        i = i + 2;
+        ArraySet(cursor_out, 0, i);
+        let target_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if target_type == "" { return ParserExpressionInvalid(); }
+        if target_type == "String" {
+            let call: ParserExpressionFact = ParserExpressionCall(
+                "ToString()", ParserExpressionLeaf("ToString")
+            );
+            left = ParserExpressionCallArgument(
+                Concat("ToString(", Concat(left.text, ")")), call, left
+            );
+        } else {
+            left = ParserExpressionCast(
+                Concat(left.text, Concat(" as ", target_type)),
+                left, target_type
+            );
+        }
+        if !left.ok { return left; }
+    }
+    return left;
+}
+
 func ParseMulFact(
     content: String,
     start: Int,
     inout cursor_out: Array<Int>
 ) -> ParserExpressionFact {
-    let left: ParserExpressionFact = ParseUnaryFact(content, start, cursor_out);
+    let left: ParserExpressionFact = ParseCastFact(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         let before_ws: Int = i;
@@ -66,7 +106,7 @@ func ParseMulFact(
             return left;
         }
         i = i + 1;
-        let right: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
+        let right: ParserExpressionFact = ParseCastFact(content, i, cursor_out);
         i = cursor_out[0];
         let kind: Int = AstExpressionNodeMultiply();
         if op == "/" { kind = AstExpressionNodeDivide(); }
@@ -321,6 +361,32 @@ func ParserExpressionPrecedenceGraphContractReady() -> Bool {
         fact.arena.node_kinds[fact.arena.right_children[addition]] ==
             AstExpressionNodeMultiply() &&
         fact.arena.node_kinds[modulo] == AstExpressionNodeModulo();
+}
+
+func ParserExpressionCastGraphContractReady() -> Bool {
+    let source: String = "i as Float + g";
+    let cursor: Array<Int> = [0];
+    let fact: ParserExpressionFact = ParseExprFact(source, 0, cursor);
+    let string_source: String = "i as String";
+    let string_cursor: Array<Int> = [0];
+    let string_fact: ParserExpressionFact = ParseExprFact(
+        string_source, 0, string_cursor
+    );
+    if !fact.ok || !string_fact.ok ||
+        cursor[0] != StringLength(source) ||
+        string_cursor[0] != StringLength(string_source) ||
+        fact.arena.node_kinds[fact.root] != AstExpressionNodeAdd() ||
+        string_fact.arena.node_kinds[string_fact.root] !=
+            AstExpressionNodeCallArgument() {
+        return false;
+    }
+    let cast_node: Int = fact.arena.left_children[fact.root];
+    let target_node: Int = fact.arena.right_children[cast_node];
+    return fact.arena.node_kinds[cast_node] == AstExpressionNodeCast() &&
+        fact.arena.node_kinds[target_node] ==
+            AstExpressionNodeTypeName() &&
+        fact.arena.node_texts[target_node] == "Float" &&
+        string_fact.arena.node_texts[string_fact.root] == "ToString(i)";
 }
 
 func ParserExpressionUnaryGraphContractReady() -> Bool {

@@ -10,6 +10,7 @@ import "text/struct_literal_field_owner.pgy";
 import "../compiler/symbol_table_owner.pgy";
 import "abi_layout/abi_layout_owner.pgy";
 import "runtime_abi/collection_runtime_owner.pgy";
+import "runtime_abi/checked_arithmetic_runtime_owner.pgy";
 import "runtime_abi/host_io_runtime_owner.pgy";
 import "runtime_abi/math_runtime_owner.pgy";
 import "runtime_abi/option_result_runtime_owner.pgy";

@@ -23,6 +23,18 @@ func SemanticExpressionGraphConcreteScalarValueOwned(
     if !IsSome(kind_opt) { return false; }
     let kind: Int = UnwrapOption(kind_opt);
     if AstExpressionNodeIsScalarLeaf(kind) { return true; }
+    if kind == AstExpressionNodeCast() {
+        let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        return IsSome(operand) &&
+            IsSome(SemanticExpressionGraphCastTargetTypeName(
+                graph, node_id
+            )) && SemanticExpressionGraphConcreteScalarValueOwned(
+                graph, UnwrapOption(operand), constructors, names, types,
+                function_names, function_returns, function_params
+            );
+    }
     if kind == AstExpressionNodeMemberAccess() {
         return IsSome(SemanticExpressionGraphValueReceiverTypeName(
             graph, node_id, constructors, names, types,
@@ -121,6 +133,43 @@ func SemanticExpressionGraphConcreteScalarValueError(
     }
     let kind: Int = UnwrapOption(kind_opt);
     if AstExpressionNodeIsScalarLeaf(kind) { return ""; }
+    if kind == AstExpressionNodeCast() {
+        let operand: Option<Int> = SemanticExpressionGraphLeftChild(
+            graph, node_id
+        );
+        let target: Option<String> =
+            SemanticExpressionGraphCastTargetTypeName(graph, node_id);
+        if !IsSome(operand) || !IsSome(target) {
+            return SemanticError1(
+                "ast_artifact_invalid", "owner", "expression_graph"
+            );
+        }
+        let operand_error: String =
+            SemanticExpressionGraphConcreteScalarValueError(
+                graph, UnwrapOption(operand), constructors, names, types,
+                function_names, function_returns, function_params
+            );
+        if StringLength(operand_error) > 0 { return operand_error; }
+        let target_name: String = UnwrapOption(target);
+        if !SemanticExpressionGraphNumericTypeName(target_name) {
+            return SemanticError3(
+                "builtin_arg_type_mismatch", "func", "as",
+                "expected", "Int|Long|Float", "actual", target_name
+            );
+        }
+        let source_name: String = SemanticExpressionGraphScalarTypeName(
+            graph, UnwrapOption(operand), constructors, names, types,
+            function_names, function_returns
+        );
+        if source_name != "Unknown" &&
+            !SemanticExpressionGraphNumericTypeName(source_name) {
+            return SemanticError3(
+                "builtin_arg_type_mismatch", "func", "as",
+                "expected", "numeric", "actual", source_name
+            );
+        }
+        return "";
+    }
     if kind == AstExpressionNodeMemberAccess() {
         if IsSome(SemanticExpressionGraphValueReceiverTypeName(
             graph, node_id, constructors, names, types,

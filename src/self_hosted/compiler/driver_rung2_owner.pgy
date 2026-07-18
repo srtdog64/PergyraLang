@@ -54,6 +54,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     }
     if !ParserExpressionGraphContractReady() { return "parser_expression_graph"; }
     if !ParserExpressionPrecedenceGraphContractReady() { return "parser_precedence_graph"; }
+    if !ParserExpressionCastGraphContractReady() { return "parser_cast_graph"; }
     if !ParserExpressionUnaryGraphContractReady() { return "parser_unary_graph"; }
     if !ParserExpressionPipeGraphContractReady() { return "parser_pipe_graph"; }
     if !ParserExpressionPostfixGraphContractReady() { return "parser_postfix_graph"; }
@@ -146,12 +147,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/semantic/fixture/valid_option_none_literal.pgy",
         "src/self_hosted/semantic/fixture/valid_call_int.pgy",
         "src/self_hosted/codegen/fixture/result_int_core.pgy",
-        "src/self_hosted/codegen/fixture/long_scalar.pgy"
+        "src/self_hosted/codegen/fixture/long_scalar.pgy",
+        "src/self_hosted/mir_lower/fixture/cast_numeric.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 33;
+    return 34;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

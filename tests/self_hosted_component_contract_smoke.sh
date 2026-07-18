@@ -1033,6 +1033,7 @@ require_owner_surface codegen \
     "text/struct_literal_field_owner.pgy" \
     "abi_layout/abi_layout_owner.pgy" \
     "runtime_abi/collection_runtime_owner.pgy" \
+    "runtime_abi/checked_arithmetic_runtime_owner.pgy" \
     "runtime_abi/host_io_runtime_owner.pgy" \
     "runtime_abi/math_runtime_owner.pgy" \
     "runtime_abi/option_result_runtime_owner.pgy" \
@@ -1815,7 +1816,9 @@ require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" 'impor
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "func CompilerRuntimeCallAbiManifestRowAt"
 require_text "src/self_hosted/compiler/runtime_call_abi_row_manifest.pgy" "CompilerRuntimeCallAbiConcreteRowCount()"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "schema=pgy.selfhost.runtime-call-abi-row.v2"
-require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=243"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "count=245"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "243|checked-arithmetic|float-to-int|pgy_checked_f2i_i32_export|function|target_library|double_to_int"
+require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "244|checked-arithmetic|float-to-long|pgy_checked_f2i_i64_export|function|target_library|double_to_long"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "24|option-result|option-float.some|pgy_option_some_float|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "25|option-result|option-double.some|pgy_option_some_double|function|generated_runtime_helper|value_to_option"
 require_text "src/self_hosted/compiler/expected/runtime_call_abi_rows.txt" "68|string|substring|pgy_substr|function|generated_runtime_helper|string_int_int_to_string"
@@ -3179,9 +3182,9 @@ require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parit
 require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 33;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 34;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 33'
+    'mir_fixture_rows[@]}" -ne 34'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'inferred return drift was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
@@ -3348,9 +3351,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 33;"
+    "return 34;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 33'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 34'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \

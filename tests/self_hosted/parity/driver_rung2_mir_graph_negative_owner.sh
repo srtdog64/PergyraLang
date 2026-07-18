@@ -5,7 +5,7 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
     local base="$2"
     local self_mir_json="$3"
     local driver_bin="$4"
-    local missing_graph invalid_graph
+    local missing_graph invalid_graph invalid_cast_target
 
     if ! grep -Fq '"expr0_graph":{' "$self_mir_json"; then
         return 0
@@ -56,6 +56,23 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
         cat "$invalid_graph.out" "$invalid_graph.err" >&2
         exit 1
     }
+    if [[ "$base" == "cast_numeric" ]]; then
+        invalid_cast_target="$BUILD_DIR/${base}_${backend}.invalid-cast-target.mir.json"
+        sed 's/"kind":"type_name"/"kind":"leaf"/g' \
+            "$self_mir_json" >"$invalid_cast_target"
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$invalid_cast_target")" \
+            >"$invalid_cast_target.out" 2>"$invalid_cast_target.err"); then
+            echo "[self-host-parity:driver-rung2] $backend value leaf was accepted as a cast target type" >&2
+            exit 1
+        fi
+        grep -Fq "MIR instruction expression graph is missing or invalid" \
+            "$invalid_cast_target.err" "$invalid_cast_target.out" || {
+            echo "[self-host-parity:driver-rung2] $backend invalid cast target diagnostic drifted" >&2
+            cat "$invalid_cast_target.out" "$invalid_cast_target.err" >&2
+            exit 1
+        }
+    fi
     if [[ "$base" == "result_int_core" ]]; then
         if (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$(pgy_selfhost_path_relative_to_root "$invalid_graph")" \

@@ -587,6 +587,23 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
             return -1;
         kind = "index";
         break;
+    case AST_CAST: {
+        const char *target_type = ast_cast_target_type(expr);
+        char *target_text;
+        if (target_type == NULL || target_type[0] == '\0')
+            return -1;
+        left = mir_json_expression_graph_build(
+            graph, ast_cast_operand(expr));
+        target_text = mir_json_expression_graph_copy_text(target_type);
+        right = mir_json_expression_graph_append(
+            graph, "type_name", target_text, -1, -1, "none", "");
+        if (right < 0)
+            free(target_text);
+        if (left < 0 || right < 0)
+            return -1;
+        kind = "cast";
+        break;
+    }
     default:
         return -1;
     }

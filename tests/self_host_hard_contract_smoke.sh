@@ -159,8 +159,28 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     'graph, "generic_type_actual", actual_text'
 require_text "src/compiler/mir_json_expression_graph.c" \
     'graph, "generic_callee", callee_text'
+require_text "src/compiler/mir_json_expression_graph.c" \
+    'graph, "type_name", target_text'
+require_text "src/compiler/mir_json_expression_graph.c" \
+    'kind = "cast";'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'if kind == "float_literal" {'
+require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
+    'func CodegenSemanticCheckedIntegerCastTargetPresent('
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    'if kind == AstExpressionNodeCast() &&'
+require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
+    'CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast)'
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    'func ParseCastFact('
+forbid_function_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "func ParseCastFact(" "ParserExpressionLeaf(Concat("
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'cast_mir_source="src/self_hosted/mir_lower/fixture/cast_numeric.pgy"'
+require_text "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh" \
+    "value leaf was accepted as a cast target type"
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$array_mir_source" "array-return-literal"'
 require_text "tests/self_host_live_replacement_smoke.sh" \

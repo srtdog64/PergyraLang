@@ -31,6 +31,8 @@ struct CodegenExpressionUsageFacts {
     let has_random_value: Bool;
     let has_seed_random: Bool;
     let has_none: Bool;
+    let has_checked_int_cast: Bool;
+    let has_checked_long_cast: Bool;
 }
 
 struct CodegenExpressionParts {
@@ -274,6 +276,30 @@ func CodegenSemanticBuiltinGroupPresent(facts: SemanticAstExpressionSurfaceFacts
     return false;
 }
 
+func CodegenSemanticCheckedIntegerCastTargetPresent(
+    facts: SemanticAstExpressionSurfaceFacts,
+    target_type: String
+) -> Bool {
+    let graph: SemanticExpressionGraphFacts = facts.expression_graph;
+    if !SemanticExpressionGraphFactsReady(
+        graph, SemanticAstExpressionSurfaceCount(facts) * 3
+    ) {
+        Die("codegen checked-arithmetic usage requires expression graph facts");
+    }
+    let i: Int = 0;
+    while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
+        if graph.arena.node_kinds[i] == AstExpressionNodeCast() {
+            let target: Int = graph.arena.right_children[i];
+            if graph.arena.node_kinds[target] == AstExpressionNodeTypeName() &&
+                graph.arena.node_texts[target] == target_type {
+                return true;
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurfaceFacts) -> CodegenExpressionUsageFacts {
     return CodegenExpressionUsageFacts(
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupArgs()),
@@ -297,7 +323,9 @@ func CodegenExpressionUsageFactsFromSemantic(facts: SemanticAstExpressionSurface
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupFloat()),
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupRandomValue()),
         CodegenSemanticBuiltinGroupPresent(facts, CodegenUsageBuiltinGroupSeedRandom()),
-        CodegenSemanticExpressionTokenPresent(facts, "None")
+        CodegenSemanticExpressionTokenPresent(facts, "None"),
+        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Int"),
+        CodegenSemanticCheckedIntegerCastTargetPresent(facts, "Long")
     );
 }
 

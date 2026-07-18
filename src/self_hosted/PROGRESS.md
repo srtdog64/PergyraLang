@@ -1506,6 +1506,16 @@ beyond the lexer:
   The adjacent `generic_return_probe/explicit_ok` live row verifies ordered
   multi-actual carriage for `PickSecond<Int, String>` rather than inferring
   ordering from a single-actual example.
+  Numeric `as` casts now use parser-owned `cast` / `type_name` nodes at the
+  native cast precedence instead of collapsing the target into a leaf or
+  reparsing expression text. The native MIR writer and the Pergyra producer
+  emitted byte-identical canonical MIR for `cast_numeric`; the C-
+  and LLVM-built focused drivers each passed the 20 body fixtures plus that
+  selected MIR fixture, including rejection when a cast target was mutated
+  from `type_name` to `leaf`. Float-to-Int/Long emission consumes checked-
+  arithmetic runtime ABI rows, and the 245-row C/LLVM manifest parity is
+  green. This is slice-local evidence; the complete 34-case MIR matrix was not
+  rerun here.
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.

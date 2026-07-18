@@ -1,0 +1,48 @@
+// Fail-closed numeric conversion runtime ABI facts.
+
+func CheckedArithmeticRuntimeCFloatToIntegerFn(
+    target_type: String
+) -> String {
+    if target_type == "Int" { return "pgy_checked_f2i_i32_export"; }
+    if target_type == "Long" { return "pgy_checked_f2i_i64_export"; }
+    return "";
+}
+
+func CheckedArithmeticRuntimeContractReady() -> Bool {
+    return CheckedArithmeticRuntimeCFloatToIntegerFn("Int") ==
+            "pgy_checked_f2i_i32_export" &&
+        CheckedArithmeticRuntimeCFloatToIntegerFn("Long") ==
+            "pgy_checked_f2i_i64_export" &&
+        CheckedArithmeticRuntimeCFloatToIntegerFn("Float") == "";
+}
+
+func CheckedArithmeticRuntimeCFloatToIntegerBlock(
+    target_type: String
+) -> String {
+    if target_type == "Int" {
+        return "static int32_t pgy_checked_f2i_i32_export(double v)\n{\n    if (!(v > -2147483649.0 && v < 2147483648.0)) {\n        fputs(\"Pergyra runtime panic: float-to-int out of range\\n\", stderr);\n        abort();\n    }\n    return (int32_t)v;\n}\n\n";
+    }
+    if target_type == "Long" {
+        return "static int64_t pgy_checked_f2i_i64_export(double v)\n{\n    if (!(v >= -9223372036854775808.0 && v < 9223372036854775808.0)) {\n        fputs(\"Pergyra runtime panic: float-to-int out of range\\n\", stderr);\n        abort();\n    }\n    return (int64_t)v;\n}\n\n";
+    }
+    return "";
+}
+
+func CheckedArithmeticRuntimeCProgramBlock(
+    uses_int_cast: Bool,
+    uses_long_cast: Bool
+) -> String {
+    if !uses_int_cast && !uses_long_cast { return ""; }
+    let block: String = "#include <stdint.h>\n\n";
+    if uses_int_cast {
+        block = Concat(
+            block, CheckedArithmeticRuntimeCFloatToIntegerBlock("Int")
+        );
+    }
+    if uses_long_cast {
+        block = Concat(
+            block, CheckedArithmeticRuntimeCFloatToIntegerBlock("Long")
+        );
+    }
+    return block;
+}

@@ -86,7 +86,12 @@ postfix-try graph slice, plus named struct literals as ordered field-binding
 graphs, directly from its instruction AST into the same graph schema. Explicit
 generic calls extend their callee with parser-owned ordered
 `generic_type_actual` / `generic_callee` nodes; the writer never reconstructs
-the actual list from rendered call text. It does not parse `expr0`; unsupported
+the actual list from rendered call text. Numeric casts carry a binary `cast`
+node whose right child is a zero-arity `type_name`; both the AST-row and
+semantic graph verifiers reject any other target shape before symbol or type
+resolution. Float-to-Int/Long lowering consumes the checked-arithmetic runtime
+ABI owner and materializes only the target helper required by those graph
+facts. It does not parse `expr0`; unsupported
 AST shapes remain `null` and therefore fail closed when the hard consumer
 requires them. Older graph-less artifacts can be upgraded
 only by the explicitly named `--canonicalize-oracle-mir-json` compatibility

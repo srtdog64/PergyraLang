@@ -253,6 +253,10 @@ func SemanticExpressionGraphArenaReady(
                 AstExpressionNodeStructFieldBinding()) {
             return false;
         }
+        if kind == AstExpressionNodeCast() &&
+            arena.node_kinds[right] != AstExpressionNodeTypeName() {
+            return false;
+        }
         i = i + 1;
     }
     return true;

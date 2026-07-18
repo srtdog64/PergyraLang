@@ -1,4 +1,3 @@
-// src/self_hosted/codegen/emission/program_emit.pgy
 // Program-level C assembly owner for self-host C emission.
 import "../text/text_owner.pgy";
 import "../../hir/ast_text_inventory_owner.pgy";
@@ -15,6 +14,7 @@ import "../input/semantic_role_codegen_view_owner.pgy";
 import "../input/semantic_enum_codegen_view_owner.pgy";
 import "../input/semantic_kind_codegen_view_owner.pgy";
 import "../runtime_abi/collection_runtime_owner.pgy";
+import "../runtime_abi/checked_arithmetic_runtime_owner.pgy";
 import "../runtime_abi/host_io_runtime_owner.pgy";
 import "../runtime_abi/math_runtime_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
@@ -516,13 +516,12 @@ func GenerateCUnitFromSemanticFacts(
     if uses_io || uses_fhandle {
         TextBuilderAppend(output, "#ifdef _WIN32\n#include <fcntl.h>\n#include <io.h>\n#else\n#include <fcntl.h>\n#include <sys/stat.h>\n#include <unistd.h>\n#endif\n");
     }
-    if uses_float {
-        TextBuilderAppend(output, "#include <math.h>\n");
-    }
+    if uses_float { TextBuilderAppend(output, "#include <math.h>\n"); }
     if uses_dirwalk {
         TextBuilderAppend(output, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     TextBuilderAppend(output, "\n");
+    TextBuilderAppend(output, CheckedArithmeticRuntimeCProgramBlock(usage.uses_checked_int_cast, usage.uses_checked_long_cast));
     if uses_allocator || uses_text_builder {
         TextBuilderAppend(output, TextBuilderRuntimeCBlock());
     }

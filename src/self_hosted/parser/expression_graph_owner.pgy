@@ -14,6 +14,32 @@ func ParserExpressionStructFieldName(text: String) -> ParserExpressionFact {
     );
 }
 
+func ParserExpressionTypeName(text: String) -> ParserExpressionFact {
+    if text == "" { return ParserExpressionInvalid(); }
+    let kinds: Array<Int> = [AstExpressionNodeTypeName()];
+    let texts: Array<String> = [text];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
+    );
+}
+
+func ParserExpressionCast(
+    text: String,
+    operand: ParserExpressionFact,
+    target_type: String
+) -> ParserExpressionFact {
+    if text == "" || !operand.ok || target_type == "" {
+        return ParserExpressionInvalid();
+    }
+    return ParserExpressionBinary(
+        AstExpressionNodeCast(), text, operand,
+        ParserExpressionTypeName(target_type)
+    );
+}
+
 func ParserExpressionUnary(
     kind: Int, text: String, operand: ParserExpressionFact
 ) -> ParserExpressionFact {

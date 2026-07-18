@@ -56,6 +56,9 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
         return Some(AstExpressionNodeLogicalNot());
     }
     if kind == "negate" { return Some(AstExpressionNodeNegate()); }
+    if kind == "float_literal" {
+        return Some(AstExpressionNodeFloatLiteral());
+    }
     if kind == "integer_literal" {
         return Some(AstExpressionNodeIntegerLiteral());
     }
@@ -100,6 +103,10 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "generic_callee" {
         return Some(AstExpressionNodeGenericCallee());
     }
+    if kind == "type_name" {
+        return Some(AstExpressionNodeTypeName());
+    }
+    if kind == "cast" { return Some(AstExpressionNodeCast()); }
     return None;
 }
 

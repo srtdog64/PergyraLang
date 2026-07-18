@@ -169,6 +169,27 @@ func CodegenExpressionTypeFromGraph(
     if kind == AstExpressionNodeMemberAccess() {
         return CodegenExpressionMemberTypeFromGraph(graph, node_id, env);
     }
+    if kind == AstExpressionNodeCast() {
+        let target_id: Option<Int> = SemanticExpressionGraphRightChild(
+            graph, node_id
+        );
+        if !IsSome(target_id) { return None; }
+        let target_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+            graph, UnwrapOption(target_id)
+        );
+        let target_text: Option<String> = SemanticExpressionGraphNodeText(
+            graph, UnwrapOption(target_id)
+        );
+        if !IsSome(target_kind) || !IsSome(target_text) ||
+            UnwrapOption(target_kind) != AstExpressionNodeTypeName() {
+            return None;
+        }
+        let target: String = UnwrapOption(target_text);
+        if target == "Int" || target == "Long" || target == "Float" {
+            return Some(target);
+        }
+        return None;
+    }
     let left_id: Option<Int> = SemanticExpressionGraphLeftChild(
         graph, node_id
     );

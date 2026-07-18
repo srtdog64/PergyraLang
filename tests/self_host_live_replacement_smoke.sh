@@ -34,6 +34,7 @@ try_mir_source="src/self_hosted/codegen/fixture/option_try.pgy"
 struct_mir_source="src/self_hosted/codegen/fixture/struct_point.pgy"
 generic_mir_source="src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy"
 generic_multi_mir_source="src/self_hosted/tools/generic_return_probe/explicit_ok.pgy"
+cast_mir_source="src/self_hosted/mir_lower/fixture/cast_numeric.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
@@ -130,7 +131,7 @@ check_live_mir_source() {
     "$WORK_DIR/$label.oracle-program" | tr -d '\r' \
         >"$WORK_DIR/$label.oracle.run"
     cmp -s "$WORK_DIR/$label.oracle.run" "$WORK_DIR/$label.launcher.run" || {
-        echo "[self-host-live] $label: run output differs from C oracle" >&2
+        echo "[self-host-live] $label: integrated MIR run output differs from C oracle" >&2
         exit 1
     }
 }
@@ -141,6 +142,7 @@ check_live_mir_source "$try_mir_source" "option-try"
 check_live_mir_source "$struct_mir_source" "struct-point"
 check_live_mir_source "$generic_mir_source" "generic-struct-field"
 check_live_mir_source "$generic_multi_mir_source" "generic-multi-actual"
+check_live_mir_source "$cast_mir_source" "cast-numeric"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \

@@ -466,6 +466,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/type_facts/type_env.pgy` -- type environment facts.
 - `src/self_hosted/codegen/abi_layout/abi_layout_owner.pgy` -- self-host C ABI type spelling facts, including nominal struct type and empty parameter-list spelling.
 - `src/self_hosted/codegen/runtime_abi/collection_runtime_owner.pgy` -- self-host C collection runtime symbol facts.
+- `src/self_hosted/codegen/runtime_abi/checked_arithmetic_runtime_owner.pgy` --
+  fail-closed numeric conversion runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/host_io_runtime_owner.pgy` -- self-host C host file/argv/process entrypoint runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/math_runtime_owner.pgy` -- self-host C math/random runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/option_result_runtime_owner.pgy` -- self-host C Option/Result runtime symbol facts.
