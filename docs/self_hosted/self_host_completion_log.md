@@ -7966,3 +7966,19 @@ Released/default replacement remains 0%.
   namespace-qualified call classification, object-init internals, special
   unary forms, result-type classification, and initial arena construction
   remain active; released/default substitution remains 0%.
+
+### 2026-07-19 -- Residual assignment graphs enter the hard MIR path
+
+- Native `MIR_INST_ASSIGN` JSON now carries the target as `expr0_graph` and the
+  assigned value as `expr1_graph`. Self-produced SSA assignment definitions
+  keep their existing value/target physical lane order.
+- The Pergyra MIR expression owner now selects graph requirements and semantic
+  ordering from the instruction kind. Both physical forms become one
+  target-before-value sequence; neither graph is reconstructed from text.
+- Added `array_index_assign` as DRV-2 MIR fixture 35. Its native artifact uses
+  strict `--canonicalize-mir-json`, bypassing the named oracle bridge, and the
+  native MIR hard consumer emits byte-identical C to the self-produced path.
+- Focused C/LLVM parity passed 20 body fixtures plus this one MIR fixture and
+  matched C-oracle execution. Removing either native graph fails closed with
+  the structured MIR graph diagnostic. The complete 35-fixture MIR matrix was
+  not rerun for this slice.

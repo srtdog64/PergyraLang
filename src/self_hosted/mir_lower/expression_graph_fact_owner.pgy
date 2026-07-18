@@ -281,7 +281,7 @@ func MirExpressionGraphSequenceAppend(
     return MirExpressionGraphSequence(true, roots, arena);
 }
 
-func MirInstructionRequiresExpressionGraph(
+func MirInstructionRequiresExpr0Graph(
     instruction: JsonObjectFactTable
 ) -> Bool {
     let kind: Option<String> = JsonObjectFactStringFieldOpt(
@@ -309,6 +309,10 @@ func MirInstructionRequiresExpressionGraph(
     let instruction_kind: String = UnwrapOption(kind);
     let instruction_name: String = UnwrapOption(name);
     let source: String = UnwrapOption(source_type);
+    if instruction_kind == "assign" && source == "AST_ASSIGNMENT" {
+        return IsSome(expr1) && UnwrapOption(expr0) != "" &&
+            UnwrapOption(expr1) != "";
+    }
     if source == "AST_FOR_LOOP" {
         if instruction_kind == "loop-init" { return true; }
         return instruction_kind == "branch" && IsSome(expr1) &&
@@ -331,7 +335,7 @@ func MirInstructionRequiresExpressionGraph(
     return instruction_kind == "return" && source != "AST_RETURN_VOID";
 }
 
-func MirInstructionRequiresTargetExpressionGraph(
+func MirInstructionRequiresExpr1Graph(
     instruction: JsonObjectFactTable
 ) -> Bool {
     let kind: Option<String> = JsonObjectFactStringFieldOpt(
@@ -343,13 +347,32 @@ func MirInstructionRequiresTargetExpressionGraph(
     let source_type: Option<String> = JsonObjectFactStringFieldOpt(
         instruction, "source_type"
     );
+    let expr0: Option<String> = JsonObjectFactStringFieldOpt(
+        instruction, "expr0"
+    );
     let expr1: Option<String> = JsonObjectFactStringFieldOpt(
         instruction, "expr1"
     );
-    return IsSome(kind) && UnwrapOption(kind) == "def" &&
-        IsSome(source_type) && UnwrapOption(source_type) == "AST_ASSIGNMENT" &&
-        IsSome(arg0) && IsSome(expr1) &&
-        UnwrapOption(arg0) != "" && UnwrapOption(expr1) != "";
+    if !IsSome(kind) || !IsSome(source_type) || !IsSome(expr0) ||
+        !IsSome(expr1) || UnwrapOption(source_type) != "AST_ASSIGNMENT" ||
+        UnwrapOption(expr0) == "" || UnwrapOption(expr1) == "" {
+        return false;
+    }
+    if UnwrapOption(kind) == "assign" { return true; }
+    return UnwrapOption(kind) == "def" && IsSome(arg0) &&
+        UnwrapOption(arg0) != "";
+}
+
+func MirExpressionGraphSequenceAppendRequired(
+    sequence: MirExpressionGraphSequence,
+    graph: JsonObjectFactTable,
+    required: Bool
+) -> MirExpressionGraphSequence {
+    if !required { return sequence; }
+    if !JsonObjectFactTableReady(graph) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    return MirExpressionGraphSequenceAppend(sequence, graph);
 }
 
 func MirExpressionGraphSequenceFromJson(
@@ -379,21 +402,32 @@ func MirExpressionGraphSequenceFromJson(
             let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
                 instruction, "expr0_graph"
             );
-            let target_graph: JsonObjectFactTable =
+            let expr1_graph: JsonObjectFactTable =
                 JsonObjectFactObjectTable(instruction, "expr1_graph");
-            if MirInstructionRequiresTargetExpressionGraph(instruction) {
-                if !JsonObjectFactTableReady(target_graph) {
-                    return MirExpressionGraphSequenceError(sequence);
-                }
-                sequence = MirExpressionGraphSequenceAppend(
-                    sequence, target_graph
+            let kind: Option<String> = JsonObjectFactStringFieldOpt(
+                instruction, "kind"
+            );
+            let expr0_required: Bool =
+                MirInstructionRequiresExpr0Graph(instruction);
+            let expr1_required: Bool =
+                MirInstructionRequiresExpr1Graph(instruction);
+            if IsSome(kind) && UnwrapOption(kind) == "assign" {
+                sequence = MirExpressionGraphSequenceAppendRequired(
+                    sequence, graph, expr0_required
+                );
+                sequence = MirExpressionGraphSequenceAppendRequired(
+                    sequence, expr1_graph, expr1_required
+                );
+            } else {
+                sequence = MirExpressionGraphSequenceAppendRequired(
+                    sequence, expr1_graph, expr1_required
+                );
+                sequence = MirExpressionGraphSequenceAppendRequired(
+                    sequence, graph, expr0_required
                 );
             }
-            if MirInstructionRequiresExpressionGraph(instruction) {
-                if !JsonObjectFactTableReady(graph) {
-                    return MirExpressionGraphSequenceError(sequence);
-                }
-                sequence = MirExpressionGraphSequenceAppend(sequence, graph);
+            if !sequence.ok {
+                return MirExpressionGraphSequenceError(sequence);
             }
             instruction_i = instruction_i + 1;
         }

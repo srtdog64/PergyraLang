@@ -628,6 +628,20 @@ compatibility path is isolated behind the explicitly named
 compares both canonical artifacts and mutates missing and invalid graphs on the
 strict self-host path. The broader expression owner remains `BRIDGE`.
 
+Fiftieth executable active-rung delta, 2026-07-19: native residual
+`MIR_INST_ASSIGN` now carries its target in `expr0_graph` and value in
+`expr1_graph`. The self producer continues to lower the same source assignment
+to an SSA `def`, where the value is `expr0_graph` and the target is
+`expr1_graph`. The Pergyra MIR consumer owns this physical distinction and
+appends both forms in target-before-value semantic order; it does not infer the
+order from expression text. `array_index_assign` is now the 35th DRV-2 MIR
+fixture and selects strict `--canonicalize-mir-json` for the native artifact,
+not `--canonicalize-oracle-mir-json`. The focused C/LLVM gate compared 20 body
+fixtures plus this one MIR fixture, directly consumed native MIR to byte-equal
+self C, ran it against the C oracle, and rejected removal of either native
+graph. This closes the residual-assignment graph bridge for this executable
+slice only; the mixed expression owner remains `BRIDGE`.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel

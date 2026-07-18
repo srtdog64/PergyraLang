@@ -166,9 +166,9 @@ method signature rows, and the explicit receiver argument without reopening
 member, qualified-call, field-access, or parenthesis scanners. Nested-receiver
 instance method calls also recurse through receiver/member and field/type rows
 before consuming the method signature. The row remains `BRIDGE` because
-namespace-qualified call classification, object-init internals, literal-only argument bridges,
-borrow/receive/spawn/await unary forms, indexed-assignment target indexes, and initial
-compact-tree arena construction remain text-backed.
+object-init internals, remaining literal-only argument bridges,
+borrow/receive/spawn/await unary forms, expression result-type classification,
+and initial compact-tree arena construction remain text-backed.
 
 The Log lane extracts its single argument subtree from the parser call spine,
 requires the atom-lane graph in semantic/MIR verification, and renders through
@@ -184,8 +184,11 @@ and ordinary `Array<T>` returns consume one expected-value expression graph and
 cannot classify the return by trimming text or testing for a leading bracket.
 `Result<Int>` returns also consume that graph and cannot re-enter the legacy
 return-expression scanner. The DRV-2 transport now preserves the assignment
-target graph for both plain and indexed targets, and consumes target-before-RHS
-in semantic lane order instead of reconstructing a target from `arg0`/`expr1`.
+target graph for both plain and indexed targets. Self SSA definitions carry
+value/target as `expr0_graph`/`expr1_graph`; native residual
+`MIR_INST_ASSIGN` carries target/value in those same physical lanes. The MIR
+consumer owns that instruction-kind distinction and consumes target-before-RHS
+in semantic lane order instead of reconstructing either expression from text.
 Carried direct-call targets also consume nominal-constructor inventory facts,
 so constructor calls such as `Pair(...)` are verified without recovering a
 callee from expression text. Carried namespace and member targets are admitted

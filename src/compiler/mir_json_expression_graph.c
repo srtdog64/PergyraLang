@@ -507,7 +507,6 @@ mir_json_expression_graph_build_struct(MIRJsonExpressionGraph *graph,
     }
     return literal_root;
 }
-
 static int
 mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
 {
@@ -625,7 +624,7 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
     if (inst == NULL || lane < 0 || lane > 1)
         return NULL;
     if (lane == 1) {
-        if (inst->kind == MIR_INST_DEF
+        if ((inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_DEF)
             && mir_instruction_source_node_type_or(inst, AST_PROGRAM)
                 == AST_ASSIGNMENT) {
             return inst->expr1;

@@ -13,7 +13,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-07-17
+Last updated: 2026-07-19
 
 Evidence currency: this file is the canonical progress ledger, but individual
 green claims remain dated to the gate runs named in each section. Updating this
@@ -1514,8 +1514,17 @@ beyond the lexer:
   selected MIR fixture, including rejection when a cast target was mutated
   from `type_name` to `leaf`. Float-to-Int/Long emission consumes checked-
   arithmetic runtime ABI rows, and the 245-row C/LLVM manifest parity is
-  green. This is slice-local evidence; the complete 34-case MIR matrix was not
-  rerun here.
+  green. That cast evidence was slice-local.
+  Native residual `MIR_INST_ASSIGN` instructions now carry both expression
+  graphs as well: `expr0_graph` owns the target and `expr1_graph` owns the
+  value. Self-produced SSA assignment definitions retain their existing
+  inverse physical lanes (`expr0_graph` value, `expr1_graph` target), while the
+  MIR consumer projects both forms into one target-before-value semantic
+  sequence. `array_index_assign` is the 35th DRV-2 MIR fixture and uses the
+  strict canonicalizer rather than the graph-recovering oracle bridge. Focused
+  C/LLVM parity proved byte-equal canonical MIR, byte-equal directly consumed
+  native/self C, and equal execution output; removing either native graph
+  fails closed. The complete 35-case MIR matrix was not rerun here.
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.

@@ -93,7 +93,10 @@ C and LLVM assignment emission now consume MIR target/value facts:
 `MIR_INST_ASSIGN` requires `expr0`/`expr1`, assignment DEFs carry their target
 in `expr1`, and backend assignment-parts emitters preserve slot, array, field,
 and projection assignment semantics without reopening the source statement
-payload. LLVM source-local resource constructor LET emission also consumes MIR
+payload. Residual assignment MIR JSON also carries target/value graphs in
+`expr0_graph`/`expr1_graph`; the self SSA form carries value/target, and the
+consumer owns this lane distinction instead of reparsing text. LLVM
+source-local resource constructor LET emission also consumes MIR
 initializer/type facts instead of reopening the source local declaration
 payload. C source-local LET DEF emission, generic DEF expression emission, and
 receive-payload type inference now consume instruction `arg0` / `expr0` /

@@ -36,6 +36,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
     local driver_bin="$2"
     local fixture_rel base mir_json mir_json_arg self_mir_json
     local self_mir_json_arg oracle_canonical oracle_canonical_arg self_canonical
+    local oracle_canonical_mode
     local actual err self_actual source_actual mir_baseline bare_call_missing_graph
     for fixture_rel in "${mir_fixture_rows[@]}"; do
         base="$(basename "$fixture_rel" .pgy)"
@@ -185,7 +186,11 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 }
             done
         fi
-        (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-oracle-mir-json \
+        oracle_canonical_mode="--canonicalize-oracle-mir-json"
+        if [[ "$base" == "array_index_assign" ]]; then
+            oracle_canonical_mode="--canonicalize-mir-json"
+        fi
+        (cd "$ROOT_DIR" && "$driver_bin" "$oracle_canonical_mode" \
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$self_mir_json_arg" | tr -d '\r' >"$self_canonical")
@@ -227,6 +232,9 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_array_literal_emitted_c \
             "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_assign_instruction_graph \
+            "$backend" "$base" "$mir_json" "$self_mir_json" \
+            "$self_actual" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_mir_graph_negatives \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
