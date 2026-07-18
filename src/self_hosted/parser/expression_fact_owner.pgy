@@ -62,17 +62,35 @@ func ParserExpressionLongLiteral(text: String) -> ParserExpressionFact {
     );
 }
 
+func ParserExpressionBoolLiteral(text: String) -> ParserExpressionFact {
+    if !AstExpressionBoolLiteralPayloadReady(text) {
+        return ParserExpressionInvalid();
+    }
+    let kinds: Array<Int> = [AstExpressionNodeBoolLiteral()];
+    let texts: Array<String> = [text];
+    let left_children: Array<Int> = [0];
+    let right_children: Array<Int> = [0];
+    return ParserExpressionFact(
+        true, text, 0,
+        AstExpressionArena(kinds, texts, left_children, right_children)
+    );
+}
+
 func ParserExpressionFactContractReady() -> Bool {
     let integer: ParserExpressionFact = ParserExpressionIntegerLiteral("16");
     let floating: ParserExpressionFact = ParserExpressionFloatLiteral("16");
     let long_value: ParserExpressionFact = ParserExpressionLongLiteral("16");
-    return integer.ok && floating.ok && long_value.ok &&
+    let bool_value: ParserExpressionFact = ParserExpressionBoolLiteral("true");
+    return integer.ok && floating.ok && long_value.ok && bool_value.ok &&
         integer.arena.node_kinds[integer.root] ==
             AstExpressionNodeIntegerLiteral() &&
         floating.arena.node_kinds[floating.root] ==
             AstExpressionNodeFloatLiteral() &&
         long_value.arena.node_kinds[long_value.root] ==
             AstExpressionNodeLongLiteral() &&
+        bool_value.arena.node_kinds[bool_value.root] ==
+            AstExpressionNodeBoolLiteral() &&
         integer.text == floating.text && long_value.text == "16L" &&
-        long_value.arena.node_texts[long_value.root] == "16L";
+        long_value.arena.node_texts[long_value.root] == "16L" &&
+        bool_value.arena.node_texts[bool_value.root] == "true";
 }

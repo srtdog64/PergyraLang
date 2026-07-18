@@ -14,8 +14,6 @@ func RewriteSemanticLeaf(
     text: String,
     env: CodegenTypeEnv
 ) -> String {
-    if text == "true" { return "1"; }
-    if text == "false" { return "0"; }
     if StartsWith(text, "await ") {
         let awaited_text: String =
             CompilerRuntimeCallAbiMachineLayerAwaitBinding(text);
@@ -87,6 +85,11 @@ func RewriteExprFromSemanticGraph(
     if kind == AstExpressionNodeFloatLiteral() {
         if StringIndexOf(text, ".") >= 0 { return text; }
         return Concat(text, ".0");
+    }
+    if kind == AstExpressionNodeBoolLiteral() {
+        if text == "true" { return "1"; }
+        if text == "false" { return "0"; }
+        Die("semantic Bool literal payload is invalid");
     }
     if kind == AstExpressionNodeLeaf() {
         return RewriteSemanticLeaf(text, env);

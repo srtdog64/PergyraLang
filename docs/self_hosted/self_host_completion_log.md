@@ -7883,3 +7883,26 @@ Released/default replacement remains 0%.
   `integer_literal` kind, including `negate(integer_literal)`, and no longer
   reclassifies leaf text with `IsIntLiteral`. Aggregate and generic-field
   negatives now mutate both kind and payload so they attack the live owner.
+
+### 2026-07-18 -- Bool literal identity is parser-owned
+
+- Added `bool_literal` as a typed expression-graph kind. The self-host parser
+  now distinguishes `true` and `false` from identifier leaves at construction
+  time and validates that the carried payload is one of those two spellings.
+- Semantic scalar typing, codegen type projection, MIR JSON kind projection,
+  MIR JSON consumption, and C emission consume the Bool kind. The former leaf
+  text checks in semantic typing and `RewriteSemanticLeaf` were deleted and
+  are rejected by the component contract.
+- Reused the existing `if_else_assign` DRV-2 fixture. Changing its
+  `bool_literal("false")` to `leaf("false")` fails with the structured
+  `statement_type_unresolved` diagnostic; changing the payload to `truth`
+  fails graph verification before emission.
+- Focused DRV-2 C/LLVM producer-first parity passed, parser C/LLVM output stayed
+  byte-equal for 188 sources, and codegen C/LLVM run parity passed for all 75
+  fixtures. Bootstrap reached `gen2 == gen3` at 32,927 generated C lines and
+  retained oracle equivalence for lexer, parser, semantic, MIR lower, tools,
+  and the fuzz backend parity generator.
+- This closes one executable typed-expression seam. Namespace-qualified call
+  classification, object-init internals, remaining literal-only argument
+  bridges, special unary forms, result-type classification, and initial arena
+  construction remain active; released/default substitution remains 0%.

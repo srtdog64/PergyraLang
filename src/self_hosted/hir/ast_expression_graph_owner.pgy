@@ -54,17 +54,23 @@ func AstExpressionNodeGenericCallee() -> Int { return 28; }
 func AstExpressionNodeFloatLiteral() -> Int { return 29; }
 func AstExpressionNodeIntegerLiteral() -> Int { return 30; }
 func AstExpressionNodeLongLiteral() -> Int { return 31; }
+func AstExpressionNodeBoolLiteral() -> Int { return 32; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeLongLiteral();
+        kind <= AstExpressionNodeBoolLiteral();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
     return kind == AstExpressionNodeLeaf() ||
         kind == AstExpressionNodeFloatLiteral() ||
         kind == AstExpressionNodeIntegerLiteral() ||
-        kind == AstExpressionNodeLongLiteral();
+        kind == AstExpressionNodeLongLiteral() ||
+        kind == AstExpressionNodeBoolLiteral();
+}
+
+func AstExpressionBoolLiteralPayloadReady(text: String) -> Bool {
+    return text == "true" || text == "false";
 }
 
 func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
@@ -175,6 +181,10 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         }
         if kind == AstExpressionNodeLongLiteral() &&
             !AstExpressionLongLiteralPayloadReady(arena.node_texts[i]) {
+            return false;
+        }
+        if kind == AstExpressionNodeBoolLiteral() &&
+            !AstExpressionBoolLiteralPayloadReady(arena.node_texts[i]) {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);

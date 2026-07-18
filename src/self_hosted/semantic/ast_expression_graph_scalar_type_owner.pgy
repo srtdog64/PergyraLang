@@ -16,7 +16,6 @@ func SemanticExpressionGraphLeafScalarTypeName(
     names: Array<String>,
     types: Array<String>
 ) -> String {
-    if text == "true" || text == "false" { return "Bool"; }
     if text == "None" { return "Option<Unknown>"; }
     if StringLength(text) > 0 && CharAt(text, 0) == "\"" {
         return "String";
@@ -103,6 +102,7 @@ func SemanticExpressionGraphScalarTypeName(
     if kind == AstExpressionNodeIntegerLiteral() { return "Int"; }
     if kind == AstExpressionNodeLongLiteral() { return "Long"; }
     if kind == AstExpressionNodeFloatLiteral() { return "Float"; }
+    if kind == AstExpressionNodeBoolLiteral() { return "Bool"; }
     if kind == AstExpressionNodeLeaf() {
         let text: Option<String> = SemanticExpressionGraphNodeText(
             graph, root_id

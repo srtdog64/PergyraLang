@@ -3722,13 +3722,17 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeFloatLiteral()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIntegerLiteral()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeLongLiteral()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeBoolLiteral()"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionLongLiteralPayloadReady("
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionBoolLiteralPayloadReady("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     'import "ast_text_scan_owner.pgy";'
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "CodegenCharAt(text, n - 1)"
 require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
     "AstExpressionLongLiteralPayloadReady(arena.node_texts[i])"
+require_text "src/self_hosted/semantic/ast_expression_graph_fact_owner.pgy" \
+    "AstExpressionBoolLiteralPayloadReady(arena.node_texts[i])"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsScalarLeaf("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeIsCallableCallee("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionNodeArityOpt("
@@ -3748,6 +3752,8 @@ require_text "src/self_hosted/parser/expression_graph_owner.pgy" "func ParserExp
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionFloatLiteral(base);"
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionIntegerLiteral(base);"
 require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionLongLiteral(base);"
+require_text "src/self_hosted/parser/expr_primary_owner.pgy" "base_fact = ParserExpressionBoolLiteral(base);"
+require_text "src/self_hosted/parser/expression_fact_owner.pgy" "func ParserExpressionBoolLiteral("
 reject_file "src/self_hosted/codegen/input/source_artifact_owner.pgy"
 require_text "src/self_hosted/codegen/run/codegen_run_owner.pgy" \
     'import "../../compiler/driver_pipeline_owner.pgy";'
@@ -3782,6 +3788,8 @@ require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pg
     'if kind == AstExpressionNodeIntegerLiteral() { return "Int"; }'
 require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     'if kind == AstExpressionNodeLongLiteral() { return "Long"; }'
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    'if kind == AstExpressionNodeBoolLiteral() { return "Bool"; }'
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "AstExpressionNodeIsScalarLeaf(UnwrapOption(root_kind))"
 require_text "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" \
@@ -3796,22 +3804,38 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pg
     'if kind == AstExpressionNodeLongLiteral() {'
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     'return Concat(text, "L");'
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    'if kind == AstExpressionNodeBoolLiteral() {'
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    'if kind == AstExpressionNodeBoolLiteral() { return Some("Bool"); }'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteSemanticLeaf(" 'StringIndexOf("0123456789"'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     "func CodegenExpressionLeafTypeFromGraph(" 'StringIndexOf("0123456789"'
 reject_function_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
     "func SemanticExpressionGraphLeafScalarTypeName(" "IsIntLiteral("
+reject_function_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "func SemanticExpressionGraphLeafScalarTypeName(" 'text == "true"'
+reject_function_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "func SemanticExpressionGraphLeafScalarTypeName(" 'text == "false"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" 'text == "true"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" 'text == "false"'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeFloatLiteral() { return "float_literal"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeIntegerLiteral() { return "integer_literal"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeLongLiteral() { return "long_literal"; }'
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'AstExpressionNodeBoolLiteral() { return "bool_literal"; }'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if kind == "integer_literal" {'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if kind == "long_literal" {'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'if kind == "bool_literal" {'
 reject_regex_under "src/self_hosted" "children, children"
 require_text "tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh" \
     "misclassified integer literal was accepted"
@@ -3827,6 +3851,14 @@ require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh
     "misclassified Long literal was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh" \
     "malformed Long payload was accepted"
+require_text "tests/self_hosted/parity/driver_rung2_bool_literal_parity_owner.sh" \
+    "misclassified Bool literal was accepted"
+require_text "tests/self_hosted/parity/driver_rung2_bool_literal_parity_owner.sh" \
+    "malformed Bool payload was accepted"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_bool_literal_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_bool_literal"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionDirectCallCalleeContractReady()"
 require_text "src/self_hosted/parser/expr_precedence_owner.pgy" "func ParserExpressionPipeGraphContractReady("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPipeGraphContractReady()"
