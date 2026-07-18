@@ -515,21 +515,18 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     if (pgy_budget_is_imposed_export())
         pgy_budget_charge_export(PGY_BUDGET_SPAWN_COUNT, 1, "spawn");
 
-    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
-    if (atomic_load_explicit(&g_pgy_pool_shutting_down,
-                             memory_order_acquire)) {
-        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
-        pgy_parallel_warn("spawn", "pool is shutting down");
-        return handle;
-    }
+    /* No silent serialization (docs/177 F1, CLAUDE No.1.1): a spawn with no
+     * live pool runs inline/serially. Announce it so "my parallel code isn't
+     * parallel" is observable instead of a hidden control-flow branch. With the
+     * thread-pool surface fact fixed, main() emits pgy_pool_init whenever
+     * spawn/parallel is used, so reaching here means pool init was skipped or
+     * failed -- a condition worth a warning, not a silent fall.
+     *
+     * This is a lock-free pre-check, not the guarantee: it keeps the common
+     * no-pool path from building a task it would only throw away. The pool can
+     * still go down between here and the lock, which is what the re-check under
+     * the lock below is for. */
     if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
-        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
-        /* No silent serialization (docs/177 F1, CLAUDE No.1.1): a spawn with
-         * no live pool runs inline/serially. Announce it so "my parallel code
-         * isn't parallel" is observable instead of a hidden control-flow branch.
-         * With the thread-pool surface fact fixed, main() emits pgy_pool_init
-         * whenever spawn/parallel is used, so reaching here means pool init was
-         * skipped or failed -- a condition worth a warning, not a silent fall. */
         pgy_parallel_warn("spawn",
             "worker pool inactive; task runs inline (serial). "
             "parallel/spawn does not run concurrently without a live pool "
@@ -538,9 +535,15 @@ pgy_spawn(void *(*fn)(void *), void *arg)
                                           PGY_LANE_WORKER_POOL);
     }
 
+    /* Build the task OUTSIDE the lifecycle lock. None of this touches the pool,
+     * yet it used to run while holding a process-wide mutex -- two allocations
+     * plus two pthread primitive constructions -- so every producer serialized
+     * on that mutex and sharding the consumer side could not help (the measured
+     * "B2 shard queues were neutral on fine-grain" result; docs/190
+     * WO-PAR-NOVEL). The lock now covers only the liveness re-check and the
+     * enqueue, which is all it was ever protecting. */
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
     if (task == NULL) {
-        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         pgy_parallel_warn("spawn", "task allocation failed");
         return handle;
     }
@@ -556,8 +559,29 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     if (!pgy_task_sync_init(task, "spawn")) {
         pgy_cancel_release(task->cancel_node);
         free(task);
-        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return handle;
+    }
+
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_pool_shutting_down, memory_order_acquire)
+        || !atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
+        bool going_down = atomic_load_explicit(&g_pgy_pool_shutting_down,
+                                               memory_order_acquire);
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        pthread_cond_destroy(&task->cond);
+        pthread_mutex_destroy(&task->mutex);
+        pgy_cancel_release(task->cancel_node);
+        free(task);
+        if (going_down) {
+            pgy_parallel_warn("spawn", "pool is shutting down");
+            return handle;
+        }
+        pgy_parallel_warn("spawn",
+            "worker pool inactive; task runs inline (serial). "
+            "parallel/spawn does not run concurrently without a live pool "
+            "(pgy_pool_init).");
+        return pgy_spawn_inline_completed(fn, arg, "spawn", false,
+                                          PGY_LANE_WORKER_POOL);
     }
     handle.task = task;
 
