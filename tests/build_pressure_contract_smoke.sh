@@ -25,6 +25,9 @@ require '$env:MAKELEVEL = $null'
 require 'New-Object System.Diagnostics.ProcessStartInfo'
 require '$exitCode = [int]$process.ExitCode'
 require 'New-Object System.Text.UTF8Encoding($false)'
+require '[switch]$StopOnLimit'
+require 'limit_exceeded = $limitExceeded'
+require 'if ($StopOnLimit)'
 
 grep -Fq 'PGY_BUILD_PRESSURE_LIMIT_MB ?= 3072' "$ROOT_DIR/Makefile" \
     || { echo "[build-pressure-contract] missing 3 GiB build ceiling" >&2; exit 1; }

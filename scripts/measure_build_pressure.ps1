@@ -5,6 +5,7 @@ param(
     [int]$LimitMB = 3072,
     [int]$IntervalMs = 500,
     [int]$TimeoutSec = 0,
+    [switch]$StopOnLimit,
     [string]$OutDir = ".tmp/build-pressure"
 )
 
@@ -87,6 +88,7 @@ $peakProcessCount = 0
 $peakName = ""
 $peakTopPrivate = 0.0
 $timedOut = $false
+$limitExceeded = $false
 $phaseStats = @{
     orchestrate = @{ Samples = 0; PeakWorkingSet = 0.0; PeakPrivate = 0.0 }
     compile = @{ Samples = 0; PeakWorkingSet = 0.0; PeakPrivate = 0.0 }
@@ -197,6 +199,16 @@ while (-not $process.HasExited) {
         $peakTopPrivate = $topPrivate
     }
 
+    if ($peakPrivate -gt $LimitMB -or $peakWorkingSet -gt $LimitMB) {
+        $limitExceeded = $true
+        if ($StopOnLimit) {
+            foreach ($id in ($ids | Sort-Object -Descending)) {
+                Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
+            }
+            break
+        }
+    }
+
     if ($TimeoutSec -gt 0 -and ((Get-Date) - $started).TotalSeconds -ge $TimeoutSec) {
         $timedOut = $true
         foreach ($id in ($ids | Sort-Object -Descending)) {
@@ -238,6 +250,9 @@ $summary = [ordered]@{
     peak_processes = $peakProcessCount
     top_private_process = $peakName
     top_private_mb = [math]::Round($peakTopPrivate, 1)
+    limit_mb = $LimitMB
+    stop_on_limit = [bool]$StopOnLimit
+    limit_exceeded = $limitExceeded
     phases = [ordered]@{
         orchestrate = $phaseStats.orchestrate
         compile = $phaseStats.compile
@@ -255,7 +270,7 @@ if ($timedOut) {
     [Console]::Error.WriteLine(("[build-pressure] timed out after {0}s" -f $TimeoutSec))
 }
 
-if ($peakPrivate -gt $LimitMB -or $peakWorkingSet -gt $LimitMB) {
+if ($limitExceeded) {
     [Console]::Error.WriteLine(("[build-pressure] peak exceeded limit {0} MB; this is a compiler/build memory bug until proven otherwise" -f $LimitMB))
     exit 88
 }
