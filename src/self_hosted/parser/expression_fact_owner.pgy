@@ -1,4 +1,4 @@
-// Canonical parser expression result and scalar leaf constructors.
+// Canonical parser expression result and unclassified leaf constructor.
 
 import "../hir/ast_expression_graph_owner.pgy";
 
@@ -23,74 +23,4 @@ func ParserExpressionLeaf(text: String) -> ParserExpressionFact {
         true, text, 0,
         AstExpressionArena(kinds, texts, left_children, right_children)
     );
-}
-
-func ParserExpressionFloatLiteral(text: String) -> ParserExpressionFact {
-    if text == "" { return ParserExpressionInvalid(); }
-    let kinds: Array<Int> = [AstExpressionNodeFloatLiteral()];
-    let texts: Array<String> = [text];
-    let left_children: Array<Int> = [0];
-    let right_children: Array<Int> = [0];
-    return ParserExpressionFact(
-        true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
-    );
-}
-
-func ParserExpressionIntegerLiteral(text: String) -> ParserExpressionFact {
-    if text == "" { return ParserExpressionInvalid(); }
-    let kinds: Array<Int> = [AstExpressionNodeIntegerLiteral()];
-    let texts: Array<String> = [text];
-    let left_children: Array<Int> = [0];
-    let right_children: Array<Int> = [0];
-    return ParserExpressionFact(
-        true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
-    );
-}
-
-func ParserExpressionLongLiteral(text: String) -> ParserExpressionFact {
-    if text == "" { return ParserExpressionInvalid(); }
-    let source_text: String = Concat(text, "L");
-    let kinds: Array<Int> = [AstExpressionNodeLongLiteral()];
-    let texts: Array<String> = [source_text];
-    let left_children: Array<Int> = [0];
-    let right_children: Array<Int> = [0];
-    return ParserExpressionFact(
-        true, source_text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
-    );
-}
-
-func ParserExpressionBoolLiteral(text: String) -> ParserExpressionFact {
-    if !AstExpressionBoolLiteralPayloadReady(text) {
-        return ParserExpressionInvalid();
-    }
-    let kinds: Array<Int> = [AstExpressionNodeBoolLiteral()];
-    let texts: Array<String> = [text];
-    let left_children: Array<Int> = [0];
-    let right_children: Array<Int> = [0];
-    return ParserExpressionFact(
-        true, text, 0,
-        AstExpressionArena(kinds, texts, left_children, right_children)
-    );
-}
-
-func ParserExpressionFactContractReady() -> Bool {
-    let integer: ParserExpressionFact = ParserExpressionIntegerLiteral("16");
-    let floating: ParserExpressionFact = ParserExpressionFloatLiteral("16");
-    let long_value: ParserExpressionFact = ParserExpressionLongLiteral("16");
-    let bool_value: ParserExpressionFact = ParserExpressionBoolLiteral("true");
-    return integer.ok && floating.ok && long_value.ok && bool_value.ok &&
-        integer.arena.node_kinds[integer.root] ==
-            AstExpressionNodeIntegerLiteral() &&
-        floating.arena.node_kinds[floating.root] ==
-            AstExpressionNodeFloatLiteral() &&
-        long_value.arena.node_kinds[long_value.root] ==
-            AstExpressionNodeLongLiteral() &&
-        bool_value.arena.node_kinds[bool_value.root] ==
-            AstExpressionNodeBoolLiteral() &&
-        integer.text == floating.text && long_value.text == "16L" &&
-        long_value.arena.node_texts[long_value.root] == "16L" &&
-        bool_value.arena.node_texts[bool_value.root] == "true";
 }

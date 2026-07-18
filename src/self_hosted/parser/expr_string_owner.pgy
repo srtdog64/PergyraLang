@@ -32,7 +32,7 @@ func ParserExpressionInterpolationValue(
 func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
     let n: Int = StringLength(s);
     if StringIndexOf(s, "${") < 0 {
-        return ParserExpressionLeaf(s);
+        return ParserExpressionStringLiteral(s);
     }
     let i: Int = 1;
     let segment_start: Int = 1;
@@ -46,7 +46,9 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
                 );
                 expression = ParserExpressionInterpolationAppend(
                     expression,
-                    ParserExpressionLeaf(Concat("\"", Concat(part, "\"")))
+                    ParserExpressionStringLiteral(
+                        Concat("\"", Concat(part, "\""))
+                    )
                 );
             }
             i = i + 2;
@@ -55,7 +57,7 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
                 i = i + 1;
             }
             if i >= content_end {
-                return ParserExpressionLeaf(s);
+                return ParserExpressionStringLiteral(s);
             }
             expression = ParserExpressionInterpolationAppend(
                 expression,
@@ -75,17 +77,19 @@ func ParseStringInterpolationFact(s: String) -> ParserExpressionFact {
         );
         expression = ParserExpressionInterpolationAppend(
             expression,
-            ParserExpressionLeaf(Concat("\"", Concat(tail, "\"")))
+            ParserExpressionStringLiteral(
+                Concat("\"", Concat(tail, "\""))
+            )
         );
     }
-    if !expression.ok { return ParserExpressionLeaf("\"\""); }
+    if !expression.ok { return ParserExpressionStringLiteral("\"\""); }
     return expression;
 }
 
 func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
     let n: Int = StringLength(s);
     if StringIndexOf(s, "{") < 0 {
-        return ParserExpressionLeaf(s);
+        return ParserExpressionStringLiteral(s);
     }
     let i: Int = 1;
     let segment_start: Int = 1;
@@ -99,7 +103,9 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
                 );
                 expression = ParserExpressionInterpolationAppend(
                     expression,
-                    ParserExpressionLeaf(Concat("\"", Concat(part, "\"")))
+                    ParserExpressionStringLiteral(
+                        Concat("\"", Concat(part, "\""))
+                    )
                 );
             }
             i = i + 1;
@@ -108,7 +114,7 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
                 i = i + 1;
             }
             if i >= content_end {
-                return ParserExpressionLeaf(s);
+                return ParserExpressionStringLiteral(s);
             }
             let value_source: String = Substring(
                 s, value_start, i - value_start
@@ -119,7 +125,7 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
             );
             if !value.ok ||
                 value_cursor[0] != StringLength(value_source) {
-                return ParserExpressionLeaf(s);
+                return ParserExpressionStringLiteral(s);
             }
             expression = ParserExpressionInterpolationAppend(
                 expression, ParserExpressionInterpolationValue(value)
@@ -136,10 +142,12 @@ func ParseDollarStringInterpolationFact(s: String) -> ParserExpressionFact {
         );
         expression = ParserExpressionInterpolationAppend(
             expression,
-            ParserExpressionLeaf(Concat("\"", Concat(tail, "\"")))
+            ParserExpressionStringLiteral(
+                Concat("\"", Concat(tail, "\""))
+            )
         );
     }
-    if !expression.ok { return ParserExpressionLeaf(s); }
+    if !expression.ok { return ParserExpressionStringLiteral(s); }
     return expression;
 }
 

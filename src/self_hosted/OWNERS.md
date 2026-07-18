@@ -58,8 +58,10 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/error_owner.pgy` -- parser diagnostic strings.
 - `src/self_hosted/parser/expr_owner.pgy` -- expression grammar import boundary.
 - `src/self_hosted/parser/expression_fact_owner.pgy` -- canonical parser
-  expression result plus scalar leaf-kind construction; rendered text and
-  literal type identity remain separate facts.
+  expression result plus unclassified leaf construction.
+- `src/self_hosted/parser/expression_scalar_fact_owner.pgy` -- scalar literal
+  graph construction; rendered text and literal type identity remain separate
+  facts.
 - `src/self_hosted/parser/expression_graph_owner.pgy` -- parser-owned
   expression node/edge construction, verified subtree extraction, and
   statement-lane root accumulation.

@@ -1,6 +1,6 @@
 // Recursive expression graph construction over parser-owned expression facts.
 
-import "expression_fact_owner.pgy";
+import "expression_scalar_fact_owner.pgy";
 
 func ParserExpressionStructFieldName(text: String) -> ParserExpressionFact {
     if text == "" { return ParserExpressionInvalid(); }

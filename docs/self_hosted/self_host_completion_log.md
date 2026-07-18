@@ -7906,3 +7906,30 @@ Released/default replacement remains 0%.
   classification, object-init internals, remaining literal-only argument
   bridges, special unary forms, result-type classification, and initial arena
   construction remain active; released/default substitution remains 0%.
+
+### 2026-07-18 -- String literal identity is parser-owned
+
+- Added `string_literal` as a typed expression-graph kind. Plain quoted
+  strings and interpolation literal segments now enter the arena through
+  `ParserExpressionStringLiteral`; only interpolation value expressions remain
+  ordinary expression subtrees.
+- Split scalar literal construction from the canonical expression result into
+  `expression_scalar_fact_owner.pgy` after the previous owner crossed its
+  100-line responsibility cap. The graph owner imports the scalar owner, which
+  in turn imports the common fact owner; no duplicate fact struct was added.
+- Semantic scalar typing, codegen type projection, MIR JSON kind projection,
+  MIR JSON consumption, and C emission consume `string_literal`. The former
+  first-character quote checks in semantic and codegen leaf consumers were
+  deleted and are rejected by the component contract.
+- Reused the existing `str_array` DRV-2 fixture. Changing the carried `"BOB"`
+  node from `string_literal` to `leaf` fails at the hard emitter, and removing
+  its quotes while retaining the kind fails graph verification. The existing
+  collection-mutation gate now requires the parser-owned String kind.
+- Focused DRV-2 C/LLVM parity passed, parser output stayed byte-equal for 188
+  sources, semantic C/LLVM verdict parity passed for 111 fixtures, and codegen
+  C/LLVM run parity passed for 75 fixtures. Bootstrap reached
+  `gen2 == gen3` at 32,977 generated C lines and retained full oracle breadth.
+- This replaces one live literal argument bridge. Other literal-only bridges,
+  namespace-qualified call classification, object-init internals, special
+  unary forms, result-type classification, and initial arena construction
+  remain active; released/default substitution remains 0%.

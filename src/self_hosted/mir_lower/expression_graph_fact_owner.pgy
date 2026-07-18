@@ -65,6 +65,9 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
     if kind == "bool_literal" {
         return Some(AstExpressionNodeBoolLiteral());
     }
+    if kind == "string_literal" {
+        return Some(AstExpressionNodeStringLiteral());
+    }
     if kind == "call" { return Some(AstExpressionNodeCall()); }
     if kind == "call_argument" {
         return Some(AstExpressionNodeCallArgument());

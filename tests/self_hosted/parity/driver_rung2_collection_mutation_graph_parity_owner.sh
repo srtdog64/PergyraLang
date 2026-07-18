@@ -23,7 +23,7 @@ pgy_selfhost_verify_driver_rung2_collection_mutation_graph() {
         }
     elif [[ "$base" == "str_array" ]]; then
         operation="ArraySet"
-        grep -Fq '"expr0":"ArraySet(names, 1, \"BOB\")","expr0_graph":{"root":0,"nodes":[{"kind":"leaf","text":"\"BOB\""' \
+        grep -Fq '"expr0":"ArraySet(names, 1, \"BOB\")","expr0_graph":{"root":0,"nodes":[{"kind":"string_literal","text":"\"BOB\""' \
             "$self_mir_json" || {
             echo "[self-host-parity:driver-rung2] $backend String ArraySet value graph was lost" >&2
             exit 1

@@ -20,9 +20,6 @@ func CodegenExpressionLeafTypeFromGraph(
     if !IsSome(text) { return None; }
     let value: String = UnwrapOption(text);
     if value == "true" || value == "false" { return Some("Bool"); }
-    if StringLength(value) > 0 && CodegenCharAt(value, 0) == "\"" {
-        return Some("String");
-    }
     if IsIdentifier(value) {
         let value_type: String = TypeEnvSemanticValueType(env, value);
         if value_type != "" { return Some(value_type); }
@@ -162,6 +159,7 @@ func CodegenExpressionTypeFromGraph(
     if kind == AstExpressionNodeLongLiteral() { return Some("Long"); }
     if kind == AstExpressionNodeFloatLiteral() { return Some("Float"); }
     if kind == AstExpressionNodeBoolLiteral() { return Some("Bool"); }
+    if kind == AstExpressionNodeStringLiteral() { return Some("String"); }
     if kind == AstExpressionNodeLeaf() {
         return CodegenExpressionLeafTypeFromGraph(graph, node_id, env);
     }

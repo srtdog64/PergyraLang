@@ -55,10 +55,11 @@ func AstExpressionNodeFloatLiteral() -> Int { return 29; }
 func AstExpressionNodeIntegerLiteral() -> Int { return 30; }
 func AstExpressionNodeLongLiteral() -> Int { return 31; }
 func AstExpressionNodeBoolLiteral() -> Int { return 32; }
+func AstExpressionNodeStringLiteral() -> Int { return 33; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeBoolLiteral();
+        kind <= AstExpressionNodeStringLiteral();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
@@ -66,11 +67,31 @@ func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
         kind == AstExpressionNodeFloatLiteral() ||
         kind == AstExpressionNodeIntegerLiteral() ||
         kind == AstExpressionNodeLongLiteral() ||
-        kind == AstExpressionNodeBoolLiteral();
+        kind == AstExpressionNodeBoolLiteral() ||
+        kind == AstExpressionNodeStringLiteral();
 }
 
 func AstExpressionBoolLiteralPayloadReady(text: String) -> Bool {
     return text == "true" || text == "false";
+}
+
+func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
+    let n: Int = StringLength(text);
+    if n < 2 || CodegenCharAt(text, 0) != "\"" ||
+        CodegenCharAt(text, n - 1) != "\"" {
+        return false;
+    }
+    let i: Int = 1;
+    while i < n - 1 {
+        let c: String = CodegenCharAt(text, i);
+        if c == "\"" { return false; }
+        if c == "\\" {
+            i = i + 1;
+            if i >= n - 1 { return false; }
+        }
+        i = i + 1;
+    }
+    return true;
 }
 
 func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
@@ -185,6 +206,10 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         }
         if kind == AstExpressionNodeBoolLiteral() &&
             !AstExpressionBoolLiteralPayloadReady(arena.node_texts[i]) {
+            return false;
+        }
+        if kind == AstExpressionNodeStringLiteral() &&
+            !AstExpressionStringLiteralPayloadReady(arena.node_texts[i]) {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);
