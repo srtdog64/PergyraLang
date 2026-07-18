@@ -10790,7 +10790,32 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
   생략한 정적 분할 / readonly 증명 시 동기화 생략 / PinnedZone 실제 고정.
   **순서 중요**: ①을 안 하고 ②를 얹으면 전역 뮤텍스가 이득을 삼켜
   "증거 스케줄링 무효"라는 **틀린 반증**이 나온다.
-- **미착수**(BDFL 판단 대기 — 동시성 코어 수술이라 범위 결정 필요).
+- **✅ ①-a 착지 `4b28025b`**: spawn 이 전역 뮤텍스를 **태스크 생성 내내** 잡던 것을
+  풀어, 락은 liveness 재확인+enqueue 만 덮게 함(lock-free 선검사 + 락 안 재확인으로
+  경합 시 정리). **실측**: spawn-heavy 마이크로(재귀 parallel fib, ~22k spawn, 잎
+  작업 최소), old-vs-new interleave 4라운드 best-of-3 →
+  old 350/388/406/392ms vs new 158/174/173/165ms = **일관 2.2~2.4x**.
+  게이트: worker-invariance byte-동일(1/2/3/16, 양 백엔드) · 중첩 fan-out ·
+  채널 starvation 보상 · join/취소 목격자(blocked/spinloop 은퇴)+17 거절 ·
+  budget SPAWN_COUNT 여전히 물림 · backend-compare 114/114.
+- **✗ ①-b 반증·되돌림 (누적 반증 5호)**: 태스크 free-list(mutex/cond 재사용).
+  **천장 측정은 유망했다** — calloc+pthread init/destroy 가 4.9~5.9µs/task 로,
+  ①-a 이후 총 ~7.6µs/spawn 의 대부분. 그런데 실측은 **중립**(interleave 4라운드,
+  165.8 vs 161.8ms = 노이즈 내). 계측으로 원인 확정: **hits=0, misses=57312,
+  recycles=57312** — 태스크는 전부 캐시에 들어가는데 **꺼내지는 쪽이 0**.
+  즉 "그 비용이 임계경로가 아니다"가 아니라 **"내 캐시가 작동하지 않았다"**.
+  §8(측정된 이득 없는 복잡도 금지) + 이미 lane=REJECT 수명 버그를 한 번 낸 점을
+  들어 **되돌림**(진단 계측 포함 전량).
+  **★부수 발견(재시도 시 출발점)**: `pgy_await` 는 `static inline`(TU-로컬,
+  방출 프로그램에 컴파일)인데 `pgy_spawn` 은 `PGY_RT_DECL`(extern, cext
+  오브젝트). 즉 **둘 사이에 공유되는 per-thread 상태는 프로그램/오브젝트 경계를
+  가로지른다** — docs/190 A1/A3 와 동일한 위험 클래스. free-list 재시도는 이
+  비대칭부터 해소해야 한다(양쪽을 같은 링키지로 두거나, 캐시를 풀 소유로).
+- **①-c 판단(미착수, 근거 있음)**: 배치 enqueue 의 기대값은 **낮다**. ①-a 이후
+  임계구역은 이미 작고, 이득이 필요한 축(중첩 fork-join)은 노드당 chunk_count=2 라
+  배치해도 락 1회 절약뿐. range-parallel 은 이미 auto-chunk 로 상각됨. 측정 근거
+  없이 착수하지 않는다.
+- **② 미착수**(codegen 이 AIR lane fact 를 나르게 = 컴파일러 변경, 별도 범위).
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
