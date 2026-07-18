@@ -59,8 +59,13 @@ fi
 
 # Representative slice spanning casts/floats (checked f2i), short-circuit,
 # collections, channels, and parallel join -- the surfaces whose runtime
-# primitives get inlined from the .bc.
-CASES="cast_numeric,float_arith_chain,long_cast_roundtrip,bool_short_circuit_calls,string_compress_runlength,array_binary_search,map_count_unique,channel_send_recv_basic,parallel_channel_sum,select_ready,triple_paradigm"
+# primitives get inlined from the .bc. The join_any_blocked/spinloop cases
+# exercise cancelled-loser retirement, which reads the coroutine/current-task
+# TLS through pgy_task_is_cancelled: if those exports were not stripped from
+# the inlined bitcode they would read a private zero copy and the loser would
+# park forever (docs/190 A2). Their presence here is the behavioral guard for
+# that strip predicate under bc-ON.
+CASES="cast_numeric,float_arith_chain,long_cast_roundtrip,bool_short_circuit_calls,string_compress_runlength,array_binary_search,map_count_unique,channel_send_recv_basic,parallel_channel_sum,select_ready,triple_paradigm,parallel_join_any_blocked,parallel_join_any_spinloop"
 
 PGY_RUNTIME_BC="$(pgy_path_for_compiler "$PGY" "$BC_PATH")" \
 PGY_BIN="$PGY" \

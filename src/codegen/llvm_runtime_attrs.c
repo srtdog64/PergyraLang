@@ -151,15 +151,21 @@ llvm_fn_is_budget_runtime(const char *fn_name)
  * Stateful runtime families whose process-wide state (or fail-closed inline
  * panic body) lives in the separately compiled runtime object: the virtual
  * clock (static atomic mode/ns pair), zone-authority checks and their
- * last-error TLS record, thread-pool lifecycle/spawn/await, and channels
- * (whose blocked-wait quantum feeds the pool compensation tick). Inlining
- * their bitcode bodies would duplicate that state per leg -- the exact
- * split-brain class that hit cap/budget before those got the
- * PGY_RUNTIME_BC_BUILD guard -- and the zone-authority checks additionally
- * carry the inline PGY_RUNTIME_PANIC body that mis-lowers when folded
- * (docs/189 C5+C7). Strip them so every call resolves to the one runtime
- * object. Prefix-matched; the exclusion loop's external-linkage guard keeps
- * a stray static helper from being stripped into a link error.
+ * last-error TLS record, thread-pool lifecycle/spawn/await, channels
+ * (whose blocked-wait quantum feeds the pool compensation tick), and the
+ * task/async cancellation surface (pgy_task_is_cancelled / pgy_task_cancel /
+ * pgy_async_detach read and write the coroutine + current-task TLS,
+ * g_pgy_coro / g_pgy_thread_current). Inlining their bitcode bodies would
+ * duplicate that state per leg -- the exact split-brain class that hit
+ * cap/budget before those got the PGY_RUNTIME_BC_BUILD guard, and that hit
+ * the cancel probe on the C leg (docs/190 A2): a task-cancel family inlined
+ * from bitcode reads a program-module-private zero copy of the TLS, so
+ * is_cancelled() is stuck false and a cancelled join-any loser never
+ * retires. zone-authority additionally carries the inline PGY_RUNTIME_PANIC
+ * body that mis-lowers when folded (docs/189 C5+C7). Strip them so every
+ * call resolves to the one runtime object. Prefix-matched; the exclusion
+ * loop's external-linkage guard (llvm_api.c) keeps a stray static helper
+ * (e.g. pgy_async_progress_one) from being stripped into a link error.
  */
 bool
 llvm_fn_is_stateful_runtime(const char *fn_name)
@@ -174,7 +180,9 @@ llvm_fn_is_stateful_runtime(const char *fn_name)
         || strncmp(fn_name, "pgy_spawn", 9) == 0
         || strncmp(fn_name, "pgy_await", 9) == 0
         || strncmp(fn_name, "pgy_channel_", 12) == 0
-        || strncmp(fn_name, "pgy_select_", 11) == 0;
+        || strncmp(fn_name, "pgy_select_", 11) == 0
+        || strncmp(fn_name, "pgy_task_", 9) == 0
+        || strncmp(fn_name, "pgy_async_", 10) == 0;
 }
 
 /*
