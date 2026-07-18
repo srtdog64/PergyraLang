@@ -10659,6 +10659,43 @@ RT 계열.
   현 상태 안전·완결. heap-핸들 승격(복사=합법 별칭)은 **미래 방향**이지
   미수리 잔여 아님. 채택 시 현 거절들이 완화되는 enhancement.
 
+#### WO-RED3 — 레드팀 3차: 링키지/상태-소유권 (docs/190, 2026-07-18) — OPEN
+
+inline→extern 워크스트림 직후 cancel-probe 탈출(8685c3c1)의 **형제 탐색**.
+3에이전트 감사(드라이버·캐시 / 링키지×.bc 트윈 / 게이트 맹점) + 오케스트레이터
+바이너리·`.bc` 실물 검증. 결론: **cancel-probe 는 클래스였다.** extern 오브젝트가
+C 백엔드를 처음 2-TU 세계로 바꾸며 미변환 능력/예산/취소 싱글턴이 방출 TU·오브젝트에
+각각 인스턴스화(★실측 `st.0`+`st.2`). 지금은 env 미러 + `.bc` stale 두 우연이
+가림. **마감('잔여 없음')은 이 클래스에 조기** — 근거 '6샤드'가 목격자(샤드
+16/17/18)를 미실행.
+
+- **★A1 HIGH-클래스(잠재)**: C-extern 능력 마스크 분열. 변환된 `Random`/`Args`
+  (오브젝트)가 미변환 게이트를 오브젝트-측 `granted`(PGY_CAP_ALL)로 확인, 방출 TU 의
+  `set_manifest` 는 방출 사본만 갱신 → 프로그램적 매니페스트 우회. **env 경로는
+  미러라 안전**(오늘 배포 안 뚫림); 로더 shim 배선 시 라이브. 오버클레임 금지.
+- **★A2 HIGH(bc-ON, 재생성 즉시)**: `pgy_task_`/`pgy_async_` 가 strip predicate
+  누락 → `.bc` 실물서 `task_cancel`/`is_cancelled`/`async_detach`=`T`+`g_pgy_coro`=
+  `d` 확인 → bc-ON `is_cancelled()` 제로사본 읽어 항상 false → 협조취소 사망.
+  현 `.bc` stale 이라 freshness 가 차단 중, 재생성 즉시 재무장. **기존 구멍**.
+- **A3 MED**: 예산 분열(프로그램적 set_limit·introspection 무효, env 안전).
+- **A4 MED(parity)**: env vs manifest 우선순위 백엔드 상이(C=manifest최종/
+  LLVM=env덮음).
+- **★B1 HIGH**: cext TU 상대경로(`cache.c:291`, 형제는 절대) → 비-루트 CWD·cold
+  캐시서 C 백엔드 하드페일. **1줄 수리**(내 fb8778c5 회귀).
+- **B2 MED**: `abi-perf-runtime` 이 드라이버 LLVM 캐시경로를 `-fwrapv` 없이 오염.
+  B3~7: concurrent race/키 불완전/tmp 공유/비재귀 freshness/동초 stale.
+- **★C1 HIGH**: CI 5잡 timeout-minutes 무 + join smoke per-test timeout 무 →
+  hang 시 6h 소각. C2: 취소 목격자가 로컬 aggregate 밖. C3~7: inline 미검증/
+  both-hang PASS/asan 미실행프로그램/플랫폼 비대칭/게이트 100% grep·행동 0.
+- **즉시수리 Top5**: B1(절대경로) · A2(strip+인벤토리 대조) · A1/A3(PGY_RT_GLOBAL
+  단일-홈=cancel-probe 동일수술) · C1(timeout) · C2(join→redteam aggregate).
+- **BDFL 판정 2**: ① A4 env/manifest 우선순위 통일 방향 ② 마감 재개방 —
+  WO-RED3 전체 열기 vs A2 만 분리하고 A1/A3(env 우연-안전)은 "로더 shim
+  선행조건" deferral.
+- **강한 곳(반증거)**: cancel-probe 수리·C7 LLVM 단일화·두 오브젝트 메커니즘
+  공존불가·무음 fallback 무·기본모드 토큰중립성 전부 건전. CI 는 HEAD green
+  (샤드 16/17/18 포함 20/20 — 수리 유효 확인).
+
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
 - **해제 근거**: docs/187 ★판정 C — ① 명시 시작(world-층 선언 + code-층
