@@ -149,6 +149,12 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_instruction_expression(const MIRInstruction *inst, int lane)"
 require_text "src/compiler/mir_json_expression_graph.c" \
     "mir_json_expression_graph_build(&graph, expr)"
+require_text "src/compiler/mir_json_expression_graph.c" \
+    "case AST_ARRAY_LITERAL:"
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$array_mir_source" "array-return-literal"'
 forbid_text "src/compiler/mir_json_expression_graph.c" \
     "parser_parse"
 forbid_text "src/compiler/mir_json_expression_graph.c" \

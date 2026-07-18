@@ -1494,10 +1494,11 @@ beyond the lexer:
 - **Canonical MIR expression ownership** -- self-produced MIR canonicalization
   consumes `expr0_graph` through the MIR expression owner and rejects a
   missing or invalid graph. The native C oracle now projects the bounded
-  `let`/`Log` scalar, binary, and direct-call slice into that same graph schema
-  without reparsing expression text. The public `--self-driver` live gate
-  compares its canonical facts with the self producer. Unsupported native AST
-  shapes remain fail-closed; the named oracle bridge is retained only for old
+  `let`/`Log` scalar, binary, direct-call, and array-literal slice into that
+  same graph schema without reparsing expression text. The public
+  `--self-driver` live gate compares canonical facts and runtime output for
+  both `let_log` and `array_return_literal`. Unsupported native AST shapes
+  remain fail-closed; the named oracle bridge is retained only for old
   graph-less artifacts and is unavailable to the hard consumer.
 
 The remaining work is mostly actual semantic and codegen pass work against the

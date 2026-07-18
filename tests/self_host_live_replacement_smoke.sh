@@ -28,6 +28,7 @@ command -v "$CC" >/dev/null 2>&1 || { echo "[self-host-live] missing C compiler:
 positive="src/self_hosted/semantic/fixture/valid_call_int.pgy"
 negative="src/self_hosted/semantic/fixture/bad_return_type.pgy"
 mir_source="src/self_hosted/mir_lower/fixture/let_log.pgy"
+array_mir_source="src/self_hosted/codegen/fixture/array_return_literal.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
 (cd "$ROOT_DIR" && "$SELF_DRIVER" "$positive" --emit-c-verified) >"$WORK_DIR/direct.c"
@@ -59,63 +60,78 @@ cmp -s "$WORK_DIR/direct.norm" "$WORK_DIR/launcher.norm" || {
     exit 1
 }
 
-(cd "$ROOT_DIR" && "$PGY" --mir-json \
-    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$mir_source")" 2>/dev/null) \
-    | tr -d '\r' >"$WORK_DIR/live.mir.json"
-grep -Fq '"schema":"pgy.mir.v1"' "$WORK_DIR/live.mir.json" || {
-    echo "[self-host-live] C oracle did not produce MIR comparison artifact" >&2
-    exit 1
-}
-live_mir_arg="$(pgy_selfhost_path_relative_to_root "$WORK_DIR/live.mir.json")"
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified "$mir_source") \
-    | tr -d '\r' >"$WORK_DIR/direct-self.mir.json"
-(cd "$ROOT_DIR" && "$PGY" --self-driver \
-    --emit-mir-json-verified "$mir_source") \
-    | tr -d '\r' >"$WORK_DIR/launcher-self.mir.json"
-cmp -s "$WORK_DIR/direct-self.mir.json" "$WORK_DIR/launcher-self.mir.json" || {
-    echo "[self-host-live] launcher MIR producer differs from direct DRV-2" >&2
-    exit 1
-}
-if grep -Fq '"ast":' "$WORK_DIR/launcher-self.mir.json"; then
-    echo "[self-host-live] self MIR producer emitted AST compatibility text" >&2
-    exit 1
-fi
-self_mir_arg="$(pgy_selfhost_path_relative_to_root "$WORK_DIR/launcher-self.mir.json")"
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-mir-json "$live_mir_arg") \
-    | tr -d '\r' >"$WORK_DIR/oracle.canonical.mir.json"
-(cd "$ROOT_DIR" && "$PGY" --self-driver \
-    --canonicalize-mir-json "$self_mir_arg") \
-    | tr -d '\r' >"$WORK_DIR/self.canonical.mir.json"
-cmp -s "$WORK_DIR/oracle.canonical.mir.json" \
-    "$WORK_DIR/self.canonical.mir.json" || {
-        echo "[self-host-live] self MIR canonical facts differ from C oracle" >&2
+check_live_mir_source() {
+    local source="$1"
+    local label="$2"
+    local live_mir="$WORK_DIR/$label.live.mir.json"
+    local direct_self="$WORK_DIR/$label.direct-self.mir.json"
+    local launcher_self="$WORK_DIR/$label.launcher-self.mir.json"
+    local live_arg
+    local self_arg
+
+    (cd "$ROOT_DIR" && "$PGY" --mir-json \
+        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$source")" 2>/dev/null) \
+        | tr -d '\r' >"$live_mir"
+    grep -Fq '"schema":"pgy.mir.v1"' "$live_mir" || {
+        echo "[self-host-live] $label: C oracle did not produce MIR" >&2
         exit 1
     }
-(cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json \
-    "$self_mir_arg") \
-    >"$WORK_DIR/direct-mir.c"
-(cd "$ROOT_DIR" && "$PGY" --self-driver --mir-json \
-    "$self_mir_arg") \
-    >"$WORK_DIR/launcher-mir.c"
-cmp -s "$WORK_DIR/direct-mir.c" "$WORK_DIR/launcher-mir.c" || {
-    echo "[self-host-live] launcher MIR C artifact differs from direct DRV-2" >&2
-    exit 1
-}
-"$CC" -x c -std=c11 "$WORK_DIR/launcher-mir.c" \
-    -o "$WORK_DIR/launcher-mir-program" >"$WORK_DIR/mir.cc.log" 2>&1 || {
-        cat "$WORK_DIR/mir.cc.log" >&2
+    live_arg="$(pgy_selfhost_path_relative_to_root "$live_mir")"
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --emit-mir-json-verified "$source") \
+        | tr -d '\r' >"$direct_self"
+    (cd "$ROOT_DIR" && "$PGY" --self-driver \
+        --emit-mir-json-verified "$source") \
+        | tr -d '\r' >"$launcher_self"
+    cmp -s "$direct_self" "$launcher_self" || {
+        echo "[self-host-live] $label: launcher MIR producer drift" >&2
         exit 1
     }
-(cd "$ROOT_DIR" && "$PGY" \
-    "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$mir_source")" --backend=c \
-    -o "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/oracle-mir-program")" \
-    >"$WORK_DIR/oracle-mir.compile.log" 2>&1)
-"$WORK_DIR/launcher-mir-program" | tr -d '\r' >"$WORK_DIR/launcher-mir.run"
-"$WORK_DIR/oracle-mir-program" | tr -d '\r' >"$WORK_DIR/oracle-mir.run"
-cmp -s "$WORK_DIR/oracle-mir.run" "$WORK_DIR/launcher-mir.run" || {
-    echo "[self-host-live] integrated MIR run output differs from C oracle" >&2
-    exit 1
+    if grep -Fq '"ast":' "$launcher_self"; then
+        echo "[self-host-live] $label: self MIR emitted AST text" >&2
+        exit 1
+    fi
+    self_arg="$(pgy_selfhost_path_relative_to_root "$launcher_self")"
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-mir-json "$live_arg") \
+        | tr -d '\r' >"$WORK_DIR/$label.oracle.canonical.mir.json"
+    (cd "$ROOT_DIR" && "$PGY" --self-driver \
+        --canonicalize-mir-json "$self_arg") \
+        | tr -d '\r' >"$WORK_DIR/$label.self.canonical.mir.json"
+    cmp -s "$WORK_DIR/$label.oracle.canonical.mir.json" \
+        "$WORK_DIR/$label.self.canonical.mir.json" || {
+            echo "[self-host-live] $label: canonical MIR fact drift" >&2
+            exit 1
+        }
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$self_arg") \
+        >"$WORK_DIR/$label.direct-mir.c"
+    (cd "$ROOT_DIR" && "$PGY" --self-driver --mir-json "$self_arg") \
+        >"$WORK_DIR/$label.launcher-mir.c"
+    cmp -s "$WORK_DIR/$label.direct-mir.c" \
+        "$WORK_DIR/$label.launcher-mir.c" || {
+            echo "[self-host-live] $label: launcher C artifact drift" >&2
+            exit 1
+        }
+    "$CC" -x c -std=c11 "$WORK_DIR/$label.launcher-mir.c" \
+        -o "$WORK_DIR/$label.launcher-program" \
+        >"$WORK_DIR/$label.cc.log" 2>&1 || {
+            cat "$WORK_DIR/$label.cc.log" >&2
+            exit 1
+        }
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/$source")" --backend=c \
+        -o "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/$label.oracle-program")" \
+        >"$WORK_DIR/$label.oracle.compile.log" 2>&1)
+    "$WORK_DIR/$label.launcher-program" | tr -d '\r' \
+        >"$WORK_DIR/$label.launcher.run"
+    "$WORK_DIR/$label.oracle-program" | tr -d '\r' \
+        >"$WORK_DIR/$label.oracle.run"
+    cmp -s "$WORK_DIR/$label.oracle.run" "$WORK_DIR/$label.launcher.run" || {
+        echo "[self-host-live] $label: run output differs from C oracle" >&2
+        exit 1
+    }
 }
+
+check_live_mir_source "$mir_source" "let-log"
+check_live_mir_source "$array_mir_source" "array-return-literal"
 
 set +e
 (cd "$ROOT_DIR" && "$SELF_DRIVER" --mir-json "$bad_mir") \

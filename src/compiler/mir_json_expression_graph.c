@@ -141,6 +141,78 @@ mir_json_unary_graph_kind(PgyTokenType type)
 static int mir_json_expression_graph_build(MIRJsonExpressionGraph *graph,
                                            ASTNode *expr);
 
+static char *
+mir_json_expression_graph_array_text(const char *prefix,
+                                     const char *element)
+{
+    size_t prefix_length;
+    size_t element_length;
+    size_t separator_length;
+    size_t base_length;
+    char *text;
+
+    if (prefix == NULL || element == NULL)
+        return NULL;
+    prefix_length = strlen(prefix);
+    element_length = strlen(element);
+    if (prefix_length < 2 || prefix[0] != '['
+        || prefix[prefix_length - 1] != ']') {
+        return NULL;
+    }
+    separator_length = prefix_length == 2 ? 0 : 2;
+    if (prefix_length > SIZE_MAX - separator_length)
+        return NULL;
+    base_length = prefix_length + separator_length;
+    if (base_length == SIZE_MAX)
+        return NULL;
+    if (element_length > SIZE_MAX - base_length - 1)
+        return NULL;
+    text = malloc(base_length + element_length + 1);
+    if (text == NULL)
+        return NULL;
+    memcpy(text, prefix, prefix_length - 1);
+    if (separator_length != 0)
+        memcpy(text + prefix_length - 1, ", ", separator_length);
+    memcpy(text + prefix_length - 1 + separator_length,
+           element, element_length);
+    text[prefix_length - 1 + separator_length + element_length] = ']';
+    text[prefix_length + separator_length + element_length] = '\0';
+    return text;
+}
+
+static int
+mir_json_expression_graph_build_array(MIRJsonExpressionGraph *graph,
+                                      ASTNode *expr)
+{
+    int literal_root;
+    char *text = mir_json_expression_graph_copy_text("[]");
+
+    literal_root = mir_json_expression_graph_append(
+        graph, "array_literal", text, -1, -1, "none", "");
+    if (literal_root < 0) {
+        free(text);
+        return -1;
+    }
+    for (size_t i = 0; i < ast_array_literal_count(expr); i++) {
+        ASTNode *element = ast_array_literal_element(expr, i);
+        int element_root = mir_json_expression_graph_build(graph, element);
+
+        if (element_root < 0)
+            return -1;
+        text = mir_json_expression_graph_array_text(
+            graph->nodes[literal_root].text,
+            graph->nodes[element_root].text);
+        literal_root = mir_json_expression_graph_append(
+            graph, "array_element", text, literal_root, element_root,
+            "none", "");
+        if (literal_root < 0) {
+            free(text);
+            return -1;
+        }
+    }
+    return literal_root;
+}
+
 static int
 mir_json_expression_graph_build_call(MIRJsonExpressionGraph *graph,
                                      ASTNode *expr)
@@ -244,6 +316,8 @@ mir_json_expression_graph_build(MIRJsonExpressionGraph *graph, ASTNode *expr)
     }
     case AST_CALL:
         return mir_json_expression_graph_build_call(graph, expr);
+    case AST_ARRAY_LITERAL:
+        return mir_json_expression_graph_build_array(graph, expr);
     case AST_MEMBER_ACCESS:
     {
         char *member_text;
