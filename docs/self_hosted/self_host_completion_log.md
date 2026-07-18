@@ -7860,3 +7860,21 @@ Released/default replacement remains 0%.
 - This replaces one live self-MIR consumer. Native MIR graph production and
   other compact expression leaves remain bridged, so released/default
   substitution remains 0%.
+
+### 2026-07-18 -- Long literal identity is parser-owned
+
+- Added `long_literal` as a typed expression-graph kind. The self-host parser
+  now preserves both the source `L` spelling and the graph identity instead of
+  letting expected-type context recover `Long` downstream.
+- Semantic scalar typing, MIR JSON kind projection, MIR JSON consumption, and
+  C emission consume that graph kind. A damaged kind fails closed before
+  codegen can guess from the literal text.
+- Corrected the native oracle's inline AST printer to serialize Long values as
+  decimal integer text with `L`; `%g` had changed `42000000000L` into
+  `4.2e+10L`, which is not a lossless compiler artifact.
+- Added `long_scalar` to the 33-fixture DRV-2 producer frontier with a
+  `42000000000L` execution case, a Long-kind negative mutation, and a malformed
+  Long-payload negative mutation.
+- Repaired the initializer-projection negative to mutate
+  `integer_literal("2")` into an identifier leaf. The previous leaf-only
+  search no longer damaged the graph after integer literal identity landed.

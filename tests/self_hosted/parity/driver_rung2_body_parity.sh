@@ -14,6 +14,7 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owne
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh"
@@ -126,8 +127,8 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 32 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 32" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 33 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 33" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"

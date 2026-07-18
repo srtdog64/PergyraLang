@@ -145,12 +145,13 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/semantic/fixture/valid_array_builtins.pgy",
         "src/self_hosted/semantic/fixture/valid_option_none_literal.pgy",
         "src/self_hosted/semantic/fixture/valid_call_int.pgy",
-        "src/self_hosted/codegen/fixture/result_int_core.pgy"
+        "src/self_hosted/codegen/fixture/result_int_core.pgy",
+        "src/self_hosted/codegen/fixture/long_scalar.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 32;
+    return 33;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

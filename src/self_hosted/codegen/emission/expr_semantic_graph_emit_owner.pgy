@@ -81,6 +81,9 @@ func RewriteExprFromSemanticGraph(
     let kind: Int = UnwrapOption(kind_opt);
     let text: String = UnwrapOption(text_opt);
     if kind == AstExpressionNodeIntegerLiteral() { return text; }
+    if kind == AstExpressionNodeLongLiteral() {
+        return Concat(text, "L");
+    }
     if kind == AstExpressionNodeFloatLiteral() {
         if StringIndexOf(text, ".") >= 0 { return text; }
         return Concat(text, ".0");

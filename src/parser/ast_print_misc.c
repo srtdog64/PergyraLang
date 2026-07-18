@@ -13,6 +13,14 @@ ast_print_number_text(const ASTNode *node, char *buffer, size_t capacity)
     if (node == NULL || node->type != AST_NUMBER)
         return;
 
+    if (ast_number_is_long(node)) {
+        int written = snprintf(buffer, capacity, "%lldL",
+            (long long)node->data.number.value);
+        if (written < 0 || (size_t)written >= capacity)
+            buffer[0] = '\0';
+        return;
+    }
+
     int written = snprintf(buffer, capacity, "%g", node->data.number.value);
     if (written < 0 || (size_t)written >= capacity) {
         buffer[0] = '\0';

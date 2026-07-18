@@ -10,4 +10,5 @@ func Main() -> Void {
     Log(c);
     c = c + d;
     Log(ToString(c));
+    Log(ToString(42000000000L));
 }

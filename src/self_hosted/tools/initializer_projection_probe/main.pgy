@@ -50,12 +50,14 @@ func ProbeExpressionSurfacesWithScalarOperand(
     replacement: String
 ) -> SemanticAstExpressionSurfaceFacts {
     let graph: SemanticExpressionGraphFacts = surfaces.expression_graph;
+    let kinds: Array<Int> = graph.arena.node_kinds;
     let texts: Array<String> = graph.arena.node_texts;
     let changed: Bool = false;
     let i: Int = 0;
     while i < SemanticExpressionGraphArenaNodeCount(graph.arena) {
-        if graph.arena.node_kinds[i] == AstExpressionNodeLeaf() &&
+        if kinds[i] == AstExpressionNodeIntegerLiteral() &&
             texts[i] == "2" {
+            ArraySet(kinds, i, AstExpressionNodeLeaf());
             ArraySet(texts, i, replacement);
             changed = true;
             break;
@@ -64,7 +66,7 @@ func ProbeExpressionSurfacesWithScalarOperand(
     }
     if !changed { return surfaces; }
     let arena: SemanticExpressionGraphArena = SemanticExpressionGraphArena(
-        graph.arena.node_kinds, texts, graph.arena.left_children,
+        kinds, texts, graph.arena.left_children,
         graph.arena.right_children, graph.arena.call_target_kinds,
         graph.arena.call_target_names
     );

@@ -159,6 +159,7 @@ func CodegenExpressionTypeFromGraph(
     if !IsSome(kind_opt) { return None; }
     let kind: Int = UnwrapOption(kind_opt);
     if kind == AstExpressionNodeIntegerLiteral() { return Some("Int"); }
+    if kind == AstExpressionNodeLongLiteral() { return Some("Long"); }
     if kind == AstExpressionNodeFloatLiteral() { return Some("Float"); }
     if kind == AstExpressionNodeLeaf() {
         return CodegenExpressionLeafTypeFromGraph(graph, node_id, env);

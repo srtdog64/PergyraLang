@@ -1,6 +1,7 @@
 // Parser-owned recursive expression rows carried by the typed AST artifact.
 
 import "ast_node_kind_owner.pgy";
+import "ast_text_scan_owner.pgy";
 
 struct AstExpressionArena {
     node_kinds: Array<Int>;
@@ -52,16 +53,31 @@ func AstExpressionNodeGenericTypeActual() -> Int { return 27; }
 func AstExpressionNodeGenericCallee() -> Int { return 28; }
 func AstExpressionNodeFloatLiteral() -> Int { return 29; }
 func AstExpressionNodeIntegerLiteral() -> Int { return 30; }
+func AstExpressionNodeLongLiteral() -> Int { return 31; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeIntegerLiteral();
+        kind <= AstExpressionNodeLongLiteral();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
     return kind == AstExpressionNodeLeaf() ||
         kind == AstExpressionNodeFloatLiteral() ||
-        kind == AstExpressionNodeIntegerLiteral();
+        kind == AstExpressionNodeIntegerLiteral() ||
+        kind == AstExpressionNodeLongLiteral();
+}
+
+func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
+    let n: Int = StringLength(text);
+    if n < 2 || CodegenCharAt(text, n - 1) != "L" { return false; }
+    let i: Int = 0;
+    while i < n - 1 {
+        if StringIndexOf("0123456789", CodegenCharAt(text, i)) < 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
 }
 
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
@@ -155,6 +171,10 @@ func AstExpressionArenaReady(ref arena: AstExpressionArena) -> Bool {
         let right: Int = arena.right_children[i];
         if arena.node_texts[i] == "" ||
             !AstExpressionNodeKindKnown(kind) {
+            return false;
+        }
+        if kind == AstExpressionNodeLongLiteral() &&
+            !AstExpressionLongLiteralPayloadReady(arena.node_texts[i]) {
             return false;
         }
         let arity: Int = AstExpressionNodeArity(kind);

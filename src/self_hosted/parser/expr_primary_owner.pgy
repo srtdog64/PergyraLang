@@ -27,6 +27,7 @@ func ParsePrimaryFact(
     let preserves_interpolation_graph: Bool = false;
     let preserves_float_literal_fact: Bool = false;
     let preserves_integer_literal_fact: Bool = false;
+    let preserves_long_literal_fact: Bool = false;
     if c == "|" {
         i = i + 1;
         i = SkipWhitespaceAndComments(content, i);
@@ -297,7 +298,10 @@ func ParsePrimaryFact(
         );
         preserves_float_literal_fact =
             StringIndexOf(source_number, ".") >= 0;
-        preserves_integer_literal_fact = !preserves_float_literal_fact;
+        preserves_long_literal_fact = !preserves_float_literal_fact &&
+            ParserCharAt(content, i) == "L";
+        preserves_integer_literal_fact = !preserves_float_literal_fact &&
+            !preserves_long_literal_fact;
         while IsAlpha(ParserCharAt(content, i)) {
             i = i + 1;
         }
@@ -419,6 +423,9 @@ func ParsePrimaryFact(
     let base_fact: ParserExpressionFact = ParserExpressionLeaf(base);
     if preserves_integer_literal_fact {
         base_fact = ParserExpressionIntegerLiteral(base);
+    }
+    if preserves_long_literal_fact {
+        base_fact = ParserExpressionLongLiteral(base);
     }
     if preserves_float_literal_fact {
         base_fact = ParserExpressionFloatLiteral(base);

@@ -1480,7 +1480,7 @@ beyond the lexer:
 - **Namespace/member call provenance** -- carried call targets are no longer a
   resolver shortcut. The body fixpoint re-derives qualified namespace targets
   and receiver-typed method targets, then rejects any mismatch. The complete C
-  DRV-2 frontier passes 20 source and 32 MIR producer fixtures with this rule.
+  DRV-2 frontier passes 20 source and 33 MIR producer fixtures with this rule.
 - **Canonical MIR expression ownership** -- self-produced MIR canonicalization
   now consumes `expr0_graph` through the MIR expression owner and rejects a
   missing or invalid graph. The graph-less native C-oracle input is isolated

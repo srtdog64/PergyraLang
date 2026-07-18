@@ -143,6 +143,10 @@ func SemanticExpressionGraphArenaReady(
             !AstExpressionNodeKindKnown(kind) {
             return false;
         }
+        if kind == AstExpressionNodeLongLiteral() &&
+            !AstExpressionLongLiteralPayloadReady(arena.node_texts[i]) {
+            return false;
+        }
         let call_target_kind: Int = arena.call_target_kinds[i];
         let call_target_name: String = arena.call_target_names[i];
         if call_target_kind == SemanticCallTargetNone() {

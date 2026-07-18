@@ -101,6 +101,7 @@ func SemanticExpressionGraphScalarTypeName(
     if !IsSome(kind_opt) { return "Unknown"; }
     let kind: Int = UnwrapOption(kind_opt);
     if kind == AstExpressionNodeIntegerLiteral() { return "Int"; }
+    if kind == AstExpressionNodeLongLiteral() { return "Long"; }
     if kind == AstExpressionNodeFloatLiteral() { return "Float"; }
     if kind == AstExpressionNodeLeaf() {
         let text: Option<String> = SemanticExpressionGraphNodeText(
