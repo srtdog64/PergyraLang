@@ -30,12 +30,16 @@
 
 #ifdef _WIN32
 #include <sys/stat.h>
+#include <process.h>
 #define PGY_STAT _stat
 #define PGY_STAT_STRUCT struct _stat
+#define PGY_GETPID _getpid
 #else
 #include <sys/stat.h>
+#include <unistd.h>
 #define PGY_STAT stat
 #define PGY_STAT_STRUCT struct stat
+#define PGY_GETPID getpid
 #endif
 
 #include "../common/string_compat.h"
@@ -301,6 +305,24 @@ compiler_runtime_object_ensure(PgyOptProfile opt_profile,
         ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
         : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
 
+    /* Per-process scratch path; the finished object is renamed into the cache
+     * below so no other process ever observes a partial write. */
+    char tmp_buf[1024];
+    char *tmp_path;
+    int tmp_written = snprintf(tmp_buf, sizeof(tmp_buf), "%s.tmp%ld",
+                               obj_path, (long)PGY_GETPID());
+    if (tmp_written < 0 || (size_t)tmp_written >= sizeof(tmp_buf)) {
+        free(obj_path);
+        *error_out = "Runtime object scratch path too long";
+        return NULL;
+    }
+    tmp_path = pergyra_strdup(tmp_buf);
+    if (tmp_path == NULL) {
+        free(obj_path);
+        *error_out = "Out of memory resolving runtime object scratch path";
+        return NULL;
+    }
+
     /*
      * Same arithmetic/aliasing flags as the emitted-C compile (-fwrapv /
      * -fno-strict-aliasing keep checked arithmetic UB-free under -O3), so the
@@ -340,14 +362,35 @@ compiler_runtime_object_ensure(PgyOptProfile opt_profile,
     argv[argc++] = "-c";
     argv[argc++] = PGY_RUNTIME_CEXT_LIB_C;
     argv[argc++] = "-o";
-    argv[argc++] = obj_path;
+    argv[argc++] = tmp_path;
     argv[argc] = NULL;
 
     if (pgy_exec_argv(argv, verbose) != 0) {
-        remove(obj_path);
+        remove(tmp_path);
+        free(tmp_path);
         free(obj_path);
         *error_out = "Runtime object compilation failed";
         return NULL;
     }
+
+    /* Publish atomically (docs/190 B2). Writing straight to the cache path let
+     * a concurrent builder -- the local compare harness defaults to 8 jobs --
+     * or a killed cc leave a torn object behind, and because a partial write
+     * still carries a NEWER mtime than every source, the freshness check would
+     * then call that garbage "fresh" forever. rename replaces atomically on
+     * POSIX; Windows cannot replace an existing target, so unlink first, which
+     * is still far tighter than leaving the real path truncated for the whole
+     * compile. Two racing builders now each publish a complete object. */
+#ifdef _WIN32
+    remove(obj_path);
+#endif
+    if (rename(tmp_path, obj_path) != 0) {
+        remove(tmp_path);
+        free(tmp_path);
+        free(obj_path);
+        *error_out = "Runtime object could not be published into the cache";
+        return NULL;
+    }
+    free(tmp_path);
     return obj_path;
 }
