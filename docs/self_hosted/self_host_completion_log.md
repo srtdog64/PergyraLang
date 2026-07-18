@@ -7843,3 +7843,20 @@ Released/default replacement remains 0%.
 - The component contract rejects restoring the return-expression scanner.
   Other legacy expression leaves remain bridged; released/default substitution
   remains 0%.
+
+### 2026-07-18 -- canonical self MIR consumes carried expression graphs
+
+- Repointed `CanonicalizeMirJsonVerified` from
+  `SemanticAstArtifactAnalyzeCompactBridge` to the graph decoded by
+  `MirExpressionGraphFactsForArtifact` and consumed by
+  `SemanticAstArtifactAnalyzeWithExpressionGraph`.
+- Missing and invalid expression graphs now fail closed on the canonicalization
+  path. The focused `result_int_core` C parity gate checks both mutations in
+  addition to byte-equal canonical MIR.
+- Split graph-less native C-oracle compatibility into the explicit
+  `--canonicalize-oracle-mir-json` command. The strict
+  `--canonicalize-mir-json` path cannot invoke that bridge, and the hard
+  contract rejects its reintroduction.
+- This replaces one live self-MIR consumer. Native MIR graph production and
+  other compact expression leaves remain bridged, so released/default
+  substitution remains 0%.

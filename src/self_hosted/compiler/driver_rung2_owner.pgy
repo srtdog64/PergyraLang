@@ -266,6 +266,30 @@ func CanonicalizeMirJsonVerified(
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         EmitMirProgramTree(json)
     );
+    let graph: SemanticExpressionGraphFacts =
+        MirExpressionGraphFactsForArtifact(json, artifact);
+    if !graph.ok {
+        Die("MIR instruction expression graph is missing or invalid");
+    }
+    return CompileArtifactAnalysisToMirJsonVerified(
+        artifact,
+        SemanticAstArtifactAnalyzeWithExpressionGraph(
+            artifact, true, graph
+        ),
+        machine_declaration
+    );
+}
+
+func CanonicalizeOracleMirJsonBridge(
+    mir_json_path: String,
+    machine_declaration: SelfHostMachineLayerDeclaration
+) -> String with caps io_read {
+    let json: String = MirJsonReadInput(
+        mir_json_path, machine_declaration
+    );
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        EmitMirProgramTree(json)
+    );
     return CompileArtifactAnalysisToMirJsonVerified(
         artifact,
         SemanticAstArtifactAnalyzeCompactBridge(artifact, true),
@@ -355,6 +379,16 @@ func RunDriverRung2FromArgs(args: Array<String>) -> Void with caps io_read {
             declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
         }
         Log(CanonicalizeMirJsonVerified(args[1], declaration));
+        return;
+    }
+    if (ArrayLength(args) == 2 || ArrayLength(args) == 3) &&
+        args[0] == "--canonicalize-oracle-mir-json" {
+        let declaration: SelfHostMachineLayerDeclaration =
+            SelfHostMachineLayerDeclarationEmpty();
+        if ArrayLength(args) == 3 {
+            declaration = SelfHostMachineLayerDeclarationFromPath(args[2]);
+        }
+        Log(CanonicalizeOracleMirJsonBridge(args[1], declaration));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--mir-json" {

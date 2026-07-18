@@ -605,6 +605,16 @@ C/LLVM proof; `enum_return` pins the qualified-variant type row in the DRV-2
 MIR integration gate. Other expression bridges listed in the owner registry
 remain open, so this does not promote the whole expression owner to `CLOSED`.
 
+Forty-ninth executable active-rung delta, 2026-07-18: canonical self-host MIR
+now consumes `expr0_graph` through `MirExpressionGraphFactsForArtifact` before
+semantic analysis. `--canonicalize-mir-json` no longer reconstructs expression
+topology from compact instruction text; missing or invalid graph rows fail
+closed. Native C-oracle MIR does not yet carry those rows, so its temporary
+compatibility path is isolated behind the explicitly named
+`--canonicalize-oracle-mir-json` command. The focused `result_int_core` gate
+compares both canonical artifacts and mutates missing and invalid graphs on the
+strict self-host path. The broader expression owner remains `BRIDGE`.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel

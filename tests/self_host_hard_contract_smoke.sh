@@ -153,7 +153,18 @@ forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticAstArtifactAnalyzeCompactBridge"
 require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "CanonicalizeMirJsonVerified" \
+    "MirExpressionGraphFactsForArtifact(json, artifact)"
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CanonicalizeMirJsonVerified" \
+    "SemanticAstArtifactAnalyzeWithExpressionGraph("
+forbid_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CanonicalizeMirJsonVerified" \
+    "SemanticAstArtifactAnalyzeCompactBridge"
+require_function_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "CanonicalizeOracleMirJsonBridge" \
     "SemanticAstArtifactAnalyzeCompactBridge(artifact, true)"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    'args[0] == "--canonicalize-oracle-mir-json"'
 
 require_text "Makefile" "self-host-hard-contract-test-smoke"
 require_text "Makefile" "self-host-compiler-world-contract-test-smoke"

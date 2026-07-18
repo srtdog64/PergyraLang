@@ -182,7 +182,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 }
             done
         fi
-        (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
+        (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-oracle-mir-json \
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$self_mir_json_arg" | tr -d '\r' >"$self_canonical")
@@ -240,6 +240,20 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 cat "$missing_graph.out" "$missing_graph.err" >&2
                 exit 1
             }
+            if [[ "$base" == "result_int_core" ]]; then
+                if (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
+                    "$(pgy_selfhost_path_relative_to_root "$missing_graph")" \
+                    >"$missing_graph.canonical.out" 2>"$missing_graph.canonical.err"); then
+                    echo "[self-host-parity:driver-rung2] $backend canonicalizer accepted a missing expression graph" >&2
+                    exit 1
+                fi
+                grep -Fq "MIR instruction expression graph is missing or invalid" \
+                    "$missing_graph.canonical.err" "$missing_graph.canonical.out" || {
+                    echo "[self-host-parity:driver-rung2] $backend canonicalizer missing-graph diagnostic drifted" >&2
+                    cat "$missing_graph.canonical.out" "$missing_graph.canonical.err" >&2
+                    exit 1
+                }
+            fi
             invalid_graph="$BUILD_DIR/${base}_${backend}.invalid-graph.mir.json"
             sed 's/"root":[0-9][0-9]*/"root":999/g' \
                 "$self_mir_json" >"$invalid_graph"
@@ -255,6 +269,20 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 cat "$invalid_graph.out" "$invalid_graph.err" >&2
                 exit 1
             }
+            if [[ "$base" == "result_int_core" ]]; then
+                if (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
+                    "$(pgy_selfhost_path_relative_to_root "$invalid_graph")" \
+                    >"$invalid_graph.canonical.out" 2>"$invalid_graph.canonical.err"); then
+                    echo "[self-host-parity:driver-rung2] $backend canonicalizer accepted an invalid expression graph" >&2
+                    exit 1
+                fi
+                grep -Fq "MIR instruction expression graph is missing or invalid" \
+                    "$invalid_graph.canonical.err" "$invalid_graph.canonical.out" || {
+                    echo "[self-host-parity:driver-rung2] $backend canonicalizer invalid-graph diagnostic drifted" >&2
+                    cat "$invalid_graph.canonical.out" "$invalid_graph.canonical.err" >&2
+                    exit 1
+                }
+            fi
         fi
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:self-mir-c" "$BUILD_DIR" \
