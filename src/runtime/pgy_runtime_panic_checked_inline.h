@@ -3,6 +3,8 @@
 #ifndef PGY_RUNTIME_PANIC_CHECKED_INLINE_H
 #define PGY_RUNTIME_PANIC_CHECKED_INLINE_H
 
+#include "pgy_runtime_linkage.h"
+
 #include "pgy_runtime_capability.h"
 #include "pgy_runtime_budget.h"
 
@@ -171,14 +173,23 @@ pgy_runtime_lifecycle_guard_export(const void *inst, int32_t valid_mask,
  * PGY_CAP_ALL so trusted programs are unaffected; a loader imposes a restricted
  * manifest before running untrusted content. See pgy_runtime_capability.h.
  *
- * As with the lifecycle helpers, the granted set must be a single process-wide
- * value, so the C build keeps it in a function-local static (one per single-TU
- * C output) and the LLVM build resolves to the one external twin in the runtime
- * object (these are excluded from inlined bitcode, llvm_fn_is_capability_runtime).
+ * The granted set must be a single process-wide value. The C backend used to
+ * hold it in a function-local static on the premise of "one single-TU C
+ * output" -- but the extern runtime object made the C leg a two-TU world
+ * (emitted program + cext object), which split this state across two copies
+ * (docs/190 A1). So pgy_cap_granted_slot is PGY_RT_DECL: the cext object owns
+ * the one definition (and thus the one `granted`), the emitted program links
+ * to it, and every accessor below -- inlined per TU or not -- routes through
+ * this single slot, so a loader's set_manifest and an ambient gate's require
+ * see the same mask. In inline mode (PGY_RUNTIME_INLINE / the .bc default
+ * build) it collapses to the old static-inline form. The LLVM build resolves
+ * to the separate external twin in the runtime object (excluded from inlined
+ * bitcode, llvm_fn_is_capability_runtime).
  * ================================================================= */
 
-static inline uint32_t *
+PGY_RT_DECL uint32_t *
 pgy_cap_granted_slot(void)
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     static uint32_t granted = PGY_CAP_ALL;
     static int env_applied = 0;
@@ -192,6 +203,9 @@ pgy_cap_granted_slot(void)
     }
     return &granted;
 }
+#else
+;
+#endif
 
 static inline void
 pgy_cap_set_manifest_export(uint32_t mask)
@@ -229,14 +243,23 @@ pgy_cap_require_export(uint32_t cap, const char *op)
 
 /* ---- resource budget (quantitative sandbox gate) ---- */
 
-static inline PgyBudgetState *
+/* One process-wide budget, single-homed the same way as the capability slot
+ * above: PGY_RT_DECL so the cext object owns the one `st` and every accounting
+ * path (allocator, spawn, channel) charges it, instead of alloc/spawn charging
+ * the object copy while a channel or a loader's set_limit touches a separate
+ * emitted-TU copy (docs/190 A3). */
+PGY_RT_DECL PgyBudgetState *
 pgy_budget_state_slot(void)
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     static PgyBudgetState st;
     if (!st.initialized)
         pgy_budget_state_init(&st);
     return &st;
 }
+#else
+;
+#endif
 
 static inline void
 pgy_budget_reset_export(void)
