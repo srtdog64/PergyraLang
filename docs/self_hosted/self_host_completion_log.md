@@ -7878,3 +7878,8 @@ Released/default replacement remains 0%.
 - Repaired the initializer-projection negative to mutate
   `integer_literal("2")` into an identifier leaf. The previous leaf-only
   search no longer damaged the graph after integer literal identity landed.
+- Closed the aggregate-field widening seam found by exhaustive CI: `Int`
+  literal to `Long` field compatibility now consumes the parser-owned
+  `integer_literal` kind, including `negate(integer_literal)`, and no longer
+  reclassifies leaf text with `IsIntLiteral`. Aggregate and generic-field
+  negatives now mutate both kind and payload so they attack the live owner.

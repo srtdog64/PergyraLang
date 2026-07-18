@@ -3784,6 +3784,10 @@ require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pg
     'if kind == AstExpressionNodeLongLiteral() { return "Long"; }'
 require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
     "AstExpressionNodeIsScalarLeaf(UnwrapOption(root_kind))"
+require_text "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" \
+    "AstExpressionNodeIntegerLiteral()"
+reject_function_text "src/self_hosted/semantic/ast_expression_graph_field_type_owner.pgy" \
+    "func SemanticExpressionGraphIntLiteral(" "IsIntLiteral("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "if kind == AstExpressionNodeFloatLiteral()"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
@@ -3815,6 +3819,10 @@ require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
     "kinds[i] == AstExpressionNodeIntegerLiteral()"
 require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
     "ArraySet(kinds, i, AstExpressionNodeLeaf());"
+require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
+    "graph.arena.node_kinds[left_id] = AstExpressionNodeLeaf();"
+require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
+    "graph.arena.node_kinds[argument_id] = AstExpressionNodeLeaf();"
 require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh" \
     "misclassified Long literal was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh" \
