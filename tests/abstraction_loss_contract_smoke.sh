@@ -47,8 +47,9 @@ require_text "docs/semantics/09_abstraction_loss_contracts.md" "Missing evidence
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "Evidence strength is not interchangeable:"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Loss Composition"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Derived Mechanism Boundary"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Erasure Decision Point"
-require_text "docs/semantics/09_abstraction_loss_contracts.md" "The canonical erasure decision point is AIR's intent/boundary compression"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "## Erasure Evidence And Executable Decision"
+require_text "docs/semantics/09_abstraction_loss_contracts.md" '`VerifiedProjectionPlan` owner consumes the AIR evidence certificate together'
+require_text "docs/semantics/09_abstraction_loss_contracts.md" "makes the only executable"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" 'The owner artifact is `pgy.air.graph.v1`.'
 require_text "docs/semantics/09_abstraction_loss_contracts.md" "These are not erasure decision points:"
 require_text "docs/semantics/09_abstraction_loss_contracts.md" '`tests/air_erasure`: it is the independent physical-residue oracle'
@@ -130,9 +131,9 @@ done
 require_text "docs/semantics/README.md" "09_abstraction_loss_contracts.md"
 require_text "docs/semantics/README.md" "pass_contract_manifest.md"
 require_text "docs/semantics/README.md" "proofs/IRMinimality.v"
-require_text "docs/semantics/14_air_erasure_measurement.md" "## 0a. Decision Point"
-require_text "docs/semantics/14_air_erasure_measurement.md" "The semantic erasure decision is made once: AIR classifies each intent and"
-require_text "docs/semantics/14_air_erasure_measurement.md" "The harness is an oracle for whether the AIR decision matched reality"
+require_text "docs/semantics/14_air_erasure_measurement.md" "## 0a. Evidence And Decision Point"
+require_text "docs/semantics/14_air_erasure_measurement.md" "That is the single semantic evidence classification, not an executable backend"
+require_text "docs/semantics/14_air_erasure_measurement.md" "whether the certified plan matched reality"
 require_text "docs/semantics/14_air_erasure_measurement.md" "## 5a. Evidence-Amortized Hot Path"
 require_text "docs/semantics/14_air_erasure_measurement.md" "This optimization path is cacheable"
 require_text "docs/semantics/14_air_erasure_measurement.md" "Host-toolchain residue must be normalized."

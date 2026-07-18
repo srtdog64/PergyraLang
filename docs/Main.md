@@ -19,6 +19,7 @@ navigation; they must not restate mutable status as a second source of truth.
 | Standard library | [`stdlib/Main.md`](stdlib/Main.md) |
 | Diagnostics, builds, performance, and contributor tools | [`tooling/Main.md`](tooling/Main.md) |
 | Beta closure and release evidence | [`release/Main.md`](release/Main.md) |
+| Checked external reviews | [`reviews/Main.md`](reviews/Main.md) |
 
 ## Index Roles
 

@@ -140,11 +140,12 @@ inspectable checked path, require an explicit policy boundary, or reject.
 bound. It does not claim that the current compiler has proved those premises for
 every mechanism.
 
-## Erasure Decision Point
+## Erasure Evidence And Executable Decision
 
-The canonical erasure decision point is AIR's intent/boundary compression
-classification after MIR/RIR/DAG evidence has been collected and before backend
-emission. The stable decision fields are:
+AIR owns the canonical intent/boundary compression **evidence classification**
+after MIR/RIR/DAG evidence has been collected. It may certify or reject a
+candidate projection, but it is not the executable erasure owner. The stable
+AIR evidence fields are:
 
 - `compression_budget`: `retain`, `summarize`, `erase`, or `forbid`;
 - `compression_reason`: the human-readable reason exported with the AIR node;
@@ -152,17 +153,20 @@ emission. The stable decision fields are:
 - summary counters: `unproven_retain_count`, `inherent_concurrency_count`, and
   `slot_capability_retain_count`.
 
-The owner artifact is `pgy.air.graph.v1`. It is not a backend input. A
-Projection Planner may consume the validated classification and copy only the
-approved target-facing rows into a `VerifiedProjectionPlan`. C, LLVM,
-SelfHosted, and future emitters consume that plan plus MIR/ABI facts; they must
-not read AIR or rediscover the decision from source syntax, AST payloads, or
-backend-local runtime symbol choices. Until the unified plan owner exists, AIR
-compression remains verifier/tooling evidence rather than permission for a
-backend-local erasure choice.
+The owner artifact is `pgy.air.graph.v1`. It is not a backend input. The
+`VerifiedProjectionPlan` owner consumes the AIR evidence certificate together
+with MIR/ABI and target-envelope facts and makes the only executable
+retain/summarize/erase/materialize decision. C, LLVM, SelfHosted, and future
+emitters consume that plan plus MIR/ABI facts; they must not read AIR or
+rediscover the decision from source syntax, AST payloads, or backend-local
+runtime symbol choices. A missing plan row is fail-closed. AIR compression by
+itself is verifier/tooling evidence, never permission for backend-local
+erasure.
 
 These are not erasure decision points:
 
+- AIR evidence classification: it constrains and certifies the plan but does
+  not directly control emitted behavior;
 - backend DCE/inlining: it may remove code, but it does not decide semantic
   erasure;
 - runtime managers: they implement retained boundaries, but they do not decide

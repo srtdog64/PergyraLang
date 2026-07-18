@@ -11,19 +11,22 @@ Companion to [07_air_abstraction_safety.md](07_air_abstraction_safety.md) and
 [09_abstraction_loss_contracts.md](09_abstraction_loss_contracts.md), which give
 the AIR model; this doc is the empirical instrument.
 
-## 0a. Decision Point
+## 0a. Evidence And Decision Point
 
-The semantic erasure decision is made once: AIR classifies each intent and
-boundary with `compression_budget`, `compression_reason`, and `retain_cause`
-after MIR/RIR/DAG evidence exists and before C/LLVM emission. Backends consume
-that classification; they do not choose whether a source-level axis is erased,
-summarized, retained, or forbidden.
+AIR classifies each intent and boundary with `compression_budget`,
+`compression_reason`, and `retain_cause` after MIR/RIR/DAG evidence exists.
+That is the single semantic evidence classification, not an executable backend
+choice. The `VerifiedProjectionPlan` consumes the AIR certificate plus MIR/ABI
+and target-envelope facts and owns the sole executable decision about whether a
+source-level axis is erased, summarized, retained, or materialized. Backends
+consume the plan and never AIR directly.
 
 The measurement harness is deliberately separate. `tests/air_erasure/measure.ps1`
 observes physical residue after C emission and optimization, and
 `tests/air_erasure/gate.ps1` compares that residue against AIR's declared A/B/C
-facts. The harness is an oracle for whether the AIR decision matched reality,
-not a second owner of the decision.
+facts and the executable projection result. The harness is an oracle for
+whether the certified plan matched reality, not a second owner of the
+decision.
 
 ## 0. What the critique gets right, and what it conflates
 

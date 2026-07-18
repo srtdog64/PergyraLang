@@ -189,6 +189,7 @@ not own status, decisions, or completion claims.
 | [`165_external_review_2026_07c.md`](165_external_review_2026_07c.md) | External review #4 judgment: intent/evidence compiler thesis, SEA P0 routing, freshness rules, and non-overclaiming rules |
 | [`166_production_bar_review_2026_07.md`](166_production_bar_review_2026_07.md) | Production-bar review contract: gate-less claims fail, partial coverage stays partial, and P0 production blockers are routed |
 | [`reviews/2026-07-12_architecture_review_checked.md`](reviews/2026-07-12_architecture_review_checked.md) | Current-head check of the 2026-07-11 architecture review: accepted, superseded, and still-open findings with executable evidence |
+| [`reviews/2026-07-18_architecture_review_checked.md`](reviews/2026-07-18_architecture_review_checked.md) | Current-head check of the 2026-07-18 architecture review: self-host producer memory, semantic place facts, projection ownership, extern runtime closure, TSan, and sandbox routing |
 | [`170_keyword_lineage_cs_application_map.md`](170_keyword_lineage_cs_application_map.md) | Keyword, influenced-language, computer-science, and implementation-owner routing map |
 | [`169_agent_boundary_sentinel_library.md`](169_agent_boundary_sentinel_library.md) | LLM/agent boundary sentinel library: pattern -> wrong boundary -> owner fact -> gate steering rules |
 
