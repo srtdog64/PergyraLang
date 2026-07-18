@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * pgy_lane_scheduler.h — SEA runtime facade (docs/146 layer 3).
  *
@@ -45,8 +46,10 @@ pgy_lane_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg,
  * It is available when pgy_parallel.h has already defined the task-handle ABI.
  */
 #ifdef PERGYRA_RUNTIME_PGY_PARALLEL_H
-static inline PgyTaskHandle
+PGY_RT_DECL PgyTaskHandle
 pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = {0};
 
@@ -87,9 +90,15 @@ pgy_lane_spawn_dispatch(PgyExecutionLane lane, PgyLaneTaskFn fn, void *arg)
     pgy_task_handle_set_lane(handle, lane);
     return handle;
 }
+#else
+;
+#endif
 
-static inline void *
+
+PGY_RT_DECL void *
 pgy_lane_await(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     switch (pgy_task_handle_lane(handle))
     {
@@ -109,9 +118,15 @@ pgy_lane_await(PgyTaskHandle handle)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                       "await unknown execution lane");
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_lane_detach(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     switch (pgy_task_handle_lane(handle))
     {
@@ -135,9 +150,15 @@ pgy_lane_detach(PgyTaskHandle handle)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                       "detach unknown execution lane");
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_lane_cancel(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     switch (pgy_task_handle_lane(handle))
     {
@@ -155,6 +176,10 @@ pgy_lane_cancel(PgyTaskHandle handle)
 
     return false;
 }
+#else
+;
+#endif
+
 #endif
 
 /* The executor name a lane routes to, for diagnostics/tracing. Never NULL. */

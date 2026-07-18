@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Task cancellation and await operations for pgy_parallel.h.
  *
@@ -8,8 +9,10 @@
 #ifndef PERGYRA_RUNTIME_PGY_PARALLEL_TASK_OPS_H
 #define PERGYRA_RUNTIME_PGY_PARALLEL_TASK_OPS_H
 
-static inline bool
+PGY_RT_DECL bool
 pgy_task_cancel(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
     if (header == NULL)
@@ -35,12 +38,22 @@ pgy_task_cancel(PgyTaskHandle handle)
 
     return false;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_task_is_cancelled(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return pgy_cancel_is_requested(pgy_current_cancel_node());
 }
+#else
+;
+#endif
+
 
 static inline void *
 pgy_await(PgyTaskHandle handle)

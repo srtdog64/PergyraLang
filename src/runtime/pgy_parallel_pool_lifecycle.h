@@ -1,6 +1,8 @@
 #ifndef PERGYRA_RUNTIME_PGY_PARALLEL_POOL_LIFECYCLE_H
 #define PERGYRA_RUNTIME_PGY_PARALLEL_POOL_LIFECYCLE_H
 
+#include "pgy_runtime_linkage.h"
+
 /* Spare-worker headroom per pool (WO-RT-5 compensation): up to 4 extra
  * runners per configured worker may be spawned by blocked channel waits.
  * Beyond the cap a blocked wait degrades to the plain quantum park -- that
@@ -10,9 +12,11 @@
 #endif
 
 /* Caller holds the pool lifecycle mutex. On failure the pool is zeroed. */
-static inline bool
+PGY_RT_DECL bool
 pgy_pool_structure_init(PgyThreadPool *pool, size_t worker_count,
                         const char *op)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t slot_headroom = worker_count * (PGY_POOL_SPARE_FACTOR + 1);
 
@@ -101,10 +105,16 @@ pgy_pool_structure_init(PgyThreadPool *pool, size_t worker_count,
     }
     return true;
 }
+#else
+;
+#endif
+
 
 /* Workers are already joined; release queued tasks and pool structure. */
-static inline void
+PGY_RT_DECL void
 pgy_pool_structure_teardown(PgyThreadPool *pool)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     for (size_t i = 0; i < pool->shard_count; i++) {
         PgyTask *task = pool->shards[i].head;
@@ -127,11 +137,17 @@ pgy_pool_structure_teardown(PgyThreadPool *pool)
     pthread_cond_destroy(&pool->queue_cond);
     memset(pool, 0, sizeof(*pool));
 }
+#else
+;
+#endif
+
 
 /* Default worker count for an auto-sized pool. PGY_WORKERS pins both pool and
  * chunk sizing so worker-invariance tests remain reproducible. */
-static inline size_t
+PGY_RT_DECL size_t
 pgy_default_worker_count(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     const char *env = getenv("PGY_WORKERS");
 
@@ -161,11 +177,17 @@ pgy_default_worker_count(void)
         n = 1;
     return (size_t)n;
 }
+#else
+;
+#endif
+
 
 /* Help-first await: run one queued task instead of parking a worker while
  * runnable subtasks remain. */
-static inline bool
+PGY_RT_DECL bool
 pgy_pool_help_run_one(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTask *task;
 
@@ -181,6 +203,10 @@ pgy_pool_help_run_one(void)
     pgy_pool_run_task(task);
     return true;
 }
+#else
+;
+#endif
+
 
 /* Compensation for UNBOUNDED channel waits (WO-RT-5, ForkJoin managedBlock
  * shape): a pool task parked on a channel occupies its thread, and with
@@ -197,8 +223,10 @@ pgy_pool_help_run_one(void)
  * everyone is blocked. Beyond the spare cap the wait degrades to the plain
  * quantum park -- that residue is on the board; the fiber lane (docs/187
  * memo 1) remains its candidate. */
-static inline void
+PGY_RT_DECL void
 pgy_pool_spawn_spare_locked(PgyThreadPool *pool)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t spare = atomic_load_explicit(&pool->spare_count,
                                         memory_order_relaxed);
@@ -218,6 +246,10 @@ pgy_pool_spawn_spare_locked(PgyThreadPool *pool)
     atomic_store_explicit(&pool->spare_count, spare + 1,
                           memory_order_release);
 }
+#else
+;
+#endif
+
 
 static inline void
 pgy_pool_channel_blocked_tick(void)
@@ -253,8 +285,10 @@ pgy_pool_channel_blocked_tick(void)
     pthread_mutex_unlock(pool->lifecycle_mutex);
 }
 
-static inline void
+PGY_RT_DECL void
 pgy_pool_init(size_t worker_count)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
     if (atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
@@ -279,9 +313,15 @@ pgy_pool_init(size_t worker_count)
     atomic_store_explicit(&g_pgy_pool_active, true, memory_order_release);
     pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_pool_shutdown(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
     if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
@@ -315,5 +355,9 @@ pgy_pool_shutdown(void)
     pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
     pgy_blocking_pool_shutdown();
 }
+#else
+;
+#endif
+
 
 #endif

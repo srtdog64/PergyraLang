@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  * Cooperative coroutine runtime for Pergyra async tasks.
@@ -62,10 +63,16 @@ typedef struct {
     PgyCoroTask  *ready_tail;
 } PgyCoroRuntime;
 
-static __thread PgyCoroRuntime g_pgy_coro = {0};
+PGY_RT_GLOBAL __thread PgyCoroRuntime g_pgy_coro
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = {0}
+#endif
+;
 
-static inline PgyCancelNode *
+PGY_RT_DECL PgyCancelNode *
 pgy_current_cancel_node(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
 #if PGY_COROUTINES_AVAILABLE
     if (g_pgy_coro.current != NULL)
@@ -73,9 +80,15 @@ pgy_current_cancel_node(void)
 #endif
     return g_pgy_thread_current != NULL ? g_pgy_thread_current->cancel_node : NULL;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_coro_enqueue(PgyCoroTask *task)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (task == NULL || task->done || task->queued)
         return;
@@ -88,9 +101,15 @@ pgy_coro_enqueue(PgyCoroTask *task)
         g_pgy_coro.ready_head = task;
     g_pgy_coro.ready_tail = task;
 }
+#else
+;
+#endif
 
-static inline PgyCoroTask *
+
+PGY_RT_DECL PgyCoroTask *
 pgy_coro_dequeue(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCoroTask *task = g_pgy_coro.ready_head;
     if (task == NULL)
@@ -102,9 +121,15 @@ pgy_coro_dequeue(void)
     task->queued = false;
     return task;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_coro_destroy(PgyCoroTask *task)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (task == NULL)
         return;
@@ -117,10 +142,16 @@ pgy_coro_destroy(PgyCoroTask *task)
 #endif
     free(task);
 }
+#else
+;
+#endif
+
 
 #ifdef _WIN32
-static inline bool
+PGY_RT_DECL bool
 pgy_coro_ensure_scheduler(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (g_pgy_coro.scheduler_ready)
         return true;
@@ -138,6 +169,10 @@ pgy_coro_ensure_scheduler(void)
     g_pgy_coro.scheduler_ready = true;
     return true;
 }
+#else
+;
+#endif
+
 
 static VOID WINAPI
 pgy_coro_entry_win(void *raw_task)
@@ -179,8 +214,10 @@ pgy_coro_entry(uint32_t raw_task_hi, uint32_t raw_task_lo)
     setcontext(&g_pgy_coro.scheduler_ctx);
 }
 
-static inline bool
+PGY_RT_DECL bool
 pgy_coro_init_task_posix(PgyCoroTask *task)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     task->stack_size = PGY_CORO_STACK_SIZE;
     task->stack = malloc(task->stack_size);
@@ -205,10 +242,16 @@ pgy_coro_init_task_posix(PgyCoroTask *task)
     }
     return true;
 }
+#else
+;
 #endif
 
-static inline PgyTaskHandle
+#endif
+
+PGY_RT_DECL PgyTaskHandle
 pgy_async_spawn(void *(*fn)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = {0};
 
@@ -252,9 +295,15 @@ pgy_async_spawn(void *(*fn)(void *), void *arg)
     handle.task = task;
     return handle;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_async_progress_one(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCoroTask *task = pgy_coro_dequeue();
     if (task == NULL)
@@ -275,24 +324,42 @@ pgy_async_progress_one(void)
 
     return true;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_progress_until(bool (*predicate)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     while (!predicate(arg)) {
         if (!pgy_async_progress_one())
             break;
     }
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_async_in_coroutine(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return g_pgy_coro.current != NULL;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_yield(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCoroTask *current = g_pgy_coro.current;
     if (current == NULL)
@@ -308,9 +375,15 @@ pgy_async_yield(void)
 #endif
     g_pgy_coro.current = current;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_detach(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
     if (header == NULL) {
@@ -325,55 +398,103 @@ pgy_async_detach(PgyTaskHandle handle)
             (void)pgy_async_progress_one();
     }
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_async_task_done(void *raw)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCoroTask *task = (PgyCoroTask *)raw;
     return task == NULL || task->done;
 }
 #else
-static inline PgyCancelNode *
+;
+#endif
+
+#else
+PGY_RT_DECL PgyCancelNode *
 pgy_current_cancel_node(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return g_pgy_thread_current != NULL ? g_pgy_thread_current->cancel_node : NULL;
 }
+#else
+;
+#endif
 
-static inline PgyTaskHandle
+
+PGY_RT_DECL PgyTaskHandle
 pgy_async_spawn(void *(*fn)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = pgy_spawn(fn, arg);
     if (handle.task != NULL)
         pgy_task_handle_set_lane(handle, PGY_LANE_LOCAL_ASYNC);
     return handle;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_async_progress_one(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return false;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_progress_until(bool (*predicate)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     (void)predicate;
     (void)arg;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_async_in_coroutine(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return false;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_yield(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_async_detach(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (handle.task == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
@@ -382,6 +503,10 @@ pgy_async_detach(PgyTaskHandle handle)
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                       "detached async requires coroutine runtime support");
 }
+#else
+;
+#endif
+
 #endif /* PGY_COROUTINES_AVAILABLE */
 
 #endif /* PERGYRA_RUNTIME_PGY_PARALLEL_COROUTINE_H */

@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  * Parallel block execution helpers.
@@ -24,8 +25,10 @@ pgy_parallel_wrapper(void *raw)
     return NULL;
 }
 
-static inline void
+PGY_RT_DECL void
 pgy_parallel_run(void (**tasks)(void), size_t count)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (count == 0)
         return;
@@ -79,5 +82,9 @@ pgy_parallel_run(void (**tasks)(void), size_t count)
     free(handles);
     free(args);
 }
+#else
+;
+#endif
+
 
 #endif /* PERGYRA_RUNTIME_PGY_PARALLEL_RUN_H */

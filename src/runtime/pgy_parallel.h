@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  * Real concurrency + coroutine runtime
@@ -69,33 +70,53 @@ typedef struct {
     PgyExecutionLane lane;
 } PgyTaskHeader;
 
-static inline PgyCancelNode *
+PGY_RT_DECL PgyCancelNode *
 pgy_current_cancel_node(void);
 
-static inline void
+PGY_RT_DECL void
 pgy_parallel_warn(const char *op, const char *reason)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     fprintf(stderr,
             "[pgy][parallel] %s failed: %s\n",
             op != NULL ? op : "operation",
             reason != NULL ? reason : "unknown");
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_parallel_array_fits(size_t count, size_t elem_size)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_cancel_retain(PgyCancelNode *node)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (node != NULL)
         (void)atomic_fetch_add_explicit(&node->refcount, 1, memory_order_relaxed);
 }
+#else
+;
+#endif
 
-static inline PgyCancelNode *
+
+PGY_RT_DECL PgyCancelNode *
 pgy_cancel_node_create(PgyCancelNode *parent)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyCancelNode *node = (PgyCancelNode *)calloc(1, sizeof(PgyCancelNode));
     if (node == NULL) {
@@ -108,9 +129,15 @@ pgy_cancel_node_create(PgyCancelNode *parent)
     pgy_cancel_retain(parent);
     return node;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_cancel_release(PgyCancelNode *node)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (node == NULL)
         return;
@@ -122,16 +149,28 @@ pgy_cancel_release(PgyCancelNode *node)
     free(node);
     pgy_cancel_release(parent);
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_cancel_request(PgyCancelNode *node)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (node != NULL)
         atomic_store_explicit(&node->cancelled, true, memory_order_release);
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_cancel_is_requested(PgyCancelNode *node)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     while (node != NULL) {
         if (atomic_load_explicit(&node->cancelled, memory_order_acquire))
@@ -140,6 +179,10 @@ pgy_cancel_is_requested(PgyCancelNode *node)
     }
     return false;
 }
+#else
+;
+#endif
+
 
 /* Probe for the channel-wait cancellation hook (docs/182 SS2.2): reads
  * the current task's cancel-node chain. Installed at every task
@@ -173,23 +216,37 @@ typedef struct {
     void *task;                 /* PgyTask* or coroutine task header */
 } PgyTaskHandle;
 
-static inline PgyExecutionLane
+PGY_RT_DECL PgyExecutionLane
 pgy_task_handle_lane(PgyTaskHandle handle)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
     return header != NULL ? header->lane : PGY_LANE_REJECT;
 }
+#else
+;
+#endif
 
-static inline void
+
+PGY_RT_DECL void
 pgy_task_handle_set_lane(PgyTaskHandle handle, PgyExecutionLane lane)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
     if (header != NULL)
         header->lane = lane;
 }
+#else
+;
+#endif
 
-static inline bool
+
+PGY_RT_DECL bool
 pgy_task_sync_init(PgyTask *task, const char *op)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     if (task == NULL) {
         pgy_parallel_warn(op, "task sync init target is null");
@@ -206,10 +263,16 @@ pgy_task_sync_init(PgyTask *task, const char *op)
     }
     return true;
 }
+#else
+;
+#endif
 
-static inline PgyTaskHandle
+
+PGY_RT_DECL PgyTaskHandle
 pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
                            bool charge_spawn_budget, PgyExecutionLane lane)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = {0};
     const char *op_name = op != NULL ? op : "spawn-inline";
@@ -243,6 +306,10 @@ pgy_spawn_inline_completed(void *(*fn)(void *), void *arg, const char *op,
     handle.task = task;
     return handle;
 }
+#else
+;
+#endif
+
 
 /* =================================================================
  * Thread pool runtime for `parallel`
@@ -310,17 +377,41 @@ struct PgyThreadPool {
     atomic_bool       *shutting_flag;
 };
 
-static PgyThreadPool g_pgy_pool = {0};
-static atomic_bool   g_pgy_pool_active = false;
-static atomic_bool   g_pgy_pool_shutting_down = false;
-static pthread_mutex_t g_pgy_pool_lifecycle_mutex = PTHREAD_MUTEX_INITIALIZER;
-static __thread PgyTask *g_pgy_thread_current = NULL;
+PGY_RT_GLOBAL PgyThreadPool g_pgy_pool
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = {0}
+#endif
+;
+PGY_RT_GLOBAL atomic_bool   g_pgy_pool_active
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = false
+#endif
+;
+PGY_RT_GLOBAL atomic_bool   g_pgy_pool_shutting_down
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = false
+#endif
+;
+PGY_RT_GLOBAL pthread_mutex_t g_pgy_pool_lifecycle_mutex
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = PTHREAD_MUTEX_INITIALIZER
+#endif
+;
+PGY_RT_GLOBAL __thread PgyTask *g_pgy_thread_current
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = NULL
+#endif
+;
 /* How many pool tasks this thread is currently nested inside (a worker's
  * top-level run counts 1; every help-run adds 1). A blocked channel wait
  * compensates (spawns a spare worker) only when this thread is actually
  * inside a pool task -- main blocking outside any task does not shrink the
  * pool's parallelism, so it does not compensate. */
-static __thread int g_pgy_pool_task_depth = 0;
+PGY_RT_GLOBAL __thread int g_pgy_pool_task_depth
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = 0
+#endif
+;
 /* Which pool this thread is a worker of (NULL on non-worker threads, e.g.
  * main). The compensation tick used to hardcode g_pgy_pool, so a
  * BLOCKING-pool worker parked on a channel spawned a useless spare in the
@@ -328,13 +419,19 @@ static __thread int g_pgy_pool_task_depth = 0;
  * the pool through this stamp routes compensation to the pool that is
  * actually blocked. Main-thread help runs main-pool tasks, so NULL
  * resolves to the main pool. */
-static __thread PgyThreadPool *g_pgy_thread_pool = NULL;
+PGY_RT_GLOBAL __thread PgyThreadPool *g_pgy_thread_pool
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = NULL
+#endif
+;
 
 /* Forward declaration — blocking pool shutdown called from pgy_pool_shutdown */
-static inline void pgy_blocking_pool_shutdown(void);
+PGY_RT_DECL void pgy_blocking_pool_shutdown(void);
 
-static inline void
+PGY_RT_DECL void
 pgy_pool_enqueue(PgyThreadPool *pool, PgyTask *task)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t k = atomic_fetch_add_explicit(&pool->push_cursor, 1,
                                          memory_order_relaxed)
@@ -357,11 +454,17 @@ pgy_pool_enqueue(PgyThreadPool *pool, PgyTask *task)
         pthread_mutex_unlock(&pool->queue_mutex);
     }
 }
+#else
+;
+#endif
+
 
 /* Pop one task, own shard first, then sweep the others (the steal). NULL
  * means every shard was empty at the moment it was inspected. */
-static inline PgyTask *
+PGY_RT_DECL PgyTask *
 pgy_pool_try_pop(PgyThreadPool *pool, size_t start)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t count = pool->shard_count;
 
@@ -385,13 +488,19 @@ pgy_pool_try_pop(PgyThreadPool *pool, size_t start)
     }
     return NULL;
 }
+#else
+;
+#endif
+
 
 /* Park until work may be available (pending != 0) or shutdown. Returns the
  * shutdown flag observed under the queue mutex. The sleepers++ BEFORE the
  * pending re-check pairs with the producer's pending++ BEFORE its sleepers
  * check: whichever runs second sees the other side, so no lost wakeup. */
-static inline bool
+PGY_RT_DECL bool
 pgy_pool_park_until_signal(PgyThreadPool *pool)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     bool shutting;
 
@@ -420,12 +529,18 @@ pgy_pool_park_until_signal(PgyThreadPool *pool)
     pthread_mutex_unlock(&pool->queue_mutex);
     return shutting;
 }
+#else
+;
+#endif
+
 
 /* The one run protocol, shared by workers and help-first awaiters. The
  * caller's task identity is saved/restored so cancellation scoping follows
  * the task actually running. */
-static inline void
+PGY_RT_DECL void
 pgy_pool_run_task(PgyTask *task)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTask *prev;
     void    *result;
@@ -455,6 +570,10 @@ pgy_pool_run_task(PgyTask *task)
     pthread_cond_broadcast(&task->cond);
     pthread_mutex_unlock(&task->mutex);
 }
+#else
+;
+#endif
+
 
 /* NOTE (docs/186 P-B2, measured 2026-07-17): a bounded pre-park spin
  * (sched_yield loop so sleepers stays 0 and producers skip the cond_signal
@@ -490,8 +609,10 @@ pgy_worker_loop(void *arg)
 
 #include "runtime/pgy_parallel_pool_lifecycle.h"
 
-static inline PgyTaskHandle
+PGY_RT_DECL PgyTaskHandle
 pgy_spawn(void *(*fn)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = {0};
 
@@ -564,6 +685,10 @@ pgy_spawn(void *(*fn)(void *), void *arg)
 
     return handle;
 }
+#else
+;
+#endif
+
 
 #include "runtime/pgy_parallel_chunk.h"
 

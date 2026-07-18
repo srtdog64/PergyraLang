@@ -1,11 +1,15 @@
 #ifndef PERGYRA_RUNTIME_PGY_PARALLEL_CHUNK_H
 #define PERGYRA_RUNTIME_PGY_PARALLEL_CHUNK_H
 
+#include "pgy_runtime_linkage.h"
+
 /* Policy SoT is src/self_hosted/parallel/chunk_policy_owner.pgy. */
 #define PGY_PARALLEL_CHUNK_FACTOR 4
 
-static inline size_t
+PGY_RT_DECL size_t
 pgy_parallel_chunk_count(size_t n)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     size_t workers;
     size_t chunks;
@@ -20,6 +24,10 @@ pgy_parallel_chunk_count(size_t n)
     chunks = workers * PGY_PARALLEL_CHUNK_FACTOR;
     return n < chunks ? n : chunks;
 }
+#else
+;
+#endif
+
 
 typedef struct {
     void *(*body)(void *);
@@ -42,8 +50,10 @@ pgy_parallel_chunk_driver(void *raw)
     return NULL;
 }
 
-static inline void *
+PGY_RT_DECL void *
 pgy_parallel_chunk_ctxs_alloc(size_t chunk_count)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     void *contexts;
 
@@ -60,11 +70,17 @@ pgy_parallel_chunk_ctxs_alloc(size_t chunk_count)
     }
     return contexts;
 }
+#else
+;
+#endif
 
-static inline PgyTaskHandle
+
+PGY_RT_DECL PgyTaskHandle
 pgy_parallel_spawn_chunk_at(void *contexts, size_t index, size_t chunk_count,
                             void *(*body)(void *), void *items,
                             size_t elem_size, size_t item_count)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyParallelChunkCtx *slots = (PgyParallelChunkCtx *)contexts;
     size_t base;
@@ -86,5 +102,9 @@ pgy_parallel_spawn_chunk_at(void *contexts, size_t index, size_t chunk_count,
     slots[index].hi = lo + base + (index < remainder ? 1 : 0);
     return pgy_spawn(pgy_parallel_chunk_driver, &slots[index]);
 }
+#else
+;
+#endif
+
 
 #endif

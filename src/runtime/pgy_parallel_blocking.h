@@ -1,3 +1,4 @@
+#include "pgy_runtime_linkage.h"
 /*
  * Copyright (c) 2025 Pergyra Language Project
  * Blocking pool runtime for Pergyra parallel tasks.
@@ -16,11 +17,26 @@
  * stays responsive.
  * ================================================================= */
 
-static PgyThreadPool g_pgy_blocking_pool = {0};
-static atomic_bool   g_pgy_blocking_pool_active = false;
-static atomic_bool   g_pgy_blocking_pool_shutting_down = false;
-static pthread_mutex_t g_pgy_blocking_pool_lifecycle_mutex =
-    PTHREAD_MUTEX_INITIALIZER;
+PGY_RT_GLOBAL PgyThreadPool g_pgy_blocking_pool
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = {0}
+#endif
+;
+PGY_RT_GLOBAL atomic_bool   g_pgy_blocking_pool_active
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = false
+#endif
+;
+PGY_RT_GLOBAL atomic_bool   g_pgy_blocking_pool_shutting_down
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = false
+#endif
+;
+PGY_RT_GLOBAL pthread_mutex_t g_pgy_blocking_pool_lifecycle_mutex
+#ifndef PGY_RUNTIME_DECLS_ONLY
+    = PTHREAD_MUTEX_INITIALIZER
+#endif
+;
 
 static inline void
 pgy_blocking_pool_init(size_t worker_count)
@@ -57,8 +73,10 @@ pgy_blocking_pool_init(size_t worker_count)
     pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 }
 
-static inline void
+PGY_RT_DECL void
 pgy_blocking_pool_shutdown(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     pthread_mutex_lock(&g_pgy_blocking_pool_lifecycle_mutex);
     if (!atomic_load_explicit(&g_pgy_blocking_pool_active,
@@ -91,12 +109,18 @@ pgy_blocking_pool_shutdown(void)
                           memory_order_release);
     pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 }
+#else
+;
+#endif
+
 
 /* Offload a blocking function (FFI, system call) to the blocking pool.
  * Returns a Future<T> that can be awaited from fiber context without
  * stalling the fiber scheduler. */
-static inline PgyTaskHandle
+PGY_RT_DECL PgyTaskHandle
 pgy_spawn_blocking(void *(*fn)(void *), void *arg)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     PgyTaskHandle handle = {0};
 
@@ -160,5 +184,9 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
 
     return handle;
 }
+#else
+;
+#endif
+
 
 #endif /* PERGYRA_RUNTIME_PGY_PARALLEL_BLOCKING_H */
