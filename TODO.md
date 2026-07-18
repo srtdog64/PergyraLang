@@ -10601,6 +10601,39 @@ RT 계열.
     미래. 단 트윈 규율·strip 목록·양 백엔드 ABI 동반이라 진짜 워크스트림.
     **부산물: `.bc` freshness dir-scan 패턴이 PCH freshness에도 재사용
     가능함을 확인.** 측정은 이 revert 커밋 메시지에 보존.
+- **잔여 ② C14-③ inline→extern — 착수·구현 (2026-07-18, 협업 lane)**:
+  BDFL "full-send extern" 결정하에 실제 구현. **선행 측정 정정**(WSL Linux,
+  -O3, e2e best-of-5): extern은 순이득 marginal(구현 -6%~동점, 천장 ~12-15%)
+  — 이유는 extern이 **타입 정의 위해 헤더 I/O를 여전히 치름**(본문-파싱만
+  제거+오브젝트-링크 비용 추가). 지난 세션 "per-TU 최적화가 병목/PCH marginal"
+  **둘 다 반증**(최적화=9%, 파싱=91%; PCH는 Linux 45-66% e2e). BDFL은 수치가
+  아니라 **아키텍처(제대로 된 라이브러리·포터빌리티)** 이유로 extern 선택.
+  - **메커니즘**(`pgy_runtime_linkage.h`): `PGY_RT_DECL`(static inline|extern|
+    extern-def 3모드) + `#ifndef DECLS_ONLY` 본문가드(직접함수) + variadic
+    `PGY_RT_MACRO_BODY`(매크로계열, `#ifndef` 매크로본문 불가라) +
+    `PGY_RT_GLOBAL`(stateful 전역 단일인스턴스, init 가드) + `PGY_RT_PROGRAM_
+    DECL/BODY`(제네릭=TU-local). 오브젝트=`pgy_runtime_cext_lib.c`(inline
+    헤더 EXTERN_DEFS → **완전·gap無·트윈drift無**), driver가 `-DPGY_RUNTIME_
+    DECLS_ONLY`+링크, `PGY_RUNTIME_INLINE=1` opt-out. `compiler_runtime_object_
+    ensure`+dir-scan freshness(C6 재사용, 손-리스트 폐기).
+  - **핵심 발견**: 제네릭 매크로계열(Result/Option/List/Set/Map)은 **프로그램
+    -특화**(사용자 CType가 방출 TU에만) → 공유 오브젝트 불가 → **TU-local**
+    (`PGY_RT_PROGRAM_DECL`). `tests/runtime_cext_contract_smoke.sh` 게이트가
+    강제(BDFL 신설).
+  - **분담**: 나=메커니즘+monomorphic+stateful, BDFL=제네릭 program-local.
+  - **착지(green)**: CP1 `fb8778c5`(메커니즘+monomorphic 11계열 127함수,
+    backend-compare **911/911** byte-identical) + `13553d91`(독립 stateful 4:
+    process_args/scalar_std/security_log/machine_layer, PGY_RT_GLOBAL). 협업
+    트리 smoke 30/30 + cext-contract 게이트 green.
+  - **★correctness-first 판정(미착수 권고)**: 동시성 클러스터(channel/pool/
+    lane/queue)+slots는 **inline 유지 권고**. 근거: ① 방출프로그램=단일TU라
+    inline이 이미 단일인스턴스 → extern 이득 **0**(마진 컴파일뿐) ② 동시성/
+    슬롯 정합(WO-RT·C7·C13·slot always-on)을 marginal 이득에 리스크 ③ `.bc`
+    strip-list가 바로 이 계열을 제외하는 것과 같은 민감도 신호. qubit/intent_
+    trace/io_qubit(뮤텍스/IO/feature state)=변환가능하나 동일 margin으로 보류.
+  - **잔여**: `.bc` regen(default모드 no-op이라 내용불변, mtime만), cext-
+    contract 게이트 Makefile/CI 배선, 협업 트리 full backend-compare(현 msys
+    fork-exhaustion으로 shard 필요).
 
 **BDFL 판정 2건(수리 아님 — 언어 정체성 결정)**:
 - **C2 `+ - *` wrap**: 이미 **정착된 결정**(signed-default 메모: wrap은
