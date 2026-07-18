@@ -5,6 +5,7 @@ import "../lib/source_scan_owner.pgy";
 import "expression_normalization_owner.pgy";
 import "expression_operator_fact_owner.pgy";
 import "ast_expression_graph_build_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
 
 struct SemanticAstExpressionShapeFact {
     ok: Bool;
@@ -28,6 +29,7 @@ struct SemanticAstExpressionSurfaceFacts {
     failure_lane: String;
     artifact_node_count: Int;
     node_ids: Array<Int>;
+    function_node_ids: Array<Int>;
     has_atoms: Array<Bool>;
     atoms: Array<String>;
     has_values: Array<Bool>;
@@ -130,6 +132,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     derive_compact_graph: Bool
 ) -> SemanticAstExpressionSurfaceFacts {
     let node_ids: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
     let has_atoms: Array<Bool> = [];
     let atoms: Array<String> = [];
     let has_values: Array<Bool> = [];
@@ -151,7 +154,9 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
     let graph_ok: Bool = true;
     let failure_node_id: Int = -1;
     let failure_lane: String = "";
-    let ok: Bool = AstTreeArtifactReady(artifact);
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let ok: Bool = function_scopes.ok;
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
         let atom: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
@@ -170,7 +175,14 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
             let normalized_value: String = SemanticStripOuterParens(value_text);
             let normalized_auxiliary: String =
                 SemanticStripOuterParens(auxiliary_text);
+            let function_node_id: Int = -1;
+            let function_node: Option<Int> =
+                SemanticAstFunctionScopeNodeId(function_scopes, node_id);
+            if IsSome(function_node) {
+                function_node_id = UnwrapOption(function_node);
+            }
             ArrayPush(node_ids, node_id);
+            ArrayPush(function_node_ids, function_node_id);
             ArrayPush(has_atoms, IsSome(atom));
             ArrayPush(atoms, atom_text);
             ArrayPush(has_values, IsSome(value));
@@ -255,7 +267,7 @@ func SemanticAstExpressionSurfaceFactsFromArtifactMode(
         );
     return SemanticAstExpressionSurfaceFacts(
         ok && graph_ok, failure_node_id, failure_lane,
-        artifact.count, node_ids, has_atoms, atoms,
+        artifact.count, node_ids, function_node_ids, has_atoms, atoms,
         has_values, values,
         has_auxiliary_values, auxiliary_values, normalized_atoms,
         normalized_values, normalized_auxiliary_values, operator_rows,
@@ -521,7 +533,7 @@ func SemanticAstExpressionSurfaceFactsWithGraph(
     }
     return SemanticAstExpressionSurfaceFacts(
         valid, failure_node_id, failure_lane,
-        facts.artifact_node_count, facts.node_ids,
+        facts.artifact_node_count, facts.node_ids, facts.function_node_ids,
         facts.has_atoms, facts.atoms, facts.has_values, facts.values,
         facts.has_auxiliary_values, facts.auxiliary_values,
         facts.normalized_atoms, facts.normalized_values,
@@ -538,6 +550,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
     let count: Int = SemanticAstExpressionSurfaceCount(facts);
     if !facts.ok || !rebuilt.ok || facts.artifact_node_count != artifact.count ||
         SemanticAstExpressionSurfaceCount(rebuilt) != count ||
+        ArrayLength(facts.function_node_ids) != count ||
         ArrayLength(facts.operator_rows) !=
             count * SemanticAstExpressionShapeWidth() ||
         ArrayLength(rebuilt.operator_rows) != ArrayLength(facts.operator_rows) ||
@@ -551,6 +564,7 @@ func SemanticAstExpressionSurfaceFactsMatchArtifact(
     let i: Int = 0;
     while i < count {
         if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.function_node_ids[i] != rebuilt.function_node_ids[i] ||
             facts.has_atoms[i] != rebuilt.has_atoms[i] ||
             facts.atoms[i] != rebuilt.atoms[i] ||
             facts.has_values[i] != rebuilt.has_values[i] ||

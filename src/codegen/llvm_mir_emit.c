@@ -485,6 +485,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     defer_scope_pushed = true;
     llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
                                 owner_cls, owner_name, param_count);
+    llvm_register_mir_param_ssa_aliases(routine, ctx, &vars,
+                                        &var_capacity, &var_count);
+    if (ctx->has_error)
+        goto restore_state;
     if (is_method && owner_name != NULL)
         llvm_register_class_field_slots(ctx, owner_name);
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);

@@ -25,13 +25,14 @@ owners and gates. It is not a production-readiness declaration.
 - Released/default compiler replacement remains 0%. Bounded DRV-2 and codegen
   fixed points are executable evidence, not default-path substitution.
 - The Pergyra source-to-MIR producer's historical approximately 68 GB private
-  allocation was a real amplification failure, but it is no longer the current
-  memory result. A fresh 2026-07-19 C projection of the current Pergyra driver
-  stayed at 430.3 MB peak private memory for the complete six-minute probe
-  window; it timed out before producing verified MIR. The blocker is now
-  CPU/completion time, not demonstrated memory growth. The 976.7 MB result is
-  still a distinct Pergyra `mir_lower`/codegen consumer over a native-oracle
-  MIR artifact and does not close source-to-MIR production.
+  allocation was a real amplification failure, not an acceptable compiler
+  footprint. On 2026-07-19, the bounded LLVM self-source routine-lowering probe
+  completed all 1,816 routines with zero errors in 62.085 seconds at 794.4 MB
+  peak private memory and 728.5 MB peak working set, below its 3 GB fail-closed
+  cap. This closes the measured routine-lowering amplification, while the
+  integrated released-driver substitution remains open. The separate 976.7 MB
+  result is still a Pergyra `mir_lower`/codegen consumer over a native-oracle
+  MIR artifact and does not by itself close source-to-MIR production.
 - Ref/inout addressability now consumes semantic body-fixpoint place-kind rows.
   The codegen graph walker and its `cbind`-based recovery owner are deleted;
   missing place rows fail the body-bundle readiness contract. MIR JSON carriage
@@ -63,11 +64,11 @@ owners and gates. It is not a production-readiness declaration.
   owns a fingerprinted runtime-object cache and freshness checks. Program-local
   generic bodies still compile with generated C by design.
 - **All integrated compiler paths are operationally infeasible:** too broad.
-  The full `mir_lower`/codegen fixed point now completes in 68.5 seconds at
-  976.7 MB peak private memory and reaches `gen2 == gen3`. The self-host
-  source-to-MIR producer now stays below 431 MB in a six-minute probe, but does
-  not complete inside that budget. Released default substitution remains a
-  blocker.
+  The full `mir_lower`/codegen fixed point completes in 68.5 seconds at
+  976.7 MB peak private memory and reaches `gen2 == gen3`. The LLVM self-source
+  routine-lowering probe also completes 1,816/1,816 routines at 794.4 MB peak
+  private memory. Released default substitution remains a blocker because this
+  is a bounded compiler-core rung, not the complete installed driver loop.
 - **Signed overflow depends on an invisible flag:** narrowed. The driver passes
   `-fwrapv`/`-fno-strict-aliasing`, generated C emits a compile-profile guard,
   and runtime-object/bitcode gates carry the same policy. Standalone generated
@@ -97,9 +98,9 @@ The abstraction-loss smoke gate now ratchets this wording.
 
 ## Next Executable Order
 
-1. Profile the Pergyra source-to-MIR producer by CPU owner now that current
-   peak private memory is below 431 MB; preserve the native-oracle MIR path
-   only as a bridge, not as closure.
+1. Carry the now-bounded 1,816-routine lowering result through the integrated
+   driver producer/consumer loop; preserve the native-oracle MIR path only as a
+   bridge, not as closure.
 2. Carry semantic place-kind rows through persisted MIR JSON before any backend
    consumes that artifact without re-running the semantic body fixpoint.
 3. Expand projection-plan rows one family at a time, beginning with runtime

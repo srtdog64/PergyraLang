@@ -1,0 +1,79 @@
+// MIR assignment state transformer.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "expression_fact_owner.pgy";
+
+func SelfMirLowerAssignmentFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int
+) -> SelfMirRoutineBuild {
+    let assignment_index_opt: Option<Int> =
+        SemanticAstAssignmentIndexForNode(
+            input.analysis.assignments, node_id
+        );
+    if !IsSome(assignment_index_opt) {
+        return SelfMirRoutineBuildError(
+            build, "MIR assignment is missing semantic facts"
+        );
+    }
+    let assignment_index: Int = UnwrapOption(assignment_index_opt);
+    let target: String =
+        input.analysis.assignments.target_root_names[assignment_index];
+    let target_text: String =
+        input.analysis.assignments.target_texts[assignment_index];
+    let local_opt: Option<Int> = SelfMirRoutineLocalIndex(build, target);
+    if !IsSome(local_opt) {
+        return SelfMirRoutineBuildError(
+            build, Concat("MIR assignment target is unknown: ", target)
+        );
+    }
+    let local_index: Int = UnwrapOption(local_opt);
+    let expression: String =
+        input.analysis.assignments.value_texts[assignment_index];
+    let uses: Array<String> = [];
+    if target_text != target {
+        let target_uses: Array<String> =
+            SelfMirExpressionUses(build, target_text);
+        let target_use_i: Int = 0;
+        while target_use_i < ArrayLength(target_uses) {
+            ArrayPush(uses, target_uses[target_use_i]);
+            target_use_i = target_use_i + 1;
+        }
+    }
+    let value_uses: Array<String> = SelfMirExpressionUses(build, expression);
+    let value_use_i: Int = 0;
+    while value_use_i < ArrayLength(value_uses) {
+        let already_present: Bool = false;
+        let use_i: Int = 0;
+        while use_i < ArrayLength(uses) {
+            if uses[use_i] == value_uses[value_use_i] {
+                already_present = true;
+            }
+            use_i = use_i + 1;
+        }
+        if !already_present { ArrayPush(uses, value_uses[value_use_i]); }
+        value_use_i = value_use_i + 1;
+    }
+    build = SelfMirRoutineAdvanceLocalVersion(build, local_index);
+    let version: Int = build.local_versions[local_index];
+    build = SelfMirRoutineAddInstruction(
+        build, "def", "ssa-def", SelfMirSsaName(target, version),
+        target, "", expression, target_text, "AST_ASSIGNMENT", uses
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        ), input.machine_declaration
+    );
+    build = SelfMirRoutineAttachLastTargetExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        )
+    );
+    return build;
+}

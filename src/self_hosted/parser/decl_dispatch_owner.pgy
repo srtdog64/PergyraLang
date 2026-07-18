@@ -37,8 +37,10 @@ func ParseDecls(
 ) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
-    let out: String = "";
-    let script_body: String = "";
+    let out: TextBuilder = TextBuilderNew(4096);
+    let out_has_line: Bool = false;
+    let script_body: TextBuilder = TextBuilderNew(512);
+    let script_has_line: Bool = false;
     let out_graphs: Array<AstExpressionGraphRows> = [
         AstExpressionGraphRowsEmpty()
     ];
@@ -71,7 +73,7 @@ func ParseDecls(
                 ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
                     expression_graphs[0], script_graphs[0]
                 ));
-                return AppendImplicitMain(out, script_body);
+                break;
             }
         } else {
             if i >= n {
@@ -82,7 +84,7 @@ func ParseDecls(
                 ArraySet(expression_graphs, 0, ParserExpressionGraphsAppendRows(
                     expression_graphs[0], script_graphs[0]
                 ));
-                return AppendImplicitMain(out, script_body);
+                break;
             }
         }
 
@@ -126,7 +128,9 @@ func ParseDecls(
                     import_paths, imp_graphs
                 );
                 if StringLength(imp_inner) > 0 {
-                    out = AppendLine(out, imp_inner);
+                    if out_has_line { TextBuilderAppend(out, "\n"); }
+                    TextBuilderAppend(out, imp_inner);
+                    out_has_line = true;
                     ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                         out_graphs[0], imp_graphs[0]
                     ));
@@ -163,7 +167,9 @@ func ParseDecls(
             );
             i = cursor_out[0];
             if StringLength(inner) > 0 {
-                out = AppendLine(out, inner);
+                if out_has_line { TextBuilderAppend(out, "\n"); }
+                TextBuilderAppend(out, inner);
+                out_has_line = true;
                 ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                     out_graphs[0], inner_graphs[0]
                 ));
@@ -197,7 +203,9 @@ func ParseDecls(
             );
             i = cursor_out[0];
             if StringLength(inner) > 0 {
-                out = AppendLine(out, inner);
+                if out_has_line { TextBuilderAppend(out, "\n"); }
+                TextBuilderAppend(out, inner);
+                out_has_line = true;
                 ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                     out_graphs[0], inner_graphs[0]
                 ));
@@ -234,7 +242,9 @@ func ParseDecls(
         if MatchKeyword(content, i, "type") {
             let type_block: String = ParseTypeDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            out = AppendLine(out, type_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, type_block);
+            out_has_line = true;
             continue;
         }
 
@@ -243,7 +253,9 @@ func ParseDecls(
                 content, i, cursor_out, decl_prefix, out_graphs
             );
             i = cursor_out[0];
-            out = AppendLine(out, ability_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, ability_block);
+            out_has_line = true;
             continue;
         }
 
@@ -252,7 +264,9 @@ func ParseDecls(
                 content, i, cursor_out, decl_prefix, involve_types, out_graphs
             );
             i = cursor_out[0];
-            out = AppendLine(out, zone_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, zone_block);
+            out_has_line = true;
             continue;
         }
 
@@ -260,7 +274,9 @@ func ParseDecls(
         if MatchKeyword(content, i, "effect") {
             let effect_block: String = ParseEffectDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            out = AppendLine(out, effect_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, effect_block);
+            out_has_line = true;
             continue;
         }
 
@@ -268,7 +284,9 @@ func ParseDecls(
         if MatchKeyword(content, i, "relation") {
             let relation_block: String = ParseRelationDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            out = AppendLine(out, relation_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, relation_block);
+            out_has_line = true;
             continue;
         }
 
@@ -279,7 +297,9 @@ func ParseDecls(
                 out_graphs
             );
             i = cursor_out[0];
-            out = AppendLine(out, role_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, role_block);
+            out_has_line = true;
             continue;
         }
 
@@ -287,7 +307,9 @@ func ParseDecls(
         if MatchKeyword(content, i, "intent") {
             let intent_block: String = ParseIntentDecl(content, i, cursor_out, decl_prefix, involve_types);
             i = cursor_out[0];
-            out = AppendLine(out, intent_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, intent_block);
+            out_has_line = true;
             continue;
         }
 
@@ -298,7 +320,9 @@ func ParseDecls(
                 involve_types, out_graphs
             );
             i = cursor_out[0];
-            out = AppendLine(out, nominal_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, nominal_block);
+            out_has_line = true;
             continue;
         }
 
@@ -306,14 +330,18 @@ func ParseDecls(
         if MatchKeyword(content, i, "event") {
             let event_block: String = ParseEventDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            out = AppendLine(out, event_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, event_block);
+            out_has_line = true;
             continue;
         }
 
         if MatchKeyword(content, i, "enum") {
             let enum_block: String = ParseEnumDecl(content, i, cursor_out, decl_prefix);
             i = cursor_out[0];
-            out = AppendLine(out, enum_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, enum_block);
+            out_has_line = true;
             continue;
         }
 
@@ -332,7 +360,9 @@ func ParseDecls(
                 "func", "Function: ", false, active_within_zone, out_graphs
             );
             i = cursor_out[0];
-            out = AppendLine(out, fn_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, fn_block);
+            out_has_line = true;
             continue;
         }
 
@@ -355,16 +385,29 @@ func ParseDecls(
         );
         i = cursor_out[0];
         if collect_script {
-            script_body = AppendLine(script_body, stmt_block);
+            if script_has_line { TextBuilderAppend(script_body, "\n"); }
+            TextBuilderAppend(script_body, stmt_block);
+            script_has_line = true;
             ArraySet(script_graphs, 0, ParserExpressionGraphsAppendRows(
                 script_graphs[0], statement_graphs[0]
             ));
         } else {
-            out = AppendLine(out, stmt_block);
+            if out_has_line { TextBuilderAppend(out, "\n"); }
+            TextBuilderAppend(out, stmt_block);
+            out_has_line = true;
             ArraySet(out_graphs, 0, ParserExpressionGraphsAppendRows(
                 out_graphs[0], statement_graphs[0]
             ));
         }
     }
-    return out;
+    let output_allocator: Allocator = AllocatorResult();
+    let output_text: String = TextBuilderFinish(out, output_allocator);
+    let script_allocator: Allocator = AllocatorResult();
+    let script_text: String = TextBuilderFinish(
+        script_body, script_allocator
+    );
+    let program_text: String = AppendImplicitMain(output_text, script_text);
+    AllocatorDestroy(script_allocator);
+    AllocatorDestroy(output_allocator);
+    return program_text;
 }

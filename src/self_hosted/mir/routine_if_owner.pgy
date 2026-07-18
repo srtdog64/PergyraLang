@@ -1,0 +1,157 @@
+// MIR branch/merge state transformer.
+//
+// SelfMirLowerBlockFromArtifact is the recursive dispatcher defined by the
+// importing owner. Pergyra resolves this mutual recursion before lowering.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "expression_fact_owner.pgy";
+
+func SelfMirMergeIfBranches(
+    build: SelfMirRoutineBuild,
+    branch_block: Int,
+    then_block: Int,
+    then_exit: Int,
+    then_versions: Array<Int>,
+    else_block: Int,
+    else_exit: Int,
+    else_versions: Array<Int>,
+    entry_versions: Array<Int>
+) -> SelfMirRoutineBuild {
+    build = SelfMirRoutineAddBlock(build);
+    let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineAtBlock(build, merge_block);
+    if build.terminated[then_exit] == 0 {
+        build = SelfMirRoutineSetSuccessors(
+            build, then_exit, merge_block, -1
+        );
+    }
+    if else_exit >= 0 && build.terminated[else_exit] == 0 {
+        build = SelfMirRoutineSetSuccessors(
+            build, else_exit, merge_block, -1
+        );
+    }
+    let false_block: Int = merge_block;
+    if else_block >= 0 { false_block = else_block; }
+    build = SelfMirRoutineSetSuccessors(
+        build, branch_block, then_block, false_block
+    );
+    let then_live: Bool = build.terminated[then_exit] == 0;
+    let else_live: Bool =
+        else_exit < 0 || build.terminated[else_exit] == 0;
+    if ArrayLength(then_versions) < ArrayLength(entry_versions) ||
+        ArrayLength(else_versions) < ArrayLength(entry_versions) {
+        return SelfMirRoutineBuildError(
+            build, "MIR branch local-version cardinality drifted"
+        );
+    }
+    let merge_local_i: Int = 0;
+    while merge_local_i < ArrayLength(entry_versions) {
+        let then_version: Int = then_versions[merge_local_i];
+        let else_version: Int = else_versions[merge_local_i];
+        if then_live && else_live && then_version != else_version {
+            let phi_uses: Array<String> = [
+                SelfMirSsaName(
+                    build.local_names[merge_local_i], then_version
+                ),
+                SelfMirSsaName(
+                    build.local_names[merge_local_i], else_version
+                )
+            ];
+            build = SelfMirRoutineAdvanceLocalVersion(build, merge_local_i);
+            build = SelfMirRoutineAddInstruction(
+                build, "phi", build.local_names[merge_local_i],
+                SelfMirSsaName(
+                    build.local_names[merge_local_i],
+                    build.local_versions[merge_local_i]
+                ),
+                "phi", "", "", "", "", phi_uses
+            );
+        } else if then_live {
+            build = SelfMirRoutineSetLocalVersion(
+                build, merge_local_i, then_version
+            );
+        } else if else_live {
+            build = SelfMirRoutineSetLocalVersion(
+                build, merge_local_i, else_version
+            );
+        } else {
+            build = SelfMirRoutineSetLocalVersion(
+                build, merge_local_i, entry_versions[merge_local_i]
+            );
+        }
+        merge_local_i = merge_local_i + 1;
+    }
+    while merge_local_i < ArrayLength(build.local_names) {
+        build = SelfMirRoutineSetLocalVersion(build, merge_local_i, 0);
+        merge_local_i = merge_local_i + 1;
+    }
+    return build;
+}
+
+func SelfMirLowerIfFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int,
+    condition: String,
+    inout break_blocks: Array<Int>,
+    continue_target: Int
+) -> SelfMirRoutineBuild {
+    let branch_block: Int = build.current_block;
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", "branch", "", "", "", condition, "",
+        SelfMirExpressionSourceTypeName(
+            SelfMirExpressionKindFromText(condition)
+        ),
+        SelfMirExpressionUses(build, condition)
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        ), input.machine_declaration
+    );
+    let body_opt: Option<Int> = SelfMirControlBodyBlock(
+        input.artifact.arena, node_id
+    );
+    if !IsSome(body_opt) {
+        return SelfMirRoutineBuildError(build, "MIR if body block is missing");
+    }
+    let else_body_opt: Option<Int> = SelfMirIfElseLoweringRoot(
+        input.artifact.arena, node_id
+    );
+    let entry_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(build.local_versions);
+    build = SelfMirRoutineAddBlock(build);
+    let then_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineAtBlock(build, then_block);
+    build = SelfMirLowerBlockFromArtifact(
+        input, build, UnwrapOption(body_opt),
+        break_blocks, continue_target
+    );
+    let then_exit: Int = build.current_block;
+    let then_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(build.local_versions);
+    let else_block: Int = -1;
+    let else_exit: Int = -1;
+    let else_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(entry_versions);
+    if IsSome(else_body_opt) {
+        build = SelfMirRoutineAddBlock(build);
+        else_block = SelfMirCfgBlockCount(build.cfg) - 1;
+        build = SelfMirRoutineAtBlock(build, else_block);
+        build = SelfMirRoutineAtLocalVersions(
+            build, SelfMirLocalVersionsSnapshot(entry_versions)
+        );
+        build = SelfMirLowerBlockFromArtifact(
+            input, build, UnwrapOption(else_body_opt),
+            break_blocks, continue_target
+        );
+        else_exit = build.current_block;
+        else_versions = SelfMirLocalVersionsSnapshot(build.local_versions);
+    }
+    return SelfMirMergeIfBranches(
+        build, branch_block, then_block, then_exit, then_versions,
+        else_block, else_exit, else_versions, entry_versions
+    );
+}

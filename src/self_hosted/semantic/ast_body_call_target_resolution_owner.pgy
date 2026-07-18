@@ -29,6 +29,8 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
     let last_root: Int = -1;
     let root_slot: Int = 0;
     let valid: Bool = true;
+    let names: Array<String> = [];
+    let types: Array<String> = [];
     while root_slot < ArrayLength(
         analysis.expression_surfaces.expression_graph.roots
     ) && valid {
@@ -44,11 +46,12 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                 let use_node_id: Int =
                     analysis.expression_surfaces.node_ids[surface_index];
                 let function_node_id: Option<Int> =
-                    SemanticAstExpressionFunctionNodeForUse(
-                        artifact, analysis.signatures, use_node_id
+                    SemanticAstExpressionFunctionNodeAt(
+                        analysis.expression_surfaces,
+                        analysis.signatures, surface_index
                     );
-                let names: Array<String> = [];
-                let types: Array<String> = [];
+                while ArrayLength(names) > 0 { ArrayPop(names); }
+                while ArrayLength(types) > 0 { ArrayPop(types); }
                 if !IsSome(function_node_id) ||
                     !SemanticAstExpressionSeedParameters(
                         analysis.signatures, UnwrapOption(function_node_id),

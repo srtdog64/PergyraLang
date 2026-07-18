@@ -224,6 +224,81 @@ llvm_emit_mut_ref_writebacks(LLVMGenCtx *ctx)
 }
 
 void
+llvm_register_mir_param_ssa_aliases(const MIRRoutine *routine,
+                                    LLVMGenCtx *ctx,
+                                    LLVMMirVar **vars_ptr,
+                                    size_t *var_capacity_ptr,
+                                    size_t *var_count_ptr)
+{
+    LLVMMirVar *vars;
+    size_t capacity;
+    size_t count;
+
+    if (routine == NULL || ctx == NULL || vars_ptr == NULL
+        || var_capacity_ptr == NULL || var_count_ptr == NULL)
+        return;
+    vars = *vars_ptr;
+    capacity = *var_capacity_ptr;
+    count = *var_count_ptr;
+
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        LLVMVarEntry entry;
+        char candidate[256];
+        int written;
+        char *owned_name;
+
+        if (param == NULL || param->name == NULL)
+            continue;
+        written = snprintf(candidate, sizeof(candidate), "%s.0", param->name);
+        if (written <= 0 || (size_t)written >= sizeof(candidate)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR parameter SSA identity is too long for '%s'",
+                param->name);
+            return;
+        }
+        if (llvm_mir_get_var_entry(vars, count, candidate) != NULL) {
+            continue;
+        }
+        if (!llvm_scope_lookup_snapshot(ctx, param->name, &entry)
+            || entry.alloca == NULL || entry.type == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR parameter identity '%s' has no parameter storage",
+                candidate);
+            return;
+        }
+        if (count >= capacity) {
+            size_t next_capacity = capacity > 0 ? capacity * 2 : 64;
+            LLVMMirVar *grown = pgy_arena_calloc(&ctx->scratch,
+                next_capacity * sizeof(LLVMMirVar));
+            if (grown == NULL) {
+                llvm_set_mir_memory_exhausted(ctx,
+                    "LLVM MIR parameter SSA registry allocation failed");
+                return;
+            }
+            if (vars != NULL && count > 0)
+                memcpy(grown, vars, count * sizeof(LLVMMirVar));
+            vars = grown;
+            capacity = next_capacity;
+        }
+        owned_name = pgy_arena_strdup(&ctx->scratch, candidate);
+        if (owned_name == NULL) {
+            llvm_set_mir_memory_exhausted(ctx,
+                "LLVM MIR parameter SSA identity allocation failed");
+            return;
+        }
+        vars[count].mir_name = owned_name;
+        vars[count].alloca = entry.alloca;
+        vars[count].type = entry.type;
+        count++;
+    }
+
+    *vars_ptr = vars;
+    *var_capacity_ptr = capacity;
+    *var_count_ptr = count;
+}
+
+void
 llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             LLVMValueRef fn, LLVMGenCtx *ctx, bool is_intent,
                             bool is_method, LLVMClassTypeEntry *owner_cls,

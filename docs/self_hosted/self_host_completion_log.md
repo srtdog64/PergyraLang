@@ -6,6 +6,33 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-19 - Full self-source routine lowering is memory-bounded
+
+- The historical approximately 68 GB private-allocation probe was a real
+  amplification failure, not a normal compiler footprint. A bounded LLVM
+  self-source probe now lowers all 1,816 routines with zero errors in 62.085
+  seconds at 794.4 MB peak private memory and 728.5 MB peak working set. The
+  3 GB fail-closed memory cap was not reached.
+- LLVM parameter emission now registers every formal parameter's canonical
+  `<name>.0` SSA identity, and block-entry scope seeding consumes both MIR
+  `ssa_entry_values` and `live_in_names`. This removes parameter lookup loss and
+  sibling-branch scope leakage rather than restoring types from source AST.
+- `SelfMirLowerIfFromArtifact` delegates post-branch merge work to a dedicated
+  owner, and the self-host codegen statement dispatcher uses flat guarded
+  cases. The full probe no longer exhausts the Windows 2 MB stack on the
+  dispatcher's previous deep `else if` tree. General arbitrary-depth source
+  nesting remains a separate compiler-depth contract; it is not claimed closed.
+- The focused aggregate-parameter loop/phi C/LLVM backend comparison passes.
+  A freshly built C and LLVM self-host codegen tool emitted byte-identical C for
+  the `else_if_chain` fixture, which compiled and ran with the committed output.
+  The full codegen parity matrix was stopped at its five-minute focused budget,
+  so no broader parity claim is made here.
+- `self_host_pergyra_likeness_smoke.sh`,
+  `self_hosted_component_contract_smoke.sh`,
+  `self_host_hard_contract_smoke.sh`, and the production owner-size gate pass.
+  This closes one executable routine-lowering resource blocker, not released
+  compiler substitution or the whole bootstrap loop.
+
 ## 2026-07-18 - Codegen fixed point stops rebuilding kind tables
 
 - The exact Pergyra-built `mir_lower` input previously crossed 25.6 GB private

@@ -283,4 +283,38 @@ forbid_text "src/self_hosted/mir_lower/main.pgy" \
 forbid_text "src/self_hosted/mir_lower/main.pgy" \
     "StringLength(ast)"
 
+mir_routine_owner_files=(
+    "src/self_hosted/mir/routine_lower_owner.pgy"
+    "src/self_hosted/mir/routine_assignment_owner.pgy"
+    "src/self_hosted/mir/routine_control_transfer_owner.pgy"
+    "src/self_hosted/mir/routine_if_owner.pgy"
+    "src/self_hosted/mir/routine_while_owner.pgy"
+    "src/self_hosted/mir/routine_for_owner.pgy"
+    "src/self_hosted/mir/routine_tracked_statement_owner.pgy"
+    "src/self_hosted/mir/routine_entry_owner.pgy"
+)
+for rel in "${mir_routine_owner_files[@]}"; do
+    require_file "$rel"
+    require_text "$rel" "ref input: SelfMirRoutineInput"
+    if grep -Eq '^[[:space:]]+input: SelfMirRoutineInput,' "$ROOT_DIR/$rel"; then
+        fail "$rel carries compiler-scale MIR input by value"
+    fi
+done
+if grep -R -Fq -- "struct SelfMirRoutineState" \
+    "$ROOT_DIR/src/self_hosted/mir"; then
+    fail "self-host MIR reintroduced compiler-scale routine state carriage"
+fi
+require_file "src/self_hosted/mir/instruction_validation_owner.pgy"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    "SelfMirAssignmentTargetGraphValidationError"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    "SelfMirInstructionRowsReady(valid_member)"
+require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+    "!SelfMirInstructionRowsReady(missing_member_base_use)"
+target_attach_count="$(grep -Fc -- \
+    "SelfMirRoutineAttachLastTargetExpressionGraph(" \
+    "$ROOT_DIR/src/self_hosted/mir/routine_assignment_owner.pgy")"
+[[ "$target_attach_count" -eq 1 ]] ||
+    fail "routine assignment target graph must be attached exactly once"
+
 echo "[self-host-hard-contract] hard substitution contract is wired"

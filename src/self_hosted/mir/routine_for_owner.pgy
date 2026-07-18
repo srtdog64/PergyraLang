@@ -1,0 +1,94 @@
+// MIR for/foreach CFG state transformer.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_iteration_owner.pgy";
+
+func SelfMirLowerForFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int,
+    statement_index: Int
+) -> SelfMirRoutineBuild {
+    let iteration: SelfMirIterationLoweringFact =
+        SelfMirIterationLoweringFactForNode(input, node_id, statement_index);
+    if !iteration.ok {
+        return SelfMirRoutineBuildError(
+            build, iteration.diagnostic_message
+        );
+    }
+    let body_opt: Option<Int> = SelfMirControlBodyBlock(
+        input.artifact.arena, node_id
+    );
+    if !IsSome(body_opt) {
+        return SelfMirRoutineBuildError(build, "MIR for body block is missing");
+    }
+    let binding: String = iteration.binding_name;
+    let start: String = iteration.start_expression;
+    let stop: String = iteration.stop_expression;
+    build = SelfMirPrepareIterationCollection(
+        build, iteration, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        ), input.machine_declaration
+    );
+    build = SelfMirRoutineAddLocal(
+        build, binding, iteration.binding_type_name, 0
+    );
+    let preheader: Int = build.current_block;
+    build = SelfMirRoutineAddInstruction(
+        build, "loop-init", "loop-init", "", binding, "",
+        start, stop, "AST_FOR_LOOP", SelfMirNoUses()
+    );
+    let loop_init_graph: SemanticExpressionGraphView =
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        );
+    if iteration.collection_hoisted {
+        loop_init_graph = SelfMirSyntheticLocalExpressionGraph(start);
+    }
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, loop_init_graph, input.machine_declaration
+    );
+    build = SelfMirRoutineAddBlock(build);
+    let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
+    build = SelfMirRoutineAtBlock(build, header);
+    let branch_uses: Array<String> =
+        SelfMirIterationBranchUses(build, iteration);
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", "branch", "", binding, "", start,
+        stop, "AST_FOR_LOOP", branch_uses
+    );
+    if !iteration.is_foreach {
+        build = SelfMirRoutineAttachLastExpressionGraph(
+            build, SemanticAstExpressionGraphForNode(
+                input.analysis.expression_surfaces,
+                node_id, AstExpressionLaneAuxiliary()
+            ), input.machine_declaration
+        );
+    }
+    build = SelfMirRoutineAddBlock(build);
+    let body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineAtBlock(build, body);
+    let break_blocks: Array<Int> = [];
+    build = SelfMirLowerBlockFromArtifact(
+        input, build, UnwrapOption(body_opt),
+        break_blocks, header
+    );
+    let body_exit: Int = build.current_block;
+    if build.terminated[body_exit] == 0 {
+        build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
+    }
+    build = SelfMirRoutineAddBlock(build);
+    let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    let break_i: Int = 0;
+    while break_i < ArrayLength(break_blocks) {
+        build = SelfMirRoutineSetSuccessors(
+            build, break_blocks[break_i], loop_exit, -1
+        );
+        break_i = break_i + 1;
+    }
+    return SelfMirRoutineSetSuccessors(build, header, body, loop_exit);
+}

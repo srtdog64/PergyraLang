@@ -1,0 +1,85 @@
+// MIR while-loop CFG and loop-carried SSA state transformer.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "expression_fact_owner.pgy";
+
+func SelfMirLowerWhileFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int,
+    condition: String
+) -> SelfMirRoutineBuild {
+    let body_opt: Option<Int> = SelfMirControlBodyBlock(
+        input.artifact.arena, node_id
+    );
+    if !IsSome(body_opt) {
+        return SelfMirRoutineBuildError(
+            build, "MIR while body block is missing"
+        );
+    }
+    let preheader: Int = build.current_block;
+    build = SelfMirRoutineAddBlock(build);
+    let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineSetSuccessors(build, preheader, header, -1);
+    build = SelfMirRoutineAtBlock(build, header);
+    let local_i: Int = 0;
+    while local_i < ArrayLength(build.local_names) {
+        if SelfMirLoopAssignedLocal(
+            input, UnwrapOption(body_opt), build.local_names[local_i]
+        ) {
+            let old_version: Int = build.local_versions[local_i];
+            let phi_version: Int = build.next_instruction_id + 1;
+            let future_version: Int = phi_version + 2;
+            let phi_uses: Array<String> = [
+                SelfMirSsaName(build.local_names[local_i], old_version),
+                SelfMirSsaName(build.local_names[local_i], future_version)
+            ];
+            build = SelfMirRoutineAddInstruction(
+                build, "phi", build.local_names[local_i],
+                SelfMirSsaName(build.local_names[local_i], phi_version),
+                "phi", "", "", "", "", phi_uses
+            );
+            build = SelfMirRoutineAdvanceLocalVersion(build, local_i);
+        }
+        local_i = local_i + 1;
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", "branch", "", "", "", condition, "",
+        SelfMirExpressionSourceTypeName(
+            SelfMirExpressionKindFromText(condition)
+        ),
+        SelfMirExpressionUses(build, condition)
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneAtom()
+        ), input.machine_declaration
+    );
+    build = SelfMirRoutineAddBlock(build);
+    let loop_body: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineAtBlock(build, loop_body);
+    let while_break_blocks: Array<Int> = [];
+    build = SelfMirLowerBlockFromArtifact(
+        input, build, UnwrapOption(body_opt),
+        while_break_blocks, header
+    );
+    let body_exit: Int = build.current_block;
+    if build.terminated[body_exit] == 0 {
+        build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
+    }
+    build = SelfMirRoutineAddBlock(build);
+    let loop_exit: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    let break_i: Int = 0;
+    while break_i < ArrayLength(while_break_blocks) {
+        build = SelfMirRoutineSetSuccessors(
+            build, while_break_blocks[break_i], loop_exit, -1
+        );
+        break_i = break_i + 1;
+    }
+    return SelfMirRoutineSetSuccessors(
+        build, header, loop_body, loop_exit
+    );
+}

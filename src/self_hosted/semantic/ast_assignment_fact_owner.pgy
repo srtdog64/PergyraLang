@@ -10,6 +10,7 @@ import "../lib/source_scan_owner.pgy";
 import "text_scan_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstAssignmentFacts {
@@ -71,7 +72,9 @@ func SemanticAstAssignmentFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstAssignmentFacts {
-    if !AstTreeArtifactReady(artifact) ||
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !function_scopes.ok ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
         ) {
@@ -103,8 +106,8 @@ func SemanticAstAssignmentFactsFromArtifact(
         let scope_opt: Option<Int> = TypedAstArenaParentId(
             artifact.arena, node_id
         );
-        let function_opt: Option<Int> = SemanticAstEnclosingFunctionNode(
-            artifact.arena, node_id
+        let function_opt: Option<Int> = SemanticAstFunctionScopeNodeId(
+            function_scopes, node_id
         );
         if !IsSome(target_opt) {
             return SemanticAstAssignmentStructuralError(

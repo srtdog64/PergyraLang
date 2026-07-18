@@ -1,0 +1,24 @@
+struct AggregateLoopState {
+    ok: Bool;
+    diagnostic: String;
+    values: Array<Int>;
+}
+
+func CarryAggregateLoopState(
+    state: AggregateLoopState
+) -> AggregateLoopState {
+    let pending: Option<Int> = None;
+    while IsSome(pending) && state.ok {
+        state = AggregateLoopState(
+            state.ok, state.diagnostic, state.values
+        );
+    }
+    return state;
+}
+
+func Main() -> Void {
+    let state: AggregateLoopState = CarryAggregateLoopState(
+        AggregateLoopState(true, "preserved", [7])
+    );
+    Log(Concat(ToString(state.ok), Concat("|", state.diagnostic)));
+}

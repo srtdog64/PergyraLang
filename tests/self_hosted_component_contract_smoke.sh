@@ -412,9 +412,16 @@ for mir_producer_owner in \
     routine_iteration_owner.pgy \
     routine_statement_owner.pgy \
     routine_build_owner.pgy \
+    routine_assignment_owner.pgy \
+    routine_control_transfer_owner.pgy \
+    routine_if_owner.pgy \
+    routine_while_owner.pgy \
+    routine_for_owner.pgy \
+    routine_tracked_statement_owner.pgy \
     routine_lower_owner.pgy \
     routine_entry_owner.pgy \
     artifact_lower_owner.pgy \
+    instruction_validation_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
@@ -430,15 +437,19 @@ require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirRoutin
 require_text "src/self_hosted/mir/routine_input_owner.pgy" "struct SelfMirIterationRows"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "struct SelfMirIterationLoweringFact"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationLoweringFactForNode"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" "iteration.binding_type_name"
+require_text "src/self_hosted/mir/routine_for_owner.pgy" "iteration.binding_type_name"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "func SelfMirIterationBranchUses"
 require_text "src/self_hosted/mir/routine_iteration_owner.pgy" "return SelfMirExpressionUses(build, fact.start_expression);"
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" "func SelfMirLowerSimpleStatement"
-reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineAddLocal(build, binding, "Int"'
+reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'SelfMirRoutineAddLocal(build, binding, "Int"'
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "struct SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/routine_build_owner.pgy" "func SelfMirRoutineSetSuccessors"
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" "struct SelfMirRoutineState"
+reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "struct SelfMirRoutineState"
+require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+    "ref input: SelfMirRoutineInput"
 require_text "src/self_hosted/mir/routine_entry_owner.pgy" "func SelfMirRoutineFromInput"
+require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
+    "ref input: SelfMirRoutineInput"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "func SelfMirRoutineFromArtifact"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "inout build: SelfMirRoutineBuild"
 require_text "src/self_hosted/mir/artifact_lower_owner.pgy" "func SelfMirProgramFactsFromArtifact"
@@ -453,7 +464,7 @@ require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let routines: MirPro
 require_text "src/self_hosted/mir_lower/program_lower.pgy" 'let chunks: Array<String> = ["Program:\n", EmitStructDecls(routines, json)];'
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" 'return StringJoin(chunks, "");'
 require_text "src/self_hosted/mir_lower/decl_lower.pgy" 'func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> String'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" 'rows.source_types[i] != "AST_RETURN_VOID"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "Log(SelfMirProgramFactsValidationError(mir_facts))"
 reject_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "self-host MIR producer emitted invalid fact rows"
 require_text "src/self_hosted/mir/json_projection_owner.pgy" "func SelfMirProgramJson"
@@ -1419,6 +1430,10 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" 'import "../../com
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "func EmitStmtList(count: Int, arena: AstArena,"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, idx)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstArenaIndentOrDie(arena, cur[0])"
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    '} else if CodegenSemanticAssignmentIs(assignments, idx)'
+reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
+    '} else if CodegenSemanticStatementIs(statements, idx,'
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "CodegenAstTextTypedArenaFromNodes(nodes, count)"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "nodes[idx].indent"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "nodes[cur[0]].indent"
@@ -2933,7 +2948,7 @@ require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "function signature is missing for MIR parameter seeding"
 require_text "src/self_hosted/mir/routine_entry_owner.pgy" \
     "SemanticAstFunctionParamNameAt("
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'let return_source_type: String = "AST_RETURN_VOID";'
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "duplicate MIR source local:"
@@ -3064,12 +3079,13 @@ require_text "src/self_hosted/mir/routine_build_owner.pgy" 'build.next_instructi
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'func SelfMirLocalVersionsSnapshot('
 require_text "src/self_hosted/mir/routine_build_owner.pgy" 'MIR restored local versions exceed local inventory'
 require_text "src/self_hosted/mir/routine_expression_use_owner.pgy" 'func SelfMirExpressionUses('
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineAtLocalVersions('
-reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'SelfMirRoutineMergeBranchVersions('
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'while merge_local_i < ArrayLength(entry_versions)'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, merge_local_i, 0'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let false_block: Int = merge_block;'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, branch_block, then_block, false_block'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineAtLocalVersions('
+reject_text "src/self_hosted/mir/routine_if_owner.pgy" 'SelfMirRoutineMergeBranchVersions('
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'func SelfMirMergeIfBranches('
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'while merge_local_i < ArrayLength(entry_versions)'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, merge_local_i, 0'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'let false_block: Int = merge_block;'
+require_text "src/self_hosted/mir/routine_if_owner.pgy" 'build, branch_block, then_block, false_block'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" 'JsonEmitFieldRaw("variants", JsonEmitArray(variants))'
 require_text "src/self_hosted/mir/program_fact_owner.pgy" 'param_abi_kinds: Array<Int>;'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"carriage", SelfMirParamCarriageName(rows.param_abi_kinds[row])'
@@ -3086,8 +3102,8 @@ require_text "src/codegen/transpiler_defer_emit.c" 'transpiler_make_c_ssa_name('
 require_text "src/codegen/transpiler_defer_emit.c" 'free(owned_writeback_value);'
 require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = &block_ssa_map;'
 require_text "src/codegen/transpiler_mir_func_emit.c" 'ctx->active_ssa_map = saved_terminator_ssa_map;'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'state.input.analysis.assignments.target_texts[assignment_index]'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'input.analysis.assignments.target_texts[assignment_index]'
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'expression, target_text, "AST_ASSIGNMENT", uses'
 require_file "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
@@ -3345,7 +3361,7 @@ require_text "src/self_hosted/parser/stmt_loop_owner.pgy" \
     'AstExpressionLaneAuxiliary(), upper_fact'
 require_text "src/self_hosted/semantic/ast_expression_surface_fact_owner.pgy" \
     "func SemanticAstExpressionGraphAuxiliaryLaneRequired("
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_for_owner.pgy" \
     'node_id, AstExpressionLaneAuxiliary()'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'source == "AST_FOR_LOOP"'
@@ -3363,7 +3379,7 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirAssignm
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_simple_target_graph)'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     'node_id, AstExpressionLaneAtom()'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) != "" && UnwrapOption(expr1) != "";'
@@ -4513,9 +4529,10 @@ require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArraySet(", Con
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'expression = Concat("Exit("'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" 'build = SelfMirRoutineTerminate(build);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'kind == TypedAstKindBreakStmtTag() ||'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let while_break_blocks: Array<Int> = [];'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let for_break_blocks: Array<Int> = [];'
-reject_text "src/self_hosted/mir/routine_lower_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
+require_text "src/self_hosted/mir/routine_while_owner.pgy" 'let while_break_blocks: Array<Int> = [];'
+require_text "src/self_hosted/mir/routine_for_owner.pgy" 'let break_blocks: Array<Int> = [];'
+reject_text "src/self_hosted/mir/routine_while_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
+reject_text "src/self_hosted/mir/routine_for_owner.pgy" 'let loop_exit: Int = SelfMirCfgBlockCount(build.cfg);'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" 'build, SelfMirCfgBlockCount(build.cfg) - 1'
 require_text "src/self_hosted/mir/routine_lower_owner.pgy" "a terminal instruction erases its"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "reachable statement follows terminal MIR instruction"
@@ -4626,15 +4643,15 @@ require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'expr_fact, "ArrayPush", 1'
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'expr_fact, "ArraySet", 2'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'SelfMirSimpleStatementExpressionGraphLane(kind);'
-require_text "src/self_hosted/mir/routine_lower_owner.pgy" \
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'node_id, UnwrapOption(graph_lane)'
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     'return Some(AstExpressionLaneAuxiliary());'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) == "ArraySet";'
-require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "ArraySet") &&'
 reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "func SelfMirLowerBlockFromArtifact(" \
@@ -4642,7 +4659,7 @@ reject_function_text "src/self_hosted/mir/routine_lower_owner.pgy" \
     "SemanticAstExpressionGraphCompactBridge"
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" \
     "if kind == TypedAstKindLogStmtTag()"
-require_text "src/self_hosted/mir/program_verify_owner.pgy" \
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "Log"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) == "Log"'

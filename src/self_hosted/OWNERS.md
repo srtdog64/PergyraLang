@@ -125,6 +125,9 @@ inventory must not become a second fact-family owner registry.
   local binding node, function, scope, name, declared-type, and initializer
   payload facts, including array-literal body and `Let` statement-routing
   identity.
+- `src/self_hosted/semantic/ast_function_scope_fact_owner.pgy` -- function
+  scope interval rows consumed by local-binding and expression-environment
+  owners; downstream consumers must not rescan function bodies.
 - `src/self_hosted/semantic/try_expression_fact_owner.pgy` -- canonical prefix,
   wrapped, and postfix try-expression shape and operand bounds.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
@@ -345,7 +348,20 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
   block edges, instruction IDs, termination, and local SSA version updates.
 - `src/self_hosted/mir/routine_lower_owner.pgy` -- bounded typed-artifact CFG
-  lowering as one value-state transformer with explicit loop/branch topology.
+  lowering dispatcher over read-only compiler-scale input and mutable routine
+  build state.
+- `src/self_hosted/mir/routine_if_owner.pgy` -- conditional branch topology,
+  branch-local build threading, and merge-block ownership.
+- `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
+  back-edge, and exit-block lowering.
+- `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row to
+  loop-initializer, body, back-edge, and exit-block lowering.
+- `src/self_hosted/mir/routine_assignment_owner.pgy` -- semantic assignment
+  row to SSA definition, projected-target graph, and receiver-use lowering.
+- `src/self_hosted/mir/routine_control_transfer_owner.pgy` -- return, break,
+  and continue instruction/edge lowering.
+- `src/self_hosted/mir/routine_tracked_statement_owner.pgy` -- statement-kind
+  dispatch after the statement fact owner has identified the tracked row.
 - `src/self_hosted/mir/routine_let_owner.pgy` -- semantic initializer row to
   MIR local declaration and SSA definition lowering.
 - `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
@@ -354,6 +370,8 @@ inventory must not become a second fact-family owner registry.
   deterministic instruction-ID canonicalization.
 - `src/self_hosted/mir/program_verify_owner.pgy` -- MIR row range/topology and
   required-fact verification.
+- `src/self_hosted/mir/instruction_validation_owner.pgy` -- detailed MIR
+  instruction-row shape diagnostics consumed by the program verifier.
 - `src/self_hosted/mir/json_projection_owner.pgy` -- verified `pgy.mir.v1`
   projection; it cannot read AST provenance.
 

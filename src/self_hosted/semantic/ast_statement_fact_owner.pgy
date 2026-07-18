@@ -7,6 +7,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 
 struct SemanticAstStatementFacts {
@@ -77,7 +78,9 @@ func SemanticAstStatementFactsFromArtifact(
     artifact: AstTreeArtifact,
     signatures: SemanticAstFunctionSignatureFacts
 ) -> SemanticAstStatementFacts {
-    if !AstTreeArtifactReady(artifact) ||
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !function_scopes.ok ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(
             artifact, signatures
         ) {
@@ -109,8 +112,8 @@ func SemanticAstStatementFactsFromArtifact(
         let scope_opt: Option<Int> = SemanticAstEnclosingBlockNode(
             artifact.arena, node_id
         );
-        let function_opt: Option<Int> = SemanticAstEnclosingFunctionNode(
-            artifact.arena, node_id
+        let function_opt: Option<Int> = SemanticAstFunctionScopeNodeId(
+            function_scopes, node_id
         );
         if !IsSome(scope_opt) || !TypedAstArenaNodeKindIs(
             artifact.arena, UnwrapOption(scope_opt), TypedAstKindBlockTag()

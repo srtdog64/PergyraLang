@@ -282,48 +282,41 @@ func ParserExpressionGraphsAppendRows(
             target.roots, target.arena
         );
     }
-    let next: AstExpressionGraphRows = target;
+    let kinds: Array<Int> = target.arena.node_kinds;
+    let texts: Array<String> = target.arena.node_texts;
+    let left_children: Array<Int> = target.arena.left_children;
+    let right_children: Array<Int> = target.arena.right_children;
+    let owner_kinds: Array<Int> = target.root_owner_kinds;
+    let lanes: Array<Int> = target.root_lanes;
+    let roots: Array<Int> = target.roots;
+    let offset: Int = ArrayLength(kinds);
+    let i: Int = 0;
+    while i < AstExpressionArenaNodeCount(source.arena) {
+        let kind: Int = source.arena.node_kinds[i];
+        let left: Int = source.arena.left_children[i];
+        let right: Int = source.arena.right_children[i];
+        let arity: Int = AstExpressionNodeArity(kind);
+        if arity >= 1 { left = left + offset; }
+        if arity == 2 { right = right + offset; }
+        ArrayPush(kinds, kind);
+        ArrayPush(texts, source.arena.node_texts[i]);
+        ArrayPush(left_children, left);
+        ArrayPush(right_children, right);
+        i = i + 1;
+    }
     let root_index: Int = 0;
-    let previous_start: Int = 0;
     while root_index < ArrayLength(source.roots) {
-        let root: Int = source.roots[root_index];
-        let start: Int = previous_start;
-        let end: Int = root + 1;
-        let kinds: Array<Int> = [];
-        let texts: Array<String> = [];
-        let left_children: Array<Int> = [];
-        let right_children: Array<Int> = [];
-        let i: Int = start;
-        while i < end {
-            ArrayPush(kinds, source.arena.node_kinds[i]);
-            ArrayPush(texts, source.arena.node_texts[i]);
-            let left: Int = source.arena.left_children[i];
-            let right: Int = source.arena.right_children[i];
-            let arity: Int = AstExpressionNodeArity(
-                source.arena.node_kinds[i]
-            );
-            if arity >= 1 {
-                left = left - start;
-            }
-            if arity == 2 {
-                right = right - start;
-            }
-            ArrayPush(left_children, left);
-            ArrayPush(right_children, right);
-            i = i + 1;
-        }
-        let fact: ParserExpressionFact = ParserExpressionFact(
-            true, texts[ArrayLength(texts) - 1], root - start,
-            AstExpressionArena(kinds, texts, left_children, right_children)
-        );
-        next = ParserExpressionGraphsAppend(
-            next, source.root_owner_kinds[root_index],
-            source.root_lanes[root_index], fact
-        );
-        previous_start = end;
+        ArrayPush(owner_kinds, source.root_owner_kinds[root_index]);
+        ArrayPush(lanes, source.root_lanes[root_index]);
+        ArrayPush(roots, source.roots[root_index] + offset);
         root_index = root_index + 1;
     }
-    return next;
+    let arena: AstExpressionArena = AstExpressionArena(
+        kinds, texts, left_children, right_children
+    );
+    return AstExpressionGraphRows(
+        AstExpressionArenaReady(arena), owner_kinds, lanes, roots, arena
+    );
 }
 
 func ParserExpressionSubtree(

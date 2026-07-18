@@ -111,30 +111,6 @@ func SemanticAstExpressionScopeVisible(
     return false;
 }
 
-func SemanticAstExpressionFunctionNodeForUse(
-    artifact: AstTreeArtifact,
-    signatures: SemanticAstFunctionSignatureFacts,
-    use_node_id: Int
-) -> Option<Int> {
-    if !AstTreeArtifactReady(artifact) || !signatures.ok ||
-        use_node_id < 0 || use_node_id >= artifact.count {
-        return None;
-    }
-    let cursor: Option<Int> = Some(use_node_id);
-    let remaining: Int = artifact.count + 1;
-    while IsSome(cursor) && remaining > 0 {
-        let node_id: Int = UnwrapOption(cursor);
-        if IsSome(SemanticAstFunctionSignatureIndexForNode(
-            signatures, node_id
-        )) {
-            return Some(node_id);
-        }
-        cursor = TypedAstArenaParentId(artifact.arena, node_id);
-        remaining = remaining - 1;
-    }
-    return None;
-}
-
 func SemanticAstExpressionFunctionTables(
     signatures: SemanticAstFunctionSignatureFacts,
     constructors: SemanticAstNominalConstructorFacts,
@@ -314,10 +290,14 @@ func SemanticAstExpressionSeedVisibleLocals(
     inout names: Array<String>,
     inout types: Array<String>
 ) -> Bool {
-    let i: Int = 0;
-    while i < SemanticAstLocalBindingCount(locals) {
+    let range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForFunction(locals, function_node_id);
+    if !range.ok {
+        return false;
+    }
+    let i: Int = range.start;
+    while i < range.end {
         if locals.node_ids[i] < use_node_id &&
-            locals.function_node_ids[i] == function_node_id &&
             SemanticAstExpressionScopeVisible(
                 artifact.arena, locals.scope_node_ids[i], use_node_id
             ) {

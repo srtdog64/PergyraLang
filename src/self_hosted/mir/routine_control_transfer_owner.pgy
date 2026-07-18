@@ -1,0 +1,51 @@
+// MIR break/continue transfer owner.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+
+func SelfMirLowerControlTransferFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    block_node_id: Int,
+    child_index: Int,
+    kind: Int,
+    inout break_blocks: Array<Int>,
+    continue_target: Int
+) -> SelfMirRoutineBuild {
+    let control_name: String = "break";
+    let source_type: String = "AST_BREAK";
+    if kind == TypedAstKindContinueStmtTag() {
+        control_name = "continue";
+        source_type = "AST_CONTINUE";
+    }
+    if continue_target < 0 {
+        return SelfMirRoutineBuildError(
+            build,
+            Concat("MIR loop control is outside a loop: ", control_name)
+        );
+    }
+    if IsSome(TypedAstArenaChildAt(
+        input.artifact.arena, block_node_id, child_index + 1
+    )) {
+        return SelfMirRoutineBuildError(
+            build,
+            Concat(
+                "bounded MIR producer only accepts terminal loop control: ",
+                control_name
+            )
+        );
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", control_name, "", "", "", control_name, "",
+        source_type, SelfMirNoUses()
+    );
+    if kind == TypedAstKindBreakStmtTag() {
+        ArrayPush(break_blocks, build.current_block);
+    } else {
+        build = SelfMirRoutineSetSuccessors(
+            build, build.current_block, continue_target, -1
+        );
+    }
+    return SelfMirRoutineTerminate(build);
+}

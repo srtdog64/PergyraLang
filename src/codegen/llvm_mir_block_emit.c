@@ -84,9 +84,7 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
     }
     entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);
     if (entry == NULL) {
-        /* Closure #88: phi-result versioned name has no alloca of its
-         * own. MIR routine reports `phi=N` in its meta header but
-         * doesn't emit explicit phi instructions, so the bb-entry
+        /* Closure #88: phi results have no dedicated alloca, so the bb-entry
          * scope-seed step finds nothing to bind. If we leave the
          * previous block's binding in place, the next consumer of the
          * base identifier loads from a sibling-block-only alloca that
@@ -135,6 +133,10 @@ llvm_mir_seed_block_entry_scope(const MIRBasicBlock *mir_block,
     for (size_t i = 0; i < mir_block->ssa_entry_value_count; i++) {
         llvm_mir_bind_versioned_local_scope(ctx, vars, var_count,
             mir_block->ssa_entry_values[i], NULL);
+    }
+    for (size_t i = 0; i < mir_block->live_in_name_count; i++) {
+        llvm_mir_bind_versioned_local_scope(ctx, vars, var_count,
+            mir_block->live_in_names[i], NULL);
     }
 }
 

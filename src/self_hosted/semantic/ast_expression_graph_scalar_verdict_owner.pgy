@@ -108,16 +108,16 @@ func SemanticExpressionGraphScalarOperandError(
     let start: Int = root_id;
     let needed: Int = 1;
     while start >= 0 && needed > 0 {
-        let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        let scan_kind_opt: Option<Int> = SemanticExpressionGraphNodeKind(
             graph, start
         );
-        if !IsSome(kind) {
+        if !IsSome(scan_kind_opt) {
             return SemanticError1(
                 "ast_artifact_invalid", "owner", "expression_graph"
             );
         }
         needed = needed - 1 + AstExpressionNodeArity(
-            UnwrapOption(kind)
+            UnwrapOption(scan_kind_opt)
         );
         start = start - 1;
     }

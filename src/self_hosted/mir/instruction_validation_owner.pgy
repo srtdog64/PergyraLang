@@ -1,0 +1,147 @@
+// Detailed structural validation for MIR instruction rows.
+
+import "program_fact_owner.pgy";
+
+func SelfMirInstructionRowsValidationError(
+    rows: SelfMirInstructionRows
+) -> String {
+    let count: Int = ArrayLength(rows.ids);
+    if ArrayLength(rows.kinds) != count { return "kind row count differs"; }
+    if ArrayLength(rows.names) != count { return "name row count differs"; }
+    if ArrayLength(rows.results) != count { return "result row count differs"; }
+    if ArrayLength(rows.arg0s) != count { return "arg0 row count differs"; }
+    if ArrayLength(rows.arg1s) != count { return "arg1 row count differs"; }
+    if ArrayLength(rows.expr0s) != count { return "expr0 row count differs"; }
+    if ArrayLength(rows.expr1s) != count { return "expr1 row count differs"; }
+    if ArrayLength(rows.source_types) != count {
+        return "source-type row count differs";
+    }
+    if ArrayLength(rows.machine_contact_kinds) != count {
+        return "machine-contact row count differs";
+    }
+    if ArrayLength(rows.machine_layer_manifest_ids) != count {
+        return "machine manifest row count differs";
+    }
+    if ArrayLength(rows.machine_layer_physical_grant_ids) != count {
+        return "machine physical-grant row count differs";
+    }
+    if ArrayLength(rows.machine_layer_physical_bases) != count {
+        return "machine physical-base row count differs";
+    }
+    if ArrayLength(rows.machine_layer_physical_sizes) != count {
+        return "machine physical-size row count differs";
+    }
+    if ArrayLength(rows.machine_layer_physical_modes) != count {
+        return "machine physical-mode row count differs";
+    }
+    if ArrayLength(rows.machine_layer_runtime_operations) != count {
+        return "machine runtime-operation row count differs";
+    }
+    if ArrayLength(rows.machine_layer_hardware_adequate) != count {
+        return "machine adequacy row count differs";
+    }
+    if ArrayLength(rows.machine_layer_authority_required) != count {
+        return "machine authority row count differs";
+    }
+    if ArrayLength(rows.machine_layer_live_lease_required) != count {
+        return "machine lease row count differs";
+    }
+    if ArrayLength(rows.use_starts) != count {
+        return "use-start row count differs";
+    }
+    if ArrayLength(rows.use_counts) != count {
+        return "use-count row count differs";
+    }
+    if !SelfMirExpressionGraphRowsReady(rows.expr0_graphs, count) {
+        return "expr0 graph rows are invalid";
+    }
+    if !SelfMirExpressionGraphRowsReady(rows.expr1_graphs, count) {
+        return "expr1 graph rows are invalid";
+    }
+    let use_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        let kind: String = rows.kinds[i];
+        let row_prefix: String = Concat("instruction=", ToString(i));
+        if rows.use_starts[i] != use_cursor {
+            return Concat(row_prefix, " use-start is non-canonical");
+        }
+        if rows.use_counts[i] < 0 {
+            return Concat(row_prefix, " use-count is negative");
+        }
+        if kind != "def" && kind != "stmt" && kind != "return" &&
+            kind != "branch" && kind != "phi" && kind != "loop-init" {
+            return Concat(row_prefix, " instruction kind is unknown");
+        }
+        if kind == "branch" && rows.names[i] == "branch" &&
+            rows.arg0s[i] == "" &&
+            rows.source_types[i] != "AST_MATCH_CASE" &&
+            rows.expr0_graphs.has_roots[i] != 1 {
+            return Concat(row_prefix, " branch expression graph is missing");
+        }
+        if kind == "stmt" &&
+            (rows.arg0s[i] == "" || rows.arg0s[i] == "Log" ||
+             rows.arg0s[i] == "ArrayPush" || rows.arg0s[i] == "ArraySet") &&
+            rows.source_types[i] == "AST_CALL" &&
+            rows.expr0_graphs.has_roots[i] != 1 {
+            return Concat(row_prefix, " statement expression graph is missing");
+        }
+        if kind == "def" &&
+            (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
+             rows.source_types[i] == "") {
+            return Concat(row_prefix, " definition payload is incomplete");
+        }
+        if kind == "stmt" && rows.expr0s[i] == "" {
+            return Concat(row_prefix, " statement payload is empty");
+        }
+        if kind == "return" &&
+            ((rows.expr0s[i] == "" &&
+              rows.source_types[i] != "AST_RETURN_VOID") ||
+             (rows.expr0s[i] != "" &&
+              rows.source_types[i] == "AST_RETURN_VOID")) {
+            return Concat(row_prefix, " return payload and type disagree");
+        }
+        if kind == "branch" && rows.expr0s[i] == "" {
+            return Concat(row_prefix, " branch payload is empty");
+        }
+        if kind == "phi" && rows.results[i] == "" {
+            return Concat(row_prefix, " phi result is empty");
+        }
+        if kind == "loop-init" &&
+            (rows.arg0s[i] == "" || rows.expr0s[i] == "" ||
+             rows.expr1s[i] == "") {
+            return Concat(row_prefix, " loop initializer is incomplete");
+        }
+        if !SelfMirAssignmentTargetGraphReady(rows, i) {
+            return Concat(
+                row_prefix,
+                Concat(
+                    " assignment target graph is invalid: ",
+                    SelfMirAssignmentTargetGraphValidationError(rows, i)
+                )
+            );
+        }
+        let machine_row: SelfMirMachineLayerProjection =
+            SelfMirMachineLayerProjection(
+                true, rows.machine_contact_kinds[i],
+                rows.machine_layer_manifest_ids[i],
+                rows.machine_layer_physical_grant_ids[i],
+                rows.machine_layer_physical_bases[i],
+                rows.machine_layer_physical_sizes[i],
+                rows.machine_layer_physical_modes[i],
+                rows.machine_layer_runtime_operations[i],
+                rows.machine_layer_hardware_adequate[i],
+                rows.machine_layer_authority_required[i],
+                rows.machine_layer_live_lease_required[i]
+            );
+        if !SelfMirMachineLayerProjectionShapeReady(machine_row) {
+            return Concat(row_prefix, " machine-layer projection is invalid");
+        }
+        use_cursor = use_cursor + rows.use_counts[i];
+        i = i + 1;
+    }
+    if use_cursor != ArrayLength(rows.uses) {
+        return "instruction use payload total differs";
+    }
+    return "";
+}

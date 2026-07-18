@@ -242,8 +242,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                     "\n"
                 )));
             }
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticAssignmentIs(assignments, idx) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticAssignmentIs(assignments, idx) {
             let assign_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneValue()
@@ -264,8 +265,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                     assign_target_graph
                 ), "\n"
             )));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindLogStmtTag()) {
             let log_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
@@ -277,8 +279,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, Concat(pad, Concat(
                 EmitLog(log_type, env, log_graph), "\n"
             )));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareReturnStmtTag()) {
             // Bare return (the AST printer omits the colon when there is no
             // value). The C form follows owner-owned ABI return facts.
             let bare: String = "return;";
@@ -289,8 +292,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             ArrayPush(result, active_defers);
             deferred = "";
             ArrayPush(result, Concat(pad, Concat(bare, "\n")));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindValueReturnStmtTag()) {
             let rexpr: String = CodegenSemanticReturnValueOrDie(statements, idx);
             let return_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
@@ -302,15 +306,17 @@ func EmitStmtList(count: Int, arena: AstArena,
                 rexpr, cur_fn_ret, env, return_graph,
                 return_cleanup, idx, pad
             ));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindDeferStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindDeferStmtTag()) {
             ArraySet(cur, 0, idx + 1);
             CodegenAstArenaExpectBlock(arena, count, cur);
             let defer_env: Array<String> = [env_state[0], env_state[1]];
             let body: String = EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4,
                 cur, pad, defer_env, cur_fn_ret, Concat(deferred, active_defers));
-            deferred = Concat(body, deferred);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) {
+            deferred = Concat(body, deferred); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindArraySetStmtTag()) {
             // `ArraySet(arr, idx, val)` lowers through the collection set helper owner.
             let a_arr: String = CodegenSemanticArraySetTargetOrDie(statements, idx);
             let c_a_arr: String = CompilerSymbolCBindingName(a_arr);
@@ -328,8 +334,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             );
             let set_stmt: String = Concat(array_fact.c_set_fn, Concat("(&", Concat(c_a_arr, Concat(", ", Concat(IntEval(a_idx, env), Concat(", ", Concat(a_rhs, ");")))))));
             ArrayPush(result, Concat(pad, Concat(set_stmt, "\n")));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPushStmtTag()) {
             // `ArrayPush(arr, val)` lowers through the collection push helper owner.
             let p_arr: String = CodegenSemanticArrayPushTargetOrDie(statements, idx);
             let c_p_arr: String = CompilerSymbolCBindingName(p_arr);
@@ -346,8 +353,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             );
             let push_stmt: String = Concat(array_fact.c_push_fn, Concat("(&", Concat(c_p_arr, Concat(", ", Concat(p_rhs, ");")))));
             ArrayPush(result, Concat(pad, Concat(push_stmt, "\n")));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindArrayPopStmtTag()) {
             // `ArrayPop(arr)` statement lowers through the collection pop helper owner.
             let q_arr: String = CodegenSemanticArrayPopTargetOrDie(statements, idx);
             let c_q_arr: String = CompilerSymbolCBindingName(q_arr);
@@ -355,8 +363,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             let pop_fn: String =
                 CollectionRuntimeFactFromKind(q_kind, env).c_pop_fn;
             ArrayPush(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(c_q_arr, ");\n")))));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindExitStmtTag()) {
             let exit_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
@@ -369,14 +378,17 @@ func EmitStmtList(count: Int, arena: AstArena,
                     "(", Concat(exit_value, ");\n")
                 ))
             ));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindBreakStmtTag()) {
             ArrayPush(result, Concat(pad, "break;\n"));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindContinueStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindContinueStmtTag()) {
             ArrayPush(result, Concat(pad, "continue;\n"));
-            ArraySet(cur, 0, idx + 1);
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindForStmtTag()) {
+            ArraySet(cur, 0, idx + 1); continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindForStmtTag()) {
             // Integer ranges are exclusive at the upper bound.
             let loop_var: String = CodegenSemanticForLoopVarOrDie(statements, idx);
             let c_loop_var: String = CompilerSymbolCBindingName(loop_var);
@@ -464,7 +476,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             CodegenAstArenaExpectBlock(arena, count, cur);
             ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
             ArrayPush(result, Concat(pad, "}\n"));
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindWhileStmtTag()) {
+            continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindWhileStmtTag()) {
             let while_expr: String = CodegenSemanticWhileConditionOrDie(
                 statements, idx
             );
@@ -480,7 +494,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             CodegenAstArenaExpectBlock(arena, count, cur);
             ArrayPush(result, EmitStmtList(count, arena, local_bindings, assignments, statements, body_types, expression_surfaces, stmt_indent + 4, cur, inner_pad, env_state, cur_fn_ret, Concat(deferred, active_defers)));
             ArrayPush(result, Concat(pad, "}\n"));
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindIfStmtTag()) {
+            continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindIfStmtTag()) {
             let if_expr: String = CodegenSemanticIfConditionOrDie(
                 statements, idx
             );
@@ -513,7 +529,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             } else {
                 ArrayPush(result, Concat(pad, "}\n"));
             }
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindMatchStmtTag()) {
+            continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindMatchStmtTag()) {
             let match_subject: String = CodegenSemanticMatchSubjectOrDie(statements, idx);
             let match_subject_type: String =
                 CodegenSemanticStatementInferredTypeOrDie(
@@ -558,7 +576,9 @@ func EmitStmtList(count: Int, arena: AstArena,
             }
             ArrayPush(result, Concat(inner_pad, "}\n"));
             ArrayPush(result, Concat(pad, "}\n"));
-        } else if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
+            continue;
+        }
+        if CodegenSemanticStatementIs(statements, idx, TypedAstKindBareCallStmtTag()) {
             let call_graph: SemanticExpressionGraphView =
                 CodegenSemanticExpressionGraphOrDie(
                     expression_surfaces, idx, AstExpressionLaneAtom()
@@ -569,9 +589,9 @@ func EmitStmtList(count: Int, arena: AstArena,
                 ), ";\n"
             )));
             ArraySet(cur, 0, idx + 1);
-        } else {
-            Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
+            continue;
         }
+        Die(Concat("unsupported AST line in supported subset: ", CodegenAstArenaProvenanceOrDie(arena, idx)));
     }
     ArrayPush(result, deferred);
     return StringJoin(result, "");

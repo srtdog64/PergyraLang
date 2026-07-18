@@ -1,0 +1,111 @@
+// Canonical enclosing-function identity for every typed AST node.
+
+import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_node_kind_owner.pgy";
+
+struct SemanticAstFunctionScopeFacts {
+    ok: Bool;
+    artifact_node_count: Int;
+    function_node_ids: Array<Int>;
+}
+
+func SemanticAstFunctionScopeFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstFunctionScopeFacts {
+    let function_node_ids: Array<Int> = [];
+    if !AstTreeArtifactReady(artifact) {
+        return SemanticAstFunctionScopeFacts(
+            false, artifact.count, function_node_ids
+        );
+    }
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        let function_node_id: Int = -1;
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindFuncDeclTag()
+        ) {
+            function_node_id = node_id;
+        } else {
+            let parent: Option<Int> = TypedAstArenaParentId(
+                artifact.arena, node_id
+            );
+            if IsSome(parent) {
+                let parent_id: Int = UnwrapOption(parent);
+                if parent_id < 0 || parent_id >= node_id ||
+                    parent_id >= ArrayLength(function_node_ids) {
+                    return SemanticAstFunctionScopeFacts(
+                        false, artifact.count, function_node_ids
+                    );
+                }
+                function_node_id = function_node_ids[parent_id];
+            }
+        }
+        ArrayPush(function_node_ids, function_node_id);
+        node_id = node_id + 1;
+    }
+    return SemanticAstFunctionScopeFacts(
+        ArrayLength(function_node_ids) == artifact.count,
+        artifact.count, function_node_ids
+    );
+}
+
+func SemanticAstFunctionScopeNodeId(
+    ref facts: SemanticAstFunctionScopeFacts,
+    node_id: Int
+) -> Option<Int> {
+    if !facts.ok || node_id < 0 || node_id >= facts.artifact_node_count ||
+        node_id >= ArrayLength(facts.function_node_ids) ||
+        facts.function_node_ids[node_id] < 0 {
+        return None;
+    }
+    return Some(facts.function_node_ids[node_id]);
+}
+
+func SemanticAstFunctionScopeFactsMatchArtifact(
+    artifact: AstTreeArtifact,
+    ref facts: SemanticAstFunctionScopeFacts
+) -> Bool {
+    let rebuilt: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !facts.ok || !rebuilt.ok ||
+        facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.function_node_ids) != artifact.count {
+        return false;
+    }
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if facts.function_node_ids[node_id] !=
+            rebuilt.function_node_ids[node_id] {
+            return false;
+        }
+        node_id = node_id + 1;
+    }
+    return true;
+}
+
+func SemanticAstFunctionScopeFactsContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: x : Int = 1\n"
+    );
+    let facts: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let function_node: Option<Int> = None;
+    let node_id: Int = 0;
+    while node_id < artifact.count && !IsSome(function_node) {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindLetStmtTag()
+        ) {
+            function_node = SemanticAstFunctionScopeNodeId(facts, node_id);
+        }
+        node_id = node_id + 1;
+    }
+    let stale: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFacts(
+            true, artifact.count + 1, facts.function_node_ids
+        );
+    return SemanticAstFunctionScopeFactsMatchArtifact(artifact, facts) &&
+        IsSome(function_node) && TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(function_node),
+            TypedAstKindFuncDeclTag()
+        ) && !SemanticAstFunctionScopeFactsMatchArtifact(artifact, stale);
+}

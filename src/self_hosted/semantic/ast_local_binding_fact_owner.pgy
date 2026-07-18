@@ -3,6 +3,7 @@
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "../hir/ast_node_kind_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 
@@ -21,23 +22,10 @@ struct SemanticAstLocalBindingFacts {
     initializer_texts: Array<String>;
 }
 
-func SemanticAstEnclosingFunctionNode(
-    arena: AstArena,
-    node_id: Int
-) -> Option<Int> {
-    let cursor: Option<Int> = TypedAstArenaParentId(arena, node_id);
-    let traversed: Int = 0;
-    while IsSome(cursor) && traversed < TypedAstArenaNodeCount(arena) {
-        let parent_id: Int = UnwrapOption(cursor);
-        if TypedAstArenaNodeKindIs(
-            arena, parent_id, TypedAstKindFuncDeclTag()
-        ) {
-            return Some(parent_id);
-        }
-        cursor = TypedAstArenaParentId(arena, parent_id);
-        traversed = traversed + 1;
-    }
-    return None;
+struct SemanticAstLocalBindingFunctionRange {
+    ok: Bool;
+    start: Int;
+    end: Int;
 }
 
 func SemanticAstEnclosingBlockNode(
@@ -70,7 +58,9 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let declared_type_names: Array<String> = [];
     let has_declared_types: Array<Int> = [];
     let initializer_texts: Array<String> = [];
-    let ok: Bool = AstTreeArtifactReady(artifact) &&
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let ok: Bool = function_scopes.ok &&
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
@@ -99,8 +89,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
         let scope: Option<Int> = TypedAstArenaParentId(
             artifact.arena, node_id
         );
-        let function_node: Option<Int> = SemanticAstEnclosingFunctionNode(
-            artifact.arena, node_id
+        let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(
+            function_scopes, node_id
         );
         if !IsSome(name) || StringLength(UnwrapOption(name)) == 0 {
             ok = false;
@@ -183,7 +173,9 @@ func SemanticAstLocalBindingFactsMatchArtifact(
     facts: SemanticAstLocalBindingFacts
 ) -> Bool {
     let n: Int = SemanticAstLocalBindingCount(facts);
-    if !AstTreeArtifactReady(artifact) || !facts.ok ||
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !function_scopes.ok || !facts.ok ||
         facts.artifact_node_count != artifact.count ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) ||
         ArrayLength(facts.function_node_ids) != n ||
@@ -202,14 +194,16 @@ func SemanticAstLocalBindingFactsMatchArtifact(
             artifact.arena, node_id
         );
         let scope: Option<Int> = TypedAstArenaParentId(artifact.arena, node_id);
-        let function_node: Option<Int> = SemanticAstEnclosingFunctionNode(
-            artifact.arena, node_id
+        let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(
+            function_scopes, node_id
         );
         let declared_type: Option<String> = TypedAstArenaTypeName(
             artifact.arena, node_id
         );
         if node_id < 0 || node_id >= artifact.count ||
             (i > 0 && node_id <= facts.node_ids[i - 1]) ||
+            (i > 0 && facts.function_node_ids[i] <
+                facts.function_node_ids[i - 1]) ||
             !TypedAstArenaNodeKindIs(
                 artifact.arena, node_id, TypedAstKindLetStmtTag()
             ) || !IsSome(name) || !IsSome(initializer) ||
@@ -249,6 +243,38 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         node_id2 = node_id2 + 1;
     }
     return actual_count == n;
+}
+
+func SemanticAstLocalBindingRangeForFunction(
+    facts: SemanticAstLocalBindingFacts,
+    function_node_id: Int
+) -> SemanticAstLocalBindingFunctionRange {
+    let count: Int = SemanticAstLocalBindingCount(facts);
+    if !facts.ok || function_node_id < 0 ||
+        ArrayLength(facts.function_node_ids) != count {
+        return SemanticAstLocalBindingFunctionRange(false, 0, 0);
+    }
+    let low: Int = 0;
+    let high: Int = count;
+    while low < high {
+        let middle: Int = low + ((high - low) / 2);
+        if facts.function_node_ids[middle] < function_node_id {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    let start: Int = low;
+    high = count;
+    while low < high {
+        let middle2: Int = low + ((high - low) / 2);
+        if facts.function_node_ids[middle2] <= function_node_id {
+            low = middle2 + 1;
+        } else {
+            high = middle2;
+        }
+    }
+    return SemanticAstLocalBindingFunctionRange(true, start, low);
 }
 
 func SemanticAstLocalBindingIndexForNode(

@@ -59,15 +59,18 @@ retain self-host MIR-producer parity, and the real-source sample comparison
 retains end-to-end evidence. This is an integrated seed and bounded consumer
 proof, not a released compiler substitution claim. A local full-source
 self-host producer probe historically reached about 68 GB private allocation
-before completion. That number is no longer the current memory result. On
-2026-07-19, a fresh C projection of the current Pergyra driver processed
-`driver_bootstrap_main.pgy --emit-mir-json-verified` for the full six-minute
-probe window at 430.3 MB peak private memory before the time budget stopped it.
-The same current parser completed its own 323,644-byte source set in 12.501
-seconds at 72.1 MB peak private memory. The source-to-MIR blocker has therefore
-moved from unbounded memory amplification to CPU/completion time; the released
-replacement claim remains open until the full producer completes inside its
-integration budget and retains C/LLVM parity.
+before completion. That number is neither normal nor the current result. On
+2026-07-19, the bounded LLVM self-source routine-lowering probe completed all
+1,816 routines with zero errors in 62.085 seconds at 794.4 MB peak private
+memory and 728.5 MB peak working set, below its 3 GB fail-closed cap. Parameter
+SSA aliases and block live-in scope now consume MIR facts instead of sibling-
+block state, and the codegen statement dispatcher no longer represents its
+top-level kind selection as a deep `else if` AST chain. The same current parser
+completed its own 323,644-byte source set in 12.501 seconds at 72.1 MB peak
+private memory. This closes the historical amplification claim for the measured
+routine-lowering core, not whole-driver substitution. The released replacement
+claim remains open until the integrated producer and consumer complete inside
+their integration budget and retain C/LLVM parity.
 The driver job now requests only the codegen `gen2` and parser-producer seed;
 the standalone codegen fixed point and breadth retain a separate blocking
 Linux job instead of being repeated before the driver boundary.

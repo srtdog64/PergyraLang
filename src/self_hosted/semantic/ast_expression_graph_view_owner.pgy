@@ -1,6 +1,6 @@
 // Borrowed expression-graph view over artifact-bound surface facts.
-
 import "ast_expression_surface_fact_owner.pgy";
+import "ast_signature_fact_owner.pgy";
 
 func SemanticAstExpressionSurfaceBorrowReady(
     artifact: AstTreeArtifact,
@@ -8,6 +8,7 @@ func SemanticAstExpressionSurfaceBorrowReady(
 ) -> Bool {
     let count: Int = ArrayLength(facts.node_ids);
     if !facts.ok || facts.artifact_node_count != artifact.count ||
+        ArrayLength(facts.function_node_ids) != count ||
         ArrayLength(facts.has_atoms) != count ||
         ArrayLength(facts.atoms) != count ||
         ArrayLength(facts.has_values) != count ||
@@ -28,8 +29,16 @@ func SemanticAstExpressionSurfaceBorrowReady(
     let i: Int = 0;
     while i < count {
         let node_id: Int = facts.node_ids[i];
+        let function_node_id: Int = facts.function_node_ids[i];
+        let has_graph: Bool = facts.expression_graph.has_roots[i * 3] ||
+            facts.expression_graph.has_roots[i * 3 + 1] ||
+            facts.expression_graph.has_roots[i * 3 + 2];
         if node_id <= previous_node_id || node_id < 0 ||
             node_id >= artifact.count ||
+            function_node_id < -1 || function_node_id >= artifact.count ||
+            (function_node_id >= 0 && !TypedAstArenaNodeKindIs(
+                artifact.arena, function_node_id, TypedAstKindFuncDeclTag()
+            )) || (has_graph && function_node_id < 0) ||
             (facts.expression_graph.has_roots[i * 3] &&
                 !facts.has_atoms[i]) ||
             (facts.expression_graph.has_roots[i * 3 + 1] &&
@@ -42,6 +51,28 @@ func SemanticAstExpressionSurfaceBorrowReady(
         i = i + 1;
     }
     return true;
+}
+
+func SemanticAstExpressionFunctionNodeAt(
+    ref facts: SemanticAstExpressionSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    surface_index: Int
+) -> Option<Int> {
+    if !facts.ok || !signatures.ok ||
+        signatures.artifact_node_count != facts.artifact_node_count ||
+        surface_index < 0 || surface_index >= ArrayLength(facts.node_ids) ||
+        surface_index >= ArrayLength(facts.function_node_ids) {
+        return None;
+    }
+    let function_node_id: Int = facts.function_node_ids[surface_index];
+    if function_node_id < 0 || !IsSome(
+        SemanticAstFunctionSignatureIndexForNode(
+            signatures, function_node_id
+        )
+    ) {
+        return None;
+    }
+    return Some(function_node_id);
 }
 
 func SemanticAstExpressionGraphRootForNode(

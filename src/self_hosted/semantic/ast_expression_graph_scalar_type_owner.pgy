@@ -207,14 +207,14 @@ func SemanticExpressionGraphScalarTypeName(
                     graph, call.argument_nodes[0], constructors, names, types,
                     function_names, function_returns
                 );
-            let payload: Option<String> =
+            let device_payload: Option<String> =
                 DeviceSlotPayloadTypeOpt(receiver_type);
-            if IsSome(payload) {
+            if IsSome(device_payload) {
                 if callee == "DeviceRead" {
-                    return UnwrapOption(payload);
+                    return UnwrapOption(device_payload);
                 }
                 return Concat("RemoteFuture<", Concat(
-                    UnwrapOption(payload), ">"
+                    UnwrapOption(device_payload), ">"
                 ));
             }
         }
@@ -245,8 +245,8 @@ func SemanticExpressionGraphScalarTypeName(
         return "Unknown";
     }
     if kind == AstExpressionNodeTry() {
-        let payload: Option<String> = TryPayloadTypeOpt(left);
-        if IsSome(payload) { return UnwrapOption(payload); }
+        let try_payload: Option<String> = TryPayloadTypeOpt(left);
+        if IsSome(try_payload) { return UnwrapOption(try_payload); }
         return "Unknown";
     }
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(

@@ -244,8 +244,8 @@ func SemanticAstGenericSpecializationFactsFromBody(
             continue;
         }
         let function_node: Option<Int> =
-            SemanticAstExpressionFunctionNodeForUse(
-                artifact, signatures, use_node_id
+            SemanticAstExpressionFunctionNodeAt(
+                expression_surfaces, signatures, surface_index
             );
         if !IsSome(function_node) {
             return SemanticAstGenericSpecializationError(

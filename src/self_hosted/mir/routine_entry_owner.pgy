@@ -3,7 +3,7 @@
 import "routine_lower_owner.pgy";
 
 func SelfMirRoutineFromInput(
-    input: SelfMirRoutineInput,
+    ref input: SelfMirRoutineInput,
     function_node_id: Int
 ) -> SelfMirRoutineBuild {
     let body_opt: Option<Int> = SelfMirFunctionBodyBlock(
@@ -50,9 +50,9 @@ func SelfMirRoutineFromInput(
         p = p + 1;
     }
     let root_break_blocks: Array<Int> = [];
-    let state: SelfMirRoutineState = SelfMirLowerBlockFromArtifact(
-        SelfMirRoutineState(input, build), UnwrapOption(body_opt),
+    build = SelfMirLowerBlockFromArtifact(
+        input, build, UnwrapOption(body_opt),
         root_break_blocks, -1
     );
-    return state.build;
+    return build;
 }
