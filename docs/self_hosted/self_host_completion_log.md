@@ -7929,6 +7929,12 @@ Released/default replacement remains 0%.
   sources, semantic C/LLVM verdict parity passed for 111 fixtures, and codegen
   C/LLVM run parity passed for 75 fixtures. Bootstrap reached
   `gen2 == gen3` at 32,977 generated C lines and retained full oracle breadth.
+- A native Linux WSL reproduction found that validating every String byte with
+  `CodegenCharAt` during repeated arena verification grew the parser producer
+  to 32,091,392 KiB RSS and caused hosted-runner shutdowns. The validator now
+  uses allocation-free `CodegenCharCodeAt`; the same fixed-point run completed
+  in 5:04 with 803,180 KiB peak RSS and `gen2 == gen3` at 32,977 lines. The
+  component contract rejects reintroducing the allocating scan.
 - This replaces one live literal argument bridge. Other literal-only bridges,
   namespace-qualified call classification, object-init internals, special
   unary forms, result-type classification, and initial arena construction

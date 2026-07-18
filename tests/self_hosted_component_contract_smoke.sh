@@ -3732,6 +3732,10 @@ require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpre
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionBoolLiteralPayloadReady("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionStringLiteralPayloadReady("
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "CodegenCharCodeAt(text, n, i)"
+reject_function_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionStringLiteralPayloadReady(" "CodegenCharAt("
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     'import "ast_text_scan_owner.pgy";'
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
     "CodegenCharAt(text, n - 1)"

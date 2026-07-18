@@ -77,15 +77,15 @@ func AstExpressionBoolLiteralPayloadReady(text: String) -> Bool {
 
 func AstExpressionStringLiteralPayloadReady(text: String) -> Bool {
     let n: Int = StringLength(text);
-    if n < 2 || CodegenCharAt(text, 0) != "\"" ||
-        CodegenCharAt(text, n - 1) != "\"" {
+    if n < 2 || CodegenCharCodeAt(text, n, 0) != 34 ||
+        CodegenCharCodeAt(text, n, n - 1) != 34 {
         return false;
     }
     let i: Int = 1;
     while i < n - 1 {
-        let c: String = CodegenCharAt(text, i);
-        if c == "\"" { return false; }
-        if c == "\\" {
+        let c: Int = CodegenCharCodeAt(text, n, i);
+        if c == 34 { return false; }
+        if c == 92 {
             i = i + 1;
             if i >= n - 1 { return false; }
         }
