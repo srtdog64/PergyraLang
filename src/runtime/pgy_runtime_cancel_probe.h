@@ -8,12 +8,15 @@
  * bitcode TU and BEFORE them in generated C, so no direct call
  * compiles in both. The parallel runtime installs its probe at every
  * task-creation path; a NULL probe means no cancellation source exists
- * yet and every wait behaves exactly as before. The hook is per-TU
- * state, matching the per-TU pool instances of each backend.
+ * yet and every wait behaves exactly as before. In C extern mode the hook
+ * must share the runtime object's state with generated channel waits; a
+ * private per-TU copy would make cancelled join-any losers park forever.
  */
 
 #ifndef PGY_RUNTIME_CANCEL_PROBE_H
 #define PGY_RUNTIME_CANCEL_PROBE_H
+
+#include "pgy_runtime_linkage.h"
 
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -23,21 +26,31 @@
  * common lock; a plain pointer would be a formal C11 data race the compiler
  * may miscompile at -O2 even where an aligned store is atomic in hardware
  * (docs/189 C13). release/acquire pairs the install with the reads. */
-static _Atomic(bool (*)(void)) g_pgy_cancel_probe;
+PGY_RT_GLOBAL _Atomic(bool (*)(void)) g_pgy_cancel_probe;
 
-static inline bool
+PGY_RT_DECL bool
 pgy_cancel_probe_cancelled(void)
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     bool (*probe)(void) = atomic_load_explicit(&g_pgy_cancel_probe,
                                                memory_order_acquire);
     return probe != NULL && probe();
 }
+#else
+;
+#endif
 
-static inline void
+PGY_RT_DECL void
 pgy_cancel_probe_install(bool (*probe)(void))
+
+#ifndef PGY_RUNTIME_DECLS_ONLY
 {
     atomic_store_explicit(&g_pgy_cancel_probe, probe,
                           memory_order_release);
 }
+#else
+;
+#endif
 
 #endif /* PGY_RUNTIME_CANCEL_PROBE_H */

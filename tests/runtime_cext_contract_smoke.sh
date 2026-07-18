@@ -102,4 +102,17 @@ reject_term "src/runtime/pgy_runtime_platform_io_core.h" \
 reject_term "src/runtime/pgy_runtime_platform_io_core.h" \
     "static _Thread_local char pgy_zone_authority_last_"
 
+# Channel waits execute in the generated TU while task creation installs the
+# cancellation hook in the runtime object. They must observe one shared probe.
+require_term "src/runtime/pgy_runtime_cancel_probe.h" \
+    '#include "pgy_runtime_linkage.h"'
+require_term "src/runtime/pgy_runtime_cancel_probe.h" \
+    "PGY_RT_GLOBAL _Atomic(bool (*)(void)) g_pgy_cancel_probe;"
+require_term "src/runtime/pgy_runtime_cancel_probe.h" \
+    "PGY_RT_DECL bool"
+require_term "src/runtime/pgy_runtime_cancel_probe.h" \
+    "PGY_RT_DECL void"
+reject_term "src/runtime/pgy_runtime_cancel_probe.h" \
+    "static _Atomic(bool (*)(void)) g_pgy_cancel_probe;"
+
 echo "[runtime-cext-contract] program generics stay local; stateful extern storage has one owner"
