@@ -10752,6 +10752,46 @@ C 백엔드를 처음 2-TU 세계로 바꾸며 미변환 능력/예산/취소 �
     C4(both-hang PASS, compare_backends.sh 는 BDFL 활성 레인이라 미접촉)·
     C5(asan 미실행프로그램)·C6(플랫폼 비대칭)·C7(게이트 grep 편중).
 
+#### WO-PAR-NOVEL — "우리 병렬이 진짜 새로운가" 조사 결과 (2026-07-19) — OPEN
+
+BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야"). 런타임 전수
+조사 + 측정 원장 대조. **답: 기법은 표준이고 몇 축은 표준 이하. 단 novel
+설계는 이미 있고 연결만 안 돼 있다.**
+
+- **표준 이하 축**: per-worker **뮤텍스 FIFO** 샤드(lock-free deque 아님) ·
+  도둑이 소유자와 **같은 끝(head)**에서 pop(Chase-Lev 지역성 포기) · 1개씩만
+  훔침(Go/Tokio는 절반) · 고정 오름차순 피해자(랜덤 아님, convoy 위험) ·
+  태스크당 malloc 2 + `pthread_mutex_init` + `pthread_cond_init`(free-list 無) ·
+  배치 enqueue 無 · 정적 `min(n, workers*4)` 청크(적응 분할 無).
+- **★측정 이력을 설명하는 발견**: `pgy_parallel.h:518-565` — **모든 spawn이
+  전역 `g_pgy_pool_lifecycle_mutex` 를 잡고 그 안에서 enqueue**. 즉 pop 쪽을
+  아무리 샤딩해도 **producer 가 전역 직렬화**된다. 원장의 "B2 샤드화는 fine 에
+  중립(단일큐 경합 가설 반증)"이 이걸로 설명됨 — 진범은 "스폰이 N번"보다
+  정확히는 **"스폰 N번이 전역 락을 N번"**.
+- **3대 자랑은 전부 표준**: help-first await(TBB/ForkJoin) · 보상 워커(Java
+  `ManagedBlocker`, 헤더가 출처 명시) · 분리 blocking 풀(Tokio `spawn_blocking`).
+- **★lane 증거층이 죽어 있음**: AIR 가 `ExecutionLaneFact` 를 계산하지만
+  **소비자는 evidence 해시 + JSON 덤프 + 테스트 2개뿐**. codegen 은 그 fact 를
+  버리고 구문 플래그(`ast_spawn_is_blocking`)로 재유도 → 런타임 도달 lane 은
+  `BLOCKING_POOL`/`LOCAL_ASYNC`/하드코딩 `WORKER_POOL` 셋뿐.
+  **`PINNED_ZONE`·`MOVABLE_SCHEDULER`·`REJECT` 는 도달 불가 죽은 분기**이고,
+  dispatcher 밖 유일한 lane 검사(`pgy_runtime_channel_status.h:96`)는 **항상-참
+  가드**. 현 3분할 = Tokio 의 spawn/spawn_blocking/async 와 기능 동일.
+  또한 `src/runtime/async/` 에 완결된 M:N fiber 스케줄러가 컴파일되지만
+  **호출자 0**.
+- **novel 의 소재는 실재**: `execution_lane.c:9-65` 의 분류 정책은 주류 런타임에
+  없는 주장(캡처 증거가 이동을 **금지**, 판정 불가 시 fail-closed 거절)을
+  인코딩. Rust `Send`/`Sync` 는 타입 속성이지 스케줄러 lane 배정이 아님.
+  지금은 "C 로 쓰인 설계 문서".
+- **권고 순서**: ① **baseline 회수 먼저** — 전역 lifecycle 뮤텍스를 enqueue
+  경로에서 제거 · 태스크 free-list + sync 지연초기화 · chunk fan-out 배치
+  enqueue(측정된 ~11µs/task 직격). ② **그 다음 evidence-directed scheduling** —
+  codegen 이 AIR lane fact 를 나르게 하고, index-disjoint 증명 시 steal 기계
+  생략한 정적 분할 / readonly 증명 시 동기화 생략 / PinnedZone 실제 고정.
+  **순서 중요**: ①을 안 하고 ②를 얹으면 전역 뮤텍스가 이득을 삼켜
+  "증거 스케줄링 무효"라는 **틀린 반증**이 나온다.
+- **미착수**(BDFL 판단 대기 — 동시성 코어 수술이라 범위 결정 필요).
+
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
 - **해제 근거**: docs/187 ★판정 C — ① 명시 시작(world-층 선언 + code-층
