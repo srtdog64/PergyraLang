@@ -97,6 +97,7 @@ path | primary_term | owner_id | relation
 <!-- BEGIN sot-derived-fact-registry -->
 ```text
 src/self_hosted/parser/expression_fact_owner.pgy | ParserExpressionFact | selfhost.expression_graph | local_view
+src/self_hosted/parser/expression_scalar_fact_owner.pgy | ParserExpressionScalarFactContractReady | selfhost.expression_graph | local_view
 src/self_hosted/mir/program_fact_owner.pgy | SelfMirProgramFacts | mir.execution_graph | projection
 src/self_hosted/mir/parallel_capture_fact_owner.pgy | SelfMirParallelCaptureRows | mir.execution_graph | projection
 src/self_hosted/mir/expression_graph_fact_owner.pgy | SelfMirExpressionGraphRows | mir.execution_graph | projection
