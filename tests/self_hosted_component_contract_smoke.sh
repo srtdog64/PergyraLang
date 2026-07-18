@@ -3872,7 +3872,9 @@ require_text "tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner
 require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
     "kinds[i] == AstExpressionNodeIntegerLiteral()"
 require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
-    "ArraySet(kinds, i, AstExpressionNodeLeaf());"
+    "ArraySet(kinds, i, replacement_kind);"
+require_text "src/self_hosted/tools/initializer_projection_probe/main.pgy" \
+    "replacement_kind = AstExpressionNodeStringLiteral();"
 require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
     "graph.arena.node_kinds[left_id] = AstExpressionNodeLeaf();"
 require_text "src/self_hosted/tools/aggregate_field_policy_probe/main.pgy" \
