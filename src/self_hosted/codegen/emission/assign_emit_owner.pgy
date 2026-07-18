@@ -91,6 +91,13 @@ func EmitAssign(
             option_expr.c_expr, ";"
         )));
     }
+    if StartsWith(expected_type, "Array<") {
+        return Concat(c_name, Concat(" = ", Concat(
+            RewriteExpectedValueWithSemanticGraph(
+                expr, expected_type, env, graph
+            ), ";"
+        )));
+    }
     if LookupKindType(env, expected_type, "s") == "struct" {
         return Concat(c_name, Concat(" = ", Concat(
             RewriteExpectedValueWithSemanticGraph(

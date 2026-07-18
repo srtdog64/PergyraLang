@@ -6,6 +6,23 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-19 - Assignment array literals consume graph and expected-type facts
+
+- `SemanticAstAssignmentTypeFacts` now checks array literals through the
+  parser-owned expression graph. The old text projection is statically
+  rejected in this owner; statement-return array inference remains a separate
+  bridge.
+- The first focused run then failed closed because `EmitAssign` received the
+  semantic expected type but did not use it for `Array<T>`. Assignment now uses
+  the same expected-type graph emitter already used by let and return paths.
+- Added `array_literal_assignment` as DRV-2 MIR fixture 36. C-built and
+  LLVM-built self-host drivers produced matching canonical MIR and emitted C,
+  and the generated program matched the native oracle output. Missing target
+  and value expression graphs remain rejected by the assignment graph gate.
+- This is one executable source-to-MIR-to-C replacement delta. It does not
+  close all collection typing, the statement-return projection bridge, or the
+  released compiler path.
+
 ## 2026-07-19 - Full self-source routine lowering is memory-bounded
 
 - The historical approximately 68 GB private-allocation probe was a real

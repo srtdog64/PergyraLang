@@ -16,6 +16,7 @@ import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
+import "ast_expression_graph_array_literal_owner.pgy";
 
 struct SemanticAstAssignmentTypeFacts {
     ok: Bool;
@@ -260,10 +261,10 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                     row_message = value_verdict.diagnostic_message;
                 } else {
                     if inferred == "Unknown" || inferred == "" {
-                        if SemanticProjectionArrayLiteralMatchesDeclaredType(
-                            assignments.value_texts[i], expected, constructors,
-                            names, types, modes,
-                            function_names, function_returns, function_params
+                        if SemanticExpressionGraphArrayLiteralMatchesDeclaredType(
+                            expression_surfaces.expression_graph,
+                            UnwrapOption(value_root), expected, constructors,
+                            names, types, function_names, function_returns
                         ) {
                             inferred = expected;
                         }

@@ -7,18 +7,26 @@ pgy_selfhost_verify_driver_rung2_assign_instruction_graph() {
     local self_mir_json="$4"
     local self_emitted_c="$5"
     local driver_bin="$6"
-    local lane missing_graph native_emitted_c
-    [[ "$base" == "array_index_assign" ]] || return 0
+    local lane missing_graph native_emitted_c target value
+    if [[ "$base" == "array_index_assign" ]]; then
+        target="nums[1]"
+        value="9"
+    elif [[ "$base" == "array_literal_assignment" ]]; then
+        target="nums"
+        value="[4, 5, 6]"
+    else
+        return 0
+    fi
 
     grep -Fq '"kind":"assign"' "$native_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend native residual assignment fact was lost" >&2
         exit 1
     }
-    grep -Fq '"expr0":"nums[1]","expr0_graph":{' "$native_mir_json" || {
+    grep -Fq "\"expr0\":\"$target\",\"expr0_graph\":{" "$native_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend native assignment target graph was lost" >&2
         exit 1
     }
-    grep -Fq '"expr1":"9","expr1_graph":{' "$native_mir_json" || {
+    grep -Fq "\"expr1\":\"$value\",\"expr1_graph\":{" "$native_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend native assignment value graph was lost" >&2
         exit 1
     }
@@ -26,11 +34,11 @@ pgy_selfhost_verify_driver_rung2_assign_instruction_graph() {
         echo "[self-host-parity:driver-rung2] $backend self assignment SSA definition was lost" >&2
         exit 1
     }
-    grep -Fq '"expr0":"9","expr0_graph":{' "$self_mir_json" || {
+    grep -Fq "\"expr0\":\"$value\",\"expr0_graph\":{" "$self_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend self assignment value graph was lost" >&2
         exit 1
     }
-    grep -Fq '"expr1":"nums[1]","expr1_graph":{' "$self_mir_json" || {
+    grep -Fq "\"expr1\":\"$target\",\"expr1_graph\":{" "$self_mir_json" || {
         echo "[self-host-parity:driver-rung2] $backend self assignment target graph was lost" >&2
         exit 1
     }

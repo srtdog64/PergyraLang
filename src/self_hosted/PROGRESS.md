@@ -1,5 +1,17 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: assignment array-literal typing now consumes the
+parser-owned expression graph through
+`SemanticExpressionGraphArrayLiteralMatchesDeclaredType`; the assignment type
+owner may no longer reparse the value text through the legacy projection
+helper. The self-host assignment emitter also consumes the existing semantic
+expected-type row for `Array<T>` instead of dropping the composite literal into
+the untyped expression path. `array_literal_assignment` is DRV-2 MIR fixture 36
+and passes the focused source-to-MIR-to-C producer/consumer comparison with
+both C-built and LLVM-built self-host drivers. This closes one assignment
+array-literal lane, not statement-return array projection or whole-driver
+substitution.
+
 2026-07-17 executable delta: scalar expression leaves now emit from the
 parser-owned graph plus canonical binding/enum rows. Bool, String, Int, Long,
 bound identifiers, and callable references bypass the legacy `RewriteTokens`

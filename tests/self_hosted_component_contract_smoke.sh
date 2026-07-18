@@ -2983,6 +2983,14 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticExpressionGraphArrayLiteralMatchesDeclaredType("
 reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticProjectionArrayLiteralMatchesDeclaredType("
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticExpressionGraphArrayLiteralMatchesDeclaredType("
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "SemanticProjectionArrayLiteralMatchesDeclaredType("
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    'StartsWith(expected_type, "Array<")'
+require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
+    "RewriteExpectedValueWithSemanticGraph("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "func SemanticAstAssignmentArrayElementType"
 require_file "src/self_hosted/semantic/projection_type_owner.pgy"
@@ -3010,8 +3018,6 @@ require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticAstEnumExpressionType("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
-    "SemanticProjectionArrayLiteralMatchesDeclaredType("
-require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticProjectionArrayLiteralMatchesDeclaredType("
 require_file "tests/portable_process_helpers.sh"
 require_text "tests/self_hosted/parity/selfcheck_sources.sh" 'source "$ROOT_DIR/tests/portable_process_helpers.sh"'
@@ -3182,16 +3188,21 @@ require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parit
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     's/"kind":"integer_literal","text":"41"/"kind":"string_literal"'
 require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
+require_file "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 35;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 36;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 35'
+    'mir_fixture_rows[@]}" -ne 36'
 require_file "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"'
 require_text "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh" \
     'pgy_selfhost_verify_driver_rung2_assign_instruction_graph()'
+require_text "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh" \
+    'base" == "array_literal_assignment"'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'inferred return drift was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
@@ -3358,9 +3369,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 35;"
+    "return 36;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 35'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 36'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
