@@ -38,6 +38,13 @@ void compiler_debug_llvm_host_stage(const char *stage);
 /* Runtime object cache (compiler_runtime_cache.c). Not gated on LLVM: the C
  * leg in extern mode (PGY_RUNTIME_DECLS_ONLY) links the runtime object too. */
 bool compiler_runtime_cache_is_fresh(const char *cache_obj_path);
+
+/* Build the runtime object through a per-process scratch path and publish it
+ * into the shared cache in one step, so concurrent builders never observe a
+ * missing or half-written object (docs/190 B2). Both legs must use these. */
+char *compiler_runtime_object_scratch_path(const char *final_path);
+bool compiler_publish_runtime_object(const char *tmp_path,
+                                     const char *final_path);
 char *compiler_runtime_prebuilt_object_path(PgyOptProfile opt_profile,
                                             bool uses_intent_observability);
 char *compiler_runtime_cache_object_path(PgyOptProfile opt_profile,

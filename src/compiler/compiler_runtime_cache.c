@@ -86,19 +86,25 @@ compiler_file_mtime(const char *path, time_t *mtime_out)
  * closed instead: any .h/.c under the runtime directory newer than the object
  * makes it stale, and an unreadable directory refuses freshness outright.
  *
- * Three further blind spots are closed here (docs/190 B6/B7):
+ * Two further blind spots are closed here (docs/190 B6/B7):
  *   - the scan RECURSES; the flat readdir never saw src/runtime/async/, whose
  *     scheduler/fiber sources the runtime TU includes, so editing them left the
  *     object "fresh";
- *   - each directory's own mtime is a dependency, which is what catches a
- *     DELETED source: removing a file leaves no surviving file newer than the
- *     object, but it does bump the containing directory's mtime;
  *   - the comparison is `<=`, not `<`. st_mtime has 1-second granularity, so an
  *     edit landing in the same second the object was written otherwise reads as
  *     fresh -- a wide window when sources and the object sit on different
  *     filesystems (E:\ source tree vs C:\...\Temp object). At worst `<=` costs
  *     one redundant rebuild; `<` costs a silently stale link.
  * The depth cap is a cheap guard against a symlinked cycle under the tree.
+ *
+ * A DELETED source is still not detected: removing a file leaves no surviving
+ * file newer than the object. Using each directory's own mtime as a dependency
+ * looks like the fix and was tried, but it over-invalidates badly -- the build
+ * writes generated artifacts (pgy_runtime_lib.bc) INTO this directory, so every
+ * .bc regeneration marked the object stale, and the resulting rebuild storm
+ * made concurrent builders collide. Detecting deletion needs a recorded source
+ * inventory (a sidecar next to the object), not a directory timestamp; until
+ * that exists this stays a known, low-frequency hole.
  */
 #define PGY_RUNTIME_SCAN_MAX_DEPTH 8
 
@@ -108,14 +114,9 @@ compiler_runtime_dir_has_newer_source_at(const char *dir_path, time_t obj_mtime,
 {
     DIR *dir;
     struct dirent *entry;
-    time_t dir_mtime;
 
     if (depth > PGY_RUNTIME_SCAN_MAX_DEPTH)
         return true; /* fail closed: refuse to prove freshness past the cap */
-
-    /* A create/delete/rename in this directory bumps its own mtime. */
-    if (!compiler_file_mtime(dir_path, &dir_mtime) || obj_mtime <= dir_mtime)
-        return true;
 
     dir = opendir(dir_path);
     if (dir == NULL)
@@ -272,7 +273,22 @@ compiler_cext_object_path(PgyOptProfile opt_profile,
  * so a concurrent build that already passed the freshness check fails to link.
  * MoveFileEx(MOVEFILE_REPLACE_EXISTING) is the Windows one-step replace.
  */
-static bool
+char *
+compiler_runtime_object_scratch_path(const char *final_path)
+{
+    char buf[1024];
+    int written;
+
+    if (final_path == NULL)
+        return NULL;
+    written = snprintf(buf, sizeof(buf), "%s.tmp%ld", final_path,
+                       (long)PGY_GETPID());
+    if (written < 0 || (size_t)written >= sizeof(buf))
+        return NULL;
+    return pergyra_strdup(buf);
+}
+
+bool
 compiler_publish_runtime_object(const char *tmp_path, const char *final_path)
 {
     time_t published;

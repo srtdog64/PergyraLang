@@ -204,6 +204,16 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Unsafe characters in file path");
     }
 
+    /* Build through a per-process scratch path and publish in one step, so
+     * concurrent builders never link a half-written object (docs/190 B2). The
+     * C leg already does this; without it here, any burst of parallel LLVM
+     * builds that all see the cache stale writes the same path at once. */
+    char *runtime_tmp_path = compiler_runtime_object_scratch_path(runtime_obj_path);
+    if (runtime_tmp_path == NULL) {
+        free(runtime_obj_path);
+        return compiler_error("Out of memory");
+    }
+
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
     const char *intent_observability_flag =
         uses_intent_observability
@@ -255,7 +265,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-c";
     compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
     compile_runtime_argv[compile_runtime_argc++] = "-o";
-    compile_runtime_argv[compile_runtime_argc++] = runtime_obj_path;
+    compile_runtime_argv[compile_runtime_argc++] = runtime_tmp_path;
     compile_runtime_argv[compile_runtime_argc] = NULL;
 #else
     const char *compile_runtime_argv[22];
@@ -287,7 +297,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-c";
     compile_runtime_argv[compile_runtime_argc++] = PGY_RUNTIME_LIB_C;
     compile_runtime_argv[compile_runtime_argc++] = "-o";
-    compile_runtime_argv[compile_runtime_argc++] = runtime_obj_path;
+    compile_runtime_argv[compile_runtime_argc++] = runtime_tmp_path;
     compile_runtime_argv[compile_runtime_argc] = NULL;
 #endif
     phase_start = compiler_now_seconds();
@@ -298,6 +308,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         result->error_message = pergyra_strdup(
             "Prebuilt LLVM runtime object is stale or missing");
         result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
+        free(runtime_tmp_path);
         free(runtime_obj_path);
         return result;
     }
@@ -311,11 +322,26 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
             free(result->error_message);
             result->error_message = pergyra_strdup("LLVM runtime compilation failed");
             result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
-            remove(runtime_obj_path);
+            remove(runtime_tmp_path);
+            free(runtime_tmp_path);
+            free(runtime_obj_path);
+            return result;
+        }
+        if (!compiler_publish_runtime_object(runtime_tmp_path, runtime_obj_path)) {
+            result->success = false;
+            result->exit_code = 1;
+            free(result->error_message);
+            result->error_message = pergyra_strdup(
+                "LLVM runtime object could not be published into the cache");
+            result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
+            remove(runtime_tmp_path);
+            free(runtime_tmp_path);
             free(runtime_obj_path);
             return result;
         }
     }
+    free(runtime_tmp_path);
+    runtime_tmp_path = NULL;
     result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
     compiler_debug_llvm_host_stage("link_begin");
