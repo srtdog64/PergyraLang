@@ -18,47 +18,47 @@ typedef struct { \
     }; \
 } PgyResult_##SuffixName; \
 \
-static inline PgyResult_##SuffixName \
+PGY_RT_PROGRAM_DECL PgyResult_##SuffixName \
 pgy_result_ok_##SuffixName(CType value) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     PgyResult_##SuffixName r; \
     r.tag = PgyResultOk; \
     r.ok = value; \
     return r; \
-} \
+}) \
 \
-static inline PgyResult_##SuffixName \
+PGY_RT_PROGRAM_DECL PgyResult_##SuffixName \
 pgy_result_err_##SuffixName(ErrType err) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     PgyResult_##SuffixName r; \
     r.tag = PgyResultErr; \
     r.err = err; \
     return r; \
-} \
+}) \
 \
-static inline bool \
+PGY_RT_PROGRAM_DECL bool \
 pgy_result_is_ok_##SuffixName(PgyResult_##SuffixName* r) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     return r->tag == PgyResultOk; \
-} \
+}) \
 \
-static inline CType \
+PGY_RT_PROGRAM_DECL CType \
 pgy_result_unwrap_##SuffixName(PgyResult_##SuffixName* r) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     if (r->tag != PgyResultOk) { \
         PGY_PANIC(PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR); \
     } \
     return r->ok; \
-} \
+}) \
 \
-static inline ErrType \
+PGY_RT_PROGRAM_DECL ErrType \
 pgy_result_unwrap_err_##SuffixName(PgyResult_##SuffixName* r) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     if (r->tag != PgyResultErr) { \
         PGY_PANIC("Result unwrap_err on Ok value"); \
     } \
     return r->err; \
-}
+})
 
 /* Result types for common error types */
 typedef const char* PgyError;
@@ -136,37 +136,37 @@ typedef struct { \
     CType value; \
 } PgyOption_##SuffixName; \
 \
-static inline PgyOption_##SuffixName \
+PGY_RT_PROGRAM_DECL PgyOption_##SuffixName \
 pgy_option_some_##SuffixName(CType value) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     PgyOption_##SuffixName o; \
     o.tag = PgyOptionSome; \
     o.value = value; \
     return o; \
-} \
+}) \
 \
-static inline PgyOption_##SuffixName \
+PGY_RT_PROGRAM_DECL PgyOption_##SuffixName \
 pgy_option_none_##SuffixName(void) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     PgyOption_##SuffixName o; \
     o.tag = PgyOptionNone; \
     return o; \
-} \
+}) \
 \
-static inline bool \
+PGY_RT_PROGRAM_DECL bool \
 pgy_option_is_some_##SuffixName(PgyOption_##SuffixName* o) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     return o->tag == PgyOptionSome; \
-} \
+}) \
 \
-static inline CType \
+PGY_RT_PROGRAM_DECL CType \
 pgy_option_unwrap_##SuffixName(PgyOption_##SuffixName* o) \
-{ \
+PGY_RT_PROGRAM_BODY({ \
     if (o->tag != PgyOptionSome) { \
         PGY_PANIC(PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE); \
     } \
     return o->value; \
-}
+})
 
 PGY_OPTION_DEFINE(Int, int32_t)
 PGY_OPTION_DEFINE(Float, float)

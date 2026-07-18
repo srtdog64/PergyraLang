@@ -17,8 +17,8 @@ typedef struct \
     size_t   capacity; \
 } PgyList_##SuffixName; \
 \
-static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
-{ \
+PGY_RT_PROGRAM_DECL PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
+PGY_RT_PROGRAM_BODY({ \
     PgyList_##SuffixName l; \
     l.capacity = 16; \
     l.count = 0; \
@@ -34,10 +34,10 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
         pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation failed"); \
     } \
     return l; \
-} \
+}) \
 \
-static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) { \
         pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "list is not initialized"); \
         return; \
@@ -68,31 +68,31 @@ static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val
         l->capacity = new_capacity; \
     } \
     l->data[l->count++] = val; \
-} \
+}) \
 \
-static inline CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
-{ \
+PGY_RT_PROGRAM_DECL CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds"); \
     return l->data[index]; \
-} \
+}) \
 \
-static inline void pgy_list_set_##SuffixName(PgyList_##SuffixName *l, int32_t index, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_list_set_##SuffixName(PgyList_##SuffixName *l, int32_t index, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list set index out of bounds"); \
     l->data[index] = val; \
-} \
+}) \
 \
-static inline int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) \
-{ return PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType) ? (int32_t)l->count : 0; } \
+PGY_RT_PROGRAM_DECL int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) \
+PGY_RT_PROGRAM_BODY({ return PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType) ? (int32_t)l->count : 0; }) \
 \
-static inline void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
@@ -100,6 +100,6 @@ static inline void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t
     for (size_t i = (size_t)index; i < l->count - 1; i++) \
         l->data[i] = l->data[i + 1]; \
     l->count--; \
-}
+})
 
 #endif /* PGY_RUNTIME_LIST_GENERIC_INLINE_H */

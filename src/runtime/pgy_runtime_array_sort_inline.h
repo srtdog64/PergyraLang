@@ -73,8 +73,8 @@
 /* pgy_array_sort_T: hybrid sort using AlphaDev kernels for small sizes,
  * falling back to stdlib qsort for larger arrays. */
 #define PGY_ARRAY_SORT_DEFINE(SuffixName, CType, CmpFn)                     \
-static inline void pgy_array_sort_##SuffixName(CType *arr, size_t n)         \
-{                                                                             \
+PGY_RT_DECL void pgy_array_sort_##SuffixName(CType *arr, size_t n)         \
+PGY_RT_MACRO_BODY({                                                                             \
     if (n <= 1) return;                                                       \
     if (n == 2) { PGY_SORT2(arr, 0, 1); return; }                           \
     if (n == 3) { PGY_SORT3(arr, 0, 1, 2); return; }                        \
@@ -83,25 +83,25 @@ static inline void pgy_array_sort_##SuffixName(CType *arr, size_t n)         \
     /* For n > 5: use introsort-like strategy with AlphaDev base cases */     \
     /* Partition step + recurse, using sort5 as base case at depth limit */   \
     qsort(arr, n, sizeof(CType), CmpFn);                                    \
-}
+})
 
 /* qsort comparison helpers + AlphaDev sort instantiations below */
-static inline int pgy_cmp_Int(const void *a, const void *b)
-{ return (*(const int32_t *)a > *(const int32_t *)b)
-       - (*(const int32_t *)a < *(const int32_t *)b); }
-static inline int pgy_cmp_Long(const void *a, const void *b)
-{ return (*(const int64_t *)a > *(const int64_t *)b)
-       - (*(const int64_t *)a < *(const int64_t *)b); }
-static inline int pgy_cmp_Float(const void *a, const void *b)
-{ float fa = *(const float *)a, fb = *(const float *)b;
-  return (fa > fb) - (fa < fb); }
-static inline int pgy_cmp_Double(const void *a, const void *b)
-{ double da = *(const double *)a, db = *(const double *)b;
-  return (da > db) - (da < db); }
-static inline int pgy_cmp_String(const void *a, const void *b)
-{ return strcmp(*(const char *const *)a, *(const char *const *)b); }
-static inline int pgy_cmp_Bool(const void *a, const void *b)
-{ return (int)(*(const bool *)a) - (int)(*(const bool *)b); }
+PGY_RT_DECL int pgy_cmp_Int(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ return (*(const int32_t *)a > *(const int32_t *)b)
+       - (*(const int32_t *)a < *(const int32_t *)b); })
+PGY_RT_DECL int pgy_cmp_Long(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ return (*(const int64_t *)a > *(const int64_t *)b)
+       - (*(const int64_t *)a < *(const int64_t *)b); })
+PGY_RT_DECL int pgy_cmp_Float(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ float fa = *(const float *)a, fb = *(const float *)b;
+  return (fa > fb) - (fa < fb); })
+PGY_RT_DECL int pgy_cmp_Double(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ double da = *(const double *)a, db = *(const double *)b;
+  return (da > db) - (da < db); })
+PGY_RT_DECL int pgy_cmp_String(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ return strcmp(*(const char *const *)a, *(const char *const *)b); })
+PGY_RT_DECL int pgy_cmp_Bool(const void *a, const void *b)
+PGY_RT_MACRO_BODY({ return (int)(*(const bool *)a) - (int)(*(const bool *)b); })
 
 /* AlphaDev sort instantiations (after cmp helpers are defined) */
 PGY_ARRAY_SORT_DEFINE(Int,    int32_t, pgy_cmp_Int)
@@ -110,9 +110,9 @@ PGY_ARRAY_SORT_DEFINE(Float,  float,   pgy_cmp_Float)
 PGY_ARRAY_SORT_DEFINE(Double, double,  pgy_cmp_Double)
 PGY_ARRAY_SORT_DEFINE(Bool,   bool,    pgy_cmp_Bool)
 /* String sort uses qsort only (pointer comparison != strcmp) */
-static inline void pgy_array_sort_String(char **arr, size_t n) {
+PGY_RT_DECL void pgy_array_sort_String(char **arr, size_t n) PGY_RT_MACRO_BODY({
     if (n <= 1) return;
     qsort(arr, n, sizeof(char *), pgy_cmp_String);
-}
+})
 
 #endif /* PGY_RUNTIME_ARRAY_SORT_INLINE_H */

@@ -100,8 +100,8 @@ typedef struct \
     size_t    capacity; \
 } PgyHashMap_##SuffixName; \
 \
-static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
-{ \
+PGY_RT_PROGRAM_DECL PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
+PGY_RT_PROGRAM_BODY({ \
     PgyHashMap_##SuffixName m; \
     m.capacity = PGY_HASHMAP_INIT_CAP; \
     m.count = 0; \
@@ -121,10 +121,10 @@ static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
         pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation failed"); \
     } \
     return m; \
-} \
+}) \
 \
-static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
+PGY_RT_PROGRAM_BODY({ \
     size_t old_cap = m->capacity; \
     char **old_keys = m->keys; \
     CType *old_vals = m->values; \
@@ -170,10 +170,10 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
         } \
     } \
     free(old_keys); free(old_vals); free(old_occ); \
-} \
+}) \
 \
-static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { \
         pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
         return; \
@@ -209,10 +209,10 @@ static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const ch
     m->values[h] = val; \
     m->occupied[h] = PGY_HASHMAP_LIVE; \
     m->count++; \
-} \
+}) \
 \
-static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
-{ \
+PGY_RT_PROGRAM_DECL CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map"); \
     if (key == NULL) \
@@ -229,10 +229,10 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
     } \
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
     { CType zero_value; memset(&zero_value, 0, sizeof(zero_value)); return zero_value; } \
-} \
+}) \
 \
-static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
-{ \
+PGY_RT_PROGRAM_DECL bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) return false; \
     if (key == NULL) return false; \
     if (m->count == 0) return false; \
@@ -245,10 +245,10 @@ static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const ch
         probes++; \
     } \
     return false; \
-} \
+}) \
 \
-static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map"); \
     if (key == NULL) \
@@ -270,17 +270,17 @@ static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const
         probes++; \
     } \
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map remove key not found"); \
-} \
+}) \
 \
-static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
-{ \
+PGY_RT_PROGRAM_DECL int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
+PGY_RT_PROGRAM_BODY({ \
     if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
         return 0; \
     return (int32_t)m->count; \
-} \
+}) \
 \
-static inline void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_i32_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_set_i32_" #SuffixName, "key formatting failed"); \
@@ -288,10 +288,10 @@ static inline void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int3
     } \
     pgy_map_set_##SuffixName(m, key_str, val); \
     free(key_str); \
-} \
+}) \
 \
-static inline CType pgy_map_get_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
-{ \
+PGY_RT_PROGRAM_DECL CType pgy_map_get_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+PGY_RT_PROGRAM_BODY({ \
     CType value; \
     char *key_str = pgy_map_format_i32_key(key); \
     memset(&value, 0, sizeof(CType)); \
@@ -302,10 +302,10 @@ static inline CType pgy_map_get_i32_##SuffixName(PgyHashMap_##SuffixName *m, int
     value = pgy_map_get_##SuffixName(m, key_str); \
     free(key_str); \
     return value; \
-} \
+}) \
 \
-static inline bool pgy_map_has_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
-{ \
+PGY_RT_PROGRAM_DECL bool pgy_map_has_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+PGY_RT_PROGRAM_BODY({ \
     bool result; \
     char *key_str = pgy_map_format_i32_key(key); \
     if (key_str == NULL) { \
@@ -315,10 +315,10 @@ static inline bool pgy_map_has_i32_##SuffixName(PgyHashMap_##SuffixName *m, int3
     result = pgy_map_has_##SuffixName(m, key_str); \
     free(key_str); \
     return result; \
-} \
+}) \
 \
-static inline void pgy_map_remove_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_remove_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_i32_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_remove_i32_" #SuffixName, "key formatting failed"); \
@@ -326,10 +326,10 @@ static inline void pgy_map_remove_i32_##SuffixName(PgyHashMap_##SuffixName *m, i
     } \
     pgy_map_remove_##SuffixName(m, key_str); \
     free(key_str); \
-} \
+}) \
 \
-static inline void pgy_map_set_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_set_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_i64_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_set_i64_" #SuffixName, "key formatting failed"); \
@@ -337,10 +337,10 @@ static inline void pgy_map_set_i64_##SuffixName(PgyHashMap_##SuffixName *m, int6
     } \
     pgy_map_set_##SuffixName(m, key_str, val); \
     free(key_str); \
-} \
+}) \
 \
-static inline CType pgy_map_get_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
-{ \
+PGY_RT_PROGRAM_DECL CType pgy_map_get_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+PGY_RT_PROGRAM_BODY({ \
     CType value; \
     char *key_str = pgy_map_format_i64_key(key); \
     memset(&value, 0, sizeof(CType)); \
@@ -351,10 +351,10 @@ static inline CType pgy_map_get_i64_##SuffixName(PgyHashMap_##SuffixName *m, int
     value = pgy_map_get_##SuffixName(m, key_str); \
     free(key_str); \
     return value; \
-} \
+}) \
 \
-static inline bool pgy_map_has_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
-{ \
+PGY_RT_PROGRAM_DECL bool pgy_map_has_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+PGY_RT_PROGRAM_BODY({ \
     bool result = false; \
     char *key_str = pgy_map_format_i64_key(key); \
     if (key_str == NULL) { \
@@ -364,10 +364,10 @@ static inline bool pgy_map_has_i64_##SuffixName(PgyHashMap_##SuffixName *m, int6
     result = pgy_map_has_##SuffixName(m, key_str); \
     free(key_str); \
     return result; \
-} \
+}) \
 \
-static inline void pgy_map_remove_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_remove_i64_##SuffixName(PgyHashMap_##SuffixName *m, int64_t key) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_i64_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_remove_i64_" #SuffixName, "key formatting failed"); \
@@ -375,10 +375,10 @@ static inline void pgy_map_remove_i64_##SuffixName(PgyHashMap_##SuffixName *m, i
     } \
     pgy_map_remove_##SuffixName(m, key_str); \
     free(key_str); \
-} \
+}) \
 \
-static inline void pgy_map_set_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key, CType val) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_set_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key, CType val) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_bool_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_set_bool_" #SuffixName, "key formatting failed"); \
@@ -386,10 +386,10 @@ static inline void pgy_map_set_bool_##SuffixName(PgyHashMap_##SuffixName *m, boo
     } \
     pgy_map_set_##SuffixName(m, key_str, val); \
     free(key_str); \
-} \
+}) \
 \
-static inline CType pgy_map_get_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
-{ \
+PGY_RT_PROGRAM_DECL CType pgy_map_get_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+PGY_RT_PROGRAM_BODY({ \
     CType value; \
     char *key_str = pgy_map_format_bool_key(key); \
     memset(&value, 0, sizeof(CType)); \
@@ -400,10 +400,10 @@ static inline CType pgy_map_get_bool_##SuffixName(PgyHashMap_##SuffixName *m, bo
     value = pgy_map_get_##SuffixName(m, key_str); \
     free(key_str); \
     return value; \
-} \
+}) \
 \
-static inline bool pgy_map_has_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
-{ \
+PGY_RT_PROGRAM_DECL bool pgy_map_has_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+PGY_RT_PROGRAM_BODY({ \
     bool result = false; \
     char *key_str = pgy_map_format_bool_key(key); \
     if (key_str == NULL) { \
@@ -413,10 +413,10 @@ static inline bool pgy_map_has_bool_##SuffixName(PgyHashMap_##SuffixName *m, boo
     result = pgy_map_has_##SuffixName(m, key_str); \
     free(key_str); \
     return result; \
-} \
+}) \
 \
-static inline void pgy_map_remove_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
-{ \
+PGY_RT_PROGRAM_DECL void pgy_map_remove_bool_##SuffixName(PgyHashMap_##SuffixName *m, bool key) \
+PGY_RT_PROGRAM_BODY({ \
     char *key_str = pgy_map_format_bool_key(key); \
     if (key_str == NULL) { \
         pgy_runtime_warn_invalid_collection("map_remove_bool_" #SuffixName, "key formatting failed"); \
@@ -424,4 +424,4 @@ static inline void pgy_map_remove_bool_##SuffixName(PgyHashMap_##SuffixName *m, 
     } \
     pgy_map_remove_##SuffixName(m, key_str); \
     free(key_str); \
-}
+})
