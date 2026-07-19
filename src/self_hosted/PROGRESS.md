@@ -1,5 +1,31 @@
 # Self-Host Progress
 
+2026-07-20 exhaustive-parity SoT closure: the assignment projection probe no
+longer passes parser-shaped call graphs directly to codegen. Its positive
+`Some`/`None` expressions now consume builtin callable identity from
+`SemanticExpressionGraphCallTargetsFromSignatures`, matching the compiler
+pipeline owner. A dedicated missing-call-target mode bypasses that owner and
+must fail in the final semantic call emitter. This closes the probe's direct-
+call identity seam; the broader expression-surface registry row remains a
+bridge.
+
+2026-07-20 bootstrap corpus gate: chunk policy, lane policy, and compiler
+reachability are now explicit integrated-driver corpus rows. The current
+C-built integrated owner rejects all three with controlled `CODEGEN ERROR`, so
+their initial status is `out_of_subset`; the Pergyra-built driver gate rejects
+both regression and unrecorded promotion. A stale cross-platform seed must be
+runnable on the current host before the driver consumes it. Full local seed
+regeneration was stopped when the existing codegen path reached 7.2 GB RSS
+(about 10 GB private bytes), so self-built corpus execution remains CI/manual
+integration evidence rather than a focused-gate claim.
+The first isolated retry exposed a second path owner: the executable used the
+override directory while AST, component, tool, MIR, and fuzz paths still named
+the shared cache. `B_REL` now derives every such child path from the selected
+build directory; the policy corpus has its own output-directory override; and
+the component contract rejects the old hardcoded AST path. That retry was
+stopped at 8.8 GB RSS / 12.2 GB private bytes; isolation is closed, but codegen
+string amplification remains measured performance debt.
+
 2026-07-20 executable delta: `else_if_chain` is DRV-2 MIR fixture 77.
 The Pergyra producer carries all three nested branch conditions as distinct
 typed expression graphs, and the hard consumer emits the chain only from those

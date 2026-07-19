@@ -20,14 +20,12 @@
 # built tool for a sample of committed fixtures.
 
 set -euo pipefail
-
 if ! command -v dirname >/dev/null 2>&1 \
     || ! command -v tr >/dev/null 2>&1 \
     || ! command -v pwd >/dev/null 2>&1; then
     PATH="/usr/bin:/bin:$PATH"
     export PATH
 fi
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
@@ -57,6 +55,7 @@ fi
 # Overridable so two sessions (or a validation run) never share one artifact
 # cache -- todays lesson: a concurrent run mid-rebuild poisons its sibling.
 B="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
+B_REL="$(pgy_selfhost_path_relative_to_root "$B")"
 HARNESS_PATHS_FILE="$B/codegen_bootstrap_paths.txt"
 HARNESS_COMPONENTS_FILE="$B/codegen_bootstrap_components.txt"
 HARNESS_TOOLS_FILE="$B/codegen_bootstrap_tools.txt"
@@ -77,7 +76,6 @@ BOOTSTRAP_COMPONENT_ROWS=()
 BOOTSTRAP_TOOL_ROWS=()
 BOOTSTRAP_SAMPLE_ROWS=()
 BOOTSTRAP_MIR_FIXTURES=()
-
 pgy_selfhost_read_test_harness_manifest \
     "self-host-bootstrap" \
     "$B" \
@@ -394,7 +392,7 @@ echo "[self-host-bootstrap] building oracle tool (gen0)..."
 compile_parser_ast_producer
 
 # main.pgy's own AST (repo-relative path so the native tool resolves it from cwd)
-AST_REL=".tmp/self_hosted/codegen/bootstrap/main_ast.txt"
+AST_REL="$B_REL/main_ast.txt"
 emit_self_parser_ast "$TOOL_SOURCE" "$AST_REL"
 
 emit "$B/gen0.exe" "$B/gen1.c"
@@ -455,7 +453,7 @@ for row in "${BOOTSTRAP_COMPONENT_ROWS[@]}"; do
     fi
     csrc="$ROOT_DIR/$rel"
     [[ -f "$csrc" ]] || continue
-    crel=".tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt"
+    crel="$B_REL/${comp}_ast.txt"
     emit_self_parser_ast "$csrc" "$crel"
     run_native_to_file "${comp}_via_codegen" "$B/gen2.exe" "$B/${comp}_via_codegen.c" "$crel"
     if grep -q '^CODEGEN ERROR' "$B/${comp}_via_codegen.c"; then
@@ -491,7 +489,7 @@ for row in "${BOOTSTRAP_TOOL_ROWS[@]}"; do
     TOOL_NAMES+=("$name")
     tsrc="$ROOT_DIR/$rel"
     [[ -f "$tsrc" ]] || continue
-    trel=".tmp/self_hosted/codegen/bootstrap/tool_${name}_ast.txt"
+    trel="$B_REL/tool_${name}_ast.txt"
     emit_self_parser_ast "$tsrc" "$trel"
     run_native_to_file "tool_${name}_emit" "$B/gen2.exe" "$B/tool_${name}.c" "$trel"
     if grep -q '^CODEGEN ERROR' "$B/tool_${name}.c"; then
@@ -542,7 +540,7 @@ if [[ -f "$MIR_LOWER_SOURCE" ]]; then
     (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$MIR_LOWER_SOURCE")" --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$B/mir_lower_oracle.exe")" >/dev/null 2>&1)
     for mir_base in "${BOOTSTRAP_MIR_FIXTURES[@]}"; do
-        mir_json_rel=".tmp/self_hosted/codegen/bootstrap/mir_${mir_base}.json"
+        mir_json_rel="$B_REL/mir_${mir_base}.json"
         (cd "$ROOT_DIR" && "$PGY" --mir-json \
             "$(pgy_path_for_compiler "$PGY" "$MIR_FIXTURE_DIR/${mir_base}.pgy")" \
             2>/dev/null | tr -d '\r' > "$mir_json_rel")
@@ -561,7 +559,7 @@ fi
 # deterministic corpus from argv. A Pergyra-built codegen (gen2) must compile it
 # into a binary that emits the same stdout and generated files as the C oracle.
 if [[ -f "$FUZZ_SOURCE" ]]; then
-    fuzz_ast_rel=".tmp/self_hosted/codegen/bootstrap/fuzz_generator_ast.txt"
+    fuzz_ast_rel="$B_REL/fuzz_generator_ast.txt"
     emit_self_parser_ast "$FUZZ_SOURCE" "$fuzz_ast_rel"
     run_native_to_file "fuzz_generator_emit" "$B/gen2.exe" "$B/fuzz_generator_via_codegen.c" "$fuzz_ast_rel"
     if grep -q '^CODEGEN ERROR' "$B/fuzz_generator_via_codegen.c"; then
@@ -578,8 +576,8 @@ if [[ -f "$FUZZ_SOURCE" ]]; then
         -o "$(pgy_path_for_compiler "$PGY" "$B/fuzz_generator_oracle.exe")" >/dev/null 2>&1)
     rm -rf "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"
     mkdir -p "$B/fuzz_codegen_corpus" "$B/fuzz_oracle_corpus"
-    fuzz_via="$(run_native_stdout "fuzz_generator_self_run" "$B/fuzz_generator_self.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_codegen_corpus")"
-    fuzz_orc="$(run_native_stdout "fuzz_generator_oracle_run" "$B/fuzz_generator_oracle.exe" 1001 8 ".tmp/self_hosted/codegen/bootstrap/fuzz_oracle_corpus")"
+    fuzz_via="$(run_native_stdout "fuzz_generator_self_run" "$B/fuzz_generator_self.exe" 1001 8 "$B_REL/fuzz_codegen_corpus")"
+    fuzz_orc="$(run_native_stdout "fuzz_generator_oracle_run" "$B/fuzz_generator_oracle.exe" 1001 8 "$B_REL/fuzz_oracle_corpus")"
     if [[ "$fuzz_via" != "$fuzz_orc" ]]; then
         echo "[self-host-bootstrap] fuzz generator: codegen-built stdout differs from oracle-built" >&2
         exit 1

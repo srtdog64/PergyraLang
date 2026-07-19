@@ -8485,7 +8485,11 @@ require_text "src/self_hosted/OWNERS.md" \
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'import "../../codegen/emission/assign_emit_owner.pgy";'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
-    'ProbeOptionAssignment("a", "Some(7)", "Option<Int>")'
+    'import "../../semantic/ast_expression_call_target_capture_owner.pgy";'
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'SemanticExpressionGraphCallTargetsFromSignatures('
+require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
+    'args[0] == "--missing-call-target"'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
     'ProbeIndexedAssignment("Array<Int>")'
 require_text "src/self_hosted/tools/assignment_projection_probe/main.pgy" \
@@ -8495,7 +8499,9 @@ require_max_lines "tests/self_hosted/parity/assignment_projection_probe_parity.s
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'pgy_selfhost_read_test_harness_manifest'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
-    'run_missing_type_negative "$backend" "missing-target-type"'
+    'run_missing_fact_negative "$backend" "missing-target-type"'
+require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
+    'run_missing_fact_negative "$backend" "missing-call-target"'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
     'assert_llvm_leg_with_artifact_owner'
 require_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
@@ -8505,6 +8511,25 @@ reject_text "tests/self_hosted/parity/assignment_projection_probe_parity.sh" \
 require_make_target_text \
     "self-host-codegen-assignment-projection-parity-test-smoke" \
     "tests/self_hosted/parity/assignment_projection_probe_parity.sh"
+require_file "tests/selfhost_bootstrap_policy_corpus_smoke.sh"
+require_max_lines "tests/selfhost_bootstrap_policy_corpus_smoke.sh" 200
+require_make_target_text \
+    "self-host-bootstrap-policy-corpus-test-smoke" \
+    "tests/selfhost_bootstrap_policy_corpus_smoke.sh"
+require_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    'B_REL="$(pgy_selfhost_path_relative_to_root "$B")"'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    '.tmp/self_hosted/codegen/bootstrap/main_ast.txt'
+reject_text "tests/self_hosted/parity/codegen_bootstrap.sh" \
+    '.tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt'
+require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    "controlled_refusal"
+require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    'PGY_SELFHOST_POLICY_CORPUS_BUILD_DIR'
+require_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    "bootstrap refusal was not a controlled CODEGEN ERROR"
+reject_text "tests/selfhost_bootstrap_policy_corpus_smoke.sh" \
+    "__CHUNK_STATUS__"
 require_max_lines "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" 599
 require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "target_type_names: Array<String>;"

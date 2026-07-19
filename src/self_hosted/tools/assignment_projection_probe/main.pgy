@@ -1,6 +1,7 @@
 // Focused executable proof for semantic-owned assignment projections.
 
 import "../../codegen/emission/assign_emit_owner.pgy";
+import "../../semantic/ast_expression_call_target_capture_owner.pgy";
 
 func ProbeAssignmentFacts(
     target: String,
@@ -16,7 +17,10 @@ func ProbeAssignmentFacts(
     );
 }
 
-func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
+func ProbeExpressionGraph(
+    expression: String,
+    carry_call_targets: Bool
+) -> SemanticExpressionGraphView {
     let node_kinds: Array<Int> = [];
     let node_texts: Array<String> = [];
     let left_children: Array<Int> = [];
@@ -34,22 +38,41 @@ func ProbeExpressionGraph(expression: String) -> SemanticExpressionGraphView {
         node_kinds, node_texts, left_children, right_children,
         call_target_kinds, call_target_names
     );
-    let facts: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
+    let source: SemanticExpressionGraphFacts = SemanticExpressionGraphFacts(
         true, [built.root_id], [true], arena
     );
+    let facts: SemanticExpressionGraphFacts = source;
+    if carry_call_targets {
+        let artifact: AstTreeArtifact = AstTreeArtifactFromText("Program:\n");
+        let signatures: SemanticAstFunctionSignatureFacts =
+            SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+        let constructors: SemanticAstNominalConstructorFacts =
+            SemanticAstNominalConstructorFactsFromArtifact(artifact);
+        facts = SemanticExpressionGraphCallTargetsFromSignatures(
+            source, signatures, constructors, false
+        );
+        if !facts.ok {
+            Die("assignment projection probe call-target capture failed");
+        }
+    }
     return SemanticExpressionGraphView(true, built.root_id, facts);
 }
 
 func ProbeOptionAssignment(
     name: String,
     expression: String,
-    expected_type: String
+    expected_type: String,
+    carry_call_targets: Bool
 ) -> String {
     let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
         name, name, 0, "", expression
     );
-    let graph: SemanticExpressionGraphView = ProbeExpressionGraph(expression);
-    let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(name);
+    let graph: SemanticExpressionGraphView = ProbeExpressionGraph(
+        expression, carry_call_targets
+    );
+    let target_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
+        name, true
+    );
     let env_state: Array<String> = ["|", "|"];
     return EmitAssign(
         assignments, 0, expected_type, expected_type,
@@ -61,9 +84,11 @@ func ProbeIndexedAssignment(target_type: String) -> String {
     let assignments: SemanticAstAssignmentFacts = ProbeAssignmentFacts(
         "nums[1]", "nums", 1, "1", "9"
     );
-    let value_graph: SemanticExpressionGraphView = ProbeExpressionGraph("9");
+    let value_graph: SemanticExpressionGraphView = ProbeExpressionGraph(
+        "9", true
+    );
     let target_graph: SemanticExpressionGraphView =
-        ProbeExpressionGraph("nums[1]");
+        ProbeExpressionGraph("nums[1]", true);
     let env_state: Array<String> = [
         "|", "|nums=v:ArrayInt|nums=cbind:nums|"
     ];
@@ -76,16 +101,24 @@ func ProbeIndexedAssignment(target_type: String) -> String {
 func Main() -> Void {
     let args: Array<String> = Args();
     if ArrayLength(args) > 0 && args[0] == "--missing-expected-type" {
-        Log(ProbeOptionAssignment("a", "Some(7)", ""));
+        Log(ProbeOptionAssignment("a", "Some(7)", "", true));
+        return;
+    }
+    if ArrayLength(args) > 0 && args[0] == "--missing-call-target" {
+        Log(ProbeOptionAssignment(
+            "a", "Some(7)", "Option<Int>", false
+        ));
         return;
     }
     if ArrayLength(args) > 0 && args[0] == "--missing-target-type" {
         Log(ProbeIndexedAssignment(""));
         return;
     }
-    Log(ProbeOptionAssignment("a", "Some(7)", "Option<Int>"));
-    Log(ProbeOptionAssignment("a", "None()", "Option<Int>"));
-    Log(ProbeOptionAssignment("s", "Some(\"ok\")", "Option<String>"));
-    Log(ProbeOptionAssignment("s", "None", "Option<String>"));
+    Log(ProbeOptionAssignment("a", "Some(7)", "Option<Int>", true));
+    Log(ProbeOptionAssignment("a", "None()", "Option<Int>", true));
+    Log(ProbeOptionAssignment(
+        "s", "Some(\"ok\")", "Option<String>", true
+    ));
+    Log(ProbeOptionAssignment("s", "None", "Option<String>", true));
     Log(ProbeIndexedAssignment("Array<Int>"));
 }

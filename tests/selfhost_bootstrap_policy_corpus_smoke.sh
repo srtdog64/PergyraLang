@@ -45,7 +45,7 @@ LABEL="selfhost-bootstrap-policy-corpus"
 DRIVER_BUILD="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 SEED_BIN="$DRIVER_BUILD/driver_seed.exe"
 ORACLE_BIN="$DRIVER_BUILD/driver_oracle.exe"
-BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/driver/policy_corpus"
+BUILD_DIR="${PGY_SELFHOST_POLICY_CORPUS_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/policy_corpus}"
 mkdir -p "$BUILD_DIR"
 
 CC="${PGY_SELFHOST_CC:-gcc}"

@@ -80,7 +80,7 @@ jobs:
 
   self-host-bootstrap-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
 
@@ -89,8 +89,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc make llvm-dev llvm
 
-      - name: Run self-host bootstrap fixed points
-        run: make self-host-driver-bootstrap-test-smoke
+      - name: Run the full self-host fixed point and policy-corpus census
+        # Reuse one fixed-point build. A second bootstrap job duplicates the
+        # compiler-scale text artifacts and can exceed the runner memory budget.
+        run: |
+          make self-host-driver-bootstrap-full-test-smoke
+          PGY_BIN="$PWD/bin/pgy" bash tests/selfhost_bootstrap_policy_corpus_smoke.sh
 
   self-host-codegen-bootstrap-linux:
     runs-on: ubuntu-latest

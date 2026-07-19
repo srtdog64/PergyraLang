@@ -277,7 +277,9 @@ SENTINEL_MAX=0
 # preserve absence and failure as Option facts instead of sentinels.
 # 2205 -> 2204 (2026-07-20): deleting the zero-consumer shape emitter removes
 # one unreachable Option projection; no live failure path became a sentinel.
-RESULT_USE_MIN=2204
+# 2204 -> 2206 (2026-07-20): the assignment projection negative carries
+# Option<Int>/Some through the semantic call-target fact boundary.
+RESULT_USE_MIN=2206
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=18
 COMPILER_WORLD_MEMBERS_EXACT=18

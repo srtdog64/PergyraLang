@@ -857,6 +857,15 @@ C, and runtime output. The shared graph mutation gate removes and corrupts the
 required graph and must fail before emission. This closes the bounded else-if
 condition transport seam, not all branch or control-flow state.
 
+Exhaustive-parity SoT closure, 2026-07-20: the assignment projection probe
+previously built `Some` and `None` call graphs but left their callable target
+rows unclassified. That let a fixture bypass the semantic call-target owner
+and fail only at the hard codegen consumer. The probe now derives builtin call
+identity through `SemanticExpressionGraphCallTargetsFromSignatures`, the same
+owner used by the compiler pipeline. A missing-call-target negative mode skips
+that derivation and must fail with the final consumer diagnostic. No probe-
+local callee parser or codegen fallback was added.
+
 Post-delta SoT closure, 2026-07-20: the unreferenced
 `expr_semantic_shape_emit_owner.pgy` and its two dead codegen shape accessors
 are deleted. `expr_semantic_graph_emit_owner.pgy` is now the only expression

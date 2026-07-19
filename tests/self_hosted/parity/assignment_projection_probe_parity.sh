@@ -52,6 +52,7 @@ done
 # - source_assignment_type_rescan: expected type must not be recovered with ExprKind.
 # - backend_assignment_type_guess: indexed target type must not come from env lookup.
 # - missing_expected_type_success: missing facts must fail in both generated probes.
+# - missing_direct_call_target_success: call identity must come from semantic facts.
 if grep -Fq 'ExprKind(expr, env)' "$ASSIGN_EMITTER"; then
     echo "[$LABEL] assignment expected type was re-derived from source text" >&2
     exit 1
@@ -95,7 +96,7 @@ run_positive() {
         "$LABEL" "$BUILD_DIR" "$EXPECTED" "$out" "run_output"
 }
 
-run_missing_type_negative() {
+run_missing_fact_negative() {
     local backend="$1"
     local mode="$2"
     local diagnostic="$3"
@@ -122,10 +123,12 @@ run_backend() {
     local backend="$1"
     compile_probe "$backend"
     run_positive "$backend"
-    run_missing_type_negative "$backend" "missing-expected-type" \
+    run_missing_fact_negative "$backend" "missing-expected-type" \
         "assignment expected type is missing"
-    run_missing_type_negative "$backend" "missing-target-type" \
+    run_missing_fact_negative "$backend" "missing-target-type" \
         "indexed assignment target type is missing"
+    run_missing_fact_negative "$backend" "missing-call-target" \
+        "semantic direct-call target fact is missing"
 }
 
 run_backend c
@@ -138,10 +141,12 @@ if [[ " $BACKENDS " == *" llvm "* ]]; then
     set -e
     if [[ "$llvm_rc" -eq 0 ]]; then
         run_positive llvm
-        run_missing_type_negative llvm "missing-expected-type" \
+        run_missing_fact_negative llvm "missing-expected-type" \
             "assignment expected type is missing"
-        run_missing_type_negative llvm "missing-target-type" \
+        run_missing_fact_negative llvm "missing-target-type" \
             "indexed assignment target type is missing"
+        run_missing_fact_negative llvm "missing-call-target" \
+            "semantic direct-call target fact is missing"
         assert_llvm_leg_with_artifact_owner \
             "$LABEL" "$BUILD_DIR" \
             "$BUILD_DIR/probe_c.out" "$BUILD_DIR/probe_llvm.out"
