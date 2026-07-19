@@ -11,9 +11,13 @@ func GenerateCUnitFromSemanticArtifact(
 ) -> String {
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+    let generic_specializations: CodegenGenericSpecializationFacts =
+        CodegenGenericSpecializationFactsFromSemantic(
+            semantic_analysis.signatures, bundle.generic_specializations
+        );
     let body_types: CodegenSemanticBodyTypeFacts =
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, semantic_analysis, bundle
+            artifact, semantic_analysis, bundle, generic_specializations
         );
     return GenerateCUnitFromSemanticFacts(
         artifact, semantic_analysis, body_types, require_entrypoint,
@@ -24,7 +28,7 @@ func GenerateCUnitFromSemanticArtifact(
 func GenerateCFromVerifiedSemanticArtifact(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    ref body_types: CodegenSemanticBodyTypeFacts,
+    own body_types: CodegenSemanticBodyTypeFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
     return GenerateCUnitFromSemanticFacts(

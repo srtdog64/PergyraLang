@@ -298,7 +298,7 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
 func GenerateCUnitFromSemanticFacts(
     artifact: AstTreeArtifact,
     semantic_analysis: SemanticAstArtifactAnalysis,
-    ref body_types: CodegenSemanticBodyTypeFacts,
+    own body_types: CodegenSemanticBodyTypeFacts,
     require_entrypoint: Bool,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> String {
@@ -360,9 +360,7 @@ func GenerateCUnitFromSemanticFacts(
         f_indent = CodegenAstArenaIndentOrDie(arena, UnwrapOption(first_fn));
     }
     let specializations: CodegenGenericSpecializationFacts =
-        CodegenGenericSpecializationFactsFromSemantic(
-            signatures, body_types.generic_specializations
-        );
+        body_types.generic_specializations;
     if !specializations.ok {
         Die(Concat(
             "generic specialization facts are incomplete: ",
@@ -383,6 +381,8 @@ func GenerateCUnitFromSemanticFacts(
             semantic_analysis.expression_surfaces,
             semantic_analysis.type_surfaces,
             semantic_analysis.kind_surfaces,
+            signatures,
+            specializations,
             base_env
         );
     if !usage.nominal_record_arrays.ok { Die("nominal record array usage facts are incomplete"); }

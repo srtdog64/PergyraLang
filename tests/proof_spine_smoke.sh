@@ -123,7 +123,7 @@ require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem help_in_c
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_schedule_invariant"
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem chunk_tiles"
 require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_chunk_count_invariant"
-require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=21 BRIDGE=17 ACTIVE=0"
+require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=21 BRIDGE=18 ACTIVE=0"
 require_text "docs/semantics/sot_owner_spine_registry.md" "docs/semantics/proofs/ResourceMachineBridge.v"
 require_text "docs/semantics/sot_owner_spine_registry.md" "resource_identity_as_machine_address"
 require_text "docs/semantics/sot_owner_spine_registry.md" "machine_address_as_resource_authority"

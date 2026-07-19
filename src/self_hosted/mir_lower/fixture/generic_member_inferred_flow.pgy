@@ -8,6 +8,6 @@ class Box {
 
 func Main() -> Void {
     let box: Box = Box(0);
-    let result: Int = box.Echo<Int>(41);
+    let result: Int = box.Echo(box.Echo(41));
     Log(ToString(result));
 }

@@ -5,6 +5,7 @@ import "program_routine_index_owner.pgy";
 import "routine_fact_index_owner.pgy";
 import "expression_graph_sequence_owner.pgy";
 import "expression_graph_match_owner.pgy";
+import "destructure_expression_projection_owner.pgy";
 
 func MirInstructionRequiresExpr0Graph(
     instruction: JsonObjectFactTable
@@ -34,6 +35,10 @@ func MirInstructionRequiresExpr0Graph(
     let instruction_kind: String = UnwrapOption(kind);
     let instruction_name: String = UnwrapOption(name);
     let source: String = UnwrapOption(source_type);
+    if source == "AST_DEFER_STMT" {
+        return IsSome(arg0) && UnwrapOption(arg0) == "Log" &&
+            UnwrapOption(expr0) == "{...}";
+    }
     if instruction_kind == "assign" && source == "AST_ASSIGNMENT" {
         return IsSome(expr1) && UnwrapOption(expr0) != "" &&
             UnwrapOption(expr1) != "";
@@ -143,7 +148,11 @@ func MirExpressionGraphSequenceFromJson(json: String) -> MirExpressionGraphSeque
                 MirInstructionRequiresExpr0Graph(instruction);
             let expr1_required: Bool =
                 MirInstructionRequiresExpr1Graph(instruction);
-            if IsSome(source_type) &&
+            if IsSome(kind) && UnwrapOption(kind) == "destructure" {
+                sequence = MirExpressionGraphSequenceAppendDestructure(
+                    sequence, instruction, graph
+                );
+            } else if IsSome(source_type) &&
                 UnwrapOption(source_type) == "AST_MATCH_CASE" {
                 sequence = MirExpressionGraphSequenceAppendMatchCondition(
                     sequence, instruction, graph

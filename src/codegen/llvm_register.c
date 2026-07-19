@@ -11,6 +11,7 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "../compiler/mir_decl_headers.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_generic_method_specialization.h"
 
 static bool
 llvm_register_join_name(LLVMGenCtx *ctx, char *out, size_t out_size,
@@ -422,12 +423,14 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         const char *return_type_name = NULL;
         ASTNode *return_type = NULL;
         bool method_is_action = false;
+        const MIRRoutine *method_routine = NULL;
 
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
         return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
         return_type = llvm_mir_decl_method_return_type(method_meta);
         method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
+        method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
         if (method_name == NULL)
             continue;
         if (!llvm_mir_decl_method_metadata_complete_for(ctx,
@@ -438,6 +441,14 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 "MIR-only LLVM path missing class method registry return type-name metadata for '%s.%s'",
                 "MIR-only LLVM path missing class method registry parameter type-name metadata for '%s.%s'")) {
             return;
+        }
+        if (method_routine != NULL
+            && llvm_mir_routine_generic_param_count(method_routine) > 0) {
+            if (!llvm_register_generic_method_specializations(ctx, cls_name,
+                    struct_ty, is_pointer_self_host, method_meta,
+                    method_routine))
+                return;
+            continue;
         }
 
         LLVMTypeRef ret_type = ctx->type_void;

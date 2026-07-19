@@ -200,6 +200,10 @@ and `ArraySet` values across scalar, String, and struct element types.
 `text/enum_literal_owner.pgy` owns payload-free enum literal projection facts
 for call arguments and match cases so emission participants consume the env
 row instead of rebuilding enum keys or symbols locally.
+Expected-value emission is not part of that text bridge: qualified enum values
+consume parser-owned receiver/member handles and the exact enum row. A DRV-2
+negative keeps root provenance unchanged while corrupting only the member child,
+and the hard consumer must reject it.
 `type_facts/type_env.pgy` preserves semantic value type (`type`) separately
 from runtime value kind (`v`). Function parameters, declared locals, readonly
 references, and loop bindings project both rows. Semantic expression graph
@@ -243,10 +247,13 @@ is still a compact-text bridge until the parser emits those same rows directly;
 postfix try is already parser-owned and is not part of that bridge.
 The codegen arena view is now structural/provenance-only: direct atom, type,
 value, auxiliary-value, parameter-type, and parameter-mode accessors are
-absent. The remaining blocker is indexed-assignment target-index projection,
-Option/Result wrapper internals, special unary forms, non-condition recursive
-expression text, and initial compact-tree construction. Those bridges remain inside
-named owners rather than reopening a codegen arena read.
+absent. Indexed-assignment target indexing and `await` now consume parser-owned
+expression graph nodes. Index emission also derives the receiver collection
+type from the graph type owner and collection ABI row; receiver text and
+`ExprMemberFieldType` are forbidden in that emitter. The remaining blockers are Option/Result wrapper
+internals, address/receive/spawn prefix forms, non-condition recursive
+expression text, and initial compact-tree construction. Those bridges remain
+inside named owners rather than reopening a codegen arena read.
 `run/codegen_run_owner.pgy` owns the CLI-to-output orchestration that feeds the
 owned input into `GenerateC`; it also owns the codegen parity fixture manifest
 by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
@@ -255,13 +262,21 @@ by walking `src/self_hosted/codegen/fixture` and retaining only rows with paired
 unmigrated lanes. Collection values and general struct-valued local
 initialization, assignment, and value return consume expected-type semantic
 graph facts. `emission/option_value_emit_owner.pgy` consumes the shared semantic
-call spine and expected-type ABI row for `Option<struct>` constructors and
+call spine, direct-call target fact, and expected-type ABI row for
+`Option<struct>` constructors and
 payloads in the `Some` lane. Contextual `None` initialization, reassignment,
 and return consume that same expected-type row; C and LLVM native consumers
 must obtain the type from MIR local facts, and the parity owner requires the
 typed struct-option `None` constructor in emitted C. The semantic struct view
 first joins nominal field rows and rejects
 unknown, duplicate, missing, or type-incompatible fields. The accepted subset is:
+
+Generic array usage follows the same materialization boundary. A declared
+`Array<T>` surface is non-physical only when signature facts identify `T` as a
+formal; concrete specialization actuals are scanned separately to retain any
+array runtime ABI rows required by emitted code. A record-array specialization
+must retain its concrete runtime row even though the declaration remains
+generic.
 
 - one or more `func` declarations with exactly one `Main`;
 - `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`

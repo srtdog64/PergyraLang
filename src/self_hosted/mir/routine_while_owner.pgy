@@ -4,6 +4,7 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "expression_fact_owner.pgy";
+import "loop_reachability_fact_owner.pgy";
 
 func SelfMirLowerWhileFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -19,6 +20,17 @@ func SelfMirLowerWhileFromArtifact(
             build, "MIR while body block is missing"
         );
     }
+    let reachability: SelfMirLoopReachabilityFact =
+        SelfMirLoopReachabilityForBlock(
+            input.artifact.arena, UnwrapOption(body_opt)
+        );
+    if !reachability.ok {
+        return SelfMirRoutineBuildError(
+            build, "MIR loop reachability fact is missing"
+        );
+    }
+    let planned_backedge: Bool = reachability.reaches_backedge ||
+        reachability.falls_through;
     let preheader: Int = build.current_block;
     build = SelfMirRoutineAddBlock(build);
     let header: Int = SelfMirCfgBlockCount(build.cfg) - 1;
@@ -26,7 +38,7 @@ func SelfMirLowerWhileFromArtifact(
     build = SelfMirRoutineAtBlock(build, header);
     let local_i: Int = 0;
     while local_i < ArrayLength(build.local_names) {
-        if SelfMirLoopAssignedLocal(
+        if planned_backedge && SelfMirLoopAssignedLocal(
             input, UnwrapOption(body_opt), build.local_names[local_i]
         ) {
             let old_version: Int = build.local_versions[local_i];
@@ -41,7 +53,12 @@ func SelfMirLowerWhileFromArtifact(
                 SelfMirSsaName(build.local_names[local_i], phi_version),
                 "phi", "", "", "", "", phi_uses
             );
-            build = SelfMirRoutineAdvanceLocalVersion(build, local_i);
+            // The phi result itself is the current version.  Advancing once
+            // more would advertise a version with no defining instruction
+            // to nested branch merges in the loop body.
+            build = SelfMirRoutineSetLocalVersion(
+                build, local_i, phi_version
+            );
         }
         local_i = local_i + 1;
     }
@@ -67,6 +84,65 @@ func SelfMirLowerWhileFromArtifact(
         while_break_blocks, header
     );
     let body_exit: Int = build.current_block;
+    let observed_backedge: Bool = build.terminated[body_exit] == 0;
+    let body_block_i: Int = loop_body;
+    while body_block_i < SelfMirCfgBlockCount(build.cfg) {
+        if (build.cfg.blocks.has_succ_true[body_block_i] == 1 &&
+            build.cfg.blocks.succ_true[body_block_i] == header) ||
+            (build.cfg.blocks.has_succ_false[body_block_i] == 1 &&
+             build.cfg.blocks.succ_false[body_block_i] == header) {
+            observed_backedge = true;
+        }
+        body_block_i = body_block_i + 1;
+    }
+    if observed_backedge != planned_backedge {
+        return SelfMirRoutineBuildError(
+            build, "MIR loop reachability fact disagrees with CFG"
+        );
+    }
+    // The completed CFG owns whether the loop actually has a backedge.  A
+    // loop whose every path breaks has only the preheader predecessor; normal
+    // fallthrough and explicit continue retain the live local as input two.
+    let phi_instruction_i: Int = build.cfg.blocks.instruction_starts[header];
+    let phi_instruction_end: Int = phi_instruction_i +
+        build.cfg.blocks.instruction_counts[header];
+    while phi_instruction_i < phi_instruction_end {
+        if build.cfg.instructions.kinds[phi_instruction_i] == "phi" {
+            let phi_name: String = build.cfg.instructions.names[
+                phi_instruction_i
+            ];
+            let local_opt: Option<Int> = SelfMirRoutineLocalIndex(
+                build, phi_name
+            );
+            if IsSome(local_opt) {
+                let use_count: Int = build.cfg.instructions.use_counts[
+                    phi_instruction_i
+                ];
+                if use_count == 2 {
+                    let use_start: Int =
+                        build.cfg.instructions.use_starts[phi_instruction_i];
+                    let phi_uses: Array<String> = [
+                        build.cfg.instructions.uses[use_start]
+                    ];
+                    if planned_backedge {
+                        let local_i: Int = UnwrapOption(local_opt);
+                        ArrayPush(
+                            phi_uses,
+                            SelfMirSsaName(
+                                phi_name, build.local_versions[local_i]
+                            )
+                        );
+                    }
+                    build = SelfMirRoutineWithCfg(
+                        build, SelfMirCfgSetInstructionUses(
+                            build.cfg, phi_instruction_i, phi_uses
+                        )
+                    );
+                }
+            }
+        }
+        phi_instruction_i = phi_instruction_i + 1;
+    }
     if build.terminated[body_exit] == 0 {
         build = SelfMirRoutineSetSuccessors(build, body_exit, header, -1);
     }

@@ -210,6 +210,16 @@ func CodegenExpressionTypeFromGraph(
     if kind == AstExpressionNodeTry() {
         return TryPayloadTypeOpt(UnwrapOption(left));
     }
+    if kind == AstExpressionNodeAwait() {
+        let remote_payload: Option<String> =
+            RemoteFuturePayloadTypeOpt(UnwrapOption(left));
+        if IsSome(remote_payload) {
+            return Some(Concat("Result<", Concat(
+                UnwrapOption(remote_payload), ">"
+            )));
+        }
+        return FuturePayloadTypeOpt(UnwrapOption(left));
+    }
     let right_id: Option<Int> = SemanticExpressionGraphRightChild(
         graph, node_id
     );

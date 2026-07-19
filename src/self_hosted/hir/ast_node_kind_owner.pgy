@@ -37,10 +37,11 @@ func TypedAstKindMatchStmtTag() -> Int { return 34; }
 func TypedAstKindMatchCaseStmtTag() -> Int { return 35; }
 func TypedAstKindMatchDefaultStmtTag() -> Int { return 36; }
 func TypedAstKindGenericParamsTag() -> Int { return 37; }
+func TypedAstKindDestructureStmtTag() -> Int { return 38; }
 
 func TypedAstKindKnown(kind: Int) -> Bool {
     return kind >= TypedAstKindUnknownTag() &&
-        kind <= TypedAstKindGenericParamsTag();
+        kind <= TypedAstKindDestructureStmtTag();
 }
 
 func TypedAstCallStatementKindForCallee(callee: String) -> Int {
@@ -60,6 +61,8 @@ func TypedAstNominalSubkindSubject() -> Int { return 3; }
 func TypedAstNominalSubkindObject() -> Int { return 4; }
 func TypedAstNominalSubkindTObject() -> Int { return 5; }
 func TypedAstNominalSubkindVessel() -> Int { return 6; }
+func TypedAstNominalSubkindZone() -> Int { return 7; }
+func TypedAstNominalSubkindWorld() -> Int { return 8; }
 
 func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindStruct() { return "struct"; }
@@ -68,6 +71,8 @@ func TypedAstNominalSubkindName(subkind: Int) -> String {
     if subkind == TypedAstNominalSubkindObject() { return "object"; }
     if subkind == TypedAstNominalSubkindTObject() { return "tobject"; }
     if subkind == TypedAstNominalSubkindVessel() { return "vessel"; }
+    if subkind == TypedAstNominalSubkindZone() { return "zone"; }
+    if subkind == TypedAstNominalSubkindWorld() { return "world"; }
     return "";
 }
 
@@ -90,14 +95,15 @@ func TypedAstKindTags() -> Array<Int> {
         TypedAstKindBareCallStmtTag(), TypedAstKindProgramTag(),
         TypedAstKindBodyTag(), TypedAstKindBlockTag(), TypedAstKindThenTag(),
         TypedAstKindMatchStmtTag(), TypedAstKindMatchCaseStmtTag(),
-        TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag()
+        TypedAstKindMatchDefaultStmtTag(), TypedAstKindGenericParamsTag(),
+        TypedAstKindDestructureStmtTag()
     ];
     return tags;
 }
 
 func TypedAstKindOwnerReady() -> Bool {
     let tags: Array<Int> = TypedAstKindTags();
-    if ArrayLength(tags) != 37 {
+    if ArrayLength(tags) != 38 {
         return false;
     }
     let i: Int = 0;
@@ -115,9 +121,9 @@ func TypedAstKindOwnerReady() -> Bool {
         i = i + 1;
     }
     return TypedAstKindKnown(TypedAstKindUnknownTag()) &&
-        TypedAstKindKnown(TypedAstKindGenericParamsTag()) &&
+        TypedAstKindKnown(TypedAstKindDestructureStmtTag()) &&
         !TypedAstKindKnown(TypedAstKindUnknownTag() - 1) &&
-        !TypedAstKindKnown(TypedAstKindGenericParamsTag() + 1) &&
+        !TypedAstKindKnown(TypedAstKindDestructureStmtTag() + 1) &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindStruct()) ==
             "struct" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) == "class" &&
@@ -129,6 +135,8 @@ func TypedAstKindOwnerReady() -> Bool {
             "tobject" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindVessel()) ==
             "vessel" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindZone()) == "zone" &&
+        TypedAstNominalSubkindName(TypedAstNominalSubkindWorld()) == "world" &&
         TypedAstNominalSubkindName(TypedAstNominalSubkindNone()) == "" &&
         TypedAstCallStatementKindForCallee("Log") ==
             TypedAstKindLogStmtTag() &&

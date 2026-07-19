@@ -13,15 +13,15 @@
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
 - Lexer-reserved keyword source of truth: `src/lexer/lexer_keywords.c`.
-- Lexer-reserved keywords (66): `ability`, `as`, `async`, `await`, `bind`,
-  `break`, `case`, `channel`, `class`, `collapse`, `continue`, `default`,
+- Lexer-reserved keywords (71): `ability`, `as`, `async`, `await`, `bind`,
+  `break`, `case`, `channel`, `class`, `collapse`, `compensate`, `continue`, `default`,
   `defer`, `dyn`, `effect`, `else`, `enum`, `event`, `export`, `extends`,
-  `extern`, `false`, `for`, `func`, `if`, `impl`, `import`, `in`, `include`,
+  `extern`, `fail`, `false`, `for`, `func`, `if`, `impl`, `import`, `in`, `include`,
   `innate`, `intent`, `let`, `local`, `match`, `namespace`,
   `nondeterministic`, `object`, `override`, `own`, `parallel`, `party`,
-  `private`, `public`, `ref`, `relation`, `remote`, `return`, `role`,
+  `private`, `public`, `ref`, `reflect`, `relation`, `remote`, `return`, `role`,
   `roster`, `secure`, `select`, `shared`, `slot`, `spawn`, `struct`,
-  `subject`, `tobject`, `true`, `type`, `unsafe`, `use`, `vessel`, `where`,
+  `subject`, `tobject`, `transaction`, `true`, `type`, `unsafe`, `use`, `vessel`, `where`,
   `while`, `with`, `world`, `zone`.
 - `world`, `roster`, `relation`, `effect`, `zone`, `intent`, `vessel`, and
   `event` are lexer-reserved declaration tokens, not contextual words.
@@ -764,3 +764,8 @@ Grammar-level classification for common patterns:
 
 Reserved grammar must fail explicitly. It should not be accepted silently by the
 parser or treated as beta-stable because a token exists.
+## Executable implementation crosswalk
+
+Use [13_implementation_status.md](13_implementation_status.md) for the
+fixture-backed parser, semantic, self-host, and backend status. It is the
+current gate-backed supplement to this reference.

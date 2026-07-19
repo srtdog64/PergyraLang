@@ -11,6 +11,7 @@ import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
 import "stmt_collection_graph_owner.pgy";
+import "stmt_destructure_owner.pgy";
 import "stmt_if_owner.pgy";
 import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
@@ -280,45 +281,10 @@ func ParseOneStmt(
         // optional; without it the AST emits `Let: IDENT = EXPR` (no
         // `:` segment), matching type-inferred bindings.
         i = SkipWhitespaceAndComments(content, i);
-        // Destructuring let: `let ( IDENT, IDENT, ... ) = EXPR ;` is
-        // emitted by `pgy --ast` as the literal placeholder text
-        // `AST node type 6` (the C printer has no print form for
-        // destructuring pattern nodes). Consume and emit that bytes.
         if ParserCharAt(content, i) == "(" {
-            i = i + 1;
-            while true {
-                i = SkipWhitespaceAndComments(content, i);
-                ArraySet(cursor_out, 0, i);
-                let d_name: String = ReadIdent(content, i, cursor_out);
-                i = cursor_out[0];
-                if StringLength(d_name) == 0 {
-                    Exit(1);
-                }
-                i = SkipWhitespaceAndComments(content, i);
-                if ParserCharAt(content, i) == "," {
-                    i = i + 1;
-                    continue;
-                }
-                break;
-            }
-            i = Expect(content, i, ")");
-            if i < 0 {
-                Exit(1);
-            }
-            i = Expect(content, i, "=");
-            if i < 0 {
-                Exit(1);
-            }
-            ArraySet(cursor_out, 0, i);
-            let d_rhs: String = ParseExpr(content, i, cursor_out);
-            i = cursor_out[0];
-            d_rhs = d_rhs;
-            i = Expect(content, i, ";");
-            if i < 0 {
-                Exit(1);
-            }
-            ArraySet(cursor_out, 0, i);
-            return Concat(IndentStr(stmt_indent), "AST node type 6");
+            return ParseDestructureLetStmt(
+                content, i, cursor_out, stmt_indent, expression_graphs
+            );
         }
         ArraySet(cursor_out, 0, i);
         if MatchKeyword(content, i, "mut") {

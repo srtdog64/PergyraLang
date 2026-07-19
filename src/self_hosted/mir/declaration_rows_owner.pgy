@@ -1,0 +1,153 @@
+// MIR declaration rows projected from the semantic declaration owners.
+
+import "program_fact_owner.pgy";
+import "../semantic/ast_artifact_verdict_owner.pgy";
+
+func SelfMirDeclarationsFromAnalysis(
+    analysis: SemanticAstArtifactAnalysis,
+    enum_facts: SemanticAstEnumFacts
+) -> SelfMirDeclarationRows {
+    let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
+    let kinds: Array<String> = rows.kinds;
+    let nominal_kinds: Array<String> = rows.nominal_kinds;
+    let names: Array<String> = rows.names;
+    let target_types: Array<String> = rows.target_types;
+    let field_starts: Array<Int> = rows.field_starts;
+    let field_counts: Array<Int> = rows.field_counts;
+    let field_names: Array<String> = rows.field_names;
+    let field_types: Array<String> = rows.field_types;
+    let method_starts: Array<Int> = rows.method_starts;
+    let method_counts: Array<Int> = rows.method_counts;
+    let method_names: Array<String> = rows.method_names;
+    let method_returns: Array<String> = rows.method_returns;
+    let variant_starts: Array<Int> = rows.variant_starts;
+    let variant_counts: Array<Int> = rows.variant_counts;
+    let variant_names: Array<String> = rows.variant_names;
+    let variant_param_counts: Array<Int> = rows.variant_param_counts;
+    let i: Int = 0;
+    while i < SemanticAstNominalConstructorCount(analysis.constructors) {
+        ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
+        ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
+        ArrayPush(names, analysis.constructors.names[i]);
+        ArrayPush(target_types, "");
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, analysis.constructors.param_counts[i]);
+        let field_i: Int = 0;
+        while field_i < analysis.constructors.param_counts[i] {
+            let field_name: Option<String> =
+                SemanticAstNominalConstructorFieldNameAt(
+                    analysis.constructors, i, field_i
+                );
+            let field_type: Option<String> =
+                SemanticAstNominalConstructorParamTypeAt(
+                    analysis.constructors, i, field_i
+                );
+            if IsSome(field_name) && IsSome(field_type) {
+                ArrayPush(field_names, UnwrapOption(field_name));
+                ArrayPush(field_types, UnwrapOption(field_type));
+            }
+            field_i = field_i + 1;
+        }
+        ArrayPush(method_starts, ArrayLength(method_names));
+        let method_count: Int = 0;
+        let signature_i: Int = 0;
+        while signature_i < SemanticAstFunctionSignatureCount(
+            analysis.signatures
+        ) {
+            if analysis.signatures.owner_names[signature_i] ==
+                analysis.constructors.names[i] {
+                ArrayPush(method_names, analysis.signatures.names[signature_i]);
+                ArrayPush(
+                    method_returns,
+                    analysis.signatures.return_types[signature_i]
+                );
+                method_count = method_count + 1;
+            }
+            signature_i = signature_i + 1;
+        }
+        ArrayPush(method_counts, method_count);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        ArrayPush(variant_counts, 0);
+        i = i + 1;
+    }
+    let role_i: Int = 0;
+    while role_i < SemanticAstRoleCount(analysis.roles) {
+        let role_name: String = analysis.roles.names[role_i];
+        let target_type: String = analysis.roles.target_type_names[role_i];
+        let method_start: Int = analysis.roles.method_starts[role_i];
+        let method_count: Int = analysis.roles.method_counts[role_i];
+        if role_name == "" || target_type == "" || method_count < 0 {
+            return SelfMirDeclarationRowsEmpty();
+        }
+        ArrayPush(kinds, "role");
+        ArrayPush(nominal_kinds, "role");
+        ArrayPush(names, role_name);
+        ArrayPush(target_types, target_type);
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, 0);
+        ArrayPush(method_starts, ArrayLength(method_names));
+        let method_i: Int = 0;
+        while method_i < method_count {
+            let method_node_id: Int = analysis.roles.method_node_ids[
+                method_start + method_i
+            ];
+            let signature_i: Int = -1;
+            let signature_scan: Int = 0;
+            while signature_scan <
+                SemanticAstFunctionSignatureCount(analysis.signatures) {
+                if analysis.signatures.function_node_ids[signature_scan] ==
+                    method_node_id {
+                    signature_i = signature_scan;
+                }
+                signature_scan = signature_scan + 1;
+            }
+            if signature_i < 0 {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            ArrayPush(method_names, analysis.signatures.names[signature_i]);
+            ArrayPush(
+                method_returns,
+                analysis.signatures.return_types[signature_i]
+            );
+            method_i = method_i + 1;
+        }
+        ArrayPush(method_counts, method_count);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        ArrayPush(variant_counts, 0);
+        role_i = role_i + 1;
+    }
+    let enum_i: Int = 0;
+    while enum_i < ArrayLength(enum_facts.enum_names) {
+        let enum_name: String = enum_facts.enum_names[enum_i];
+        ArrayPush(kinds, "enum");
+        ArrayPush(nominal_kinds, "enum");
+        ArrayPush(names, enum_name);
+        ArrayPush(target_types, "");
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, 0);
+        ArrayPush(method_starts, ArrayLength(method_names));
+        ArrayPush(method_counts, 0);
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        let enum_variant_count: Int = 0;
+        let variant_i: Int = 0;
+        while variant_i < ArrayLength(enum_facts.variant_names) {
+            if enum_facts.variant_enum_names[variant_i] == enum_name {
+                ArrayPush(variant_names, enum_facts.variant_names[variant_i]);
+                ArrayPush(
+                    variant_param_counts,
+                    enum_facts.variant_param_counts[variant_i]
+                );
+                enum_variant_count = enum_variant_count + 1;
+            }
+            variant_i = variant_i + 1;
+        }
+        ArrayPush(variant_counts, enum_variant_count);
+        enum_i = enum_i + 1;
+    }
+    return SelfMirDeclarationRows(
+        kinds, nominal_kinds, names, target_types, field_starts, field_counts,
+        field_names, field_types, method_starts, method_counts,
+        method_names, method_returns, variant_starts, variant_counts,
+        variant_names, variant_param_counts
+    );
+}

@@ -145,8 +145,8 @@ func SemanticAstBodyTypeBundleReadinessError(
     if !bundle.iteration_types.ok { return "iteration_types"; }
     if !bundle.assignment_types.ok { return "assignment_types"; }
     if !bundle.statement_types.ok { return "statement_types"; }
-    if !SemanticAstGenericSpecializationFactsReady(
-        bundle.generic_specializations
+    if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+        bundle.generic_specializations, analysis.expression_surfaces
     ) { return "generic_specializations"; }
     if bundle.initializer_types.artifact_node_count != artifact.count {
         return "initializer_node_count";

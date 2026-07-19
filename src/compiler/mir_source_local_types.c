@@ -8,6 +8,7 @@
 #include "../common/string_compat.h"
 #include "mir_decl_headers.h"
 #include "mir_source_local_expr_types.h"
+#include "mir_source_local_type_shape.h"
 #include "../parser/ast_api.h"
 #include "mir_type_helpers.h"
 
@@ -374,6 +375,28 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             ast_let_name(node),
             mir_source_local_expr_type_name(program, routine, &scratch,
                 ast_let_initializer(node)));
+    }
+    case AST_LET_DESTRUCTURE: {
+        MIRSourceLocalTypeScratch scratch = { 0 };
+        char element_type[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+        const char *initializer_type = mir_source_local_expr_type_name(
+            program, routine, &scratch,
+            ast_let_destructure_initializer(node));
+        size_t name_count = ast_let_destructure_name_count(node);
+
+        if (initializer_type == NULL
+            || !mir_source_local_unwrap_array_or_slice_type(
+                initializer_type, element_type, sizeof(element_type))) {
+            return false;
+        }
+        for (size_t i = 0; i < name_count; i++) {
+            if (!mir_source_local_type_append_name(
+                    program, routine,
+                    ast_let_destructure_name(node, i), element_type)) {
+                return false;
+            }
+        }
+        return name_count > 0;
     }
     case AST_BLOCK: {
         size_t n = ast_block_statement_count(node);

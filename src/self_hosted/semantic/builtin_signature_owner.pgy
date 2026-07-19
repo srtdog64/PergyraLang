@@ -89,7 +89,8 @@ func SemanticBuiltinSignatureRows() -> Array<String> {
         "DeviceRead^Unknown^Unknown",
         "DeviceWrite^Void^Unknown|Unknown",
         "ReleaseDeviceSlot^Void^Unknown",
-        "SubmitDeviceRead^RemoteFuture<Unknown>^Unknown"
+        "SubmitDeviceRead^RemoteFuture<Unknown>^Unknown",
+        "Clone^Unknown^Unknown"
     ];
     return rows;
 }
@@ -121,6 +122,7 @@ func SeedSemanticBuiltinSignatures(
 func SemanticBuiltinReturnDependsOnArguments(name: String) -> Bool {
     return name == "Abs" || name == "Min" ||
         name == "Max" || name == "Clamp" ||
+        name == "Clone" ||
         name == "ArraySort" || name == "ArrayReverse" ||
         name == "ArrayMap" || name == "ArrayFilter";
 }
@@ -139,11 +141,17 @@ func SemanticPolymorphicBuiltinReturnTypeOpt(
     else if name == "ArrayMap" || name == "ArrayFilter" {
         expected_count = 2;
     }
+    else if name == "Clone" {
+        expected_count = 1;
+    }
     else { return None; }
     if ArrayLength(argument_types) != expected_count {
         return None;
     }
     let result_type: String = argument_types[0];
+    if name == "Clone" {
+        return Some(result_type);
+    }
     if name == "ArraySort" || name == "ArrayReverse" ||
         name == "ArrayMap" || name == "ArrayFilter" {
         let n: Int = StringLength(result_type);
@@ -174,8 +182,8 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
     let min_type: Option<String> =
         SemanticPolymorphicBuiltinReturnTypeOpt("Min", int_pair);
     return SeedSemanticBuiltinSignatures(names, returns, params) &&
-        ArrayLength(names) == 88 && ArrayLength(returns) == 88 &&
-        ArrayLength(params) == 88 && names[0] == "StringLength" &&
+        ArrayLength(names) == 89 && ArrayLength(returns) == 89 &&
+        ArrayLength(params) == 89 && names[0] == "StringLength" &&
         returns[0] == "Int" && params[0] == "String" &&
         names[47] == "Args" && params[47] == "" &&
         names[51] == "StringJoin" &&
@@ -187,6 +195,7 @@ func SemanticBuiltinSignatureContractReady() -> Bool {
         names[79] == "ArraySort" && names[82] == "ArrayFilter" &&
         names[83] == "ClaimDeviceSlot" &&
         names[87] == "SubmitDeviceRead" &&
+        names[88] == "Clone" &&
         IsSome(min_type) && UnwrapOption(min_type) == "Int" &&
         !IsSome(SemanticPolymorphicBuiltinReturnTypeOpt(
             "Min", mixed_pair

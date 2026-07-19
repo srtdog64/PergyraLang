@@ -7,12 +7,16 @@ import "ast_expression_call_target_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
 import "ast_match_binding_environment_owner.pgy";
+import "ast_expression_call_identity_owner.pgy";
 
 struct SemanticAstGenericSpecializationFacts {
     ok: Bool;
     diagnostic_code: String;
     diagnostic_message: String;
     call_node_ids: Array<Int>;
+    source_owner_node_ids: Array<Int>;
+    source_lanes: Array<Int>;
+    source_call_ordinals: Array<Int>;
     signature_indexes: Array<Int>;
     actual_starts: Array<Int>;
     actual_counts: Array<Int>;
@@ -28,8 +32,10 @@ func SemanticAstGenericSpecializationError(
     actual_counts: Array<Int>,
     actual_type_names: Array<String>
 ) -> SemanticAstGenericSpecializationFacts {
+    let stable_ids: Array<Int> = [];
     return SemanticAstGenericSpecializationFacts(
-        false, code, message, call_node_ids, signature_indexes,
+        false, code, message, call_node_ids,
+        stable_ids, stable_ids, stable_ids, signature_indexes,
         actual_starts, actual_counts, actual_type_names
     );
 }
@@ -139,7 +145,8 @@ func SemanticAstGenericSpecializationFactsFromBody(
                     expression_surfaces.expression_graph, view.call_node
                 );
             if !IsSome(target_kind) || !IsSome(target_name) ||
-                UnwrapOption(target_kind) != SemanticCallTargetDirect() {
+                (UnwrapOption(target_kind) != SemanticCallTargetDirect() &&
+                 UnwrapOption(target_kind) != SemanticCallTargetMember()) {
                 return SemanticAstGenericSpecializationError(
                     "ast_artifact_invalid",
                     SemanticError1(
@@ -149,6 +156,10 @@ func SemanticAstGenericSpecializationFactsFromBody(
                     call_node_ids, signature_indexes, actual_starts,
                     actual_counts, actual_type_names
                 );
+            }
+            if UnwrapOption(target_kind) == SemanticCallTargetMember() {
+                node_id = node_id + 1;
+                continue;
             }
             let signature_index: Option<Int> =
                 SemanticGenericCallSignatureIndex(
@@ -303,7 +314,6 @@ func SemanticAstGenericSpecializationFactsFromBody(
                             expression_surfaces.expression_graph, current
                         );
                     if view.ok &&
-                        ArrayLength(view.generic_actual_type_names) == 0 &&
                         !IsSome(SemanticAstGenericSpecializationIndexForCall(
                             call_node_ids, view.call_node
                         )) {
@@ -420,20 +430,46 @@ func SemanticAstGenericSpecializationFactsFromBody(
         }
         node_id = node_id + 1;
     }
+    let source_owner_node_ids: Array<Int> = [];
+    let source_lanes: Array<Int> = [];
+    let source_call_ordinals: Array<Int> = [];
+    let identity_i: Int = 0;
+    while identity_i < ArrayLength(call_node_ids) {
+        let identity: SemanticExpressionCallIdentity =
+            SemanticExpressionCallIdentityForNode(
+                expression_surfaces, call_node_ids[identity_i]
+            );
+        if !identity.ok {
+            return SemanticAstGenericSpecializationError(
+                "ast_artifact_invalid",
+                SemanticError1(
+                    "ast_artifact_invalid", "owner",
+                    "generic_call_stable_identity"
+                ),
+                call_node_ids, signature_indexes, actual_starts,
+                actual_counts, actual_type_names
+            );
+        }
+        ArrayPush(source_owner_node_ids, identity.owner_node_id);
+        ArrayPush(source_lanes, identity.lane);
+        ArrayPush(source_call_ordinals, identity.local_call_ordinal);
+        identity_i = identity_i + 1;
+    }
     return SemanticAstGenericSpecializationFacts(
-        true, "", "", call_node_ids, signature_indexes, actual_starts,
-        actual_counts, actual_type_names
+        true, "", "", call_node_ids, source_owner_node_ids,
+        source_lanes, source_call_ordinals, signature_indexes,
+        actual_starts, actual_counts, actual_type_names
     );
 }
 
 func SemanticAstGenericSpecializationCount(
-    facts: SemanticAstGenericSpecializationFacts
+    ref facts: SemanticAstGenericSpecializationFacts
 ) -> Int {
     return ArrayLength(facts.call_node_ids);
 }
 
 func SemanticAstGenericSpecializationActuals(
-    facts: SemanticAstGenericSpecializationFacts,
+    ref facts: SemanticAstGenericSpecializationFacts,
     index: Int
 ) -> Array<String> {
     let actuals: Array<String> = [];
@@ -450,11 +486,14 @@ func SemanticAstGenericSpecializationActuals(
 }
 
 func SemanticAstGenericSpecializationFactsReady(
-    facts: SemanticAstGenericSpecializationFacts
+    ref facts: SemanticAstGenericSpecializationFacts
 ) -> Bool {
     let count: Int = SemanticAstGenericSpecializationCount(facts);
     if !facts.ok || facts.diagnostic_code != "" ||
         facts.diagnostic_message != "" ||
+        ArrayLength(facts.source_owner_node_ids) != count ||
+        ArrayLength(facts.source_lanes) != count ||
+        ArrayLength(facts.source_call_ordinals) != count ||
         ArrayLength(facts.signature_indexes) != count ||
         ArrayLength(facts.actual_starts) != count ||
         ArrayLength(facts.actual_counts) != count {
@@ -463,13 +502,52 @@ func SemanticAstGenericSpecializationFactsReady(
     let expected_start: Int = 0;
     let i: Int = 0;
     while i < count {
-        if facts.call_node_ids[i] < 0 || facts.signature_indexes[i] < 0 ||
+        if facts.call_node_ids[i] < 0 ||
+            facts.source_owner_node_ids[i] < 0 ||
+            facts.source_lanes[i] < AstExpressionLaneAtom() ||
+            facts.source_lanes[i] > AstExpressionLaneAuxiliary() ||
+            facts.source_call_ordinals[i] < 0 ||
+            facts.signature_indexes[i] < 0 ||
             facts.actual_starts[i] != expected_start ||
             facts.actual_counts[i] <= 0 {
             return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if SemanticExpressionCallIdentityEqual(
+                facts.source_owner_node_ids[prior],
+                facts.source_lanes[prior],
+                facts.source_call_ordinals[prior],
+                facts.source_owner_node_ids[i], facts.source_lanes[i],
+                facts.source_call_ordinals[i]
+            ) {
+                return false;
+            }
+            prior = prior + 1;
         }
         expected_start = expected_start + facts.actual_counts[i];
         i = i + 1;
     }
     return expected_start == ArrayLength(facts.actual_type_names);
+}
+
+func SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+    ref facts: SemanticAstGenericSpecializationFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> Bool {
+    if !SemanticAstGenericSpecializationFactsReady(facts) {
+        return false;
+    }
+    let i: Int = 0;
+    while i < SemanticAstGenericSpecializationCount(facts) {
+        let node: Option<Int> = SemanticExpressionCallNodeForIdentity(
+            expression_surfaces, facts.source_owner_node_ids[i],
+            facts.source_lanes[i], facts.source_call_ordinals[i]
+        );
+        if !IsSome(node) || UnwrapOption(node) != facts.call_node_ids[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
 }

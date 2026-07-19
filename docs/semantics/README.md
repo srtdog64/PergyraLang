@@ -111,6 +111,13 @@ Mechanized artifacts:
   that the checked helpers return `None` (panic) on exactly the two C undefined
   behavior inputs (`div_none_iff` for divide-by-zero/overflow), while returning
   correct and representable results for all other inputs.
+- [proofs/PergyraMulCost.v](proofs/PergyraMulCost.v): Coq-checked scope
+  boundary for the fixed-width `CheckedMul` contract. It proves exact result,
+  representability, fail-closed behavior, and the absence of a variable
+  bit-width parameter; it deliberately does not claim the tape transpose
+  lower bound or a wall-clock speedup. See
+  [proofs/PergyraMulCost.md](proofs/PergyraMulCost.md) for the benchmark and
+  research references.
 - [proofs/ZoneCrossingCore.v](proofs/ZoneCrossingCore.v): Coq proof sketch for the
   FIRST fragment of the Pergyra abstract machine / core calculus (docs/semantics/19):
   the capability-gated boundary-transfer step (zone crossing, ambient-calculus

@@ -3,6 +3,7 @@
 import "../type_facts/type_env.pgy";
 import "../text/text_owner.pgy";
 import "../runtime_abi/option_result_runtime_owner.pgy";
+import "../../semantic/ast_expression_call_target_fact_owner.pgy";
 import "expr_semantic_graph_emit_owner.pgy";
 
 struct OptionExprEmissionFact {
@@ -64,25 +65,25 @@ func EmitOptionExprFactForType(
         view.graph, view.root_id
     );
     if call.ok {
-        let callee_kind: Option<Int> = SemanticExpressionGraphNodeKind(
-            view.graph, call.callee_node
+        let target_kind: Option<Int> = SemanticExpressionGraphCallTargetKind(
+            view.graph, call.call_node
         );
-        let callee_text: Option<String> = SemanticExpressionGraphNodeText(
-            view.graph, call.callee_node
+        let target_name: Option<String> = SemanticExpressionGraphCallTargetName(
+            view.graph, call.call_node
         );
-        if !IsSome(callee_kind) ||
-            UnwrapOption(callee_kind) != AstExpressionNodeLeaf() ||
-            !IsSome(callee_text) {
-            Die("semantic Option constructor callee is invalid");
+        if !IsSome(target_kind) || !IsSome(target_name) {
+            Die("semantic Option call target fact is missing");
         }
-        let callee: String = UnwrapOption(callee_text);
-        if callee == "None" {
+        let target: String = UnwrapOption(target_name);
+        if UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
+            target == "None" {
             if ArrayLength(call.argument_nodes) != 0 {
                 Die("None Option constructor must not carry a payload");
             }
             return OptionExprEmissionFact(Concat(none_fn, "()"));
         }
-        if callee == "Some" {
+        if UnwrapOption(target_kind) == SemanticCallTargetDirect() &&
+            target == "Some" {
             if ArrayLength(call.argument_nodes) != 1 {
                 Die("Some Option constructor must carry exactly one payload");
             }

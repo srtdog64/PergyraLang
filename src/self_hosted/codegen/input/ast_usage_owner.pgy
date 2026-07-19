@@ -46,6 +46,8 @@ func CodegenRuntimeUsageFactsFromSemantic(
     expression_surfaces: SemanticAstExpressionSurfaceFacts,
     type_surfaces: SemanticAstTypeSurfaceFacts,
     kind_surfaces: SemanticAstKindSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    specializations: CodegenGenericSpecializationFacts,
     env: CodegenTypeEnv
 ) -> CodegenRuntimeUsageFacts {
     let expr_usage: CodegenExpressionUsageFacts =
@@ -83,7 +85,9 @@ func CodegenRuntimeUsageFactsFromSemantic(
         || uses_args;
     let uses_ast_text_node_array: Bool = type_usage.has_ast_text_node_array;
     let nominal_record_arrays: CodegenNominalArrayUsageFacts =
-        CodegenNominalArrayUsageFactsFromSemantic(type_surfaces, env);
+        CodegenNominalArrayUsageFactsFromSemantic(
+            type_surfaces, signatures, specializations, env
+        );
     let uses_io: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupIo());
     let uses_join: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupJoin());
     let uses_split: Bool = CodegenExpressionUsageGroupPresent(expr_usage, CodegenUsageBuiltinGroupSplit());

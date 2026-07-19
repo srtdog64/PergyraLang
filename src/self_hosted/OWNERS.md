@@ -88,6 +88,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/stmt_if_owner.pgy` -- if/if-let statements.
 - `src/self_hosted/parser/stmt_collection_graph_owner.pgy` -- parser-owned
   `ArrayPush` value and `ArraySet` index/value expression-graph roots.
+- `src/self_hosted/parser/stmt_destructure_owner.pgy` -- destructuring-let
+  pattern and initializer graph production.
 - `src/self_hosted/parser/stmt_loop_owner.pgy` -- loop statements.
 - `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements and their
   parser-owned scrutinee Atom graph roots.
@@ -131,6 +133,8 @@ inventory must not become a second fact-family owner registry.
   local binding node, function, scope, name, declared-type, and initializer
   payload facts, including array-literal body and `Let` statement-routing
   identity.
+- `src/self_hosted/semantic/ast_destructure_binding_fact_owner.pgy` -- typed
+  destructuring-let binding identity, scope, order, and initializer rows.
 - `src/self_hosted/semantic/ast_function_scope_fact_owner.pgy` -- function
   scope interval rows consumed by local-binding and expression-environment
   owners; downstream consumers must not rescan function bodies.
@@ -230,6 +234,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy` --
   semantic-owned direct generic call bindings keyed by expression call node;
   explicit calls and bounded inferred initializer calls share these rows.
+- `src/self_hosted/semantic/ast_expression_call_identity_owner.pgy` -- stable
+  statement SyntaxNodeId, expression lane, and local-call ordinal identity for
+  semantic call rows that cross into MIR; global graph indexes are not IDs.
 - `src/self_hosted/semantic/ast_type_name_canonical_owner.pgy` -- canonical
   semantic type names at signature/local artifact capture boundaries.
 - `src/self_hosted/semantic/body_check_owner.pgy` -- statement/body checks.
@@ -324,6 +331,8 @@ inventory must not become a second fact-family owner registry.
   node-kind tags consumed by inventory, semantic, and codegen views.
 - `src/self_hosted/hir/ast_expression_graph_owner.pgy` -- canonical expression
   graph arena, statement-lane root rows, and structural/reachability validation.
+- `src/self_hosted/hir/ast_destructure_graph_owner.pgy` -- parser graph to
+  typed destructure pattern and initializer artifact binding.
 - `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- canonical bounded
   scalar and `Some(binding)`/`None` pattern facts shared by semantic and MIR.
 - `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
@@ -361,10 +370,21 @@ inventory must not become a second fact-family owner registry.
   normalized expression graph rows and postorder subtree carriage.
 - `src/self_hosted/mir/match_fact_owner.pgy` -- sparse instruction-keyed match
   pattern, variant, and binding facts; the scalar rung requires one pattern.
+- `src/self_hosted/mir/destructure_fact_owner.pgy` -- sparse instruction-keyed
+  destructure element type and ordered binding facts.
+- `src/self_hosted/mir/destructure_cfg_owner.pgy` -- typed destructure fact
+  attachment to the owning MIR instruction row.
+- `src/self_hosted/mir/destructure_json_projection_owner.pgy` -- final MIR
+  JSON element-type and ordered-binding projection from destructure facts.
 - `src/self_hosted/mir/match_json_projection_owner.pgy` -- final MIR JSON field
   projection for match facts.
 - `src/self_hosted/mir/expression_graph_kind_name_owner.pgy` -- stable MIR JSON
   names for expression graph node kinds.
+- `src/self_hosted/mir/generic_specialization_owner.pgy` -- MIR-owned direct
+  and member generic specialization rows keyed by stable source-call identity,
+  including target kind, formal, actual, and emitted-symbol carriage.
+- `src/self_hosted/mir/generic_specialization_json_projection_owner.pgy` --
+  JSON projection of the MIR-owned stable identity and specialization rows.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
   semantic-fact input bundle consumed by routine lowering.
 - `src/self_hosted/mir/routine_build_owner.pgy` -- routine CFG build state,
@@ -382,6 +402,8 @@ inventory must not become a second fact-family owner registry.
   phi emission and post-match continuation version ownership.
 - `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
   back-edge, and exit-block lowering.
+- `src/self_hosted/mir/loop_reachability_fact_owner.pgy` -- loop-body exit and
+  back-edge reachability facts consumed before header phi emission.
 - `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row to
   loop-initializer, body, back-edge, and exit-block lowering.
 - `src/self_hosted/mir/routine_assignment_owner.pgy` -- semantic assignment
@@ -392,6 +414,8 @@ inventory must not become a second fact-family owner registry.
   dispatch after the statement fact owner has identified the tracked row.
 - `src/self_hosted/mir/routine_let_owner.pgy` -- semantic initializer row to
   MIR local declaration and SSA definition lowering.
+- `src/self_hosted/mir/routine_destructure_owner.pgy` -- aligned semantic
+  binding/type rows to one typed MIR destructure instruction.
 - `src/self_hosted/mir/routine_entry_owner.pgy` -- function-shell validation,
   signature parameter seeding, and routine-lowering entry.
 - `src/self_hosted/mir/artifact_lower_owner.pgy` -- program assembly and
@@ -411,10 +435,18 @@ inventory must not become a second fact-family owner registry.
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
   MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy` --
+  fail-closed MIR direct/member generic row decoder and final codegen-view
+  projection; semantic rows are verifier evidence, not emitted-symbol input.
 - `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
   MIR JSON graph decoding and ordered graph-sequence construction.
 - `src/self_hosted/mir_lower/expression_graph_match_owner.pgy` -- derived
-  match-condition and `Some` payload-binding graphs from carried MIR facts.
+  scalar/enum match-condition graphs from carried MIR and declaration facts.
+- `src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy` --
+  `IsSome` / `UnwrapOption` unary graph construction for Option match rows.
+- `src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy` --
+  canonical temp/index expression graphs derived from typed MIR destructure
+  facts; source text and builtin-name inference are forbidden.
 - `src/self_hosted/mir_lower/match_json_fact_owner.pgy` -- typed optional reads
   for match pattern arrays consumed during graph reconstruction.
 - `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
@@ -463,8 +495,9 @@ inventory must not become a second fact-family owner registry.
   selected entrypoint or library function-node projection without an arena
   name scan.
 - `src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy`
-  -- ordered C specialization rows projected from semantic generic binding
-  facts; codegen does not reopen expression graphs to infer type actuals.
+  -- ordered C specialization view shared by source entrypoints and MIR
+  consumers; hard MIR codegen receives it from the MIR row decoder and does
+  not reopen semantic rows to choose symbols or type actuals.
 - `src/self_hosted/codegen/input/semantic_role_codegen_view_owner.pgy` --
   fail-closed role name, target-type, and method-identity projection from
   semantic role facts.

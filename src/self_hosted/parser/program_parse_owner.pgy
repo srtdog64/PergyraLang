@@ -5,6 +5,7 @@
 
 import "../lib/path.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
+import "../hir/ast_destructure_graph_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
 import "match_pattern_graph_partition_owner.pgy";
@@ -67,8 +68,9 @@ func ParseRootProgram(source_path: String) -> String {
 func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let build: ParserProgramBuild = ParseRootProgramBuild(source_path);
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
-    return AstTreeArtifact(
+    let typed: AstTreeArtifact = AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
         build.expression_graphs, build.match_pattern_graphs
     );
+    return AstTreeArtifactBindDestructurePayloads(typed);
 }

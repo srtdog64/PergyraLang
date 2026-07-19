@@ -1,0 +1,76 @@
+// Destructuring-let pattern and initializer graph producer.
+
+import "cursor_owner.pgy";
+import "tree_text_owner.pgy";
+import "expr_owner.pgy";
+
+func ParseDestructureLetStmt(
+    content: String,
+    start: Int,
+    inout cursor_out: Array<Int>,
+    stmt_indent: Int,
+    inout expression_graphs: Array<AstExpressionGraphRows>
+) -> String {
+    let names: Array<String> = [];
+    let i: Int = start + 1;
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(name) == 0 { Exit(1); }
+        ArrayPush(names, name);
+        i = SkipWhitespaceAndComments(content, i);
+        if ParserCharAt(content, i) == "," {
+            i = i + 1;
+            continue;
+        }
+        break;
+    }
+    i = Expect(content, i, ")");
+    if i < 0 { Exit(1); }
+    i = Expect(content, i, "=");
+    if i < 0 { Exit(1); }
+    ArraySet(cursor_out, 0, i);
+    let initializer: ParserExpressionFact = ParseExprFact(
+        content, i, cursor_out
+    );
+    if !initializer.ok { Exit(1); }
+    i = cursor_out[0];
+    i = Expect(content, i, ";");
+    if i < 0 { Exit(1); }
+
+    let pattern_text: String = "[";
+    let index: Int = 0;
+    while index < ArrayLength(names) {
+        if index > 0 { pattern_text = Concat(pattern_text, ", "); }
+        pattern_text = Concat(pattern_text, names[index]);
+        index = index + 1;
+    }
+    pattern_text = Concat(pattern_text, "]");
+    let pattern: ParserExpressionFact = ParserExpressionArrayLiteral("[]");
+    index = 0;
+    while index < ArrayLength(names) {
+        pattern = ParserExpressionArrayElement(
+            pattern_text, pattern, ParserExpressionLeaf(names[index])
+        );
+        index = index + 1;
+    }
+    if !pattern.ok { Exit(1); }
+    ArraySet(
+        expression_graphs, 0,
+        ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindDestructureStmtTag(),
+            AstExpressionLaneAtom(), pattern
+        )
+    );
+    ArraySet(
+        expression_graphs, 0,
+        ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindDestructureStmtTag(),
+            AstExpressionLaneValue(), initializer
+        )
+    );
+    ArraySet(cursor_out, 0, i);
+    return Concat(IndentStr(stmt_indent), "AST node type 6");
+}

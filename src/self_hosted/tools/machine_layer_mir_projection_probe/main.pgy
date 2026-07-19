@@ -134,7 +134,9 @@ func MachineProbeFacts(
     );
     return SelfMirProgramFacts(
         true, "", "", 1,
-        SelfMirDeclarationRowsEmpty(), SelfMirParallelCaptureRowsEmpty(),
+        SelfMirDeclarationRowsEmpty(),
+        SelfMirGenericSpecializationRowsEmpty(),
+        SelfMirParallelCaptureRowsEmpty(),
         routines, cfg5
     );
 }

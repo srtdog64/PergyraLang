@@ -1,5 +1,193 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: `for_continue` is DRV-2 MIR fixture 76.
+The Pergyra producer now publicly carries a `for` loop whose nested branch
+reaches the loop header through an explicit continue CFG edge. MIR owns both
+that edge and the associated LoopFlowSummary row; the hard consumer derives
+structured `Continue` from the successor graph rather than the branch label.
+Changing only the declared loop-summary count fails closed before emission.
+Focused C parity proves canonical MIR and runtime output (`25`) against the
+native oracle. This is bounded continue-flow evidence, not a claim that all
+loop state rows or nested break/continue combinations are closed.
+
+2026-07-19 executable delta: `result_try` is DRV-2 MIR fixture 75.
+The existing typed postfix-try graph owner now has blocking Result evidence in
+addition to Option evidence. `?Validate(doubled)` retains the `try` node and
+its ordered call-argument spine through self MIR and both canonical artifacts;
+the hard consumer emits Result success extraction and Err early return from
+that graph. Focused C parity covers both the successful `Process(10)` path and
+the failing `Process(60)` path, plus the surrounding pipe expressions and
+runtime output. The graph-negative owner remains the missing-fact ratchet; no
+operand-text recovery or Result-specific parser was added.
+
+2026-07-19 executable delta: `enum_match` is DRV-2 MIR fixture 74.
+The parser preserves each bare case identifier as a pattern fact without
+guessing whether it is a scalar or enum value. Semantic analysis proves that
+the match subject has the declared enum type and that the selected variant has
+zero payload fields. MIR keeps the native-compatible
+`match_variant = null` row, while the hard MIR consumer resolves the variant
+through carried enum declaration rows and constructs `Owner.Variant`
+equality graphs. Removing only the `North` declaration row now fails closed
+with the enum-declaration diagnostic. The focused C parity gate proves
+source/MIR canonical equivalence and runtime output for all three variants.
+Payload-bearing enum cases remain outside this bounded rung. Native block
+ordering still requires the explicitly named oracle canonicalization bridge;
+the self-produced MIR path does not use that bridge.
+
+2026-07-19 executable delta: `defer_scope` is DRV-2 MIR fixture 73.
+The bounded single-`Log` cleanup body now crosses native and self MIR as an
+explicit `AST_DEFER_STMT` instruction with `arg0=Log` and an `expr0_graph` for
+the deferred expression. The hard MIR consumer reconstructs the cleanup body
+from that graph and no longer reads `defer_body` statement strings. Native
+MIR retains the old array only as compatibility provenance; deleting the typed
+graph while keeping that text fails closed. The fixture proves LIFO block exit
+and early-return cleanup against the C oracle. Multi-statement and non-`Log`
+defer bodies remain outside this bounded rung rather than falling back to text.
+
+2026-07-19 executable breadth delta: five already-supported compiler paths are
+now blocking DRV-2 MIR fixtures 68 through 72 instead of codegen-only evidence.
+`ref_param` and `inout_return_forward` carry readonly-ref and value-result
+parameters through self MIR; `option_int_core`, `array_param`, and `bool_logic`
+cover wrapper mutation, collection parameter/return flow, and recursive
+logical control flow. For each path, the Pergyra producer, native MIR oracle,
+strict canonicalizer, MIR-to-C consumer, and runtime result agree. The parity
+runner accepts a comma-separated fixture filter so one bounded change can
+validate its exact impact set without rebuilding the driver once per fixture.
+This is executable replacement breadth, not a new semantic-owner closure.
+At that checkpoint, `defer_scope` remained excluded because native MIR still
+serialized its deferred body as statement strings; the subsequent delta above
+lands the first typed cleanup-body fact instead of admitting that fallback.
+
+2026-07-19 executable delta: direct and member generic calls now share one
+self-MIR specialization owner. `generic_member_inferred_flow`,
+`generic_vessel_member_inferred_flow`, and
+`generic_member_constructed_return_flow` plus
+`generic_member_array_return_flow` and
+`generic_member_record_array_return_flow` are DRV-2 fixtures 63 through 67, and
+the existing inferred `Identity<T>` fixtures use the same top-level row. The stable
+identity is `(owner SyntaxNodeId, expression lane, local call
+ordinal)`; an expression-graph index is never serialized as identity. The hard
+MIR-to-C entrypoint passes only the decoded MIR specialization view into body
+codegen instead of first projecting semantic rows and overwriting the result.
+Recomputed semantic rows remain verifier evidence. Missing direct/member rows,
+identity drift, and symbol drift fail closed. The nested member fixture carries
+ordinals 0 and 1 and infers `T=Int` without source `<Int>` actuals. Native MIR
+captures the child specialization before its parent so the exact generic
+return binding reaches the outer call; both paths emit one deduplicated
+`Box_Echo_Int` body. The adjacent vessel fixture proves the same path for the
+Pergyra-specific passive state host and emits `Cell_Echo_Int`. The constructed
+return fixture infers the inner `Wrapper_Wrap_Int`, substitutes its declared
+`Option<T>` return as `Option<Int>`, then uses that exact type to specialize the
+outer call as `Wrapper_Echo_Option_Int_`; both hard source/MIR consumers run as
+`43`. Native MIR now renders substitutions through its structured return-type
+AST, and its verifier rejects any method formal retained as an identifier token
+inside an actual type. Option codegen identifies `Some`/`None` only from the
+semantic direct-call target fact; deleting or changing that fact fails before
+emission. This remains `BRIDGE`, not global closure: native and self identities
+are not yet one representation, and multi-formal or deeper constructed return
+shapes remain outside this bounded rung.
+
+The adjacent `Array<T>` fixture proves that the structured substitution is not
+Option-specific. `ArrayWrapper.Wrap<T> -> Array<T>` resolves to `Array<Int>`,
+the outer specialization becomes `ArrayWrapper_Echo_Array_Int_`, and hard
+source/MIR consumers both run as `44`. Runtime usage no longer treats the
+declared `Array<T>` surface as an unknown nominal-record array. It recognizes
+declared formals through signature facts and separately scans concrete generic
+specialization actuals for materialized array element types. Unknown non-formal
+elements still fail closed.
+
+The record-array falsification fixture instantiates the same return as
+`Array<Point>`. Its specialization actual retains the `Point` runtime array
+definition, the inner and outer symbols become `RecordArrayWrapper_Wrap_Point`
+and `RecordArrayWrapper_Echo_Array_Point_`, and native/self source/self MIR all
+run as `45`. The emitted-C gate requires the concrete `pgy_Point_array` row, so
+the specialization-usage consumer cannot become decorative.
+
+The class, vessel, Option-return, and Array-return nested inferred member programs are
+now part of the public bounded replacement gate. `pgy --self-driver` must
+produce the same canonical MIR,
+MIR-consumed C artifact, and runtime output as the direct DRV-2 binary and C
+oracle. The hard self side remains graph-owned; only the legacy native oracle
+artifact enters the explicitly named `--canonicalize-oracle-mir-json` bridge.
+A missing self driver remains an error; this does not change the released/default
+compiler path or claim whole-compiler replacement.
+
+2026-07-19 executable delta: `array_destructure` is DRV-2 MIR fixture 62.
+The parser owns the destructure pattern and initializer graphs; semantic owns
+the ordered local-binding and element-type rows; MIR carries one typed
+destructure instruction with exact binding names, source locals, and initializer
+uses. The final consumer derives canonical temp/index expression graphs from
+those MIR facts and no longer infers `Split` or element type from source text.
+The canonical temp identity is binding-derived rather than JSON-offset-derived.
+C-built and LLVM-built focused drivers matched native canonical MIR, emitted C,
+and runtime output. Removing only `destructure_element_type` fails closed, and
+the static contract forbids the retired `Split(` recovery path. This closes the
+last ratcheted-out executable counterexample from the 59-row breadth expansion;
+released/default compiler replacement remains 0%.
+
+2026-07-19 executable delta: `nested_if_in_loop` is DRV-2 MIR fixture 61.
+`loop_reachability_fact_owner.pgy` derives separate backedge and fallthrough
+facts from the typed control-flow tree before loop-header SSA construction.
+The producer compares that plan with the completed CFG and emits a header phi
+only when normal fallthrough or explicit `continue` reaches the header. It no
+longer scans instruction result spellings to guess the live version. C-built
+and LLVM-built official parity matched native canonical MIR, emitted C, and
+runtime output. A negative injects the retired one-predecessor header phi and
+both final consumers reject it. At that checkpoint, `array_destructure` was the
+only ratcheted-out executable counterexample; the subsequent delta above closes
+it.
+
+2026-07-19 executable delta: `break_after_stmt` is DRV-2 MIR fixture 60.
+The MIR-to-tree consumer now uses the then-arm successor fact when a cyclic CFG
+would otherwise select a later iteration's then block as the structural merge.
+It emits the loop-exit arm as `break` and the fallthrough arm as the loop
+continuation without reopening source text. The focused official harness passed
+20 body fixtures plus this MIR fixture under C-built and LLVM-built self
+drivers, including canonical MIR and runtime parity. At that checkpoint,
+`nested_if_in_loop` and `array_destructure` remained excluded; the subsequent
+deltas above close both.
+
+2026-07-19 executable breadth delta: DRV-2 now commits 59 MIR fixtures. The
+previous 41-row frontier is joined by 18 already-supported declaration,
+arithmetic, call, branch, reassignment, and loop programs. Each promoted row
+matched the native oracle's canonical MIR and runtime output under both the
+C-built and LLVM-built self drivers. This slice did not rerun the complete
+59-row matrix. At that checkpoint, three executable counterexamples remained
+excluded. The subsequent delta above closed `break_after_stmt`; the other two
+must enter through their missing owners, not by source-text recovery or C
+fallback.
+
+2026-07-19 executable delta: index emission now derives the receiver collection
+type from `CodegenExpressionTypeFromGraph` and the collection ABI owner. It no
+longer reads receiver node text or invokes `ExprMemberFieldType`. The new
+`member_array_index` DRV-2 fixture carries `holder.values[1]` through a nested
+member/index graph. C-built and LLVM-built self drivers matched canonical MIR,
+emitted C, and runtime output. A negative changes only member-node provenance
+from `holder.values` to `stale.provenance`; both drivers still emit the child-
+graph-owned `pgy_ai_get(holder.values, 1)`, proving the old text path is not the
+last consumer.
+
+2026-07-19 executable delta: payload-free enum expected values no longer recover
+their value from root expression text. `RewriteSemanticExpectedValue` delegates
+to the parser-owned leaf/member graph and the canonical enum row in
+`TypeEnvZone`. Focused DRV-2 parity for `enum_return` passed with C-built and
+LLVM-built self drivers across 20 body fixtures plus the selected MIR fixture.
+The negative leg preserved the root `Choice.B` provenance, changed only the
+member child from `B` to `Missing`, and both consumers rejected it. Legacy enum
+text projection remains only in separately named call/match compatibility
+owners; the mixed-expression blocker therefore stays open.
+
+2026-07-19 executable delta: `await` is no longer recovered from an `"await "`
+leaf prefix. The self parser emits an arity-one `await` expression node, semantic
+and codegen type owners derive its `Future<T>` / `RemoteFuture<T>` result, MIR
+JSON preserves the node kind, and the machine-layer C emitter selects the
+remote-await ABI row from the typed child binding. The component contract
+forbids the retired string slicer, while the focused machine-layer gate mutates
+only the MIR node kind from `await` to `leaf` and requires fail-closed rejection.
+The current self-host emission slice remains bounded to a named
+`RemoteFuture<T>` binding; arbitrary await operands and local executor lowering
+are not claimed.
+
 2026-07-19 executable delta: scalar `match` occupies DRV-2 MIR fixtures 38-39. The
 Pergyra producer lowers semantic statement-owned subject/pattern facts into an
 eight-block case/default CFG, carries each case through
@@ -862,7 +1050,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures, 30 canonical MIR producer/consumer fixtures, and the standalone fact-only MIR consumer has 102 fixtures; indexed assignment plus Int/String/struct collection-mutator fixtures passed focused C/LLVM-built driver legs, while the complete 30-case matrix was not rerun in this slice | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 61 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The 18-row breadth promotion plus `break_after_stmt` and `nested_if_in_loop` passed focused C/LLVM canonical-MIR and runtime parity, while the complete 61-case matrix was not rerun in these slices. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

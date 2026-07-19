@@ -2,47 +2,15 @@
 
 import "error_owner.pgy";
 import "json_fact_read.pgy";
-
-func TextStartsWith(text: String, prefix: String) -> Bool {
-    return StringLength(text) >= StringLength(prefix)
-        && Substring(text, 0, StringLength(prefix)) == prefix;
-}
-
-func ArrayElementTypeName(type_name: String) -> String {
-    if StringIndexOf(type_name, "String") >= 0 {
-        return "String";
-    }
-    if StringIndexOf(type_name, "Int") >= 0 {
-        return "Int";
-    }
-    if StringIndexOf(type_name, "Bool") >= 0 {
-        return "Bool";
-    }
-    if StringIndexOf(type_name, "Float") >= 0 {
-        return "Float";
-    }
-    return "";
-}
-
-func DestructureElementType(expr0: String, source_local_type: String) -> String {
-    let init: String = StringTrim(expr0);
-    if TextStartsWith(init, "Split(") {
-        return "String";
-    }
-    return ArrayElementTypeName(source_local_type);
-}
-
-func DestructureNeedsTemp(expr0: String) -> Bool {
-    let init: String = StringTrim(expr0);
-    return StringIndexOf(init, "(") >= 0 || StringIndexOf(init, "[") >= 0
-        || StringIndexOf(init, " ") >= 0 || StringIndexOf(init, ",") >= 0;
-}
+import "destructure_expression_projection_owner.pgy";
+import "expression_graph_sequence_owner.pgy";
 
 func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
-                                indent: String, expr0: String,
-                                source_local_type: String) -> String {
+                                indent: String, expr0: String) -> String {
     let init: String = StringTrim(expr0);
-    let elem_type: String = DestructureElementType(init, source_local_type);
+    let elem_type: String = MirObjectStringFact(
+        json, inst_start, inst_end, "destructure_element_type"
+    );
     if StringLength(init) == 0 {
         MirLowerFailClosed("destructure instruction is missing initializer fact");
     }
@@ -53,11 +21,17 @@ func RenderDestructureFromFacts(json: String, inst_start: Int, inst_end: Int,
     if !MirObjectArrayBounds(json, inst_start, inst_end, "destructure_bindings", binding_bounds) {
         MirLowerFailClosed("destructure instruction is missing binding-name facts");
     }
+    let first_binding: String = MirObjectArrayStringFactAt(
+        json, inst_start, inst_end, "destructure_bindings", 0
+    );
+    if first_binding == "" {
+        MirLowerFailClosed("destructure instruction has no binding-name facts");
+    }
 
     let out: String = "";
     let source: String = init;
-    if DestructureNeedsTemp(init) {
-        source = Concat("_pgy_destructure_", ToString(inst_start));
+    if MirDestructureNeedsTemp(init) {
+        source = MirDestructureTempName(first_binding);
         out = Concat(out, Concat(indent, Concat("Let: ", Concat(source,
             Concat(" : Array<", Concat(elem_type, Concat("> = ", Concat(init, "\n"))))))));
     }
@@ -96,25 +70,38 @@ func StmtToTreeLine(stmt: String) -> String {
 }
 
 func RenderDeferFromFacts(json: String, inst_start: Int, inst_end: Int,
-                          indent: String) -> String {
-    let body_bounds: Array<Int> = [0, 0];
-    if !MirObjectArrayBounds(json, inst_start, inst_end, "defer_body", body_bounds) {
-        MirLowerFailClosed("defer instruction is missing body facts");
+                          indent: String, arg0: String) -> String {
+    if arg0 != "Log" {
+        MirLowerFailClosed("defer instruction has no typed body kind");
     }
-
+    let instruction: JsonObjectFactTable = JsonObjectFactTableFromBounds(
+        json, inst_start, inst_end
+    );
+    let graph: JsonObjectFactTable = JsonObjectFactObjectTable(
+        instruction, "expr0_graph"
+    );
+    let sequence: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequenceEmpty(), graph
+        );
+    if !sequence.ok || ArrayLength(sequence.roots) != 1 {
+        MirLowerFailClosed(
+            "MIR instruction expression graph is missing or invalid: defer typed body graph required"
+        );
+    }
+    let root: Int = sequence.roots[0];
+    if root < 0 || root >= ArrayLength(sequence.arena.node_texts) ||
+        sequence.arena.node_texts[root] == "" {
+        MirLowerFailClosed("defer body graph has no root expression");
+    }
     let out: String = Concat(indent, "Defer:\n");
     out = Concat(out, Concat(indent, "  Block:\n"));
-    let emitted: Int = 0;
-    let stmt: String = MirObjectArrayStringFactAt(json, inst_start, inst_end, "defer_body", emitted);
-    while StringLength(stmt) > 0 {
-        out = Concat(out, Concat(indent, Concat("    ", Concat(StmtToTreeLine(stmt), "\n"))));
-        emitted = emitted + 1;
-        stmt = MirObjectArrayStringFactAt(json, inst_start, inst_end, "defer_body", emitted);
-    }
-    if emitted == 0 {
-        MirLowerFailClosed("defer instruction body facts are empty");
-    }
-    return out;
+    return Concat(
+        out,
+        Concat(indent, Concat(
+            "    Log(", Concat(sequence.arena.node_texts[root], ")\n")
+        ))
+    );
 }
 
 func RenderStmtFromFacts(kind: String, source_type: String,

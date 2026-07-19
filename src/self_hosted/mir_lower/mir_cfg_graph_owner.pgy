@@ -91,7 +91,17 @@ func MirRoutineEdgeTargetsDominator(
     source: Int,
     target: Int
 ) -> Bool {
-    if source < 0 || target < 0 || target >= ArrayLength(block_succ_true) {
+    if source < 0 || source >= ArrayLength(block_succ_true) ||
+        target < 0 || target >= ArrayLength(block_succ_true) {
+        return false;
+    }
+    // An unreachable component must not manufacture a loop header merely
+    // because the entry cannot reach its source while avoiding the target.
+    // Back-edge classification is only meaningful for the reachable CFG.
+    let reachable: Array<Int> = MirRoutineGraphDistances(
+        block_succ_true, block_succ_false, 0
+    );
+    if reachable[source] < 0 || reachable[target] < 0 {
         return false;
     }
     if source == target { return true; }

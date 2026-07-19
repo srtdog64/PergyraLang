@@ -1,0 +1,79 @@
+// Typed control-flow facts used before loop-header SSA construction.
+
+import "routine_input_owner.pgy";
+
+struct SelfMirLoopReachabilityFact {
+    ok: Bool;
+    reaches_backedge: Bool;
+    falls_through: Bool;
+}
+
+func SelfMirLoopReachabilityForBlock(
+    arena: AstArena,
+    block_node_id: Int
+) -> SelfMirLoopReachabilityFact {
+    let reaches_backedge: Bool = false;
+    let falls_through: Bool = true;
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = TypedAstArenaChildAt(
+        arena, block_node_id, child_index
+    );
+    while IsSome(child_opt) && falls_through {
+        let node_id: Int = UnwrapOption(child_opt);
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(arena, node_id);
+        if !IsSome(kind_opt) {
+            return SelfMirLoopReachabilityFact(false, false, false);
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        let statement_reaches: Bool = false;
+        let statement_falls: Bool = true;
+        if kind == TypedAstKindContinueStmtTag() {
+            statement_reaches = true;
+            statement_falls = false;
+        } else if kind == TypedAstKindBreakStmtTag() ||
+            kind == TypedAstKindBareReturnStmtTag() ||
+            kind == TypedAstKindValueReturnStmtTag() {
+            statement_falls = false;
+        } else if kind == TypedAstKindIfStmtTag() {
+            let then_opt: Option<Int> = SelfMirControlBodyBlock(
+                arena, node_id
+            );
+            if !IsSome(then_opt) {
+                return SelfMirLoopReachabilityFact(false, false, false);
+            }
+            let then_fact: SelfMirLoopReachabilityFact =
+                SelfMirLoopReachabilityForBlock(
+                    arena, UnwrapOption(then_opt)
+                );
+            if !then_fact.ok {
+                return then_fact;
+            }
+            let else_fact: SelfMirLoopReachabilityFact =
+                SelfMirLoopReachabilityFact(true, false, true);
+            let else_opt: Option<Int> = SelfMirIfElseLoweringRoot(
+                arena, node_id
+            );
+            if IsSome(else_opt) {
+                else_fact = SelfMirLoopReachabilityForBlock(
+                    arena, UnwrapOption(else_opt)
+                );
+                if !else_fact.ok {
+                    return else_fact;
+                }
+            }
+            statement_reaches = then_fact.reaches_backedge ||
+                else_fact.reaches_backedge;
+            statement_falls = then_fact.falls_through ||
+                else_fact.falls_through;
+        }
+        reaches_backedge = reaches_backedge || statement_reaches;
+        falls_through = statement_falls;
+        child_index = child_index + 1;
+        child_opt = TypedAstArenaChildAt(
+            arena, block_node_id, child_index
+        );
+    }
+    return SelfMirLoopReachabilityFact(
+        true, reaches_backedge, falls_through
+    );
+}

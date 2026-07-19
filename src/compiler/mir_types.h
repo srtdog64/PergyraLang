@@ -148,6 +148,7 @@ typedef struct
     ASTNode         *match_case_guard;
     const char     **destructure_binding_names;
     size_t           destructure_binding_count;
+    const char      *destructure_element_type_name;
     bool             has_lifecycle_guard_fact;
     MIRLifecycleGuardKind lifecycle_guard_kind;
     uint32_t         lifecycle_valid_mask;

@@ -6,6 +6,7 @@
 #include "../parser/ast.h"
 
 void mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt);
+ASTNode *mir_defer_log_expression_fact(const MIRInstruction *inst);
 void mir_attach_def_initializer_call_fact(MIRRoutine *routine,
                                           MIRInstruction *inst,
                                           const ASTNode *stmt);

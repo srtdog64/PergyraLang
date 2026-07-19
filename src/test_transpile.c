@@ -76,6 +76,7 @@ static MIRProgram *g_last_mir = NULL;
 #include "tests/transpile/test_transpile_core_part_b_2.cases.h"
 #include "tests/transpile/test_transpile_program_part_a.cases.h"
 #include "tests/transpile/test_transpile_program_part_b.cases.h"
+#include "tests/transpile/test_transpile_generic_method_specialization.cases.h"
 #include "tests/transpile/test_transpile_domain_part_a.cases.h"
 #include "tests/transpile/test_transpile_parallel_family.cases.h"
 #include "tests/transpile/test_transpile_domain_async_part_a_1.cases.h"
@@ -91,17 +92,26 @@ static MIRProgram *g_last_mir = NULL;
 #include "tests/transpile/test_transpile_mir_source_order.cases.h"
 
 int
-main(void)
+main(int argc, char **argv)
 {
     printf("=== Pergyra C Transpiler Test Suite ===\n");
 
     type_system_init();
+
+    if (argc == 2
+        && strcmp(argv[1], "generic-method-specialization") == 0) {
+        test_generic_method_specialization_fact();
+        printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
+        type_system_cleanup();
+        return (g_fail > 0) ? 1 : 0;
+    }
 
     test_codebuf();
     test_type_mapping();
     test_expression_emit();
     test_statement_emit();
     test_program_emit();
+    test_generic_method_specialization_fact();
     test_ability_role_emit();
     test_party_emit();
     test_roster_world_emit();

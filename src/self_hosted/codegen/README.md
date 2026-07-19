@@ -240,14 +240,21 @@ calls the run owner. `emission/struct_value_emit.pgy` remains a legacy
 compact-expression owner for unmigrated lanes; collection values and general
 struct-valued `let`, assignment, and return paths consume expected-type
 semantic graph facts. `emission/option_value_emit_owner.pgy` consumes the same
-graph boundary for `Option<struct>` `Some` constructors and payloads, selecting
-constructor spellings only from the expected-type runtime ABI row. The shared
+graph boundary for `Option<struct>` `Some` constructors and payloads. Constructor
+identity comes from the semantic direct-call target fact, while constructor
+spellings come only from the expected-type runtime ABI row. The shared
 semantic struct view validates field names, cardinality, and field value types
 against nominal constructor rows before emission. Contextual `None` local
 initialization, reassignment, and return use the same expected-type ABI row;
 the native C and LLVM assignment consumers obtain that expected type from MIR
 local facts, and the emitted-C parity ratchet requires
 `pgy_option_none_Pair()` rather than an `Option<Int>` fallback.
+
+Runtime array usage also separates declarations from materialization.
+`input/nominal_array_usage_owner.pgy` ignores `Array<T>` only when `T` is a
+declared generic formal and scans concrete generic specialization actuals for
+the array element types that runtime ABI emission must retain. The hard record
+array fixture requires this path to materialize `pgy_Point_array`.
 `compiler/symbol_table_owner.pgy` owns emitted-symbol spelling
 rows for function names, owner-qualified methods, role operator names,
 payload-free enum variants, struct fields, source-to-C binding names, `inout`

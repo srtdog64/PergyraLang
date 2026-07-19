@@ -7,6 +7,7 @@ import "routine_if_owner.pgy";
 import "routine_while_owner.pgy";
 import "routine_for_owner.pgy";
 import "routine_match_owner.pgy";
+import "routine_defer_owner.pgy";
 
 func SelfMirLowerTrackedStatementFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -97,6 +98,9 @@ func SelfMirLowerTrackedStatementFromArtifact(
             input, build, node_id, payload,
             break_blocks, continue_target
         );
+    }
+    if kind == TypedAstKindDeferStmtTag() {
+        return SelfMirLowerDeferFromArtifact(input, build, node_id);
     }
     return SelfMirRoutineBuildError(
         build, "statement kind is outside bounded MIR producer"

@@ -1024,6 +1024,7 @@ Inductive SpineFact : Type :=
   | SFDirDomainGraph
   | SFRirResourceTransitionGraph
   | SFMirExecutionGraph
+  | SFMirGenericSpecialization
   | SFAirEvidenceGraph
   | SFAbiLayoutRows
   | SFTargetCapabilityProfile
@@ -1103,6 +1104,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFDirDomainGraph => SODir
   | SFRirResourceTransitionGraph => SORir
   | SFMirExecutionGraph => SOMir
+  | SFMirGenericSpecialization => SOMir
   | SFAirEvidenceGraph => SOAir
   | SFAbiLayoutRows => SOMirAbi
   | SFTargetCapabilityProfile => SOTargetCapability

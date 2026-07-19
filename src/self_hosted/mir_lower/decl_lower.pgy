@@ -129,7 +129,10 @@ func EmitRoleMethods(ref routines: MirProgramRoutineIndex, json: String,
         row = row + 1;
     }
     if StringLength(out) > 0 {
-        return Concat("    Methods:\n", out);
+        // Reconstruct the parser-owned role shape.  A generic Methods block
+        // is not an AST role owner and causes the method routine's expression
+        // graph to disappear on the MIR -> AST round trip.
+        return Concat("    Impl ability: (null)\n", out);
     }
     return "";
 }
@@ -179,6 +182,12 @@ func NominalAstLabel(nominal_kind: String) -> String {
     if nominal_kind == "tobject" {
         return "TObject";
     }
+    if nominal_kind == "zone" {
+        return "Zone";
+    }
+    if nominal_kind == "world" {
+        return "World";
+    }
     return "Class";
 }
 
@@ -216,7 +225,9 @@ func EmitStructDecls(ref routines: MirProgramRoutineIndex, json: String) -> Stri
                 ArrayPush(chunks, "    Fields:\n");
                 ArrayPush(chunks, fields);
             }
-        } else if kind == "class" {
+        } else if kind == "class" || kind == "subject" ||
+            kind == "object" || kind == "tobject" ||
+            kind == "vessel" || kind == "zone" || kind == "world" {
             let nominal_kind: String = MirObjectStringFact(json, decl_bounds[0], decl_bounds[1], "nominal_kind");
             ArrayPush(chunks, Concat("  ", Concat(NominalAstLabel(nominal_kind), Concat(": ", Concat(sname, "\n")))));
             let cfields: String = EmitDeclFields(json, decl_bounds[0], decl_bounds[1], sname);

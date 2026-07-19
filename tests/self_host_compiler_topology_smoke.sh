@@ -60,13 +60,33 @@ awk '
 
 awk '
     /## Recursive Topology Rule/ { rule++ }
+    /## Target Resource Facade/ { facade++ }
     /resource zone -> intent transition -> typed owner fact -> final consumer/ {
         chain++
     }
     /carriage decision remains positional by default/ { positional++ }
     /not the literal golden ratio/ { balance++ }
+    /^\| `FrontendResources\.Intake` \| `SourceIntakeZone` \|$/ { intake++ }
+    /^\| `FrontendResources\.Token` \| `TokenStreamZone` \|$/ { token++ }
+    /^\| `FrontendResources\.AST` \| `AstTreeZone` \|$/ { ast++ }
+    /^\| `MiddleEndResources\.Semantic` \| `SemanticVerdictZone`, `TypeEnvZone` \|$/ { semantic++ }
+    /^\| `MiddleEndResources\.MIR` \| `MirFactGraphZone` \|$/ { mir++ }
+    /^\| `EvidenceResources\.AIR` \| `AirEvidenceZone` \|$/ { air++ }
+    /^\| `EvidenceResources\.Compatibility` \| `CompatibilityEvolutionZone` \|$/ { compatibility++ }
+    /^\| `EvidenceResources\.ABI` \| `AbiLayoutZone`, `AbiRowProjectionZone` \|$/ { abi++ }
+    /^\| `BackendResources\.Target` \| `TargetCapabilityZone`, `SandboxCapabilityZone` \|$/ { target++ }
+    /^\| `BackendResources\.Emission` \| `SymbolFactTableZone`, `EmissionZone` \|$/ { emission++ }
+    /^\| `BackendResources\.Artifact` \| `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` \|$/ { artifact++ }
+    /target facade projection, not a claim that four new aggregate zones/ {
+        projection++
+    }
+    /It must not be emitted as a nested value bundle/ { no_bundle++ }
     END {
-        if (rule != 1 || chain != 1 || positional != 1 || balance != 1) {
+        if (rule != 1 || facade != 1 || chain != 1 || positional != 1 ||
+            balance != 1 || intake != 1 || token != 1 || ast != 1 ||
+            semantic != 1 || mir != 1 || air != 1 || compatibility != 1 ||
+            abi != 1 || target != 1 || emission != 1 || artifact != 1 ||
+            projection != 1 || no_bundle != 1) {
             exit 1
         }
     }

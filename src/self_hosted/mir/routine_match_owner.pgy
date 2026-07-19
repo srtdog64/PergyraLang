@@ -27,17 +27,37 @@ func SelfMirMatchCaseFactForNode(
 }
 
 func SelfMirMatchCaseSubjectReady(
+    ref input: SelfMirRoutineInput,
     build: SelfMirRoutineBuild,
     match_value: String,
     fact: SelfMirMatchCaseFact
 ) -> Bool {
-    if fact.variant == "" { return true; }
+    if fact.variant == "" &&
+        ToString(ToInt(fact.pattern)) == fact.pattern {
+        return true;
+    }
     let local_index: Option<Int> = SelfMirRoutineLocalIndex(
         build, match_value
     );
-    return IsSome(local_index) && StartsWith(
-        build.local_types[UnwrapOption(local_index)], "Option<"
-    );
+    if !IsSome(local_index) { return false; }
+    let subject_type: String =
+        build.local_types[UnwrapOption(local_index)];
+    if fact.variant == "Some" || fact.variant == "None" {
+        return StartsWith(subject_type, "Option<");
+    }
+    if fact.variant != "" || fact.binding != "" {
+        return false;
+    }
+    let i: Int = 0;
+    while i < ArrayLength(input.analysis.enums.variant_names) {
+        if input.analysis.enums.variant_enum_names[i] == subject_type &&
+            input.analysis.enums.variant_names[i] == fact.pattern &&
+            input.analysis.enums.variant_param_counts[i] == 0 {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 func SelfMirLowerMatchCaseBranch(
@@ -47,9 +67,9 @@ func SelfMirLowerMatchCaseBranch(
     match_value: String,
     fact: SelfMirMatchCaseFact
 ) -> SelfMirRoutineBuild {
-    if !SelfMirMatchCaseSubjectReady(build, match_value, fact) {
+    if !SelfMirMatchCaseSubjectReady(input, build, match_value, fact) {
         return SelfMirRoutineBuildError(
-            build, "MIR Option match subject type fact is missing"
+            build, "MIR match subject type or variant fact is missing"
         );
     }
     build = SelfMirRoutineAddInstruction(

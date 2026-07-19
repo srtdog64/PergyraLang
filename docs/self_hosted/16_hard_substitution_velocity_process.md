@@ -656,6 +656,197 @@ invalid array roots. Assignment and statement array-literal checks remain on
 the legacy projection, so this is an executable slice, not global result-type
 closure.
 
+Fifty-second executable active-rung delta, 2026-07-19: `await` is a parser-owned
+arity-one expression node rather than an `"await "` leaf convention. Semantic
+and codegen result typing consume the child `Future<T>` / `RemoteFuture<T>`
+fact, MIR JSON preserves the node kind, and remote-await emission selects the
+machine runtime ABI from the typed child binding. The focused machine-layer
+gate changes only the MIR node kind to `leaf` and requires fail-closed
+rejection. Arbitrary await operands and local executor lowering remain outside
+this bounded rung.
+
+Fifty-third executable active-rung delta, 2026-07-19: payload-free enum
+expected-value emission no longer calls the root-text enum projection owner.
+It consumes the parser-owned receiver/member graph and the exact enum row used
+by the general graph emitter. Focused `enum_return` DRV-2 parity passed with C-
+and LLVM-built self drivers over 20 body fixtures plus the selected MIR
+fixture. The negative leg preserves root `Choice.B` provenance and changes only
+the member child to `Missing`; both hard consumers reject it. Text projection
+remains in separately named call/match compatibility owners, so the mixed-tree
+blocker remains `ACTIVE`.
+
+Fifty-fourth executable active-rung delta, 2026-07-19: index emission now
+consumes `CodegenExpressionTypeFromGraph` for its receiver and the collection
+runtime ABI row for its getter. The emitter no longer recovers a binding or
+member-field type from receiver text. The new `member_array_index` fixture
+raises DRV-2 to 41 MIR fixtures and exercises `holder.values[1]`. Focused C/LLVM
+parity passes for that fixture. Its negative changes only member-node
+provenance from `holder.values` to `stale.provenance`; both drivers still emit
+the child-graph-owned getter. A static gate forbids node-text and
+`ExprMemberFieldType` reads in `RewriteSemanticIndex`. Other text consumers
+remain, so the mixed-tree blocker stays `ACTIVE`.
+
+Fifty-fifth executable active-rung delta, 2026-07-19: DRV-2 grows from 41 to
+59 committed MIR fixtures by promoting 18 declaration, arithmetic, call,
+branch, reassignment, and loop programs that the Pergyra producer already
+handles. Every promoted row matched native-oracle canonical MIR and runtime
+output under both C-built and LLVM-built self drivers. The complete 59-row
+matrix was not rerun in this slice. The contract explicitly excludes three
+falsifying fixtures until their actual owners land: `break_after_stmt`
+(canonicalizer fixed point), `nested_if_in_loop` (loop-phi facts), and
+`array_destructure` (parser/semantic typed-binding facts). Promotion may not
+recover those facts from source text or delegate them to a hidden C fallback.
+
+Fifty-sixth executable active-rung delta, 2026-07-19: `break_after_stmt` becomes
+DRV-2 MIR fixture 60. In a cyclic CFG, structural-merge distance could reach a
+future iteration's then block and flatten the current then-arm `break` into an
+incorrect empty branch. The MIR-to-tree consumer now checks the current
+then-arm successor fact and projects a direct loop-exit edge as the abrupt arm;
+it does not inspect source text. The official focused harness passed all 20
+body fixtures plus this row with C-built and LLVM-built drivers, including
+native/self canonical MIR and runtime parity. The remaining excluded fixtures
+are `nested_if_in_loop` for loop-phi consistency and `array_destructure` for
+typed-binding carriage.
+
+Fifty-seventh executable active-rung delta, 2026-07-19:
+`nested_if_in_loop` becomes DRV-2 MIR fixture 61. A loop with only `break`
+exits has no header backedge, so its assigned local must not receive an eager
+two-input header phi. `loop_reachability_fact_owner.pgy` computes
+`reaches_backedge` and `falls_through` from typed control-flow nodes; the MIR
+producer compares those facts with completed CFG successors and takes live SSA
+versions from its local-version owner. The official C/LLVM focused harness
+matched native/self canonical MIR, emitted C, and runtime output. Its negative
+injects the retired one-predecessor header phi and both final consumers reject
+it. At that checkpoint, `array_destructure` remained the only excluded
+executable counterexample in this local expansion.
+
+Fifty-eighth executable active-rung delta, 2026-07-19:
+`array_destructure` becomes DRV-2 MIR fixture 62. Parser-owned pattern and
+initializer graphs feed semantic ordered binding/type rows and one typed MIR
+destructure instruction. The final consumer derives canonical temp/index
+graphs from these facts; it does not recognize `Split` text, and its temp name
+is binding-derived rather than JSON-offset-derived. The official focused
+harness matched native/self canonical MIR, emitted C, and runtime output with
+C-built and LLVM-built self drivers. Removing only the element-type fact fails
+closed.
+
+Fifty-ninth executable active-rung delta, 2026-07-19:
+direct and member generic calls share one self-MIR specialization owner.
+`generic_member_inferred_flow` becomes DRV-2 MIR fixture 63, while the existing
+inferred `Identity<T>` fixtures consume the same row family. Self identity is
+the parser-anchored tuple `(owner SyntaxNodeId, expression lane, local call
+ordinal)`, never a transient expression-graph index. The hard MIR-to-C
+entrypoint passes the decoded MIR specialization view directly into codegen;
+it no longer creates a semantic codegen view and then overwrites it. Recomputed
+semantic rows verify identity, target, formal, actual, and canonical symbol.
+Missing direct/member rows, identity drift, and symbol drift fail closed. The
+nested member fixture carries ordinals 0 and 1, infers `T=Int` without source
+`<Int>` actuals, and emits one deduplicated `Box_Echo_Int` body. Native MIR
+captures the child specialization before its parent so the exact generic return
+binding reaches the outer call. The owner remains `BRIDGE`: native and self
+identities are not yet one representation, while non-class hosts and
+constructed nested generic return substitution remain outside this bounded
+executable delta.
+
+Sixtieth executable active-rung delta, 2026-07-19:
+`generic_vessel_member_inferred_flow` becomes DRV-2 MIR fixture 64. It reuses
+the same stable member-call identity and MIR specialization rows as the class
+fixture while changing the nominal host to Pergyra's passive state-owning
+`vessel`. Both nested calls infer `T=Int`, emit one deduplicated
+`Cell_Echo_Int` body, and run as `42`. Missing row, identity drift, and symbol
+drift remain fail-closed through the shared owner. This proves class/vessel
+host orthogonality for the bounded exact-return slice; other nominal hosts and
+constructed nested generic return substitution remain outside the rung.
+
+Sixty-first executable active-rung delta, 2026-07-19:
+`generic_member_constructed_return_flow` becomes DRV-2 MIR fixture 65. The
+inner `Wrapper.Wrap<T> -> Option<T>` call infers `T=Int`; native MIR renders the
+structured return-type AST as `Option<Int>` and self MIR carries the same
+actual without reparsing call text. That exact result then specializes the
+outer `Wrapper.Echo<T> -> T` call as `Wrapper_Echo_Option_Int_`. Source-to-C
+and MIR-to-C both run as `43`. The native verifier rejects a formal identifier
+left inside an actual type, while the self verifier rejects the corresponding
+row mutation. Option emission consumes the semantic direct-call target for
+`Some` rather than reclassifying its callee node. The bounded class/vessel and
+one-level `Option<T>` slice is executable; multi-formal and deeper constructed
+return expressions remain open.
+
+Sixty-second executable active-rung delta, 2026-07-19:
+`generic_member_array_return_flow` becomes DRV-2 MIR fixture 66. The same
+structured return substitution resolves `ArrayWrapper.Wrap<T> -> Array<T>` as
+`Array<Int>` and specializes the outer call as
+`ArrayWrapper_Echo_Array_Int_`; hard source/MIR paths both run as `44`.
+Program runtime-usage projection now distinguishes the generic declaration
+surface `Array<T>` from materialized array types: declared formals come from
+semantic signature facts, while concrete array uses come from the MIR-carried
+generic specialization view. It does not turn arbitrary unknown element names
+into formals. The focused C oracle/self parity and public bounded replacement
+gate are green; nominal-record concrete actuals remain the next executable
+falsification case.
+
+Sixty-third executable active-rung delta, 2026-07-19:
+`generic_member_record_array_return_flow` becomes DRV-2 MIR fixture 67 and
+closes that falsification case. `Wrap<Point>` yields `Array<Point>`, the outer
+call specializes on that exact constructed type, and native/self source/self
+MIR all run as `45`. The emitted-C gate requires the concrete
+`pgy_Point_array` definition in addition to both specialized method bodies.
+This proves that generic-formal suppression does not erase a materialized
+nominal-record array discovered only through specialization actuals.
+
+Sixty-fourth executable active-rung delta, 2026-07-19: five codegen-only paths
+become DRV-2 MIR fixtures 68 through 72. `ref_param` and
+`inout_return_forward` exercise readonly-ref and value-result carriage;
+`option_int_core`, `array_param`, and `bool_logic` exercise wrapper mutation,
+collection parameter/return flow, and recursive logical control flow. Their
+self-produced MIR and native-oracle MIR canonicalize identically before the
+hard MIR consumer emits and runs the same C. This is a bounded breadth
+promotion, not proof that every expression or ownership surface is closed.
+The focused runner now accepts a comma-separated fixture set, preserving the
+five-minute impact-isolation budget without recompiling the same driver five
+times. At this checkpoint, `defer_scope` was deliberately not promoted because
+its native MIR `defer_body` was string authority rather than a typed cleanup-
+body fact.
+
+Sixty-fifth executable active-rung delta, 2026-07-19: `defer_scope` becomes
+DRV-2 MIR fixture 73. The bounded one-statement `Log` body is carried by
+`AST_DEFER_STMT`, the explicit `Log` body kind, and an expression graph. The
+hard MIR consumer no longer reads the legacy `defer_body` string array.
+Native MIR keeps that array as compatibility provenance, but strict
+canonicalization and the missing-graph negative prove that it cannot recover
+execution meaning. C-oracle and self paths agree on LIFO block-exit cleanup and
+early-return cleanup. Multi-statement and non-`Log` bodies remain rejected by
+the bounded producer until nested typed cleanup rows are added.
+
+Sixty-sixth executable active-rung delta, 2026-07-19: `enum_match` becomes
+DRV-2 MIR fixture 74. Bare match identifiers remain syntax facts until the
+semantic owner proves the subject enum and a zero-payload declaration row.
+The MIR producer carries the pattern with the native-compatible null variant
+field, and the hard consumer resolves `Direction.North`, `Direction.East`, and
+`Direction.South` only from MIR declaration facts. Deleting the `North`
+declaration while retaining the branch pattern is a blocking negative and
+cannot fall back to source text. Focused C parity covers source-to-MIR,
+canonical oracle comparison, MIR-to-C, and runtime output. Payload-bearing
+enum cases and native/self CFG block-order unification remain open; the latter
+is isolated behind the named oracle canonicalization bridge.
+
+Sixty-seventh executable active-rung delta, 2026-07-19: `result_try` becomes
+DRV-2 MIR fixture 75. The parser-owned postfix-try graph preserves
+`?Validate(doubled)` and its call-argument spine through self MIR, oracle/self
+canonicalization, and hard MIR-to-C consumption. Runtime parity exercises both
+the successful payload path and Err early return. The existing graph mutation
+gate rejects a missing required try graph, so the new Result coverage does not
+create an operand-text fallback. Option and Result try checks now share a
+small parity owner; the producer parity runner remains orchestration-only.
+
+Sixty-eighth executable active-rung delta, 2026-07-19: `for_continue` becomes
+DRV-2 MIR fixture 76. The producer emits an explicit continue CFG edge and one
+carried for-loop summary. The hard consumer reconstructs `Continue` from the
+edge target, not from instruction display text, and validates the summary
+before projecting the loop. A mismatched declared summary count is rejected
+with the LoopFlowSummary diagnostic. Focused C parity matches native canonical
+MIR and runtime output. Wider nested transfer and loop-state combinations
+remain outside this bounded row.
+
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage
 completeness ledger, and the complete parity surface. The parallel

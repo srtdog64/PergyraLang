@@ -160,6 +160,9 @@ mir_make_destructure_instruction(MIRRoutine *routine,
                 }
                 inst.destructure_binding_count = name_count;
             }
+            inst.destructure_element_type_name =
+                mir_routine_source_local_type_name(
+                    routine, ast_let_destructure_name(stmt, 0));
         }
     }
     mir_attach_statement_call_fact(&inst, stmt);

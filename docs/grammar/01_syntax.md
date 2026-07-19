@@ -892,3 +892,7 @@ Legacy note:
 
 - inline event access forms such as `event Name private(...)` are still accepted for migration
 - the preferred stable surface is top-level `private event Name(...)`
+## Executable implementation crosswalk
+
+The current parser/semantic/backend status and the permanent 17-fixture gates
+are maintained in [13_implementation_status.md](13_implementation_status.md).

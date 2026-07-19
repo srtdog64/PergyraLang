@@ -1,0 +1,181 @@
+// Parser-owned destructure pattern and initializer facts.
+//
+// The native AST printer preserves AST_LET_DESTRUCTURE as `AST node type 6`.
+// That text is provenance only. The parser carries the pattern and initializer
+// as typed graph rows, and this owner binds those rows to the typed arena node.
+
+import "ast_text_arena_projection_owner.pgy";
+
+struct AstDestructureGraphView {
+    ok: Bool;
+    pattern_root: Int;
+    initializer_root: Int;
+}
+
+func AstDestructureGraphViewForOrdinal(
+    ref rows: AstExpressionGraphRows,
+    ordinal: Int
+) -> AstDestructureGraphView {
+    if !AstExpressionGraphRowsReady(rows) || ordinal < 0 {
+        return AstDestructureGraphView(false, 0, 0);
+    }
+    let seen: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(rows.roots) {
+        if rows.root_owner_kinds[i] != TypedAstKindDestructureStmtTag() {
+            i = i + 1;
+            continue;
+        }
+        if rows.root_lanes[i] != AstExpressionLaneAtom() ||
+            i + 1 >= ArrayLength(rows.roots) ||
+            rows.root_owner_kinds[i + 1] != TypedAstKindDestructureStmtTag() ||
+            rows.root_lanes[i + 1] != AstExpressionLaneValue() {
+            return AstDestructureGraphView(false, 0, 0);
+        }
+        if seen == ordinal {
+            return AstDestructureGraphView(
+                true, rows.roots[i], rows.roots[i + 1]
+            );
+        }
+        seen = seen + 1;
+        i = i + 2;
+    }
+    return AstDestructureGraphView(false, 0, 0);
+}
+
+func AstDestructureGraphCount(
+    ref rows: AstExpressionGraphRows
+) -> Option<Int> {
+    if !AstExpressionGraphRowsReady(rows) { return None; }
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(rows.roots) {
+        if rows.root_owner_kinds[i] != TypedAstKindDestructureStmtTag() {
+            i = i + 1;
+            continue;
+        }
+        if rows.root_lanes[i] != AstExpressionLaneAtom() ||
+            i + 1 >= ArrayLength(rows.roots) ||
+            rows.root_owner_kinds[i + 1] != TypedAstKindDestructureStmtTag() ||
+            rows.root_lanes[i + 1] != AstExpressionLaneValue() {
+            return None;
+        }
+        count = count + 1;
+        i = i + 2;
+    }
+    return Some(count);
+}
+
+func AstDestructurePatternBindingNames(
+    ref rows: AstExpressionGraphRows,
+    pattern_root: Int,
+    inout names: Array<String>
+) -> Bool {
+    if pattern_root < 0 ||
+        pattern_root >= AstExpressionArenaNodeCount(rows.arena) {
+        return false;
+    }
+    let reversed: Array<String> = [];
+    let spine: Int = pattern_root;
+    while rows.arena.node_kinds[spine] ==
+        AstExpressionNodeArrayElement() {
+        let left: Int = rows.arena.left_children[spine];
+        let right: Int = rows.arena.right_children[spine];
+        if left < 0 || left >= AstExpressionArenaNodeCount(rows.arena) ||
+            right < 0 || right >= AstExpressionArenaNodeCount(rows.arena) ||
+            rows.arena.node_kinds[right] != AstExpressionNodeLeaf() ||
+            rows.arena.node_texts[right] == "" {
+            return false;
+        }
+        ArrayPush(reversed, rows.arena.node_texts[right]);
+        spine = left;
+    }
+    if rows.arena.node_kinds[spine] != AstExpressionNodeArrayLiteral() ||
+        rows.arena.node_texts[spine] != "[]" ||
+        ArrayLength(reversed) == 0 {
+        return false;
+    }
+    let i: Int = ArrayLength(reversed);
+    while i > 0 {
+        ArrayPush(names, reversed[i - 1]);
+        i = i - 1;
+    }
+    return true;
+}
+
+func AstTreeArtifactBindDestructurePayloads(
+    artifact: AstTreeArtifact
+) -> AstTreeArtifact {
+    let arena: AstArena = artifact.arena;
+    let atoms: Array<Int> = arena.atoms;
+    let has_atoms: Array<Int> = arena.has_atoms;
+    let values: Array<Int> = arena.values;
+    let has_values: Array<Int> = arena.has_values;
+    let atom_table: Array<String> = arena.atom_table;
+    let ordinal: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count {
+        if !TypedAstArenaNodeKindIs(
+            arena, node_id, TypedAstKindDestructureStmtTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let view: AstDestructureGraphView =
+            AstDestructureGraphViewForOrdinal(
+                artifact.expression_graphs, ordinal
+            );
+        if !view.ok {
+            let invalid_rows: AstExpressionGraphRows = AstExpressionGraphRows(
+                false, artifact.expression_graphs.root_owner_kinds,
+                artifact.expression_graphs.root_lanes,
+                artifact.expression_graphs.roots,
+                artifact.expression_graphs.arena
+            );
+            return AstTreeArtifact(
+                artifact.tree_text, artifact.arena, artifact.count,
+                invalid_rows, artifact.match_pattern_graphs
+            );
+        }
+        ArrayPush(
+            atom_table,
+            artifact.expression_graphs.arena.node_texts[view.pattern_root]
+        );
+        ArraySet(atoms, node_id, ArrayLength(atom_table) - 1);
+        ArraySet(has_atoms, node_id, 1);
+        ArrayPush(
+            atom_table,
+            artifact.expression_graphs.arena.node_texts[view.initializer_root]
+        );
+        ArraySet(values, node_id, ArrayLength(atom_table) - 1);
+        ArraySet(has_values, node_id, 1);
+        ordinal = ordinal + 1;
+        node_id = node_id + 1;
+    }
+    let graph_count: Option<Int> = AstDestructureGraphCount(
+        artifact.expression_graphs
+    );
+    if !IsSome(graph_count) || UnwrapOption(graph_count) != ordinal {
+        let invalid_rows2: AstExpressionGraphRows = AstExpressionGraphRows(
+            false, artifact.expression_graphs.root_owner_kinds,
+            artifact.expression_graphs.root_lanes,
+            artifact.expression_graphs.roots,
+            artifact.expression_graphs.arena
+        );
+        return AstTreeArtifact(
+            artifact.tree_text, artifact.arena, artifact.count,
+            invalid_rows2, artifact.match_pattern_graphs
+        );
+    }
+    let bound_arena: AstArena = AstArena(
+        arena.kinds, arena.nominal_subkinds, atoms, has_atoms,
+        arena.type_names, arena.has_type_names, values, has_values,
+        arena.aux_values, arena.has_aux_values, arena.modes,
+        arena.first_children, arena.child_counts, arena.parents,
+        arena.indents, arena.provenance_texts, arena.children, atom_table
+    );
+    return AstTreeArtifact(
+        artifact.tree_text, bound_arena, artifact.count,
+        artifact.expression_graphs, artifact.match_pattern_graphs
+    );
+}

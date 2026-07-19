@@ -1,0 +1,119 @@
+// Destructure-specific MIR facts keyed by instruction row.
+
+struct SelfMirDestructureFactRows {
+    instruction_indices: Array<Int>;
+    element_types: Array<String>;
+    binding_starts: Array<Int>;
+    binding_counts: Array<Int>;
+    bindings: Array<String>;
+}
+
+func SelfMirDestructureFactRowsEmpty() -> SelfMirDestructureFactRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirDestructureFactRows(
+        ints, strings, ints, ints, strings
+    );
+}
+
+func SelfMirDestructureFactRowsAttach(
+    rows: SelfMirDestructureFactRows,
+    instruction_index: Int,
+    element_type: String,
+    bindings_in: Array<String>
+) -> SelfMirDestructureFactRows {
+    let instruction_indices: Array<Int> = rows.instruction_indices;
+    let element_types: Array<String> = rows.element_types;
+    let binding_starts: Array<Int> = rows.binding_starts;
+    let binding_counts: Array<Int> = rows.binding_counts;
+    let bindings: Array<String> = rows.bindings;
+    ArrayPush(instruction_indices, instruction_index);
+    ArrayPush(element_types, element_type);
+    ArrayPush(binding_starts, ArrayLength(bindings));
+    ArrayPush(binding_counts, ArrayLength(bindings_in));
+    let i: Int = 0;
+    while i < ArrayLength(bindings_in) {
+        ArrayPush(bindings, bindings_in[i]);
+        i = i + 1;
+    }
+    return SelfMirDestructureFactRows(
+        instruction_indices, element_types, binding_starts, binding_counts,
+        bindings
+    );
+}
+
+func SelfMirDestructureFactRowsAppend(
+    target: SelfMirDestructureFactRows,
+    source: SelfMirDestructureFactRows,
+    instruction_offset: Int
+) -> SelfMirDestructureFactRows {
+    let out: SelfMirDestructureFactRows = target;
+    let row: Int = 0;
+    while row < ArrayLength(source.instruction_indices) {
+        let names: Array<String> = [];
+        let i: Int = 0;
+        while i < source.binding_counts[row] {
+            ArrayPush(
+                names,
+                source.bindings[source.binding_starts[row] + i]
+            );
+            i = i + 1;
+        }
+        out = SelfMirDestructureFactRowsAttach(
+            out, source.instruction_indices[row] + instruction_offset,
+            source.element_types[row], names
+        );
+        row = row + 1;
+    }
+    return out;
+}
+
+func SelfMirDestructureFactIndexForInstruction(
+    rows: SelfMirDestructureFactRows,
+    instruction_index: Int
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(rows.instruction_indices) {
+        if rows.instruction_indices[i] == instruction_index { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SelfMirDestructureFactRowsValidationError(
+    rows: SelfMirDestructureFactRows,
+    instruction_count: Int
+) -> String {
+    let count: Int = ArrayLength(rows.instruction_indices);
+    if ArrayLength(rows.element_types) != count ||
+        ArrayLength(rows.binding_starts) != count ||
+        ArrayLength(rows.binding_counts) != count {
+        return "destructure fact parallel row counts differ";
+    }
+    let cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if rows.instruction_indices[i] < 0 ||
+            rows.instruction_indices[i] >= instruction_count ||
+            (i > 0 && rows.instruction_indices[i - 1] >=
+                rows.instruction_indices[i]) ||
+            rows.element_types[i] == "" || rows.binding_starts[i] != cursor ||
+            rows.binding_counts[i] <= 0 ||
+            cursor + rows.binding_counts[i] > ArrayLength(rows.bindings) {
+            return "destructure fact identity or payload is invalid";
+        }
+        let j: Int = 0;
+        while j < rows.binding_counts[i] {
+            if rows.bindings[cursor + j] == "" {
+                return "destructure binding name is empty";
+            }
+            j = j + 1;
+        }
+        cursor = cursor + rows.binding_counts[i];
+        i = i + 1;
+    }
+    if cursor != ArrayLength(rows.bindings) {
+        return "destructure binding payload has orphan rows";
+    }
+    return "";
+}

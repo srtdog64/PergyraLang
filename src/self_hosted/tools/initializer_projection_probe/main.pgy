@@ -14,7 +14,7 @@ func ProbeInitializerFactsWithoutRows(
     return SemanticAstInitializerTypeFacts(
         true, "", "", facts.artifact_node_count,
         empty_ints, empty_strings, empty_strings, empty_ints,
-        empty_strings, empty_strings
+        empty_strings, empty_strings, empty_ints, empty_ints
     );
 }
 
@@ -27,7 +27,8 @@ func ProbeInitializerFactsWithoutType(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
         facts.artifact_node_count, facts.node_ids, facts.expression_texts,
         inferred_types, facts.verified, facts.diagnostic_codes,
-        facts.diagnostic_messages
+        facts.diagnostic_messages, facts.binding_kinds,
+        facts.binding_indices
     );
 }
 
@@ -505,6 +506,7 @@ func ProbeResolvedCallProjection(mode: String) -> Bool {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, analysis, body_types.initializer_types,
         body_types.iteration_types,
+        body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {
@@ -693,6 +695,7 @@ func Main() -> Void with caps env {
         ProbeInitializerFacts(body_types, mode);
     let facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, analysis, initializer_types, body_types.iteration_types,
+        body_types.generic_specializations,
         SelfHostMachineLayerDeclarationEmpty()
     );
     if !SelfMirProgramFactsReady(facts) {

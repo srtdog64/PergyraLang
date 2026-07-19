@@ -1,0 +1,15 @@
+// bench_checked_mul.pgy - fixed-width checked multiplication workload.
+// Every product is representable; the accumulator is periodically reduced so
+// the benchmark measures the checked multiply path rather than overflow policy.
+func Main() -> Void {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < 100000000 {
+        let x: Int = i % 1000;
+        let product: Int = CheckedMul(x, 31);
+        acc = acc + product;
+        if acc >= 1000000000 { acc = acc - 1000000000; }
+        i = i + 1;
+    }
+    Log("mul=" + ToString(acc));
+}

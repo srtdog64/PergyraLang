@@ -65,8 +65,16 @@ mir_type_append_owned(char **dst, const char *suffix)
     return true;
 }
 
+static char *mir_render_bound_type_name(ASTNode *type_node,
+                                        char *const *generic_param_names,
+                                        char *const *actual_type_names,
+                                        size_t binding_count);
+
 static char *
-mir_render_tuple_type_name(ASTNode *type_node)
+mir_render_tuple_type_name(ASTNode *type_node,
+                           char *const *generic_param_names,
+                           char *const *actual_type_names,
+                           size_t binding_count)
 {
     size_t element_count;
     char *result;
@@ -81,7 +89,9 @@ mir_render_tuple_type_name(ASTNode *type_node)
     if (result == NULL)
         return NULL;
     for (size_t i = 0; i < element_count; i++) {
-        char *inner = mir_render_type_name(ast_type_tuple_element(type_node, i));
+        char *inner = mir_render_bound_type_name(
+            ast_type_tuple_element(type_node, i), generic_param_names,
+            actual_type_names, binding_count);
         if (inner == NULL) {
             free(result);
             return NULL;
@@ -224,8 +234,11 @@ mir_assignment_requires_stmt_preservation(const ASTNode *func_decl,
                                          target_name);
 }
 
-char *
-mir_render_type_name(ASTNode *type_node)
+static char *
+mir_render_bound_type_name(ASTNode *type_node,
+                           char *const *generic_param_names,
+                           char *const *actual_type_names,
+                           size_t binding_count)
 {
     if (type_node == NULL)
         return NULL;
@@ -233,7 +246,8 @@ mir_render_type_name(ASTNode *type_node)
         return NULL;
     if (type_node->type == AST_TYPE
         && ast_type_tuple_element_count(type_node) > 0)
-        return mir_render_tuple_type_name(type_node);
+        return mir_render_tuple_type_name(type_node, generic_param_names,
+            actual_type_names, binding_count);
     if (type_node->type == AST_TYPE) {
         GenericParams *generic_args = ast_type_generic_args(type_node);
         const char *type_name = ast_type_name(type_node);
@@ -241,6 +255,17 @@ mir_render_type_name(ASTNode *type_node)
         size_t generic_count = ast_generic_param_count(generic_args);
         if (type_name == NULL)
             return NULL;
+        if (generic_count == 0) {
+            for (size_t i = 0; i < binding_count; i++) {
+                if (generic_param_names != NULL
+                    && actual_type_names != NULL
+                    && generic_param_names[i] != NULL
+                    && actual_type_names[i] != NULL
+                    && strcmp(type_name, generic_param_names[i]) == 0) {
+                    return pergyra_strdup(actual_type_names[i]);
+                }
+            }
+        }
         result = pergyra_strdup(type_name);
         if (result == NULL)
             return NULL;
@@ -251,8 +276,9 @@ mir_render_type_name(ASTNode *type_node)
             }
             for (size_t i = 0; i < generic_count; i++) {
                 GenericParam *param = ast_generic_param_at(generic_args, i);
-                char *inner = mir_render_type_name(
-                    ast_generic_param_constraint(param));
+                char *inner = mir_render_bound_type_name(
+                    ast_generic_param_constraint(param), generic_param_names,
+                    actual_type_names, binding_count);
                 if (inner == NULL) {
                     free(result);
                     return NULL;
@@ -273,7 +299,9 @@ mir_render_type_name(ASTNode *type_node)
         return result;
     }
     if (type_node->type == AST_CHANNEL_TYPE) {
-        char *inner = mir_render_type_name(ast_channel_type_element_type(type_node));
+        char *inner = mir_render_bound_type_name(
+            ast_channel_type_element_type(type_node), generic_param_names,
+            actual_type_names, binding_count);
         char *result = NULL;
         if (inner != NULL)
             result = mir_type_strdup_fmt("Channel<%s>", inner);
@@ -281,7 +309,9 @@ mir_render_type_name(ASTNode *type_node)
         return result;
     }
     if (type_node->type == AST_FUTURE_TYPE) {
-        char *inner = mir_render_type_name(ast_future_type_value_type(type_node));
+        char *inner = mir_render_bound_type_name(
+            ast_future_type_value_type(type_node), generic_param_names,
+            actual_type_names, binding_count);
         char *result = NULL;
         if (inner != NULL)
             result = mir_type_strdup_fmt("Future<%s>", inner);
@@ -289,6 +319,26 @@ mir_render_type_name(ASTNode *type_node)
         return result;
     }
     return NULL;
+}
+
+char *
+mir_render_type_name(ASTNode *type_node)
+{
+    return mir_render_bound_type_name(type_node, NULL, NULL, 0);
+}
+
+char *
+mir_render_substituted_type_name(ASTNode *type_node,
+                                 char *const *generic_param_names,
+                                 char *const *actual_type_names,
+                                 size_t binding_count)
+{
+    if (binding_count > 0
+        && (generic_param_names == NULL || actual_type_names == NULL)) {
+        return NULL;
+    }
+    return mir_render_bound_type_name(type_node, generic_param_names,
+        actual_type_names, binding_count);
 }
 
 char *

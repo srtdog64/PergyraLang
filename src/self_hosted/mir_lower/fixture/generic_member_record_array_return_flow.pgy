@@ -1,0 +1,23 @@
+struct Point {
+    x: Int;
+}
+
+class RecordArrayWrapper {
+    let marker: Int;
+
+    func Wrap<T>(self, value: T) -> Array<T> {
+        return [value];
+    }
+
+    func Echo<T>(self, value: T) -> T {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let wrapper: RecordArrayWrapper = RecordArrayWrapper(0);
+    let point: Point = Point { x: 45 };
+    let result: Array<Point> = wrapper.Echo(wrapper.Wrap(point));
+    let first: Point = result[0];
+    Log(ToString(first.x));
+}

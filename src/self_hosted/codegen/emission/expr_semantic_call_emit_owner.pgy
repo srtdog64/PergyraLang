@@ -231,6 +231,14 @@ func RewriteSemanticMemberCall(
             Die("semantic member-call target fact is missing");
         }
         call_symbol = CompilerSymbolCIdentifier(UnwrapOption(target_name));
+        let carried_specialization: String = LookupKindType(
+            env, CodegenGenericCallNodeKey(view.call_node), "call"
+        );
+        if carried_specialization != "" {
+            call_symbol = carried_specialization;
+        } else if ArrayLength(view.generic_actual_type_names) > 0 {
+            Die("semantic generic member specialization call fact is missing");
+        }
         if LookupKindType(env, call_symbol, "f") == "" {
             Die("semantic member-call method fact is missing");
         }

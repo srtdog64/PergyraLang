@@ -1,0 +1,42 @@
+// Final pgy.mir.v1 JSON fields for typed destructure facts.
+
+import "program_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonDestructureBindings(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> String {
+    let fact_index: Option<Int> = SelfMirDestructureFactIndexForInstruction(
+        rows.destructure_facts, instruction_index
+    );
+    if !IsSome(fact_index) { return "[]"; }
+    let row: Int = UnwrapOption(fact_index);
+    let bindings: Array<String> = [];
+    let i: Int = 0;
+    while i < rows.destructure_facts.binding_counts[row] {
+        ArrayPush(
+            bindings,
+            JsonStringLiteral(
+                rows.destructure_facts.bindings[
+                    rows.destructure_facts.binding_starts[row] + i
+                ]
+            )
+        );
+        i = i + 1;
+    }
+    return JsonEmitArray(bindings);
+}
+
+func SelfMirJsonDestructureElementType(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> String {
+    let fact_index: Option<Int> = SelfMirDestructureFactIndexForInstruction(
+        rows.destructure_facts, instruction_index
+    );
+    if !IsSome(fact_index) { return "null"; }
+    return JsonStringLiteral(
+        rows.destructure_facts.element_types[UnwrapOption(fact_index)]
+    );
+}

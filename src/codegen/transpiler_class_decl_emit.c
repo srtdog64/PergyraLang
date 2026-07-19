@@ -13,6 +13,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_func_forward_metadata.h"
+#include "transpiler_generic_method_specialization_emit.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
@@ -346,6 +347,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method_meta == NULL) {
             continue;
         }
+        {
+            const MIRRoutine *mir_method =
+                transpiler_mir_decl_method_routine(ctx, method_meta);
+            if (mir_method != NULL
+                && transpiler_mir_routine_generic_param_count(mir_method) > 0) {
+                if (!transpiler_emit_generic_method_specialization_forwards(
+                        ctx, name, method_meta, mir_method, use_self_cell))
+                    return;
+                continue;
+            }
+        }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta, NULL,
             use_self_cell, ctx->out, ctx);
     }
@@ -382,6 +394,12 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         if (mir_method != NULL) {
+            if (transpiler_mir_routine_generic_param_count(mir_method) > 0) {
+                if (!transpiler_emit_generic_method_specialization_bodies(
+                        ctx, mir_method))
+                    return;
+                continue;
+            }
             char emitted_name[256];
             if (!transpiler_class_method_emit_name(emitted_name,
                     sizeof(emitted_name), name, method_name)) {

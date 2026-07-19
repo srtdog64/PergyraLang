@@ -77,6 +77,69 @@ the value-carriage decision. Only a separately approved zone-bound handle may
 make that transition. The balance target is one owner and one visible path,
 not the literal golden ratio and not a shorter signature at any semantic cost.
 
+## Target Resource Facade
+
+The long-term readable projection of the compiler world is fixed as follows:
+
+```text
+PgyCompilerWorld
++-- FrontendResources
+|   +-- Intake
+|   +-- Token
+|   `-- AST
++-- MiddleEndResources
+|   +-- Semantic
+|   `-- MIR
++-- EvidenceResources
+|   +-- AIR
+|   +-- Compatibility
+|   `-- ABI
+`-- BackendResources
+    +-- Target
+    +-- Emission
+    `-- Artifact
+```
+
+This is a target facade projection, not a claim that four new aggregate zones
+have landed. It gives humans and tools a stable coarse topology while the
+concrete resource zones remain the only ownership authorities. A facade leaf
+may project more than one concrete zone, but it may not copy facts, infer a
+missing fact, or become a second authority.
+
+| Facade id | Current concrete owners |
+| --- | --- |
+| `FrontendResources.Intake` | `SourceIntakeZone` |
+| `FrontendResources.Token` | `TokenStreamZone` |
+| `FrontendResources.AST` | `AstTreeZone` |
+| `MiddleEndResources.Semantic` | `SemanticVerdictZone`, `TypeEnvZone` |
+| `MiddleEndResources.MIR` | `MirFactGraphZone` |
+| `EvidenceResources.AIR` | `AirEvidenceZone` |
+| `EvidenceResources.Compatibility` | `CompatibilityEvolutionZone` |
+| `EvidenceResources.ABI` | `AbiLayoutZone`, `AbiRowProjectionZone` |
+| `BackendResources.Target` | `TargetCapabilityZone`, `SandboxCapabilityZone` |
+| `BackendResources.Emission` | `SymbolFactTableZone`, `EmissionZone` |
+| `BackendResources.Artifact` | `ArtifactZone`, `TestHarnessZone`, `SubprocessRunnerZone`, `ParityZone` |
+
+The facade is allowed to become visible in `world.pgy` only after all of the
+following are true:
+
+1. A typed zone-bound handle or equivalent non-owning resource view has an
+   approved language contract.
+2. Every current positional consumer has migrated to that stable handle
+   identity without a dual-read path.
+3. The handle preserves access to each concrete zone and cannot manufacture
+   authority for its siblings.
+4. Missing child facts and stale facade membership fail closed in a negative
+   gate.
+5. The old positional spelling is deleted in the same closure rung after
+   C/LLVM/self-hosted parity passes.
+
+Until then, the target facade belongs in documentation and generated
+inspection output only. It must not be emitted as a nested value bundle, used
+to shorten intent signatures, or counted as hard self-host substitution. This
+keeps the future shape visible without reintroducing the deleted aggregate
+owner.
+
 ## Zone Rule
 
 A zone is a resource ownership boundary, not a module, folder, phase, or helper

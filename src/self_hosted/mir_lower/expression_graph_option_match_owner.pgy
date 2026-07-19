@@ -1,0 +1,97 @@
+// Option-match condition graph construction from typed MIR match facts.
+
+import "expression_graph_sequence_owner.pgy";
+
+func MirExpressionGraphSequenceAppendUnaryCall(
+    sequence: MirExpressionGraphSequence,
+    subject_graph: JsonObjectFactTable,
+    callee_name: String,
+    subject_text: String,
+    negate: Bool
+) -> MirExpressionGraphSequence {
+    if !sequence.ok || callee_name == "" || subject_text == "" {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let roots: Array<Int> = sequence.roots;
+    let arena: SemanticExpressionGraphArena = sequence.arena;
+    let kinds: Array<Int> = arena.node_kinds;
+    let texts: Array<String> = arena.node_texts;
+    let left: Array<Int> = arena.left_children;
+    let right: Array<Int> = arena.right_children;
+    let target_kinds: Array<Int> = arena.call_target_kinds;
+    let target_names: Array<String> = arena.call_target_names;
+    let places: Array<Int> = arena.place_kinds;
+    let callee_node: Int = ArrayLength(kinds);
+    ArrayPush(kinds, AstExpressionNodeLeaf());
+    ArrayPush(texts, callee_name);
+    ArrayPush(left, 0);
+    ArrayPush(right, 0);
+    ArrayPush(target_kinds, SemanticCallTargetNone());
+    ArrayPush(target_names, "");
+    ArrayPush(places, SemanticExpressionPlaceUnknown());
+    let call_node: Int = ArrayLength(kinds);
+    ArrayPush(kinds, AstExpressionNodeCall());
+    ArrayPush(texts, Concat(callee_name, "()"));
+    ArrayPush(left, callee_node);
+    ArrayPush(right, 0);
+    ArrayPush(target_kinds, SemanticCallTargetDirect());
+    ArrayPush(target_names, callee_name);
+    ArrayPush(places, SemanticExpressionPlaceUnknown());
+    let prefix_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            kinds, texts, left, right, target_kinds, target_names, places
+        );
+    if !SemanticExpressionGraphArenaReady(prefix_arena) {
+        return MirExpressionGraphSequenceError(sequence);
+    }
+    let with_subject: MirExpressionGraphSequence =
+        MirExpressionGraphSequenceAppend(
+            MirExpressionGraphSequence(true, roots, prefix_arena),
+            subject_graph
+        );
+    if !with_subject.ok || ArrayLength(with_subject.roots) == 0 {
+        return MirExpressionGraphSequenceError(with_subject);
+    }
+    let result_roots: Array<Int> = with_subject.roots;
+    let result_arena: SemanticExpressionGraphArena = with_subject.arena;
+    let result_kinds: Array<Int> = result_arena.node_kinds;
+    let result_texts: Array<String> = result_arena.node_texts;
+    let result_left: Array<Int> = result_arena.left_children;
+    let result_right: Array<Int> = result_arena.right_children;
+    let result_target_kinds: Array<Int> = result_arena.call_target_kinds;
+    let result_target_names: Array<String> = result_arena.call_target_names;
+    let result_places: Array<Int> = result_arena.place_kinds;
+    let subject_root: Int = result_roots[ArrayLength(result_roots) - 1];
+    let call_text: String = Concat(
+        callee_name, Concat("(", Concat(subject_text, ")"))
+    );
+    let call_root: Int = ArrayLength(result_kinds);
+    ArrayPush(result_kinds, AstExpressionNodeCallArgument());
+    ArrayPush(result_texts, call_text);
+    ArrayPush(result_left, call_node);
+    ArrayPush(result_right, subject_root);
+    ArrayPush(result_target_kinds, SemanticCallTargetNone());
+    ArrayPush(result_target_names, "");
+    ArrayPush(result_places, SemanticExpressionPlaceUnknown());
+    let final_root: Int = call_root;
+    if negate {
+        final_root = ArrayLength(result_kinds);
+        ArrayPush(result_kinds, AstExpressionNodeLogicalNot());
+        ArrayPush(result_texts, Concat("!", call_text));
+        ArrayPush(result_left, call_root);
+        ArrayPush(result_right, 0);
+        ArrayPush(result_target_kinds, SemanticCallTargetNone());
+        ArrayPush(result_target_names, "");
+        ArrayPush(result_places, SemanticExpressionPlaceUnknown());
+    }
+    ArraySet(result_roots, ArrayLength(result_roots) - 1, final_root);
+    let final_arena: SemanticExpressionGraphArena =
+        SemanticExpressionGraphArena(
+            result_kinds, result_texts, result_left, result_right,
+            result_target_kinds, result_target_names, result_places
+        );
+    if !SemanticExpressionGraphArenaReady(final_arena) {
+        return MirExpressionGraphSequenceError(with_subject);
+    }
+    return MirExpressionGraphSequence(true, result_roots, final_arena);
+}

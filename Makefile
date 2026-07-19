@@ -736,6 +736,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_generic_class_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_generic_param_query.c \
                    $(CODEGEN_DIR)/transpiler_generic_specialization_emit.c \
+                   $(CODEGEN_DIR)/transpiler_generic_method_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_cleanup_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_failure_emit.c \
@@ -912,6 +913,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_iteration_type_facts.c \
                    $(COMPILER_DIR)/mir_timing.c \
                    $(COMPILER_DIR)/mir_parallel_capture_facts.c \
+                   $(COMPILER_DIR)/mir_generic_method_specialization.c \
+                   $(COMPILER_DIR)/mir_generic_method_specialization_validate.c \
                    $(COMPILER_DIR)/mir_branch_source_facts.c \
                    $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_provenance.c \
@@ -929,6 +932,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_json_dump.c \
                    $(COMPILER_DIR)/mir_json_expression_graph.c \
+                   $(COMPILER_DIR)/mir_json_generic_method_specialization.c \
                    $(COMPILER_DIR)/mir_json_dump_flow.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
                    $(COMPILER_DIR)/mir_program_inventory.c \
@@ -1160,7 +1164,8 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_identifier_slot_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_call_inline_policy.c \
                         $(CODEGEN_DIR)/llvm_member_call_emit.c \
-                        $(CODEGEN_DIR)/llvm_member_call_specialize.c \
+                   $(CODEGEN_DIR)/llvm_member_call_specialize.c \
+                   $(CODEGEN_DIR)/llvm_generic_method_specialization.c \
                         $(CODEGEN_DIR)/llvm_member_call_support.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_log_calls.c \
@@ -1504,6 +1509,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_json_dump.o \
                    $(BUILD_DIR)/compiler/mir_json_expression_graph.o \
+                   $(BUILD_DIR)/compiler/mir_json_generic_method_specialization.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_public_surface.o \
@@ -1866,6 +1872,14 @@ test-transpile: $(TRANSPILE_TEST)
 	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
 	PGY_TEST_TMPDIR="$(abspath $(BUILD_DIR)/tmp)" $(call pgy_run_native,$(TRANSPILE_TEST))
 
+generic-method-specialization-test-smoke: $(PGY) $(TRANSPILE_TEST)
+	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_TRANSPILE_TEST_BIN="$(abspath $(TRANSPILE_TEST))" \
+		"$(BASH)" tests/generic_method_specialization_smoke.sh
+
+.PHONY: generic-method-specialization-test-smoke
+
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	$(call pgy_run_native,$(MEMORY_TEST))
@@ -2036,6 +2050,11 @@ worker-boundary-ub-test-smoke:
 perf-c-baseline-test-smoke: $(PGY)
 	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/perf_c_baseline_smoke.sh
 
+pergyra-mul-coq-benchmark-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/pergyra_mul_coq_benchmark.sh
+
+.PHONY: pergyra-mul-coq-benchmark-test-smoke
+
 evidence-guard-amortization-test-smoke: $(PGY)
 	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/evidence_guard_amortization_smoke.sh
 
@@ -2141,6 +2160,13 @@ ASAN_PGY       ?= $(ASAN_BIN_DIR)/pgy$(EXEEXT)
 ASAN_UNIT_BATTERIES ?= test_air test_semantic test_parser
 ASAN_UNIT_BINARIES  := $(addprefix $(ASAN_BIN_DIR)/,$(addsuffix $(EXEEXT),$(ASAN_UNIT_BATTERIES)))
 
+# TSan is a separate instrumentation lane. It cannot be combined with ASan,
+# and its question is narrower: do the exercised pool/channel/cancellation
+# state transitions contain a data race?
+TSAN_BUILD_DIR ?= build-tsan-$(CC_MACHINE)
+TSAN_BIN_DIR   ?= bin-tsan-$(CC_MACHINE)
+TSAN_CONCURRENCY_TEST ?= $(TSAN_BIN_DIR)/test_concurrency$(EXEEXT)
+
 ast-destroy-coverage-test-smoke:
 	"$(BASH)" tests/ast_destroy_coverage_smoke.sh
 
@@ -2177,6 +2203,22 @@ test-asan: asan-uaf-witness-test-smoke
 	             exit 1; }; \
 	done
 	@echo "=== Sanitizer gate: clean ==="
+
+tsan-race-witness-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/tsan_race_witness_smoke.sh
+
+test-tsan: tsan-race-witness-test-smoke
+	@echo "=== Sanitizer gate: TSan (thread) ==="
+	$(MAKE) SANITIZE=1 \
+	        PGY_SANITIZERS=thread \
+	        LLVM_ENABLED=0 \
+	        BUILD_DIR=$(TSAN_BUILD_DIR) \
+	        BIN_DIR=$(TSAN_BIN_DIR) \
+	        PGY_DEBUG_SYMBOLS=1 \
+	        $(TSAN_CONCURRENCY_TEST)
+	PGY_TSAN_CONCURRENCY_BIN="$(abspath $(TSAN_CONCURRENCY_TEST))" \
+		"$(BASH)" tests/tsan_concurrency_smoke.sh
+	@echo "=== Sanitizer gate: TSan clean ==="
 
 llvm-test:
 	$(MAKE) LLVM_ENABLED=1 test
@@ -2456,6 +2498,14 @@ grammar-examples-compile-test-smoke: $(PGY)
 else
 grammar-examples-compile-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/grammar_examples_compile_smoke.sh
+endif
+
+ifeq ($(OS),Windows_NT)
+grammar-self-driver-test-smoke: self-host-compiler
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/grammar_self_driver_smoke.ps1 -DriverBin "$(abspath $(SELF_HOST_DRIVER))"
+else
+grammar-self-driver-test-smoke: self-host-compiler
+	DRIVER_BIN="$(abspath $(SELF_HOST_DRIVER))" "$(BASH)" tests/grammar_self_driver_smoke.sh
 endif
 
 language-contract-golden-test-smoke:
@@ -3474,6 +3524,7 @@ lsp: $(PGY_LSP)
 llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke llvm-runtime-aggregate-return-abi-test-smoke tooling-conformance-test-smoke stdlib-test-smoke stage4-determinism-test-smoke filesystem-directory-walk-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke ci-step-runner-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke agent-boundary-sentinel-test-smoke documentation-quality-test-smoke backend-wasm-pointer-closure-test-smoke language-surface-hygiene-test-smoke grammar-cheatsheet-contract-test-smoke grammar-examples-compile-test-smoke language-contract-golden-test-smoke verification-methodology-test-smoke proof-spine-test-smoke self-host-preparation-test-smoke self-host-preparation-platform-test-smoke self-host-preparation-contract-test-smoke self-host-preparation-platform-parity-test-smoke self-host-preparation-parity-test-smoke self-host-preparation-exhaustive-parity-test-smoke self-host-runtime-boundary-parity-test-smoke self-host-air-graph-consumer-parity-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-ast-read-surface-parity-test-smoke self-host-abi-layout-row-parity-test-smoke self-host-runtime-call-abi-row-parity-test-smoke self-host-compatibility-evolution-parity-test-smoke self-host-compatibility-corpus-parity-test-smoke self-host-semantic-parity-test-smoke self-host-semantic-selfcheck-test-smoke self-host-completeness-smoke self-host-completeness-incremental-cache-parity-test-smoke self-host-completeness-impact-test-smoke self-host-completeness-impact-planner-test-smoke self-host-completeness-impact-runner-test-smoke self-host-linter-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lexer-parity-test-smoke self-host-parser-parity-test-smoke self-host-codegen-parity-test-smoke self-host-codegen-assignment-projection-parity-test-smoke self-host-codegen-bootstrap-test-smoke self-host-mir-json-parity-test-smoke self-host-fuzz-backend-generator-parity-test-smoke fuzz-backend-parity-test-smoke fuzz-backend-parity-matrix-test-smoke self-host-component-contract-test-smoke self-host-substrate-contract-test-smoke self-host-hard-contract-test-smoke self-host-compiler-world-contract-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke wasm-backend-parity-test-smoke formal-semantics-test-smoke proof-carrying-pipeline-test-smoke proof-carrying-adequacy-test-smoke abstraction-loss-contract-test-smoke ast-to-mir-loss-contract-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke slot-contract-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke mir-param-carriage-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-bc-contract-test-smoke runtime-cext-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke evidence-guard-amortization-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke loop-flow-summary-test-smoke slot-analyzer-host-index-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp post-selfhost-validation-manifest-test-smoke parallel-backpressure-stress-test-smoke channel-pool-starvation-test-smoke nested-parallel-witness-test-smoke parallel-worker-invariance-test-smoke parallel-budget-chunk-charge-test-smoke parallel-join-emit-shape-test-smoke selfhost-parallel-chunk-policy-test-smoke selfhost-parallel-lane-policy-test-smoke selfhost-reachability-contract-test-smoke parallel-production-contract-test-smoke function-param-flow-summary-test-smoke runtime-bc-contract-test-smoke surface-boundary-hygiene-test-smoke adversarial-input-test-smoke emitted-c-warning-clean-test-smoke backend-compare-bc-on-test-smoke fuzz-backend-parity-campaign-test-smoke redteam-repair-contract-test-smoke
 .PHONY: self-host-codegen-bootstrap-seed-test-smoke self-host-driver-bootstrap-test-smoke self-host-driver-bootstrap-full-test-smoke self-host-driver-rung0-parity-test-smoke self-host-driver-rung1-parity-test-smoke self-host-driver-rung2-body-parity-test-smoke self-host-lsp-diagnostics-parity-test-smoke self-host-progress-metric-test-smoke self-host-substitution-velocity-test-smoke sot-authority-adequacy-test-smoke sot-authority-edge-test-smoke self-host-compiler self-host-live-replacement-test-smoke
+.PHONY: grammar-self-driver-test-smoke
 .PHONY: self-host-backend-abi-layout-contract-parity-test-smoke self-host-sandbox-capability-parity-test-smoke
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke
@@ -3482,6 +3533,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: lexer-token-stream-anchor-test-smoke source-module-graph-test-smoke iteration-type-fact-test-smoke compatibility-evolution-native-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
+.PHONY: test-asan asan-uaf-witness-test-smoke test-tsan tsan-race-witness-test-smoke
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 # Explicit empty rule for the generated .d files. Without it GNU make runs

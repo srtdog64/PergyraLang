@@ -28,7 +28,11 @@ pgy_selfhost_verify_driver_rung2_string_literal() {
         echo "[self-host-parity:driver-rung2] $backend misclassified String literal was accepted" >&2
         exit 1
     fi
-    grep -Fq 'CODEGEN ERROR: unsupported semantic leaf expression: "BOB"' \
+    grep -Fq 'Code: call_arg_type_mismatch' \
+        "$misclassified_string.err" "$misclassified_string.out" &&
+    grep -Fq -- '- expected: String' \
+        "$misclassified_string.err" "$misclassified_string.out" &&
+    grep -Fq -- '- actual: Unknown' \
         "$misclassified_string.err" "$misclassified_string.out" || {
         echo "[self-host-parity:driver-rung2] $backend String-kind diagnostic drifted" >&2
         cat "$misclassified_string.out" "$misclassified_string.err" >&2

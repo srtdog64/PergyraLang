@@ -163,7 +163,7 @@ require_text "src/compiler/mir_json_expression_graph.c" \
     'graph, "type_name", target_text'
 require_text "src/compiler/mir_json_expression_graph.c" \
     'kind = "cast";'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "float_literal" {'
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" \
     'func CodegenSemanticCheckedIntegerCastTargetPresent('
@@ -191,6 +191,12 @@ require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$generic_mir_source" "generic-struct-field"'
 require_text "tests/self_host_live_replacement_smoke.sh" \
     'check_live_mir_source "$generic_multi_mir_source" "generic-multi-actual"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_member_mir_source" "generic-member-inferred"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_vessel_member_mir_source" "generic-vessel-member-inferred"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    '--canonicalize-oracle-mir-json "$live_arg"'
 forbid_text "src/compiler/mir_json_expression_graph.c" \
     "parser_parse"
 forbid_text "src/compiler/mir_json_expression_graph.c" \

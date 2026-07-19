@@ -1,0 +1,136 @@
+// Typed binding rows for destructuring let statements.
+
+import "../hir/ast_destructure_graph_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
+import "diagnostic_owner.pgy";
+
+struct SemanticAstDestructureBindingFacts {
+    ok: Bool;
+    diagnostic_code: String;
+    diagnostic_message: String;
+    artifact_node_count: Int;
+    node_ids: Array<Int>;
+    function_node_ids: Array<Int>;
+    scope_node_ids: Array<Int>;
+    binding_indices: Array<Int>;
+    names: Array<String>;
+    initializer_texts: Array<String>;
+}
+
+struct SemanticAstDestructureBindingRange {
+    ok: Bool;
+    start: Int;
+    end: Int;
+}
+
+func SemanticAstDestructureBindingFactsFromArtifact(
+    artifact: AstTreeArtifact
+) -> SemanticAstDestructureBindingFacts {
+    let node_ids: Array<Int> = [];
+    let function_node_ids: Array<Int> = [];
+    let scope_node_ids: Array<Int> = [];
+    let binding_indices: Array<Int> = [];
+    let names: Array<String> = [];
+    let initializer_texts: Array<String> = [];
+    let scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    let ok: Bool = AstTreeArtifactReady(artifact) && scopes.ok;
+    let diagnostic_code: String = "";
+    let diagnostic_message: String = "";
+    let ordinal: Int = 0;
+    let node_id: Int = 0;
+    while node_id < artifact.count && ok {
+        if !TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindDestructureStmtTag()
+        ) {
+            node_id = node_id + 1;
+            continue;
+        }
+        let view: AstDestructureGraphView =
+            AstDestructureGraphViewForOrdinal(
+                artifact.expression_graphs, ordinal
+            );
+        let binding_names: Array<String> = [];
+        let scope: Option<Int> = TypedAstArenaParentId(
+            artifact.arena, node_id
+        );
+        let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(
+            scopes, node_id
+        );
+        let initializer: Option<String> = TypedAstArenaValueText(
+            artifact.arena, node_id
+        );
+        if !view.ok || !AstDestructurePatternBindingNames(
+            artifact.expression_graphs, view.pattern_root, binding_names
+        ) || !IsSome(scope) || !TypedAstArenaNodeKindIs(
+            artifact.arena, UnwrapOption(scope), TypedAstKindBlockTag()
+        ) || !IsSome(function_node) || !IsSome(initializer) ||
+            UnwrapOption(initializer) == "" {
+            ok = false;
+            diagnostic_code = "destructure_binding_invalid";
+            diagnostic_message = SemanticError2(
+                "destructure_binding_invalid",
+                "node_id", ToString(node_id),
+                "missing_fact", "pattern_scope_or_initializer"
+            );
+            continue;
+        }
+        let i: Int = 0;
+        while i < ArrayLength(binding_names) && ok {
+            let j: Int = 0;
+            while j < i {
+                if binding_names[j] == binding_names[i] {
+                    ok = false;
+                    diagnostic_code = "destructure_binding_invalid";
+                    diagnostic_message = SemanticError2(
+                        "destructure_binding_invalid",
+                        "node_id", ToString(node_id),
+                        "duplicate_binding", binding_names[i]
+                    );
+                }
+                j = j + 1;
+            }
+            if ok {
+                ArrayPush(node_ids, node_id);
+                ArrayPush(function_node_ids, UnwrapOption(function_node));
+                ArrayPush(scope_node_ids, UnwrapOption(scope));
+                ArrayPush(binding_indices, i);
+                ArrayPush(names, binding_names[i]);
+                ArrayPush(initializer_texts, UnwrapOption(initializer));
+            }
+            i = i + 1;
+        }
+        ordinal = ordinal + 1;
+        node_id = node_id + 1;
+    }
+    return SemanticAstDestructureBindingFacts(
+        ok, diagnostic_code, diagnostic_message, artifact.count,
+        node_ids, function_node_ids, scope_node_ids, binding_indices,
+        names, initializer_texts
+    );
+}
+
+func SemanticAstDestructureBindingCount(
+    facts: SemanticAstDestructureBindingFacts
+) -> Int {
+    return ArrayLength(facts.node_ids);
+}
+
+func SemanticAstDestructureBindingRangeForNode(
+    facts: SemanticAstDestructureBindingFacts,
+    node_id: Int
+) -> SemanticAstDestructureBindingRange {
+    let start: Int = 0;
+    while start < SemanticAstDestructureBindingCount(facts) &&
+        facts.node_ids[start] < node_id {
+        start = start + 1;
+    }
+    let end: Int = start;
+    while end < SemanticAstDestructureBindingCount(facts) &&
+        facts.node_ids[end] == node_id {
+        end = end + 1;
+    }
+    return SemanticAstDestructureBindingRange(
+        facts.ok && start < end, start, end
+    );
+}

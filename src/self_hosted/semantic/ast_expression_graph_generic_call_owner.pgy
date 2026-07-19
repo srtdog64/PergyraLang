@@ -174,10 +174,23 @@ func SemanticExpressionGraphGenericCallFactFromGraph(
                 )
             );
         }
-        let actual: String = SemanticExpressionGraphScalarTypeName(
-            graph, call.argument_nodes[i], constructors, names, types,
-            function_names, function_returns
-        );
+        let nested_generic: SemanticExpressionGraphGenericCallFact =
+            SemanticExpressionGraphGenericCallFactFromGraph(
+                graph, call.argument_nodes[i], signatures, constructors,
+                names, types, function_names, function_returns
+            );
+        if nested_generic.applies && !nested_generic.ok {
+            return nested_generic;
+        }
+        let actual: String = "Unknown";
+        if nested_generic.applies {
+            actual = nested_generic.return_type_name;
+        } else {
+            actual = SemanticExpressionGraphScalarTypeName(
+                graph, call.argument_nodes[i], constructors, names, types,
+                function_names, function_returns
+            );
+        }
         if actual == "" || actual == "Unknown" {
             return SemanticExpressionGraphGenericCallError(
                 "call_arg_type_mismatch",

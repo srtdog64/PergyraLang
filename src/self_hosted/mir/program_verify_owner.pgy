@@ -219,6 +219,8 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [0], [0], [SemanticCallTargetNone()], [""]
         );
     let no_match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsEmpty();
+    let no_destructure_facts: SelfMirDestructureFactRows =
+        SelfMirDestructureFactRowsEmpty();
     let member_target_graph: SelfMirExpressionGraphRows =
         SelfMirExpressionGraphRows(
             [1], [2], [0], [3],
@@ -233,34 +235,37 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"],
-        value_graph, target_graph, no_match_facts
+        value_graph, target_graph, no_match_facts, no_destructure_facts
     );
     let valid_simple: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["x.2"], ["x"], [""],
         ["1"], ["x"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [0], no_uses,
-        simple_value_graph, simple_target_graph, no_match_facts
+        simple_value_graph, simple_target_graph, no_match_facts,
+        no_destructure_facts
     );
     let valid_member: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["base.2"], ["base"], [""],
         ["1"], ["base.text"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["base.1"], simple_value_graph, member_target_graph,
-        no_match_facts
+        no_match_facts, no_destructure_facts
     );
     let missing_base_use: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [2],
-        ["i.1", "j.1"], value_graph, target_graph, no_match_facts
+        ["i.1", "j.1"], value_graph, target_graph, no_match_facts,
+        no_destructure_facts
     );
     let missing_target_graph: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["def"], ["ssa-def"], ["values.2"], ["values"], [""],
         ["values[j]"], ["values[i]"], ["AST_ASSIGNMENT"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0], [0], [3],
         ["values.1", "i.1", "j.1"], value_graph,
-        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts
+        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
+        no_destructure_facts
     );
     let missing_member_base_use: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -268,7 +273,7 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             ["1"], ["base.text"], ["AST_ASSIGNMENT"],
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses, simple_value_graph, member_target_graph,
-            no_match_facts
+            no_match_facts, no_destructure_facts
         );
     let missing_simple_target_graph: SelfMirInstructionRows =
         SelfMirInstructionRows(
@@ -277,7 +282,8 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
             [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
             [0], [0], no_uses,
             simple_value_graph,
-            SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts
+            SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
+            no_destructure_facts
         );
     let scalar_match_facts: SelfMirMatchFactRows =
         SelfMirMatchFactRowsAttachCase(
@@ -288,24 +294,48 @@ func SelfMirAssignmentTargetGraphContractReady() -> Bool {
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
-        SelfMirExpressionGraphRowsForInstructionCount(1), scalar_match_facts
+        SelfMirExpressionGraphRowsForInstructionCount(1), scalar_match_facts,
+        no_destructure_facts
     );
     let missing_match: SelfMirInstructionRows = SelfMirInstructionRows(
         [0], ["branch"], ["branch"], [""], [""], [""],
         ["x"], [""], ["AST_MATCH_CASE"],
         [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
         [0], [1], ["x.1"], simple_target_graph,
-        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts
+        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
+        no_destructure_facts
+    );
+    let destructure_facts: SelfMirDestructureFactRows =
+        SelfMirDestructureFactRowsAttach(
+            SelfMirDestructureFactRowsEmpty(), 0, "String", ["a", "b"]
+        );
+    let valid_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["destructure"], ["destructure"], [""], [""], [""],
+        ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
+        [0], [0], no_uses, value_graph,
+        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
+        destructure_facts
+    );
+    let missing_destructure: SelfMirInstructionRows = SelfMirInstructionRows(
+        [0], ["destructure"], ["destructure"], [""], [""], [""],
+        ["Split(csv, \",\")"], [""], ["AST_LET_DESTRUCTURE"],
+        [""], [""], [""], [0], [0], [""], [""], [0], [0], [0],
+        [0], [0], no_uses, value_graph,
+        SelfMirExpressionGraphRowsForInstructionCount(1), no_match_facts,
+        no_destructure_facts
     );
     return SelfMirInstructionRowsReady(valid) &&
         SelfMirInstructionRowsReady(valid_simple) &&
         SelfMirInstructionRowsReady(valid_member) &&
         SelfMirInstructionRowsReady(valid_match) &&
+        SelfMirInstructionRowsReady(valid_destructure) &&
         !SelfMirInstructionRowsReady(missing_base_use) &&
         !SelfMirInstructionRowsReady(missing_member_base_use) &&
         !SelfMirInstructionRowsReady(missing_target_graph) &&
         !SelfMirInstructionRowsReady(missing_simple_target_graph) &&
-        !SelfMirInstructionRowsReady(missing_match);
+        !SelfMirInstructionRowsReady(missing_match) &&
+        !SelfMirInstructionRowsReady(missing_destructure);
 }
 
 func SelfMirBlockRowsValidationError(
@@ -497,6 +527,11 @@ func SelfMirProgramFactsValidationError(facts: SelfMirProgramFacts) -> String {
     if facts.artifact_node_count <= 0 { return "MIR artifact node count is empty"; }
     if !SelfMirDeclarationRowsReady(facts.declarations) {
         return "MIR declaration rows are invalid";
+    }
+    if !SelfMirGenericSpecializationRowsReady(
+        facts.generic_specializations
+    ) {
+        return "MIR generic specialization rows are invalid";
     }
     if !SelfMirParallelCaptureRowsReady(facts.parallel_captures) {
         return "MIR parallel capture rows are invalid";

@@ -72,6 +72,7 @@ not own status, decisions, or completion claims.
 |---|---|
 | [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md) | Formal proof entry point |
 | [`semantics/`](semantics/) | Split formal semantics and proof notes |
+| [`semantics/proofs/PergyraMulCost.md`](semantics/proofs/PergyraMulCost.md) | Coq-checked fixed-width multiplication boundary, empirical C/LLVM benchmark, and the explicit gap to the transpose/multiplication lower-bound research |
 | [`semantics/09_abstraction_loss_contracts.md`](semantics/09_abstraction_loss_contracts.md) | Abstraction loss contract rules for compiler and tooling boundaries |
 | [`semantics/pass_contract_manifest.md`](semantics/pass_contract_manifest.md) | Pass-level fact contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration parity, and ABI/Slot/Pin closure |
 | [`semantics/10_behavior_contract_closure_gaps.md`](semantics/10_behavior_contract_closure_gaps.md) | Remaining proof gaps before calling behavior contracts a closed calculus |

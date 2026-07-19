@@ -10,6 +10,7 @@ import "routine_input_owner.pgy";
 import "routine_build_owner.pgy";
 import "routine_expression_use_owner.pgy";
 import "routine_let_owner.pgy";
+import "routine_destructure_owner.pgy";
 import "routine_assignment_owner.pgy";
 import "routine_control_transfer_owner.pgy";
 import "routine_tracked_statement_owner.pgy";
@@ -43,6 +44,10 @@ func SelfMirLowerBlockFromArtifact(
         let kind: Int = UnwrapOption(kind_opt);
         if kind == TypedAstKindLetStmtTag() {
             build = SelfMirLowerLetFromArtifact(input, build, node_id);
+        } else if kind == TypedAstKindDestructureStmtTag() {
+            build = SelfMirLowerDestructureFromArtifact(
+                input, build, node_id
+            );
         } else if kind == TypedAstKindAssignStmtTag() {
             build = SelfMirLowerAssignmentFromArtifact(
                 input, build, node_id

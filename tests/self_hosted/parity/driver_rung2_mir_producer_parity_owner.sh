@@ -84,6 +84,7 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_string_literal "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_foreach_call_type "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_enum_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_enum_return "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_array_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_argument "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
@@ -91,10 +92,14 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_inferred_generic_value \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_generic_member_specialization \
+            "$backend" "$base" "$self_mir_json" "$mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_option_struct_value "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_collection_mutation_graph "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_array_literal_graph "$backend" "$base" "$self_mir_json"
         pgy_selfhost_verify_driver_rung2_indexed_assignment \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_index_expression_type \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "if_else_assign" ]]; then
             grep -Fq '"kind":"phi"' "$self_mir_json" || {
@@ -107,6 +112,12 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             }
         fi
         pgy_selfhost_verify_driver_rung2_match \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_loop_phi \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_continue \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_destructure \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "param_carriage" ]]; then
             grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","pass":"indirect"' "$self_mir_json" || {
@@ -153,18 +164,10 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
-        if [[ "$base" == "option_try" ]]; then
-            grep -Fq '"kind":"try","text":"?Pick(x)"' \
-                "$self_mir_json" || {
-                echo "[self-host-parity:driver-rung2] $backend try expression collapsed out of the operand graph" >&2
-                exit 1
-            }
-            grep -Fq '"kind":"call_argument","text":"Pick(x)"' \
-                "$self_mir_json" || {
-                echo "[self-host-parity:driver-rung2] $backend try operand call spine was lost" >&2
-                exit 1
-            }
-        fi
+        pgy_selfhost_verify_driver_rung2_try_graph \
+            "$backend" "$base" "$self_mir_json" "self-MIR"
+        pgy_selfhost_verify_driver_rung2_defer \
+            "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "nested_member_access" ]]; then
             for nested_member in \
                 '"kind":"member_access","text":"line.end"' \
@@ -189,22 +192,17 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             done
         fi
         oracle_canonical_mode="--canonicalize-oracle-mir-json"
-        if [[ "$base" == "array_index_assign" ]]; then
+        if [[ "$base" == "array_index_assign" || "$base" == "defer_scope" ]]; then
             oracle_canonical_mode="--canonicalize-mir-json"
         fi
         (cd "$ROOT_DIR" && "$driver_bin" "$oracle_canonical_mode" \
             "$mir_json_arg" | tr -d '\r' >"$oracle_canonical")
         (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$self_mir_json_arg" | tr -d '\r' >"$self_canonical")
-        if [[ "$base" == "option_try" ]]; then
-            for canonical_try_graph in "$oracle_canonical" "$self_canonical"; do
-                grep -Fq '"kind":"try","text":"?Pick(x)"' \
-                    "$canonical_try_graph" || {
-                    echo "[self-host-parity:driver-rung2] $backend canonical try expression graph was lost" >&2
-                    exit 1
-                }
-            done
-        fi
+        pgy_selfhost_verify_driver_rung2_try_graph \
+            "$backend" "$base" "$oracle_canonical" "oracle-canonical"
+        pgy_selfhost_verify_driver_rung2_try_graph \
+            "$backend" "$base" "$self_canonical" "self-canonical"
         pgy_selfhost_compare_expected_text_artifact_file_with_owner \
             "driver-rung2:$backend:$base:mir-json" "$BUILD_DIR" \
             "$oracle_canonical" "$self_canonical" "mir_json"
@@ -231,6 +229,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
         pgy_selfhost_verify_driver_rung2_generic_struct_emitted_c \
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_inferred_generic_emitted_c \
+            "$backend" "$base" "$self_actual"
+        pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c \
             "$backend" "$base" "$self_actual"
         pgy_selfhost_verify_driver_rung2_array_literal_emitted_c \
             "$backend" "$base" "$self_actual"

@@ -62,6 +62,10 @@ func SelfMirInstructionRowsValidationError(
         rows.match_facts, count
     );
     if match_error != "" { return match_error; }
+    let destructure_error: String = SelfMirDestructureFactRowsValidationError(
+        rows.destructure_facts, count
+    );
+    if destructure_error != "" { return destructure_error; }
     let use_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
@@ -74,7 +78,8 @@ func SelfMirInstructionRowsValidationError(
             return Concat(row_prefix, " use-count is negative");
         }
         if kind != "def" && kind != "stmt" && kind != "return" &&
-            kind != "branch" && kind != "phi" && kind != "loop-init" {
+            kind != "branch" && kind != "phi" && kind != "loop-init" &&
+            kind != "destructure" {
             return Concat(row_prefix, " instruction kind is unknown");
         }
         if kind == "branch" && rows.names[i] == "branch" &&
@@ -97,6 +102,14 @@ func SelfMirInstructionRowsValidationError(
         }
         if kind == "stmt" && rows.expr0s[i] == "" {
             return Concat(row_prefix, " statement payload is empty");
+        }
+        if rows.source_types[i] == "AST_DEFER_STMT" &&
+            (kind != "stmt" || rows.arg0s[i] != "Log" ||
+             rows.expr0s[i] != "{...}" ||
+             rows.expr0_graphs.has_roots[i] != 1) {
+            return Concat(
+                row_prefix, " typed defer body fact is missing or invalid"
+            );
         }
         if kind == "stmt" && rows.arg0s[i] == "ArraySet" &&
             rows.source_types[i] == "AST_CALL" &&
@@ -127,6 +140,25 @@ func SelfMirInstructionRowsValidationError(
             }
         } else if IsSome(match_fact_index) {
             return Concat(row_prefix, " match fact is attached to non-match");
+        }
+        let destructure_fact_index: Option<Int> =
+            SelfMirDestructureFactIndexForInstruction(
+                rows.destructure_facts, i
+            );
+        if kind == "destructure" {
+            if rows.source_types[i] != "AST_LET_DESTRUCTURE" ||
+                rows.expr0s[i] == "" ||
+                rows.expr0_graphs.has_roots[i] != 1 ||
+                !IsSome(destructure_fact_index) {
+                return Concat(
+                    row_prefix,
+                    " destructure instruction fact is missing or invalid"
+                );
+            }
+        } else if IsSome(destructure_fact_index) {
+            return Concat(
+                row_prefix, " destructure fact is attached to non-destructure"
+            );
         }
         if kind == "phi" && rows.results[i] == "" {
             return Concat(row_prefix, " phi result is empty");

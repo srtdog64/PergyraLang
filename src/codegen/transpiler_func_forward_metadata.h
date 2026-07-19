@@ -14,5 +14,13 @@ void emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                                                    bool pointer_self,
                                                    CodeBuf *buf,
                                                    TranspilerCtx *ctx);
+void emit_hosted_method_forward_decl_from_metadata_named(
+    const char *host_name,
+    const char *emitted_name,
+    const MIRDeclMethod *method_meta,
+    ASTNode *method,
+    bool pointer_self,
+    CodeBuf *buf,
+    TranspilerCtx *ctx);
 
 #endif /* PERGYRA_TRANSPILER_FUNC_FORWARD_METADATA_H */

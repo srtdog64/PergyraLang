@@ -46,7 +46,10 @@ func ParseUnaryFact(
     if MatchKeyword(content, i, "await") {
         i = i + 5;
         let operand: ParserExpressionFact = ParseUnaryFact(content, i, cursor_out);
-        return ParserExpressionLeaf(Concat("await ", operand.text));
+        return ParserExpressionUnary(
+            AstExpressionNodeAwait(),
+            Concat("await ", operand.text), operand
+        );
     }
     return ParsePrimaryFact(content, i, cursor_out);
 }
@@ -398,21 +401,31 @@ func ParserExpressionUnaryGraphContractReady() -> Bool {
     let numeric: ParserExpressionFact = ParseExprFact(
         "-(-value)", 0, numeric_cursor
     );
-    if !logical.ok || !numeric.ok || logical_cursor[0] != 6 ||
-        numeric_cursor[0] != 9 ||
+    let await_cursor: Array<Int> = [0];
+    let awaited: ParserExpressionFact = ParseExprFact(
+        "await pending", 0, await_cursor
+    );
+    if !logical.ok || !numeric.ok || !awaited.ok ||
+        logical_cursor[0] != 6 || numeric_cursor[0] != 9 ||
+        await_cursor[0] != 13 ||
         logical.arena.node_kinds[logical.root] !=
             AstExpressionNodeLogicalNot() ||
         numeric.arena.node_kinds[numeric.root] != AstExpressionNodeNegate() ||
+        awaited.arena.node_kinds[awaited.root] != AstExpressionNodeAwait() ||
         logical.arena.right_children[logical.root] != 0 ||
-        numeric.arena.right_children[numeric.root] != 0 {
+        numeric.arena.right_children[numeric.root] != 0 ||
+        awaited.arena.right_children[awaited.root] != 0 {
         return false;
     }
     let logical_operand: Int = logical.arena.left_children[logical.root];
     let numeric_operand: Int = numeric.arena.left_children[numeric.root];
+    let await_operand: Int = awaited.arena.left_children[awaited.root];
     return logical.arena.node_kinds[logical_operand] ==
             AstExpressionNodeLogicalNot() &&
         numeric.arena.node_kinds[numeric_operand] ==
-            AstExpressionNodeNegate();
+            AstExpressionNodeNegate() &&
+        awaited.arena.node_kinds[await_operand] == AstExpressionNodeLeaf() &&
+        awaited.arena.node_texts[await_operand] == "pending";
 }
 
 func ParserExpressionPipeGraphContractReady() -> Bool {

@@ -159,6 +159,12 @@ facts or parity policy.
 compiler zone that repeats the actors and artifact types already owned by its
 member zones. Stage clusters preserve positional zone carriage; a shorter
 value bundle is not a substitute for a visible authority/resource boundary.
+The documented target facade groups those owners as `FrontendResources`,
+`MiddleEndResources`, `EvidenceResources`, and `BackendResources` for human and
+tool inspection. Those names are non-owning projections until a typed
+zone-bound handle, complete consumer migration, old-path deletion, and a
+missing-child negative gate land together. They must not be implemented as a
+second aggregate owner.
 
 ## Pergyra-Style Check
 

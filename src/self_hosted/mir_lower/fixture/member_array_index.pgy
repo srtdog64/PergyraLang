@@ -1,0 +1,8 @@
+struct Holder {
+    values: Array<Int>;
+}
+
+func Main() -> Void {
+    let holder: Holder = Holder([7, 9]);
+    Log(ToString(holder.values[1]));
+}

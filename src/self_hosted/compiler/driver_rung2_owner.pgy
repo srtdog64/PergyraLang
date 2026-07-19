@@ -21,6 +21,7 @@ import "../mir_lower/mir_fact_graph_contract_owner.pgy";
 import "../mir_lower/mir_json_input_owner.pgy";
 import "../mir_lower/program_lower.pgy";
 import "../mir_lower/expression_graph_fact_owner.pgy";
+import "../mir_lower/generic_specialization_fact_owner.pgy";
 import "../mir/artifact_lower_owner.pgy";
 import "../mir/json_projection_owner.pgy";
 import "machine_layer_declaration_consumer.pgy";
@@ -116,9 +117,30 @@ func DriverRung2ExpectedFixtureCount() -> Int {
 func DriverRung2MirFixtureRows() -> Array<String> {
     return [
         "src/self_hosted/mir_lower/fixture/let_log.pgy",
+        "src/self_hosted/mir_lower/fixture/multilet.pgy",
+        "src/self_hosted/mir_lower/fixture/arith.pgy",
+        "src/self_hosted/mir_lower/fixture/strlog.pgy",
+        "src/self_hosted/mir_lower/fixture/funcparam.pgy",
+        "src/self_hosted/mir_lower/fixture/multi_func_void.pgy",
+        "src/self_hosted/mir_lower/fixture/random_inferred_let.pgy",
+        "src/self_hosted/mir_lower/fixture/class_decl.pgy",
+        "src/self_hosted/mir_lower/fixture/nominal_subject.pgy",
+        "src/self_hosted/mir_lower/fixture/nominal_object.pgy",
+        "src/self_hosted/mir_lower/fixture/nominal_tobject.pgy",
+        "src/self_hosted/mir_lower/fixture/nominal_vessel.pgy",
+        "src/self_hosted/mir_lower/fixture/ability_decl.pgy",
+        "src/self_hosted/mir_lower/fixture/enum_simple.pgy",
+        "src/self_hosted/mir_lower/fixture/role_operator_dispatch.pgy",
+        "src/self_hosted/mir_lower/fixture/ifelse.pgy",
+        "src/self_hosted/mir_lower/fixture/nestedif.pgy",
+        "src/self_hosted/mir_lower/fixture/reassign_block.pgy",
+        "src/self_hosted/mir_lower/fixture/whileloop.pgy",
+        "src/self_hosted/mir_lower/fixture/break_after_stmt.pgy",
+        "src/self_hosted/mir_lower/fixture/nested_if_in_loop.pgy",
         "src/self_hosted/mir_lower/fixture/forloop.pgy",
         "src/self_hosted/mir_lower/fixture/nested_loop_cfg.pgy",
         "src/self_hosted/mir_lower/fixture/indexed_assignment.pgy",
+        "src/self_hosted/mir_lower/fixture/member_array_index.pgy",
         "src/self_hosted/mir_lower/fixture/enum_return.pgy",
         "src/self_hosted/mir_lower/fixture/if_else_assign.pgy",
         "src/self_hosted/mir_lower/fixture/param_carriage.pgy",
@@ -138,6 +160,11 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy",
         "src/self_hosted/mir_lower/fixture/generic_struct_field_inferred_value_flow.pgy",
         "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy",
+        "src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy",
         "src/self_hosted/mir_lower/fixture/option_struct_value_flow.pgy",
         "src/self_hosted/codegen/fixture/ast_node_array_push.pgy",
         "src/self_hosted/mir_lower/fixture/ast_node_array_set.pgy",
@@ -152,14 +179,24 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/codegen/fixture/array_index_assign.pgy",
         "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy",
         "src/self_hosted/codegen/fixture/array_return_literal.pgy",
+        "src/self_hosted/codegen/fixture/enum_match.pgy",
         "src/self_hosted/mir_lower/fixture/match_case_int.pgy",
         "src/self_hosted/mir_lower/fixture/match_case_assign.pgy",
-        "src/self_hosted/mir_lower/fixture/option_match.pgy"
+        "src/self_hosted/mir_lower/fixture/option_match.pgy",
+        "src/self_hosted/mir_lower/fixture/array_destructure.pgy",
+        "src/self_hosted/codegen/fixture/ref_param.pgy",
+        "src/self_hosted/codegen/fixture/inout_return_forward.pgy",
+        "src/self_hosted/codegen/fixture/option_int_core.pgy",
+        "src/self_hosted/codegen/fixture/result_try.pgy",
+        "src/self_hosted/codegen/fixture/for_continue.pgy",
+        "src/self_hosted/codegen/fixture/array_param.pgy",
+        "src/self_hosted/codegen/fixture/bool_logic.pgy",
+        "src/self_hosted/codegen/fixture/defer_scope.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 40;
+    return 76;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {
@@ -232,6 +269,7 @@ func CompileArtifactAnalysisToMirJsonVerified(
     let mir_facts: SelfMirProgramFacts = SelfMirProgramFactsFromArtifact(
         artifact, verified.analysis, verified.body_types.initializer_types,
         verified.body_types.iteration_types,
+        verified.body_types.generic_specializations,
         machine_declaration
     );
     if !SelfMirProgramFactsReady(mir_facts) {
@@ -329,9 +367,22 @@ func CompileMirJsonTextToCVerified(
         VerifyArtifactAnalysisForDriverRung2(artifact, analysis);
     let semantic_body_types: SemanticAstBodyTypeBundle =
         verified.body_types;
+    let mir_generic_specializations: CodegenGenericSpecializationFacts =
+        MirCodegenGenericSpecializationFacts(
+            json, verified.analysis.signatures,
+            semantic_body_types.generic_specializations,
+            verified.analysis.expression_surfaces
+        );
+    if !mir_generic_specializations.ok {
+        Die(Concat(
+            "MIR generic specialization facts are incomplete: ",
+            mir_generic_specializations.diagnostic_message
+        ));
+    }
     let body_types: CodegenSemanticBodyTypeFacts =
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, verified.analysis, semantic_body_types
+            artifact, verified.analysis, semantic_body_types,
+            mir_generic_specializations
         );
     return CompilerEmissionArtifact(
         "emitted-c",

@@ -105,6 +105,7 @@ func MirExpressionGraphKindCode(kind: String) -> Option<Int> {
         return Some(AstExpressionNodeTypeName());
     }
     if kind == "cast" { return Some(AstExpressionNodeCast()); }
+    if kind == "await" { return Some(AstExpressionNodeAwait()); }
     return None;
 }
 

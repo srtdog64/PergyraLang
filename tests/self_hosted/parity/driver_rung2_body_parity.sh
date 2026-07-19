@@ -8,11 +8,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/portable_text_mutation_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_long_literal_parity_owner.sh"
@@ -21,16 +25,21 @@ source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_string_literal_parity_ow
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_foreach_call_type_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_argument_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_struct_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_option_struct_value_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_collection_mutation_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
+source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -132,22 +141,29 @@ while IFS= read -r line; do
     line="${line%$'\r'}"
     [[ -n "$line" ]] && mir_fixture_rows+=("$line")
 done <"$MIR_FIXTURE_ROWS"
-if [[ "${#mir_fixture_rows[@]}" -ne 40 ]]; then
-    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 40" >&2
+if [[ "${#mir_fixture_rows[@]}" -ne 76 ]]; then
+    echo "[self-host-parity:driver-rung2] MIR fixture count drifted: ${#mir_fixture_rows[@]} != 76" >&2
     exit 1
 fi
 MIR_FIXTURE_FILTER="${PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER:-}"
 if [[ -n "$MIR_FIXTURE_FILTER" ]]; then
     filtered_mir_fixture_rows=()
-    for fixture_rel in "${mir_fixture_rows[@]}"; do
-        if [[ "$(basename "$fixture_rel" .pgy)" == "$MIR_FIXTURE_FILTER" ]]; then
-            filtered_mir_fixture_rows+=("$fixture_rel")
+    mir_fixture_filters=()
+    IFS=',' read -r -a mir_fixture_filters <<<"$MIR_FIXTURE_FILTER"
+    for wanted_fixture in "${mir_fixture_filters[@]}"; do
+        matched_fixture=""
+        for fixture_rel in "${mir_fixture_rows[@]}"; do
+            if [[ "$(basename "$fixture_rel" .pgy)" == "$wanted_fixture" ]]; then
+                matched_fixture="$fixture_rel"
+                break
+            fi
+        done
+        if [[ -z "$wanted_fixture" || -z "$matched_fixture" ]]; then
+            echo "[self-host-parity:driver-rung2] MIR fixture filter did not select a row: $wanted_fixture" >&2
+            exit 1
         fi
+        filtered_mir_fixture_rows+=("$matched_fixture")
     done
-    if [[ "${#filtered_mir_fixture_rows[@]}" -ne 1 ]]; then
-        echo "[self-host-parity:driver-rung2] MIR fixture filter must select exactly one row: $MIR_FIXTURE_FILTER" >&2
-        exit 1
-    fi
     mir_fixture_rows=("${filtered_mir_fixture_rows[@]}")
 fi
 

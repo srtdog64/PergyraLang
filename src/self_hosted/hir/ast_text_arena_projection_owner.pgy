@@ -56,6 +56,12 @@ func CodegenAstTextNominalSubkindFor(node: CodegenAstTextNode) -> Int {
     if StartsWith(node.text, "Vessel: ") {
         return TypedAstNominalSubkindVessel();
     }
+    if StartsWith(node.text, "Zone: ") {
+        return TypedAstNominalSubkindZone();
+    }
+    if StartsWith(node.text, "World: ") {
+        return TypedAstNominalSubkindWorld();
+    }
     return TypedAstNominalSubkindNone();
 }
 

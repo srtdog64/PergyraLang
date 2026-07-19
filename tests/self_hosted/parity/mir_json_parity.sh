@@ -477,6 +477,28 @@ for fixture_entry in "${FIXTURES[@]}"; do
         echo "  gcc). Rebuild the self-host tools in a shell where gcc works." >&2
         exit 1
     fi
+    if [[ "$base" == "for_continue" ]]; then
+        # A self-referential phi is valid only on the exact CFG back-edge
+        # predecessor slot.  Move that self input into the preheader slot and
+        # require the indexed verifier to reject the malformed artifact.
+        wrong_phi="$B/${base}.wrong-self-phi.mirjson"
+        wrong_phi_out="$B/${base}.wrong-self-phi.out"
+        wrong_phi_err="$B/${base}.wrong-self-phi.err"
+        sed 's/"uses":\["total.1","total.2","total.3"\]/"uses":["total.2","total.2","total.3"]/' \
+            "$mj" >"$wrong_phi"
+        if (cd "$ROOT_DIR" && "$B/mir_lower.exe" \
+                "${wrong_phi#$ROOT_DIR/}" >"$wrong_phi_out" \
+                2>"$wrong_phi_err"); then
+            echo "[self-host-parity:mir-json] for_continue: wrong-slot self phi was accepted" >&2
+            exit 1
+        fi
+        grep -Fq "MIR phi facts are missing or inconsistent" \
+            "$wrong_phi_out" "$wrong_phi_err" || {
+            echo "[self-host-parity:mir-json] for_continue: wrong-slot phi diagnostic drifted" >&2
+            cat "$wrong_phi_out" "$wrong_phi_err" >&2
+            exit 1
+        }
+    fi
     if [[ "$base" == "forloop" ]]; then
         if ! grep -q 'For: i in 0..3' "$reast"; then
             echo "[self-host-parity:mir-json] forloop: mir_lower did not reconstruct the for-loop from MIR facts" >&2

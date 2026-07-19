@@ -242,6 +242,7 @@ mir_populate_block_use_edges(MIRRoutine *routine,
         }
         if (inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
             || inst->kind == MIR_INST_STMT
+            || inst->kind == MIR_INST_DESTRUCTURE
             || inst->kind == MIR_INST_RESOURCE_OP
             || inst->kind == MIR_INST_CLEANUP_EDGE) {
             if (!mir_record_instruction_expr_uses(routine, inst, ssa_names,

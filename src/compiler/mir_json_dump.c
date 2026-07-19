@@ -3,6 +3,7 @@
 #include "mir_decl_headers.h"
 #include "mir_json_dump_flow.h"
 #include "mir_json_expression_graph.h"
+#include "mir_json_generic_method_specialization.h"
 #include "mir_json_dump_internal.h"
 #include "mir_parallel_capture_facts.h"
 
@@ -512,6 +513,8 @@ mir_json_emit_instruction(FILE *out, const MIRInstruction *inst)
     }
     fputc(']', out);
     mir_json_emit_match_variant_facts(out, inst);
+    fputs(",\"destructure_element_type\":", out);
+    mir_json_emit_str_or_null(out, inst->destructure_element_type_name);
     fputs(",\"destructure_bindings\":[", out);
     for (size_t d = 0; d < mir_instruction_destructure_binding_count(inst);
          d++) {
@@ -674,6 +677,8 @@ mir_dump_json(const MIRProgram *mir, FILE *out)
     mir_json_emit_decls(out, mir);
     fputs("],\"parallel_capture_boundaries\":[", out);
     mir_json_emit_parallel_capture_boundaries(out, mir);
+    fputs("],\"generic_method_specializations\":[", out);
+    mir_json_emit_generic_method_specializations(out, mir);
     fputs("],\"routines\":[", out);
     mir_json_emit_routines(out, mir);
     fputs("]}\n", out);

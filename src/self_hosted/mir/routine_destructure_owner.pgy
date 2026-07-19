@@ -1,0 +1,85 @@
+// Typed destructure binding facts -> one MIR destructure instruction.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_expression_use_owner.pgy";
+import "destructure_cfg_owner.pgy";
+
+func SelfMirLowerDestructureFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int
+) -> SelfMirRoutineBuild {
+    let local_range: SemanticAstLocalBindingFunctionRange =
+        SemanticAstLocalBindingRangeForNode(
+            input.analysis.local_bindings, node_id
+        );
+    let initializer_range: SemanticAstLocalBindingFunctionRange =
+        SelfMirInitializerRangeForNode(input.initializers, node_id);
+    if !local_range.ok || !initializer_range.ok ||
+        local_range.end - local_range.start !=
+            initializer_range.end - initializer_range.start {
+        return SelfMirRoutineBuildError(
+            build, "MIR destructure is missing aligned semantic binding facts"
+        );
+    }
+    let expression: String = input.analysis.local_bindings.initializer_texts[
+        local_range.start
+    ];
+    let element_type: String = input.initializers.inferred_type_names[
+        initializer_range.start
+    ];
+    let uses: Array<String> = SelfMirExpressionUses(build, expression);
+    let bindings: Array<String> = [];
+    let i: Int = 0;
+    while local_range.start + i < local_range.end {
+        let local_row: Int = local_range.start + i;
+        let initializer_row: Int = initializer_range.start + i;
+        if input.analysis.local_bindings.binding_kinds[local_row] !=
+                SemanticAstLocalBindingKindDestructure() ||
+            input.analysis.local_bindings.binding_indices[local_row] != i ||
+            input.initializers.binding_kinds[initializer_row] !=
+                SemanticAstLocalBindingKindDestructure() ||
+            input.initializers.binding_indices[initializer_row] != i ||
+            input.initializers.inferred_type_names[initializer_row] !=
+                element_type ||
+            input.analysis.local_bindings.initializer_texts[local_row] !=
+                expression {
+            return SelfMirRoutineBuildError(
+                build, "MIR destructure binding identity facts disagree"
+            );
+        }
+        let binding: String = input.analysis.local_bindings.names[local_row];
+        build = SelfMirRoutineAddLocal(build, binding, element_type, 0);
+        if !build.ok { return build; }
+        ArrayPush(bindings, binding);
+        i = i + 1;
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "destructure", "destructure", "", "", "",
+        expression, "", "AST_LET_DESTRUCTURE", uses
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build,
+        SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            node_id, AstExpressionLaneValue()
+        ),
+        input.machine_declaration
+    );
+    if !build.ok { return build; }
+    let cfg: SelfMirCfgRows = SelfMirCfgAttachLastDestructure(
+        build.cfg, element_type, bindings
+    );
+    let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
+    if instruction_index < 0 || !IsSome(
+        SelfMirDestructureFactIndexForInstruction(
+            cfg.instructions.destructure_facts, instruction_index
+        )
+    ) {
+        return SelfMirRoutineBuildError(
+            build, "MIR destructure payload attachment failed"
+        );
+    }
+    return SelfMirRoutineWithCfg(build, cfg);
+}

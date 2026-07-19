@@ -252,7 +252,14 @@ func CodegenAstTextTypeNameFactFor(input: CodegenAstTextRowFactInput) -> String 
     if kind == TypedAstKindFieldTag() {
         let colon2: Int = StringIndexOf(payload, ": ");
         if colon2 >= 0 {
-            return Substring(payload, colon2 + 2, StringLength(payload) - (colon2 + 2));
+            let type_start: Int = colon2 + 2;
+            let type_end: Int = StringIndexOf(payload, " = ");
+            if type_end < type_start {
+                type_end = StringLength(payload);
+            }
+            return StringTrim(Substring(
+                payload, type_start, type_end - type_start
+            ));
         }
         return "";
     }

@@ -7,11 +7,39 @@ pgy_selfhost_verify_driver_rung2_match() {
     local self_mir_json="$3"
     local driver_bin="$4"
     local match_pattern missing_match_pattern missing_phi_input unknown_phi_input
-    local missing_match_binding
+    local missing_match_binding missing_enum_variant
 
     if [[ "$base" != "match_case_int" &&
         "$base" != "match_case_assign" &&
-        "$base" != "option_match" ]]; then
+        "$base" != "option_match" &&
+        "$base" != "enum_match" ]]; then
+        return 0
+    fi
+    if [[ "$base" == "enum_match" ]]; then
+        for match_pattern in \
+            '"match_patterns":["North"],"match_variant":null,"match_bindings":[]' \
+            '"match_patterns":["East"],"match_variant":null,"match_bindings":[]' \
+            '"match_patterns":["South"],"match_variant":null,"match_bindings":[]'; do
+            grep -Fq "$match_pattern" "$self_mir_json" || {
+                echo "[self-host-parity:driver-rung2] $backend enum match fact was lost: $match_pattern" >&2
+                exit 1
+            }
+        done
+        missing_enum_variant="$BUILD_DIR/${base}_${backend}.missing-enum-variant.mir.json"
+        sed 's/"name":"North","param_count":0/"name":"MissingNorth","param_count":0/' \
+            "$self_mir_json" >"$missing_enum_variant"
+        if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+            "$(pgy_selfhost_path_relative_to_root "$missing_enum_variant")" \
+            >"$missing_enum_variant.out" 2>"$missing_enum_variant.err"); then
+            echo "[self-host-parity:driver-rung2] $backend missing enum variant declaration was accepted" >&2
+            exit 1
+        fi
+        grep -Fq "match enum variant declaration fact is missing" \
+            "$missing_enum_variant.err" "$missing_enum_variant.out" || {
+            echo "[self-host-parity:driver-rung2] $backend missing enum declaration diagnostic drifted" >&2
+            cat "$missing_enum_variant.out" "$missing_enum_variant.err" >&2
+            exit 1
+        }
         return 0
     fi
     if [[ "$base" == "option_match" ]]; then

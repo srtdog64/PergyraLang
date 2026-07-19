@@ -1,8 +1,7 @@
 #include "mir_json_expression_graph.h"
-
 #include "mir.h"
+#include "mir_call_fact.h"
 #include "mir_json_dump_internal.h"
-
 #include <stdbool.h>
 #include <limits.h>
 #include <stdint.h>
@@ -623,6 +622,8 @@ mir_json_instruction_expression(const MIRInstruction *inst, int lane)
 
     if (inst == NULL || lane < 0 || lane > 1)
         return NULL;
+    if (lane == 0 && mir_instruction_source_is_defer_stmt(inst))
+        return mir_defer_log_expression_fact(inst);
     if (lane == 1) {
         if ((inst->kind == MIR_INST_ASSIGN || inst->kind == MIR_INST_DEF)
             && mir_instruction_source_node_type_or(inst, AST_PROGRAM)

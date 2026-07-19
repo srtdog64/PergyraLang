@@ -201,6 +201,29 @@ func BuildMirRoutineFactIndex(json: String, routine_start: Int, routine_end: Int
         }
     }
 
+    // Successor rows are owner facts, not optional hints.  Reject an out of
+    // range target before any graph query so malformed input cannot turn a
+    // negative index into a fabricated loop/backedge fact.
+    let successor_block_count: Int = ArrayLength(block_starts);
+    let successor_row: Int = 0;
+    while successor_row < successor_block_count {
+        let true_target: String = block_succ_true[successor_row];
+        if StringLength(true_target) > 0 &&
+            (ToInt(true_target) < 0 ||
+             ToInt(true_target) >= successor_block_count) {
+            valid = false;
+            validation_stage = "cfg_successor";
+        }
+        let false_target: String = block_succ_false[successor_row];
+        if StringLength(false_target) > 0 &&
+            (ToInt(false_target) < 0 ||
+             ToInt(false_target) >= successor_block_count) {
+            valid = false;
+            validation_stage = "cfg_successor";
+        }
+        successor_row = successor_row + 1;
+    }
+
     // A numerically backward edge is not necessarily a CFG backedge: an
     // if/else arm can legitimately flow to an earlier merge block.  Mark an
     // edge as a loop backedge only when the target can actually reach the

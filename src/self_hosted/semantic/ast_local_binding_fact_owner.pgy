@@ -6,6 +6,7 @@ import "ast_signature_artifact_match_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
 import "diagnostic_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_destructure_binding_fact_owner.pgy";
 
 struct SemanticAstLocalBindingFacts {
     ok: Bool;
@@ -20,7 +21,12 @@ struct SemanticAstLocalBindingFacts {
     declared_type_names: Array<String>;
     has_declared_types: Array<Int>;
     initializer_texts: Array<String>;
+    binding_kinds: Array<Int>;
+    binding_indices: Array<Int>;
 }
+
+func SemanticAstLocalBindingKindNormal() -> Int { return 0; }
+func SemanticAstLocalBindingKindDestructure() -> Int { return 1; }
 
 struct SemanticAstLocalBindingFunctionRange {
     ok: Bool;
@@ -58,9 +64,13 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let declared_type_names: Array<String> = [];
     let has_declared_types: Array<Int> = [];
     let initializer_texts: Array<String> = [];
+    let binding_kinds: Array<Int> = [];
+    let binding_indices: Array<Int> = [];
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    let ok: Bool = function_scopes.ok &&
+    let destructures: SemanticAstDestructureBindingFacts =
+        SemanticAstDestructureBindingFactsFromArtifact(artifact);
+    let ok: Bool = function_scopes.ok && destructures.ok &&
         SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures);
     let diagnostic_fact: SemanticDiagnosticMessageFact =
         SemanticDiagnosticMessageFactEmpty();
@@ -74,9 +84,43 @@ func SemanticAstLocalBindingFactsFromArtifact(
 
     let node_id: Int = 0;
     while node_id < artifact.count && ok {
-        if !TypedAstArenaNodeKindIs(
+        let is_let: Bool = TypedAstArenaNodeKindIs(
             artifact.arena, node_id, TypedAstKindLetStmtTag()
-        ) {
+        );
+        let is_destructure: Bool = TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindDestructureStmtTag()
+        );
+        if !is_let && !is_destructure {
+            node_id = node_id + 1;
+            continue;
+        }
+        if is_destructure {
+            let range: SemanticAstDestructureBindingRange =
+                SemanticAstDestructureBindingRangeForNode(
+                    destructures, node_id
+                );
+            if !range.ok {
+                ok = false;
+                diagnostic_fact = SemanticDiagnosticMessageFact2(
+                    "destructure_binding_invalid",
+                    "node_id", ToString(node_id),
+                    "missing_fact", "binding_rows"
+                );
+                continue;
+            }
+            let d: Int = range.start;
+            while d < range.end {
+                ArrayPush(node_ids, node_id);
+                ArrayPush(function_node_ids, destructures.function_node_ids[d]);
+                ArrayPush(scope_node_ids, destructures.scope_node_ids[d]);
+                ArrayPush(names, destructures.names[d]);
+                ArrayPush(declared_type_names, "");
+                ArrayPush(has_declared_types, 0);
+                ArrayPush(initializer_texts, destructures.initializer_texts[d]);
+                ArrayPush(binding_kinds, SemanticAstLocalBindingKindDestructure());
+                ArrayPush(binding_indices, destructures.binding_indices[d]);
+                d = d + 1;
+            }
             node_id = node_id + 1;
             continue;
         }
@@ -152,6 +196,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
         ArrayPush(declared_type_names, declared_type_name);
         ArrayPush(has_declared_types, has_declared_type);
         ArrayPush(initializer_texts, UnwrapOption(initializer));
+        ArrayPush(binding_kinds, SemanticAstLocalBindingKindNormal());
+        ArrayPush(binding_indices, 0);
         node_id = node_id + 1;
     }
     return SemanticAstLocalBindingFacts(
@@ -159,7 +205,8 @@ func SemanticAstLocalBindingFactsFromArtifact(
         SemanticDiagnosticMessageFactRender(diagnostic_fact), diagnostic_fact,
         artifact.count,
         node_ids, function_node_ids, scope_node_ids, names,
-        declared_type_names, has_declared_types, initializer_texts
+        declared_type_names, has_declared_types, initializer_texts,
+        binding_kinds, binding_indices
     );
 }
 
@@ -173,76 +220,38 @@ func SemanticAstLocalBindingFactsMatchArtifact(
     facts: SemanticAstLocalBindingFacts
 ) -> Bool {
     let n: Int = SemanticAstLocalBindingCount(facts);
-    let function_scopes: SemanticAstFunctionScopeFacts =
-        SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !function_scopes.ok || !facts.ok ||
+    let rebuilt: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    if !facts.ok || !rebuilt.ok ||
         facts.artifact_node_count != artifact.count ||
         !SemanticAstFunctionSignatureFactsMatchArtifact(artifact, signatures) ||
+        SemanticAstLocalBindingCount(rebuilt) != n ||
         ArrayLength(facts.function_node_ids) != n ||
         ArrayLength(facts.scope_node_ids) != n ||
         ArrayLength(facts.names) != n ||
         ArrayLength(facts.declared_type_names) != n ||
         ArrayLength(facts.has_declared_types) != n ||
-        ArrayLength(facts.initializer_texts) != n {
+        ArrayLength(facts.initializer_texts) != n ||
+        ArrayLength(facts.binding_kinds) != n ||
+        ArrayLength(facts.binding_indices) != n {
         return false;
     }
     let i: Int = 0;
     while i < n {
-        let node_id: Int = facts.node_ids[i];
-        let name: Option<String> = TypedAstArenaAtomText(artifact.arena, node_id);
-        let initializer: Option<String> = TypedAstArenaValueText(
-            artifact.arena, node_id
-        );
-        let scope: Option<Int> = TypedAstArenaParentId(artifact.arena, node_id);
-        let function_node: Option<Int> = SemanticAstFunctionScopeNodeId(
-            function_scopes, node_id
-        );
-        let declared_type: Option<String> = TypedAstArenaTypeName(
-            artifact.arena, node_id
-        );
-        if node_id < 0 || node_id >= artifact.count ||
-            (i > 0 && node_id <= facts.node_ids[i - 1]) ||
-            (i > 0 && facts.function_node_ids[i] <
-                facts.function_node_ids[i - 1]) ||
-            !TypedAstArenaNodeKindIs(
-                artifact.arena, node_id, TypedAstKindLetStmtTag()
-            ) || !IsSome(name) || !IsSome(initializer) ||
-            UnwrapOption(name) != facts.names[i] ||
-            UnwrapOption(initializer) != facts.initializer_texts[i] ||
-            !IsSome(scope) || UnwrapOption(scope) != facts.scope_node_ids[i] ||
-            !TypedAstArenaNodeKindIs(
-                artifact.arena, facts.scope_node_ids[i], TypedAstKindBlockTag()
-            ) || !IsSome(function_node) ||
-            UnwrapOption(function_node) != facts.function_node_ids[i] ||
-            !IsSome(SemanticAstFunctionSignatureIndexForNode(
-                signatures, facts.function_node_ids[i]
-            )) {
-            return false;
-        }
-        if facts.has_declared_types[i] == 1 {
-            if !IsSome(declared_type) ||
-                SemanticCanonicalTypeName(UnwrapOption(declared_type)) !=
-                    facts.declared_type_names[i] {
-                return false;
-            }
-        } else if facts.has_declared_types[i] != 0 ||
-            IsSome(declared_type) ||
-            StringLength(facts.declared_type_names[i]) != 0 {
+        if facts.node_ids[i] != rebuilt.node_ids[i] ||
+            facts.function_node_ids[i] != rebuilt.function_node_ids[i] ||
+            facts.scope_node_ids[i] != rebuilt.scope_node_ids[i] ||
+            facts.names[i] != rebuilt.names[i] ||
+            facts.declared_type_names[i] != rebuilt.declared_type_names[i] ||
+            facts.has_declared_types[i] != rebuilt.has_declared_types[i] ||
+            facts.initializer_texts[i] != rebuilt.initializer_texts[i] ||
+            facts.binding_kinds[i] != rebuilt.binding_kinds[i] ||
+            facts.binding_indices[i] != rebuilt.binding_indices[i] {
             return false;
         }
         i = i + 1;
     }
-    let actual_count: Int = 0;
-    let node_id2: Int = 0;
-    while node_id2 < artifact.count {
-        if TypedAstArenaNodeKindIs(
-            artifact.arena, node_id2, TypedAstKindLetStmtTag()
-        ) {
-            actual_count = actual_count + 1;
-        }
-        node_id2 = node_id2 + 1;
-    }
-    return actual_count == n;
+    return true;
 }
 
 func SemanticAstLocalBindingRangeForFunction(
@@ -289,6 +298,25 @@ func SemanticAstLocalBindingIndexForNode(
         i = i + 1;
     }
     return None;
+}
+
+func SemanticAstLocalBindingRangeForNode(
+    facts: SemanticAstLocalBindingFacts,
+    node_id: Int
+) -> SemanticAstLocalBindingFunctionRange {
+    let start: Int = 0;
+    while start < SemanticAstLocalBindingCount(facts) &&
+        facts.node_ids[start] < node_id {
+        start = start + 1;
+    }
+    let end: Int = start;
+    while end < SemanticAstLocalBindingCount(facts) &&
+        facts.node_ids[end] == node_id {
+        end = end + 1;
+    }
+    return SemanticAstLocalBindingFunctionRange(
+        facts.ok && start < end, start, end
+    );
 }
 
 func SemanticAstLocalBindingNameAt(

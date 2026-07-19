@@ -13,6 +13,7 @@
 #include <stddef.h>
 
 #include "mir_decl.h"
+#include "mir_generic_method_specialization.h"
 #include "mir_types.h"
 
 typedef struct MIRProgram MIRProgram;
@@ -27,6 +28,9 @@ struct MIRProgram
     size_t      decl_header_capacity;
     MIRParallelCaptureBoundaryFact *parallel_capture_boundaries;
     size_t      parallel_capture_boundary_count;
+    MIRGenericMethodSpecializationFact *generic_method_specializations;
+    size_t      generic_method_specialization_count;
+    size_t      generic_method_specialization_capacity;
     ASTNode   **externs;
     size_t      extern_count;
     ASTNode   **types;

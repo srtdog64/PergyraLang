@@ -387,6 +387,17 @@ func ParseZoneDecl(
                 Exit(1);
             }
             i = SkipWhitespaceAndComments(content, i);
+            // A zone object/effect slot may carry a declaration-time default
+            // (`slot mirror: BuyerView = BuyerView(0)`).  The executable
+            // constructor fact owns the slot type; consume the default here
+            // so it cannot be mistaken for a second zone declaration.
+            if ParserCharAt(content, i) == "=" {
+                i = i + 1;
+                while i < n && ParserCharAt(content, i) != ";" &&
+                    ParserCharAt(content, i) != "}" {
+                    i = i + 1;
+                }
+            }
             if ParserCharAt(content, i) == ";" {
                 i = i + 1;
             }

@@ -58,10 +58,11 @@ func AstExpressionNodeBoolLiteral() -> Int { return 32; }
 func AstExpressionNodeStringLiteral() -> Int { return 33; }
 func AstExpressionNodeTypeName() -> Int { return 34; }
 func AstExpressionNodeCast() -> Int { return 35; }
+func AstExpressionNodeAwait() -> Int { return 36; }
 
 func AstExpressionNodeKindKnown(kind: Int) -> Bool {
     return kind >= AstExpressionNodeLeaf() &&
-        kind <= AstExpressionNodeCast();
+        kind <= AstExpressionNodeAwait();
 }
 
 func AstExpressionNodeIsScalarLeaf(kind: Int) -> Bool {
@@ -112,7 +113,8 @@ func AstExpressionLongLiteralPayloadReady(text: String) -> Bool {
 func AstExpressionNodeIsUnaryOperator(kind: Int) -> Bool {
     return kind == AstExpressionNodeLogicalNot() ||
         kind == AstExpressionNodeNegate() ||
-        kind == AstExpressionNodeTry();
+        kind == AstExpressionNodeTry() ||
+        kind == AstExpressionNodeAwait();
 }
 
 func AstExpressionNodeIsCallSpine(kind: Int) -> Bool {

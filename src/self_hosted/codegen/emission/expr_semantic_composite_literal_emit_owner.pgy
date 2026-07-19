@@ -56,21 +56,6 @@ func RewriteSemanticExpectedValue(
             graph, node_id, expected_type, env
         );
     }
-    if LookupKindType(env, expected_type, "enum") == "payload_free" {
-        let source_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, node_id
-        );
-        if !IsSome(source_text) {
-            Die("semantic enum literal text fact is missing");
-        }
-        let enum_fact: Option<EnumLiteralProjectionFact> =
-            EnumPayloadFreeArgumentProjectionFactOpt(
-                UnwrapOption(source_text), expected_type, env
-            );
-        if IsSome(enum_fact) {
-            return UnwrapOption(enum_fact).c_value;
-        }
-    }
     return RewriteExprFromSemanticGraph(graph, node_id, env);
 }
 

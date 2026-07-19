@@ -3,6 +3,8 @@
 import "program_verify_owner.pgy";
 import "expression_graph_kind_name_owner.pgy";
 import "match_json_projection_owner.pgy";
+import "destructure_json_projection_owner.pgy";
+import "generic_specialization_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirOptionalString(value: String) -> Option<String> {
@@ -197,7 +199,14 @@ func SelfMirJsonInstruction(
         JsonEmitFieldRaw("match_patterns", match_fields.patterns),
         JsonEmitFieldRaw("match_variant", match_fields.variant),
         JsonEmitFieldRaw("match_bindings", match_fields.bindings),
-        JsonEmitFieldRaw("destructure_bindings", "[]"),
+        JsonEmitFieldRaw(
+            "destructure_element_type",
+            SelfMirJsonDestructureElementType(rows, instruction_index)
+        ),
+        JsonEmitFieldRaw(
+            "destructure_bindings",
+            SelfMirJsonDestructureBindings(rows, instruction_index)
+        ),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
     return JsonEmitObject(fields);
@@ -569,9 +578,17 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
         );
         capture_i = capture_i + 1;
     }
+    let generic_specializations: Array<String> =
+        SelfMirJsonGenericSpecializations(
+            facts.generic_specializations
+        );
     return JsonEmitObject([
         JsonEmitFieldString("schema", "pgy.mir.v1"),
         JsonEmitFieldRaw("decls", JsonEmitArray(declarations)),
+        JsonEmitFieldRaw(
+            "generic_specializations",
+            JsonEmitArray(generic_specializations)
+        ),
         JsonEmitFieldRaw(
             "parallel_capture_boundaries", JsonEmitArray(parallel_captures)
         ),

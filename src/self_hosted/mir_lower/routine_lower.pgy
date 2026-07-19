@@ -117,6 +117,11 @@ func BlockCond(ref index: MirRoutineFactIndex, json: String, bs: Int, be: Int) -
         if StringLength(enum_owner) > 0 {
             return Concat(match_subject, Concat(" == ", Concat(enum_owner, Concat(".", pattern))));
         }
+        if ToString(ToInt(pattern)) != pattern {
+            MirLowerFailClosed(
+                "match enum variant declaration fact is missing"
+            );
+        }
         return Concat(match_subject, Concat(" == ", pattern));
     }
     if source_type == "AST_FOR_LOOP" {
@@ -182,10 +187,8 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
         let ikind: String = BlockInstructionKind(json, kp, inst_end);
         if ikind == "destructure" {
             let d_expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
-            let destructure_type: String =
-                MirRoutineFactIndexSourceLocalType(index, StringTrim(d_expr0));
             ArrayPush(chunks, RenderDestructureFromFacts(
-                json, kp, inst_end, indent, d_expr0, destructure_type));
+                json, kp, inst_end, indent, d_expr0));
         }
         if ikind != "branch" && ikind != "loop-init" {
             let expr0: String = MirObjectStringFact(json, kp, inst_end, "expr0");
@@ -194,7 +197,9 @@ func EmitBlockStmts(ref index: MirRoutineFactIndex, json: String,
             let source_type: String = MirObjectStringFact(json, kp, inst_end, "source_type");
             let local_type: String = MirRoutineFactIndexSourceLocalType(index, arg0);
             if ikind != "destructure" && source_type == "AST_DEFER_STMT" {
-                ArrayPush(chunks, RenderDeferFromFacts(json, kp, inst_end, indent));
+                ArrayPush(chunks, RenderDeferFromFacts(
+                    json, kp, inst_end, indent, arg0
+                ));
             } else if ikind != "destructure" && StringLength(expr0) > 0 {
                 ArrayPush(chunks, Concat(indent, Concat(RenderStmtFromFacts(ikind, source_type, arg0, expr0, expr1, local_type), "\n")));
             }
@@ -367,7 +372,22 @@ func EmitRegion(index: MirRoutineFactIndex, json: String,
                 let structural_merge: String =
                     MirRoutineFactIndexBlockStructuralMerge(index, ToInt(cur));
                 let merge: String = structural_merge;
-                if IsLoopAbrupt(structural_merge, loop_header, loop_exit) {
+                // In a no-else source branch whose then arm exits the loop,
+                // the cyclic CFG can make a later iteration's then block look
+                // like the nearest common merge.  Consume the arm successor
+                // fact before projecting the fallthrough arm as continuation.
+                let then_flows_to_loop_exit: Bool = false;
+                if structural_merge == t {
+                    let then_bounds: Array<Int> = [0, 0];
+                    if BlockBounds(index, json, t, then_bounds) {
+                        then_flows_to_loop_exit = IsLoopAbrupt(
+                            ReadSucc(index, then_bounds[0], false),
+                            loop_header, loop_exit
+                        );
+                    }
+                }
+                if IsLoopAbrupt(structural_merge, loop_header, loop_exit) ||
+                    then_flows_to_loop_exit {
                     merge = f;
                 }
                 let hasElse: Bool = StringLength(f) > 0 && f != merge;

@@ -153,6 +153,47 @@ func SemanticAstNominalConstructorFactsFromArtifact(
                         artifact.arena, child_id, field_index
                     );
                 }
+            } else if (
+                UnwrapOption(subkind_opt) == TypedAstNominalSubkindZone() ||
+                UnwrapOption(subkind_opt) == TypedAstNominalSubkindWorld()
+            ) && TypedAstArenaNodeKindIs(
+                artifact.arena, child_id, TypedAstKindFieldTag()
+            ) {
+                // Zone/world slots are direct children in the parser-owned
+                // AST (there is no synthetic Fields header).  They are still
+                // constructor parameters and must enter the same nominal
+                // field fact stream as struct/class fields.
+                let field_type_opt: Option<String> = TypedAstArenaTypeName(
+                    artifact.arena, child_id
+                );
+                let field_name_opt: Option<String> = TypedAstArenaAtomText(
+                    artifact.arena, child_id
+                );
+                if !IsSome(field_name_opt) ||
+                    StringLength(UnwrapOption(field_name_opt)) == 0 {
+                    ok = false;
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "nominal_constructor_fact_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "field_name"
+                    );
+                    continue;
+                }
+                if !IsSome(field_type_opt) ||
+                    StringLength(UnwrapOption(field_type_opt)) == 0 {
+                    ok = false;
+                    diagnostic_fact = SemanticDiagnosticMessageFact2(
+                        "nominal_constructor_fact_invalid",
+                        "node_id", ToString(child_id),
+                        "missing_fact", "field_type"
+                    );
+                    continue;
+                }
+                ArrayPush(field_names, UnwrapOption(field_name_opt));
+                ArrayPush(
+                    param_types,
+                    SemanticCanonicalTypeName(UnwrapOption(field_type_opt))
+                );
             }
             child_index = child_index + 1;
             child_opt = TypedAstArenaChildAt(

@@ -3,6 +3,8 @@
 import "../../semantic/array_type_shape_owner.pgy";
 import "../../semantic/ast_type_surface_fact_owner.pgy";
 import "../type_facts/type_env.pgy";
+import "generic_specialization_codegen_view_owner.pgy";
+import "semantic_signature_codegen_view_owner.pgy";
 
 struct CodegenNominalArrayUsageFacts {
     ok: Bool;
@@ -28,38 +30,65 @@ func CodegenNominalArrayBuiltinElement(element_type: String) -> Bool {
         element_type == "CodegenAstTextNode";
 }
 
+func CodegenNominalArrayUsageAddType(
+    type_name: String,
+    signatures: SemanticAstFunctionSignatureFacts,
+    env: CodegenTypeEnv,
+    inout elements: Array<String>
+) -> Bool {
+    let element: Option<String> = SemanticArrayElementType(type_name);
+    if !IsSome(element) { return true; }
+    let element_type: String = UnwrapOption(element);
+    if CodegenNominalArrayBuiltinElement(element_type) ||
+        CodegenSemanticGenericFormalKnown(signatures, element_type) {
+        return true;
+    }
+    if LookupKindType(env, element_type, "s") != "struct" {
+        return false;
+    }
+    if !CodegenNominalArrayElementKnown(elements, element_type) {
+        ArrayPush(elements, element_type);
+    }
+    return true;
+}
+
 func CodegenNominalArrayUsageFactsFromSemantic(
     facts: SemanticAstTypeSurfaceFacts,
+    signatures: SemanticAstFunctionSignatureFacts,
+    specializations: CodegenGenericSpecializationFacts,
     env: CodegenTypeEnv
 ) -> CodegenNominalArrayUsageFacts {
     let elements: Array<String> = [];
-    if !facts.ok {
+    if !facts.ok || !specializations.ok {
         return CodegenNominalArrayUsageFacts(false, elements);
     }
     let i: Int = 0;
     while i < SemanticAstTypeSurfaceCount(facts) {
         let type_name: Option<String> =
             SemanticAstTypeSurfaceNameAt(facts, i);
-        if IsSome(type_name) {
-            let element: Option<String> =
-                SemanticArrayElementType(UnwrapOption(type_name));
-            if IsSome(element) {
-                let element_type: String = UnwrapOption(element);
-                if !CodegenNominalArrayBuiltinElement(element_type) {
-                    if LookupKindType(env, element_type, "s") != "struct" {
-                        return CodegenNominalArrayUsageFacts(
-                            false, elements
-                        );
-                    }
-                    if !CodegenNominalArrayElementKnown(
-                        elements, element_type
-                    ) {
-                        ArrayPush(elements, element_type);
-                    }
-                }
-            }
+        if IsSome(type_name) && !CodegenNominalArrayUsageAddType(
+            UnwrapOption(type_name), signatures, env, elements
+        ) {
+            return CodegenNominalArrayUsageFacts(false, elements);
         }
         i = i + 1;
+    }
+    let specialization_index: Int = 0;
+    while specialization_index <
+        CodegenGenericSpecializationCount(specializations) {
+        let actuals: Array<String> = CodegenGenericSpecializationActuals(
+            specializations, specialization_index
+        );
+        let actual_index: Int = 0;
+        while actual_index < ArrayLength(actuals) {
+            if !CodegenNominalArrayUsageAddType(
+                actuals[actual_index], signatures, env, elements
+            ) {
+                return CodegenNominalArrayUsageFacts(false, elements);
+            }
+            actual_index = actual_index + 1;
+        }
+        specialization_index = specialization_index + 1;
     }
     return CodegenNominalArrayUsageFacts(true, elements);
 }

@@ -44,7 +44,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     if text == "Fields:" {
         return TypedAstKindFieldsHeaderTag();
     }
-    if StartsWith(text, "Field:") {
+    if StartsWith(text, "Field:") || StartsWith(text, "SubjectSlot:") ||
+        StartsWith(text, "ObjectSlot:") || StartsWith(text, "TObjectSlot:") ||
+        StartsWith(text, "WorldZone:") {
         return TypedAstKindFieldTag();
     }
     if StartsWith(text, "Function:") || StartsWith(text, "Action:") {
@@ -55,7 +57,8 @@ func TypedAstTextKindOf(text: String) -> Int {
     }
     if StartsWith(text, "Struct:") || StartsWith(text, "Class:") || StartsWith(text, "Subject:") ||
         StartsWith(text, "Object:") || StartsWith(text, "TObject:") ||
-        StartsWith(text, "Vessel:") {
+        StartsWith(text, "Vessel:") || StartsWith(text, "Zone:") ||
+        StartsWith(text, "World:") {
         return TypedAstKindNominalDeclTag();
     }
     if StartsWith(text, "Enum:") {
@@ -75,6 +78,9 @@ func TypedAstTextKindOf(text: String) -> Int {
     }
     if StartsWith(text, "Let: ") {
         return TypedAstKindLetStmtTag();
+    }
+    if text == "AST node type 6" {
+        return TypedAstKindDestructureStmtTag();
     }
     if StartsWith(text, "Assign: ") {
         return TypedAstKindAssignStmtTag();
@@ -135,6 +141,20 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         if StartsWith(text, "Field: ") {
             return Substring(text, 7, StringLength(text) - 7);
         }
+        let labels: Array<String> = [
+            "SubjectSlot: ", "ObjectSlot: ", "TObjectSlot: ",
+            "WorldZone: "
+        ];
+        let label_i: Int = 0;
+        while label_i < ArrayLength(labels) {
+            if StartsWith(text, labels[label_i]) {
+                return Substring(
+                    text, StringLength(labels[label_i]),
+                    StringLength(text) - StringLength(labels[label_i])
+                );
+            }
+            label_i = label_i + 1;
+        }
         return text;
     }
     if kind == TypedAstKindParamTag() {
@@ -164,6 +184,12 @@ func CodegenAstTextPayloadFor(text: String, kind: Int) -> String {
         }
         if StartsWith(text, "TObject: ") {
             return Substring(text, 9, StringLength(text) - 9);
+        }
+        if StartsWith(text, "Zone: ") {
+            return Substring(text, 6, StringLength(text) - 6);
+        }
+        if StartsWith(text, "World: ") {
+            return Substring(text, 7, StringLength(text) - 7);
         }
     }
     if kind == TypedAstKindEnumDeclTag() {

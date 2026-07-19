@@ -8,6 +8,7 @@
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
 #include "mir_parallel_capture_facts.h"
+#include "mir_generic_method_specialization.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -201,6 +202,7 @@ mir_destroy(MIRProgram *mir)
     }
     free(mir->decl_headers);
     mir_parallel_capture_facts_clear(mir);
+    mir_generic_method_specializations_clear(mir);
     free(mir->types);
     free(mir->abilities);
     free(mir->roles);

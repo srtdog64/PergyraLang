@@ -28,6 +28,8 @@ struct SemanticAstInitializerTypeFacts {
     verified: Array<Int>;
     diagnostic_codes: Array<String>;
     diagnostic_messages: Array<String>;
+    binding_kinds: Array<Int>;
+    binding_indices: Array<Int>;
 }
 
 func SemanticAstInitializerTypeStructuralError(
@@ -45,7 +47,7 @@ func SemanticAstInitializerTypeStructuralError(
         ),
         artifact.count,
         empty_ints, empty_strings, empty_strings, empty_ints,
-        empty_strings, empty_strings
+        empty_strings, empty_strings, empty_ints, empty_ints
     );
 }
 
@@ -95,6 +97,8 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
     let verified: Array<Int> = [];
     let diagnostic_codes: Array<String> = [];
     let diagnostic_messages: Array<String> = [];
+    let binding_kinds: Array<Int> = [];
+    let binding_indices: Array<Int> = [];
     let member_root_names: Array<String> = [];
     if !SemanticAstExpressionMemberRootNames(
         constructors, enum_facts, member_root_names
@@ -148,6 +152,19 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 member_root_names
             );
         let inferred: String = expression_verdict.inferred_type_name;
+        let destructure_element_missing: Bool = false;
+        if locals.binding_kinds[i] ==
+            SemanticAstLocalBindingKindDestructure() && expression_verdict.ok {
+            let element_type: Option<String> = SemanticArrayElementType(inferred);
+            if IsSome(element_type) {
+                inferred = UnwrapOption(element_type);
+            } else {
+                destructure_element_missing = true;
+            }
+        } else if locals.binding_kinds[i] !=
+            SemanticAstLocalBindingKindNormal() {
+            return SemanticAstInitializerTypeStructuralError(artifact);
+        }
         let declared: Option<String> =
             SemanticAstLocalBindingDeclaredTypeAt(locals, i);
         if expression_verdict.ok &&
@@ -182,6 +199,14 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
             row_verified = 0;
             row_code = expression_verdict.diagnostic_code;
             row_message = expression_verdict.diagnostic_message;
+        } else if destructure_element_missing {
+            row_verified = 0;
+            row_code = "destructure_initializer_not_array";
+            row_message = SemanticError2(
+                "destructure_initializer_not_array",
+                "binding", locals.names[i],
+                "actual", inferred
+            );
         } else if inferred == "Unknown" || inferred == "" {
             row_verified = 0;
             row_code = "initializer_type_unresolved";
@@ -211,12 +236,14 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
         ArrayPush(verified, row_verified);
         ArrayPush(diagnostic_codes, row_code);
         ArrayPush(diagnostic_messages, row_message);
+        ArrayPush(binding_kinds, locals.binding_kinds[i]);
+        ArrayPush(binding_indices, locals.binding_indices[i]);
         i = i + 1;
     }
     return SemanticAstInitializerTypeFacts(
         true, "", "", artifact.count, node_ids, expression_texts,
         inferred_type_names, verified, diagnostic_codes,
-        diagnostic_messages
+        diagnostic_messages, binding_kinds, binding_indices
     );
 }
 
@@ -269,13 +296,17 @@ func SemanticAstInitializerTypeFactsReadyProjection(
         ArrayLength(facts.inferred_type_names) != count ||
         ArrayLength(facts.verified) != count ||
         ArrayLength(facts.diagnostic_codes) != count ||
-        ArrayLength(facts.diagnostic_messages) != count {
+        ArrayLength(facts.diagnostic_messages) != count ||
+        ArrayLength(facts.binding_kinds) != count ||
+        ArrayLength(facts.binding_indices) != count {
         return false;
     }
     let i: Int = 0;
     while i < count {
         if facts.node_ids[i] != locals.node_ids[i] ||
             facts.expression_texts[i] != locals.initializer_texts[i] ||
+            facts.binding_kinds[i] != locals.binding_kinds[i] ||
+            facts.binding_indices[i] != locals.binding_indices[i] ||
             (facts.verified[i] != 0 && facts.verified[i] != 1) {
             return false;
         }
@@ -349,7 +380,9 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
         ArrayLength(facts.inferred_type_names) != n ||
         ArrayLength(facts.verified) != n ||
         ArrayLength(facts.diagnostic_codes) != n ||
-        ArrayLength(facts.diagnostic_messages) != n {
+        ArrayLength(facts.diagnostic_messages) != n ||
+        ArrayLength(facts.binding_kinds) != n ||
+        ArrayLength(facts.binding_indices) != n {
         return false;
     }
     let i: Int = 0;
@@ -359,7 +392,9 @@ func SemanticAstInitializerTypeFactsMatchArtifact(
             rebuilt.inferred_type_names[i] != facts.inferred_type_names[i] ||
             rebuilt.verified[i] != facts.verified[i] ||
             rebuilt.diagnostic_codes[i] != facts.diagnostic_codes[i] ||
-            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] {
+            rebuilt.diagnostic_messages[i] != facts.diagnostic_messages[i] ||
+            rebuilt.binding_kinds[i] != facts.binding_kinds[i] ||
+            rebuilt.binding_indices[i] != facts.binding_indices[i] {
             return false;
         }
         i = i + 1;

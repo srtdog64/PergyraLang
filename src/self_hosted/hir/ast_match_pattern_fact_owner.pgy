@@ -45,8 +45,14 @@ func AstMatchCasePatternFactFromArtifact(
     if root_kind == AstExpressionNodeIntegerLiteral() {
         return AstMatchCasePatternFact(true, pattern, "", "");
     }
-    if root_kind == AstExpressionNodeLeaf() && pattern == "None" {
-        return AstMatchCasePatternFact(true, "None", "None", "");
+    if root_kind == AstExpressionNodeLeaf() {
+        if pattern == "" {
+            return AstMatchCasePatternFactInvalid();
+        }
+        if pattern == "None" {
+            return AstMatchCasePatternFact(true, pattern, "None", "");
+        }
+        return AstMatchCasePatternFact(true, pattern, "", "");
     }
     if root_kind != AstExpressionNodeCallArgument() {
         return AstMatchCasePatternFactInvalid();

@@ -21,6 +21,7 @@ semantics remain under this directory and in the linked top-level contracts.
 | Theory foundations | [`19_theoretical_foundations.md`](19_theoretical_foundations.md) |
 | Basis convergence | [`21_basis_convergence_triangulation.md`](21_basis_convergence_triangulation.md) |
 | Axis expressibility | [`22_axis_macro_expressibility.md`](22_axis_macro_expressibility.md) |
+| Multiplication proof and benchmark | [`proofs/PergyraMulCost.md`](proofs/PergyraMulCost.md) |
 | SoT gate inventory | [`../185_sot_gate_catalog.md`](../185_sot_gate_catalog.md) |
 
 Proof documents validate models; executable owner and mutation gates bind those

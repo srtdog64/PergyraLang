@@ -100,7 +100,7 @@ func SemanticAstExpressionGraphAtomLaneRequired(
         artifact.arena, node_id, TypedAstKindAssignStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindMatchStmtTag()
-    );
+    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindDestructureStmtTag());
 }
 
 func SemanticAstExpressionGraphValueLaneRequired(
@@ -117,7 +117,7 @@ func SemanticAstExpressionGraphValueLaneRequired(
         artifact.arena, node_id, TypedAstKindArrayPushStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindArraySetStmtTag()
-    );
+    ) || TypedAstArenaNodeKindIs(artifact.arena, node_id, TypedAstKindDestructureStmtTag());
 }
 
 func SemanticAstExpressionGraphAuxiliaryLaneRequired(

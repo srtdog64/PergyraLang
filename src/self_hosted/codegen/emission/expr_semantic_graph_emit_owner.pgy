@@ -16,26 +16,6 @@ func RewriteSemanticLeaf(
     text: String,
     env: CodegenTypeEnv
 ) -> String {
-    if StartsWith(text, "await ") {
-        let awaited_text: String =
-            CompilerRuntimeCallAbiMachineLayerAwaitBinding(text);
-        if awaited_text == "" {
-            Die("self-host await requires a named future binding");
-        }
-        let awaited_type: String = LookupKindType(
-            env, awaited_text, "v"
-        );
-        let await_name: String =
-            CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
-                awaited_type
-            );
-        if await_name == "" {
-            Die("self-host await requires a supported RemoteFuture<T> ABI row");
-        }
-        return Concat(await_name, Concat("(", Concat(
-            RewriteSemanticLeaf(awaited_text, env), ")"
-        )));
-    }
     if IsIdentifier(text) {
         let enum_value: String = LookupKindType(env, text, "e");
         if enum_value != "" { return enum_value; }
@@ -59,6 +39,35 @@ func RewriteSemanticLeaf(
     }
     Die(Concat("unsupported semantic leaf expression: ", text));
     return "";
+}
+
+func RewriteSemanticIndex(
+    graph: SemanticExpressionGraphFacts,
+    receiver_id: Int,
+    receiver: String,
+    index: String,
+    env: CodegenTypeEnv
+) -> String {
+    let receiver_type: Option<String> = CodegenExpressionTypeFromGraph(
+        graph, receiver_id, env
+    );
+    if !IsSome(receiver_type) {
+        Die("semantic index receiver type fact is missing");
+    }
+    let runtime_kind: String = UnwrapOption(receiver_type);
+    if StartsWith(runtime_kind, "Array<") {
+        runtime_kind = CollectionRuntimeFactFromTypeName(
+            runtime_kind, env
+        ).kind;
+    }
+    let get_fn: String =
+        CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
+    if get_fn == "" {
+        Die("semantic index runtime ABI fact is missing");
+    }
+    return Concat(get_fn, Concat(
+        "(", Concat(receiver, Concat(", ", Concat(index, ")")))
+    ));
 }
 
 func RewriteExprFromSemanticGraph(
@@ -129,6 +138,24 @@ func RewriteExprFromSemanticGraph(
         }
         if kind == AstExpressionNodeNegate() {
             return Concat("-", operand);
+        }
+        if kind == AstExpressionNodeAwait() {
+            if UnwrapOption(operand_kind) != AstExpressionNodeLeaf() {
+                Die("self-host await requires a named future binding node");
+            }
+            let awaited_type: Option<String> =
+                CodegenExpressionTypeFromGraph(graph, left_id, env);
+            if !IsSome(awaited_type) {
+                Die("self-host await binding type fact is missing");
+            }
+            let await_name: String =
+                CompilerRuntimeCallAbiMachineLayerRemoteFutureAwaitCName(
+                    UnwrapOption(awaited_type)
+                );
+            if await_name == "" {
+                Die("self-host await requires a supported RemoteFuture<T> ABI row");
+            }
+            return Concat(await_name, Concat("(", Concat(operand, ")")));
         }
         Die("unsupported semantic unary expression graph node kind");
     }
@@ -203,28 +230,9 @@ func RewriteExprFromSemanticGraph(
         }
     }
     if kind == AstExpressionNodeIndex() {
-        let left_text: Option<String> = SemanticExpressionGraphNodeText(
-            graph, left_id
+        return RewriteSemanticIndex(
+            graph, left_id, left, right, env
         );
-        if !IsSome(left_text) {
-            Die("semantic index receiver is missing");
-        }
-        let receiver_text: String = UnwrapOption(left_text);
-        let receiver_type: String = LookupKindType(env, receiver_text, "v");
-        if receiver_type == "" {
-            receiver_type = ExprMemberFieldType(receiver_text, env);
-        }
-        let runtime_kind: String = receiver_type;
-        if StartsWith(runtime_kind, "Array<") {
-            runtime_kind = CollectionRuntimeFactFromTypeName(
-                runtime_kind, env
-            ).kind;
-        }
-        let get_fn: String =
-            CollectionRuntimeFactFromKind(runtime_kind, env).c_get_fn;
-        return Concat(get_fn, Concat(
-            "(", Concat(left, Concat(", ", Concat(right, ")")))
-        ));
     }
     if kind == AstExpressionNodeAdd() {
         let left_kind_opt: Option<String> = CodegenExpressionTypeFromGraph(

@@ -61,8 +61,10 @@ DRIVER_BIN="$BUILD_DIR/driver_rung2.exe"
 DRIVER_LOG="$BUILD_DIR/driver_rung2.compile.log"
 SOURCE_MACHINE_MIR="$BUILD_DIR/device_slot.source.mirjson"
 SOURCE_REMOTE_MIR="$BUILD_DIR/device_slot.remote.source.mirjson"
+SOURCE_REMOTE_BAD_AWAIT_MIR="$BUILD_DIR/device_slot.remote.bad-await.mirjson"
 SOURCE_MACHINE_OUT="$BUILD_DIR/device_slot.source.out"
 SOURCE_REMOTE_OUT="$BUILD_DIR/device_slot.remote.source.out"
+SOURCE_REMOTE_BAD_AWAIT_OUT="$BUILD_DIR/device_slot.remote.bad-await.out"
 AIR_VALIDATOR_BIN="$BUILD_DIR/machine_layer_air_validator.exe"
 AIR_VALIDATOR_SOURCE="$ROOT_DIR/src/self_hosted/tools/machine_layer_air_validator/main.pgy"
 RIR_VALIDATOR_BIN="$BUILD_DIR/machine_layer_rir_validator.exe"
@@ -220,6 +222,20 @@ for source_case in "$SOURCE_MACHINE_CASE" "$SOURCE_REMOTE_CASE"; do
     fi
     grep -Fq -- 'DeviceSlot<Int>' "$source_out"
 done
+
+# Await is an arity-one expression graph fact. Changing only its node kind to
+# a leaf must fail before C emission; source text is not an authority here.
+grep -Fq -- '"kind":"await"' "$SOURCE_REMOTE_MIR"
+pgy_replace_first_literal "$SOURCE_REMOTE_MIR" \
+    "$SOURCE_REMOTE_BAD_AWAIT_MIR" \
+    '"kind":"await"' '"kind":"leaf"'
+SOURCE_REMOTE_BAD_AWAIT_REL="${SOURCE_REMOTE_BAD_AWAIT_MIR#$ROOT_DIR/}"
+if (cd "$ROOT_DIR" && "$DRIVER_BIN" --mir-json \
+    "$SOURCE_REMOTE_BAD_AWAIT_REL" "$MACHINE_MANIFEST_REL" \
+    >"$SOURCE_REMOTE_BAD_AWAIT_OUT" 2>&1); then
+    echo "[self-host-mir-machine-layer] mutated await node was accepted" >&2
+    exit 1
+fi
 
 # The declaration/MIR path is not enough: the self-host C emitter must carry
 # the same typed DeviceSlot owner through the final C runtime call boundary.

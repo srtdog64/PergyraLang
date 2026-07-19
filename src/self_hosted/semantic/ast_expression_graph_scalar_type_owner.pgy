@@ -41,7 +41,8 @@ func SemanticExpressionGraphScalarOperatorKind(kind: Int) -> Bool {
         kind == AstExpressionNodeModulo() ||
         kind == AstExpressionNodeIndex() ||
         kind == AstExpressionNodeLogicalNot() ||
-        kind == AstExpressionNodeNegate();
+        kind == AstExpressionNodeNegate() ||
+        kind == AstExpressionNodeAwait();
 }
 
 func SemanticExpressionGraphNumericTypeName(type_name: String) -> Bool {
@@ -309,6 +310,17 @@ func SemanticExpressionGraphScalarTypeName(
         if IsSome(try_payload) { return UnwrapOption(try_payload); }
         return "Unknown";
     }
+    if kind == AstExpressionNodeAwait() {
+        let remote_payload: Option<String> = RemoteFuturePayloadTypeOpt(left);
+        if IsSome(remote_payload) {
+            return Concat("Result<", Concat(
+                UnwrapOption(remote_payload), ">"
+            ));
+        }
+        let future_payload: Option<String> = FuturePayloadTypeOpt(left);
+        if IsSome(future_payload) { return UnwrapOption(future_payload); }
+        return "Unknown";
+    }
     let right_opt: Option<Int> = SemanticExpressionGraphRightChild(
         graph, root_id
     );
@@ -368,6 +380,18 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
                 [AstExpressionLaneAuxiliary()], [fact.root], fact.arena
             ), [0], 1
         );
+    let await_cursor: Array<Int> = [0];
+    let await_fact: ParserExpressionFact = ParseExprFact(
+        "await pending", 0, await_cursor
+    );
+    let await_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [await_fact.root],
+                await_fact.arena
+            ), [0], 1
+        );
     let member_cursor: Array<Int> = [0];
     let member_fact: ParserExpressionFact = ParseExprFact(
         "fact.inner.values[fact.root]", 0, member_cursor
@@ -419,7 +443,8 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             ), [0], 1
         );
     let empty: Array<String> = [];
-    return member_fact.ok && member_cursor[0] == 28 &&
+    return await_fact.ok && await_cursor[0] == 13 &&
+        member_fact.ok && member_cursor[0] == 28 &&
         call_member_fact.ok && call_member_cursor[0] == 16 &&
         indexed_member_fact.ok && indexed_member_cursor[0] ==
             StringLength(indexed_member_text) &&
@@ -442,5 +467,11 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
             graph, fact.root, constructors, ["i"], ["Int"], empty, empty
         ) == "Int" && SemanticExpressionGraphScalarTypeName(
             graph, fact.root, constructors, ["i"], ["String"], empty, empty
-        ) == "Unknown";
+        ) == "Unknown" && SemanticExpressionGraphScalarTypeName(
+            await_graph, await_fact.root, constructors,
+            ["pending"], ["RemoteFuture<Int>"], empty, empty
+        ) == "Result<Int>" && SemanticExpressionGraphScalarTypeName(
+            await_graph, await_fact.root, constructors,
+            ["pending"], ["Future<Int>"], empty, empty
+        ) == "Int";
 }

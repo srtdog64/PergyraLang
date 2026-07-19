@@ -50,9 +50,13 @@ func CompileAstArtifactToC(
     }
     let bundle: SemanticAstBodyTypeBundle =
         SemanticAstBodyTypeBundleFromAnalysis(artifact, semantic_analysis);
+    let generic_specializations: CodegenGenericSpecializationFacts =
+        CodegenGenericSpecializationFactsFromSemantic(
+            semantic_analysis.signatures, bundle.generic_specializations
+        );
     let body_types: CodegenSemanticBodyTypeFacts =
         CodegenSemanticBodyTypeFactsFromBundleOrDie(
-            artifact, semantic_analysis, bundle
+            artifact, semantic_analysis, bundle, generic_specializations
         );
     return CompilerEmissionArtifact(
         "emitted-c",

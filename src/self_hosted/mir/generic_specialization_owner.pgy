@@ -1,0 +1,198 @@
+// MIR-owned concrete generic specialization rows for direct and member calls.
+
+import "../semantic/ast_generic_specialization_fact_owner.pgy";
+import "../semantic/ast_signature_fact_owner.pgy";
+import "../compiler/symbol_table_owner.pgy";
+
+struct SelfMirGenericSpecializationRows {
+    source_owner_node_ids: Array<Int>;
+    source_lanes: Array<Int>;
+    source_call_ordinals: Array<Int>;
+    signature_indexes: Array<Int>;
+    target_kinds: Array<Int>;
+    owner_names: Array<String>;
+    callable_names: Array<String>;
+    specialized_symbols: Array<String>;
+    generic_param_starts: Array<Int>;
+    generic_param_counts: Array<Int>;
+    generic_param_names: Array<String>;
+    actual_starts: Array<Int>;
+    actual_counts: Array<Int>;
+    actual_type_names: Array<String>;
+}
+
+func SelfMirGenericSpecializationRowsEmpty(
+) -> SelfMirGenericSpecializationRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirGenericSpecializationRows(
+        ints, ints, ints, ints, ints, strings, strings, strings,
+        ints, ints, strings, ints, ints, strings
+    );
+}
+
+func SelfMirGenericSpecializationCount(
+    ref rows: SelfMirGenericSpecializationRows
+) -> Int {
+    return ArrayLength(rows.source_owner_node_ids);
+}
+
+func SelfMirGenericSpecializationTargetKindName(kind: Int) -> String {
+    if kind == SemanticCallTargetDirect() { return "direct"; }
+    if kind == SemanticCallTargetMember() { return "member"; }
+    return "";
+}
+
+func SelfMirGenericSpecializationRowsReady(
+    ref rows: SelfMirGenericSpecializationRows
+) -> Bool {
+    let count: Int = SelfMirGenericSpecializationCount(rows);
+    if ArrayLength(rows.source_lanes) != count ||
+        ArrayLength(rows.source_call_ordinals) != count ||
+        ArrayLength(rows.signature_indexes) != count ||
+        ArrayLength(rows.target_kinds) != count ||
+        ArrayLength(rows.owner_names) != count ||
+        ArrayLength(rows.callable_names) != count ||
+        ArrayLength(rows.specialized_symbols) != count ||
+        ArrayLength(rows.generic_param_starts) != count ||
+        ArrayLength(rows.generic_param_counts) != count ||
+        ArrayLength(rows.actual_starts) != count ||
+        ArrayLength(rows.actual_counts) != count {
+        return false;
+    }
+    let param_cursor: Int = 0;
+    let actual_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        let target_kind_name: String =
+            SelfMirGenericSpecializationTargetKindName(rows.target_kinds[i]);
+        if rows.source_owner_node_ids[i] < 0 ||
+            rows.source_lanes[i] < AstExpressionLaneAtom() ||
+            rows.source_lanes[i] > AstExpressionLaneAuxiliary() ||
+            rows.source_call_ordinals[i] < 0 ||
+            rows.signature_indexes[i] < 0 || target_kind_name == "" ||
+            (target_kind_name == "direct" && rows.owner_names[i] != "") ||
+            (target_kind_name == "member" && rows.owner_names[i] == "") ||
+            rows.callable_names[i] == "" ||
+            rows.specialized_symbols[i] == "" ||
+            rows.generic_param_starts[i] != param_cursor ||
+            rows.generic_param_counts[i] <= 0 ||
+            rows.actual_starts[i] != actual_cursor ||
+            rows.actual_counts[i] != rows.generic_param_counts[i] {
+            return false;
+        }
+        let prior: Int = 0;
+        while prior < i {
+            if SemanticExpressionCallIdentityEqual(
+                rows.source_owner_node_ids[prior], rows.source_lanes[prior],
+                rows.source_call_ordinals[prior],
+                rows.source_owner_node_ids[i], rows.source_lanes[i],
+                rows.source_call_ordinals[i]
+            ) { return false; }
+            prior = prior + 1;
+        }
+        param_cursor = param_cursor + rows.generic_param_counts[i];
+        actual_cursor = actual_cursor + rows.actual_counts[i];
+        i = i + 1;
+    }
+    return param_cursor == ArrayLength(rows.generic_param_names) &&
+        actual_cursor == ArrayLength(rows.actual_type_names);
+}
+
+func SelfMirGenericSpecializationRowsFromSemantic(
+    ref analysis: SemanticAstArtifactAnalysis,
+    ref semantic_rows: SemanticAstGenericSpecializationFacts
+) -> SelfMirGenericSpecializationRows {
+    let rows: SelfMirGenericSpecializationRows =
+        SelfMirGenericSpecializationRowsEmpty();
+    if !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+        semantic_rows, analysis.expression_surfaces
+    ) {
+        return rows;
+    }
+    let source_owner_node_ids: Array<Int> = rows.source_owner_node_ids;
+    let source_lanes: Array<Int> = rows.source_lanes;
+    let source_call_ordinals: Array<Int> = rows.source_call_ordinals;
+    let signature_indexes: Array<Int> = rows.signature_indexes;
+    let target_kinds: Array<Int> = rows.target_kinds;
+    let owner_names: Array<String> = rows.owner_names;
+    let callable_names: Array<String> = rows.callable_names;
+    let specialized_symbols: Array<String> = rows.specialized_symbols;
+    let generic_param_starts: Array<Int> = rows.generic_param_starts;
+    let generic_param_counts: Array<Int> = rows.generic_param_counts;
+    let generic_param_names: Array<String> = rows.generic_param_names;
+    let actual_starts: Array<Int> = rows.actual_starts;
+    let actual_counts: Array<Int> = rows.actual_counts;
+    let actual_type_names: Array<String> = rows.actual_type_names;
+    let i: Int = 0;
+    while i < SemanticAstGenericSpecializationCount(semantic_rows) {
+        let signature_index: Int = semantic_rows.signature_indexes[i];
+        let target_kind_opt: Option<Int> =
+            SemanticExpressionGraphCallTargetKind(
+                analysis.expression_surfaces.expression_graph,
+                semantic_rows.call_node_ids[i]
+            );
+        if signature_index < 0 || signature_index >=
+            ArrayLength(analysis.signatures.names) ||
+            !IsSome(target_kind_opt) {
+            return SelfMirGenericSpecializationRowsEmpty();
+        }
+        let target_kind: Int = UnwrapOption(target_kind_opt);
+        let owner: String = analysis.signatures.owner_names[signature_index];
+        if (target_kind == SemanticCallTargetDirect() && owner != "") ||
+            (target_kind == SemanticCallTargetMember() && owner == "") ||
+            SelfMirGenericSpecializationTargetKindName(target_kind) == "" {
+            return SelfMirGenericSpecializationRowsEmpty();
+        }
+        let generic_count: Int =
+            analysis.signatures.generic_counts[signature_index];
+        if generic_count <= 0 ||
+            semantic_rows.actual_counts[i] != generic_count {
+            return SelfMirGenericSpecializationRowsEmpty();
+        }
+        let actuals: Array<String> =
+            SemanticAstGenericSpecializationActuals(semantic_rows, i);
+        ArrayPush(source_owner_node_ids, semantic_rows.source_owner_node_ids[i]);
+        ArrayPush(source_lanes, semantic_rows.source_lanes[i]);
+        ArrayPush(source_call_ordinals, semantic_rows.source_call_ordinals[i]);
+        ArrayPush(signature_indexes, signature_index);
+        ArrayPush(target_kinds, target_kind);
+        ArrayPush(owner_names, owner);
+        ArrayPush(callable_names, analysis.signatures.names[signature_index]);
+        ArrayPush(
+            specialized_symbols,
+            CompilerSymbolCGenericSpecializationName(
+                CompilerSymbolCQualifiedName(
+                    owner, analysis.signatures.names[signature_index]
+                ),
+                actuals
+            )
+        );
+        ArrayPush(generic_param_starts, ArrayLength(generic_param_names));
+        ArrayPush(generic_param_counts, generic_count);
+        let generic_start: Int =
+            analysis.signatures.generic_starts[signature_index];
+        let generic_i: Int = 0;
+        while generic_i < generic_count {
+            ArrayPush(
+                generic_param_names,
+                analysis.signatures.generic_names[generic_start + generic_i]
+            );
+            generic_i = generic_i + 1;
+        }
+        ArrayPush(actual_starts, ArrayLength(actual_type_names));
+        ArrayPush(actual_counts, ArrayLength(actuals));
+        let actual_i: Int = 0;
+        while actual_i < ArrayLength(actuals) {
+            ArrayPush(actual_type_names, actuals[actual_i]);
+            actual_i = actual_i + 1;
+        }
+        i = i + 1;
+    }
+    return SelfMirGenericSpecializationRows(
+        source_owner_node_ids, source_lanes, source_call_ordinals,
+        signature_indexes, target_kinds, owner_names, callable_names,
+        specialized_symbols, generic_param_starts, generic_param_counts,
+        generic_param_names, actual_starts, actual_counts, actual_type_names
+    );
+}

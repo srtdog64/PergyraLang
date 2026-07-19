@@ -23,6 +23,8 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/proofs/DelegationBoundaryCore.v](semantics/proofs/DelegationBoundaryCore.v)
 - [docs/semantics/proofs/LossCompositionCore.v](semantics/proofs/LossCompositionCore.v)
 - [docs/semantics/proofs/ResourceMachineBridge.v](semantics/proofs/ResourceMachineBridge.v)
+- [docs/semantics/proofs/PergyraMulCost.v](semantics/proofs/PergyraMulCost.v)
+- [docs/semantics/proofs/PergyraMulCost.md](semantics/proofs/PergyraMulCost.md)
 - [docs/semantics/proofs/ArchitectureBoundaryCores.md](semantics/proofs/ArchitectureBoundaryCores.md)
 - [docs/semantics/proofs/ProofSpine.v](semantics/proofs/ProofSpine.v)
 

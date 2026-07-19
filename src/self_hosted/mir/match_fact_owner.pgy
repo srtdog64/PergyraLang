@@ -153,9 +153,8 @@ func SelfMirMatchFactRowsValidationError(
         let variant: String = rows.variants[i];
         let pattern: String = rows.patterns[pattern_cursor];
         if variant == "" {
-            if rows.binding_counts[i] != 0 ||
-                ToString(ToInt(pattern)) != pattern {
-                return "bounded scalar match rows are invalid";
+            if rows.binding_counts[i] != 0 || pattern == "" {
+                return "bounded scalar or enum match rows are invalid";
             }
         } else if variant == "None" {
             if pattern != "None" || rows.binding_counts[i] != 0 {

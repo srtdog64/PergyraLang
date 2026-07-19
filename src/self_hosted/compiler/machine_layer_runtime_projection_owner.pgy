@@ -93,12 +93,6 @@ func CompilerRuntimeCallAbiMachineLayerDeviceRuntimeCName(source_name: String, t
     }
     return None;
 }
-func CompilerRuntimeCallAbiMachineLayerAwaitBinding(text: String) -> String {
-    if !StartsWith(text, "await ") || StringLength(text) <= 6 { return ""; }
-    let binding: String = StringTrim(Substring(text, 6, StringLength(text) - 6));
-    if !IsIdentifier(binding) { return ""; }
-    return binding;
-}
 func CompilerRuntimeCallAbiMachineLayerRemoteFuturePayloadType(type_name: String) -> String {
     let prefix: String = "RemoteFuture<";
     if !StartsWith(type_name, prefix) || StringLength(type_name) <= StringLength(prefix) {

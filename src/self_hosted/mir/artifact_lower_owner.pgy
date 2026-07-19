@@ -1,166 +1,10 @@
 // Shared AstTreeArtifact -> self-host MIR fact graph producer.
 
 import "program_fact_owner.pgy";
+import "declaration_rows_owner.pgy";
 import "routine_entry_owner.pgy";
 import "../compiler/machine_layer_declaration_consumer.pgy";
 import "../semantic/ast_statement_fact_owner.pgy";
-
-func SelfMirDeclarationsFromAnalysis(
-    analysis: SemanticAstArtifactAnalysis,
-    enum_facts: SemanticAstEnumFacts
-) -> SelfMirDeclarationRows {
-    let rows: SelfMirDeclarationRows = SelfMirDeclarationRowsEmpty();
-    let kinds: Array<String> = rows.kinds;
-    let nominal_kinds: Array<String> = rows.nominal_kinds;
-    let names: Array<String> = rows.names;
-    let target_types: Array<String> = rows.target_types;
-    let field_starts: Array<Int> = rows.field_starts;
-    let field_counts: Array<Int> = rows.field_counts;
-    let field_names: Array<String> = rows.field_names;
-    let field_types: Array<String> = rows.field_types;
-    let method_starts: Array<Int> = rows.method_starts;
-    let method_counts: Array<Int> = rows.method_counts;
-    let method_names: Array<String> = rows.method_names;
-    let method_returns: Array<String> = rows.method_returns;
-    let variant_starts: Array<Int> = rows.variant_starts;
-    let variant_counts: Array<Int> = rows.variant_counts;
-    let variant_names: Array<String> = rows.variant_names;
-    let variant_param_counts: Array<Int> = rows.variant_param_counts;
-    let i: Int = 0;
-    while i < SemanticAstNominalConstructorCount(analysis.constructors) {
-        ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
-        ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
-        ArrayPush(names, analysis.constructors.names[i]);
-        ArrayPush(target_types, "");
-        ArrayPush(field_starts, ArrayLength(field_names));
-        ArrayPush(field_counts, analysis.constructors.param_counts[i]);
-        let field_i: Int = 0;
-        while field_i < analysis.constructors.param_counts[i] {
-            let field_name: Option<String> =
-                SemanticAstNominalConstructorFieldNameAt(
-                    analysis.constructors, i, field_i
-                );
-            let field_type: Option<String> =
-                SemanticAstNominalConstructorParamTypeAt(
-                    analysis.constructors, i, field_i
-                );
-            if IsSome(field_name) && IsSome(field_type) {
-                ArrayPush(field_names, UnwrapOption(field_name));
-                ArrayPush(field_types, UnwrapOption(field_type));
-            }
-            field_i = field_i + 1;
-        }
-        ArrayPush(method_starts, ArrayLength(method_names));
-        let method_count: Int = 0;
-        let signature_i: Int = 0;
-        while signature_i < SemanticAstFunctionSignatureCount(
-            analysis.signatures
-        ) {
-            if analysis.signatures.owner_names[signature_i] ==
-                analysis.constructors.names[i] {
-                ArrayPush(
-                    method_names, analysis.signatures.names[signature_i]
-                );
-                ArrayPush(
-                    method_returns,
-                    analysis.signatures.return_types[signature_i]
-                );
-                method_count = method_count + 1;
-            }
-            signature_i = signature_i + 1;
-        }
-        ArrayPush(method_counts, method_count);
-        ArrayPush(variant_starts, ArrayLength(variant_names));
-        ArrayPush(variant_counts, 0);
-        i = i + 1;
-    }
-    let role_i: Int = 0;
-    while role_i < SemanticAstRoleCount(analysis.roles) {
-        let role_name: Option<String> = SemanticAstRoleNameAt(
-            analysis.roles, role_i
-        );
-        let target_type: Option<String> = SemanticAstRoleTargetTypeAt(
-            analysis.roles, role_i
-        );
-        let method_count: Option<Int> = SemanticAstRoleMethodCountAt(
-            analysis.roles, role_i
-        );
-        if !IsSome(role_name) || !IsSome(target_type) ||
-            !IsSome(method_count) {
-            return SelfMirDeclarationRowsEmpty();
-        }
-        ArrayPush(kinds, "role");
-        ArrayPush(nominal_kinds, "role");
-        ArrayPush(names, UnwrapOption(role_name));
-        ArrayPush(target_types, UnwrapOption(target_type));
-        ArrayPush(field_starts, ArrayLength(field_names));
-        ArrayPush(field_counts, 0);
-        ArrayPush(method_starts, ArrayLength(method_names));
-        let method_i: Int = 0;
-        while method_i < UnwrapOption(method_count) {
-            let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
-                analysis.roles, role_i, method_i
-            );
-            if !IsSome(method_node) {
-                return SelfMirDeclarationRowsEmpty();
-            }
-            let signature_i: Option<Int> =
-                SemanticAstFunctionSignatureIndexForNode(
-                    analysis.signatures, UnwrapOption(method_node)
-                );
-            if !IsSome(signature_i) {
-                return SelfMirDeclarationRowsEmpty();
-            }
-            ArrayPush(
-                method_names,
-                analysis.signatures.names[UnwrapOption(signature_i)]
-            );
-            ArrayPush(
-                method_returns,
-                analysis.signatures.return_types[UnwrapOption(signature_i)]
-            );
-            method_i = method_i + 1;
-        }
-        ArrayPush(method_counts, UnwrapOption(method_count));
-        ArrayPush(variant_starts, ArrayLength(variant_names));
-        ArrayPush(variant_counts, 0);
-        role_i = role_i + 1;
-    }
-    let enum_i: Int = 0;
-    while enum_i < ArrayLength(enum_facts.enum_names) {
-        let enum_name: String = enum_facts.enum_names[enum_i];
-        ArrayPush(kinds, "enum");
-        ArrayPush(nominal_kinds, "enum");
-        ArrayPush(names, enum_name);
-        ArrayPush(target_types, "");
-        ArrayPush(field_starts, ArrayLength(field_names));
-        ArrayPush(field_counts, 0);
-        ArrayPush(method_starts, ArrayLength(method_names));
-        ArrayPush(method_counts, 0);
-        ArrayPush(variant_starts, ArrayLength(variant_names));
-        let enum_variant_count: Int = 0;
-        let variant_i: Int = 0;
-        while variant_i < ArrayLength(enum_facts.variant_names) {
-            if enum_facts.variant_enum_names[variant_i] == enum_name {
-                ArrayPush(variant_names, enum_facts.variant_names[variant_i]);
-                ArrayPush(
-                    variant_param_counts,
-                    enum_facts.variant_param_counts[variant_i]
-                );
-                enum_variant_count = enum_variant_count + 1;
-            }
-            variant_i = variant_i + 1;
-        }
-        ArrayPush(variant_counts, enum_variant_count);
-        enum_i = enum_i + 1;
-    }
-    return SelfMirDeclarationRows(
-        kinds, nominal_kinds, names, target_types, field_starts, field_counts,
-        field_names, field_types, method_starts, method_counts,
-        method_names, method_returns, variant_starts, variant_counts,
-        variant_names, variant_param_counts
-    );
-}
 
 func SelfMirAppendCfg(
     target: SelfMirCfgRows,
@@ -308,6 +152,12 @@ func SelfMirAppendCfg(
         source.instructions.match_facts,
         instruction_offset
     );
+    let destructure_facts: SelfMirDestructureFactRows =
+        SelfMirDestructureFactRowsAppend(
+            target.instructions.destructure_facts,
+            source.instructions.destructure_facts,
+            instruction_offset
+        );
     return SelfMirCfgRows(
         SelfMirBlockRows(
             block_ids, reachable, instruction_starts, instruction_counts,
@@ -321,7 +171,7 @@ func SelfMirAppendCfg(
             machine_layer_runtime_operations, machine_layer_hardware_adequate,
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
-            expr0_graphs, expr1_graphs, match_facts
+            expr0_graphs, expr1_graphs, match_facts, destructure_facts
         )
     );
 }
@@ -461,7 +311,8 @@ func SelfMirAppendRoutine(
     ArrayPush(iteration_counts, iteration_count);
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.declarations, facts.parallel_captures,
+        facts.artifact_node_count, facts.declarations,
+        facts.generic_specializations, facts.parallel_captures,
         SelfMirRoutineRows(
             node_ids, names, kinds, owners, return_types,
             generic_starts, generic_counts, generic_names,
@@ -523,7 +374,8 @@ func SelfMirCanonicalInstructionIds(
     let instructions: SelfMirInstructionRows = facts.cfg.instructions;
     return SelfMirProgramFacts(
         facts.ok, facts.diagnostic_code, facts.diagnostic_message,
-        facts.artifact_node_count, facts.declarations, facts.parallel_captures,
+        facts.artifact_node_count, facts.declarations,
+        facts.generic_specializations, facts.parallel_captures,
         facts.routines,
         SelfMirCfgRows(
             facts.cfg.blocks,
@@ -544,7 +396,7 @@ func SelfMirCanonicalInstructionIds(
                 instructions.use_starts, instructions.use_counts,
                 instructions.uses,
                 instructions.expr0_graphs, instructions.expr1_graphs,
-                instructions.match_facts
+                instructions.match_facts, instructions.destructure_facts
             )
         )
     );
@@ -555,6 +407,7 @@ func SelfMirProgramFactsFromArtifact(
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,
     iteration_types: SemanticAstIterationTypeFacts,
+    generic_specializations: SemanticAstGenericSpecializationFacts,
     machine_declaration: SelfHostMachineLayerDeclaration
 ) -> SelfMirProgramFacts {
     let facts: SelfMirProgramFacts = SelfMirProgramFactsEmpty(artifact.count);
@@ -570,6 +423,10 @@ func SelfMirProgramFactsFromArtifact(
         artifact, analysis.local_bindings, initializer_types
     ) || !SemanticAstIterationTypeFactsReadyForMirProjection(
         artifact, analysis.statements, iteration_types
+    ) || !SemanticAstGenericSpecializationFactsReady(
+        generic_specializations
+    ) || !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+        generic_specializations, analysis.expression_surfaces
     ) {
         return SelfMirProgramFactsError(
             facts, "mir_artifact_invalid",
@@ -600,9 +457,22 @@ func SelfMirProgramFactsFromArtifact(
             "MIR producer requires complete enum variant facts"
         );
     }
+    let generic_rows: SelfMirGenericSpecializationRows =
+        SelfMirGenericSpecializationRowsFromSemantic(
+            analysis, generic_specializations
+        );
+    if !SelfMirGenericSpecializationRowsReady(generic_rows) ||
+        SelfMirGenericSpecializationCount(generic_rows) !=
+            SemanticAstGenericSpecializationCount(generic_specializations) {
+        return SelfMirProgramFactsError(
+            facts, "mir_generic_specialization_missing",
+            "MIR producer requires stable generic specialization rows"
+        );
+    }
     facts = SelfMirProgramFacts(
         true, "", "", artifact.count,
         SelfMirDeclarationsFromAnalysis(analysis, enum_facts),
+        generic_rows,
         facts.parallel_captures, facts.routines, facts.cfg
     );
     let input: SelfMirRoutineInput = SelfMirRoutineInput(

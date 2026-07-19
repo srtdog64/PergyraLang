@@ -134,6 +134,30 @@ func CodegenSemanticFunctionGenericCountOrDie(
     return UnwrapOption(count);
 }
 
+func CodegenSemanticGenericFormalKnown(
+    facts: SemanticAstFunctionSignatureFacts,
+    formal_name: String
+) -> Bool {
+    let signature_index: Int = 0;
+    while signature_index < SemanticAstFunctionSignatureCount(facts) {
+        let generic_count: Int = CodegenSemanticFunctionGenericCountOrDie(
+            facts, signature_index
+        );
+        let generic_index: Int = 0;
+        while generic_index < generic_count {
+            let name: Option<String> = SemanticAstFunctionGenericNameAt(
+                facts, signature_index, generic_index
+            );
+            if IsSome(name) && UnwrapOption(name) == formal_name {
+                return true;
+            }
+            generic_index = generic_index + 1;
+        }
+        signature_index = signature_index + 1;
+    }
+    return false;
+}
+
 func CodegenSemanticFunctionParamNodeOrDie(
     facts: SemanticAstFunctionSignatureFacts,
     signature_index: Int,

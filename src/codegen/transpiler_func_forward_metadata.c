@@ -23,6 +23,20 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                                               CodeBuf *buf,
                                               TranspilerCtx *ctx)
 {
+    emit_hosted_method_forward_decl_from_metadata_named(
+        host_name, NULL, method_meta, method, pointer_self, buf, ctx);
+}
+
+void
+emit_hosted_method_forward_decl_from_metadata_named(
+    const char *host_name,
+    const char *emitted_name,
+    const MIRDeclMethod *method_meta,
+    ASTNode *method,
+    bool pointer_self,
+    CodeBuf *buf,
+    TranspilerCtx *ctx)
+{
     const char *method_name;
     const char *return_type_name;
     ASTNode *return_type;
@@ -87,8 +101,12 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         ret_type = ret_type_buf;
     }
 
-    codebuf_write(buf, "\n%s\n%s_%s(%s%s",
-                  ret_type, host_name, method_name, host_name,
+    codebuf_write(buf, "\n%s\n%s(%s%s",
+                  ret_type,
+                  emitted_name != NULL ? emitted_name
+                                       : transpiler_scratch_fmt(ctx, "%s_%s",
+                                             host_name, method_name),
+                  host_name,
                   pointer_self ? " *self" : " self");
 
     for (size_t j = 0; j < param_count; j++) {

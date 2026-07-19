@@ -1,0 +1,17 @@
+class ArrayWrapper {
+    let marker: Int;
+
+    func Wrap<T>(self, value: T) -> Array<T> {
+        return [value];
+    }
+
+    func Echo<T>(self, value: T) -> T {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let wrapper: ArrayWrapper = ArrayWrapper(0);
+    let result: Array<Int> = wrapper.Echo(wrapper.Wrap(44));
+    Log(ToString(result[0]));
+}

@@ -13,6 +13,7 @@
 #include "mir_hir_block_projection.h"
 #include "mir_lower_population.h"
 #include "mir_parallel_capture_facts.h"
+#include "mir_generic_method_specialization.h"
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
@@ -418,6 +419,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
     }
 
     mir_link_decl_method_routines(mir);
+    if (!mir_generic_method_specializations_capture(mir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
 
     {
         double t0 = mir_timing_now();

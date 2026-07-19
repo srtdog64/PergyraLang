@@ -4,6 +4,10 @@ Source review: external production review of repository head `2575f9a7`.
 Checked against `main` at `c76b6236` plus the executable change recorded in
 this document. This is a claim audit, not a production-readiness declaration.
 
+Rechecked on 2026-07-20 against the live worktree based on `74281d6a`. The
+focused TSan delta below is worktree evidence until it is committed and passes
+the native Ubuntu CI job.
+
 ## Objective Card
 
 - Objective: separate still-current production blockers from findings already
@@ -53,8 +57,13 @@ the complete integrated producer or released driver is bounded.
 - `VerifiedProjectionPlan` remains partial. Intent observability has a native
   row, while layout, cleanup, checks, capability retention, composed loss, and
   artifact residue are not fully legalized.
-- Linux ASan/UBSan exists, but there is no blocking TSan lane for pool, channel,
-  cancellation, or runtime-state races.
+- A focused blocking Linux TSan lane now calibrates the detector with an
+  intentional pthread race, then runs pool, channel, cancellation, and zone
+  concurrency tests under instrumentation. This is execution evidence for the
+  covered battery, not a proof that every runtime interleaving is race-free.
+  WSL2 may require `setarch "$(uname -m)" -R make test-tsan` because its normal
+  address-space layout can prevent TSan from reserving shadow memory; the CI
+  lane runs natively on Ubuntu.
 - Capability and budget policy is still process-scoped and trusted-native
   default-open. It is not an untrusted multi-instance sandbox.
 - The integrated self-host producer/consumer loop remains the next resource and
@@ -80,12 +89,12 @@ array-literal graph typing, not arbitrary expression typing.
    and consumer without restoring native MIR as final authority.
 2. Persist semantic place/addressability rows in MIR JSON before direct MIR
    consumers stop running the semantic body fixpoint.
-3. Add one focused Linux TSan gate for join/cancel/channel state before widening
-   executor behavior.
-4. Expand `VerifiedProjectionPlan` with one MIR-owned row family at a time,
+3. Expand `VerifiedProjectionPlan` with one MIR-owned row family at a time,
    beginning with cleanup or runtime checks.
-5. Introduce per-instance capability/budget/cancellation state before making an
+4. Introduce per-instance capability/budget/cancellation state before making an
    untrusted-content sandbox claim.
+5. Widen TSan coverage only with deterministic stress fixtures; do not treat
+   the focused battery as a whole-runtime race proof.
 
 Current rule:
 

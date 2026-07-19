@@ -167,7 +167,7 @@ func SemanticAstExpressionVerdictFromGraph(
             function_returns, function_params
         );
     let call_error: String = "";
-    if concrete_scalar_value_owned {
+    if concrete_scalar_value_owned && !generic_call.applies {
         call_error = SemanticExpressionGraphConcreteScalarValueError(
             graph, root_id, constructors, names, types,
             function_names, function_returns, function_params

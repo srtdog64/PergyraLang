@@ -2799,6 +2799,14 @@ require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy
     "struct SemanticAstGenericSpecializationFacts"
 require_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromBody("
+require_file "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy"
+require_max_lines "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" 160
+require_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
+    "struct SemanticExpressionCallIdentity"
+require_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
+    "func SemanticExpressionCallNodeForIdentity("
+reject_text "src/self_hosted/semantic/ast_expression_call_identity_owner.pgy" \
+    "expression_graph_index_as_stable_identity"
 require_text "src/self_hosted/semantic/ast_body_type_bundle_owner.pgy" \
     "generic_specializations: SemanticAstGenericSpecializationFacts"
 require_file "src/self_hosted/semantic/ast_body_call_target_resolution_owner.pgy"
@@ -2904,6 +2912,10 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserNumberSpel
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPrecedenceGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionUnaryGraphContractReady()"
+require_text "src/self_hosted/parser/expr_precedence_owner.pgy" \
+    "AstExpressionNodeAwait()"
+require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" \
+    "func AstExpressionNodeAwait() -> Int"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionPostfixGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionCallGraphContractReady()"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "ParserExpressionExplicitGenericCallGraphContractReady()"
@@ -3182,6 +3194,7 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/namespace_call.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_call_argument.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/indexed_assignment.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/member_array_index.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/enum_return.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/if_else_assign.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" '"src/self_hosted/mir_lower/fixture/param_carriage.pgy"'
@@ -3224,6 +3237,20 @@ require_text "src/self_hosted/mir/routine_assignment_owner.pgy" 'expression, tar
 require_file "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_indexed_assignment_parity_owner.sh" '"uses":["values.1","i.1","j.1"]'
+require_file "tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_index_expression_type_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_index_expression_type"
+require_text "tests/self_hosted/parity/driver_rung2_index_expression_type_parity_owner.sh" \
+    '"kind":"member_access","text":"stale.provenance","call_target_kind":"none"'
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticIndex("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticIndex(" "SemanticExpressionGraphNodeText("
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticIndex(" "ExprMemberFieldType("
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" '"uses":["value.3","value.4"]'
 require_file "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_iteration_graph_parity_owner.sh" 100
@@ -3284,7 +3311,7 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
 require_text "tests/self_hosted/parity/driver_rung2_generic_struct_value_parity_owner.sh" \
     'missing generic formal was accepted'
 require_file "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"
-require_max_lines "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" 100
+require_max_lines "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" 140
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh"'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
@@ -3313,9 +3340,160 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/match_case_assign.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/option_match.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 40;"
+for driver_rung2_promoted_fixture in \
+    multilet arith strlog funcparam multi_func_void random_inferred_let \
+    class_decl nominal_subject nominal_object nominal_tobject nominal_vessel \
+    ability_decl enum_simple role_operator_dispatch ifelse nestedif \
+    reassign_block whileloop break_after_stmt nested_if_in_loop \
+    array_destructure; do
+    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+        "\"src/self_hosted/mir_lower/fixture/${driver_rung2_promoted_fixture}.pgy\""
+done
+require_file "src/self_hosted/mir/loop_reachability_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir/loop_reachability_fact_owner.pgy" 100
+require_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    "SelfMirLoopReachabilityForBlock("
+require_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    "observed_backedge != planned_backedge"
+reject_function_text "src/self_hosted/mir/routine_while_owner.pgy" \
+    "func SelfMirLowerWhileFromArtifact(" "loop_body_instruction_start"
+require_file "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh" 80
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 40'
+    "driver_rung2_loop_phi_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_loop_phi"
+require_text "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh" \
+    "one-predecessor header phi was accepted"
+require_file "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_destructure_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_destructure"
+require_text "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" \
+    "missing destructure type was accepted"
+require_file "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" 120
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    "MirExpressionGraphSequenceAppendDestructure("
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    "MirDestructureTempName(first_binding)"
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ToString(inst_start)"
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "Split("
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"'
+for driver_rung2_breadth_fixture in \
+    ref_param inout_return_forward option_int_core array_param bool_logic; do
+    require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+        "\"src/self_hosted/codegen/fixture/${driver_rung2_breadth_fixture}.pgy\""
+done
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/defer_scope.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/enum_match.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/result_try.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/codegen/fixture/for_continue.pgy"'
+require_file "src/self_hosted/mir/routine_defer_owner.pgy"
+require_max_lines "src/self_hosted/mir/routine_defer_owner.pgy" 80
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    "SelfMirLowerDeferFromArtifact(input, build, node_id)"
+require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
+    '"AST_DEFER_STMT", empty_uses'
+require_text "src/self_hosted/mir/routine_defer_owner.pgy" \
+    "SelfMirRoutineAttachLastExpressionGraph("
+reject_text "src/self_hosted/mir/routine_defer_owner.pgy" "payload_texts"
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    'rows.source_types[i] == "AST_DEFER_STMT"'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'if source == "AST_DEFER_STMT"'
+require_text "src/compiler/mir_call_fact.c" \
+    "mir_defer_log_expression_fact("
+require_text "src/compiler/mir_json_expression_graph.c" \
+    "mir_defer_log_expression_fact(inst)"
+require_file "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh" 60
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_defer_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_defer"
+require_text "tests/self_hosted/parity/driver_rung2_defer_parity_owner.sh" \
+    "typed defer body graph was lost"
+require_file "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh"'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_generic_member_specialization()'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'pgy_selfhost_verify_driver_rung2_generic_member_specialization_emitted_c()'
+require_file "src/self_hosted/mir/generic_specialization_owner.pgy"
+require_max_lines "src/self_hosted/mir/generic_specialization_owner.pgy" 220
+require_file "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy"
+require_max_lines "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy" 100
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"generic_specializations"'
+require_file "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" 420
+reject_file "src/self_hosted/mir/generic_method_specialization_owner.pgy"
+reject_file "src/self_hosted/mir/generic_method_specialization_json_projection_owner.pgy"
+reject_file "src/self_hosted/mir_lower/generic_method_specialization_fact_owner.pgy"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "MirCodegenGenericSpecializationFacts("
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    '"generic_specializations_missing":'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'missing MIR generic method row was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    '"source_call_ordinal":1'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'invalid MIR generic method symbol was accepted'
+reject_text "src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy" \
+    "Echo<Int>"
+reject_text "src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy" \
+    "Echo<Int>"
+reject_text "src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy" \
+    "Echo<Option<Int>>"
+reject_text "src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy" \
+    "Echo<Array<Int>>"
+reject_text "src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy" \
+    "Echo<Array<Point>>"
+require_text "src/compiler/mir_generic_method_specialization.c" \
+    "mir_generic_method_captured_return_type("
+reject_text "src/compiler/mir_generic_method_specialization.c" \
+    "mir_generic_method_captured_exact_return_type("
+require_text "src/compiler/mir_generic_method_specialization_validate.c" \
+    "mir_type_name_retains_formal("
+require_text "src/tests/transpile/test_transpile_generic_method_specialization.cases.h" \
+    "retains unresolved formal 'T'"
+require_text "tests/generic_method_specialization_smoke.sh" \
+    'if [[ "$(<"$output")" != "41" ]]'
+require_text "src/self_hosted/semantic/ast_expression_graph_generic_call_owner.pgy" \
+    "let nested_generic: SemanticExpressionGraphGenericCallFact"
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "if concrete_scalar_value_owned && !generic_call.applies"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 76;"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'mir_fixture_rows[@]}" -ne 76'
+require_file "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" 60
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_try_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" \
+    '"kind":"try","text":"?Validate(doubled)"'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'local unresolved_outer="Option<T>"'
+require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
+    'unresolved_outer="Array<T>"'
 require_file "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"'
@@ -3329,6 +3507,10 @@ require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parit
     'Identity_Int(41)'
 require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
     'Identity_Int(return_value)'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    'missing direct generic MIR row was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parity_owner.sh" \
+    '"target_kind":"direct"'
 reject_function_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
     "func SemanticAstGenericSpecializationFactsFromBody(" "ExprType("
 reject_function_text "src/self_hosted/semantic/ast_generic_specialization_fact_owner.pgy" \
@@ -3489,9 +3671,15 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 40;"
+    "return 76;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 40'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 76'
+require_file "tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh" 60
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'driver_rung2_continue_parity_owner.sh'
+require_text "tests/self_hosted/parity/driver_rung2_continue_parity_owner.sh" \
+    'missing continue loop summary was accepted'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -3542,11 +3730,23 @@ require_text "src/self_hosted/mir/match_fact_owner.pgy" \
     'func SelfMirMatchFactRowsAttachCase('
 require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
     'func MirExpressionGraphSequenceAppendMatchCondition('
+require_file "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy"
+require_text "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" \
+    'func MirExpressionGraphSequenceAppendUnaryCall('
+require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
+    'MirEnumOwnerForVariant('
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'SemanticAstEnumFacts'
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'match enum variant declaration fact is missing'
 require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
 require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
+require_max_lines "src/self_hosted/mir_lower/expression_graph_option_match_owner.pgy" 120
 require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 280
 require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
     'missing Option match binding was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    'missing enum variant declaration was accepted'
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
     'payload_texts[index]'
 reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
@@ -3616,6 +3816,18 @@ require_text "Makefile" "self-host-live-replacement-test-smoke: self-host-compil
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver "$positive"'
 require_text "tests/self_host_live_replacement_smoke.sh" '"$PGY" --self-driver --mir-json'
 require_text "tests/self_host_live_replacement_smoke.sh" "integrated MIR run output differs from C oracle"
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_member_mir_source" "generic-member-inferred"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_vessel_member_mir_source" "generic-vessel-member-inferred"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_constructed_member_mir_source" "generic-member-constructed-return"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_array_member_mir_source" "generic-member-array-return"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    'check_live_mir_source "$generic_record_array_member_mir_source" "generic-member-record-array-return"'
+require_text "tests/self_host_live_replacement_smoke.sh" \
+    '--canonicalize-oracle-mir-json "$live_arg"'
 require_file "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh"
 require_max_lines "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" 300
 require_file "tests/self_hosted/parity/driver_rung2_mir_graph_negative_owner.sh"
@@ -3639,6 +3851,18 @@ require_text "tests/self_hosted/parity/driver_rung2_enum_argument_parity_owner.s
     '"kind":"member_access","text":"Direction.East"'
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_call_emit_owner.pgy" \
     "func RewriteSemanticCallArgument(" "EnumPayloadFreeArgumentProjectionFactOpt"
+require_file "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh"
+require_max_lines "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh" 80
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    "driver_rung2_enum_return_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
+    "pgy_selfhost_verify_driver_rung2_enum_return"
+require_text "tests/self_hosted/parity/driver_rung2_enum_return_parity_owner.sh" \
+    '"kind":"leaf","text":"Missing","call_target_kind":"none"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    "func RewriteSemanticExpectedValue(" "EnumPayloadFreeArgumentProjectionFactOpt"
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_composite_literal_emit_owner.pgy" \
+    "func RewriteSemanticExpectedValue(" "SemanticExpressionGraphNodeText("
 require_text "tests/self_hosted/parity/driver_rung2_call_target_parity_owner.sh" \
     "missing namespace call target was accepted"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" "pgy_selfhost_prepare_driver_rung2_mir_oracles"
@@ -4030,8 +4254,16 @@ require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     'if kind == AstExpressionNodeBoolLiteral() { return Some("Bool"); }'
 require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     'if kind == AstExpressionNodeStringLiteral() { return Some("String"); }'
+require_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
+    "if kind == AstExpressionNodeAwait()"
+require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "if kind == AstExpressionNodeAwait()"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
     "func RewriteSemanticLeaf(" 'StringIndexOf("0123456789"'
+reject_function_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" \
+    "func RewriteSemanticLeaf(" 'StartsWith(text, "await ")'
+reject_text "src/self_hosted/compiler/machine_layer_runtime_projection_owner.pgy" \
+    "CompilerRuntimeCallAbiMachineLayerAwaitBinding"
 reject_function_text "src/self_hosted/codegen/emission/expr_semantic_type_owner.pgy" \
     "func CodegenExpressionLeafTypeFromGraph(" 'StringIndexOf("0123456789"'
 reject_function_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
@@ -4060,6 +4292,8 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeBoolLiteral() { return "bool_literal"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStringLiteral() { return "string_literal"; }'
+require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
+    'AstExpressionNodeAwait() { return "await"; }'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "integer_literal" {'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
@@ -4068,6 +4302,8 @@ require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "bool_literal" {'
 require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "string_literal" {'
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
+    'if kind == "await" { return Some(AstExpressionNodeAwait()); }'
 reject_regex_under "src/self_hosted" "children, children"
 require_text "tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh" \
     "misclassified integer literal was accepted"
@@ -4124,8 +4360,8 @@ require_text "src/self_hosted/semantic/ast_expression_graph_build_owner.pgy" \
     "SemanticExpressionGraphBuildTryCompactBridge("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticExpressionGraphCompactBridgeTryContractReady()"
-require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
-    "canonical try expression graph was lost"
+require_text "tests/self_hosted/parity/driver_rung2_try_parity_owner.sh" \
+    '$backend $stage try graph was lost'
 require_text "src/self_hosted/parser/expr_postfix_owner.pgy" \
     "AstExpressionNodeTry(),"
 try_postfix_block="$(sed -n '/if nc == "?" {/,/continue;/p' \
@@ -4553,7 +4789,9 @@ require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owne
 require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
     "func CodegenSemanticBodyTypeFactsFromBundleOrDie("
 require_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
-    "generic_specializations: SemanticAstGenericSpecializationFacts"
+    "generic_specializations: CodegenGenericSpecializationFacts"
+reject_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
+    "CodegenGenericSpecializationFactsFromSemantic("
 reject_text "src/self_hosted/codegen/input/semantic_body_type_codegen_view_owner.pgy" \
     "SemanticAstBodyTypeBundleFromAnalysis("
 require_text "src/self_hosted/codegen/input/generic_specialization_codegen_view_owner.pgy" \
@@ -5333,7 +5571,9 @@ require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'PGY_SELFHOST_DRIVER_MIR_FIXTURE_FILTER'
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture filter must select exactly one row'
+    "IFS=',' read -r -a mir_fixture_filters"
+require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
+    'MIR fixture filter did not select a row'
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
     'pgy_selfhost_verify_driver_rung2_collection_mutation_graph'
 require_file "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh"
@@ -5495,6 +5735,12 @@ require_file "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy"
 require_max_lines "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" 200
 require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
     "CodegenNominalArrayUsageFactsFromSemantic"
+require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
+    "CodegenSemanticGenericFormalKnown(signatures, element_type)"
+require_text "src/self_hosted/codegen/input/nominal_array_usage_owner.pgy" \
+    "CodegenGenericSpecializationActuals("
+reject_text "src/self_hosted/codegen/input/ast_usage_owner.pgy" \
+    "CodegenNominalArrayUsageFactsFromSemantic(type_surfaces, env)"
 require_text "src/self_hosted/codegen/emission/program_emit.pgy" \
     "usage.nominal_record_arrays.element_types"
 require_file "src/self_hosted/codegen/fixture/nominal_record_array.pgy"
@@ -5730,6 +5976,11 @@ require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "str
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "func EmitOptionExprFactForType"
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "OptionResultRuntimeStructOptionFact(option_type, env.global_rows)"
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallSpineViewFromGraph("
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticExpressionGraphCallTargetKind("
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticExpressionGraphCallTargetName("
+require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "SemanticCallTargetDirect()"
+reject_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" \
+    "UnwrapOption(callee_kind) != AstExpressionNodeLeaf()"
 require_text "src/self_hosted/codegen/emission/option_value_emit_owner.pgy" "RewriteSemanticExpectedValue("
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "expr, type_name, env, graph"
 require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
@@ -7965,7 +8216,9 @@ reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFieldString(json,
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" "JsonFirstArrayString(json,"
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" 'FindFrom(json, "\"match_patterns\":['
 require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactAt(json, inst_start, inst_end, \"destructure_bindings\", index)"
-require_text "src/self_hosted/mir_lower/stmt_render.pgy" "MirObjectArrayStringFactAt(json, inst_start, inst_end, \"defer_body\", emitted)"
+reject_text "src/self_hosted/mir_lower/stmt_render.pgy" '"defer_body"'
+require_text "src/self_hosted/mir_lower/stmt_render.pgy" \
+    'instruction, "expr0_graph"'
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"destructure_bindings\":['
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" 'FindFrom(json, "\"defer_body\":['
 reject_text "src/self_hosted/mir_lower/stmt_render.pgy" "ReadJsonString(json,"

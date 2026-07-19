@@ -5,7 +5,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
     local base="$2"
     local self_mir_json="$3"
     local driver_bin="$4"
-    local drifted drift_code return_drifted
+    local drifted drift_code return_drifted missing_rows
     if [[ "$base" != "generic_struct_field_inferred_value_flow" &&
         "$base" != "generic_return_assignment_inferred_flow" ]]; then
         return 0
@@ -18,6 +18,26 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
         echo "[self-host-parity:driver-rung2] $backend inferred call gained explicit actuals" >&2
         exit 1
     fi
+    grep -Fq '"target_kind":"direct","owner":"","callable":"Identity","specialized_symbol":"Identity_Int"' \
+        "$self_mir_json" || {
+        echo "[self-host-parity:driver-rung2] $backend inferred generic MIR row was lost" >&2
+        exit 1
+    }
+    missing_rows="${self_mir_json%.json}.missing-generic-rows.mir.json"
+    pgy_replace_first_literal "$self_mir_json" "$missing_rows" \
+        '"generic_specializations":' '"generic_specializations_missing":'
+    if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
+        "$(pgy_selfhost_path_relative_to_root "$missing_rows")" \
+        >"$missing_rows.out" 2>"$missing_rows.err"); then
+        echo "[self-host-parity:driver-rung2] $backend missing direct generic MIR row was accepted" >&2
+        exit 1
+    fi
+    grep -Fq "MIR generic specialization facts are incomplete" \
+        "$missing_rows.err" "$missing_rows.out" || {
+        echo "[self-host-parity:driver-rung2] $backend missing direct generic row diagnostic drifted" >&2
+        cat "$missing_rows.out" "$missing_rows.err" >&2
+        exit 1
+    }
 
     drifted="${self_mir_json%.json}.inferred-actual-drift.mir.json"
     sed 's/"kind":"integer_literal","text":"41"/"kind":"string_literal","text":"\\"bad\\""/g' \

@@ -1,0 +1,13 @@
+vessel Cell {
+    let marker: Int;
+
+    func Echo<T>(self, value: T) -> T {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let cell: Cell = Cell(0);
+    let result: Int = cell.Echo(cell.Echo(42));
+    Log(ToString(result));
+}

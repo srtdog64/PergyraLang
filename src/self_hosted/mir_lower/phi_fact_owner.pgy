@@ -3,20 +3,53 @@
 import "json_fact_read.pgy";
 import "routine_fact_index_owner.pgy";
 
-func MirPhiPredecessorCount(
+func MirPhiPredecessorSources(
     ref index: MirRoutineFactIndex, block_id: Int
-) -> Int {
+) -> Array<Int> {
     let target: String = ToString(block_id);
-    let count: Int = 0;
+    let sources: Array<Int> = [];
     let row: Int = 0;
     while row < ArrayLength(index.block_starts) {
-        if index.block_succ_true[row] == target ||
-            index.block_succ_false[row] == target {
-            count = count + 1;
+        if index.block_succ_true[row] == target {
+            ArrayPush(sources, row);
+        }
+        // A conditional with identical arms still has one distinct
+        // predecessor block, hence one phi input.
+        if index.block_succ_false[row] == target &&
+            index.block_succ_true[row] != target {
+            ArrayPush(sources, row);
         }
         row = row + 1;
     }
-    return count;
+    return sources;
+}
+
+func MirPhiBackedgeSlots(
+    ref index: MirRoutineFactIndex, block_id: Int,
+    predecessors: Array<Int>
+) -> Array<Int> {
+    let slots: Array<Int> = [];
+    let slot: Int = 0;
+    while slot < ArrayLength(predecessors) {
+        let source: Int = predecessors[slot];
+        if MirRoutineEdgeTargetsDominator(
+            index.block_succ_true, index.block_succ_false,
+            source, block_id
+        ) {
+            ArrayPush(slots, slot);
+        }
+        slot = slot + 1;
+    }
+    return slots;
+}
+
+func MirPhiBackedgeSlotContains(slots: Array<Int>, wanted: Int) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(slots) {
+        if slots[i] == wanted { return true; }
+        i = i + 1;
+    }
+    return false;
 }
 
 func MirPhiSsaNameMatches(
@@ -86,7 +119,11 @@ func MirRoutinePhiFactsReady(
     if !index.valid { return false; }
     let block_id: Int = 0;
     while block_id < ArrayLength(index.block_starts) {
-        let predecessor_count: Int = MirPhiPredecessorCount(index, block_id);
+        let predecessors: Array<Int> = MirPhiPredecessorSources(index, block_id);
+        let predecessor_count: Int = ArrayLength(predecessors);
+        let backedge_slots: Array<Int> = MirPhiBackedgeSlots(
+            index, block_id, predecessors
+        );
         let seen_non_phi: Bool = false;
         let instruction_row: Int = 0;
         let bounds: Array<Int> = [0, 0];
@@ -118,9 +155,16 @@ func MirRoutinePhiFactsReady(
                     let use_name: String = MirObjectArrayStringFactAt(
                         json, bounds[0], bounds[1], "uses", use_i
                     );
-                    if use_name == result ||
+                    // A loop-carried phi may name its own result on the
+                    // incoming back-edge.  This is the canonical SSA
+                    // representation of the value preserved by a continue
+                    // path; accept it only when the CFG owner proved that
+                    // this block is a loop header with a back-edge.
+                    let self_backedge: Bool = use_name == result &&
+                        MirPhiBackedgeSlotContains(backedge_slots, use_i);
+                    if (!self_backedge && use_name == result) ||
                         !MirPhiSsaNameMatches(use_name, name, true) ||
-                        (!MirPhiResultExists(index, json, use_name) &&
+                        (!self_backedge && !MirPhiResultExists(index, json, use_name) &&
                             !MirPhiParameterEntryExists(
                                 index, json, name, use_name
                             )) {

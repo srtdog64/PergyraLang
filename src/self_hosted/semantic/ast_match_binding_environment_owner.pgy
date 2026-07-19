@@ -3,12 +3,14 @@
 import "../hir/ast_match_pattern_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_function_scope_fact_owner.pgy";
+import "ast_enum_fact_owner.pgy";
 import "env_owner.pgy";
 import "wrapper_type_owner.pgy";
 
 func SemanticAstExpressionSeedOneMatchBinding(
     artifact: AstTreeArtifact,
     ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    ref enums: SemanticAstEnumFacts,
     function_scopes: SemanticAstFunctionScopeFacts,
     function_node_id: Int,
     case_node_id: Int,
@@ -25,11 +27,12 @@ func SemanticAstExpressionSeedOneMatchBinding(
         UnwrapOption(case_function) != function_node_id {
         return false;
     }
-    if pattern.variant == "" || pattern.variant == "None" {
+    if pattern.variant == "None" {
         return pattern.binding == "";
     }
-    if pattern.variant != "Some" || pattern.binding == "" {
-        return false;
+    if pattern.variant == "" &&
+        ToString(ToInt(pattern.pattern)) == pattern.pattern {
+        return pattern.binding == "";
     }
     let match_node: Option<Int> = TypedAstArenaParentId(
         artifact.arena, case_node_id
@@ -58,8 +61,33 @@ func SemanticAstExpressionSeedOneMatchBinding(
         !EnvContainsName(names, UnwrapOption(subject_name)) {
         return false;
     }
+    let subject_type: String = EnvLookup(
+        names, types, UnwrapOption(subject_name)
+    );
+    if pattern.variant != "Some" {
+        if pattern.binding != "" {
+            return false;
+        }
+        let variant_name: String = pattern.variant;
+        if variant_name == "" {
+            variant_name = pattern.pattern;
+        }
+        let enum_row: Int = -1;
+        let variant_index: Int = 0;
+        while variant_index < ArrayLength(enums.variant_names) {
+            if enums.variant_enum_names[variant_index] == subject_type &&
+                enums.variant_names[variant_index] == variant_name {
+                enum_row = variant_index;
+            }
+            variant_index = variant_index + 1;
+        }
+        return enum_row >= 0 && enums.variant_param_counts[enum_row] == 0;
+    }
+    if pattern.binding == "" {
+        return false;
+    }
     let payload_type: Option<String> = OptionPayloadTypeOpt(
-        EnvLookup(names, types, UnwrapOption(subject_name))
+        subject_type
     );
     if !IsSome(payload_type) || UnwrapOption(payload_type) == "" ||
         UnwrapOption(payload_type) == "Unknown" {
@@ -88,7 +116,9 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     }
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
-    if !function_scopes.ok {
+    let enums: SemanticAstEnumFacts =
+        SemanticAstEnumFactsFromArtifact(artifact);
+    if !function_scopes.ok || !enums.ok {
         return false;
     }
     let case_nodes: Array<Int> = [];
@@ -107,7 +137,7 @@ func SemanticAstExpressionSeedVisibleMatchBindings(
     let i: Int = ArrayLength(case_nodes) - 1;
     while i >= 0 {
         if !SemanticAstExpressionSeedOneMatchBinding(
-            artifact, expression_surfaces, function_scopes,
+            artifact, expression_surfaces, enums, function_scopes,
             function_node_id, case_nodes[i], names, types, modes
         ) {
             return false;

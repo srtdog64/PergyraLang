@@ -1,6 +1,7 @@
 #include "mir_call_fact.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
@@ -66,6 +67,35 @@ mir_attach_lifecycle_guard_fact(MIRInstruction *inst, const ASTNode *stmt)
         : NULL;
 }
 
+static ASTNode *
+mir_defer_single_log_expression(ASTNode *body)
+{
+    ASTNode *stmt;
+    ASTNode *callee;
+
+    if (body == NULL || ast_block_statement_count(body) != 1)
+        return NULL;
+    stmt = ast_block_statement(body, 0);
+    if (stmt == NULL || stmt->type != AST_CALL
+        || ast_call_arg_count(stmt) != 1)
+        return NULL;
+    callee = ast_call_callee(stmt);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || ast_identifier_name(callee) == NULL
+        || strcmp(ast_identifier_name(callee), "Log") != 0)
+        return NULL;
+    return ast_call_argument(stmt, 0);
+}
+
+ASTNode *
+mir_defer_log_expression_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->arg0 == NULL
+        || strcmp(inst->arg0, "Log") != 0)
+        return NULL;
+    return mir_defer_single_log_expression(inst->expr0);
+}
+
 void
 mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
 {
@@ -73,6 +103,8 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     if (stmt->type == AST_DEFER_STMT) {
         inst->expr0 = ast_defer_body(stmt);
+        if (mir_defer_single_log_expression(inst->expr0) != NULL)
+            inst->arg0 = "Log";
         return;
     }
     if (stmt->type == AST_LET_DECL) {

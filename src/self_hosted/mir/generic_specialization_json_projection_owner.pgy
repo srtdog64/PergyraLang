@@ -1,0 +1,65 @@
+// MIR generic specialization JSON projection owner.
+
+import "generic_specialization_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonGenericSpecialization(
+    ref rows: SelfMirGenericSpecializationRows,
+    index: Int
+) -> String {
+    let generic_params: Array<String> = [];
+    let param_i: Int = 0;
+    while param_i < rows.generic_param_counts[index] {
+        ArrayPush(
+            generic_params,
+            JsonStringLiteral(rows.generic_param_names[
+                rows.generic_param_starts[index] + param_i
+            ])
+        );
+        param_i = param_i + 1;
+    }
+    let generic_actuals: Array<String> = [];
+    let actual_i: Int = 0;
+    while actual_i < rows.actual_counts[index] {
+        ArrayPush(
+            generic_actuals,
+            JsonStringLiteral(rows.actual_type_names[
+                rows.actual_starts[index] + actual_i
+            ])
+        );
+        actual_i = actual_i + 1;
+    }
+    return JsonEmitObject([
+        JsonEmitFieldNumber(
+            "source_owner_syntax_id",
+            ToString(rows.source_owner_node_ids[index])
+        ),
+        JsonEmitFieldNumber("source_lane", ToString(rows.source_lanes[index])),
+        JsonEmitFieldNumber(
+            "source_call_ordinal", ToString(rows.source_call_ordinals[index])
+        ),
+        JsonEmitFieldString(
+            "target_kind",
+            SelfMirGenericSpecializationTargetKindName(rows.target_kinds[index])
+        ),
+        JsonEmitFieldString("owner", rows.owner_names[index]),
+        JsonEmitFieldString("callable", rows.callable_names[index]),
+        JsonEmitFieldString(
+            "specialized_symbol", rows.specialized_symbols[index]
+        ),
+        JsonEmitFieldRaw("generic_params", JsonEmitArray(generic_params)),
+        JsonEmitFieldRaw("generic_actuals", JsonEmitArray(generic_actuals))
+    ]);
+}
+
+func SelfMirJsonGenericSpecializations(
+    ref rows: SelfMirGenericSpecializationRows
+) -> Array<String> {
+    let projections: Array<String> = [];
+    let i: Int = 0;
+    while i < SelfMirGenericSpecializationCount(rows) {
+        ArrayPush(projections, SelfMirJsonGenericSpecialization(rows, i));
+        i = i + 1;
+    }
+    return projections;
+}

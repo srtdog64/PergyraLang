@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The public pgy launcher must execute the shipped bounded DRV-2 binary rather
 # than silently falling back to the C semantic/codegen pipeline.
-# Contract: native_and_self_MIR_canonical_facts_and_runtime_match_without_text_reparse
+# Contract: hard_self_MIR_is_graph_owned_and_matches_the_explicit_C_oracle_bridge
 
 set -euo pipefail
 
@@ -34,6 +34,11 @@ try_mir_source="src/self_hosted/codegen/fixture/option_try.pgy"
 struct_mir_source="src/self_hosted/codegen/fixture/struct_point.pgy"
 generic_mir_source="src/self_hosted/mir_lower/fixture/generic_struct_field_value_flow.pgy"
 generic_multi_mir_source="src/self_hosted/tools/generic_return_probe/explicit_ok.pgy"
+generic_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
+generic_vessel_member_mir_source="src/self_hosted/mir_lower/fixture/generic_vessel_member_inferred_flow.pgy"
+generic_constructed_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_constructed_return_flow.pgy"
+generic_array_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_array_return_flow.pgy"
+generic_record_array_member_mir_source="src/self_hosted/mir_lower/fixture/generic_member_record_array_return_flow.pgy"
 cast_mir_source="src/self_hosted/mir_lower/fixture/cast_numeric.pgy"
 bad_mir="src/self_hosted/mir_lower/fixture/invalid_schema.json"
 
@@ -97,7 +102,8 @@ check_live_mir_source() {
         exit 1
     fi
     self_arg="$(pgy_selfhost_path_relative_to_root "$launcher_self")"
-    (cd "$ROOT_DIR" && "$SELF_DRIVER" --canonicalize-mir-json "$live_arg") \
+    (cd "$ROOT_DIR" && "$SELF_DRIVER" \
+        --canonicalize-oracle-mir-json "$live_arg") \
         | tr -d '\r' >"$WORK_DIR/$label.oracle.canonical.mir.json"
     (cd "$ROOT_DIR" && "$PGY" --self-driver \
         --canonicalize-mir-json "$self_arg") \
@@ -142,6 +148,11 @@ check_live_mir_source "$try_mir_source" "option-try"
 check_live_mir_source "$struct_mir_source" "struct-point"
 check_live_mir_source "$generic_mir_source" "generic-struct-field"
 check_live_mir_source "$generic_multi_mir_source" "generic-multi-actual"
+check_live_mir_source "$generic_member_mir_source" "generic-member-inferred"
+check_live_mir_source "$generic_vessel_member_mir_source" "generic-vessel-member-inferred"
+check_live_mir_source "$generic_constructed_member_mir_source" "generic-member-constructed-return"
+check_live_mir_source "$generic_array_member_mir_source" "generic-member-array-return"
+check_live_mir_source "$generic_record_array_member_mir_source" "generic-member-record-array-return"
 check_live_mir_source "$cast_mir_source" "cast-numeric"
 
 set +e

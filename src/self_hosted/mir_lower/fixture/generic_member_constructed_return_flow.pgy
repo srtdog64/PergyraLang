@@ -1,0 +1,17 @@
+class Wrapper {
+    let marker: Int;
+
+    func Wrap<T>(self, value: T) -> Option<T> {
+        return Some(value);
+    }
+
+    func Echo<T>(self, value: T) -> T {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let wrapper: Wrapper = Wrapper(0);
+    let result: Option<Int> = wrapper.Echo(wrapper.Wrap(43));
+    Log(ToString(UnwrapOption(result)));
+}

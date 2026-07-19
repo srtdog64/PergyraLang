@@ -13,6 +13,7 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "../compiler/mir_generic_method_specialization.h"
 #include "llvm_member_call_internal.h"
 #include "parser/ast_api.h"
 
@@ -124,6 +125,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 const MIRDeclMethod *method_meta =
                     llvm_find_host_method_metadata_in_context(ctx,
                         class_name, method_name);
+                const MIRRoutine *method_routine = NULL;
                 ASTNode *method_decl = NULL;
                 if (method_meta == NULL) {
                     llvm_set_mir_inventory_missing(ctx,
@@ -131,6 +133,29 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name != NULL ? class_name : "(anonymous)",
                         method_name != NULL ? method_name : "(anonymous)");
                     return NULL;
+                }
+                method_routine = llvm_mir_decl_method_routine(ctx, method_meta);
+                if (method_routine != NULL
+                    && llvm_mir_routine_generic_param_count(method_routine) > 0) {
+                    const MIRGenericMethodSpecializationFact *specialization =
+                        mir_generic_method_specialization_for_call(
+                            llvm_active_mir_identity(ctx),
+                            ast_node_stable_id(node));
+                    if (specialization == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing generic member-call specialization fact for '%s.%s'",
+                            class_name, method_name);
+                        return NULL;
+                    }
+                    full_name = specialization->specialized_name;
+                    fn = llvm_lookup_function(ctx, full_name);
+                    fn_value = fn != NULL ? fn->fn
+                        : LLVMGetNamedFunction(ctx->module, full_name);
+                    fn_type = fn != NULL ? fn->fn_type
+                        : (fn_value != NULL
+                            ? LLVMGlobalGetValueType(fn_value) : NULL);
+                    ret_type = fn != NULL ? fn->ret_type
+                        : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
                 }
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     /* subject methods receive a self pointer; class methods a self value */

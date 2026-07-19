@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_generic_method_specialization.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
@@ -142,6 +143,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     transpiler_find_host_method_metadata_in_context(
                         ctx, owned_type_name, method);
                 ASTNode *method_decl = NULL;
+                const MIRRoutine *method_routine;
+                const MIRGenericMethodSpecializationFact *specialization;
                 if (method_meta == NULL) {
                     transpiler_set_mir_inventory_missing(ctx,
                         "MIR-only C path missing member-call method metadata for '%s.%s'",
@@ -165,6 +168,21 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 }
                 owned_type_name = stable_type_name;
                 use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
+                method_routine =
+                    transpiler_mir_decl_method_routine(ctx, method_meta);
+                specialization = mir_generic_method_specialization_for_call(
+                    transpiler_active_mir_identity(ctx),
+                    ast_node_stable_id(call));
+                if (method_routine != NULL
+                    && transpiler_mir_routine_generic_param_count(
+                        method_routine) > 0
+                    && specialization == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing generic member-call specialization fact for '%s.%s'",
+                        owned_type_name, method);
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
 
                 if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
                         method_meta,
@@ -277,8 +295,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 }
 
                 {
-                    char *result = strdup_fmt("%s_%s(%s)",
-                        owned_type_name, method, args_buf->data);
+                    char *result = specialization != NULL
+                        ? strdup_fmt("%s(%s)", specialization->specialized_name,
+                              args_buf->data)
+                        : strdup_fmt("%s_%s(%s)",
+                              owned_type_name, method, args_buf->data);
                     const char *source_slot_name =
                         assignment_target_root_slot_name(obj);
                     char *invalidation = NULL;

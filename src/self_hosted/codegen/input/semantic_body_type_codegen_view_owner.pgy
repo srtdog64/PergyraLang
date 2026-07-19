@@ -7,17 +7,19 @@ import "../../semantic/ast_body_type_bundle_owner.pgy";
 import "../text/text_owner.pgy";
 import "semantic_assignment_codegen_view_owner.pgy";
 import "semantic_statement_codegen_view_owner.pgy";
+import "generic_specialization_codegen_view_owner.pgy";
 
 struct CodegenSemanticBodyTypeFacts {
     assignment_types: SemanticAstAssignmentTypeFacts;
     statement_types: SemanticAstStatementTypeFacts;
-    generic_specializations: SemanticAstGenericSpecializationFacts;
+    generic_specializations: CodegenGenericSpecializationFacts;
 }
 
 func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     artifact: AstTreeArtifact,
     ref analysis: SemanticAstArtifactAnalysis,
-    own bundle: SemanticAstBodyTypeBundle
+    own bundle: SemanticAstBodyTypeBundle,
+    own generic_specializations: CodegenGenericSpecializationFacts
 ) -> CodegenSemanticBodyTypeFacts {
     if !SemanticAstBodyTypeBundleReady(artifact, analysis, bundle) {
         Die(Concat(
@@ -37,8 +39,14 @@ func CodegenSemanticBodyTypeFactsFromBundleOrDie(
     ) {
         Die("codegen semantic statement type facts are missing or invalid");
     }
+    if !generic_specializations.ok {
+        Die(Concat(
+            "codegen generic specialization facts are incomplete: ",
+            generic_specializations.diagnostic_message
+        ));
+    }
     return CodegenSemanticBodyTypeFacts(
         bundle.assignment_types, bundle.statement_types,
-        bundle.generic_specializations
+        generic_specializations
     );
 }

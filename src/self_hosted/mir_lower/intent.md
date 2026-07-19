@@ -98,11 +98,14 @@ AST shapes remain `null` and therefore fail closed when the hard consumer
 requires them. For `AST_MATCH_CASE`, `match_json_fact_owner.pgy` owns typed
 optional pattern, variant, and binding reads. The dedicated
 `expression_graph_match_owner.pgy` then derives an integer equality graph, an
-`IsSome(subject)` / `!IsSome(subject)` condition, and, for exactly one
-`Some(binding)` row, a separate `UnwrapOption(subject)` initializer graph. It
-does not parse the rendered condition or binding text. `None` requires zero
-bindings. Missing or malformed facts, unsupported variants, multiple bindings,
-and non-canonical integer patterns fail closed in this bounded rung. Older
+enum-member equality graph, or delegates Option unary construction to
+`expression_graph_option_match_owner.pgy`. Exactly one `Some(binding)` row
+gets a separate `UnwrapOption(subject)` initializer graph; `None` requires
+zero bindings. Neither owner parses rendered condition or binding text.
+Payload-free enum patterns resolve through MIR declaration rows, and a missing
+variant declaration fails closed. Missing or malformed facts, payload-bearing
+enum variants, multiple bindings, and non-canonical scalar patterns also fail
+closed in this bounded rung. Older
 graph-less artifacts can be upgraded
 only by the explicitly named `--canonicalize-oracle-mir-json` compatibility
 boundary, which reuses the canonical Pergyra expression parser through
@@ -111,7 +114,10 @@ that bridge.
 
 `phi_fact_owner.pgy` consumes the indexed CFG rather than rendered statements.
 Each phi must be the block prefix, have one use per distinct predecessor, and
-name one canonical SSA local across every use and result. Missing inputs are a
+name one canonical SSA local across every use and result. A loop-carried
+self-reference is accepted only in the predecessor slot proved to be a CFG
+back-edge; the preheader slot cannot be relabeled as a self-cycle. Missing,
+duplicate-predecessor, out-of-range-successor, and wrong-slot inputs are a
 hard `MIR-LOWER ERROR`; structured C reconstruction may not hide the loss by
 ignoring phi rows.
 

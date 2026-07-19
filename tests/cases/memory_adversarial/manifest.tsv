@@ -15,9 +15,11 @@ borrowed_slice_channel|borrow-escape|Channel<Slice<T>>|REJECT_COMPILE|SEMANTIC_F
 raw_pointer_escape|ffi-lifetime|SlotRawPointer|REJECT_COMPILE|SEMANTIC_FACT|tests/raw_escape_contract_smoke.sh|raw-escape-contract-test-smoke|CLOSED
 compiler_scope_symbol_uaf|compiler-use-after-free|ResourceFlowUniverse|SANITIZER_CLEAN|SANITIZER_WITNESS|src/tests/semantic/test_semantic_resource_flow_lifetime.cases.h|test-asan|CLOSED
 c_heap_uaf_witness|oracle-calibration|C-pointer|DETECT_WITNESS|SANITIZER_WITNESS|tests/cases/memory_adversarial/c_witness/heap_use_after_free.c|asan-uaf-witness-test-smoke|CLOSED
+c_pthread_race_witness|oracle-calibration|pthread-shared-int|DETECT_WITNESS|SANITIZER_WITNESS|tests/cases/memory_adversarial/c_witness/pthread_data_race.c|tsan-race-witness-test-smoke|CLOSED
 ffi_callback_after_return|use-after-scope|future-raw-FFI|UNRESOLVED|NONE|-|-|OPEN
 iterator_after_collection_mutation|iterator-invalidation|collection-iterator|UNRESOLVED|NONE|-|-|OPEN
 channel_destroy_with_waiter|concurrent-destruction|Channel<T>|UNRESOLVED|NONE|-|-|OPEN
 scratch_pointer_persistent_cache|arena-lifetime-drift|compiler-metadata|PARTIAL_PROOF|SANITIZER_WITNESS|docs/128_pointer_risk_register.md|test-asan|PARTIAL
 parallel_runtime_data_race|data-race|pool-channel-cancel|UNRESOLVED|NONE|-|-|OPEN
+parallel_runtime_tsan_battery|data-race|pool-channel-cancel-zone|SANITIZER_CLEAN|SANITIZER_WITNESS|src/test_concurrency.c|test-tsan|PARTIAL
 instance_handle_cross_sandbox|cross-instance-UAF|ContentInstance|UNRESOLVED|NONE|-|-|OPEN

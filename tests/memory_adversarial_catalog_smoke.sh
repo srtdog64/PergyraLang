@@ -26,6 +26,7 @@ slot_read=0
 slot_write=0
 slot_double=0
 c_uaf=0
+c_race=0
 
 while IFS='|' read -r id hazard surface expected oracle fixture gate status; do
     [[ -z "$id" || "$id" == \#* || "$id" == "id" ]] && continue
@@ -71,6 +72,7 @@ while IFS='|' read -r id hazard surface expected oracle fixture gate status; do
     [[ "$id" == "slot_write_after_release" && "$expected" == "REJECT_COMPILE" ]] && slot_write=1
     [[ "$id" == "slot_double_release" && "$expected" == "REJECT_COMPILE" ]] && slot_double=1
     [[ "$id" == "c_heap_uaf_witness" && "$expected" == "DETECT_WITNESS" ]] && c_uaf=1
+    [[ "$id" == "c_pthread_race_witness" && "$expected" == "DETECT_WITNESS" ]] && c_race=1
 done <"$MANIFEST"
 
 duplicates="$(sort "$IDS" | uniq -d)"
@@ -82,8 +84,9 @@ if [[ "$rows" -lt 20 || "$closed" -lt 15 || "$open" -lt 5 ]]; then
     echo "[memory-adversarial] corpus coverage shrank: rows=$rows closed=$closed partial=$partial open=$open" >&2
     exit 1
 fi
-if [[ "$slot_read" -ne 1 || "$slot_write" -ne 1 || "$slot_double" -ne 1 || "$c_uaf" -ne 1 ]]; then
-    echo "[memory-adversarial] foundational UAF/double-release witnesses are missing" >&2
+if [[ "$slot_read" -ne 1 || "$slot_write" -ne 1 || "$slot_double" -ne 1 ||
+      "$c_uaf" -ne 1 || "$c_race" -ne 1 ]]; then
+    echo "[memory-adversarial] foundational UAF/double-release/race witnesses are missing" >&2
     exit 1
 fi
 
@@ -96,5 +99,13 @@ grep -Fq 'make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan' \
     echo "[memory-adversarial] Linux sanitizer job does not run the bounded battery" >&2
     exit 1
 }
+grep -Fq 'tsan-linux:' "$ROOT_DIR/.github/workflows/ci.yml" || {
+    echo "[memory-adversarial] Linux TSan CI job is not wired" >&2
+    exit 1
+}
+grep -Fq 'make LLVM_ENABLED=0 test-tsan' "$ROOT_DIR/.github/workflows/ci.yml" || {
+    echo "[memory-adversarial] Linux TSan job does not run the concurrency battery" >&2
+    exit 1
+}
 
-echo "[memory-adversarial] rows=$rows closed=$closed partial=$partial open=$open; UAF owners and sanitizer calibration wired"
+echo "[memory-adversarial] rows=$rows closed=$closed partial=$partial open=$open; UAF/race owners and sanitizer calibration wired"

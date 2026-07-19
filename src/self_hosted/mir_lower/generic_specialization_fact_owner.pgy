@@ -1,0 +1,309 @@
+// MIR JSON -> codegen generic specialization consumer.
+//
+// Direct and member calls must both be present in MIR. Recomputed semantic
+// evidence verifies each row; emitted symbols and actuals come only from MIR.
+
+import "../lib/json_fact_table.pgy";
+import "../semantic/ast_expression_call_identity_owner.pgy";
+import "../codegen/input/generic_specialization_codegen_view_owner.pgy";
+import "../mir/generic_specialization_owner.pgy";
+
+struct MirGenericSpecializationStringArrayResult {
+    ok: Bool;
+    values: Array<String>;
+}
+
+func MirGenericSpecializationError(
+    message: String
+) -> CodegenGenericSpecializationFacts {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return CodegenGenericSpecializationFacts(
+        false, message, ints, strings, ints, ints, strings, ints, strings
+    );
+}
+
+func MirGenericSpecializationTable(
+    json: String
+) -> JsonArrayObjectFactTable {
+    let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
+    return JsonObjectFactArrayObjectTable(
+        root, "generic_specializations"
+    );
+}
+
+func MirGenericSpecializationSemanticIndex(
+    ref semantic_rows: SemanticAstGenericSpecializationFacts,
+    owner_node_id: Int,
+    lane: Int,
+    call_ordinal: Int
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < SemanticAstGenericSpecializationCount(semantic_rows) {
+        if SemanticExpressionCallIdentityEqual(
+            semantic_rows.source_owner_node_ids[i],
+            semantic_rows.source_lanes[i],
+            semantic_rows.source_call_ordinals[i],
+            owner_node_id, lane, call_ordinal
+        ) {
+            return Some(i);
+        }
+        i = i + 1;
+    }
+    return None;
+}
+
+func MirGenericSpecializationStringArray(
+    row: JsonObjectFactTable,
+    field: String
+) -> MirGenericSpecializationStringArrayResult {
+    let bounds: Array<Int> = [0, 0];
+    let empty: Array<String> = [];
+    if !JsonObjectFactArrayBounds(row, field, bounds) {
+        return MirGenericSpecializationStringArrayResult(false, empty);
+    }
+    let values: Array<String> = [];
+    let count: Int = JsonArrayStringCount(
+        row.json, bounds[0], bounds[1]
+    );
+    let i: Int = 0;
+    while i < count {
+        let value: String = JsonArrayStringAt(
+            row.json, bounds[0], bounds[1], i
+        );
+        if value == "" {
+            return MirGenericSpecializationStringArrayResult(
+                false, empty
+            );
+        }
+        ArrayPush(values, value);
+        i = i + 1;
+    }
+    return MirGenericSpecializationStringArrayResult(true, values);
+}
+
+func MirGenericSpecializationAppendUnique(
+    inout signature_indexes: Array<Int>,
+    inout c_names: Array<String>,
+    inout actual_starts: Array<Int>,
+    inout actual_counts: Array<Int>,
+    inout actual_type_names: Array<String>,
+    signature_index: Int,
+    c_name: String,
+    actuals: Array<String>
+) -> Bool {
+    let existing: Int = -1;
+    let i: Int = 0;
+    while i < ArrayLength(c_names) {
+        if c_names[i] == c_name { existing = i; }
+        i = i + 1;
+    }
+    if existing >= 0 {
+        if signature_indexes[existing] != signature_index ||
+            actual_counts[existing] != ArrayLength(actuals) {
+            return false;
+        }
+        i = 0;
+        while i < ArrayLength(actuals) {
+            if actual_type_names[actual_starts[existing] + i] != actuals[i] {
+                return false;
+            }
+            i = i + 1;
+        }
+        return true;
+    }
+    if signature_index < 0 || c_name == "" || ArrayLength(actuals) == 0 {
+        return false;
+    }
+    ArrayPush(signature_indexes, signature_index);
+    ArrayPush(c_names, c_name);
+    ArrayPush(actual_starts, ArrayLength(actual_type_names));
+    ArrayPush(actual_counts, ArrayLength(actuals));
+    i = 0;
+    while i < ArrayLength(actuals) {
+        if actuals[i] == "" { return false; }
+        ArrayPush(actual_type_names, actuals[i]);
+        i = i + 1;
+    }
+    return true;
+}
+
+func MirCodegenGenericSpecializationFacts(
+    json: String,
+    ref signatures: SemanticAstFunctionSignatureFacts,
+    ref semantic_rows: SemanticAstGenericSpecializationFacts,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts
+) -> CodegenGenericSpecializationFacts {
+    if !SemanticAstGenericSpecializationFactsReady(semantic_rows) ||
+        !SemanticAstGenericSpecializationFactsMatchExpressionGraph(
+            semantic_rows, expression_surfaces
+        ) {
+        return MirGenericSpecializationError(
+            "semantic generic specialization verifier facts are invalid"
+        );
+    }
+    let signature_indexes: Array<Int> = [];
+    let c_names: Array<String> = [];
+    let actual_starts: Array<Int> = [];
+    let actual_counts: Array<Int> = [];
+    let actual_type_names: Array<String> = [];
+    let call_node_ids: Array<Int> = [];
+    let call_c_names: Array<String> = [];
+
+    let table: JsonArrayObjectFactTable =
+        MirGenericSpecializationTable(json);
+    if !JsonArrayObjectFactTableReady(table) ||
+        JsonArrayObjectFactCount(table) !=
+            SemanticAstGenericSpecializationCount(semantic_rows) {
+        return MirGenericSpecializationError(
+            "MIR generic specialization row count is incomplete"
+        );
+    }
+    let matched: Array<Bool> = [];
+    let expected_i: Int = 0;
+    while expected_i < SemanticAstGenericSpecializationCount(semantic_rows) {
+        ArrayPush(matched, false);
+        expected_i = expected_i + 1;
+    }
+
+    let row_i: Int = 0;
+    while row_i < JsonArrayObjectFactCount(table) {
+        let row: JsonObjectFactTable = JsonArrayObjectFactAt(table, row_i);
+        let owner_id_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_owner_syntax_id"
+        );
+        let lane_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_lane"
+        );
+        let ordinal_opt: Option<String> = JsonObjectFactNumberFieldOpt(
+            row, "source_call_ordinal"
+        );
+        let target_kind_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "target_kind"
+        );
+        let owner_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "owner"
+        );
+        let callable_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "callable"
+        );
+        let symbol_opt: Option<String> = JsonObjectFactStringFieldOpt(
+            row, "specialized_symbol"
+        );
+        let params_row: MirGenericSpecializationStringArrayResult =
+            MirGenericSpecializationStringArray(row, "generic_params");
+        let actuals_row: MirGenericSpecializationStringArrayResult =
+            MirGenericSpecializationStringArray(row, "generic_actuals");
+        if !IsSome(owner_id_opt) || !IsSome(lane_opt) ||
+            !IsSome(ordinal_opt) || !IsSome(target_kind_opt) ||
+            !IsSome(owner_opt) || !IsSome(callable_opt) ||
+            !IsSome(symbol_opt) || !params_row.ok || !actuals_row.ok {
+            return MirGenericSpecializationError(
+                "MIR generic specialization row is malformed"
+            );
+        }
+        let owner_id: Int = ToInt(UnwrapOption(owner_id_opt));
+        let lane: Int = ToInt(UnwrapOption(lane_opt));
+        let ordinal: Int = ToInt(UnwrapOption(ordinal_opt));
+        let semantic_index_opt: Option<Int> =
+            MirGenericSpecializationSemanticIndex(
+                semantic_rows, owner_id, lane, ordinal
+            );
+        if !IsSome(semantic_index_opt) {
+            return MirGenericSpecializationError(
+                "MIR generic specialization identity is unknown"
+            );
+        }
+        let semantic_index: Int = UnwrapOption(semantic_index_opt);
+        if matched[semantic_index] {
+            return MirGenericSpecializationError(
+                "MIR generic specialization identity is duplicated"
+            );
+        }
+        let signature_index: Int =
+            semantic_rows.signature_indexes[semantic_index];
+        let semantic_target_kind: Option<Int> =
+            SemanticExpressionGraphCallTargetKind(
+                expression_surfaces.expression_graph,
+                semantic_rows.call_node_ids[semantic_index]
+            );
+        let actuals: Array<String> = actuals_row.values;
+        let params: Array<String> = params_row.values;
+        if signature_index < 0 || signature_index >=
+            ArrayLength(signatures.names) || !IsSome(semantic_target_kind) ||
+            SelfMirGenericSpecializationTargetKindName(
+                UnwrapOption(semantic_target_kind)
+            ) != UnwrapOption(target_kind_opt) ||
+            signatures.owner_names[signature_index] !=
+                UnwrapOption(owner_opt) ||
+            signatures.names[signature_index] != UnwrapOption(callable_opt) ||
+            ArrayLength(params) != signatures.generic_counts[signature_index] ||
+            ArrayLength(actuals) != semantic_rows.actual_counts[semantic_index] {
+            return MirGenericSpecializationError(
+                "MIR generic specialization signature drifted"
+            );
+        }
+        let generic_start: Int = signatures.generic_starts[signature_index];
+        let value_i: Int = 0;
+        while value_i < ArrayLength(actuals) {
+            if params[value_i] !=
+                signatures.generic_names[generic_start + value_i] ||
+                actuals[value_i] != semantic_rows.actual_type_names[
+                    semantic_rows.actual_starts[semantic_index] + value_i
+                ] {
+                return MirGenericSpecializationError(
+                    "MIR generic specialization actuals drifted"
+                );
+            }
+            value_i = value_i + 1;
+        }
+        let expected_symbol: String =
+            CompilerSymbolCGenericSpecializationName(
+                CompilerSymbolCQualifiedName(
+                    signatures.owner_names[signature_index],
+                    signatures.names[signature_index]
+                ),
+                actuals
+            );
+        if UnwrapOption(symbol_opt) != expected_symbol {
+            return MirGenericSpecializationError(
+                "MIR generic specialization symbol drifted"
+            );
+        }
+        if !MirGenericSpecializationAppendUnique(
+            signature_indexes, c_names, actual_starts, actual_counts,
+            actual_type_names, signature_index, UnwrapOption(symbol_opt),
+            actuals
+        ) {
+            return MirGenericSpecializationError(
+                "MIR generic specialization symbol is inconsistent"
+            );
+        }
+        let call_node: Option<Int> = SemanticExpressionCallNodeForIdentity(
+            expression_surfaces, owner_id, lane, ordinal
+        );
+        if !IsSome(call_node) ||
+            UnwrapOption(call_node) != semantic_rows.call_node_ids[semantic_index] {
+            return MirGenericSpecializationError(
+                "MIR generic specialization call identity does not resolve"
+            );
+        }
+        ArrayPush(call_node_ids, UnwrapOption(call_node));
+        ArrayPush(call_c_names, UnwrapOption(symbol_opt));
+        ArraySet(matched, semantic_index, true);
+        row_i = row_i + 1;
+    }
+    expected_i = 0;
+    while expected_i < SemanticAstGenericSpecializationCount(semantic_rows) {
+        if !matched[expected_i] {
+            return MirGenericSpecializationError(
+                "MIR generic specialization row is missing"
+            );
+        }
+        expected_i = expected_i + 1;
+    }
+    return CodegenGenericSpecializationFacts(
+        true, "", signature_indexes, c_names, actual_starts, actual_counts,
+        actual_type_names, call_node_ids, call_c_names
+    );
+}
