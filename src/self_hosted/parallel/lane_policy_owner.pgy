@@ -1,0 +1,342 @@
+// Parallel execution-lane policy owner (docs/146 SEA, docs/186).
+//
+// SoT for the SEA lane classification decision table: which lane a
+// concurrency site's capture evidence PERMITS. The C projection is
+// src/compiler/execution_lane.c (pgy_classify_execution_lane) over the
+// evidence record in src/compiler/execution_lane.h, with the lane tags in
+// src/common/execution_lane_kind.h. This owner schedules nothing and decides
+// nothing at runtime; it declares the table, and the rule ORDER is part of
+// the contract (a held resource is decided before an effect, which is decided
+// before a movability optimisation).
+//
+// Machine-checked companion: docs/semantics/proofs/ParallelSchedulingCore.v
+// proves the await policies this classification feeds -- in particular that
+// help-first progress rests on spawn-tree awaits, which is why a channel-style
+// wait cannot share the join lane's mechanism.
+//
+// ** Honest reachability. ** Codegen does NOT consume the AIR ExecutionLaneFact
+// today: both spawn emitters call pgy_spawn_lane_from_blocking(
+// ast_spawn_is_blocking(node)) and re-derive the lane from a syntactic flag,
+// so PinnedZone, MovableScheduler and Reject are unreachable in emitted code
+// even though the classifier computes them for AIR verification. That gap is
+// board WO-PAR-NOVEL step 2. It is declared below rather than left implicit,
+// so closing it is a visible edit here instead of a silent change of meaning.
+//
+// Registration is pinned by src/self_hosted/OWNERS.md,
+// tests/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/selfhost_parallel_lane_policy_smoke.sh gate.
+
+func ParallelLanePolicySchema() -> String {
+    return "pgy.selfhost.parallel-lane-policy.v1";
+}
+
+// Lane tags, in the enum order of src/common/execution_lane_kind.h. Reject is
+// zero so a zeroed/unset lane is the fail-closed verdict, never a live lane.
+func ParallelLaneReject() -> Int { return 0; }
+func ParallelLaneInline() -> Int { return 1; }
+func ParallelLanePinnedZone() -> Int { return 2; }
+func ParallelLaneBlockingPool() -> Int { return 3; }
+func ParallelLaneLocalAsync() -> Int { return 4; }
+func ParallelLaneWorkerPool() -> Int { return 5; }
+func ParallelLaneMovableScheduler() -> Int { return 6; }
+
+func ParallelLaneCount() -> Int { return 7; }
+
+func ParallelLaneName(lane: Int) -> String {
+    if lane == ParallelLaneReject() { return "Reject"; }
+    if lane == ParallelLaneInline() { return "Inline"; }
+    if lane == ParallelLanePinnedZone() { return "PinnedZone"; }
+    if lane == ParallelLaneBlockingPool() { return "BlockingPool"; }
+    if lane == ParallelLaneLocalAsync() { return "LocalAsync"; }
+    if lane == ParallelLaneWorkerPool() { return "WorkerPool"; }
+    if lane == ParallelLaneMovableScheduler() { return "MovableScheduler"; }
+    return "Unknown";
+}
+
+// The evidence the classifier reads, field for field with BoundaryCaptureFact.
+struct ParallelBoundaryCapture {
+    captures_pin: Bool;
+    captures_live_view: Bool;
+    captures_raw_slot: Bool;
+    captures_raw_channel: Bool;
+    requires_movability: Bool;
+    captures_value_only: Bool;
+    crosses_authority_boundary: Bool;
+    has_io_or_ffi_effect: Bool;
+    is_await_heavy_local: Bool;
+    is_deterministic_fork_join: Bool;
+    is_concurrent_site: Bool;
+}
+
+func ParallelLaneEvidence(
+    pin: Bool,
+    view: Bool,
+    rawSlot: Bool,
+    rawChannel: Bool,
+    movable: Bool,
+    valueOnly: Bool,
+    authority: Bool,
+    io: Bool,
+    awaitLocal: Bool,
+    forkJoin: Bool,
+    concurrent: Bool
+) -> ParallelBoundaryCapture {
+    return ParallelBoundaryCapture(
+        pin, view, rawSlot, rawChannel, movable, valueOnly, authority,
+        io, awaitLocal, forkJoin, concurrent
+    );
+}
+
+// A held resource binds the task to its owner: pin, live view, raw slot, raw
+// channel. Any one of them is enough.
+func ParallelLaneHoldsResource(e: ParallelBoundaryCapture) -> Bool {
+    return e.captures_pin || e.captures_live_view ||
+        e.captures_raw_slot || e.captures_raw_channel;
+}
+
+// The M:N gate, isolated so the witnesses below can drop one conjunct at a
+// time: every capture is a pure copied value, nothing raw is held, and the
+// authority boundary is explicit.
+func ParallelLaneMovableEvidenceHolds(e: ParallelBoundaryCapture) -> Bool {
+    return e.captures_value_only &&
+        !e.captures_raw_slot &&
+        !e.captures_raw_channel &&
+        e.crosses_authority_boundary;
+}
+
+// The decision table. Pure, total, deterministic, fail-closed -- and the rule
+// order is the contract, not an implementation detail.
+func ParallelLaneClassify(e: ParallelBoundaryCapture) -> Int {
+    // Not a concurrency site at all: run in place.
+    if !e.is_concurrent_site { return ParallelLaneInline(); }
+
+    // (1) Resource evidence wins first. A held resource that ALSO demands
+    // movability is a contradiction the evidence cannot satisfy: fail closed
+    // rather than silently pick a weaker lane.
+    if ParallelLaneHoldsResource(e) {
+        if e.requires_movability { return ParallelLaneReject(); }
+        return ParallelLanePinnedZone();
+    }
+
+    // (2) IO/FFI/OS-blocking gets its own lane regardless of shape, so a
+    // blocking call never starves a cooperative or work-stealing lane.
+    if e.has_io_or_ffi_effect { return ParallelLaneBlockingPool(); }
+
+    // (3) Await-heavy work over local state is cooperative within its owner --
+    // "can wait", not "can move".
+    if e.is_await_heavy_local { return ParallelLaneLocalAsync(); }
+
+    // (4) Small scoped fork-join with a joined result is deterministic: a
+    // bounded worker pool, NOT M:N migration.
+    if e.is_deterministic_fork_join { return ParallelLaneWorkerPool(); }
+
+    // (5) The only path to the movable lane.
+    if ParallelLaneMovableEvidenceHolds(e) {
+        return ParallelLaneMovableScheduler();
+    }
+
+    // (6) Pure value work without a clear authority boundary still
+    // parallelises, but stays in the bounded pool.
+    if e.captures_value_only { return ParallelLaneWorkerPool(); }
+
+    // (7) Concurrent site with no movability evidence: stay local and
+    // cooperative rather than guess a stronger lane.
+    return ParallelLaneLocalAsync();
+}
+
+// ---- in-language invariant witnesses -------------------------------------
+//
+// These are the properties the table exists to guarantee. They run inside the
+// manifest, so a rule reorder that still compiles fails the gate.
+
+// A held resource that must move is rejected -- for every resource kind, and
+// regardless of what other evidence would otherwise promote it.
+func ParallelLaneContradictionRejects() -> Bool {
+    let pinMove: ParallelBoundaryCapture = ParallelLaneEvidence(
+        true, false, false, false, true, true, true, true, true, true, true);
+    let viewMove: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, true, false, false, true, true, true, false, false, false, true);
+    let slotMove: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, true, false, true, true, true, false, false, false, true);
+    let chanMove: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, true, true, true, true, false, false, false, true);
+    return ParallelLaneClassify(pinMove) == ParallelLaneReject() &&
+        ParallelLaneClassify(viewMove) == ParallelLaneReject() &&
+        ParallelLaneClassify(slotMove) == ParallelLaneReject() &&
+        ParallelLaneClassify(chanMove) == ParallelLaneReject();
+}
+
+// The rule ORDER is load-bearing: a site that both holds a pin and performs IO
+// is PinnedZone, not BlockingPool. Swapping rules (1) and (2) would move a
+// pinned task onto a shared blocking executor.
+func ParallelLaneOrderIsContract() -> Bool {
+    let pinAndIo: ParallelBoundaryCapture = ParallelLaneEvidence(
+        true, false, false, false, false, false, false, true, false, false, true);
+    let ioAndForkJoin: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, false, false, false, false, true, false, true, true);
+    return ParallelLaneClassify(pinAndIo) == ParallelLanePinnedZone() &&
+        ParallelLaneClassify(ioAndForkJoin) == ParallelLaneBlockingPool();
+}
+
+// M:N needs the FULL conjunction. Drop any one conjunct and the site falls
+// back to a bounded or local lane -- never to the movable one.
+func ParallelLaneMovableNeedsFullEvidence() -> Bool {
+    let full: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, false, false, true, true, false, false, false, true);
+    let noAuthority: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, false, false, true, false, false, false, false, true);
+    let rawSlotHeld: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, true, false, false, true, true, false, false, false, true);
+    let notValueOnly: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, false, false, false, true, false, false, false, true);
+    return ParallelLaneClassify(full) == ParallelLaneMovableScheduler() &&
+        ParallelLaneClassify(noAuthority) == ParallelLaneWorkerPool() &&
+        ParallelLaneClassify(rawSlotHeld) == ParallelLanePinnedZone() &&
+        ParallelLaneClassify(notValueOnly) == ParallelLaneLocalAsync();
+}
+
+// No evidence at all is Inline, not a lane: a non-concurrent site must never
+// be promoted onto an executor.
+func ParallelLaneEmptyEvidenceIsInline() -> Bool {
+    let empty: ParallelBoundaryCapture = ParallelLaneEvidence(
+        false, false, false, false, false, false, false, false, false, false, false);
+    return ParallelLaneClassify(empty) == ParallelLaneInline();
+}
+
+// ---- current codegen reachability (the declared gap) ----------------------
+//
+// Which lanes emitted code can actually reach today. The classifier above runs
+// in AIR verification; codegen re-derives from a syntactic blocking flag, so
+// the pinned/movable/reject verdicts never reach a backend. When
+// WO-PAR-NOVEL step 2 lands, this table and the forbid row below change
+// together.
+func ParallelLaneReachableFromCodegen(lane: Int) -> Bool {
+    if lane == ParallelLaneBlockingPool() { return true; }
+    if lane == ParallelLaneLocalAsync() { return true; }
+    if lane == ParallelLaneWorkerPool() { return true; }
+    return false;
+}
+
+func ParallelLaneReachableCount() -> Int {
+    let reachable: Int = 0;
+    let lane: Int = 0;
+    while lane < ParallelLaneCount() {
+        if ParallelLaneReachableFromCodegen(lane) {
+            reachable = reachable + 1;
+        }
+        lane = lane + 1;
+    }
+    return reachable;
+}
+
+// ---- required-term pins ---------------------------------------------------
+//
+// Pin doctrine (docs/188 R2): stable identifiers only -- lane tags, the
+// classifier signature, the entry points. Rule bodies are NOT pinned; the
+// executable table above is what witnesses the behaviour.
+
+func ParallelLaneKindPath() -> String {
+    return "src/common/execution_lane_kind.h";
+}
+
+func ParallelLanePolicyHeaderPath() -> String {
+    return "src/compiler/execution_lane.h";
+}
+
+func ParallelLanePolicySourcePath() -> String {
+    return "src/compiler/execution_lane.c";
+}
+
+func ParallelLaneCEmitterPath() -> String {
+    return "src/codegen/transpiler_spawn_channel_emit.c";
+}
+
+func ParallelLaneLlvmEmitterPath() -> String {
+    return "src/codegen/llvm_expr_spawn_call_helpers.c";
+}
+
+func ParallelLaneRequiredCount() -> Int {
+    return 13;
+}
+
+func ParallelLaneRequiredPathAt(index: Int) -> String {
+    if index <= 1 { return ParallelLaneKindPath(); }
+    if index == 2 { return ParallelLanePolicyHeaderPath(); }
+    if index <= 7 { return ParallelLanePolicySourcePath(); }
+    if index <= 9 { return ParallelLaneCEmitterPath(); }
+    if index == 10 { return ParallelLaneLlvmEmitterPath(); }
+    if index == 11 { return ParallelLaneCEmitterPath(); }
+    if index == 12 { return ParallelLaneLlvmEmitterPath(); }
+    return "";
+}
+
+func ParallelLaneRequiredTermAt(index: Int) -> String {
+    if index == 0 { return "PGY_LANE_REJECT = 0,"; }
+    if index == 1 { return "PGY_LANE_MOVABLE_SCHEDULER"; }
+    if index == 2 { return "pgy_classify_execution_lane(const BoundaryCaptureFact *fact);"; }
+    if index == 3 { return "pgy_classify_execution_lane(const BoundaryCaptureFact *e)"; }
+    if index == 4 { return "return PGY_LANE_REJECT;"; }
+    if index == 5 { return "return PGY_LANE_PINNED_ZONE;"; }
+    if index == 6 { return "return PGY_LANE_MOVABLE_SCHEDULER;"; }
+    if index == 7 { return "pgy_spawn_lane_from_blocking(bool is_blocking)"; }
+    // Both backends must hand the lane to the runtime facade rather than name
+    // an executor: one lane decision, two consumers.
+    if index == 8 { return "transpiler_spawn_lane_symbol("; }
+    if index == 9 { return "pgy_lane_spawn_dispatch("; }
+    if index == 10 { return "pgy_lane_spawn_dispatch_export"; }
+    // The two sites that currently RE-DERIVE the lane from a syntactic flag
+    // instead of carrying the AIR fact. Pinned so the declared gap stays
+    // visible; when WO-PAR-NOVEL step 2 lands, these two rows are what change.
+    if index == 11 { return "pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))"; }
+    if index == 12 { return "pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))"; }
+    return "";
+}
+
+// Forbidden projection: no emitter may name a concrete executor export. That
+// is the pre-SEA shape, and it gives each backend its own private lane
+// decision instead of one policy with two consumers. pgy_spawn_blocking is
+// legitimate inside the runtime facade -- it must not appear in codegen.
+func ParallelLaneForbiddenCount() -> Int {
+    return 2;
+}
+
+func ParallelLaneForbiddenPathAt(index: Int) -> String {
+    if index == 0 { return ParallelLaneCEmitterPath(); }
+    if index == 1 { return ParallelLaneLlvmEmitterPath(); }
+    return "";
+}
+
+func ParallelLaneForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_spawn_blocking"; }
+    if index == 1 { return "pgy_spawn_blocking"; }
+    return "";
+}
+
+func ParallelLaneMissingSelfTestTerm() -> String {
+    return "definitely_missing_parallel_lane_policy_term";
+}
+
+func ParallelLanePolicyReady() -> Bool {
+    return ParallelLanePolicySchema() != "" &&
+        ParallelLaneCount() == 7 &&
+        ParallelLaneReject() == 0 &&
+        ParallelLaneName(ParallelLaneReject()) == "Reject" &&
+        ParallelLaneName(ParallelLaneMovableScheduler()) == "MovableScheduler" &&
+        ParallelLaneName(ParallelLaneCount()) == "Unknown" &&
+        ParallelLaneContradictionRejects() &&
+        ParallelLaneOrderIsContract() &&
+        ParallelLaneMovableNeedsFullEvidence() &&
+        ParallelLaneEmptyEvidenceIsInline() &&
+        ParallelLaneReachableCount() == 3 &&
+        !ParallelLaneReachableFromCodegen(ParallelLaneMovableScheduler()) &&
+        !ParallelLaneReachableFromCodegen(ParallelLaneReject()) &&
+        ParallelLaneRequiredCount() == 13 &&
+        ParallelLaneForbiddenCount() == 2 &&
+        ParallelLaneRequiredPathAt(0) == ParallelLaneKindPath() &&
+        ParallelLaneRequiredPathAt(12) == ParallelLaneLlvmEmitterPath() &&
+        ParallelLaneRequiredTermAt(0) != "" &&
+        ParallelLaneRequiredTermAt(12) != "" &&
+        ParallelLaneForbiddenPathAt(1) == ParallelLaneLlvmEmitterPath() &&
+        ParallelLaneForbiddenTermAt(0) != "" &&
+        ParallelLaneMissingSelfTestTerm() != "";
+}

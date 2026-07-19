@@ -1,0 +1,120 @@
+// Runnable projection over lane_policy_owner.pgy: prints the canonical lane
+// decision table for the expected-artifact diff (both compiler legs),
+// re-checks the classification invariants in-language, declares which lanes
+// codegen can currently reach, and emits the required/forbidden pin rows the
+// smoke greps against the C projections.
+
+import "lane_policy_owner.pgy";
+
+func ParallelLaneVerdictRow(label: String, lane: Int) -> String {
+    let row0: String = Concat("lane|", label);
+    let row1: String = Concat(row0, "|");
+    let row2: String = Concat(row1, ToString(lane));
+    let row3: String = Concat(row2, "|");
+    return Concat(row3, ParallelLaneName(lane));
+}
+
+func ParallelLaneClassifyRow(
+    label: String,
+    e: ParallelBoundaryCapture
+) -> String {
+    return ParallelLaneVerdictRow(label, ParallelLaneClassify(e));
+}
+
+func ParallelLaneInvariantRow(label: String, holds: Bool) -> String {
+    let row0: String = Concat("invariant|", label);
+    let row1: String = Concat(row0, "|");
+    if holds { return Concat(row1, "ok"); }
+    return Concat(row1, "BROKEN");
+}
+
+func ParallelLaneReachableRow(lane: Int) -> String {
+    let row0: String = Concat("reachable|", ParallelLaneName(lane));
+    let row1: String = Concat(row0, "|");
+    if ParallelLaneReachableFromCodegen(lane) {
+        return Concat(row1, "yes");
+    }
+    return Concat(row1, "no");
+}
+
+func ParallelLaneRequiredRow(index: Int) -> String {
+    let row0: String = Concat("require|", ParallelLaneRequiredPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, ParallelLaneRequiredTermAt(index));
+}
+
+func ParallelLaneForbiddenRow(index: Int) -> String {
+    let row0: String = Concat("forbid|", ParallelLaneForbiddenPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, ParallelLaneForbiddenTermAt(index));
+}
+
+func Main() -> Void {
+    if !ParallelLanePolicyReady() {
+        Log("PARALLEL_LANE_POLICY ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", ParallelLanePolicySchema()));
+    Log(Concat("lanes=", ToString(ParallelLaneCount())));
+
+    // The decision table, one row per rule in priority order.
+    Log(ParallelLaneClassifyRow("not_concurrent", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, false, false, false, false)));
+    Log(ParallelLaneClassifyRow("pin_held", ParallelLaneEvidence(
+        true, false, false, false, false, false, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("pin_must_move", ParallelLaneEvidence(
+        true, false, false, false, true, false, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("live_view_held", ParallelLaneEvidence(
+        false, true, false, false, false, false, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("raw_slot_must_move", ParallelLaneEvidence(
+        false, false, true, false, true, false, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("raw_channel_held", ParallelLaneEvidence(
+        false, false, false, true, false, false, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("pin_beats_io", ParallelLaneEvidence(
+        true, false, false, false, false, false, false, true, false, false, true)));
+    Log(ParallelLaneClassifyRow("io_effect", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, true, false, false, true)));
+    Log(ParallelLaneClassifyRow("io_beats_fork_join", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, true, false, true, true)));
+    Log(ParallelLaneClassifyRow("await_heavy_local", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, false, true, false, true)));
+    Log(ParallelLaneClassifyRow("deterministic_fork_join", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, false, false, true, true)));
+    Log(ParallelLaneClassifyRow("value_only_with_authority", ParallelLaneEvidence(
+        false, false, false, false, false, true, true, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("value_only_no_authority", ParallelLaneEvidence(
+        false, false, false, false, false, true, false, false, false, false, true)));
+    Log(ParallelLaneClassifyRow("fork_join_beats_movable", ParallelLaneEvidence(
+        false, false, false, false, false, true, true, false, false, true, true)));
+    Log(ParallelLaneClassifyRow("concurrent_no_evidence", ParallelLaneEvidence(
+        false, false, false, false, false, false, false, false, false, false, true)));
+
+    Log(ParallelLaneInvariantRow(
+        "contradiction_rejects", ParallelLaneContradictionRejects()));
+    Log(ParallelLaneInvariantRow(
+        "order_is_contract", ParallelLaneOrderIsContract()));
+    Log(ParallelLaneInvariantRow(
+        "movable_needs_full_evidence", ParallelLaneMovableNeedsFullEvidence()));
+    Log(ParallelLaneInvariantRow(
+        "empty_evidence_is_inline", ParallelLaneEmptyEvidenceIsInline()));
+
+    // The declared gap: only three of seven lanes survive codegen today.
+    Log(Concat("reachable_lanes=", ToString(ParallelLaneReachableCount())));
+    let lane: Int = 0;
+    while lane < ParallelLaneCount() {
+        Log(ParallelLaneReachableRow(lane));
+        lane = lane + 1;
+    }
+
+    let required_index: Int = 0;
+    while required_index < ParallelLaneRequiredCount() {
+        Log(ParallelLaneRequiredRow(required_index));
+        required_index = required_index + 1;
+    }
+    let forbidden_index: Int = 0;
+    while forbidden_index < ParallelLaneForbiddenCount() {
+        Log(ParallelLaneForbiddenRow(forbidden_index));
+        forbidden_index = forbidden_index + 1;
+    }
+}

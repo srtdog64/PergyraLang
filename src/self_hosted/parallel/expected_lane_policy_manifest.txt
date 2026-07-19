@@ -1,0 +1,44 @@
+schema=pgy.selfhost.parallel-lane-policy.v1
+lanes=7
+lane|not_concurrent|1|Inline
+lane|pin_held|2|PinnedZone
+lane|pin_must_move|0|Reject
+lane|live_view_held|2|PinnedZone
+lane|raw_slot_must_move|0|Reject
+lane|raw_channel_held|2|PinnedZone
+lane|pin_beats_io|2|PinnedZone
+lane|io_effect|3|BlockingPool
+lane|io_beats_fork_join|3|BlockingPool
+lane|await_heavy_local|4|LocalAsync
+lane|deterministic_fork_join|5|WorkerPool
+lane|value_only_with_authority|6|MovableScheduler
+lane|value_only_no_authority|5|WorkerPool
+lane|fork_join_beats_movable|5|WorkerPool
+lane|concurrent_no_evidence|4|LocalAsync
+invariant|contradiction_rejects|ok
+invariant|order_is_contract|ok
+invariant|movable_needs_full_evidence|ok
+invariant|empty_evidence_is_inline|ok
+reachable_lanes=3
+reachable|Reject|no
+reachable|Inline|no
+reachable|PinnedZone|no
+reachable|BlockingPool|yes
+reachable|LocalAsync|yes
+reachable|WorkerPool|yes
+reachable|MovableScheduler|no
+require|src/common/execution_lane_kind.h|PGY_LANE_REJECT = 0,
+require|src/common/execution_lane_kind.h|PGY_LANE_MOVABLE_SCHEDULER
+require|src/compiler/execution_lane.h|pgy_classify_execution_lane(const BoundaryCaptureFact *fact);
+require|src/compiler/execution_lane.c|pgy_classify_execution_lane(const BoundaryCaptureFact *e)
+require|src/compiler/execution_lane.c|return PGY_LANE_REJECT;
+require|src/compiler/execution_lane.c|return PGY_LANE_PINNED_ZONE;
+require|src/compiler/execution_lane.c|return PGY_LANE_MOVABLE_SCHEDULER;
+require|src/compiler/execution_lane.c|pgy_spawn_lane_from_blocking(bool is_blocking)
+require|src/codegen/transpiler_spawn_channel_emit.c|transpiler_spawn_lane_symbol(
+require|src/codegen/transpiler_spawn_channel_emit.c|pgy_lane_spawn_dispatch(
+require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_lane_spawn_dispatch_export
+require|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))
+require|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_lane_from_blocking(ast_spawn_is_blocking(node))
+forbid|src/codegen/transpiler_spawn_channel_emit.c|pgy_spawn_blocking
+forbid|src/codegen/llvm_expr_spawn_call_helpers.c|pgy_spawn_blocking
