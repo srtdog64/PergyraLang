@@ -383,20 +383,27 @@ mir_source_local_type_capture_node(const MIRProgram *program,
             program, routine, &scratch,
             ast_let_destructure_initializer(node));
         size_t name_count = ast_let_destructure_name_count(node);
+        size_t tuple_arity = 0;
 
-        if (initializer_type == NULL
-            || !mir_source_local_unwrap_array_or_slice_type(
-                initializer_type, element_type, sizeof(element_type))) {
+        if (initializer_type == NULL || name_count == 0)
             return false;
-        }
         for (size_t i = 0; i < name_count; i++) {
+            bool has_element = mir_source_local_unwrap_array_or_slice_type(
+                initializer_type, element_type, sizeof(element_type));
+            if (!has_element) {
+                has_element = mir_source_local_tuple_element_type(
+                    initializer_type, i, element_type,
+                    sizeof(element_type), &tuple_arity);
+                if (!has_element || tuple_arity != name_count)
+                    return false;
+            }
             if (!mir_source_local_type_append_name(
                     program, routine,
                     ast_let_destructure_name(node, i), element_type)) {
                 return false;
             }
         }
-        return name_count > 0;
+        return true;
     }
     case AST_BLOCK: {
         size_t n = ast_block_statement_count(node);

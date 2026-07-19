@@ -271,7 +271,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                 mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
-                    *error_message = pergyra_strdup("out of memory");
+                    *error_message = pergyra_strdup(
+                        "source-local type fact capture failed");
                 mir_destroy(mir);
                 return NULL;
             }

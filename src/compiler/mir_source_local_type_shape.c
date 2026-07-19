@@ -1,5 +1,6 @@
 #include "mir_source_local_type_shape.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -124,6 +125,90 @@ mir_source_local_unwrap_array_or_slice_type(const char *type_name,
 
     return mir_source_local_unwrap_prefixed_type(type_name, prefixes,
         sizeof(prefixes) / sizeof(prefixes[0]), out, out_size);
+}
+
+bool
+mir_source_local_tuple_element_type(const char *type_name,
+                                    size_t element_index,
+                                    char *out,
+                                    size_t out_size,
+                                    size_t *arity_out)
+{
+    const char *cursor;
+    const char *element_start;
+    const char *close;
+    size_t angle_depth = 0;
+    size_t tuple_depth = 0;
+    size_t arity = 0;
+    bool found = false;
+
+    if (arity_out != NULL)
+        *arity_out = 0;
+    if (type_name == NULL || out == NULL || out_size == 0
+        || type_name[0] != '(') {
+        return false;
+    }
+    out[0] = '\0';
+    close = type_name + strlen(type_name);
+    while (close > type_name && isspace((unsigned char)close[-1]))
+        close--;
+    if (close <= type_name + 1 || close[-1] != ')')
+        return false;
+
+    cursor = type_name + 1;
+    element_start = cursor;
+    for (; cursor < close; cursor++) {
+        char ch = *cursor;
+        bool boundary = false;
+
+        if (ch == '<')
+            angle_depth++;
+        else if (ch == '>') {
+            if (angle_depth == 0)
+                return false;
+            angle_depth--;
+        } else if (ch == '(')
+            tuple_depth++;
+        else if (ch == ')') {
+            if (tuple_depth == 0) {
+                if (cursor != close - 1)
+                    return false;
+                boundary = true;
+            } else {
+                tuple_depth--;
+            }
+        } else if (ch == ',' && angle_depth == 0 && tuple_depth == 0) {
+            boundary = true;
+        }
+
+        if (boundary) {
+            const char *start = element_start;
+            const char *end = cursor;
+            size_t length;
+
+            while (start < end && isspace((unsigned char)*start))
+                start++;
+            while (end > start && isspace((unsigned char)end[-1]))
+                end--;
+            if (start == end)
+                return false;
+            if (arity == element_index) {
+                length = (size_t)(end - start);
+                if (length >= out_size)
+                    return false;
+                memcpy(out, start, length);
+                out[length] = '\0';
+                found = true;
+            }
+            arity++;
+            element_start = cursor + 1;
+        }
+    }
+    if (angle_depth != 0 || tuple_depth != 0 || element_start != close)
+        return false;
+    if (arity_out != NULL)
+        *arity_out = arity;
+    return found;
 }
 
 bool

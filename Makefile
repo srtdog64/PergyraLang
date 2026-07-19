@@ -1492,6 +1492,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_flow.o \
                    $(BUILD_DIR)/compiler/mir_timing.o \
                    $(BUILD_DIR)/compiler/mir_parallel_capture_facts.o \
+                   $(BUILD_DIR)/compiler/mir_generic_method_specialization.o \
+                   $(BUILD_DIR)/compiler/mir_generic_method_specialization_validate.o \
                    $(BUILD_DIR)/compiler/mir_branch_source_facts.o \
                    $(BUILD_DIR)/compiler/mir_speculation_facts.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \

@@ -87,6 +87,8 @@ test_mir_lowering_part_i(void)
         MIRRoutine *routine = NULL;
         MIRInstruction *destructure_inst = NULL;
         ASTNode *saved_ast = NULL;
+        const char *n_type = NULL;
+        const char *s_type = NULL;
         size_t n_index = 99;
         size_t s_index = 99;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
@@ -94,6 +96,8 @@ test_mir_lowering_part_i(void)
             routine = find_mir_routine_mut(mir, "DestructureBindingFact",
                                            MIR_SCOPE_FUNCTION);
         if (routine != NULL) {
+            n_type = mir_routine_source_local_type_name(routine, "n");
+            s_type = mir_routine_source_local_type_name(routine, "s");
             for (size_t bi = 0; bi < routine->block_count
                  && destructure_inst == NULL; bi++) {
                 MIRBasicBlock *block = &routine->blocks[bi];
@@ -127,6 +131,8 @@ test_mir_lowering_part_i(void)
                && mir_instruction_destructure_binding_index(
                       destructure_inst, "s", &s_index)
                && s_index == 1
+               && n_type != NULL && strcmp(n_type, "Int") == 0
+               && s_type != NULL && strcmp(s_type, "String") == 0
                && mir_validate(mir, NULL));
         if (destructure_inst != NULL)
             destructure_inst->ast = saved_ast;
