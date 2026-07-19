@@ -232,13 +232,13 @@ through function-env `pm` facts, lowers it as value-result copy-in/copy-out, and
 rewrites call arguments from those facts. It preserves but fail-closes on `own`
 and `ref` until their ABI and ownership facts have owners.
 This is a transitional text bridge; the mixed AST-like tagged-node owner remains
-an active expansion surface. `SemanticAstExpressionSurfaceFacts` now owns
-normalized top-level operator rows for all three payload lanes. The `Log`
-atom-expression path consumes that row through
+an active expansion surface. `SemanticAstExpressionSurfaceFacts` owns normalized
+graph and consistency rows for all three payload lanes. The `Log`
+atom-expression path consumes the graph through
 `semantic_expression_codegen_view_owner.pgy` and
-`expr_semantic_shape_emit_owner.pgy`; it does not rediscover the top-level
-additive position. Scalar/String returns reuse the atom lane. Ordinary
-scalar/String local initializers and assignments consume the value lane.
+`expr_semantic_graph_emit_owner.pgy`; the retired top-level shape emitter is
+absent. Scalar/String returns reuse the atom lane. Ordinary scalar/String local
+initializers and assignments consume the value lane.
 Root `if`/`while` conditions consume distinct semantic `||`, `&&`, `==`, and
 `!=` facts. They now consume stable semantic expression node handles and child
 edges for recursive logical/equality structure; codegen cannot split condition

@@ -1819,6 +1819,11 @@ beyond the lexer:
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.
+- **Expression emission SoT closure** -- the unreferenced top-level semantic
+  shape emitter and its dead codegen accessors are deleted. Recursive graph
+  emission is the only live expression consumer; shape rows remain only to
+  verify that the graph root matches normalized semantic provenance. Static
+  gates reject the retired file, import, and accessor names.
 
 The remaining work is mostly actual semantic and codegen pass work against the
 C compiler oracle. The one substrate-shaped item that remains as compiler-core

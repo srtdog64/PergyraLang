@@ -275,7 +275,9 @@ SENTINEL_MAX=0
 # payload bindings through one HIR fact into semantic and MIR consumers.
 # 2134 -> 2205 (2026-07-20): destructure arity and graph-owned index typing
 # preserve absence and failure as Option facts instead of sentinels.
-RESULT_USE_MIN=2205
+# 2205 -> 2204 (2026-07-20): deleting the zero-consumer shape emitter removes
+# one unreachable Option projection; no live failure path became a sentinel.
+RESULT_USE_MIN=2204
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=18
 COMPILER_WORLD_MEMBERS_EXACT=18

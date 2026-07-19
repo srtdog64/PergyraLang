@@ -33,7 +33,6 @@ import "input/ast_type_usage_owner.pgy";
 import "input/ast_usage_owner.pgy";
 import "fixture_manifest_owner.pgy";
 import "emission/expr_rewrite.pgy";
-import "emission/expr_semantic_shape_emit_owner.pgy";
 import "emission/log_emit_owner.pgy";
 import "emission/runtime_call_rewrite_owner.pgy";
 import "emission/struct_value_emit.pgy";

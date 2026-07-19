@@ -197,18 +197,16 @@ from recounting the entrypoint locally.
 element edges. `input/semantic_expression_codegen_view_owner.pgy` carries that
 graph and statement emission consumes each element by handle and expected
 element type; no local-binding body string or dedicated array view exists.
-`input/semantic_expression_codegen_view_owner.pgy` projects normalized
-expression shape by artifact node and payload lane. The first live consumer is
-`Log`: `emission/expr_semantic_shape_emit_owner.pgy` consumes the stored
-top-level additive index and operator kind, while
-`emission/log_emit_owner.pgy` owns log type routing and scalar formatting ABI.
-The migrated path rejects a missing/mismatched row and cannot rescan for `+`.
-Scalar/String returns reuse the atom row; ordinary scalar/String local
-initializers and assignments consume the value row. Indexed assignment,
-`ArrayPush`, and `ArraySet` values share one expected-type graph consumer for
-scalar, String, and struct elements. Indexed target-index expressions,
-Option/Result wrapper internals, special unary forms, and non-condition
-recursive child-expression lowering remain the explicit compact-text bridge.
+`input/semantic_expression_codegen_view_owner.pgy` projects the semantic graph
+by artifact node and payload lane. `emission/expr_semantic_graph_emit_owner.pgy`
+is the only expression-emission consumer; the retired top-level shape emitter
+cannot return. Semantic shape rows remain only as a root-text consistency check
+on the graph view. `emission/log_emit_owner.pgy` owns log type routing and
+scalar formatting ABI. Scalar/String returns reuse the atom graph; ordinary
+scalar/String local initializers and assignments consume the value graph.
+Indexed assignment, `ArrayPush`, and `ArraySet` values share one expected-type
+graph consumer for scalar, String, and struct elements. Unsupported graph
+shapes fail closed instead of falling back to the retired shape emitter.
 Root `if`/`while` conditions additionally consume separate semantic `||`,
 `&&`, equality-position, and equality-kind facts plus stable expression node
 handles and child edges. String and payload-free enum equality share one

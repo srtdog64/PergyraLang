@@ -209,14 +209,15 @@ under C-built and LLVM-built tools. Indexed collection elements,
 Option/Result/struct wrappers, auxiliary lanes, and recursive child expressions
 remain the explicit bridge.
 
-Sixteenth executable delta, 2026-07-13: semantic operator rows now distinguish
+Sixteenth executable delta, 2026-07-13: semantic operator rows then distinguished
 top-level `||`, `&&`, `==`, and `!=` instead of carrying one ambiguous logical
-position. `if`/`while` root conditions consume those rows through
-`RewriteBoolWithSemanticShape`; the migrated function cannot call
-`FindTopLevelOp2`. A shared equality projection keeps String and payload-free
+position. At that intermediate checkpoint `if`/`while` root conditions consumed
+those rows through `RewriteBoolWithSemanticShape`; that function could not call
+`FindTopLevelOp2`. A shared equality projection kept String and payload-free
 enum behavior identical. `bool_logic`, `string_equality`, and
 `string_equality_concat` pass C/LLVM oracle parity, including precedence and
-String equality cases. Recursive child conditions remain bridge consumers.
+String equality cases. The seventeenth delta below superseded this emitter with
+the recursive graph owner.
 
 Seventeenth executable delta, 2026-07-13: the semantic expression owner now
 materializes stable node handles and child edges for `if`/`while` condition
@@ -846,6 +847,13 @@ before projecting the loop. A mismatched declared summary count is rejected
 with the LoopFlowSummary diagnostic. Focused C parity matches native canonical
 MIR and runtime output. Wider nested transfer and loop-state combinations
 remain outside this bounded row.
+
+Post-delta SoT closure, 2026-07-20: the unreferenced
+`expr_semantic_shape_emit_owner.pgy` and its two dead codegen shape accessors
+are deleted. `expr_semantic_graph_emit_owner.pgy` is now the only expression
+emission consumer. Semantic shape rows remain as graph-root consistency
+evidence, not a second emission authority. The component contract rejects the
+retired file, import, and accessor names.
 
 CI proof ownership, 2026-07-17: the dedicated Linux
 `self-host-parity-linux` job owns real-source selfcheck, the four-stage

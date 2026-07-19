@@ -551,9 +551,6 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/codegen/runtime_abi/string_runtime_owner.pgy` -- self-host C string/text runtime symbol facts.
 - `src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy` -- self-host C Allocator/TextBuilder layout, lifecycle, and runtime-call projection facts.
 - `src/self_hosted/codegen/emission/expr_rewrite.pgy` -- expression rewrite/lowering.
-- `src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy` --
-  top-level expression emission that consumes semantic shape rows instead of
-  rescanning the source payload.
 - `src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy` --
   recursive expression emission from semantic node handles and child edges;
   codegen does not split migrated payloads to rediscover precedence. It is the

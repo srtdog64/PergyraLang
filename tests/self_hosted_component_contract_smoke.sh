@@ -1058,7 +1058,6 @@ require_owner_surface codegen \
     "runtime_abi/option_result_runtime_owner.pgy" \
     "runtime_abi/string_runtime_owner.pgy" \
     "emission/runtime_call_rewrite_owner.pgy" \
-    "emission/expr_semantic_shape_emit_owner.pgy" \
     "emission/log_emit_owner.pgy" \
     "emission/struct_value_emit.pgy" \
     "emission/try_let_emit_owner.pgy" \
@@ -4457,7 +4456,7 @@ require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" "
 require_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 'facts.normalized_values[i] == "x + 1"'
 reject_text "src/self_hosted/semantic/ast_expression_typed_binding_owner.pgy" 'facts.normalized_values[i] == "(x + 1)"'
 require_file "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy"
-require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticAtomExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticExpressionGraphOrDie"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageFactsFromSemantic"
 require_text "src/self_hosted/codegen/input/ast_expression_usage_owner.pgy" "func CodegenExpressionUsageKnownGroup(group: Int) -> Result<Int>"
@@ -5076,7 +5075,7 @@ require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "AstExpressionLaneAtom()"
 reject_text "src/self_hosted/codegen/emission/stmt_emit.pgy" \
     "CodegenSemanticAssignmentTargetIsIndex(assignments, idx)"
-require_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticValueExpressionShapeOrDie"
+reject_text "src/self_hosted/codegen/input/semantic_expression_codegen_view_owner.pgy" "func CodegenSemanticValueExpressionShapeOrDie"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let let_graph: SemanticExpressionGraphView"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "EmitLet(local_bindings, arena, idx, env_state, let_graph)"
 require_text "src/self_hosted/codegen/emission/stmt_emit.pgy" "let assign_graph: SemanticExpressionGraphView"
@@ -5151,15 +5150,10 @@ require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
     'rows.arg0s[i] == "Log"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'UnwrapOption(arg0) == "Log"'
-require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteExprWithSemanticShape("
-require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" "func RewriteBoolWithSemanticShape("
-require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'import "expr_rewrite.pgy";'
-reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \
-    "func RewriteExprWithSemanticShape(" "FindTopLevelPlus"
-reject_function_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" \
-    "func RewriteBoolWithSemanticShape(" "FindTopLevelOp2"
+reject_file "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy"
+reject_text "src/self_hosted/codegen/main.pgy" \
+    'import "emission/expr_semantic_shape_emit_owner.pgy";'
 require_text "src/self_hosted/codegen/text/expr_scan.pgy" "func RewriteEqualityProjection("
-require_text "src/self_hosted/codegen/emission/expr_semantic_shape_emit_owner.pgy" 'shape.additive_operator_code == SourceByteOf("+")'
 require_file "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy"
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteExprFromSemanticGraph("
 require_text "src/self_hosted/codegen/emission/expr_semantic_graph_emit_owner.pgy" "func RewriteSemanticLeaf("

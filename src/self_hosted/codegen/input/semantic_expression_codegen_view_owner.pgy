@@ -1,35 +1,7 @@
-// Approved codegen view over semantic-owned expression shape rows.
+// Approved codegen view over semantic-owned expression graph rows.
 
 import "../../semantic/ast_expression_surface_fact_owner.pgy";
 import "../text/text_owner.pgy";
-
-func CodegenSemanticAtomExpressionShapeOrDie(
-    facts: SemanticAstExpressionSurfaceFacts,
-    node_id: Int
-) -> SemanticAstExpressionShapeFact {
-    let shape: SemanticAstExpressionShapeFact =
-        SemanticAstExpressionShapeForNode(
-            facts, node_id, AstExpressionLaneAtom()
-        );
-    if !shape.ok {
-        Die("self-host codegen requires a semantic atom-expression shape");
-    }
-    return shape;
-}
-
-func CodegenSemanticValueExpressionShapeOrDie(
-    facts: SemanticAstExpressionSurfaceFacts,
-    node_id: Int
-) -> SemanticAstExpressionShapeFact {
-    let shape: SemanticAstExpressionShapeFact =
-        SemanticAstExpressionShapeForNode(
-            facts, node_id, AstExpressionLaneValue()
-        );
-    if !shape.ok {
-        Die("self-host codegen requires a semantic value-expression shape");
-    }
-    return shape;
-}
 
 func CodegenSemanticExpressionGraphOrDie(
     facts: SemanticAstExpressionSurfaceFacts,
