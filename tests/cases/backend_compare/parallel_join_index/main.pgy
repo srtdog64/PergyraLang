@@ -1,5 +1,5 @@
 // Index-form witness (docs/181 SS1, R1): `parallel (i in lo..hi)` fans
-// out one task per index; task i owns index i by construction
+// out one logical replica per index; replica i owns index i by construction
 // (index-disjointness evidence), so in-place element writes buckets[i]
 // are admitted. Two rounds:
 //   round 1: buckets[i] = i*i + base   (write + scalar capture)

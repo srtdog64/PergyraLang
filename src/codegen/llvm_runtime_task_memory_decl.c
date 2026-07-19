@@ -38,7 +38,7 @@ llvm_declare_runtime_task_memory(LLVMGenCtx *ctx)
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_task_is_cancelled_export", ft);
       llvm_register_function(ctx, "pgy_task_is_cancelled_export", fn, ft, ctx->type_i1); }
     /* Auto-chunked index fan-out (docs/186 P-B3): chunk-count policy,
-     * caller-owned chunk-ctx table, and the fill+spawn combiner. */
+     * caller-owned chunk-ctx table, and the site-driver fill+spawn combiner. */
     { LLVMTypeRef params[] = { ctx->type_i64 };
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_i64, params, 1, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_parallel_chunk_count_export", ft);

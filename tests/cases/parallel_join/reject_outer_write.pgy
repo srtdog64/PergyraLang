@@ -1,4 +1,4 @@
-// Join arms are replicated -- one task per element -- so writing ANY
+// Join arms are logically replicated once per element, so writing ANY
 // outer binding is a write-write race by construction (docs/181 SS1.2).
 func Main() -> Void {
     let mut xs: Array<Int> = [];

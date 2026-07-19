@@ -57,19 +57,19 @@ fi
 
 echo "[par-suite] THROUGHPUT 32M (ms, best-of-3)"
 echo "  pgy chunked x16 : $(bestof3 "$PGY_CHUNK")"
-(( HAVE_GCC )) && echo "  C OpenMP for    : $(bestof3 "$WORK/map_c" ompfor 32000000)"
-(( HAVE_GO ))  && echo "  Go chunked x16  : $(bestof3 "$WORK/map_go" chunked 32000000)"
-(( HAVE_FC ))  && echo "  Fortran OMP do  : $(bestof3 "$WORK/map_f" 32000000)"
+if (( HAVE_GCC )); then echo "  C OpenMP for    : $(bestof3 "$WORK/map_c" ompfor 32000000)"; fi
+if (( HAVE_GO )); then echo "  Go chunked x16  : $(bestof3 "$WORK/map_go" chunked 32000000)"; fi
+if (( HAVE_FC )); then echo "  Fortran OMP do  : $(bestof3 "$WORK/map_f" 32000000)"; fi
 echo "  pgy serial      : $(bestof3 "$PGY_SER")"
-(( HAVE_GCC )) && echo "  C serial        : $(bestof3 "$WORK/map_c" serial 32000000)"
+if (( HAVE_GCC )); then echo "  C serial        : $(bestof3 "$WORK/map_c" serial 32000000)"; fi
 
 echo "[par-suite] NESTED fib(38) cutoff 28 (ms, best-of-3)"
 echo "  pgy nested      : $(bestof3 "$PGY_FIB")"
-(( HAVE_GCC )) && echo "  C OpenMP task   : $(bestof3 "$WORK/fib_c")"
-(( HAVE_GO ))  && echo "  Go recursion    : $(bestof3 "$WORK/fib_go")"
-(( HAVE_GCC )) && echo "  C serial        : $(bestof3 "$WORK/fib_c" serial)"
+if (( HAVE_GCC )); then echo "  C OpenMP task   : $(bestof3 "$WORK/fib_c")"; fi
+if (( HAVE_GO )); then echo "  Go recursion    : $(bestof3 "$WORK/fib_go")"; fi
+if (( HAVE_GCC )); then echo "  C serial        : $(bestof3 "$WORK/fib_c" serial)"; fi
 
 echo "[par-suite] FINE 200k indices (ms, best-of-3; pgy auto-chunks since WO-RT-4 B3)"
 echo "  pgy fine        : $(bestof3 "$PGY_FINE")"
-(( HAVE_GCC )) && echo "  C omptask g(1)  : $(bestof3 "$WORK/map_c" omptask 200000)"
-(( HAVE_GO ))  && echo "  Go goroutine/el : $(bestof3 "$WORK/map_go" perelem 200000)"
+if (( HAVE_GCC )); then echo "  C omptask g(1)  : $(bestof3 "$WORK/map_c" omptask 200000)"; fi
+if (( HAVE_GO )); then echo "  Go goroutine/el : $(bestof3 "$WORK/map_go" perelem 200000)"; fi

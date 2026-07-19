@@ -114,7 +114,7 @@ left-fold — 결과·checked-arith panic·Float fold 순서가 unchunked
 lowering과 byte-동일. 분할 산술은 런타임 단일 소스(양 백엔드 동일
 경계), **정책 SoT는 self-host owner**
 (`src/self_hosted/parallel/chunk_policy_owner.pgy` — golden diff +
-C==LLVM leg parity + projection pin 8개,
+C==LLVM leg parity + required projection pin 10개 + legacy rejection 1개,
 `tests/selfhost_parallel_chunk_policy_smoke.sh`).
 
 같은 캠페인의 반증 기록(측정이 수술을 두 번 재조준): B2 shard화
@@ -128,3 +128,31 @@ GREEN. B_n n=10 실워크로드 45.4s (pre 47.6s, 무회귀).
 **종합 판정(갱신)**: 세 축 전부 동급 이상 — coarse 최속권, 중첩
 OpenMP-parity·Go 우위, fine OpenMP-대역·Go 우위. 데이터레이스-프리
 캡처 계약·결정적 reduce·budget/cancel 통합을 유지한 채 낸 숫자다.
+
+## 2026-07-19 갱신 — site-specialized chunk driver
+
+Generic runtime chunk driver가 매 인덱스마다 function pointer로 item
+wrapper를 부르던 경로를 삭제했다. C/LLVM emitter가 join site마다
+`_pgy_pjoin_chunk_N`을 만들고 item wrapper를 직접 호출하며, 런타임은
+remainder-balanced `[lo, hi)` 분할과 chunk task dispatch만 수행한다.
+
+WSL/Linux x86_64, GCC/LLVM-enabled compiler, best-of-3, 같은 실행의 수치:
+
+| 축 | Pergyra | 비교 대상 |
+|---|---:|---:|
+| 처리량 32M | **11 ms** | C OpenMP for 19 ms, Fortran OMP do 21 ms |
+| 중첩 fib(38) | **15 ms** | C OpenMP task 24 ms |
+| fine 200k | **7 ms** | C OpenMP taskloop grainsize(1) 17 ms |
+
+이 실행은 post-change 절대 측정이며 같은 바이너리의 generic-driver
+A/B가 아니다. 따라서 과거 64-71 ms와의 차이 전체를 이번 직접 호출화의
+효과라고 귀속하지 않는다. 이번 rung이 직접 증명하는 것은 산출물에서
+per-item indirect call이 사라졌고, C/LLVM shape, worker-count invariance,
+chunk budget charge, nested progress, backpressure가 유지되었다는 점이다.
+
+빌드 캐시 관측도 분리한다. 저장소 `.tmp`의 WSL 증분 빌드에서 변경된
+translation unit 2개 재컴파일+링크는 28.53 s / peak RSS 164,824 KiB,
+완전 no-op make는 9.94 s / peak RSS 7,916 KiB였다. 캐시는 재컴파일 범위를
+2개로 줄였지만 `/mnt/e` 위 수천 dependency stat과 Makefile 평가의 약
+10초 고정비는 남는다. 이 수치는 런타임 성능이 아니라 빌드 시스템의
+별도 최적화 대상으로 취급한다.

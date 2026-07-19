@@ -12,7 +12,8 @@
 #      still carries the exact required terms the OWNER declares -- the pin
 #      list is parsed out of the compiled manifest's require| rows, so it has
 #      no second home in shell;
-#   4. self-test: the pin check must be able to report absence (the owner's
+#   4. every owner-declared forbidden legacy projection is absent;
+#   5. self-test: the pin check must be able to report absence (the owner's
 #      known-missing sentinel term must NOT be found).
 #
 # Registered owner (docs/188 R2 repair): OWNERS.md rows, the component
@@ -119,12 +120,35 @@ while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
     require_rows=$((require_rows + 1))
 done <"$C_OUT"
 
-if [[ "$require_rows" -lt 8 ]]; then
-    echo "[$LABEL] expected at least 8 require rows, saw $require_rows" >&2
+if [[ "$require_rows" -lt 10 ]]; then
+    echo "[$LABEL] expected at least 10 require rows, saw $require_rows" >&2
     exit 1
 fi
 
-# 4) self-test: the pin check must be able to report absence
+# 4) forbidden legacy projections, parsed from the OWNER's forbid| rows
+forbid_rows=0
+while IFS='|' read -r kind pin_path pin_term || [[ -n "${kind:-}" ]]; do
+    [[ "$kind" == "forbid" ]] || continue
+    if [[ -z "$pin_path" || -z "$pin_term" ]]; then
+        echo "[$LABEL] malformed forbid row: $kind|$pin_path|$pin_term" >&2
+        exit 1
+    fi
+    if [[ ! -f "$ROOT_DIR/$pin_path" ]]; then
+        echo "[$LABEL] forbidden projection file missing: $pin_path" >&2
+        exit 1
+    fi
+    if term_present "$pin_path" "$pin_term"; then
+        echo "[$LABEL] forbidden projection returned: '$pin_term' in $pin_path" >&2
+        exit 1
+    fi
+    forbid_rows=$((forbid_rows + 1))
+done <"$C_OUT"
+if [[ "$forbid_rows" -lt 1 ]]; then
+    echo "[$LABEL] expected at least 1 forbid row, saw $forbid_rows" >&2
+    exit 1
+fi
+
+# 5) self-test: the pin check must be able to report absence
 SELFTEST_TERM="definitely_missing_parallel_chunk_policy_term"
 if ! grep -qF -- "$SELFTEST_TERM" "$OWNER_SOURCE"; then
     echo "[$LABEL] self-test sentinel disappeared from the owner" >&2
@@ -139,4 +163,4 @@ if term_present "$selftest_path" "$SELFTEST_TERM"; then
     exit 1
 fi
 
-echo "[$LABEL] ok (golden diff + llvm-leg parity + $require_rows projection pins + self-test)"
+echo "[$LABEL] ok (golden diff + llvm-leg parity + $require_rows projection pins + $forbid_rows legacy rejection + self-test)"

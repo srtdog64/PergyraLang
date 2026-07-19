@@ -1,10 +1,11 @@
 // perf_parallel_map_fine.pgy -- FINE-GRAIN axis of the parallel suite
 // (docs/186 P-B / PARALLEL_RESULTS.md).
 //
-// One near-empty task PER INDEX, 200k indices: wall time is scheduling
-// overhead x N, exposing the per-task cost of the runtime (no chunking is
-// performed by the compiler today -- docs/182 SS6 / WO-RT-4 B3). Compare:
-//   C OpenMP taskloop grainsize(1)  (task per element, apples-to-apples)
+// 200k near-empty logical replicas. The compiler bounds physical fan-out to
+// min(n, workers * 4) site-specialized chunks, so this now measures chunk
+// dispatch plus direct-call loop overhead rather than one task per index.
+// Compare:
+//   C OpenMP taskloop grainsize(1)  (fine-grain scheduling baseline)
 //   C OpenMP parallel for           (runtime-chunked idiom)
 //   Go goroutine per element        (cheap-task representative)
 // Body everywhere: v(i) = ((i % 1000) * 31 + 7) % 100.

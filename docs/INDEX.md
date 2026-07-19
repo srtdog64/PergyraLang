@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-07-15
+Last updated: 2026-07-19
 
 Anti-hype update: 2026-04-29
 
@@ -99,6 +99,7 @@ not own status, decisions, or completion claims.
 | [`54_parallel_execution_relayout_board.md`](54_parallel_execution_relayout_board.md) | Parallel execution implementation board |
 | [`74_slot_pinning_caching.md`](74_slot_pinning_caching.md) | Slot pinning / lease / view rules |
 | [`168_fortran_parallel_evidence.md`](168_fortran_parallel_evidence.md) | Fortran-derived data-parallel evidence contract: no-alias, disjoint iteration, elemental purity, layout, reduction, and visible fallback facts |
+| [`186_parallel_full_implementation_plan.md`](186_parallel_full_implementation_plan.md) | Executable parallel closure ledger: runtime progression, bounded chunking, specialized chunk drivers, benchmarks, and remaining evidence-owned optimization order |
 
 ## Runtime, ABI, And Backend
 

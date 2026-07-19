@@ -30,25 +30,11 @@ pgy_parallel_chunk_count(size_t n)
 
 
 typedef struct {
-    void *(*body)(void *);
     unsigned char *ctxs;
     size_t         elem_size;
     size_t         lo;
     size_t         hi;
 } PgyParallelChunkCtx;
-
-static void *
-pgy_parallel_chunk_driver(void *raw)
-{
-    PgyParallelChunkCtx *chunk = (PgyParallelChunkCtx *)raw;
-
-    for (size_t i = chunk->lo; i < chunk->hi; i++) {
-        if (pgy_cancel_is_requested(pgy_current_cancel_node()))
-            break;
-        chunk->body(chunk->ctxs + i * chunk->elem_size);
-    }
-    return NULL;
-}
 
 PGY_RT_DECL void *
 pgy_parallel_chunk_ctxs_alloc(size_t chunk_count)
@@ -77,7 +63,7 @@ pgy_parallel_chunk_ctxs_alloc(size_t chunk_count)
 
 PGY_RT_DECL PgyTaskHandle
 pgy_parallel_spawn_chunk_at(void *contexts, size_t index, size_t chunk_count,
-                            void *(*body)(void *), void *items,
+                            void *(*chunk_body)(void *), void *items,
                             size_t elem_size, size_t item_count)
 
 #ifndef PGY_RUNTIME_DECLS_ONLY
@@ -87,7 +73,7 @@ pgy_parallel_spawn_chunk_at(void *contexts, size_t index, size_t chunk_count,
     size_t remainder;
     size_t lo;
 
-    if (contexts == NULL || body == NULL || chunk_count == 0
+    if (contexts == NULL || chunk_body == NULL || chunk_count == 0
         || index >= chunk_count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "parallel chunk spawn out of range");
@@ -95,12 +81,11 @@ pgy_parallel_spawn_chunk_at(void *contexts, size_t index, size_t chunk_count,
     base = item_count / chunk_count;
     remainder = item_count % chunk_count;
     lo = base * index + (index < remainder ? index : remainder);
-    slots[index].body = body;
     slots[index].ctxs = (unsigned char *)items;
     slots[index].elem_size = elem_size;
     slots[index].lo = lo;
     slots[index].hi = lo + base + (index < remainder ? 1 : 0);
-    return pgy_spawn(pgy_parallel_chunk_driver, &slots[index]);
+    return pgy_spawn(chunk_body, &slots[index]);
 }
 #else
 ;

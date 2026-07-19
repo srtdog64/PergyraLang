@@ -4,15 +4,17 @@
 // `parallel (x in ...) join` fan-out. The C runtime projection
 // (src/runtime/pgy_parallel_chunk.h: PGY_PARALLEL_CHUNK_FACTOR,
 // pgy_parallel_chunk_count, pgy_parallel_spawn_chunk_at) and both backend
-// emitters must stay in lockstep with the arithmetic declared here. The
+// emitters must stay in lockstep with the arithmetic declared here. Each
+// backend emits a site-specialized chunk driver that directly calls its item
+// wrapper; the runtime owns only the split and one task dispatch per chunk.
+// The
 // runnable manifest prints this policy's canonical table for the golden
 // diff on both compiler legs, and the smoke pins every projection site by
 // the required terms this owner declares.
 //
-// Registration residue: src/self_hosted/OWNERS.md and
-// tests/self_hosted_component_contract_smoke.sh rows are deferred (both
-// files are owned by a concurrent workstream at landing time); the
-// standalone gate is tests/selfhost_parallel_chunk_policy_smoke.sh.
+// Registration is pinned by src/self_hosted/OWNERS.md,
+// tests/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/selfhost_parallel_chunk_policy_smoke.sh gate.
 
 func ParallelChunkPolicySchema() -> String {
     return "pgy.selfhost.parallel-chunk-policy.v1";
@@ -27,7 +29,7 @@ func ParallelChunkWorkersFloor(workers: Int) -> Int {
     return workers;
 }
 
-// chunk_count(n): n itself below one task per index, else workers x factor.
+// chunk_count(n): n chunks when n is below the cap, else workers x factor.
 // Mirrors pgy_parallel_chunk_count with the worker probe made explicit.
 func ParallelChunkCountFor(n: Int, workers: Int) -> Int {
     if n <= 1 { return n; }
@@ -114,7 +116,7 @@ func ParallelChunkLlvmEmitterPath() -> String {
 }
 
 func ParallelChunkRequiredCount() -> Int {
-    return 8;
+    return 10;
 }
 
 func ParallelChunkRequiredPathAt(index: Int) -> String {
@@ -122,7 +124,9 @@ func ParallelChunkRequiredPathAt(index: Int) -> String {
     if index == 4 { return ParallelChunkExportsPath(); }
     if index == 5 { return ParallelChunkCEmitterPath(); }
     if index == 6 { return ParallelChunkCEmitterPath(); }
-    if index == 7 { return ParallelChunkLlvmEmitterPath(); }
+    if index == 7 { return ParallelChunkCEmitterPath(); }
+    if index == 8 { return ParallelChunkLlvmEmitterPath(); }
+    if index == 9 { return ParallelChunkLlvmEmitterPath(); }
     return "";
 }
 
@@ -130,11 +134,27 @@ func ParallelChunkRequiredTermAt(index: Int) -> String {
     if index == 0 { return "#define PGY_PARALLEL_CHUNK_FACTOR 4"; }
     if index == 1 { return "pgy_parallel_chunk_count(size_t n)"; }
     if index == 2 { return "pgy_parallel_spawn_chunk_at(void *"; }
-    if index == 3 { return "pgy_parallel_chunk_driver"; }
+    if index == 3 { return "return pgy_spawn(chunk_body, &slots[index]);"; }
     if index == 4 { return "pgy_parallel_chunk_count_export(size_t n)"; }
     if index == 5 { return "pgy_parallel_chunk_count(_pj_n_"; }
-    if index == 6 { return "pgy_parallel_spawn_chunk_at(_pj_cc_"; }
-    if index == 7 { return "pgy_parallel_spawn_chunk_at_export"; }
+    if index == 6 { return "static void *_pgy_pjoin_chunk_"; }
+    if index == 7 { return "pgy_parallel_spawn_chunk_at(_pj_cc_"; }
+    if index == 8 { return "llvm_parallel_join_chunk_wrapper_create("; }
+    if index == 9 { return "pgy_parallel_spawn_chunk_at_export"; }
+    return "";
+}
+
+func ParallelChunkForbiddenCount() -> Int {
+    return 1;
+}
+
+func ParallelChunkForbiddenPathAt(index: Int) -> String {
+    if index == 0 { return ParallelChunkRuntimePath(); }
+    return "";
+}
+
+func ParallelChunkForbiddenTermAt(index: Int) -> String {
+    if index == 0 { return "pgy_parallel_chunk_driver"; }
     return "";
 }
 
@@ -149,11 +169,14 @@ func ParallelChunkPolicyReady() -> Bool {
         ParallelChunkCountFor(1, 16) == 1 &&
         ParallelChunkCountFor(65, 16) == 64 &&
         ParallelChunkCountFor(7, 0) == 4 &&
-        ParallelChunkRequiredCount() == 8 &&
+        ParallelChunkRequiredCount() == 10 &&
+        ParallelChunkForbiddenCount() == 1 &&
         ParallelChunkRequiredPathAt(0) == ParallelChunkRuntimePath() &&
-        ParallelChunkRequiredPathAt(7) == ParallelChunkLlvmEmitterPath() &&
+        ParallelChunkRequiredPathAt(9) == ParallelChunkLlvmEmitterPath() &&
         ParallelChunkRequiredTermAt(0) != "" &&
-        ParallelChunkRequiredTermAt(7) != "" &&
+        ParallelChunkRequiredTermAt(9) != "" &&
+        ParallelChunkForbiddenPathAt(0) == ParallelChunkRuntimePath() &&
+        ParallelChunkForbiddenTermAt(0) != "" &&
         ParallelChunkMissingSelfTestTerm() != "" &&
         ParallelChunkCoverHolds(10, 3) &&
         ParallelChunkCoverHolds(7, 4) &&

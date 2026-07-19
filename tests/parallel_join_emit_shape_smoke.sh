@@ -50,6 +50,13 @@ require_shape() { # $1 = artifact, $2 = pin, $3 = human name
     fi
 }
 
+reject_shape() { # $1 = artifact, $2 = forbidden pin, $3 = human name
+    if grep -qF -- "$2" "$1"; then
+        echo "[$LABEL] shape drift: forbidden $3 pin '$2' found in $(basename "$1")" >&2
+        exit 1
+    fi
+}
+
 # --- C leg ---
 C_ART="$WORK_DIR/main.c"
 if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/main.pgy")" \
@@ -61,6 +68,8 @@ if ! (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/main.p
 fi
 require_shape "$C_ART" "pgy_parallel_chunk_count(_pj_n_"      "C chunk-count call"
 require_shape "$C_ART" "pgy_parallel_chunk_ctxs_alloc(_pj_nch_" "C chunk-table alloc"
+require_shape "$C_ART" "static void *_pgy_pjoin_chunk_"       "C site-specialized chunk driver"
+require_shape "$C_ART" "_pgy_pjoin_0(_chunk->ctxs + _i * _chunk->elem_size);" "C direct item wrapper call"
 require_shape "$C_ART" "pgy_parallel_spawn_chunk_at(_pj_cc_"  "C chunk spawn call"
 require_shape "$C_ART" "_pj_k < _pj_nch_"                     "C spawn loop bound (chunks)"
 require_shape "$C_ART" "_pj_i < _pj_nch_"                     "C await loop bound (chunks)"
@@ -68,7 +77,8 @@ require_shape "$C_ART" "pgy_lane_await(_pj_hs_"               "C handle await"
 require_shape "$C_ART" "free(_pj_cc_"                         "C chunk-table free"
 require_shape "$C_ART" "free(_pj_ctxs_"                       "C ctx-array free"
 require_shape "$C_ART" "free(_pj_hs_"                         "C handle-array free"
-echo "[$LABEL] PASS c (9 shape pins)"
+reject_shape "$C_ART" "pgy_parallel_chunk_driver"             "C generic per-item driver"
+echo "[$LABEL] PASS c (11 shape pins + generic-driver rejection)"
 
 # --- LLVM leg ---
 if "$PGY" --help 2>&1 | grep -q -- "--emit-llvm"; then
@@ -82,10 +92,13 @@ if "$PGY" --help 2>&1 | grep -q -- "--emit-llvm"; then
     fi
     require_shape "$LL_ART" "pgy_parallel_chunk_count_export"      "LLVM chunk-count call"
     require_shape "$LL_ART" "pgy_parallel_chunk_ctxs_alloc_export" "LLVM chunk-table alloc"
+    require_shape "$LL_ART" "define internal ptr @_pgy_pjoin_chunk_" "LLVM site-specialized chunk driver"
+    require_shape "$LL_ART" "call ptr @_pgy_pjoin_0("               "LLVM direct item wrapper call"
     require_shape "$LL_ART" "pgy_parallel_spawn_chunk_at_export"   "LLVM chunk spawn call"
     require_shape "$LL_ART" "pgy_await_export"                     "LLVM handle await"
     require_shape "$LL_ART" "@free"                                "LLVM chunk-table free"
-    echo "[$LABEL] PASS llvm (5 shape pins)"
+    reject_shape "$LL_ART" "pgy_parallel_chunk_driver"             "LLVM generic per-item driver"
+    echo "[$LABEL] PASS llvm (7 shape pins + generic-driver rejection)"
 else
     echo "[$LABEL] SKIP llvm (compiler built without LLVM support)"
 fi

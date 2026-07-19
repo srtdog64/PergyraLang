@@ -320,10 +320,10 @@ void *pgy_parallel_chunk_ctxs_alloc_export(size_t chunk_count)
 
 PgyTaskHandle pgy_parallel_spawn_chunk_at_export(void *cctxs, size_t k,
                                                  size_t chunk_count,
-                                                 void *body, void *ctxs,
+                                                 void *chunk_body, void *ctxs,
                                                  size_t elem_size, size_t n)
 {
     return pgy_parallel_spawn_chunk_at(cctxs, k, chunk_count,
-                                       (void *(*)(void *))body, ctxs,
+                                       (void *(*)(void *))chunk_body, ctxs,
                                        elem_size, n);
 }

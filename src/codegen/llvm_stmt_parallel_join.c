@@ -20,7 +20,6 @@
 #include "../parser/ast_api.h"
 
 #include <string.h>
-
 /* Shared emission for both forms; expression mode (result_out != NULL)
  * adds a per-task result slot to the context struct, wires `give` to it
  * through ctx->pjoin_give_ptr, and materializes an Array<R> value in
@@ -173,6 +172,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         return;
     LLVMValueRef wrapper_fn = LLVMAddFunction(ctx->module, fn_name,
                                               wrapper_type);
+    LLVMSetLinkage(wrapper_fn, LLVMInternalLinkage);
     {
         LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
             ctx->context, wrapper_fn, "entry");
@@ -308,7 +308,6 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
         llvm_lexical_registry_restore(ctx, lexical_snapshot);
     }
 
-    ctx->parallel_counter++;
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     ctx->current_function_ret_type = saved_function_ret;
@@ -319,6 +318,10 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     if (ctx->has_error)
         return;
 
+    LLVMValueRef chunk_wrapper_fn = llvm_parallel_join_chunk_wrapper_create(
+        node, ctx, wrapper_fn);
+    if (chunk_wrapper_fn == NULL)
+        return;
     if (!llvm_parallel_join_emit_alias_guard(ctx, node, capture_boundary,
             captured, n_captured))
         return;
@@ -479,7 +482,7 @@ llvm_emit_parallel_join_common(ASTNode *node, LLVMGenCtx *ctx,
     LLVMBuildStore(ctx->builder, zero, i_slot);
 
     const LLVMParallelJoinChunkFanoutInput chunk_input = {
-        .wrapper_fn = wrapper_fn,
+        .chunk_wrapper_fn = chunk_wrapper_fn,
         .item_contexts = ctxs,
         .item_context_type = ctx_struct_type,
         .handles = handles,

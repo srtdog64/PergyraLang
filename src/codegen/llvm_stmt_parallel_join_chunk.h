@@ -14,7 +14,7 @@ typedef struct {
 } LLVMParallelJoinChunkPlan;
 
 typedef struct {
-    LLVMValueRef wrapper_fn;
+    LLVMValueRef chunk_wrapper_fn;
     LLVMValueRef item_contexts;
     LLVMTypeRef item_context_type;
     LLVMValueRef handles;
@@ -24,6 +24,11 @@ typedef struct {
     LLVMValueRef zero;
     LLVMValueRef one;
 } LLVMParallelJoinChunkFanoutInput;
+
+LLVMValueRef llvm_parallel_join_chunk_wrapper_create(
+    ASTNode *site,
+    LLVMGenCtx *ctx,
+    LLVMValueRef item_wrapper_fn);
 
 bool llvm_parallel_join_chunk_plan_init(
     ASTNode *site,

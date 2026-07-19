@@ -245,6 +245,21 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         "    return NULL;\n"
         "}\n\n");
 
+    /* One direct-call chunk driver per join site. The runtime owns only the
+     * remainder-balanced [lo, hi) split; keeping the replicated wrapper name
+     * visible here lets C inline the item body and removes the old per-index
+     * function-pointer dispatch from the hot loop. */
+    codebuf_write(ctx->wrappers,
+        "static void *_pgy_pjoin_chunk_%u(void *_arg) {\n"
+        "    PgyParallelChunkCtx *_chunk = (PgyParallelChunkCtx *)_arg;\n"
+        "    for (size_t _i = _chunk->lo; _i < _chunk->hi; _i++) {\n"
+        "        if (pgy_task_is_cancelled()) break;\n"
+        "        _pgy_pjoin_%u(_chunk->ctxs + _i * _chunk->elem_size);\n"
+        "    }\n"
+        "    return NULL;\n"
+        "}\n\n",
+        pid, pid);
+
     /* ---------------------------------------------------------------
      * 3) Call site: length snapshot, fan-out, all-join.
      * --------------------------------------------------------------- */
@@ -405,7 +420,7 @@ emit_parallel_join_common(ASTNode *node, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(ctx->out,
             "_pj_hs_%u[_pj_k] = pgy_parallel_spawn_chunk_at(_pj_cc_%u, "
-            "_pj_k, _pj_nch_%u, _pgy_pjoin_%u, _pj_ctxs_%u, "
+            "_pj_k, _pj_nch_%u, _pgy_pjoin_chunk_%u, _pj_ctxs_%u, "
             "sizeof(_pgy_pjoin_ctx_%u), _pj_n_%u);\n",
             pid, pid, pid, pid, pid, pid, pid);
         ctx->indent--;

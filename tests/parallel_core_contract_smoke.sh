@@ -68,7 +68,7 @@ run_literal_contract_smoke() {
     require_literal "docs/168_fortran_parallel_evidence.md" "SemanticParallelCaptureBoundaryFact"
     require_literal "docs/168_fortran_parallel_evidence.md" "BoundaryCaptureFact -> ExecutionLaneFact"
     require_literal "docs/168_fortran_parallel_evidence.md" '`scaffold-synchronous`'
-    require_literal "docs/168_fortran_parallel_evidence.md" "one task per element"
+    require_literal "docs/168_fortran_parallel_evidence.md" "one runtime task per chunk"
     require_literal "docs/168_fortran_parallel_evidence.md" 'general `ReductionFact` is not landed'
     require_literal "docs/168_fortran_parallel_evidence.md" "not Fortran parity"
     echo "[parallel-core-contract] ok (literal fallback)"
@@ -135,7 +135,7 @@ require_text(
         "SemanticParallelCaptureBoundaryFact",
         "BoundaryCaptureFact -> ExecutionLaneFact",
         "`scaffold-synchronous`",
-        "one task per element",
+        "one runtime task per chunk",
         "general `ReductionFact` is not landed",
         "not Fortran parity",
     ],

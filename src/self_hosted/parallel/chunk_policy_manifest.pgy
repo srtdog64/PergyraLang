@@ -42,6 +42,12 @@ func ParallelChunkRequiredRow(index: Int) -> String {
     return Concat(row1, ParallelChunkRequiredTermAt(index));
 }
 
+func ParallelChunkForbiddenRow(index: Int) -> String {
+    let row0: String = Concat("forbid|", ParallelChunkForbiddenPathAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, ParallelChunkForbiddenTermAt(index));
+}
+
 func Main() -> Void {
     if !ParallelChunkPolicyReady() {
         Log("PARALLEL_CHUNK_POLICY ERROR: owner is not ready");
@@ -77,5 +83,10 @@ func Main() -> Void {
     while required_index < ParallelChunkRequiredCount() {
         Log(ParallelChunkRequiredRow(required_index));
         required_index = required_index + 1;
+    }
+    let forbidden_index: Int = 0;
+    while forbidden_index < ParallelChunkForbiddenCount() {
+        Log(ParallelChunkForbiddenRow(forbidden_index));
+        forbidden_index = forbidden_index + 1;
     }
 }

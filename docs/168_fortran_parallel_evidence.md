@@ -1,7 +1,7 @@
 # 168. Fortran-Derived Data-Parallel Evidence
 
 Status: `partially-landed`, language evidence and projection contract
-(audited 2026-07-16)
+(audited 2026-07-19)
 
 ## Decision And Claim Scope
 
@@ -70,7 +70,8 @@ The current owners and limitations are:
 | Capture evidence | `SemanticParallelCaptureBoundaryFact` | `snapshot_copy`, `join_index_disjoint`, and `join_readonly` rows keyed by stable boundary identity | general no-alias, layout, and arbitrary-loop dependence facts are not produced |
 | MIR | parallel capture import owner | copies and validates sealed semantic rows; missing or duplicate facts fail closed | vocabulary is narrower than the future DP fact set |
 | AIR / SEA | `BoundaryCaptureFact -> ExecutionLaneFact` | pin, live view, raw slot/channel, value-only, authority crossing, IO/FFI, await-local, and deterministic fork-join evidence | precise value-capture coverage is incomplete for every boundary shape |
-| C / LLVM | lane facade consumers | both projections use lane-owned spawn, await, cancel, and channel entry points; join lowering consumes MIR capture rows | join creates one task per element and owns no grain/chunk plan |
+| C / LLVM | lane facade consumers | both projections use lane-owned spawn, await, cancel, and channel entry points; join lowering consumes MIR capture rows and emits one site-specialized direct-call driver per chunk | chunk count is bounded but still hardware-worker-derived; no evidence-owned cost/grain or vector plan exists |
+| Runtime chunk split | `chunk_policy_owner.pgy` projection | remainder-balanced contiguous slices, `min(n, workers * 4)` bounded fan-out, one runtime task per chunk | the runtime owns split mechanics only; it must not recover item semantics or reintroduce per-item callback dispatch |
 | Runtime | `PgyLaneScheduler` | Reject is fail-closed; Inline/PinnedZone stay local; pool-shaped lanes preserve the lane fact | the self-hosted contract reports `scaffold-synchronous`; dedicated executors are incomplete |
 
 The implemented surface has three distinct families:
@@ -215,7 +216,7 @@ Layout is a fact, not a language destiny.
 | DP-2 | derive read/write sets for simple counted loops | declared join forms only | CFG/body dataflow smoke |
 | DP-3 | prove disjoint-by-index writes | landed for index-mode join captures, not general loops | data-parallel evidence smoke |
 | DP-4 | add explicit reduction facts | fixed combinator surface; general `ReductionFact` is not landed | reduction positive/negative fixtures |
-| DP-5 | lower eligible loops to vector-friendly C/LLVM | worker lowering landed; vector/chunk plan absent | output, behavior, and performance parity |
+| DP-5 | lower eligible loops to vector-friendly C/LLVM | bounded chunk lowering and site-specialized direct-call chunk drivers landed; evidence-owned vector/no-alias plan absent | output shape, behavior, worker invariance, cancellation, budget, and performance parity |
 | DP-6 | add a non-CPU projection prototype | not landed | projection golden plus visible fallback reasons |
 
 Pergyra must not claim general Fortran-class data-parallel optimization before
@@ -228,14 +229,17 @@ surface:
 
 1. Complete precise boundary capture production without source-kind or
    routine-wide heuristics.
-2. Introduce an owner for grain, chunking, and bounded fan-out so a large join
-   does not require one runtime task per element.
+2. Extend the landed chunk-policy owner with a stable-boundary cost/grain fact;
+   do not infer cost from AST shape or add an undocumented threshold. Cache the
+   derived plan only by owner fact identity, target, and worker-capability key.
 3. Promote join-local disjoint, layout, and reduction rows into general DP
    facts only with positive, aliasing, empty, overflow, and effectful negative
    fixtures.
-4. Give BlockingPool, LocalAsync, WorkerPool, and MovableScheduler distinct
+4. Replace per-chunk task allocation with an owned task-group/latch substrate
+   only after the specialized-driver benchmark shows allocation is dominant.
+5. Give BlockingPool, LocalAsync, WorkerPool, and MovableScheduler distinct
    executors while preserving one lane contract.
-5. Demonstrate one projection beyond ordinary CPU worker execution. An
+6. Demonstrate one projection beyond ordinary CPU worker execution. An
    unsupported target must emit a visible fallback or reject.
 
 ## Related

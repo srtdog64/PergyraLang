@@ -12,6 +12,7 @@ runtime execution.
 5. [`../178_parallel_boundary_evidence.md`](../178_parallel_boundary_evidence.md) - boundary evidence.
 6. [`../181_parallel_surface_full_design.md`](../181_parallel_surface_full_design.md) - full surface design.
 7. [`../182_parallel_remaining_bones_work_orders.md`](../182_parallel_remaining_bones_work_orders.md) - remaining implementation work.
+8. [`../186_parallel_full_implementation_plan.md`](../186_parallel_full_implementation_plan.md) - landed runtime/optimizer rungs and measured closure order.
 
 ## Supporting Evidence
 

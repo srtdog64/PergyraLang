@@ -1,5 +1,5 @@
 // Join-form witness (docs/181 SS1, rung 0): `parallel (x in xs)` fans
-// out one task per element (N-way disjointness evidence: task i owns
+// out one logical replica per element (N-way disjointness evidence: replica i owns
 // element i by construction). Each task sends its element's square
 // through a channel; the parent drains after the join. The sum is
 // order-independent, so the output is deterministic under any

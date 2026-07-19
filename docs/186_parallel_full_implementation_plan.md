@@ -163,11 +163,42 @@ fine 200k 64x 열위(2239ms, 손-청크 시 동일 워크로드가 1위 = 갭은
   `src/self_hosted/parallel/chunk_policy_owner.pgy`가 chunk 정책 SoT:
   정책 산술+cover 불변식(in-language witness)+projection pin 목록까지
   Pergyra가 소유, manifest 실행→golden diff+C==LLVM leg byte-parity+
-  pin 8종 grep+self-test (`tests/selfhost_parallel_chunk_policy_smoke.sh`,
+  필수 projection 10종 + 금지 legacy projection 1종 grep+self-test
+  (`tests/selfhost_parallel_chunk_policy_smoke.sh`,
   RED 실증 후 GREEN). OWNERS.md/component-smoke/artifact-kind 등록은
   동시-세션 파일 소유로 보드 잔여.
+- ✅ **B3 hot-loop 직접 호출화 (2026-07-19)** — 런타임의 generic
+  `pgy_parallel_chunk_driver -> body function pointer` 반복 호출을 삭제하고,
+  C/LLVM이 join site마다 `_pgy_pjoin_chunk_N`을 생성해 item wrapper를 직접
+  호출한다. 런타임은 `[lo, hi)` 분할과 chunk task dispatch만 소유한다.
+  cancellation safe point, chunk 단위 budget charge, N개 결과 슬롯과
+  index-order fold는 보존한다. 출력-shape gate는 site-specialized driver를
+  요구하고 삭제된 generic driver의 재등장을 거절한다.
 - **B1**: 분해측정 근거로 미착수 종결(1.7µs 소득; chunking이 그 비용
   자체를 N→chunk수로 상각). **B4**: BDFL 결정 대기 유지.
+- **다음 성능 rung**: `ParallelWorkCostFact/ParallelGrainFact`는 stable
+  boundary identity의 owner fact로만 추가한다. AST body 크기 휴리스틱,
+  backend-local threshold, `new ? old` fallback은 금지한다. 캐시 키는
+  `(boundary fact identity, target capability, worker capability, policy
+  version)`이며 missing fact는 현행 bounded chunk plan을 명시적으로
+  선택하거나 fail-closed해야 한다.
+
+#### 2026-07-19 objective card: site-specialized chunk driver
+
+| Field | Decision |
+|---|---|
+| Objective | remove the per-index indirect callback while preserving the landed chunk split and join semantics |
+| Priority | result/cancellation/budget invariance -> one chunk-policy SoT -> direct-call shape -> measured speed |
+| Fact owner | `src/self_hosted/parallel/chunk_policy_owner.pgy`; semantic capture and result facts remain MIR-owned |
+| Last legitimate consumer | C/LLVM site-specialized `_pgy_pjoin_chunk_N` emission |
+| Forbidden fallback | runtime generic item callback, AST body-cost heuristic, backend-local grain threshold, or `new ? old` policy selection |
+| Gates | chunk-policy C/LLVM parity, output-shape negative gate, parallel join corpus, worker invariance, budget charge, nested progress, backpressure, benchmark runner |
+
+Stop condition: the post-change suite is already in or above the measured
+OpenMP band on all three axes. Task-group/slab allocation, reduction
+compression, loop fusion, and vector metadata are not added speculatively.
+They require a profile showing the next dominant cost and the corresponding
+owner fact before implementation.
 - P-D 부분 충족: 병렬 join fixture 6종 codegen 결정성(double-emit
   byte-identity, c+llvm) GREEN; worker수-가변 실행 목격자는 knob 설계
   후(현재는 코어수 다른 Linux CI의 동일-expected 게이트가 대행).
