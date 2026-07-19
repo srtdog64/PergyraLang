@@ -848,6 +848,15 @@ with the LoopFlowSummary diagnostic. Focused C parity matches native canonical
 MIR and runtime output. Wider nested transfer and loop-state combinations
 remain outside this bounded row.
 
+Sixty-ninth executable active-rung delta, 2026-07-20: `else_if_chain` becomes
+DRV-2 MIR fixture 77. The producer carries `(n < 0)`, `(n == 0)`, and
+`(n < 10)` as three distinct typed condition graphs. The hard consumer emits
+the nested branch chain from those graphs; it does not recover conditions from
+instruction text. Focused C parity matches native/self canonical MIR, emitted
+C, and runtime output. The shared graph mutation gate removes and corrupts the
+required graph and must fail before emission. This closes the bounded else-if
+condition transport seam, not all branch or control-flow state.
+
 Post-delta SoT closure, 2026-07-20: the unreferenced
 `expr_semantic_shape_emit_owner.pgy` and its two dead codegen shape accessors
 are deleted. `expr_semantic_graph_emit_owner.pgy` is now the only expression

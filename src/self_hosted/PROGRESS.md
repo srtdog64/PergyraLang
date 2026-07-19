@@ -1,5 +1,13 @@
 # Self-Host Progress
 
+2026-07-20 executable delta: `else_if_chain` is DRV-2 MIR fixture 77.
+The Pergyra producer carries all three nested branch conditions as distinct
+typed expression graphs, and the hard consumer emits the chain only from those
+graphs. Native/self canonical MIR, emitted C, and runtime output are equal for
+the focused C leg. The shared graph mutation owner removes or corrupts the
+required graph and is rejected before emission. This closes only the bounded
+else-if condition transport seam; it is not whole-control-flow closure.
+
 2026-07-19 executable delta: `for_continue` is DRV-2 MIR fixture 76.
 The Pergyra producer now publicly carries a `for` loop whose nested branch
 reaches the loop header through an explicit continue CFG edge. MIR owns both
@@ -1050,7 +1058,7 @@ These numbers must not be collapsed into one percentage:
 | Axis | Current evidence | Meaning |
 |------|------------------|---------|
 | Implementation inventory | 30,720 frontend/backend LOC / 287,406 C-reference LOC = 10.69%; broader Pergyra compiler-core inventory = 48,246 LOC | Pergyra compiler code exists; this is not substitution. The ratio denominator is the C reference, not the Pergyra compiler-core inventory. |
-| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 61 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. The 18-row breadth promotion plus `break_after_stmt` and `nested_if_in_loop` passed focused C/LLVM canonical-MIR and runtime parity, while the complete 61-case matrix was not rerun in these slices. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
+| Bounded executable replacement | DRV-2 has 20 producer-first source semantic fixtures and 77 committed canonical MIR producer/consumer fixtures; the standalone fact-only MIR consumer has 102 fixtures. Fixture 77 passed focused C canonical-MIR, emitted-C, and runtime parity, while the complete 77-case matrix was not rerun in this slice. | Explicit Pergyra-owned paths run, fail closed, and compare against the C/LLVM oracle. |
 | Released/default replacement | 0% | default `pgy` still uses the C-owned native driver; explicit DRV-2 uses the Pergyra MIR producer and consumer. |
 
 The scorecard prevents two false claims: implementation volume must not be

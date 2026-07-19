@@ -119,6 +119,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
             "$backend" "$base" "$self_mir_json" "$driver_bin"
         pgy_selfhost_verify_driver_rung2_destructure \
             "$backend" "$base" "$self_mir_json" "$driver_bin"
+        pgy_selfhost_verify_driver_rung2_else_if_graph \
+            "$backend" "$base" "$self_mir_json"
         if [[ "$base" == "param_carriage" ]]; then
             grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","pass":"indirect"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend readonly-ref aggregate ABI fact drifted" >&2
