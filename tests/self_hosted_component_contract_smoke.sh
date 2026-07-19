@@ -3387,6 +3387,8 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
     "pgy_selfhost_verify_driver_rung2_destructure"
 require_text "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" \
     "missing destructure type was accepted"
+reject_regex "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    'ArrayPush\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*\.'
 require_file "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/destructure_expression_projection_owner.pgy" 120
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \

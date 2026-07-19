@@ -30,13 +30,19 @@ func SelfMirDestructureTypeFactRowsWithoutFacts(
 ) -> SelfMirDestructureTypeFactRows {
     let rows: SelfMirDestructureTypeFactRows =
         SelfMirDestructureTypeFactRowsEmpty();
+    let routine_starts: Array<Int> = rows.routine_starts;
+    let routine_counts: Array<Int> = rows.routine_counts;
     let i: Int = 0;
     while i < routine_count {
-        ArrayPush(rows.routine_starts, 0);
-        ArrayPush(rows.routine_counts, 0);
+        ArrayPush(routine_starts, 0);
+        ArrayPush(routine_counts, 0);
         i = i + 1;
     }
-    return rows;
+    return SelfMirDestructureTypeFactRows(
+        routine_starts, routine_counts, rows.function_syntax_ids,
+        rows.destructure_syntax_ids, rows.binding_indices,
+        rows.binding_counts, rows.binding_types
+    );
 }
 
 func SelfMirDestructureTypeFactsReadyForRoutine(
