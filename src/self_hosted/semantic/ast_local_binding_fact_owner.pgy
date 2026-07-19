@@ -320,9 +320,8 @@ func SemanticAstLocalBindingRangeForNode(
         facts.node_ids[end] == node_id {
         end = end + 1;
     }
-    return SemanticAstLocalBindingFunctionRange(
-        facts.ok && start < end, start, end
-    );
+    let has_range: Bool = facts.ok && start < end;
+    return SemanticAstLocalBindingFunctionRange(has_range, start, end);
 }
 
 func SemanticAstLocalBindingNameAt(
