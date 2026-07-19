@@ -1,0 +1,60 @@
+// Runnable projection over reachability_owner.pgy: prints the mechanism
+// reachability contract for the expected-artifact diff (both compiler legs),
+// re-checks the table invariants in-language, and emits the reach| rows the
+// smoke runs its consumer census against.
+
+import "reachability_owner.pgy";
+
+func ReachabilityRow(index: Int) -> String {
+    let row0: String = Concat("reach|", ReachabilityNameAt(index));
+    let row1: String = Concat(row0, "|");
+    let row2: String = Concat(row1, ReachabilitySymbolAt(index));
+    let row3: String = Concat(row2, "|");
+    let row4: String = Concat(row3, ReachabilityHomeAt(index));
+    let row5: String = Concat(row4, "|");
+    let row6: String = Concat(row5, ReachabilityScopeAt(index));
+    let row7: String = Concat(row6, "|");
+    return Concat(row7, ReachabilityStatusAt(index));
+}
+
+func ReachabilityNoteRow(index: Int) -> String {
+    let row0: String = Concat("note|", ReachabilityNameAt(index));
+    let row1: String = Concat(row0, "|");
+    return Concat(row1, ReachabilityNoteAt(index));
+}
+
+func ReachabilityInvariantRow(label: String, holds: Bool) -> String {
+    let row0: String = Concat("invariant|", label);
+    let row1: String = Concat(row0, "|");
+    if holds { return Concat(row1, "ok"); }
+    return Concat(row1, "BROKEN");
+}
+
+func Main() -> Void {
+    if !ReachabilityContractReady() {
+        Log("REACHABILITY_CONTRACT ERROR: owner is not ready");
+        Exit(1);
+        return;
+    }
+    Log(Concat("schema=", ReachabilitySchema()));
+    Log(Concat("rows=", ToString(ReachabilityRowCount())));
+    Log(Concat("live=", ToString(
+        ReachabilityCountWithStatus(ReachabilityStatusLive()))));
+    Log(Concat("declared_only=", ToString(
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()))));
+
+    Log(ReachabilityInvariantRow("rows_well_formed", ReachabilityRowsWellFormed()));
+    Log(ReachabilityInvariantRow("names_unique", ReachabilityNamesUnique()));
+    Log(ReachabilityInvariantRow("both_polarities", ReachabilityHasBothPolarities()));
+
+    let i: Int = 0;
+    while i < ReachabilityRowCount() {
+        Log(ReachabilityRow(i));
+        i = i + 1;
+    }
+    let n: Int = 0;
+    while n < ReachabilityRowCount() {
+        Log(ReachabilityNoteRow(n));
+        n = n + 1;
+    }
+}

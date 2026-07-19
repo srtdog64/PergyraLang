@@ -7,7 +7,7 @@ func CompilerArtifactSchema() -> String {
 }
 
 func CompilerArtifactKindCount() -> Int {
-    return 26;
+    return 27;
 }
 
 // Native C/LLVM artifacts are valid only when they carry the planner's
@@ -132,6 +132,10 @@ func CompilerParallelLanePolicyArtifactKind() -> String {
     return "parallel_lane_policy";
 }
 
+func CompilerReachabilityContractArtifactKind() -> String {
+    return "reachability_contract";
+}
+
 func CompilerArtifactKindAt(index: Int) -> String {
     if index == 0 { return CompilerDiagnosticsArtifactKind(); }
     if index == 1 { return CompilerAirJsonArtifactKind(); }
@@ -159,6 +163,7 @@ func CompilerArtifactKindAt(index: Int) -> String {
     if index == 23 { return CompilerRunGroupPlanArtifactKind(); }
     if index == 24 { return CompilerParallelChunkPolicyArtifactKind(); }
     if index == 25 { return CompilerParallelLanePolicyArtifactKind(); }
+    if index == 26 { return CompilerReachabilityContractArtifactKind(); }
     return "";
 }
 
@@ -201,5 +206,6 @@ func CompilerArtifactZoneReady() -> Bool {
         CompilerArtifactKindKnown(CompilerSandboxCapabilityArtifactKind()) &&
         CompilerArtifactKindKnown(CompilerRunGroupPlanArtifactKind()) &&
         CompilerArtifactKindKnown(CompilerParallelChunkPolicyArtifactKind()) &&
-        CompilerArtifactKindKnown(CompilerParallelLanePolicyArtifactKind());
+        CompilerArtifactKindKnown(CompilerParallelLanePolicyArtifactKind()) &&
+        CompilerArtifactKindKnown(CompilerReachabilityContractArtifactKind());
 }

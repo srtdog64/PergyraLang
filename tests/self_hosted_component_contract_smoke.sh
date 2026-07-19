@@ -2442,6 +2442,34 @@ require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "schem
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "lane|pin_must_move|0|Reject"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "invariant|order_is_contract|ok"
 require_text "src/self_hosted/parallel/expected_lane_policy_manifest.txt" "reachable|MovableScheduler|no"
+
+# Mechanism reachability contract: no mechanism without a consumer.
+# Both polarities must stay present or the census stops testing half of itself.
+require_file "src/self_hosted/compiler/reachability_owner.pgy"
+require_max_lines "src/self_hosted/compiler/reachability_owner.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/reachability_owner.pgy"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "pgy.selfhost.reachability-contract.v1"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityStatusAt"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityHomeAt"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityScopeAt"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityNoteAt"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityRowsWellFormed"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityNamesUnique"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityHasBothPolarities"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "func ReachabilityContractReady"
+require_text "src/self_hosted/compiler/reachability_owner.pgy" "definitely_missing_reachability_contract_symbol"
+require_file "src/self_hosted/compiler/reachability_manifest.pgy"
+require_max_lines "src/self_hosted/compiler/reachability_manifest.pgy" 600
+require_text "src/self_hosted/OWNERS.md" "src/self_hosted/compiler/reachability_manifest.pgy"
+require_text "src/self_hosted/compiler/reachability_manifest.pgy" 'import "reachability_owner.pgy";'
+require_text "src/self_hosted/compiler/reachability_manifest.pgy" "ReachabilityContractReady()"
+reject_text "src/self_hosted/compiler/reachability_manifest.pgy" "pgy.selfhost.reachability-contract.v1"
+reject_text "src/self_hosted/compiler/reachability_manifest.pgy" "definitely_missing_reachability_contract_symbol"
+require_file "src/self_hosted/compiler/expected_reachability_manifest.txt"
+require_text "src/self_hosted/compiler/expected_reachability_manifest.txt" "schema=pgy.selfhost.reachability-contract.v1"
+require_text "src/self_hosted/compiler/expected_reachability_manifest.txt" "invariant|both_polarities|ok"
+require_text "src/self_hosted/compiler/expected_reachability_manifest.txt" "|declared_only"
+require_text "src/self_hosted/compiler/expected_reachability_manifest.txt" "|live"
 require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "require|src/codegen/transpiler_parallel_join_emit.c|static void *_pgy_pjoin_chunk_"
 require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "require|src/codegen/llvm_stmt_parallel_join_chunk.c|llvm_parallel_join_chunk_wrapper_create("
 require_text "src/self_hosted/parallel/expected_chunk_policy_manifest.txt" "forbid|src/runtime/pgy_parallel_chunk.h|pgy_parallel_chunk_driver"

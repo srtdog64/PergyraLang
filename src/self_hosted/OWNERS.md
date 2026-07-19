@@ -351,6 +351,10 @@ inventory must not become a second fact-family owner registry.
   and source-shape classification for MIR facts.
 - `src/self_hosted/mir/expression_graph_fact_owner.pgy` -- instruction-owned
   normalized expression graph rows and postorder subtree carriage.
+- `src/self_hosted/mir/match_fact_owner.pgy` -- sparse instruction-keyed match
+  pattern, variant, and binding facts; the scalar rung requires one pattern.
+- `src/self_hosted/mir/match_json_projection_owner.pgy` -- final MIR JSON field
+  projection for match facts.
 - `src/self_hosted/mir/expression_graph_kind_name_owner.pgy` -- stable MIR JSON
   names for expression graph node kinds.
 - `src/self_hosted/mir/routine_input_owner.pgy` -- immutable typed-artifact and
@@ -362,6 +366,8 @@ inventory must not become a second fact-family owner registry.
   build state.
 - `src/self_hosted/mir/routine_if_owner.pgy` -- conditional branch topology,
   branch-local build threading, and merge-block ownership.
+- `src/self_hosted/mir/routine_match_owner.pgy` -- scalar case/default CFG
+  topology and the fail-closed boundary before N-way match phi lowering.
 - `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
   back-edge, and exit-block lowering.
 - `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row to
@@ -393,6 +399,8 @@ inventory must not become a second fact-family owner registry.
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
   MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/match_json_fact_owner.pgy` -- typed optional reads
+  for match pattern arrays consumed during graph reconstruction.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.
@@ -625,6 +633,18 @@ inventory must not become a second fact-family owner registry.
   `tests/selfhost_parallel_lane_policy_smoke.sh`).
 
 ## Compiler World
+
+- `src/self_hosted/compiler/reachability_owner.pgy` -- mechanism reachability
+  contract: no mechanism without a consumer, or an explicit declaration that
+  it has none. Each row names an entry symbol, its home, the scope that should
+  consume it, and `live` (>= 1 consumer, so silent death fails) or
+  `declared_only` (exactly 0, so a gap can neither widen nor close unrecorded).
+  Two gaps are on record today: the AIR execution-lane fact that codegen drops,
+  and the M:N fiber scheduler compiled into the binary with no caller.
+- `src/self_hosted/compiler/reachability_manifest.pgy` -- runnable projection
+  over that contract for the expected-artifact diff on both compiler legs
+  (`src/self_hosted/compiler/expected_reachability_manifest.txt`, gate
+  `tests/selfhost_reachability_contract_smoke.sh`).
 
 - `src/self_hosted/compiler/world.pgy` -- `PgyCompilerWorld`, stage path
   manifest, and root compiler intent flow.

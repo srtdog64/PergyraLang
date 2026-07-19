@@ -1,0 +1,195 @@
+// Mechanism reachability contract owner.
+//
+// The rule this exists to enforce: NO MECHANISM WITHOUT A CONSUMER, or else an
+// explicit declaration that it has none.
+//
+// The failure mode it targets is not dead code -- a census of src/runtime,
+// src/compiler and src/codegen found essentially no unreferenced translation
+// unit. It is the subtler one: a mechanism that is built, compiled, tested and
+// documented, but that nothing downstream actually consumes. Those do not rot
+// loudly. They rot by having the docs describe the DESIGN while the binary
+// exhibits the BEHAVIOUR, and the gap only shows up when someone re-reads the
+// call graph. Two are live right now and both are recorded below.
+//
+// Each row declares a mechanism, its entry symbol, the home it is defined in,
+// the scope that is supposed to consume it, and which of two states it is in:
+//
+//   live           the scope must contain at least one consumer. If the last
+//                  consumer disappears, the mechanism has silently died and
+//                  the gate fails.
+//   declared_only  the scope must contain EXACTLY zero consumers. If one
+//                  appears, the declaration is stale and the gate fails --
+//                  which is the point: a gap cannot close silently either.
+//
+// The asymmetry is deliberate. `live` is a floor so ordinary work can add
+// consumers freely; `declared_only` is exact so the known gaps stay visible
+// and have to be closed on purpose.
+//
+// Registration is pinned by src/self_hosted/OWNERS.md,
+// tests/self_hosted_component_contract_smoke.sh, and the standalone
+// tests/selfhost_reachability_contract_smoke.sh gate.
+
+func ReachabilitySchema() -> String {
+    return "pgy.selfhost.reachability-contract.v1";
+}
+
+func ReachabilityStatusLive() -> String { return "live"; }
+func ReachabilityStatusDeclaredOnly() -> String { return "declared_only"; }
+
+func ReachabilityRowCount() -> Int {
+    return 8;
+}
+
+func ReachabilityNameAt(index: Int) -> String {
+    if index == 0 { return "async_fiber_scheduler"; }
+    if index == 1 { return "lane_fact_in_codegen"; }
+    if index == 2 { return "lane_fact_in_air"; }
+    if index == 3 { return "lane_spawn_dispatch"; }
+    if index == 4 { return "chunk_policy_emit"; }
+    if index == 5 { return "help_first_await"; }
+    if index == 6 { return "capability_manifest_loader"; }
+    if index == 7 { return "checked_float_to_int"; }
+    return "";
+}
+
+// The entry symbol whose consumers are counted. Word-boundary matched, so a
+// longer name that merely contains this one does not count as a consumer.
+func ReachabilitySymbolAt(index: Int) -> String {
+    if index == 0 { return "pgy_scheduler_create"; }
+    if index == 1 { return "pgy_classify_execution_lane"; }
+    if index == 2 { return "pgy_classify_execution_lane"; }
+    if index == 3 { return "pgy_lane_spawn_dispatch"; }
+    if index == 4 { return "pgy_parallel_chunk_count"; }
+    if index == 5 { return "pgy_pool_help_run_one"; }
+    if index == 6 { return "pgy_cap_set_manifest_export"; }
+    if index == 7 { return "pgy_checked_f2i_i32_export"; }
+    return "";
+}
+
+// Where the mechanism is defined. Files under this prefix are NOT consumers.
+func ReachabilityHomeAt(index: Int) -> String {
+    if index == 0 { return "src/runtime/async/"; }
+    if index == 1 { return "src/compiler/execution_lane"; }
+    if index == 2 { return "src/compiler/execution_lane"; }
+    if index == 3 { return "src/runtime/pgy_lane_scheduler"; }
+    if index == 4 { return "src/runtime/pgy_parallel_chunk"; }
+    if index == 5 { return "src/runtime/pgy_parallel_pool"; }
+    if index == 6 { return "src/runtime/pgy_runtime_lib_auth"; }
+    if index == 7 { return "src/runtime/"; }
+    return "";
+}
+
+// The subtree that is supposed to consume it.
+func ReachabilityScopeAt(index: Int) -> String {
+    if index == 0 { return "src"; }
+    if index == 1 { return "src/codegen"; }
+    if index == 2 { return "src/compiler"; }
+    if index == 3 { return "src/codegen"; }
+    if index == 4 { return "src/codegen"; }
+    if index == 5 { return "src/runtime"; }
+    if index == 6 { return "src/codegen"; }
+    if index == 7 { return "src/codegen"; }
+    return "";
+}
+
+func ReachabilityStatusAt(index: Int) -> String {
+    if index == 0 { return ReachabilityStatusDeclaredOnly(); }
+    if index == 1 { return ReachabilityStatusDeclaredOnly(); }
+    if index == 2 { return ReachabilityStatusLive(); }
+    if index == 3 { return ReachabilityStatusLive(); }
+    if index == 4 { return ReachabilityStatusLive(); }
+    if index == 5 { return ReachabilityStatusLive(); }
+    if index == 6 { return ReachabilityStatusLive(); }
+    if index == 7 { return ReachabilityStatusLive(); }
+    return "";
+}
+
+// Why the row is in that state. For declared_only rows this is the debt
+// record: what it would take to make it live, and who owns that decision.
+func ReachabilityNoteAt(index: Int) -> String {
+    if index == 0 {
+        return "3k lines compiled into the binary, no symbol referenced outside its own directory; M:N lane has no caller";
+    }
+    if index == 1 {
+        return "codegen re-derives the lane from ast_spawn_is_blocking and drops the AIR fact; board WO-PAR-NOVEL step 2";
+    }
+    if index == 2 {
+        return "AIR verification consumes the classifier: air.c and air_execution_lane.c";
+    }
+    if index == 3 { return "both spawn emitters hand the lane to the runtime facade"; }
+    if index == 4 { return "the C join emitter calls the chunk-count policy"; }
+    if index == 5 { return "pgy_await drains the queue before parking"; }
+    if index == 6 { return "both backends declare the loader export"; }
+    if index == 7 { return "the float-to-int guard is emitted, not inherited from the backend"; }
+    return "";
+}
+
+// ---- in-language invariants ----------------------------------------------
+
+func ReachabilityStatusIsKnown(status: String) -> Bool {
+    return status == ReachabilityStatusLive() ||
+        status == ReachabilityStatusDeclaredOnly();
+}
+
+func ReachabilityRowsWellFormed() -> Bool {
+    let i: Int = 0;
+    while i < ReachabilityRowCount() {
+        if ReachabilityNameAt(i) == "" { return false; }
+        if ReachabilitySymbolAt(i) == "" { return false; }
+        if ReachabilityHomeAt(i) == "" { return false; }
+        if ReachabilityScopeAt(i) == "" { return false; }
+        if ReachabilityNoteAt(i) == "" { return false; }
+        if !ReachabilityStatusIsKnown(ReachabilityStatusAt(i)) { return false; }
+        i = i + 1;
+    }
+    return ReachabilityNameAt(ReachabilityRowCount()) == "";
+}
+
+func ReachabilityNamesUnique() -> Bool {
+    let i: Int = 0;
+    while i < ReachabilityRowCount() {
+        let j: Int = i + 1;
+        while j < ReachabilityRowCount() {
+            if ReachabilityNameAt(i) == ReachabilityNameAt(j) { return false; }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func ReachabilityCountWithStatus(status: String) -> Int {
+    let found: Int = 0;
+    let i: Int = 0;
+    while i < ReachabilityRowCount() {
+        if ReachabilityStatusAt(i) == status { found = found + 1; }
+        i = i + 1;
+    }
+    return found;
+}
+
+// Both polarities must be present, so the gate always exercises the
+// zero-consumer check AND the at-least-one check. A table that drifted to all
+// live would silently stop testing the direction that matters most.
+func ReachabilityHasBothPolarities() -> Bool {
+    return ReachabilityCountWithStatus(ReachabilityStatusLive()) > 0 &&
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) > 0;
+}
+
+// The sentinel the gate greps for to prove its own census can report zero.
+func ReachabilityMissingSelfTestSymbol() -> String {
+    return "definitely_missing_reachability_contract_symbol";
+}
+
+func ReachabilityContractReady() -> Bool {
+    return ReachabilitySchema() != "" &&
+        ReachabilityRowCount() == 8 &&
+        ReachabilityRowsWellFormed() &&
+        ReachabilityNamesUnique() &&
+        ReachabilityHasBothPolarities() &&
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 2 &&
+        ReachabilityCountWithStatus(ReachabilityStatusLive()) == 6 &&
+        ReachabilityStatusAt(ReachabilityRowCount()) == "" &&
+        !ReachabilityStatusIsKnown("") &&
+        ReachabilityMissingSelfTestSymbol() != "";
+}
