@@ -109,6 +109,18 @@ def evidence_ref(root: pathlib.Path, value: str, field: str):
     return path, needle
 
 
+def evidence_refs(root: pathlib.Path, value: str, field: str):
+    """Validate path#term refs without splitting commas inside a term."""
+    refs = [
+        part.strip()
+        for part in re.split(r",(?=[^,|]*#)", value)
+        if part.strip()
+    ]
+    if not refs:
+        fail(f"{field} must use path#required-text: {value}")
+    return [evidence_ref(root, ref, field) for ref in refs]
+
+
 def coq_authority_map(text: str) -> dict[str, str]:
     pairs = re.findall(
         r"^\s*\|\s*(SF[A-Za-z0-9_]+)\s*=>\s*(SO[A-Za-z0-9_]+)\s*$",
@@ -242,9 +254,10 @@ def validate_owner_rows(
         )
         for consumer in consumers:
             require_path(root, consumer, f"{owner_id}: last_consumer")
-        gate_path, _ = evidence_ref(
+        gate_evidence = evidence_refs(
             root, row["enforcement_gate"], f"{owner_id}: enforcement_gate"
         )
+        gate_path = gate_evidence[0][0]
         forbidden = csv_items(
             row["forbidden_fallbacks"], f"{owner_id}: forbidden_fallbacks"
         )

@@ -130,7 +130,7 @@ func MachineProbeFacts(
         [0], [1], [0], [2], ["dev", "current"],
         ["DeviceSlot<Int>", "Int"],
         [0], [0], no_ints, no_uses, no_uses, no_ints,
-        SelfMirDestructureTypeFactRowsEmpty(),
+        SelfMirDestructureTypeFactRowsWithoutFacts(1),
         SelfMirLoopFlowRowsWithoutLoops(1)
     );
     return SelfMirProgramFacts(

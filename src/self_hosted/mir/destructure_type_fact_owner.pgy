@@ -25,6 +25,20 @@ func SelfMirDestructureTypeFactRowsEmpty() -> SelfMirDestructureTypeFactRows {
     );
 }
 
+func SelfMirDestructureTypeFactRowsWithoutFacts(
+    routine_count: Int
+) -> SelfMirDestructureTypeFactRows {
+    let rows: SelfMirDestructureTypeFactRows =
+        SelfMirDestructureTypeFactRowsEmpty();
+    let i: Int = 0;
+    while i < routine_count {
+        ArrayPush(rows.routine_starts, 0);
+        ArrayPush(rows.routine_counts, 0);
+        i = i + 1;
+    }
+    return rows;
+}
+
 func SelfMirDestructureTypeFactsReadyForRoutine(
     analysis: SemanticAstArtifactAnalysis,
     initializer_types: SemanticAstInitializerTypeFacts,

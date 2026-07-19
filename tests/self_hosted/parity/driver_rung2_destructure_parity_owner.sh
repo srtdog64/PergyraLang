@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Owns DRV-2 destructure type/binding carriage and missing-fact rejection.
+# Closure claim: missing semantic destructure type must fail self-host MIR production.
 
 pgy_selfhost_verify_driver_rung2_destructure() {
     local backend="$1"

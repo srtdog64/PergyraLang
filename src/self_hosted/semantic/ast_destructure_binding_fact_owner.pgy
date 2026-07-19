@@ -130,7 +130,6 @@ func SemanticAstDestructureBindingRangeForNode(
         facts.node_ids[end] == node_id {
         end = end + 1;
     }
-    return SemanticAstDestructureBindingRange(
-        facts.ok && start < end, start, end
-    );
+    let found: Bool = facts.ok && start < end;
+    return SemanticAstDestructureBindingRange(found, start, end);
 }

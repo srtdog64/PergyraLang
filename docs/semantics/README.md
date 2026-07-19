@@ -36,6 +36,11 @@ Required shape for each proof document:
 - [pass_contract_manifest.md](pass_contract_manifest.md): pass-level fact
   contract manifest for CFG/MIR, AIR, DAG/type-resolution, MIR/LLVM declaration
   parity, and ABI/Slot/Pin layout closure.
+- [../192_protocol_abi_api_registry.md](../192_protocol_abi_api_registry.md):
+  derived Protocol/ABI/API crosswalk. It joins protocol version, existing SoT
+  owner, wire/layout, producer, final consumer, C/LLVM/self-host projection,
+  missing-fact failure, compatibility policy, and gate without becoming a new
+  fact authority.
 - [boundary_migration_manifest.md](boundary_migration_manifest.md): executable
   ownership-movement ledger. Each row names the stable handle, old and new
   owners, complete consumer inventory, parity and negative evidence, and the

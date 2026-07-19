@@ -58,29 +58,6 @@ test_transpiler_reentry_stability(void)
     }
 }
 
-/* Build a temp file path using the test scratch dir owned by the Makefile. */
-static void
-make_tmp_path(char *buf, size_t bufsz, const char *filename)
-{
-    const char *tmpdir = getenv("PGY_TEST_TMPDIR");
-    if (tmpdir == NULL || tmpdir[0] == '\0')
-        tmpdir = getenv("TMPDIR");
-    if (tmpdir == NULL || tmpdir[0] == '\0') {
-#ifdef _WIN32
-        tmpdir = getenv("TEMP");
-        if (tmpdir == NULL || tmpdir[0] == '\0')
-            tmpdir = ".";
-#else
-        tmpdir = "/tmp";
-#endif
-    }
-#ifdef _WIN32
-    if (strcmp(tmpdir, "/tmp") == 0 || strcmp(tmpdir, "/tmp/") == 0)
-        tmpdir = PGY_PROJECT_ROOT "/build/tmp";
-#endif
-    snprintf(buf, bufsz, "%s/%s", tmpdir, filename);
-}
-
 static void
 test_mir_vertical_slice_emit(void)
 {

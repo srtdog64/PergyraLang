@@ -15,7 +15,10 @@ test_generic_method_specialization_fact(void)
     HIRProgram *hir = NULL;
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
-    const char *output_path = "/tmp/pgy_generic_method_specialization.c";
+    char output_path[1024];
+
+    make_tmp_path(output_path, sizeof(output_path),
+        "pgy_generic_method_specialization.c");
 
     printf("\n[generic_method_specialization]\n");
 
@@ -28,15 +31,33 @@ test_generic_method_specialization_fact(void)
         TranspileResult *result =
             transpile_mir_with_test_evidence(mir, output_path);
         char *generated = read_file_text(output_path);
-
-        EXPECT(mir_generic_method_specialization_count(mir) == 1
+        bool specialization_ok =
+            mir_generic_method_specialization_count(mir) == 1
             && fact != NULL
             && fact->specialized_name != NULL
             && strcmp(fact->specialized_name, "Box_Echo_Int") == 0
             && result != NULL && result->success
             && generated != NULL
             && strstr(generated, "Box_Echo_Int(") != NULL
-            && strstr(generated, "T Box_Echo(") == NULL);
+            && strstr(generated, "T Box_Echo(") == NULL;
+
+        if (!specialization_ok) {
+            fprintf(stderr,
+                "[generic-method-specialization] count=%zu name=%s "
+                "success=%d error=%s has_specialized=%d has_formal=%d\n",
+                mir_generic_method_specialization_count(mir),
+                fact != NULL && fact->specialized_name != NULL
+                    ? fact->specialized_name : "<missing>",
+                result != NULL && result->success ? 1 : 0,
+                result != NULL && result->error_message != NULL
+                    ? result->error_message : "<none>",
+                generated != NULL
+                    && strstr(generated, "Box_Echo_Int(") != NULL ? 1 : 0,
+                generated != NULL
+                    && strstr(generated, "T Box_Echo(") != NULL ? 1 : 0);
+        }
+
+        EXPECT(specialization_ok);
 
         free(generated);
         transpile_result_destroy(result);

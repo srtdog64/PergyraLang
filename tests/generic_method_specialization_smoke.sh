@@ -27,9 +27,10 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 BUILD_DIR="${PGY_GENERIC_METHOD_BUILD_DIR:-$ROOT_DIR/.tmp/generic_method_specialization}"
+TEST_TMP_DIR="$BUILD_DIR/test_tmp"
 FIXTURE="$ROOT_DIR/src/self_hosted/mir_lower/fixture/generic_member_inferred_flow.pgy"
 MIR_JSON="$BUILD_DIR/native.mir.json"
-mkdir -p "$BUILD_DIR"
+mkdir -p "$BUILD_DIR" "$TEST_TMP_DIR"
 
 (cd "$ROOT_DIR" && "$PGY" --mir-json \
     "$(pgy_path_for_compiler "$PGY" "$FIXTURE")") \
@@ -96,7 +97,7 @@ for required in \
     }
 done
 
-PGY_TEST_TMPDIR="$BUILD_DIR/test_tmp" "$TRANSPILE_TEST" \
+PGY_TEST_TMPDIR="$TEST_TMP_DIR" "$TRANSPILE_TEST" \
     generic-method-specialization
 
 echo "[generic-method-specialization] MIR owner, C/LLVM consumers, runtime parity, and C missing-row mutation gate ok"

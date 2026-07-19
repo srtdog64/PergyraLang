@@ -3654,11 +3654,11 @@ grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
 ! grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
     grep -Fq 'pergyra_strdup("Int")'
-grep -Fq "mir_render_tuple_type_name(ASTNode *type_node)" \
+grep -Fq "mir_render_tuple_type_name(ASTNode *type_node," \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c"
 grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
-    grep -Fq "return mir_render_tuple_type_name(type_node);"
+    grep -Fq "return mir_render_tuple_type_name(type_node, generic_param_names,"
 ! grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
     grep -Fq 'pergyra_strdup("Tuple")'

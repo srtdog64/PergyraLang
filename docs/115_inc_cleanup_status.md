@@ -1297,7 +1297,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 140 .cases.h files
+test case includes under src/tests = 141 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -1308,7 +1308,7 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 140 files unless
+test fragment inventory at the current 141 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
@@ -1322,6 +1322,13 @@ negative regression that proves resource-flow facts outlive inner-block
 `Symbol` storage. Keeping that lifetime contract separate from the broad
 semantic suites preserves one failure owner; the inventory increase does not
 authorize production `.inc` files or unreferenced test fragments.
+
+The 141st fragment is
+`src/tests/transpile/test_transpile_generic_method_specialization.cases.h`.
+It owns the MIR specialization-row consumer and the missing-row fail-closed
+regression for C emission. Keeping that ABI/SoT boundary separate prevents the
+broad transpile harness from becoming the fact owner; it does not relax the
+production include-fragment ban.
 
 Owner-size policy is separate from the `.inc` gate:
 

@@ -12,6 +12,7 @@ IDS="$WORK_DIR/ids.txt"
 : >"$IDS"
 
 header="$(awk '!/^#/ { print; exit }' "$MANIFEST")"
+header="${header%$'\r'}"
 expected_header='id|hazard|surface|expected|oracle|fixture|gate|status'
 if [[ "$header" != "$expected_header" ]]; then
     echo "[memory-adversarial] manifest header drifted" >&2
@@ -29,6 +30,7 @@ c_uaf=0
 c_race=0
 
 while IFS='|' read -r id hazard surface expected oracle fixture gate status; do
+    status="${status%$'\r'}"
     [[ -z "$id" || "$id" == \#* || "$id" == "id" ]] && continue
     rows=$((rows + 1))
     printf '%s\n' "$id" >>"$IDS"

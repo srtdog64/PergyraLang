@@ -53,9 +53,11 @@ semantic_destructure_type_fact_record(SemanticContext *ctx,
     if (ctx == NULL || destructure_node == NULL || binding_type == NULL
         || binding_count == 0 || binding_index >= binding_count)
         return false;
-    function_id = semantic_current_routine_syntax_id(ctx);
-    if (function_id == 0)
+    /* These rows are routine-local MIR input. Class fields and other
+     * declaration-time destructures have no HIR routine consumer. */
+    if (ctx->current_function_decl == NULL)
         return true;
+    function_id = ast_node_stable_id(ctx->current_function_decl);
     destructure_id = ast_node_stable_id(destructure_node);
     type_name = type_name_or_unknown(binding_type);
     if (destructure_id == 0 || type_name == NULL || type_name[0] == '\0'
