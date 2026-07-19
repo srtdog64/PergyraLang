@@ -10923,9 +10923,9 @@ BDFL "셀프 호스티드와 부트 스트래핑 배선깔아". 조사로 찾은
   에도 미완** — 로드맵의 "allocation growth 미해결"의 로컬 관측치. 부수 함정:
   중단된 실행마다 detached gen0 orphan 이 남아 gen0.exe 를 잠그고(실행 중 PE 는
   Windows 가 잠금) 다음 시도가 ld Permission denied 로 연쇄 사망 — orphan 사냥
-  3회 후 종결. **판정: full fixpoint 의 검증 책임은 Linux CI** (codegen-bootstrap
-  30분 green 전력 위에 driver 3-leg 추가, 병합 60분 예산 — ci.yml 재설계는 BDFL
-  작업트리). 로컬에서 재시도할 일이 있으면 게임/동시세션 없는 시점 + 격리 dir +
+  3회 후 종결. **판정: full fixpoint 의 검증 책임은 Linux CI** (full driver fixed
+  point 와 policy corpus 를 단일 `self-host-bootstrap-linux` job의 60분 예산으로
+  착지). 로컬에서 재시도할 일이 있으면 게임/동시세션 없는 시점 + 격리 dir +
   시도 전 `Get-CimInstance` orphan 스윕이 전제.
 
 #### WO-REACH-1 — "소비자 없는 기계 금지" 계약 게이트 ✅ CLOSED (2026-07-19)
