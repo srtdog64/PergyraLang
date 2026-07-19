@@ -90,7 +90,8 @@ func SelfMirInitializerRangeForNode(
     while end < ArrayLength(rows.node_ids) && rows.node_ids[end] == node_id {
         end = end + 1;
     }
-    return SemanticAstLocalBindingFunctionRange(start < end, start, end);
+    let has_range: Bool = start < end;
+    return SemanticAstLocalBindingFunctionRange(has_range, start, end);
 }
 
 func SelfMirInitializerIndexForNode(

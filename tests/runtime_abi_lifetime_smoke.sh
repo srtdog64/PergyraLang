@@ -784,11 +784,13 @@ grep -Fq "pgy_parallel_array_fits" \
 for term in \
     "atomic_bool   g_pgy_pool_active" \
     "atomic_bool   g_pgy_pool_shutting_down" \
-    "g_pgy_pool_lifecycle_mutex" \
-    "atomic_load_explicit(&g_pgy_pool_active"; do
+    "g_pgy_pool_lifecycle_mutex"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel.h" ||
         fail "parallel runtime task/worker arrays must guard null and allocation sizes: $term"
 done
+grep -Fq "atomic_load_explicit(&g_pgy_pool_active" \
+    "$ROOT_DIR/src/runtime/pgy_parallel_spawn.h" ||
+    fail "parallel spawn owner must reject an inactive worker pool"
 for term in \
     "atomic_store_explicit(&g_pgy_pool_active" \
     "atomic_store_explicit(&g_pgy_pool_shutting_down, true" \
