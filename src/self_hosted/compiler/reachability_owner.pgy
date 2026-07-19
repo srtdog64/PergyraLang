@@ -37,7 +37,7 @@ func ReachabilityStatusLive() -> String { return "live"; }
 func ReachabilityStatusDeclaredOnly() -> String { return "declared_only"; }
 
 func ReachabilityRowCount() -> Int {
-    return 8;
+    return 10;
 }
 
 func ReachabilityNameAt(index: Int) -> String {
@@ -49,6 +49,8 @@ func ReachabilityNameAt(index: Int) -> String {
     if index == 5 { return "help_first_await"; }
     if index == 6 { return "capability_manifest_loader"; }
     if index == 7 { return "checked_float_to_int"; }
+    if index == 8 { return "checked_add_i64"; }
+    if index == 9 { return "checked_mul_i64"; }
     return "";
 }
 
@@ -63,6 +65,8 @@ func ReachabilitySymbolAt(index: Int) -> String {
     if index == 5 { return "pgy_pool_help_run_one"; }
     if index == 6 { return "pgy_cap_set_manifest_export"; }
     if index == 7 { return "pgy_checked_f2i_i32_export"; }
+    if index == 8 { return "pgy_checked_add_i64_export"; }
+    if index == 9 { return "pgy_checked_mul_i64_export"; }
     return "";
 }
 
@@ -76,6 +80,12 @@ func ReachabilityHomeAt(index: Int) -> String {
     if index == 5 { return "src/runtime/pgy_parallel_pool"; }
     if index == 6 { return "src/runtime/pgy_runtime_lib_auth"; }
     if index == 7 { return "src/runtime/"; }
+    // For the two i64 rows, "home" names the LLVM builtin DECL TABLE: the
+    // real definition lives in src/runtime (outside the scope anyway), and
+    // the decl row is the mechanism's own plumbing, not a consumer. What
+    // the census must count is emitters that CALL the export.
+    if index == 8 { return "src/codegen/llvm_runtime_core_builtin_decl"; }
+    if index == 9 { return "src/codegen/llvm_runtime_core_builtin_decl"; }
     return "";
 }
 
@@ -89,6 +99,8 @@ func ReachabilityScopeAt(index: Int) -> String {
     if index == 5 { return "src/runtime"; }
     if index == 6 { return "src/codegen"; }
     if index == 7 { return "src/codegen"; }
+    if index == 8 { return "src/codegen"; }
+    if index == 9 { return "src/codegen"; }
     return "";
 }
 
@@ -101,6 +113,8 @@ func ReachabilityStatusAt(index: Int) -> String {
     if index == 5 { return ReachabilityStatusLive(); }
     if index == 6 { return ReachabilityStatusLive(); }
     if index == 7 { return ReachabilityStatusLive(); }
+    if index == 8 { return ReachabilityStatusDeclaredOnly(); }
+    if index == 9 { return ReachabilityStatusDeclaredOnly(); }
     return "";
 }
 
@@ -121,6 +135,8 @@ func ReachabilityNoteAt(index: Int) -> String {
     if index == 5 { return "pgy_await drains the queue before parking"; }
     if index == 6 { return "both backends declare the loader export"; }
     if index == 7 { return "the float-to-int guard is emitted, not inherited from the backend"; }
+    if index == 8 { return "runtime guard and LLVM decl row exist, but no emitter calls it: a checked Long add surface is an open judgment (arithmetic ledger C2)"; }
+    if index == 9 { return "runtime guard and LLVM decl row exist, but no emitter calls it: a checked Long mul surface is an open judgment (arithmetic ledger C2)"; }
     return "";
 }
 
@@ -183,11 +199,11 @@ func ReachabilityMissingSelfTestSymbol() -> String {
 
 func ReachabilityContractReady() -> Bool {
     return ReachabilitySchema() != "" &&
-        ReachabilityRowCount() == 8 &&
+        ReachabilityRowCount() == 10 &&
         ReachabilityRowsWellFormed() &&
         ReachabilityNamesUnique() &&
         ReachabilityHasBothPolarities() &&
-        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 2 &&
+        ReachabilityCountWithStatus(ReachabilityStatusDeclaredOnly()) == 4 &&
         ReachabilityCountWithStatus(ReachabilityStatusLive()) == 6 &&
         ReachabilityStatusAt(ReachabilityRowCount()) == "" &&
         !ReachabilityStatusIsKnown("") &&
