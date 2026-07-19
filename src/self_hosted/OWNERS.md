@@ -146,7 +146,8 @@ inventory must not become a second fact-family owner registry.
   assignment node identity also owns `Assign` statement routing.
 - `src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy` -- fail-closed
   assignment type verdicts joined from assignment, initializer, signature,
-  and lexical environment facts.
+  lexical environment, and parser expression-graph facts; target binding,
+  member, collection-base, index, and RHS scalar types are graph-derived.
 - `src/self_hosted/semantic/ast_iteration_type_fact_owner.pgy` -- fail-closed
   range/foreach header verdicts and lexical loop-binding type facts.
 - `src/self_hosted/semantic/ast_statement_fact_owner.pgy` -- artifact-bound

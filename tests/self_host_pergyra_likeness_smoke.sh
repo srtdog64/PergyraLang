@@ -258,7 +258,9 @@ SENTINEL_MAX=0
 # was flattened or replaced with a sentinel.
 # 2071 -> 2072 (2026-07-19): ArraySet statement typing now requires the
 # parser-owned index graph root instead of accepting a text projection.
-RESULT_USE_MIN=2072
+# 2072 -> 2086 (2026-07-19): assignment target binding/base/index ownership
+# now traverses parser graph handles through explicit Option results.
+RESULT_USE_MIN=2086
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

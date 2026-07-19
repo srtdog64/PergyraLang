@@ -12,7 +12,6 @@ import "ast_iteration_type_fact_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "array_type_owner.pgy";
-import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_scalar_type_owner.pgy";
@@ -64,6 +63,46 @@ func SemanticAstAssignmentIndexRoot(
         return None;
     }
     return SemanticExpressionGraphRightChild(graph, target_root);
+}
+
+func SemanticAstAssignmentTargetBaseRoot(
+    ref graph: SemanticExpressionGraphFacts,
+    target_root: Int
+) -> Option<Int> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        graph, target_root
+    );
+    if !IsSome(kind) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeIndex() {
+        return SemanticExpressionGraphLeftChild(graph, target_root);
+    }
+    return Some(target_root);
+}
+
+func SemanticAstAssignmentTargetBindingName(
+    ref graph: SemanticExpressionGraphFacts,
+    node_id: Int
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, node_id);
+    if !IsSome(kind) { return None; }
+    if UnwrapOption(kind) == AstExpressionNodeLeaf() {
+        let name: Option<String> = SemanticExpressionGraphNodeText(
+            graph, node_id
+        );
+        if IsSome(name) && IsIdentifier(UnwrapOption(name)) { return name; }
+        return None;
+    }
+    if UnwrapOption(kind) != AstExpressionNodeMemberAccess() &&
+        UnwrapOption(kind) != AstExpressionNodeIndex() {
+        return None;
+    }
+    let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, node_id
+    );
+    if !IsSome(receiver) { return None; }
+    return SemanticAstAssignmentTargetBindingName(
+        graph, UnwrapOption(receiver)
+    );
 }
 
 func SemanticAstAssignmentTypeFactsFromArtifact(
@@ -150,8 +189,28 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstAssignmentTypeStructuralError(artifact);
         }
-        let target_base: String = assignments.target_base_names[i];
-        let target_root: String = assignments.target_root_names[i];
+        let target_graph_root: Option<Int> =
+            SemanticAstExpressionGraphRootForNode(
+                expression_surfaces, assignments.node_ids[i],
+                AstExpressionLaneAtom()
+            );
+        if !IsSome(target_graph_root) {
+            return SemanticAstAssignmentTypeStructuralError(artifact);
+        }
+        let target_base_root: Option<Int> =
+            SemanticAstAssignmentTargetBaseRoot(
+                expression_surfaces.expression_graph,
+                UnwrapOption(target_graph_root)
+            );
+        let target_binding_name: Option<String> =
+            SemanticAstAssignmentTargetBindingName(
+                expression_surfaces.expression_graph,
+                UnwrapOption(target_graph_root)
+            );
+        if !IsSome(target_base_root) || !IsSome(target_binding_name) {
+            return SemanticAstAssignmentTypeStructuralError(artifact);
+        }
+        let target_root: String = UnwrapOption(target_binding_name);
         let expected: String = "";
         let target_type: String = "";
         let index_type: String = "";
@@ -165,37 +224,24 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                 "undefined_symbol", "name", target_root
             );
         } else {
-            target_type = EnvLookup(names, types, target_root);
-            if target_base != target_root {
-                let projected_target_type: Option<String> =
-                    SemanticProjectionExpressionType(
-                        target_base, constructors, names, types, modes,
-                        function_names, function_returns, function_params
-                    );
-                if IsSome(projected_target_type) {
-                    target_type = UnwrapOption(projected_target_type);
-                } else {
-                    row_code = "assignment_type_unresolved";
-                    row_message = SemanticError3(
-                        "assignment_type_unresolved",
-                        "target", assignments.target_texts[i],
-                        "root", target_root,
-                        "root_type", EnvLookup(names, types, target_root)
-                    );
-                }
+            target_type = SemanticExpressionGraphScalarTypeName(
+                expression_surfaces.expression_graph,
+                UnwrapOption(target_base_root), constructors, names, types,
+                function_names, function_returns
+            );
+            if target_type == "Unknown" || target_type == "" {
+                row_code = "assignment_type_unresolved";
+                row_message = SemanticError3(
+                    "assignment_type_unresolved",
+                    "target", assignments.target_texts[i],
+                    "root", target_root,
+                    "root_type", EnvLookup(names, types, target_root)
+                );
             }
             expected = target_type;
             if row_code == "" && assignments.target_is_indexed[i] == 1 {
                 let element_type_opt: Option<String> =
                     SemanticArrayElementType(target_type);
-                let target_graph_root: Option<Int> =
-                    SemanticAstExpressionGraphRootForNode(
-                        expression_surfaces, assignments.node_ids[i],
-                        AstExpressionLaneAtom()
-                    );
-                if !IsSome(target_graph_root) {
-                    return SemanticAstAssignmentTypeStructuralError(artifact);
-                }
                 let index_root: Option<Int> = SemanticAstAssignmentIndexRoot(
                     expression_surfaces.expression_graph,
                     UnwrapOption(target_graph_root)
@@ -276,18 +322,6 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
                             );
                         if IsSome(enum_type) {
                             inferred = UnwrapOption(enum_type);
-                        }
-                    }
-                    if inferred == "Unknown" || inferred == "" {
-                        let projection_type: Option<String> =
-                            SemanticProjectionExpressionType(
-                                assignments.value_texts[i], constructors,
-                                names, types, modes,
-                                function_names, function_returns,
-                                function_params
-                            );
-                        if IsSome(projection_type) {
-                            inferred = UnwrapOption(projection_type);
                         }
                     }
                     if inferred == "Unknown" || inferred == "" {
@@ -475,6 +509,32 @@ func SemanticAstAssignmentTypeFactsContractReady() -> Bool {
         valid_facts.expected_type_names[0] != "Int" ||
         valid_facts.expected_type_names[1] != "Int" ||
         valid_facts.expected_type_names[2] != "Int" {
+        return false;
+    }
+
+    let member_target_root: Option<Int> =
+        SemanticAstExpressionGraphRootForNode(
+            expression_surfaces, assignments.node_ids[2],
+            AstExpressionLaneAtom()
+        );
+    if !IsSome(member_target_root) { return false; }
+    let member_name_node: Option<Int> = SemanticExpressionGraphRightChild(
+        expression_surfaces.expression_graph,
+        UnwrapOption(member_target_root)
+    );
+    if !IsSome(member_name_node) { return false; }
+    expression_surfaces.expression_graph.arena.node_texts[
+        UnwrapOption(member_name_node)
+    ] = "missing";
+    let drifted_target_facts: SemanticAstAssignmentTypeFacts =
+        SemanticAstAssignmentTypeFactsFromArtifact(
+            valid, signatures, constructors, locals, initializers, statements,
+            expression_surfaces, iterations, assignments
+        );
+    if !drifted_target_facts.ok ||
+        SemanticAstAssignmentTypesAllVerified(drifted_target_facts) ||
+        SemanticAstAssignmentFirstDiagnosticCode(drifted_target_facts) !=
+            "assignment_type_unresolved" {
         return false;
     }
 

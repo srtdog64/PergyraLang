@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: assignment target and RHS scalar typing now
+consume parser-owned expression graph handles. The target owner derives the
+binding root and, for indexed writes, the collection base and index roots from
+the `Atom` graph; it no longer reprojects `box.value` or `values[i]` from
+source text. The RHS verdict no longer falls back to
+`SemanticProjectionExpressionType` after graph typing. A negative contract
+keeps the source spelling `box.value` intact while changing only the graph's
+member-name child to `missing`; both C- and LLVM-built semantic checkers reject
+the assignment instead of recovering the old field from text. Focused DRV-2
+C/LLVM parity passed 20 source fixtures plus `indexed_assignment`, including
+the existing missing-target-graph failure. This closes the assignment type
+projection seam, not whole-compiler or released/default substitution.
+
 2026-07-19 executable delta: collection statement typing now consumes the
 parser-owned expression graph for `ArrayPush` values and both `ArraySet`
 index/value arguments. The parser carries the `ArraySet` index in the value

@@ -8051,3 +8051,21 @@ Released/default replacement remains 0%.
   the filtered `ast_node_array_set` MIR fixture. Parser C/LLVM output remained
   byte-equal across 188 sources. This closes one collection-statement type
   seam, not released/default or whole-compiler substitution.
+
+### 2026-07-19 -- Assignment typing consumes target and value graphs
+
+- Assignment semantic typing now obtains the writable binding name from the
+  target graph and types the graph root, or the left child of an indexed root,
+  with `SemanticExpressionGraphScalarTypeName`.
+- Member and indexed target types are no longer recovered by
+  `SemanticProjectionExpressionType`. The same legacy fallback was removed
+  from RHS scalar typing because the value verdict already consumes the value
+  graph.
+- The negative contract preserves source text `box.value` but changes the
+  member-name child node to `missing`. C- and LLVM-built semantic checkers both
+  reject the row with `assignment_type_unresolved`; a text fallback would have
+  accepted it.
+- Focused C/LLVM DRV-2 parity passed 20 body fixtures plus the filtered
+  `indexed_assignment` MIR fixture. Existing missing-target-graph rejection
+  remained green. This is one assignment-type authority closure, not a claim
+  of released/default or whole-compiler self-host completion.

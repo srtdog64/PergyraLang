@@ -3021,8 +3021,16 @@ require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
-require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
+reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    'import "projection_type_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "func SemanticAstAssignmentTargetBindingName"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "UnwrapOption(member_name_node)"
+require_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
+    "drifted_target_facts"
 require_file "src/self_hosted/semantic/ast_enum_fact_owner.pgy"
 require_text "src/self_hosted/semantic/ast_enum_fact_owner.pgy" \
     "func SemanticAstEnumExpressionType"

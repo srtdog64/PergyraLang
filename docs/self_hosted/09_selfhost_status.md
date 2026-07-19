@@ -102,6 +102,11 @@ subset.
   are no longer live type authority. Collection statement arguments also use
   parser-owned roots: `ArrayPush` carries its value, while `ArraySet` carries
   index/value through the MIR secondary/primary graph lanes.
+- Assignment typing derives the writable binding root, member field type,
+  indexed collection base, index type, and RHS scalar type from the parser-owned
+  target/value graphs. The assignment owner is ratcheted against reopening
+  `SemanticProjectionExpressionType`; changing only an internal member-name
+  graph node fails closed while source spelling remains unchanged.
 - MIR surface validation no longer reopens source payloads. Payload presence is
   checked through source-shape predicates, and thread-pool / intent
   observability surface-usage validation consumes MIR `expr0` / `expr1` facts.
