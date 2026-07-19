@@ -10891,6 +10891,42 @@ Stage 순서는 B→C→D 고정(각 stage는 이전 stage 거절 경로를 허�
 - **게이트**: 신규 stage-C smoke + parity + `test-semantic`.
 - **DoD**: 4개 escape 경로 각각 허용 fixture + move-후-사용 거절 fixture.
 
+#### WO-REACH-1 — "소비자 없는 기계 금지" 계약 게이트 ✅ CLOSED (2026-07-19)
+
+BDFL "하나만 바꾼다면" 제안의 착지(`f3942a85`). **죽은 코드 문제가 아니다** —
+src/runtime·compiler·codegen 전수 census 결과 참조 안 되는 TU 는 사실상 0(유일 hit 는
+독립 테스트 파일). 진짜 문제는 **만들어지고 컴파일되고 테스트되고 문서화됐는데
+아무도 소비하지 않는 메커니즘**이다. 이건 시끄럽게 썩지 않는다 — 문서가 *설계*를
+말하고 바이너리는 *행동*을 하는 방식으로 벌어지고, 누가 콜그래프를 다시 읽어야만 보인다.
+
+- **실측 2건 등재**: `async_fiber_scheduler`(M:N 파이버 스케줄러 **3,075줄**,
+  `ASYNC_SOURCES` 로 바이너리에 컴파일되는데 **자기 디렉터리 밖에서 참조되는 심볼 0**,
+  마지막 손댐 2026-06-21) · `lane_fact_in_codegen`(codegen 이
+  `ast_spawn_is_blocking` 로 재유도하고 AIR `ExecutionLaneFact` 를 버림 = WO-PAR-NOVEL ②).
+- **SoT** = `src/self_hosted/compiler/reachability_owner.pgy`. 행마다 진입심볼·home·
+  소비 scope·상태(`live`/`declared_only`) + **왜 그 상태인지 note**(declared_only 행의
+  note 는 곧 부채 기록).
+- **★비대칭이 핵심**: `live` = 소비자 **≥1**(마지막 소비자를 잃으면 조용한 죽음 →
+  FAIL) / `declared_only` = **정확히 0**(소비자가 생기면 선언이 낡음 → FAIL).
+  즉 **갭이 몰래 넓어지지도, 몰래 닫히지도 못한다**. live 는 floor 라 평상시 작업이
+  소비자를 자유롭게 추가할 수 있고, declared_only 만 exact 로 조인다.
+- **이빨 양방향 실증**: 죽은 스케줄러를 live 로 주장 → `"declared live but has NO
+  consumer"` FAIL / 살아있는 dispatch 를 declared_only 로 주장 → `"declared_only but
+  now has 2 consumer(s)"` FAIL. 복원 후 green.
+- **게이트가 자기 자신에서 잡은 버그 2건**(둘 다 이제 고정): ① `grep -rlw -- SYM ...
+  --include=*.c` 는 `--` **뒤**의 `--include` 를 파일 피연산자로 파싱 → C-소스 필터가
+  조용히 꺼지고 **계약 파일이 자기가 이름 붙인 모든 심볼의 "소비자"로 계수**됨.
+  ② 정당하게 빈 grep 이 `set -e`+pipefail 에서 census 를 중단시킴. sentinel 프로브를
+  owner 를 안 덮는 home 으로 바꿔서 **include 필터가 깨지면 self-test 가 터지도록** 함
+  (안 그러면 census 결과 전체가 무의미해진 채 green).
+- 게이트 `tests/selfhost_reachability_contract_smoke.sh`(golden + C==LLVM leg +
+  census 8건 + 양방향 self-test), aggregate =
+  `redteam-repair-contract-test-smoke`. 등록: OWNERS.md · component contract ·
+  artifact kind 26 · Makefile.
+- **표는 자라는 게 정상**: 지금 8행(live 6 / declared_only 2)은 시작점이고, 새 메커니즘을
+  만들 때 행을 추가하는 게 규율. 두 polarity 가 항상 있어야 게이트가 자기 절반을
+  계속 시험한다(`ReachabilityHasBothPolarities`).
+
 #### WO-C3 — Stage D: slot/token/authority/capability capture
 
 - **목표**: 도메인 자원(slot handle, secure token, authority, cap mask)의
