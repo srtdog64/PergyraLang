@@ -10816,6 +10816,42 @@ BDFL 질문("병렬 구현이 너무 많은데 우리는 새 기법을 썼어야
   배치해도 락 1회 절약뿐. range-parallel 은 이미 auto-chunk 로 상각됨. 측정 근거
   없이 착수하지 않는다.
 - **② 미착수**(codegen 이 AIR lane fact 를 나르게 = 컴파일러 변경, 별도 범위).
+- **✅ Coq 병렬 모델 2코어 착지 `bcc221bc`** (BDFL "우리 모델이 맞는지 보자").
+  `docs/semantics/proofs/ParallelSchedulingCore.v` + `ParallelReductionCore.v`,
+  해설 `ParallelModelCores.md`. **축 예산 무변**(SlotCalculus 2개 그대로),
+  코퍼스 35→37, `rocqchk` 커널 검증.
+  - **스케줄링**: 워커를 **프레임 스택**으로 모델(help-nesting 을 추상화로
+    숨기지 않음). 세 정책(ParkOnly/HelpFirst/Compensate)을 한 step 관계에.
+    `help_first_progress`(유계 워커·무제한 중첩·정지상태 없음) /
+    `park_only_deadlocks`(WO-RT-3 행을 3스텝 목격자로) /
+    `help_first_never_parks_with_work`(그 치명 상태가 **도달 불가**임 — 운이
+    아니라 구조) / `cyclic_await_deadlocks`(help-first 만으론 부족) /
+    `help_in_cyclic_wait_self_deadlocks`(런타임 주석의 반증을 정리로) /
+    `compensation_moves_where_the_others_stick`.
+  - **★가장 값진 산출 = 판별식**: 모든 게 `spawn_tree : awaits h t -> push h <
+    push t`(= 자기가 스폰한 것만 기다린다) 하나에 걸린다. **join lane 에선 참,
+    channel receive 에선 거짓.** 위 §"3대 자랑은 전부 표준"은 여전히 맞지만,
+    **어느 lane 에 어느 기법이 필요한지**가 이제 추측이 아니라 정리다 —
+    help-first 와 보상 워커는 서로의 lane 으로 일반화되지 **않는다**(각각
+    반례 있음). WO-RT-5 가 실험으로 찾은 걸 모델이 사후 설명한 게 아니라,
+    모델이 있었으면 예측했을 것.
+  - **리덕션**: `join_schedule_invariant`(임의 op — 결합·교환·항등 **무가정**)
+    · `chunk_tiles`(런타임 lo/hi 산술이 모든 k≥1 에서 `[0,n)` 정확 타일링 =
+    auto-chunk 의 "byte-보존" 주장이 정리로) · `join_chunk_count_invariant`
+    (worker 수 불변). 경쟁 형태 2종을 같은 파일에 정의하고 자기 정의로 반증:
+    완료-순서 reduce 는 op 교환법칙 필요, chunk/tree reduce 는 결합법칙 필요.
+    비결합은 코너 케이스 아님(float 덧셈) — worker 수 재현성이 보통 깨지는 이유.
+  - **과장 방지 2중 장치**: `help_first_progress_is_not_vacuous`(가설이 서로
+    모순이 아님을 인스턴스로 증명 — 공허한 progress 정리 방지) +
+    `tests/parallel_model_adequacy_smoke.sh`(청크 산술 표현식 verbatim ·
+    `pgy_await` 의 조회-후-park 형태 · 보상 spare · fold 가 chunk 수 아닌 **인덱스
+    수**까지 도는지를 소스에 고정 → 코드가 바뀌면 증명이 조용히 낡는 대신
+    게이트가 터짐). 두 헤더에 negative scope 명시(메모리 모델 아님, progress =
+    교착부재이지 종료·공정성 아님).
+  - 배선: `formal-semantics-test-smoke` 에 편입 + 단독 타깃
+    `parallel-model-adequacy-test-smoke` + ProofSpine 노드 2개
+    (`ParallelProgressConnected` = 스케줄링 progress ∧ 리덕션 결정성 ∧
+    WitnessDataRace, 셋 중 둘만으론 다른 약한 주장) + formal_semantics 등록.
 
 #### WO-PARSURF-3b 해제 — Form B(every/continuous) 구현 (docs/182 §3, 판정 C 입력)
 
