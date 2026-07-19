@@ -135,7 +135,8 @@ inventory must not become a second fact-family owner registry.
   wrapped, and postfix try-expression shape and operand bounds.
 - `src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy` -- artifact-
   native initializer expression type verdicts joined from signature, scope,
-  local-binding, and initializer payload facts without source re-scanning.
+  local-binding, and parser expression-graph facts without source re-scanning
+  or projection-text recovery.
 - `src/self_hosted/semantic/ast_initializer_iteration_refinement_owner.pgy` --
   loop-body initializer refinement that consumes verified iteration binding
   facts after the header pass.
@@ -282,8 +283,6 @@ inventory must not become a second fact-family owner registry.
   artifact type-name rows consumed by runtime projection.
 - `src/self_hosted/semantic/ast_kind_surface_fact_owner.pgy` -- canonical
   artifact node-kind rows consumed by runtime projection.
-- `src/self_hosted/semantic/projection_type_owner.pgy` -- nominal member,
-  array-index, and contextual array-literal types from owner facts.
 - `src/self_hosted/semantic/diagnostic_code_owner.pgy` -- stable semantic diagnostic code vocabulary.
 - `src/self_hosted/semantic/diagnostic_owner.pgy` -- semantic diagnostic blocks
   and verdict payload contract facts.

@@ -2986,10 +2986,7 @@ require_text "src/self_hosted/semantic/expr_type_owner.pgy" "SemanticCallableInd
 require_text "src/self_hosted/semantic/try_expression_fact_owner.pgy" \
     'CharAt(text, 0) == "?"'
 require_file "src/self_hosted/semantic/array_type_owner.pgy"
-reject_text "src/self_hosted/semantic/projection_type_owner.pgy" \
-    "SemanticProjectionArrayLiteralMatchesDeclaredType"
-require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
-    "let array_base_type: Option<String> ="
+reject_file "src/self_hosted/semantic/projection_type_owner.pgy"
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
     '"Split^Array<String>^String|String"'
 require_text "src/self_hosted/semantic/builtin_signature_owner.pgy" \
@@ -3008,17 +3005,14 @@ require_text "src/self_hosted/codegen/emission/assign_emit_owner.pgy" \
     "RewriteExpectedValueWithSemanticGraph("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "func SemanticAstAssignmentArrayElementType"
-require_file "src/self_hosted/semantic/projection_type_owner.pgy"
 require_text "src/self_hosted/semantic/ast_nominal_constructor_fact_owner.pgy" \
     "func SemanticAstNominalFieldType"
-require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
-    "SemanticAstNominalFieldType("
-require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
-    "base_type = ExprType("
-require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
-    "func SemanticProjectionSegmentEnd"
-require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
+reject_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    'import "projection_type_owner.pgy";'
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "drifted_member_facts"
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \

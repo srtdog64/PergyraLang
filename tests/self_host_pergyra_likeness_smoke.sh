@@ -262,7 +262,10 @@ SENTINEL_MAX=0
 # now traverses parser graph handles through explicit Option results.
 # 2086 -> 2087 (2026-07-19): match scrutinee production carries a checked
 # ParserExpressionFact before attaching the Atom graph root.
-RESULT_USE_MIN=2087
+# 2087 -> 2074 (2026-07-19): deleting the zero-consumer projection owner
+# removes thirteen unreachable Option occurrences; no live failure path was
+# flattened or replaced with a sentinel.
+RESULT_USE_MIN=2074
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

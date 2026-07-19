@@ -14,7 +14,6 @@ import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "array_type_owner.pgy";
-import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 
 struct SemanticAstInitializerTypeFacts {
@@ -160,17 +159,6 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
                 enum_facts, UnwrapOption(declared), inferred, expression
             ) {
             inferred = "Int";
-        }
-        if expression_verdict.ok &&
-            (inferred == "Unknown" || inferred == "") {
-            let member_type: Option<String> =
-                SemanticProjectionExpressionType(
-                    expression, constructors, names, types, modes,
-                    function_names, function_returns, function_params
-                );
-            if IsSome(member_type) {
-                inferred = UnwrapOption(member_type);
-            }
         }
         if expression_verdict.ok &&
             (inferred == "Unknown" || inferred == "") &&
@@ -400,6 +388,49 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstInitializerTypeCount(valid_facts) != 2 ||
         valid_facts.inferred_type_names[0] != "Int" ||
         valid_facts.inferred_type_names[1] != "Int" {
+        return false;
+    }
+
+    let member: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: box : Box = Box(1)\n        Let: value : Int = box.value\n"
+    );
+    let member_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(member);
+    let member_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(member);
+    let member_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(member, member_signatures);
+    let member_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(member);
+    let member_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            member, member_signatures, member_constructors, member_locals,
+            member_surfaces
+        );
+    if !SemanticAstInitializerTypesAllVerified(member_facts) ||
+        SemanticAstInitializerTypeCount(member_facts) != 2 {
+        return false;
+    }
+    let member_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        member_surfaces, member_locals.node_ids[1], AstExpressionLaneValue()
+    );
+    if !IsSome(member_root) { return false; }
+    let member_name_node: Option<Int> = SemanticExpressionGraphRightChild(
+        member_surfaces.expression_graph, UnwrapOption(member_root)
+    );
+    if !IsSome(member_name_node) { return false; }
+    member_surfaces.expression_graph.arena.node_texts[
+        UnwrapOption(member_name_node)
+    ] = "missing";
+    let drifted_member_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            member, member_signatures, member_constructors, member_locals,
+            member_surfaces
+        );
+    if !drifted_member_facts.ok ||
+        SemanticAstInitializerTypesAllVerified(drifted_member_facts) ||
+        SemanticAstInitializerFirstDiagnosticCode(drifted_member_facts) !=
+            "initializer_type_unresolved" {
         return false;
     }
 

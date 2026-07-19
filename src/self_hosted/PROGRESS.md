@@ -1,5 +1,15 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: initializer scalar typing no longer reprojects
+member/index/call text after the parser graph verdict. A negative contract
+keeps `box.value` as the initializer spelling while changing only its internal
+member-name node to `missing`; C- and LLVM-built semantic checkers reject it.
+Focused C/LLVM DRV-2 parity passed 20 source fixtures plus
+`nested_member_access`. With initializer, assignment, and statement consumers
+migrated, `projection_type_owner.pgy` had zero references and was deleted; the
+component gate now rejects its return. This closes that legacy semantic
+projection owner, not all expression bridges or whole-compiler substitution.
+
 2026-07-19 executable delta: `match` scrutinees now enter the parser-owned
 Atom graph lane. Statement typing consumes that root and rejects an unresolved
 scrutinee instead of calling `SemanticProjectionExpressionType`. A negative

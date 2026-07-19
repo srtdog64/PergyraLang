@@ -107,6 +107,10 @@ subset.
   target/value graphs. The assignment owner is ratcheted against reopening
   `SemanticProjectionExpressionType`; changing only an internal member-name
   graph node fails closed while source spelling remains unchanged.
+- Initializer typing derives member, index, and call result types from the same
+  parser graph. After initializer, assignment, and statement consumers moved,
+  the unreferenced `projection_type_owner.pgy` was deleted and is forbidden by
+  the component gate.
 - Match scrutinees now use the parser-owned Atom graph as well. Statement
   typing rejects an unresolved scrutinee and cannot recover member types from
   projection text. This is parser/semantic C/LLVM evidence; match is not yet a

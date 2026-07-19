@@ -8085,3 +8085,17 @@ Released/default replacement remains 0%.
   C/LLVM parity passed 111 fixtures. `match_case_int` is not in the 37-row
   DRV-2 producer frontier, so self-produced MIR match substitution remains
   unclaimed.
+
+### 2026-07-19 -- Initializer typing retires the projection owner
+
+- Initializer member/index/call result typing now relies on
+  `SemanticAstExpressionVerdictFromGraph`; its post-verdict
+  `SemanticProjectionExpressionType` fallback and import were removed.
+- A graph-only mutation leaves `box.value` unchanged as source/root spelling
+  but changes its field child to `missing`. C- and LLVM-built semantic checkers
+  reject it with `initializer_type_unresolved`.
+- Focused C/LLVM DRV-2 parity passed 20 body fixtures plus
+  `nested_member_access`, matching canonical MIR, emitted C, and execution.
+- No consumer remained for `projection_type_owner.pgy`, so the file was deleted
+  rather than retained as an alias. The component contract rejects recreating
+  it. Other expression bridges and whole-compiler substitution remain open.
