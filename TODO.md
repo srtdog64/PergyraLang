@@ -10891,6 +10891,34 @@ Stage 순서는 B→C→D 고정(각 stage는 이전 stage 거절 경로를 허�
 - **게이트**: 신규 stage-C smoke + parity + `test-semantic`.
 - **DoD**: 4개 escape 경로 각각 허용 fixture + move-후-사용 거절 fixture.
 
+#### WO-BOOT-1 — 셀프호스트·부트스트랩 배선 (2026-07-20) — 착지 중
+
+BDFL "셀프 호스티드와 부트 스트래핑 배선깔아". 조사로 찾은 배선 갭 3개 + 실측 사고 1건.
+
+- **★갭 1: FULL fixpoint 를 아무도 안 돌림.** 로드맵(01_staged_roadmap Stage 5)이
+  "gen2==gen3 byte-동일은 hard failure" 라 명시했는데, `self-host-driver-bootstrap-
+  full-test-smoke`(그 하니스)는 CI 에도 어떤 aggregate 에도 없었다. **돌지 않는
+  fixed-point 하니스는 실패할 수 없다.** → CI job `self-host-fixpoint-linux`(60min
+  예산) 신설, 로컬 격리 검증 후 커밋.
+- **★갭 2 (실측 사고): 크로스 플랫폼 seed 오염이 green 을 뚫음.** 07-18 WSL 실행이
+  남긴 **Linux ELF gen2.exe** 를 Windows driver bootstrap 이 소비하다 "Exec format
+  error" 사망 — seed 게이트는 존재만 검사, 실행가능성 미검사. → 두 하니스에
+  `pgy_binary_is_runnable_here` 가드(기존 헬퍼 재사용, "reseed 하라" 지시 포함).
+  +부트스트랩 빌드 디렉터리 **격리 override**(`PGY_SELFHOST_CODEGEN/DRIVER_BUILD_DIR`)
+  — 오늘 두 세션이 같은 .tmp 를 공유하다 서로를 오염시킨 레이스의 영구 수리.
+  (ast_rel 하드코딩도 BUILD_DIR 유도로 교체 — override 를 새는 구멍이었음.)
+- **★갭 3: 정책 owner 들이 부트스트랩 코퍼스 밖.** 병렬/도달성 policy owner(.pgy)는
+  self-host 소스인데 통합 드라이버가 먹는지 아무도 안 물었다. →
+  `tests/selfhost_bootstrap_policy_corpus_smoke.sh`: 세 manifest 를 driver_seed/
+  oracle 에 먹여 **in_subset**(자기빌드 방출==oracle 방출, gcc, 실행, 네이티브 golden
+  재현) / **out_of_subset**(controlled CODEGEN ERROR 거부 기록) 를 양방향 고정 —
+  reachability 계약의 비대칭을 부트스트랩 축에. **실측: 3종 전부 out_of_subset**
+  (거부 = "MIR instruction expression graph is missing or invalid", 통제된 fail-closed).
+  이빨 양방향 실증(hello.pgy 를 out 선언→"now EATS it" FAIL / manifest 를 in 선언→
+  "REGRESSED" FAIL). CI: self-host-bootstrap-linux 가 corpus census 까지 돌게 확장.
+- 코퍼스가 자라는 길: 드라이버가 manifest 를 먹게 되는 커밋이 **같은 커밋에서 행을
+  in_subset 으로 승격**해야 함 — 커버리지가 몰래 자라지도 썩지도 못한다.
+
 #### WO-REACH-1 — "소비자 없는 기계 금지" 계약 게이트 ✅ CLOSED (2026-07-19)
 
 BDFL "하나만 바꾼다면" 제안의 착지(`f3942a85`). **죽은 코드 문제가 아니다** —

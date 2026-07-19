@@ -54,7 +54,9 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     exit 0
 fi
 
-B="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
+# Overridable so two sessions (or a validation run) never share one artifact
+# cache -- todays lesson: a concurrent run mid-rebuild poisons its sibling.
+B="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
 HARNESS_PATHS_FILE="$B/codegen_bootstrap_paths.txt"
 HARNESS_COMPONENTS_FILE="$B/codegen_bootstrap_components.txt"
 HARNESS_TOOLS_FILE="$B/codegen_bootstrap_tools.txt"
@@ -407,6 +409,9 @@ compile_c_artifact_with_bounded_log "gen1" "$B/gen1.c" "$B/gen1.exe" || {
 emit "$B/gen1.exe" "$B/gen2.c"
 compile_c_artifact_with_bounded_log "gen2" "$B/gen2.c" "$B/gen2.exe" || {
     echo "[self-host-bootstrap] gen2 C failed to compile" >&2; cat "$B/gen2_cc.log" >&2; exit 1; }
+
+# Reject a stale cross-platform seed before another bootstrap consumes it.
+pgy_binary_is_runnable_here "$B/gen2.exe" || { echo "[self-host-bootstrap] gen2.exe is not runnable on this host (cross-platform residue?)" >&2; exit 1; }
 
 if [[ "${PGY_SELFHOST_CODEGEN_SEED_ONLY:-0}" == "1" ]]; then
     echo "[self-host-bootstrap] seed artifacts ready: gen2 codegen and parser AST producer"

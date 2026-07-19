@@ -35,8 +35,8 @@ if ! command -v "$CC" >/dev/null 2>&1; then
     exit 1
 fi
 
-CODEGEN_BUILD="$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap"
-BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/driver/bootstrap"
+CODEGEN_BUILD="${PGY_SELFHOST_CODEGEN_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/codegen/bootstrap}"
+BUILD_DIR="${PGY_SELFHOST_DRIVER_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/driver/bootstrap}"
 PATHS_FILE="$BUILD_DIR/driver_bootstrap_paths.txt"
 CODEGEN_BIN="$CODEGEN_BUILD/gen2.exe"
 PARSER_BIN="$CODEGEN_BUILD/parser_ast_producer.exe"
@@ -63,6 +63,19 @@ SAMPLE_SOURCE="$ROOT_DIR/${paths[7]}"
 for path in "$DRIVER_SOURCE" "$SAMPLE_SOURCE" "$CODEGEN_BIN" "$PARSER_BIN"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-driver-bootstrap] missing bootstrap input: $path" >&2
+        exit 1
+    fi
+done
+# The seed binaries come from a PREVIOUS codegen-bootstrap run via the shared
+# .tmp cache, which survives host switches. A WSL run leaves ELF executables
+# behind, and a later Windows run then dies mid-gate with "Exec format error"
+# -- or worse, the mismatch is read as compiler drift. Existence is not
+# enough; the seed must be runnable on THIS host, else the fix is a reseed.
+for seed_bin in "$CODEGEN_BIN" "$PARSER_BIN"; do
+    if ! pgy_binary_is_runnable_here "$seed_bin"; then
+        echo "[self-host-driver-bootstrap] seed binary is not runnable on this host: $seed_bin" >&2
+        echo "[self-host-driver-bootstrap] it was likely produced on another platform (WSL<->Windows .tmp reuse)" >&2
+        echo "[self-host-driver-bootstrap] rerun: make self-host-codegen-bootstrap-seed-test-smoke" >&2
         exit 1
     fi
 done
@@ -149,7 +162,9 @@ run_driver_mode_to_file() {
 }
 
 driver_rel="$(pgy_selfhost_path_relative_to_root "$DRIVER_SOURCE")"
-ast_rel=".tmp/self_hosted/driver/bootstrap/driver_bootstrap.ast.txt"
+# Derived from BUILD_DIR, not spelled out: with the isolation override active a
+# hardcoded path here would silently write into the shared cache anyway.
+ast_rel="$(pgy_selfhost_path_relative_to_root "$BUILD_DIR")/driver_bootstrap.ast.txt"
 ast_abs="$ROOT_DIR/$ast_rel"
 echo "[self-host-driver-bootstrap] parsing integrated driver"
 if ! (cd "$ROOT_DIR" && "$PARSER_BIN" "$driver_rel" 2>"$BUILD_DIR/parser.err" | tr -d '\r' >"$ast_abs"); then
