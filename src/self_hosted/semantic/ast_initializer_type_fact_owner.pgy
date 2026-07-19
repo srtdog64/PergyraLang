@@ -8,6 +8,7 @@ import "../hir/ast_text_arena_projection_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "ast_nominal_constructor_fact_owner.pgy";
 import "ast_local_binding_fact_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 import "expr_type_owner.pgy";
 import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
@@ -121,6 +122,9 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
             artifact, iteration_node_ids, iteration_function_node_ids,
             iteration_binding_names, iteration_binding_types,
             iteration_verified, locals.function_node_ids[i],
+            locals.node_ids[i], names, types, modes
+        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+            artifact, expression_surfaces, locals.function_node_ids[i],
             locals.node_ids[i], names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstInitializerTypeStructuralError(artifact);

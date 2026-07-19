@@ -415,6 +415,9 @@ for mir_producer_owner in \
     routine_assignment_owner.pgy \
     routine_control_transfer_owner.pgy \
     routine_if_owner.pgy \
+    routine_match_owner.pgy \
+    routine_match_pattern_owner.pgy \
+    routine_match_merge_owner.pgy \
     routine_while_owner.pgy \
     routine_for_owner.pgy \
     routine_tracked_statement_owner.pgy \
@@ -422,6 +425,8 @@ for mir_producer_owner in \
     routine_entry_owner.pgy \
     artifact_lower_owner.pgy \
     instruction_validation_owner.pgy \
+    match_fact_owner.pgy \
+    match_json_projection_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
@@ -2650,8 +2655,9 @@ require_max_lines "src/self_hosted/hir/ast_expression_graph_owner.pgy" 600
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "struct AstExpressionGraphRows"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "func AstExpressionGraphRowsReady"
 require_text "src/self_hosted/hir/ast_expression_graph_owner.pgy" "if !seen[i] { return false; }"
-require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v1"
+require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "pgy.selfhost.ast-tree-artifact.v2"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "expression_graphs: AstExpressionGraphRows;"
+require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "match_pattern_graphs: AstExpressionGraphRows;"
 require_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "ArrayPush(provenance_texts, nodes[i].text)"
 reject_text "src/self_hosted/hir/ast_text_arena_projection_owner.pgy" "nodes: Array<CodegenAstTextNode>;"
 require_text "src/self_hosted/hir/ast_text_inventory_owner.pgy" 'let lines: Array<String> = Split(tree_text, "\n");'
@@ -2676,6 +2682,10 @@ reject_text "src/self_hosted/codegen/text/text_owner.pgy" "func FindTopLevelComm
 require_text "src/self_hosted/parser/program_parse_owner.pgy" 'import "../hir/ast_text_arena_projection_owner.pgy";'
 require_file "src/self_hosted/parser/expression_graph_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_graph_owner.pgy" 600
+require_file "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy"
+require_max_lines "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy" 120
+require_text "src/self_hosted/parser/match_pattern_graph_partition_owner.pgy" \
+    "func ParserExpressionGraphsSelectMatchCases("
 require_file "src/self_hosted/parser/expression_fact_owner.pgy"
 require_max_lines "src/self_hosted/parser/expression_fact_owner.pgy" 100
 require_text "src/self_hosted/parser/expression_fact_owner.pgy" "struct ParserExpressionFact"
@@ -3088,6 +3098,8 @@ require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "TypedAstKindMatchStmtTag()"
 require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
     "AstExpressionLaneAtom(), scrutinee"
+require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
+    "AstExpressionLaneAtom(), case_pattern"
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     "func SemanticAstMatchStatementGraphContractReady"
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
@@ -3131,13 +3143,13 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'JsonObjectFactObjectTable('
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'instruction, "expr0_graph"'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'node, "call_target_kind"'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'node, "call_target_name"'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     "SemanticAstExpressionSurfaceRowsFromArtifact(artifact)"
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     "func MirExpressionGraphRangeReachable("
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "func CompileMirJsonTextToCVerified("
@@ -3284,6 +3296,9 @@ require_text "tests/self_hosted/parity/driver_rung2_inferred_generic_value_parit
 require_file "src/self_hosted/mir_lower/fixture/generic_return_assignment_inferred_flow.pgy"
 require_file "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"
 require_file "src/self_hosted/codegen/fixture/array_return_literal.pgy"
+require_file "src/self_hosted/mir_lower/fixture/match_case_int.pgy"
+require_file "src/self_hosted/mir_lower/fixture/match_case_assign.pgy"
+require_file "src/self_hosted/mir_lower/fixture/option_match.pgy"
 require_text "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh" \
     '"array_return_literal"'
 require_text "tests/self_hosted/parity/driver_rung2_array_literal_graph_parity_owner.sh" \
@@ -3294,9 +3309,13 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/array_return_literal.pgy"'
-require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 37;"
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/match_case_assign.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    '"src/self_hosted/mir_lower/fixture/option_match.pgy"'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" "return 40;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'mir_fixture_rows[@]}" -ne 37'
+    'mir_fixture_rows[@]}" -ne 40'
 require_file "tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     'source "$ROOT_DIR/tests/self_hosted/parity/driver_rung2_assign_instruction_graph_parity_owner.sh"'
@@ -3470,9 +3489,9 @@ require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     '"src/self_hosted/codegen/fixture/long_scalar.pgy"'
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
-    "return 37;"
+    "return 40;"
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
-    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 37'
+    'MIR fixture count drifted: ${#mir_fixture_rows[@]} != 40'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
     'for-each direct call return type fact'
 reject_text "src/self_hosted/mir_lower/routine_lower.pgy" \
@@ -3501,6 +3520,37 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" 'func SelfMirAssignm
 require_text "src/self_hosted/mir/program_verify_owner.pgy" 'SelfMirInstructionUsesLocalVersion('
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_base_use)'
 require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_simple_target_graph)'
+require_text "src/self_hosted/mir/program_verify_owner.pgy" '!SelfMirInstructionRowsReady(missing_match)'
+require_file "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh"
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    '"uses":["value.3","value.5","value.7","value.8"]'
+require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
+    'func SelfMirMergeMatchArms('
+require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
+    'while arm_i < ArrayLength(arm_exits)'
+require_text "src/self_hosted/mir/routine_match_merge_owner.pgy" \
+    'build, "phi", build.local_names[local_i]'
+require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
+    'func SelfMirMatchCaseFactFromArtifact('
+require_text "src/self_hosted/mir/routine_match_pattern_owner.pgy" \
+    'AstMatchCasePatternFactFromArtifact(artifact, case_node_id)'
+require_text "src/self_hosted/hir/ast_match_pattern_fact_owner.pgy" \
+    'func AstMatchCasePatternFactFromArtifact('
+require_text "src/self_hosted/semantic/ast_match_binding_environment_owner.pgy" \
+    'func SemanticAstExpressionSeedVisibleMatchBindings('
+require_text "src/self_hosted/mir/match_fact_owner.pgy" \
+    'func SelfMirMatchFactRowsAttachCase('
+require_text "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" \
+    'func MirExpressionGraphSequenceAppendMatchCondition('
+require_max_lines "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" 300
+require_max_lines "src/self_hosted/mir_lower/expression_graph_match_owner.pgy" 220
+require_max_lines "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" 280
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    'missing Option match binding was accepted'
+reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'payload_texts[index]'
+reject_text "src/self_hosted/mir/routine_match_owner.pgy" \
+    'requires N-way phi lowering'
 require_text "src/self_hosted/mir/routine_assignment_owner.pgy" \
     'node_id, AstExpressionLaneAtom()'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
@@ -4010,13 +4060,13 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeBoolLiteral() { return "bool_literal"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStringLiteral() { return "string_literal"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "integer_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "long_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "bool_literal" {'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "string_literal" {'
 reject_regex_under "src/self_hosted" "children, children"
 require_text "tests/self_hosted/parity/driver_rung2_integer_literal_parity_owner.sh" \
@@ -4087,7 +4137,7 @@ if grep -Fq "ParserExpressionLeaf(" <<<"$try_postfix_block"; then
 fi
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeTry() { return "try"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'kind == "try"'
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstCallStatementKindForCallee("
 require_text "src/self_hosted/parser/stmt_owner.pgy" "TypedAstKindBareCallStmtTag()"
@@ -4944,11 +4994,11 @@ require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeArrayElement() { return "array_element"; }'
 require_text "src/self_hosted/mir/expression_graph_kind_name_owner.pgy" \
     'AstExpressionNodeStructField() { return "struct_field"; }'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "array_element" {'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "struct_field" {'
-require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+require_text "src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy" \
     'if kind == "struct_field_name" {'
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if !sequence.ok {'
@@ -5803,6 +5853,7 @@ for mir_owner in \
     "program_routine_index_owner.pgy" \
     "routine_inventory_owner.pgy" \
     "routine_fact_index_owner.pgy" \
+    "phi_fact_owner.pgy" \
     "routine_lower.pgy" \
     "decl_lower.pgy" \
     "program_lower.pgy"; do
@@ -5858,6 +5909,20 @@ require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" "JsonArray
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "loop_flow_fact_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "mir_cfg_graph_owner.pgy";'
 require_text "src/self_hosted/mir_lower/routine_fact_index_owner.pgy" 'import "resource_flow_fact_owner.pgy";'
+require_file "src/self_hosted/mir_lower/phi_fact_owner.pgy"
+require_max_lines "src/self_hosted/mir_lower/phi_fact_owner.pgy" 200
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'use_count != predecessor_count'
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'func MirPhiResultExists('
+require_text "src/self_hosted/mir_lower/phi_fact_owner.pgy" \
+    'func MirPhiParameterEntryExists('
+require_text "src/self_hosted/mir_lower/routine_lower.pgy" \
+    'if !MirRoutinePhiFactsReady(index, json)'
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    'missing match phi input was accepted'
+require_text "tests/self_hosted/parity/driver_rung2_match_parity_owner.sh" \
+    'unknown match phi input was accepted'
 require_file "src/self_hosted/mir_lower/mir_cfg_graph_owner.pgy"
 require_file "src/self_hosted/mir_lower/resource_flow_fact_owner.pgy"
 require_text "src/self_hosted/mir_lower/routine_lower.pgy" "MirObjectStringFact(json, inst_start, inst_end, \"kind\")"

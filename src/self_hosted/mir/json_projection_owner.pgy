@@ -2,6 +2,7 @@
 
 import "program_verify_owner.pgy";
 import "expression_graph_kind_name_owner.pgy";
+import "match_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 
 func SelfMirOptionalString(value: String) -> Option<String> {
@@ -125,6 +126,8 @@ func SelfMirJsonInstruction(
         );
         use_i = use_i + 1;
     }
+    let match_fields: SelfMirMatchJsonFields =
+        SelfMirMatchJsonFieldsForInstruction(rows, instruction_index);
     let machine: SelfMirMachineLayerProjection =
         SelfMirMachineLayerProjection(
             true,
@@ -191,9 +194,9 @@ func SelfMirJsonInstruction(
             "machine_layer",
             SelfMirJsonMachineLayer(machine)
         ),
-        JsonEmitFieldRaw("match_patterns", "[]"),
-        JsonEmitFieldRaw("match_variant", "null"),
-        JsonEmitFieldRaw("match_bindings", "[]"),
+        JsonEmitFieldRaw("match_patterns", match_fields.patterns),
+        JsonEmitFieldRaw("match_variant", match_fields.variant),
+        JsonEmitFieldRaw("match_bindings", match_fields.bindings),
         JsonEmitFieldRaw("destructure_bindings", "[]"),
         JsonEmitFieldRaw("uses", JsonEmitArray(uses))
     ];
@@ -498,6 +501,11 @@ func SelfMirJsonDeclaration(
         JsonEmitFieldRaw("fields", JsonEmitArray(fields_rows)),
         JsonEmitFieldRaw("methods", JsonEmitArray(methods))
     ];
+    if rows.kinds[declaration_index] == "role" {
+        ArrayPush(fields, JsonEmitFieldString(
+            "for_type", rows.target_types[declaration_index]
+        ));
+    }
     if rows.kinds[declaration_index] == "enum" {
         ArrayPush(fields, JsonEmitFieldRaw("variants", JsonEmitArray(variants)));
     }

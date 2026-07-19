@@ -1,0 +1,184 @@
+// Match-specific MIR facts keyed by instruction row.
+//
+// The semantic statement owner supplies source match identity.  MIR keeps the
+// lowered pattern, variant, and binding rows here so JSON/backend consumers do
+// not recover them from source text.
+
+struct SelfMirMatchFactRows {
+    instruction_indices: Array<Int>;
+    pattern_starts: Array<Int>;
+    pattern_counts: Array<Int>;
+    patterns: Array<String>;
+    variants: Array<String>;
+    binding_starts: Array<Int>;
+    binding_counts: Array<Int>;
+    bindings: Array<String>;
+}
+
+func SelfMirMatchFactRowsEmpty() -> SelfMirMatchFactRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirMatchFactRows(
+        ints, ints, ints, strings, strings, ints, ints, strings
+    );
+}
+
+func SelfMirMatchFactIndexForInstruction(
+    rows: SelfMirMatchFactRows,
+    instruction_index: Int
+) -> Option<Int> {
+    let i: Int = 0;
+    while i < ArrayLength(rows.instruction_indices) {
+        if rows.instruction_indices[i] == instruction_index { return Some(i); }
+        i = i + 1;
+    }
+    return None;
+}
+
+func SelfMirMatchFactRowsAttachCase(
+    rows: SelfMirMatchFactRows,
+    instruction_index: Int,
+    pattern: String,
+    variant: String,
+    binding: String
+) -> SelfMirMatchFactRows {
+    let instruction_indices: Array<Int> = rows.instruction_indices;
+    let pattern_starts: Array<Int> = rows.pattern_starts;
+    let pattern_counts: Array<Int> = rows.pattern_counts;
+    let patterns: Array<String> = rows.patterns;
+    let variants: Array<String> = rows.variants;
+    let binding_starts: Array<Int> = rows.binding_starts;
+    let binding_counts: Array<Int> = rows.binding_counts;
+    let bindings: Array<String> = rows.bindings;
+    ArrayPush(instruction_indices, instruction_index);
+    ArrayPush(pattern_starts, ArrayLength(patterns));
+    ArrayPush(pattern_counts, 1);
+    ArrayPush(patterns, pattern);
+    ArrayPush(variants, variant);
+    ArrayPush(binding_starts, ArrayLength(bindings));
+    let binding_count: Int = 0;
+    if binding != "" {
+        ArrayPush(bindings, binding);
+        binding_count = 1;
+    }
+    ArrayPush(binding_counts, binding_count);
+    return SelfMirMatchFactRows(
+        instruction_indices, pattern_starts, pattern_counts, patterns,
+        variants, binding_starts, binding_counts, bindings
+    );
+}
+
+func SelfMirMatchFactRowsAppend(
+    target: SelfMirMatchFactRows,
+    source: SelfMirMatchFactRows,
+    instruction_offset: Int
+) -> SelfMirMatchFactRows {
+    let instruction_indices: Array<Int> = target.instruction_indices;
+    let pattern_starts: Array<Int> = target.pattern_starts;
+    let pattern_counts: Array<Int> = target.pattern_counts;
+    let patterns: Array<String> = target.patterns;
+    let variants: Array<String> = target.variants;
+    let binding_starts: Array<Int> = target.binding_starts;
+    let binding_counts: Array<Int> = target.binding_counts;
+    let bindings: Array<String> = target.bindings;
+    let row: Int = 0;
+    while row < ArrayLength(source.instruction_indices) {
+        ArrayPush(
+            instruction_indices,
+            source.instruction_indices[row] + instruction_offset
+        );
+        ArrayPush(pattern_starts, ArrayLength(patterns));
+        ArrayPush(pattern_counts, source.pattern_counts[row]);
+        let pattern_i: Int = 0;
+        while pattern_i < source.pattern_counts[row] {
+            ArrayPush(
+                patterns,
+                source.patterns[source.pattern_starts[row] + pattern_i]
+            );
+            pattern_i = pattern_i + 1;
+        }
+        ArrayPush(variants, source.variants[row]);
+        ArrayPush(binding_starts, ArrayLength(bindings));
+        ArrayPush(binding_counts, source.binding_counts[row]);
+        let binding_i: Int = 0;
+        while binding_i < source.binding_counts[row] {
+            ArrayPush(
+                bindings,
+                source.bindings[source.binding_starts[row] + binding_i]
+            );
+            binding_i = binding_i + 1;
+        }
+        row = row + 1;
+    }
+    return SelfMirMatchFactRows(
+        instruction_indices, pattern_starts, pattern_counts, patterns,
+        variants, binding_starts, binding_counts, bindings
+    );
+}
+
+func SelfMirMatchFactRowsValidationError(
+    rows: SelfMirMatchFactRows,
+    instruction_count: Int
+) -> String {
+    let count: Int = ArrayLength(rows.instruction_indices);
+    if ArrayLength(rows.pattern_starts) != count ||
+        ArrayLength(rows.pattern_counts) != count ||
+        ArrayLength(rows.variants) != count ||
+        ArrayLength(rows.binding_starts) != count ||
+        ArrayLength(rows.binding_counts) != count {
+        return "match fact parallel row counts differ";
+    }
+    let pattern_cursor: Int = 0;
+    let binding_cursor: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        if rows.instruction_indices[i] < 0 ||
+            rows.instruction_indices[i] >= instruction_count ||
+            (i > 0 && rows.instruction_indices[i - 1] >=
+                rows.instruction_indices[i]) {
+            return "match instruction identity is invalid";
+        }
+        if rows.pattern_starts[i] != pattern_cursor ||
+            rows.pattern_counts[i] != 1 ||
+            pattern_cursor >= ArrayLength(rows.patterns) ||
+            rows.patterns[pattern_cursor] == "" {
+            return "match pattern rows are invalid";
+        }
+        if rows.binding_starts[i] != binding_cursor ||
+            rows.binding_counts[i] < 0 || rows.binding_counts[i] > 1 ||
+            binding_cursor + rows.binding_counts[i] >
+                ArrayLength(rows.bindings) {
+            return "match binding rows are invalid";
+        }
+        let variant: String = rows.variants[i];
+        let pattern: String = rows.patterns[pattern_cursor];
+        if variant == "" {
+            if rows.binding_counts[i] != 0 ||
+                ToString(ToInt(pattern)) != pattern {
+                return "bounded scalar match rows are invalid";
+            }
+        } else if variant == "None" {
+            if pattern != "None" || rows.binding_counts[i] != 0 {
+                return "bounded None match rows are invalid";
+            }
+        } else if variant == "Some" {
+            if rows.binding_counts[i] != 1 ||
+                rows.bindings[binding_cursor] == "" ||
+                pattern != Concat(
+                    "Some(", Concat(rows.bindings[binding_cursor], ")")
+                ) {
+                return "bounded Some match rows are invalid";
+            }
+        } else {
+            return "match variant is outside bounded MIR producer";
+        }
+        pattern_cursor = pattern_cursor + rows.pattern_counts[i];
+        binding_cursor = binding_cursor + rows.binding_counts[i];
+        i = i + 1;
+    }
+    if pattern_cursor != ArrayLength(rows.patterns) ||
+        binding_cursor != ArrayLength(rows.bindings) {
+        return "match payload totals differ";
+    }
+    return "";
+}

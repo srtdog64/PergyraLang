@@ -99,13 +99,21 @@ path | primary_term | owner_id | relation
 ```text
 src/self_hosted/parser/expression_fact_owner.pgy | ParserExpressionFact | selfhost.expression_graph | local_view
 src/self_hosted/parser/expression_scalar_fact_owner.pgy | ParserExpressionScalarFactContractReady | selfhost.expression_graph | local_view
+src/self_hosted/hir/ast_match_pattern_fact_owner.pgy | AstMatchCasePatternFact | hir.typed_control_flow | projection
+src/self_hosted/semantic/ast_match_binding_environment_owner.pgy | SemanticAstExpressionSeedVisibleMatchBindings | semantic.local_binding_universe | local_view
 src/self_hosted/mir/program_fact_owner.pgy | SelfMirProgramFacts | mir.execution_graph | projection
 src/self_hosted/mir/parallel_capture_fact_owner.pgy | SelfMirParallelCaptureRows | mir.execution_graph | projection
 src/self_hosted/mir/expression_graph_fact_owner.pgy | SelfMirExpressionGraphRows | mir.execution_graph | projection
 src/self_hosted/mir/expression_fact_owner.pgy | SelfMirExpressionKind | mir.execution_graph | bridge
+src/self_hosted/mir/match_fact_owner.pgy | SelfMirMatchFactRows | mir.execution_graph | projection
+src/self_hosted/mir/routine_match_pattern_owner.pgy | SelfMirMatchPatternFactFromArtifact | mir.execution_graph | projection
+src/self_hosted/mir/routine_match_merge_owner.pgy | SelfMirMergeMatchArms | mir.execution_graph | local_view
 src/self_hosted/mir_lower/parallel_capture_fact_owner.pgy | MirParallelCaptureFactsReady | mir.execution_graph | projection
 src/self_hosted/mir_lower/machine_layer_fact_owner.pgy | MirMachineLayerFactsReady | semantic.machine_layer_transition | projection
-src/self_hosted/mir_lower/expression_graph_fact_owner.pgy | MirExpressionGraphSequence | mir.execution_graph | projection
+src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy | MirExpressionGraphSequence | mir.execution_graph | projection
+src/self_hosted/mir_lower/expression_graph_match_owner.pgy | MirExpressionGraphSequenceAppendMatchCondition | mir.execution_graph | local_view
+src/self_hosted/mir_lower/match_json_fact_owner.pgy | MirMatchPatternCount | mir.execution_graph | local_view
+src/self_hosted/mir_lower/phi_fact_owner.pgy | MirRoutinePhiFactsReady | mir.execution_graph | local_view
 src/self_hosted/mir_lower/resource_flow_fact_owner.pgy | MirResourceFlowFacts | semantic.resource_flow_universe | projection
 src/self_hosted/mir_lower/loop_flow_fact_owner.pgy | MirLoopFlowFacts | semantic.loop_flow_summary | projection
 src/self_hosted/hir/ast_text_row_fact_owner.pgy | CodegenAstTextRowFactInput | hir.typed_control_flow | bridge

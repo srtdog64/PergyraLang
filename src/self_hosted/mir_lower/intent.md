@@ -74,10 +74,12 @@ row with the matching `while`/`for` kind, and every summary must correspond to
 one such header. A count or kind mismatch is a hard `MIR-LOWER ERROR`; the
 lowerer never reopens source text or invents a summary from CFG edges.
 
-`expression_graph_fact_owner.pgy` owns `expr0_graph` decoding for migrated
-branch, definition, value-return, Log, ArrayPush, ArraySet, and bare-call instructions. It validates node
-kinds, postorder child edges, root bounds, and reconstructed-artifact lane
-binding before semantic/codegen consumption. The direct DRV-2 `--mir-json`
+`expression_graph_fact_owner.pgy` owns instruction graph admission, while
+`expression_graph_sequence_owner.pgy` owns ordered graph decoding and
+composition for migrated branch, definition, value-return, Log, ArrayPush,
+ArraySet, and bare-call instructions. It validates node kinds, postorder child
+edges, root bounds, and reconstructed-artifact lane binding before
+semantic/codegen consumption. The direct DRV-2 `--mir-json`
 path requires this fact and never
 rebuilds it from `expr0`. `--canonicalize-mir-json` is also graph-only and
 fails closed when `expr0_graph` is missing or malformed. The native MIR JSON
@@ -93,11 +95,25 @@ resolution. Float-to-Int/Long lowering consumes the checked-arithmetic runtime
 ABI owner and materializes only the target helper required by those graph
 facts. It does not parse `expr0`; unsupported
 AST shapes remain `null` and therefore fail closed when the hard consumer
-requires them. Older graph-less artifacts can be upgraded
+requires them. For `AST_MATCH_CASE`, `match_json_fact_owner.pgy` owns typed
+optional pattern, variant, and binding reads. The dedicated
+`expression_graph_match_owner.pgy` then derives an integer equality graph, an
+`IsSome(subject)` / `!IsSome(subject)` condition, and, for exactly one
+`Some(binding)` row, a separate `UnwrapOption(subject)` initializer graph. It
+does not parse the rendered condition or binding text. `None` requires zero
+bindings. Missing or malformed facts, unsupported variants, multiple bindings,
+and non-canonical integer patterns fail closed in this bounded rung. Older
+graph-less artifacts can be upgraded
 only by the explicitly named `--canonicalize-oracle-mir-json` compatibility
 boundary, which reuses the canonical Pergyra expression parser through
 `SemanticAstArtifactAnalyzeCompactBridge`. The hard consumer cannot invoke
 that bridge.
+
+`phi_fact_owner.pgy` consumes the indexed CFG rather than rendered statements.
+Each phi must be the block prefix, have one use per distinct predecessor, and
+name one canonical SSA local across every use and result. Missing inputs are a
+hard `MIR-LOWER ERROR`; structured C reconstruction may not hide the loss by
+ignoring phi rows.
 
 `parallel_capture_fact_owner.pgy` validates the stable boundary ID, seal,
 task count, unique row names, and the closed `snapshot_copy` /

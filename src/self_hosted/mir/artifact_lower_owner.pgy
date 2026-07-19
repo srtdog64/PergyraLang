@@ -13,6 +13,7 @@ func SelfMirDeclarationsFromAnalysis(
     let kinds: Array<String> = rows.kinds;
     let nominal_kinds: Array<String> = rows.nominal_kinds;
     let names: Array<String> = rows.names;
+    let target_types: Array<String> = rows.target_types;
     let field_starts: Array<Int> = rows.field_starts;
     let field_counts: Array<Int> = rows.field_counts;
     let field_names: Array<String> = rows.field_names;
@@ -30,6 +31,7 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(nominal_kinds, analysis.constructors.nominal_kinds[i]);
         ArrayPush(names, analysis.constructors.names[i]);
+        ArrayPush(target_types, "");
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, analysis.constructors.param_counts[i]);
         let field_i: Int = 0;
@@ -72,12 +74,65 @@ func SelfMirDeclarationsFromAnalysis(
         ArrayPush(variant_counts, 0);
         i = i + 1;
     }
+    let role_i: Int = 0;
+    while role_i < SemanticAstRoleCount(analysis.roles) {
+        let role_name: Option<String> = SemanticAstRoleNameAt(
+            analysis.roles, role_i
+        );
+        let target_type: Option<String> = SemanticAstRoleTargetTypeAt(
+            analysis.roles, role_i
+        );
+        let method_count: Option<Int> = SemanticAstRoleMethodCountAt(
+            analysis.roles, role_i
+        );
+        if !IsSome(role_name) || !IsSome(target_type) ||
+            !IsSome(method_count) {
+            return SelfMirDeclarationRowsEmpty();
+        }
+        ArrayPush(kinds, "role");
+        ArrayPush(nominal_kinds, "role");
+        ArrayPush(names, UnwrapOption(role_name));
+        ArrayPush(target_types, UnwrapOption(target_type));
+        ArrayPush(field_starts, ArrayLength(field_names));
+        ArrayPush(field_counts, 0);
+        ArrayPush(method_starts, ArrayLength(method_names));
+        let method_i: Int = 0;
+        while method_i < UnwrapOption(method_count) {
+            let method_node: Option<Int> = SemanticAstRoleMethodNodeAt(
+                analysis.roles, role_i, method_i
+            );
+            if !IsSome(method_node) {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            let signature_i: Option<Int> =
+                SemanticAstFunctionSignatureIndexForNode(
+                    analysis.signatures, UnwrapOption(method_node)
+                );
+            if !IsSome(signature_i) {
+                return SelfMirDeclarationRowsEmpty();
+            }
+            ArrayPush(
+                method_names,
+                analysis.signatures.names[UnwrapOption(signature_i)]
+            );
+            ArrayPush(
+                method_returns,
+                analysis.signatures.return_types[UnwrapOption(signature_i)]
+            );
+            method_i = method_i + 1;
+        }
+        ArrayPush(method_counts, UnwrapOption(method_count));
+        ArrayPush(variant_starts, ArrayLength(variant_names));
+        ArrayPush(variant_counts, 0);
+        role_i = role_i + 1;
+    }
     let enum_i: Int = 0;
     while enum_i < ArrayLength(enum_facts.enum_names) {
         let enum_name: String = enum_facts.enum_names[enum_i];
         ArrayPush(kinds, "enum");
         ArrayPush(nominal_kinds, "enum");
         ArrayPush(names, enum_name);
+        ArrayPush(target_types, "");
         ArrayPush(field_starts, ArrayLength(field_names));
         ArrayPush(field_counts, 0);
         ArrayPush(method_starts, ArrayLength(method_names));
@@ -100,7 +155,7 @@ func SelfMirDeclarationsFromAnalysis(
         enum_i = enum_i + 1;
     }
     return SelfMirDeclarationRows(
-        kinds, nominal_kinds, names, field_starts, field_counts,
+        kinds, nominal_kinds, names, target_types, field_starts, field_counts,
         field_names, field_types, method_starts, method_counts,
         method_names, method_returns, variant_starts, variant_counts,
         variant_names, variant_param_counts
@@ -248,6 +303,11 @@ func SelfMirAppendCfg(
             target.instructions.expr1_graphs,
             source.instructions.expr1_graphs
         );
+    let match_facts: SelfMirMatchFactRows = SelfMirMatchFactRowsAppend(
+        target.instructions.match_facts,
+        source.instructions.match_facts,
+        instruction_offset
+    );
     return SelfMirCfgRows(
         SelfMirBlockRows(
             block_ids, reachable, instruction_starts, instruction_counts,
@@ -261,7 +321,7 @@ func SelfMirAppendCfg(
             machine_layer_runtime_operations, machine_layer_hardware_adequate,
             machine_layer_authority_required, machine_layer_live_lease_required,
             use_starts, use_counts, uses,
-            expr0_graphs, expr1_graphs
+            expr0_graphs, expr1_graphs, match_facts
         )
     );
 }
@@ -483,7 +543,8 @@ func SelfMirCanonicalInstructionIds(
                 instructions.machine_layer_live_lease_required,
                 instructions.use_starts, instructions.use_counts,
                 instructions.uses,
-                instructions.expr0_graphs, instructions.expr1_graphs
+                instructions.expr0_graphs, instructions.expr1_graphs,
+                instructions.match_facts
             )
         )
     );
@@ -552,8 +613,21 @@ func SelfMirProgramFactsFromArtifact(
     );
     let i: Int = 0;
     while i < SemanticAstFunctionSignatureCount(analysis.signatures) {
+        // Declaration-only signatures (for example an ability contract
+        // method) have no executable body and therefore do not own a MIR
+        // routine.  The native producer excludes them from its routine
+        // inventory; keep the self-host producer on the same owner-directed
+        // fact instead of asking the routine entry owner to invent a block.
+        let function_node_id: Int =
+            analysis.signatures.function_node_ids[i];
+        if !IsSome(SelfMirFunctionBodyBlock(
+            artifact.arena, function_node_id
+        )) {
+            i = i + 1;
+            continue;
+        }
         let build: SelfMirRoutineBuild = SelfMirRoutineFromInput(
-            input, analysis.signatures.function_node_ids[i]
+            input, function_node_id
         );
         if !build.ok {
             return SelfMirProgramFactsError(

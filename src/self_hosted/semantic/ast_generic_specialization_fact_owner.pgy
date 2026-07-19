@@ -6,6 +6,7 @@ import "ast_expression_graph_generic_call_owner.pgy";
 import "ast_expression_call_target_fact_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_type_name_canonical_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 
 struct SemanticAstGenericSpecializationFacts {
     ok: Bool;
@@ -266,10 +267,17 @@ func SemanticAstGenericSpecializationFactsFromBody(
             enum_facts, names, types, modes
         ) || !SemanticAstExpressionSeedParameters(
             signatures, UnwrapOption(function_node), names, types
+        ) || !SemanticAstExpressionSeedParameterModes(
+            signatures, UnwrapOption(function_node), modes
         ) || !SemanticAstExpressionSeedVisibleLocals(
             artifact, locals, initializer_types.inferred_type_names,
             UnwrapOption(function_node), use_node_id, names, types
-        ) {
+        ) || !SemanticAstExpressionSeedVisibleLocalModes(
+            artifact, locals, UnwrapOption(function_node), use_node_id, modes
+        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+            artifact, expression_surfaces, UnwrapOption(function_node),
+            use_node_id, names, types, modes
+        ) || ArrayLength(names) != ArrayLength(modes) {
             return SemanticAstGenericSpecializationError(
                 "ast_artifact_invalid",
                 SemanticError1(

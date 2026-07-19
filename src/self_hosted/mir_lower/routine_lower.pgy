@@ -8,6 +8,7 @@ import "error_owner.pgy";
 import "json_fact_read.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
+import "phi_fact_owner.pgy";
 import "stmt_render.pgy";
 
 // ---------------------------------------------------------------------------
@@ -400,6 +401,11 @@ func EmitRoutineTreeWithSelfType(json: String, rpos: Int, routine_indent: String
         MirLowerFailClosed(Concat(
             "routine MIR fact index is incomplete: ",
             Concat(routine, Concat(" [", Concat(index.validation_stage, "]")))
+        ));
+    }
+    if !MirRoutinePhiFactsReady(index, json) {
+        MirLowerFailClosed(Concat(
+            "MIR phi facts are missing or inconsistent: ", routine
         ));
     }
     if !MirRoutineFactIndexFunctionParamFlowFactsValid(index) {

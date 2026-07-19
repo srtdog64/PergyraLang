@@ -9,6 +9,7 @@ import "stmt_render.pgy";
 import "program_routine_index_owner.pgy";
 import "routine_inventory_owner.pgy";
 import "routine_fact_index_owner.pgy";
+import "phi_fact_owner.pgy";
 import "routine_lower.pgy";
 import "decl_lower.pgy";
 import "program_lower.pgy";

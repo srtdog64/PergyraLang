@@ -55,7 +55,19 @@ func ParseMatchStmt(
             i = i + 4;
             i = SkipWhitespaceAndComments(content, i);
             ArraySet(cursor_out, 0, i);
-            case_label = ParseExpr(content, i, cursor_out);
+            let case_pattern: ParserExpressionFact = ParseExprFact(
+                content, i, cursor_out
+            );
+            if !case_pattern.ok { Exit(1); }
+            case_label = case_pattern.text;
+            ArraySet(
+                expression_graphs, 0,
+                ParserExpressionGraphsAppend(
+                    expression_graphs[0],
+                    TypedAstKindMatchCaseStmtTag(),
+                    AstExpressionLaneAtom(), case_pattern
+                )
+            );
             i = cursor_out[0];
             i = Expect(content, i, ":");
             if i < 0 {

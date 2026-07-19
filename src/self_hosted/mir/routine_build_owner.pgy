@@ -162,6 +162,33 @@ func SelfMirRoutineAttachLastSecondaryExpressionGraph(
     );
 }
 
+func SelfMirRoutineAttachLastMatchCase(
+    build: SelfMirRoutineBuild,
+    fact: SelfMirMatchCaseFact
+) -> SelfMirRoutineBuild {
+    if !fact.ok || fact.pattern == "" {
+        return SelfMirRoutineBuildError(build, "MIR match case fact is empty");
+    }
+    let cfg: SelfMirCfgRows = SelfMirCfgAttachLastMatchCase(
+        build.cfg, fact
+    );
+    let instruction_index: Int = ArrayLength(cfg.instructions.ids) - 1;
+    if instruction_index < 0 || !IsSome(
+        SelfMirMatchFactIndexForInstruction(
+            cfg.instructions.match_facts, instruction_index
+        )
+    ) {
+        return SelfMirRoutineBuildError(
+            build, "MIR match case attachment failed"
+        );
+    }
+    return SelfMirRoutineBuild(
+        build.ok, build.diagnostic_message, cfg, build.current_block,
+        build.next_instruction_id, build.terminated,
+        build.local_names, build.local_types, build.local_versions
+    );
+}
+
 func SelfMirRoutineLocalIndex(
     build: SelfMirRoutineBuild,
     name: String

@@ -51,6 +51,15 @@ text scanner. Codegen consumes the resulting verdict and may not re-own that
 decision. This first artifact-native rule does not imply that the broader
 source-scanner semantic subset has migrated.
 
+Match-case payload visibility is owned by
+`ast_match_binding_environment_owner.pgy`. It consumes the HIR-owned
+`AstMatchCasePatternFact` and the typed match-subject expression graph. In the
+bounded hard rung, `Some(v)` exposes `v: T` only when the subject is a known
+leaf binding of type `Option<T>`; `None` exposes no binding. Pattern text and
+source text are not fallback owners, and malformed or unresolved rows fail
+closed. Enum variants, complex scrutinees, and multiple pattern bindings remain
+outside this semantic subset.
+
 ## Output Contract
 
 The tool prints one deterministic diagnostic verdict:

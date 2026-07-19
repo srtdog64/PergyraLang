@@ -1,9 +1,16 @@
-func Main() -> Void {
-    let x: Int = 3;
+func RunMatch(x: Int) -> Void {
     match x {
         case 1: Log(10);
         case 2: Log(20);
         case 3: Log(30);
         default: Log(0);
     }
+    Log(99);
+}
+
+func Main() -> Void {
+    RunMatch(1);
+    RunMatch(2);
+    RunMatch(3);
+    RunMatch(4);
 }

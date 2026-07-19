@@ -8,6 +8,7 @@ import "ast_artifact_verdict_owner.pgy";
 import "ast_expression_graph_member_view_owner.pgy";
 import "ast_expression_graph_receiver_type_owner.pgy";
 import "ast_initializer_iteration_refinement_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 
 func SemanticExpressionPlaceKindForNode(
     ref graph: SemanticExpressionGraphFacts,
@@ -152,6 +153,10 @@ func SemanticAstAnalysisResolveExpressionPlacesFromBody(
                         iteration_binding_names,
                         iteration_types.binding_type_names,
                         iteration_types.verified,
+                        UnwrapOption(function_node_id), use_node_id,
+                        names, types, modes
+                    ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+                        artifact, analysis.expression_surfaces,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types, modes
                     ) || ArrayLength(names) != ArrayLength(types) ||

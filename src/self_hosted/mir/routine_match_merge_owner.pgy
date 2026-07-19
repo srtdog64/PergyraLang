@@ -1,0 +1,150 @@
+// N-way scalar match SSA merge owner.
+
+import "routine_build_owner.pgy";
+
+func SelfMirMatchArmVersionsAppend(
+    rows: Array<Int>, versions: Array<Int>, entry_count: Int
+) -> Array<Int> {
+    let appended: Array<Int> = rows;
+    let i: Int = 0;
+    while i < entry_count {
+        ArrayPush(appended, versions[i]);
+        i = i + 1;
+    }
+    return appended;
+}
+
+func SelfMirMergeMatchArms(
+    build: SelfMirRoutineBuild,
+    arm_exits: Array<Int>,
+    arm_versions: Array<Int>,
+    entry_versions: Array<Int>,
+    unmatched_block: Int
+) -> SelfMirRoutineBuild {
+    let entry_count: Int = ArrayLength(entry_versions);
+    if ArrayLength(arm_exits) == 0 ||
+        ArrayLength(arm_versions) != ArrayLength(arm_exits) * entry_count ||
+        entry_count > ArrayLength(build.local_names) {
+        return SelfMirRoutineBuildError(
+            build, "MIR match merge version matrix is invalid"
+        );
+    }
+    let arm_i: Int = 0;
+    while arm_i < ArrayLength(arm_exits) {
+        if arm_exits[arm_i] < 0 ||
+            arm_exits[arm_i] >= ArrayLength(build.terminated) {
+            return SelfMirRoutineBuildError(
+                build, "MIR match arm exit identity is invalid"
+            );
+        }
+        let prior_i: Int = 0;
+        while prior_i < arm_i {
+            if arm_exits[prior_i] == arm_exits[arm_i] {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match arm exit identity is duplicated"
+                );
+            }
+            prior_i = prior_i + 1;
+        }
+        arm_i = arm_i + 1;
+    }
+    if unmatched_block < -1 ||
+        unmatched_block >= ArrayLength(build.terminated) {
+        return SelfMirRoutineBuildError(
+            build, "MIR match unmatched block identity is invalid"
+        );
+    }
+    let version_i: Int = 0;
+    while version_i < ArrayLength(arm_versions) {
+        if arm_versions[version_i] < 0 {
+            return SelfMirRoutineBuildError(
+                build, "MIR match arm version is invalid"
+            );
+        }
+        version_i = version_i + 1;
+    }
+    arm_i = 0;
+    while arm_i < ArrayLength(arm_exits) {
+        if unmatched_block >= 0 && arm_exits[arm_i] == unmatched_block {
+            return SelfMirRoutineBuildError(
+                build, "MIR match unmatched block aliases an arm exit"
+            );
+        }
+        arm_i = arm_i + 1;
+    }
+    build = SelfMirRoutineAddBlock(build);
+    let merge_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+    build = SelfMirRoutineAtBlock(build, merge_block);
+    arm_i = 0;
+    while arm_i < ArrayLength(arm_exits) {
+        let arm_exit: Int = arm_exits[arm_i];
+        if build.terminated[arm_exit] == 0 {
+            build = SelfMirRoutineSetSuccessors(
+                build, arm_exit, merge_block, -1
+            );
+        }
+        arm_i = arm_i + 1;
+    }
+    if unmatched_block >= 0 {
+        build = SelfMirRoutineSetSuccessors(
+            build, unmatched_block, -1, merge_block
+        );
+    }
+    let local_i: Int = 0;
+    while local_i < entry_count {
+        let incoming: Array<String> = [];
+        let first_version: Int = -1;
+        let all_same: Bool = true;
+        let live_count: Int = 0;
+        arm_i = 0;
+        while arm_i < ArrayLength(arm_exits) {
+            if build.terminated[arm_exits[arm_i]] == 0 {
+                let version: Int =
+                    arm_versions[arm_i * entry_count + local_i];
+                ArrayPush(
+                    incoming,
+                    SelfMirSsaName(build.local_names[local_i], version)
+                );
+                if live_count == 0 { first_version = version; }
+                else if version != first_version { all_same = false; }
+                live_count = live_count + 1;
+            }
+            arm_i = arm_i + 1;
+        }
+        if unmatched_block >= 0 {
+            let entry_version: Int = entry_versions[local_i];
+            ArrayPush(
+                incoming,
+                SelfMirSsaName(build.local_names[local_i], entry_version)
+            );
+            if live_count == 0 { first_version = entry_version; }
+            else if entry_version != first_version { all_same = false; }
+            live_count = live_count + 1;
+        }
+        if live_count == 0 {
+            build = SelfMirRoutineSetLocalVersion(
+                build, local_i, entry_versions[local_i]
+            );
+        } else if all_same {
+            build = SelfMirRoutineSetLocalVersion(
+                build, local_i, first_version
+            );
+        } else {
+            build = SelfMirRoutineAdvanceLocalVersion(build, local_i);
+            build = SelfMirRoutineAddInstruction(
+                build, "phi", build.local_names[local_i],
+                SelfMirSsaName(
+                    build.local_names[local_i],
+                    build.local_versions[local_i]
+                ),
+                "phi", "", "", "", "", incoming
+            );
+        }
+        local_i = local_i + 1;
+    }
+    while local_i < ArrayLength(build.local_names) {
+        build = SelfMirRoutineSetLocalVersion(build, local_i, 0);
+        local_i = local_i + 1;
+    }
+    return build;
+}

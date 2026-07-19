@@ -58,6 +58,10 @@ func SelfMirInstructionRowsValidationError(
     if !SelfMirExpressionGraphRowsReady(rows.expr1_graphs, count) {
         return "expr1 graph rows are invalid";
     }
+    let match_error: String = SelfMirMatchFactRowsValidationError(
+        rows.match_facts, count
+    );
+    if match_error != "" { return match_error; }
     let use_cursor: Int = 0;
     let i: Int = 0;
     while i < count {
@@ -111,6 +115,18 @@ func SelfMirInstructionRowsValidationError(
         }
         if kind == "branch" && rows.expr0s[i] == "" {
             return Concat(row_prefix, " branch payload is empty");
+        }
+        let match_fact_index: Option<Int> =
+            SelfMirMatchFactIndexForInstruction(rows.match_facts, i);
+        if rows.source_types[i] == "AST_MATCH_CASE" {
+            if kind != "branch" || rows.expr0_graphs.has_roots[i] != 1 ||
+                !IsSome(match_fact_index) {
+                return Concat(
+                    row_prefix, " match branch fact is missing or invalid"
+                );
+            }
+        } else if IsSome(match_fact_index) {
+            return Concat(row_prefix, " match fact is attached to non-match");
         }
         if kind == "phi" && rows.results[i] == "" {
             return Concat(row_prefix, " phi result is empty");

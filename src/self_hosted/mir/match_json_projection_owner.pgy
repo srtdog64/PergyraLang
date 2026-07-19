@@ -1,0 +1,55 @@
+// JSON field projection for instruction-keyed MIR match facts.
+
+import "program_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+struct SelfMirMatchJsonFields {
+    patterns: String;
+    variant: String;
+    bindings: String;
+}
+
+func SelfMirMatchJsonFieldsForInstruction(
+    rows: SelfMirInstructionRows,
+    instruction_index: Int
+) -> SelfMirMatchJsonFields {
+    let patterns: Array<String> = [];
+    let bindings: Array<String> = [];
+    let variant: String = "null";
+    let fact_index: Option<Int> = SelfMirMatchFactIndexForInstruction(
+        rows.match_facts, instruction_index
+    );
+    if IsSome(fact_index) {
+        let row: Int = UnwrapOption(fact_index);
+        let pattern_i: Int = 0;
+        while pattern_i < rows.match_facts.pattern_counts[row] {
+            ArrayPush(
+                patterns,
+                JsonStringLiteral(
+                    rows.match_facts.patterns[
+                        rows.match_facts.pattern_starts[row] + pattern_i
+                    ]
+                )
+            );
+            pattern_i = pattern_i + 1;
+        }
+        let binding_i: Int = 0;
+        while binding_i < rows.match_facts.binding_counts[row] {
+            ArrayPush(
+                bindings,
+                JsonStringLiteral(
+                    rows.match_facts.bindings[
+                        rows.match_facts.binding_starts[row] + binding_i
+                    ]
+                )
+            );
+            binding_i = binding_i + 1;
+        }
+        if rows.match_facts.variants[row] != "" {
+            variant = JsonStringLiteral(rows.match_facts.variants[row]);
+        }
+    }
+    return SelfMirMatchJsonFields(
+        JsonEmitArray(patterns), variant, JsonEmitArray(bindings)
+    );
+}

@@ -1,0 +1,118 @@
+// Match-pattern bindings visible to semantic expression consumers.
+
+import "../hir/ast_match_pattern_fact_owner.pgy";
+import "ast_expression_graph_view_owner.pgy";
+import "ast_function_scope_fact_owner.pgy";
+import "env_owner.pgy";
+import "wrapper_type_owner.pgy";
+
+func SemanticAstExpressionSeedOneMatchBinding(
+    artifact: AstTreeArtifact,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    function_scopes: SemanticAstFunctionScopeFacts,
+    function_node_id: Int,
+    case_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    let pattern: AstMatchCasePatternFact =
+        AstMatchCasePatternFactFromArtifact(artifact, case_node_id);
+    let case_function: Option<Int> = SemanticAstFunctionScopeNodeId(
+        function_scopes, case_node_id
+    );
+    if !pattern.ok || !IsSome(case_function) ||
+        UnwrapOption(case_function) != function_node_id {
+        return false;
+    }
+    if pattern.variant == "" || pattern.variant == "None" {
+        return pattern.binding == "";
+    }
+    if pattern.variant != "Some" || pattern.binding == "" {
+        return false;
+    }
+    let match_node: Option<Int> = TypedAstArenaParentId(
+        artifact.arena, case_node_id
+    );
+    if !IsSome(match_node) || !TypedAstArenaNodeKindIs(
+        artifact.arena, UnwrapOption(match_node), TypedAstKindMatchStmtTag()
+    ) {
+        return false;
+    }
+    let subject_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        expression_surfaces, UnwrapOption(match_node),
+        AstExpressionLaneAtom()
+    );
+    if !IsSome(subject_root) {
+        return false;
+    }
+    let subject_kind: Option<Int> = SemanticExpressionGraphNodeKind(
+        expression_surfaces.expression_graph, UnwrapOption(subject_root)
+    );
+    let subject_name: Option<String> = SemanticExpressionGraphNodeText(
+        expression_surfaces.expression_graph, UnwrapOption(subject_root)
+    );
+    if !IsSome(subject_kind) ||
+        UnwrapOption(subject_kind) != AstExpressionNodeLeaf() ||
+        !IsSome(subject_name) ||
+        !EnvContainsName(names, UnwrapOption(subject_name)) {
+        return false;
+    }
+    let payload_type: Option<String> = OptionPayloadTypeOpt(
+        EnvLookup(names, types, UnwrapOption(subject_name))
+    );
+    if !IsSome(payload_type) || UnwrapOption(payload_type) == "" ||
+        UnwrapOption(payload_type) == "Unknown" {
+        return false;
+    }
+    ArrayPush(names, pattern.binding);
+    ArrayPush(types, UnwrapOption(payload_type));
+    ArrayPush(modes, "match_binding");
+    return true;
+}
+
+func SemanticAstExpressionSeedVisibleMatchBindings(
+    artifact: AstTreeArtifact,
+    ref expression_surfaces: SemanticAstExpressionSurfaceFacts,
+    function_node_id: Int,
+    use_node_id: Int,
+    inout names: Array<String>,
+    inout types: Array<String>,
+    inout modes: Array<String>
+) -> Bool {
+    if !AstTreeArtifactReady(artifact) ||
+        !SemanticAstExpressionSurfaceBorrowReady(
+            artifact, expression_surfaces
+        ) || use_node_id < 0 || use_node_id >= artifact.count {
+        return false;
+    }
+    let function_scopes: SemanticAstFunctionScopeFacts =
+        SemanticAstFunctionScopeFactsFromArtifact(artifact);
+    if !function_scopes.ok {
+        return false;
+    }
+    let case_nodes: Array<Int> = [];
+    let cursor: Option<Int> = Some(use_node_id);
+    let traversed: Int = 0;
+    while IsSome(cursor) && traversed < artifact.count {
+        let node_id: Int = UnwrapOption(cursor);
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindMatchCaseStmtTag()
+        ) {
+            ArrayPush(case_nodes, node_id);
+        }
+        cursor = TypedAstArenaParentId(artifact.arena, node_id);
+        traversed = traversed + 1;
+    }
+    let i: Int = ArrayLength(case_nodes) - 1;
+    while i >= 0 {
+        if !SemanticAstExpressionSeedOneMatchBinding(
+            artifact, expression_surfaces, function_scopes,
+            function_node_id, case_nodes[i], names, types, modes
+        ) {
+            return false;
+        }
+        i = i - 1;
+    }
+    return true;
+}

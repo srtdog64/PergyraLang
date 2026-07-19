@@ -79,6 +79,9 @@ inventory must not become a second fact-family owner registry.
   source/fixture manifest rows.
 - `src/self_hosted/parser/function_decl_owner.pgy` -- function signatures and bodies.
 - `src/self_hosted/parser/program_parse_owner.pgy` -- program-root assembly.
+- `src/self_hosted/parser/match_pattern_graph_partition_owner.pgy` -- splits
+  pattern syntax graphs from executable expression graph rows without text
+  recovery.
 - `src/self_hosted/parser/run_owner.pgy` -- parser CLI run boundary and mode
   selection.
 - `src/self_hosted/parser/source_path_owner.pgy` -- source path/default and import read input.
@@ -143,6 +146,9 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_environment_owner.pgy` -- shared
   artifact-native function, parameter, visible-local, and lexical scope
   environment construction for expression verdict owners.
+- `src/self_hosted/semantic/ast_match_binding_environment_owner.pgy` --
+  case-scoped `Option<T>` payload bindings derived from the canonical pattern
+  fact and typed scrutinee graph.
 - `src/self_hosted/semantic/ast_assignment_fact_owner.pgy` -- artifact-bound
   assignment node, function, scope, target/base/index, and RHS payload facts;
   assignment node identity also owns `Assign` statement routing.
@@ -318,6 +324,8 @@ inventory must not become a second fact-family owner registry.
   node-kind tags consumed by inventory, semantic, and codegen views.
 - `src/self_hosted/hir/ast_expression_graph_owner.pgy` -- canonical expression
   graph arena, statement-lane root rows, and structural/reachability validation.
+- `src/self_hosted/hir/ast_match_pattern_fact_owner.pgy` -- canonical bounded
+  scalar and `Some(binding)`/`None` pattern facts shared by semantic and MIR.
 - `src/self_hosted/hir/ast_text_scan_owner.pgy` -- compact AST-text scanning
   primitives shared by parser/HIR and codegen.
 - `src/self_hosted/hir/ast_text_row_fact_owner.pgy` -- compact AST text
@@ -367,7 +375,11 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/mir/routine_if_owner.pgy` -- conditional branch topology,
   branch-local build threading, and merge-block ownership.
 - `src/self_hosted/mir/routine_match_owner.pgy` -- scalar case/default CFG
-  topology and the fail-closed boundary before N-way match phi lowering.
+  topology plus arm exit/version carriage into the merge owner.
+- `src/self_hosted/mir/routine_match_pattern_owner.pgy` -- MIR projection of
+  the HIR-owned bounded pattern fact; source/payload recovery is forbidden.
+- `src/self_hosted/mir/routine_match_merge_owner.pgy` -- N-way live-arm SSA
+  phi emission and post-match continuation version ownership.
 - `src/self_hosted/mir/routine_while_owner.pgy` -- while-loop header, body,
   back-edge, and exit-block lowering.
 - `src/self_hosted/mir/routine_for_owner.pgy` -- typed iteration row to
@@ -399,8 +411,14 @@ inventory must not become a second fact-family owner registry.
   `MirLowerFailClosed` diagnostic boundary; global `Die` aliases are forbidden.
 - `src/self_hosted/mir_lower/expression_graph_fact_owner.pgy` -- schema-aware
   MIR instruction graph decoding and reconstructed-artifact NodeId binding.
+- `src/self_hosted/mir_lower/expression_graph_sequence_owner.pgy` -- bounded
+  MIR JSON graph decoding and ordered graph-sequence construction.
+- `src/self_hosted/mir_lower/expression_graph_match_owner.pgy` -- derived
+  match-condition and `Some` payload-binding graphs from carried MIR facts.
 - `src/self_hosted/mir_lower/match_json_fact_owner.pgy` -- typed optional reads
   for match pattern arrays consumed during graph reconstruction.
+- `src/self_hosted/mir_lower/phi_fact_owner.pgy` -- final-consumer phi
+  predecessor arity and canonical SSA local-identity validation.
 - `src/self_hosted/mir_lower/fixture_manifest_owner.pgy` -- MIR parity
   source fixture manifest rows.
 - `src/self_hosted/mir_lower/json_fact_read.pgy` -- bounded MIR JSON fact reads.

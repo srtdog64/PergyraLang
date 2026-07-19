@@ -1,6 +1,7 @@
 // Body-fixpoint resolution of canonical expression call-target rows.
 
 import "ast_artifact_verdict_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 
 func SemanticAstAnalysisResolveCallTargetsFromBody(
     artifact: AstTreeArtifact,
@@ -31,6 +32,7 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
     let valid: Bool = true;
     let names: Array<String> = [];
     let types: Array<String> = [];
+    let modes: Array<String> = [];
     while root_slot < ArrayLength(
         analysis.expression_surfaces.expression_graph.roots
     ) && valid {
@@ -52,15 +54,26 @@ func SemanticAstAnalysisResolveCallTargetsFromBody(
                     );
                 while ArrayLength(names) > 0 { ArrayPop(names); }
                 while ArrayLength(types) > 0 { ArrayPop(types); }
+                while ArrayLength(modes) > 0 { ArrayPop(modes); }
                 if !IsSome(function_node_id) ||
                     !SemanticAstExpressionSeedParameters(
                         analysis.signatures, UnwrapOption(function_node_id),
                         names, types
+                    ) || !SemanticAstExpressionSeedParameterModes(
+                        analysis.signatures, UnwrapOption(function_node_id),
+                        modes
                     ) || !SemanticAstExpressionSeedVisibleLocals(
                         artifact, analysis.local_bindings, inferred_types,
                         UnwrapOption(function_node_id), use_node_id,
                         names, types
-                    ) {
+                    ) || !SemanticAstExpressionSeedVisibleLocalModes(
+                        artifact, analysis.local_bindings,
+                        UnwrapOption(function_node_id), use_node_id, modes
+                    ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+                        artifact, analysis.expression_surfaces,
+                        UnwrapOption(function_node_id), use_node_id,
+                        names, types, modes
+                    ) || ArrayLength(names) != ArrayLength(modes) {
                     valid = false;
                 } else {
                     let node_id: Int = last_root + 1;

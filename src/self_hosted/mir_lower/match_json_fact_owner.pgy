@@ -1,0 +1,71 @@
+// Typed reads for match-specific MIR JSON facts.
+
+import "../lib/json_fact_table.pgy";
+
+func MirMatchPatternCount(
+    instruction: JsonObjectFactTable
+) -> Option<Int> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(instruction, "match_patterns", bounds) {
+        return None;
+    }
+    return Some(JsonArrayStringCount(
+        instruction.json, bounds[0], bounds[1]
+    ));
+}
+
+func MirMatchPatternAt(
+    instruction: JsonObjectFactTable,
+    index: Int
+) -> Option<String> {
+    let count: Option<Int> = MirMatchPatternCount(instruction);
+    if !IsSome(count) || index < 0 || index >= UnwrapOption(count) {
+        return None;
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(instruction, "match_patterns", bounds) {
+        return None;
+    }
+    let pattern: String = JsonArrayStringAt(
+        instruction.json, bounds[0], bounds[1], index
+    );
+    if pattern == "" { return None; }
+    return Some(pattern);
+}
+
+func MirMatchVariant(
+    instruction: JsonObjectFactTable
+) -> Option<String> {
+    return JsonObjectFactStringFieldOpt(instruction, "match_variant");
+}
+
+func MirMatchBindingCount(
+    instruction: JsonObjectFactTable
+) -> Option<Int> {
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(instruction, "match_bindings", bounds) {
+        return None;
+    }
+    return Some(JsonArrayStringCount(
+        instruction.json, bounds[0], bounds[1]
+    ));
+}
+
+func MirMatchBindingAt(
+    instruction: JsonObjectFactTable,
+    index: Int
+) -> Option<String> {
+    let count: Option<Int> = MirMatchBindingCount(instruction);
+    if !IsSome(count) || index < 0 || index >= UnwrapOption(count) {
+        return None;
+    }
+    let bounds: Array<Int> = [0, 0];
+    if !JsonObjectFactArrayBounds(instruction, "match_bindings", bounds) {
+        return None;
+    }
+    let binding: String = JsonArrayStringAt(
+        instruction.json, bounds[0], bounds[1], index
+    );
+    if binding == "" { return None; }
+    return Some(binding);
+}

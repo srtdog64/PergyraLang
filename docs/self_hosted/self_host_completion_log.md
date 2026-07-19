@@ -6,6 +6,37 @@ this file is the *journal* -- what was attempted each session, what landed, and
 what the next session should pick up. Append a new entry per session; do not
 rewrite history.
 
+## 2026-07-19 - Scalar match enters the hard MIR producer frontier
+
+- Added sparse instruction-keyed `SelfMirMatchFactRows` for pattern, variant,
+  and binding identity. The active producer writes one scalar pattern per case;
+  JSON projection and validation consume the row and never recover it from
+  source or AST provenance text.
+- `routine_match_owner.pgy` now emits the native case/default CFG shape from
+  semantic statement facts. It deliberately rejects arm-local version drift
+  until an N-way phi owner exists instead of selecting an SSA version by
+  fallback.
+- The MIR-to-artifact consumer derives each reconstructed equality graph from
+  the carried subject graph plus scalar pattern fact. This closes the graph
+  loss exposed by canonical MIR comparison.
+- Added `match_case_int` as DRV-2 fixture 38. Focused C-built and LLVM-built
+  drivers matched canonical MIR, emitted C, and runtime output. Removing the
+  first match pattern fails in the final MIR consumer; a verifier mutation also
+  rejects an `AST_MATCH_CASE` instruction without its match row.
+- The producer creates the merge block after every arm so flat instruction
+  ranges remain contiguous. The fixture executes case 1/2/3 and default and
+  requires the post-match statement after every path, preventing an arm block
+  from accidentally becoming the continuation owner.
+- Added `match_case_assign` as fixture 39. `routine_match_merge_owner.pgy`
+  consumes every live arm exit/version row and emits one N-way phi instead of
+  selecting the entry or final arm version. Focused C/LLVM producers matched
+  canonical MIR and returned 10/20/30/40 across all four paths.
+- `phi_fact_owner.pgy` closes the final-consumer side: phi use arity must equal
+  indexed CFG predecessor arity and every use/result must retain one canonical
+  local identity. Deleting one match-arm input now fails before reconstruction.
+- This is bounded integer single-pattern/default substitution. Variant and
+  binding facts and released compiler replacement remain open.
+
 ## 2026-07-19 - Array returns consume the parser expression graph
 
 - `SemanticAstStatementTypeFacts` now resolves array-literal return values from
@@ -8099,3 +8130,24 @@ Released/default replacement remains 0%.
 - No consumer remained for `projection_type_owner.pgy`, so the file was deleted
   rather than retained as an alias. The component contract rejects recreating
   it. Other expression bridges and whole-compiler substitution remain open.
+
+### 2026-07-19 -- Bounded Option match carries variant and binding facts
+
+- Parser match cases now retain their pattern as a non-executable expression
+  graph lane. `AstMatchCasePatternFact` is the one HIR projection for scalar
+  integer, `Some(binding)`, and `None` patterns; semantic and MIR consumers do
+  not reparse compact AST or source text.
+- The semantic case environment consumes that fact and the typed match-subject
+  graph. A `Some(v)` arm exposes `v` as the payload of a leaf `Option<T>`
+  subject only inside the enclosing case; malformed patterns or an unresolved
+  subject fail closed.
+- Added `option_match` as DRV-2 MIR fixture 40. The Pergyra producer carries
+  `Some`/`None` variant rows and the `Some` binding row, while the final MIR
+  consumer derives `IsSome(subject)`, `!IsSome(subject)`, and the bounded
+  `UnwrapOption(subject)` initializer from those facts.
+- Focused C-built and LLVM-built drivers matched canonical MIR, emitted C, and
+  runtime output. Removing the carried `Some` binding is rejected by the final
+  consumer. Parser C/LLVM output also remained byte-equal across 188 sources.
+- This closes only leaf-subject `Option<T>` matching with one `Some` binding
+  and zero `None` bindings. Enum variants, complex scrutinees, multiple
+  bindings, and released/default compiler replacement remain open.

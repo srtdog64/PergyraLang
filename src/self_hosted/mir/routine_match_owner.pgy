@@ -1,0 +1,216 @@
+// Bounded scalar/Option match CFG state transformer.
+//
+// The active hard rung accepts one scalar pattern per case plus an optional
+// final default. Match arms carry live exit/version rows to the N-way merge
+// owner. Case shape comes only from the parser-owned expression graph.
+
+import "routine_input_owner.pgy";
+import "routine_build_owner.pgy";
+import "routine_match_merge_owner.pgy";
+import "routine_match_pattern_owner.pgy";
+import "expression_fact_owner.pgy";
+
+func SelfMirMatchCaseFactForNode(
+    ref input: SelfMirRoutineInput,
+    case_node_id: Int
+) -> SelfMirMatchCaseFact {
+    let index_opt: Option<Int> = SemanticAstStatementIndexForNode(
+        input.analysis.statements, case_node_id
+    );
+    if !IsSome(index_opt) { return SelfMirMatchCaseFactInvalid(); }
+    let index: Int = UnwrapOption(index_opt);
+    if input.analysis.statements.kind_tags[index] !=
+        TypedAstKindMatchCaseStmtTag() {
+        return SelfMirMatchCaseFactInvalid();
+    }
+    return SelfMirMatchCaseFactFromArtifact(input.artifact, case_node_id);
+}
+
+func SelfMirMatchCaseSubjectReady(
+    build: SelfMirRoutineBuild,
+    match_value: String,
+    fact: SelfMirMatchCaseFact
+) -> Bool {
+    if fact.variant == "" { return true; }
+    let local_index: Option<Int> = SelfMirRoutineLocalIndex(
+        build, match_value
+    );
+    return IsSome(local_index) && StartsWith(
+        build.local_types[UnwrapOption(local_index)], "Option<"
+    );
+}
+
+func SelfMirLowerMatchCaseBranch(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    match_node_id: Int,
+    match_value: String,
+    fact: SelfMirMatchCaseFact
+) -> SelfMirRoutineBuild {
+    if !SelfMirMatchCaseSubjectReady(build, match_value, fact) {
+        return SelfMirRoutineBuildError(
+            build, "MIR Option match subject type fact is missing"
+        );
+    }
+    build = SelfMirRoutineAddInstruction(
+        build, "branch", "branch", "", "", "", match_value, "",
+        "AST_MATCH_CASE", SelfMirExpressionUses(build, match_value)
+    );
+    build = SelfMirRoutineAttachLastExpressionGraph(
+        build, SemanticAstExpressionGraphForNode(
+            input.analysis.expression_surfaces,
+            match_node_id, AstExpressionLaneAtom()
+        ), input.machine_declaration
+    );
+    if !build.ok { return build; }
+    return SelfMirRoutineAttachLastMatchCase(build, fact);
+}
+
+func SelfMirLowerMatchFromArtifact(
+    ref input: SelfMirRoutineInput,
+    build: SelfMirRoutineBuild,
+    node_id: Int,
+    match_value: String,
+    inout break_blocks: Array<Int>,
+    continue_target: Int
+) -> SelfMirRoutineBuild {
+    let first_child: Option<Int> = TypedAstArenaChildAt(
+        input.artifact.arena, node_id, 0
+    );
+    if match_value == "" || !IsSome(first_child) {
+        return SelfMirRoutineBuildError(
+            build, "MIR match subject or case inventory is missing"
+        );
+    }
+    let entry_versions: Array<Int> =
+        SelfMirLocalVersionsSnapshot(build.local_versions);
+    let arm_exits: Array<Int> = [];
+    let arm_versions: Array<Int> = [];
+    let final_unmatched_block: Int = -1;
+    let case_count: Int = 0;
+    let child_index: Int = 0;
+    let child_opt: Option<Int> = first_child;
+    while IsSome(child_opt) && build.ok {
+        let child_id: Int = UnwrapOption(child_opt);
+        let kind_opt: Option<Int> = TypedAstArenaNodeKind(
+            input.artifact.arena, child_id
+        );
+        if !IsSome(kind_opt) {
+            return SelfMirRoutineBuildError(
+                build, "MIR match child kind is missing"
+            );
+        }
+        let kind: Int = UnwrapOption(kind_opt);
+        let next_child: Option<Int> = TypedAstArenaChildAt(
+            input.artifact.arena, node_id, child_index + 1
+        );
+        if kind == TypedAstKindMatchCaseStmtTag() {
+            let case_fact: SelfMirMatchCaseFact = SelfMirMatchCaseFactForNode(
+                input, child_id
+            );
+            if !case_fact.ok {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match case graph fact is missing"
+                );
+            }
+            let branch_block: Int = build.current_block;
+            build = SelfMirLowerMatchCaseBranch(
+                input, build, node_id, match_value, case_fact
+            );
+            if !build.ok { return build; }
+            let body_opt: Option<Int> = SelfMirControlBodyBlock(
+                input.artifact.arena, child_id
+            );
+            if !IsSome(body_opt) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match case body is missing"
+                );
+            }
+            build = SelfMirRoutineAddBlock(build);
+            let body_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+            build = SelfMirRoutineAtBlock(build, body_block);
+            build = SelfMirRoutineAtLocalVersions(
+                build, SelfMirLocalVersionsSnapshot(entry_versions)
+            );
+            build = SelfMirLowerBlockFromArtifact(
+                input, build, UnwrapOption(body_opt),
+                break_blocks, continue_target
+            );
+            if !build.ok { return build; }
+            let body_exit: Int = build.current_block;
+            if ArrayLength(build.local_versions) <
+                ArrayLength(entry_versions) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match arm local-version cardinality drifted"
+                );
+            }
+            ArrayPush(arm_exits, body_exit);
+            arm_versions = SelfMirMatchArmVersionsAppend(
+                arm_versions, build.local_versions,
+                ArrayLength(entry_versions)
+            );
+            if IsSome(next_child) {
+                build = SelfMirRoutineAddBlock(build);
+                let next_block: Int = SelfMirCfgBlockCount(build.cfg) - 1;
+                build = SelfMirRoutineSetSuccessors(
+                    build, branch_block, body_block, next_block
+                );
+                build = SelfMirRoutineAtBlock(build, next_block);
+                build = SelfMirRoutineAtLocalVersions(
+                    build, SelfMirLocalVersionsSnapshot(entry_versions)
+                );
+            } else {
+                build = SelfMirRoutineSetSuccessors(
+                    build, branch_block, body_block, -1
+                );
+                final_unmatched_block = branch_block;
+            }
+            case_count = case_count + 1;
+        } else if kind == TypedAstKindMatchDefaultStmtTag() {
+            if case_count == 0 || IsSome(next_child) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match default must be final after a case"
+                );
+            }
+            let default_body_opt: Option<Int> = SelfMirControlBodyBlock(
+                input.artifact.arena, child_id
+            );
+            if !IsSome(default_body_opt) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match default body is missing"
+                );
+            }
+            build = SelfMirLowerBlockFromArtifact(
+                input, build, UnwrapOption(default_body_opt),
+                break_blocks, continue_target
+            );
+            if !build.ok { return build; }
+            let default_exit: Int = build.current_block;
+            if ArrayLength(build.local_versions) <
+                ArrayLength(entry_versions) {
+                return SelfMirRoutineBuildError(
+                    build, "MIR match default local-version cardinality drifted"
+                );
+            }
+            ArrayPush(arm_exits, default_exit);
+            arm_versions = SelfMirMatchArmVersionsAppend(
+                arm_versions, build.local_versions,
+                ArrayLength(entry_versions)
+            );
+            final_unmatched_block = -1;
+        } else {
+            return SelfMirRoutineBuildError(
+                build, "MIR match child is neither case nor default"
+            );
+        }
+        child_index = child_index + 1;
+        child_opt = next_child;
+    }
+    if case_count == 0 {
+        return SelfMirRoutineBuildError(build, "MIR match has no cases");
+    }
+    return SelfMirMergeMatchArms(
+        build, arm_exits, arm_versions, entry_versions,
+        final_unmatched_block
+    );
+}

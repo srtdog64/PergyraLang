@@ -6,6 +6,7 @@ import "routine_statement_owner.pgy";
 import "routine_if_owner.pgy";
 import "routine_while_owner.pgy";
 import "routine_for_owner.pgy";
+import "routine_match_owner.pgy";
 
 func SelfMirLowerTrackedStatementFromArtifact(
     ref input: SelfMirRoutineInput,
@@ -89,6 +90,12 @@ func SelfMirLowerTrackedStatementFromArtifact(
     if kind == TypedAstKindForStmtTag() {
         return SelfMirLowerForFromArtifact(
             input, build, node_id, statement_index
+        );
+    }
+    if kind == TypedAstKindMatchStmtTag() {
+        return SelfMirLowerMatchFromArtifact(
+            input, build, node_id, payload,
+            break_blocks, continue_target
         );
     }
     return SelfMirRoutineBuildError(

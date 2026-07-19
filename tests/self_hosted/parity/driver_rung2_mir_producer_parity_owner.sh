@@ -106,6 +106,8 @@ pgy_selfhost_run_driver_rung2_mir_producer_parity() {
                 exit 1
             }
         fi
+        pgy_selfhost_verify_driver_rung2_match \
+            "$backend" "$base" "$self_mir_json" "$driver_bin"
         if [[ "$base" == "param_carriage" ]]; then
             grep -Fq '"name":"pair","type":"Pair","carriage":"readonly-ref","pass":"indirect"' "$self_mir_json" || {
                 echo "[self-host-parity:driver-rung2] $backend readonly-ref aggregate ABI fact drifted" >&2

@@ -1,0 +1,67 @@
+// Canonical bounded match-pattern facts from parser-owned graph rows.
+
+import "ast_text_arena_projection_owner.pgy";
+
+struct AstMatchCasePatternFact {
+    ok: Bool;
+    pattern: String;
+    variant: String;
+    binding: String;
+}
+
+func AstMatchCasePatternFactInvalid() -> AstMatchCasePatternFact {
+    return AstMatchCasePatternFact(false, "", "", "");
+}
+
+func AstMatchCasePatternFactFromArtifact(
+    artifact: AstTreeArtifact,
+    case_node_id: Int
+) -> AstMatchCasePatternFact {
+    if !AstTreeArtifactReady(artifact) || case_node_id < 0 ||
+        case_node_id >= artifact.count || !TypedAstArenaNodeKindIs(
+            artifact.arena, case_node_id, TypedAstKindMatchCaseStmtTag()
+        ) {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let ordinal: Int = 0;
+    let node_id: Int = 0;
+    while node_id < case_node_id {
+        if TypedAstArenaNodeKindIs(
+            artifact.arena, node_id, TypedAstKindMatchCaseStmtTag()
+        ) {
+            ordinal = ordinal + 1;
+        }
+        node_id = node_id + 1;
+    }
+    let rows: AstExpressionGraphRows = artifact.match_pattern_graphs;
+    if ordinal >= ArrayLength(rows.roots) ||
+        rows.root_owner_kinds[ordinal] != TypedAstKindMatchCaseStmtTag() ||
+        rows.root_lanes[ordinal] != AstExpressionLaneAtom() {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let root: Int = rows.roots[ordinal];
+    let root_kind: Int = rows.arena.node_kinds[root];
+    let pattern: String = rows.arena.node_texts[root];
+    if root_kind == AstExpressionNodeIntegerLiteral() {
+        return AstMatchCasePatternFact(true, pattern, "", "");
+    }
+    if root_kind == AstExpressionNodeLeaf() && pattern == "None" {
+        return AstMatchCasePatternFact(true, "None", "None", "");
+    }
+    if root_kind != AstExpressionNodeCallArgument() {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let call: Int = rows.arena.left_children[root];
+    let argument: Int = rows.arena.right_children[root];
+    if rows.arena.node_kinds[call] != AstExpressionNodeCall() ||
+        rows.arena.node_kinds[argument] != AstExpressionNodeLeaf() {
+        return AstMatchCasePatternFactInvalid();
+    }
+    let callee: Int = rows.arena.left_children[call];
+    let binding: String = rows.arena.node_texts[argument];
+    if rows.arena.node_kinds[callee] != AstExpressionNodeLeaf() ||
+        rows.arena.node_texts[callee] != "Some" || binding == "" {
+        return AstMatchCasePatternFactInvalid();
+    }
+    return AstMatchCasePatternFact(true, pattern, "Some", binding);
+}

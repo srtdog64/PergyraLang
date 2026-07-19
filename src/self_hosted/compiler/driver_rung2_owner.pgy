@@ -151,12 +151,15 @@ func DriverRung2MirFixtureRows() -> Array<String> {
         "src/self_hosted/mir_lower/fixture/cast_numeric.pgy",
         "src/self_hosted/codegen/fixture/array_index_assign.pgy",
         "src/self_hosted/mir_lower/fixture/array_literal_assignment.pgy",
-        "src/self_hosted/codegen/fixture/array_return_literal.pgy"
+        "src/self_hosted/codegen/fixture/array_return_literal.pgy",
+        "src/self_hosted/mir_lower/fixture/match_case_int.pgy",
+        "src/self_hosted/mir_lower/fixture/match_case_assign.pgy",
+        "src/self_hosted/mir_lower/fixture/option_match.pgy"
     ];
 }
 
 func DriverRung2ExpectedMirFixtureCount() -> Int {
-    return 37;
+    return 40;
 }
 
 func EmitDriverRung2FixtureManifest() -> Void {

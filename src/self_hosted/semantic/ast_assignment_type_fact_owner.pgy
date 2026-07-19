@@ -4,6 +4,7 @@
 // initializer type facts. Unknown types fail closed; no backend guesses them.
 
 import "ast_assignment_fact_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 import "ast_signature_artifact_match_owner.pgy";
 import "../lib/source_scan_owner.pgy";
 import "ast_expression_environment_owner.pgy";
@@ -184,6 +185,10 @@ func SemanticAstAssignmentTypeFactsFromArtifact(
             assignments.node_ids[i], modes
         ) || !SemanticAstIterationSeedVisibleBindings(
             artifact, statements, iteration_types,
+            assignments.function_node_ids[i], assignments.node_ids[i],
+            names, types, modes
+        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+            artifact, expression_surfaces,
             assignments.function_node_ids[i], assignments.node_ids[i],
             names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {

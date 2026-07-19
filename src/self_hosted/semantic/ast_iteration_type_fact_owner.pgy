@@ -12,6 +12,7 @@ import "ast_expression_surface_fact_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_enum_fact_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 
 struct SemanticAstIterationTypeFacts {
     ok: Bool;
@@ -192,6 +193,10 @@ func SemanticAstIterationTypeFactsFromArtifact(
             statements.node_ids[i], modes
         ) || !SemanticAstIterationSeedVisibleRows(
             artifact, statements, node_ids, binding_types, verified,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types, modes
+        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+            artifact, expression_surfaces,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {

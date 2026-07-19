@@ -7,10 +7,12 @@ import "../lib/path.pgy";
 import "../hir/ast_text_arena_projection_owner.pgy";
 import "cursor_owner.pgy";
 import "decl_dispatch_owner.pgy";
+import "match_pattern_graph_partition_owner.pgy";
 
 struct ParserProgramBuild {
     tree_text: String;
     expression_graphs: AstExpressionGraphRows;
+    match_pattern_graphs: AstExpressionGraphRows;
 }
 
 func ParseProgramBuildWithImportPolicy(
@@ -36,16 +38,22 @@ func ParseProgramBuildWithImportPolicy(
         content, i, cursor, "", false, src_dir, false, follow_imports, "",
         involve_types, import_paths, expression_graphs
     );
-    let graph_rows: AstExpressionGraphRows = expression_graphs[0];
-    if !AstExpressionGraphRowsReady(graph_rows) { Exit(1); }
+    let graph_rows: AstExpressionGraphRows =
+        ParserExpressionGraphsSelectMatchCases(expression_graphs[0], false);
+    let match_pattern_rows: AstExpressionGraphRows =
+        ParserExpressionGraphsSelectMatchCases(expression_graphs[0], true);
+    if !AstExpressionGraphRowsReady(graph_rows) ||
+        !AstExpressionGraphRowsReady(match_pattern_rows) { Exit(1); }
     if StringLength(decls) == 0 {
         let empty_program: String = "Program:";
         return ParserProgramBuild(
-            Concat(empty_program, "\n"), graph_rows
+            Concat(empty_program, "\n"), graph_rows, match_pattern_rows
         );
     }
     let program_text: String = Concat("Program:\n", decls);
-    return ParserProgramBuild(Concat(program_text, "\n"), graph_rows);
+    return ParserProgramBuild(
+        Concat(program_text, "\n"), graph_rows, match_pattern_rows
+    );
 }
 
 func ParseRootProgramBuild(source_path: String) -> ParserProgramBuild {
@@ -61,6 +69,6 @@ func ParseRootProgramArtifact(source_path: String) -> AstTreeArtifact {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(build.tree_text);
     return AstTreeArtifact(
         artifact.tree_text, artifact.arena, artifact.count,
-        build.expression_graphs
+        build.expression_graphs, build.match_pattern_graphs
     );
 }

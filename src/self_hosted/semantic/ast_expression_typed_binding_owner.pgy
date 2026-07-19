@@ -134,7 +134,8 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
         )
     );
     let typed: AstTreeArtifact = AstTreeArtifact(
-        base.tree_text, base.arena, base.count, root_rows
+        base.tree_text, base.arena, base.count, root_rows,
+        AstExpressionGraphRowsEmpty()
     );
     let facts: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(typed);
@@ -160,7 +161,8 @@ func SemanticAstExpressionTypedBindingContractReady() -> Bool {
         )
     );
     let bad: AstTreeArtifact = AstTreeArtifact(
-        base.tree_text, base.arena, base.count, bad_rows
+        base.tree_text, base.arena, base.count, bad_rows,
+        AstExpressionGraphRowsEmpty()
     );
     let malformed: SemanticAstExpressionSurfaceFacts =
         SemanticAstExpressionSurfaceFactsFromTypedArtifact(bad);

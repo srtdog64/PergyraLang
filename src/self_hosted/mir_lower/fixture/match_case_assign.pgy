@@ -1,0 +1,17 @@
+func RunMatch(x: Int) -> Int {
+    let value: Int = 0;
+    match x {
+        case 1: value = 10;
+        case 2: value = 20;
+        case 3: value = 30;
+        default: value = 40;
+    }
+    return value;
+}
+
+func Main() -> Void {
+    Log(RunMatch(1));
+    Log(RunMatch(2));
+    Log(RunMatch(3));
+    Log(RunMatch(4));
+}

@@ -7,6 +7,9 @@ graph -> pgy.mir.v1` producer used by DRV-2.
 - `expression_graph_fact_owner.pgy`: instruction-owned normalized condition
   graph rows. A reachable semantic subtree is carried as one verified
   postorder interval; recursive large-aggregate copy returns are forbidden.
+- `match_fact_owner.pgy`: sparse instruction-keyed match pattern, variant, and
+  binding rows.
+- `match_json_projection_owner.pgy`: match fact projection into MIR JSON.
 - `parallel_capture_fact_owner.pgy`: MIR-owned parallel capture boundary and
   disposition rows; the bounded non-parallel producer emits an explicit empty
   inventory instead of omitting the schema fact.
@@ -19,6 +22,13 @@ graph -> pgy.mir.v1` producer used by DRV-2.
 - `routine_lower_owner.pgy`: `SelfMirRoutineState -> SelfMirRoutineState`
   body lowering; unsupported shapes fail closed without multi-aggregate call
   state.
+- `routine_match_owner.pgy`: bounded scalar case/default CFG lowering; arm
+  exits and local-version rows are passed to the merge owner.
+- `routine_match_pattern_owner.pgy`: consumes the canonical HIR match-pattern
+  fact and projects integer or bounded `Some` / `None` variant and binding rows
+  into MIR. It never reparses pattern text.
+- `routine_match_merge_owner.pgy`: N-way live-predecessor SSA phi ownership for
+  scalar match continuation blocks.
 - `artifact_lower_owner.pgy`: declaration/routine assembly and deterministic
   instruction-ID canonicalization.
 - `program_verify_owner.pgy`: structural range/topology/fact verifier.

@@ -265,7 +265,13 @@ SENTINEL_MAX=0
 # 2087 -> 2074 (2026-07-19): deleting the zero-consumer projection owner
 # removes thirteen unreachable Option occurrences; no live failure path was
 # flattened or replaced with a sentinel.
-RESULT_USE_MIN=2074
+# 2074 -> 2098 (2026-07-19): scalar-match MIR carriage and reconstruction use
+# Option for sparse instruction identity and absent JSON facts.
+# 2098 -> 2105 (2026-07-19): match JSON pattern reads now return Option<String>
+# instead of an empty-string sentinel.
+# 2105 -> 2134 (2026-07-19): parser-owned match pattern graphs carry Option
+# payload bindings through one HIR fact into semantic and MIR consumers.
+RESULT_USE_MIN=2134
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

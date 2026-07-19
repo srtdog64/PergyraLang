@@ -1,0 +1,139 @@
+// MIR phi arity and local-identity verifier.
+
+import "json_fact_read.pgy";
+import "routine_fact_index_owner.pgy";
+
+func MirPhiPredecessorCount(
+    ref index: MirRoutineFactIndex, block_id: Int
+) -> Int {
+    let target: String = ToString(block_id);
+    let count: Int = 0;
+    let row: Int = 0;
+    while row < ArrayLength(index.block_starts) {
+        if index.block_succ_true[row] == target ||
+            index.block_succ_false[row] == target {
+            count = count + 1;
+        }
+        row = row + 1;
+    }
+    return count;
+}
+
+func MirPhiSsaNameMatches(
+    value: String, local_name: String, allow_zero: Bool
+) -> Bool {
+    let prefix: String = Concat(local_name, ".");
+    if StringLength(local_name) == 0 ||
+        StringLength(value) <= StringLength(prefix) ||
+        Substring(value, 0, StringLength(prefix)) != prefix {
+        return false;
+    }
+    let version: String = Substring(
+        value, StringLength(prefix),
+        StringLength(value) - StringLength(prefix)
+    );
+    return (ToInt(version) > 0 || (allow_zero && version == "0")) &&
+        ToString(ToInt(version)) == version;
+}
+
+func MirPhiResultExists(
+    ref index: MirRoutineFactIndex, json: String, wanted: String
+) -> Bool {
+    let block_id: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while block_id < ArrayLength(index.block_starts) {
+        let instruction_row: Int = 0;
+        while MirRoutineFactIndexInstructionBounds(
+            index, index.block_starts[block_id], instruction_row, bounds
+        ) {
+            if MirObjectStringFact(
+                json, bounds[0], bounds[1], "result"
+            ) == wanted {
+                return true;
+            }
+            instruction_row = instruction_row + 1;
+        }
+        block_id = block_id + 1;
+    }
+    return false;
+}
+
+func MirPhiParameterEntryExists(
+    ref index: MirRoutineFactIndex,
+    json: String,
+    local_name: String,
+    wanted: String
+) -> Bool {
+    if wanted != Concat(local_name, ".0") { return false; }
+    let row: Int = 0;
+    let bounds: Array<Int> = [0, 0];
+    while MirObjectArrayObjectBoundsAt(
+        json, index.routine_start, index.routine_end, "params", row, bounds
+    ) {
+        if MirObjectStringFact(
+            json, bounds[0], bounds[1], "name"
+        ) == local_name {
+            return true;
+        }
+        row = row + 1;
+    }
+    return false;
+}
+
+func MirRoutinePhiFactsReady(
+    ref index: MirRoutineFactIndex, json: String
+) -> Bool {
+    if !index.valid { return false; }
+    let block_id: Int = 0;
+    while block_id < ArrayLength(index.block_starts) {
+        let predecessor_count: Int = MirPhiPredecessorCount(index, block_id);
+        let seen_non_phi: Bool = false;
+        let instruction_row: Int = 0;
+        let bounds: Array<Int> = [0, 0];
+        while MirRoutineFactIndexInstructionBounds(
+            index, index.block_starts[block_id], instruction_row, bounds
+        ) {
+            let kind: String = MirObjectStringFact(
+                json, bounds[0], bounds[1], "kind"
+            );
+            if kind == "phi" {
+                if seen_non_phi || predecessor_count < 2 {
+                    return false;
+                }
+                let name: String = MirObjectStringFact(
+                    json, bounds[0], bounds[1], "name"
+                );
+                let result: String = MirObjectStringFact(
+                    json, bounds[0], bounds[1], "result"
+                );
+                let use_count: Int = MirObjectArrayStringFactCount(
+                    json, bounds[0], bounds[1], "uses"
+                );
+                if use_count != predecessor_count ||
+                    !MirPhiSsaNameMatches(result, name, false) {
+                    return false;
+                }
+                let use_i: Int = 0;
+                while use_i < use_count {
+                    let use_name: String = MirObjectArrayStringFactAt(
+                        json, bounds[0], bounds[1], "uses", use_i
+                    );
+                    if use_name == result ||
+                        !MirPhiSsaNameMatches(use_name, name, true) ||
+                        (!MirPhiResultExists(index, json, use_name) &&
+                            !MirPhiParameterEntryExists(
+                                index, json, name, use_name
+                            )) {
+                        return false;
+                    }
+                    use_i = use_i + 1;
+                }
+            } else {
+                seen_non_phi = true;
+            }
+            instruction_row = instruction_row + 1;
+        }
+        block_id = block_id + 1;
+    }
+    return true;
+}

@@ -1,5 +1,29 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: scalar `match` occupies DRV-2 MIR fixtures 38-39. The
+Pergyra producer lowers semantic statement-owned subject/pattern facts into an
+eight-block case/default CFG, carries each case through
+`SelfMirMatchFactRows`, and projects `match_patterns` without reopening source
+or AST text. The MIR consumer derives reconstructed `x == pattern` expression
+graphs from the carried subject graph plus pattern fact. C-built and LLVM-built
+focused drivers matched canonical MIR, emitted C, and native runtime output;
+deleting the first pattern is rejected by the final MIR consumer and by the
+instruction verifier contract. The merge block is emitted last, and the fixture
+executes case 1/2/3 plus default before requiring one post-match continuation
+on every path. This closes bounded integer single-pattern match with a final
+default. `match_case_assign` also proves N-way SSA merge ownership: all four
+live arm versions enter one phi and C/LLVM-built producers return 10/20/30/40.
+The final MIR consumer also compares phi arity with indexed CFG predecessors;
+deleting one arm input now fails before structured C can hide the loss.
+Fixture 40 adds bounded `Option<T>` variant/binding carriage. Parser-owned
+pattern graphs project through one HIR fact; `Some(v)` seeds a case-local
+payload binding for a leaf `Option<T>` subject, and MIR carries exact `Some` /
+`None` variant plus binding rows. The final consumer derives `IsSome`, logical
+not, and `UnwrapOption` graphs from those facts. Focused C/LLVM canonical MIR,
+emitted C, and runtime parity passed, while deleting the `Some` binding fails
+closed. Enum variants, complex scrutinees, and multiple bindings remain out of
+the bounded rung; released/default compiler replacement remains 0%.
+
 2026-07-19 executable delta: initializer scalar typing no longer reprojects
 member/index/call text after the parser graph verdict. A negative contract
 keeps `box.value` as the initializer spelling while changing only its internal
@@ -16,9 +40,9 @@ scrutinee instead of calling `SemanticProjectionExpressionType`. A negative
 contract preserves `box.value` at the source/root spelling but changes the
 member-name child to `missing`; both C- and LLVM-built semantic checkers reject
 the row. Parser C/LLVM output remained byte-equal for 188 sources and semantic
-C/LLVM verdict parity passed 111 fixtures. `match_case_int` is not in the
-37-row DRV-2 producer frontier, so this delta does not claim self-produced MIR
-match substitution or whole-compiler completion.
+C/LLVM verdict parity passed 111 fixtures. This semantic-only step did not by
+itself claim MIR substitution; the later fixture-38 entry above records the
+separate executable producer/consumer rung.
 
 2026-07-19 executable delta: assignment target and RHS scalar typing now
 consume parser-owned expression graph handles. The target owner derives the

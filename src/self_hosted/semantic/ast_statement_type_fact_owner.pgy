@@ -10,6 +10,7 @@ import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "collection_mutation_policy_owner.pgy";
+import "ast_match_binding_environment_owner.pgy";
 
 struct SemanticAstStatementTypeFacts {
     ok: Bool;
@@ -160,6 +161,10 @@ func SemanticAstStatementTypeFactsFromArtifact(
             statements.node_ids[i], modes
         ) || !SemanticAstIterationSeedVisibleBindings(
             artifact, statements, iteration_types,
+            statements.function_node_ids[i], statements.node_ids[i],
+            names, types, modes
+        ) || !SemanticAstExpressionSeedVisibleMatchBindings(
+            artifact, expression_surfaces,
             statements.function_node_ids[i], statements.node_ids[i],
             names, types, modes
         ) || ArrayLength(names) != ArrayLength(modes) {

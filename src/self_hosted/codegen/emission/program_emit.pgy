@@ -190,7 +190,8 @@ func CheckCUnit(tree_text: String, require_entrypoint: Bool) -> Bool {
     }
     let arena: AstArena = CodegenAstTextTypedArenaFromNodes(nodes, count);
     let artifact: AstTreeArtifact = AstTreeArtifact(
-        tree_text, arena, count, AstExpressionGraphRowsEmpty()
+        tree_text, arena, count, AstExpressionGraphRowsEmpty(),
+        AstExpressionGraphRowsEmpty()
     );
     let semantic_analysis: SemanticAstArtifactAnalysis =
         SemanticAstArtifactAnalyzeCompactBridge(
