@@ -273,8 +273,8 @@ SENTINEL_MAX=0
 # payload bindings through one HIR fact into semantic and MIR consumers.
 RESULT_USE_MIN=2134
 COMPILER_WORLD_SURFACE_MIN=1
-COMPILER_RESOURCE_ZONES_EXACT=19
-COMPILER_WORLD_MEMBERS_EXACT=19
+COMPILER_RESOURCE_ZONES_EXACT=18
+COMPILER_WORLD_MEMBERS_EXACT=18
 COMPILER_INTENT_SURFACE_MIN=14
 COMPILER_ZONE_BOUND_STEPS_MIN=28
 COMPILER_STAGE_BINDINGS_EXACT=5
@@ -531,7 +531,6 @@ if [ "$typed_ast_contract" -lt "$TYPED_AST_CONTRACT_MIN" ]; then
     fail "typed_ast_contract is $typed_ast_contract (< $TYPED_AST_CONTRACT_MIN). Hard self-host needs a typed AST arena owner, not only AST text bridge owners."
 fi
 
-require_compiler_world_zone "compiler" "SelfHostCompiler"
 require_compiler_world_zone "source_intake" "SourceIntakeZone"
 require_compiler_world_zone "tokens" "TokenStreamZone"
 require_compiler_world_zone "ast" "AstTreeZone"

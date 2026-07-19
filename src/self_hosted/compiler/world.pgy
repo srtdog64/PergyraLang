@@ -247,46 +247,7 @@ zone ParityZone {
     authority oracle requires ParityJudging
 }
 
-zone SelfHostCompiler {
-    subject slot source: SourceUnit
-    subject slot lexer: LexerStage
-    subject slot parser: ParserStage
-    subject slot checker: SemanticStage
-    subject slot lowerer: MirLowerStage
-    subject slot emitter: ProgramEmitter
-    subject slot target_planner: TargetProjectionPlanner
-    subject slot compatibility_owner: CompatibilityEvolutionOwner
-    subject slot evidence_owner: AirEvidenceOwner
-    subject slot sandbox_owner: SandboxCapabilityOwner
-    subject slot symbol_owner: SymbolTableOwner
-    subject slot abi_projector: AbiRowProjector
-    subject slot artifact_sink: ArtifactSink
-    subject slot harness_runner: TestHarnessRunner
-    subject slot subprocess_runner: SubprocessRunner
-    subject slot oracle: OraclePair
-    object slot paths: StagePathManifest
-    object slot source_batch: SourceBatch
-    object slot tokens: TokenStream
-    object slot ast: AstTree
-    object slot semantic: SemanticVerdict
-    object slot mir: MirFactGraph
-    object slot type_env: TypeEnvironment
-    object slot abi_layout: AbiLayoutFacts
-    object slot target_capability: TargetCapabilityEnvelope
-    object slot compatibility: CompatibilityEvolutionFacts
-    object slot air_evidence: AirEvidenceFacts
-    object slot sandbox_capability: SandboxCapabilityFacts
-    object slot symbols: SymbolFactTable
-    object slot abi_rows: AbiLayoutRows
-    object slot c_output: EmittedC
-    object slot artifacts: ArtifactEvidence
-    object slot harness: TestHarnessFacts
-    object slot subprocess: SubprocessCapabilityEnvelope
-    tobject slot parity: ParityVerdict
-}
-
 world PgyCompilerWorld {
-    zone compiler: SelfHostCompiler
     zone source_intake: SourceIntakeZone
     zone tokens: TokenStreamZone
     zone ast: AstTreeZone
@@ -514,7 +475,6 @@ intent ProveSelfHostedParity(parity_zone: ParityZone, oracle: OraclePair) {
 }
 
 intent CompilePergyraProgram(
-    compiler: SelfHostCompiler,
     intake: SourceIntakeZone,
     tokens: TokenStreamZone,
     ast: AstTreeZone,

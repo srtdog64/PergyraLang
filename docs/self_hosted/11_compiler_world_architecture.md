@@ -13,10 +13,12 @@ resource zones own isolated compiler resources; the world owns the user-visible
 compiler flow.
 
 - `src/self_hosted/compiler/world.pgy` names the hard-substitution world.
-- `PgyCompilerWorld` contains the compiler zone and the derived resource zones.
+- `PgyCompilerWorld` contains the resource zones directly.
 - `CompilePergyraProgram` is the root compiler intent.
-- `SelfHostCompiler` is the closed compiler state for one source unit plus its
-  C/LLVM oracle pair.
+- No aggregate compiler zone mirrors those resources. The former
+  `SelfHostCompiler` aggregate duplicated every stage actor and artifact type
+  already owned by the resource zones, while its root-intent parameter was
+  unused; it is forbidden by the compiler-world gate.
 - `ProgramEmitter` is the current C-emission participant that drives writes
   into `EmissionZone`; it is not a resource zone.
 - `SourceIntakeZone`, `TokenStreamZone`, `AstTreeZone`,
@@ -50,6 +52,30 @@ compiler flow.
 This is not a claim that the released compiler is self-hosted. It is a shape
 constraint: new hard-substitution work should plug into `PgyCompilerWorld`
 instead of growing a second C-style tree.
+
+## Recursive Topology Rule
+
+The compiler is self-similar by contract, not by a numeric line-count ratio.
+Every scale repeats the same directed shape:
+
+```text
+resource zone -> intent transition -> typed owner fact -> final consumer
+              -> verifier -> missing/corrupt-fact negative gate
+```
+
+The root world composes resource zones through the four named stage-intent
+clusters. A stage cluster composes owner-directed actions. A leaf owner
+projects one stable fact to its last legitimate consumer, where a negative
+gate prevents source text, AST text, JSON text, or backend-local recovery.
+Adding nested `world`, `zone`, or `intent` syntax without a new owned resource
+does not increase Pergyra-likeness.
+
+The language-wide carriage decision remains positional by default. Compiler
+zones therefore stay explicit parameters at the orchestration boundary;
+packing them into a value-typed stage bundle would hide the boundary and reopen
+the value-carriage decision. Only a separately approved zone-bound handle may
+make that transition. The balance target is one owner and one visible path,
+not the literal golden ratio and not a shorter signature at any semantic cost.
 
 ## Zone Rule
 
@@ -141,6 +167,13 @@ the docs, owner manifest, and Makefile wiring still name `PgyCompilerWorld`.
 It also executes the Pergyra path projection and fails if the shell manifest
 drifts from `path_manifest_owner.pgy`. The same smoke is called by
 `make self-host-preparation-test-smoke`.
+
+For the owner-edit loop, `tests/self_host_compiler_topology_smoke.sh` checks the
+root world, exact resource-zone membership, four derived stage clusters,
+aggregate-zone prohibition, and this recursive-topology contract in one small
+pass. `PGY_SELFHOST_COMPILER_WORLD_TOPOLOGY_ONLY=1` selects it through the full
+gate entrypoint. The default gate remains the complete owner, artifact, path,
+and AST check required at integration boundaries.
 
 ## Growth Rule
 

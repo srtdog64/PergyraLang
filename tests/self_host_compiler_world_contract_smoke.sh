@@ -59,6 +59,11 @@ source "$ROOT_DIR/tests/self_hosted/compiler_world_manifest.sh"
 source "$ROOT_DIR/tests/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
+bash "$ROOT_DIR/tests/self_host_compiler_topology_smoke.sh"
+if [[ "${PGY_SELFHOST_COMPILER_WORLD_TOPOLOGY_ONLY:-0}" == "1" ]]; then
+    exit 0
+fi
+
 require_file "src/self_hosted/compiler/README.md"
 require_file "src/self_hosted/compiler/world.pgy"
 require_file "src/self_hosted/compiler/path_manifest_owner.pgy"
@@ -296,7 +301,6 @@ done
 
 for term in \
     "world PgyCompilerWorld" \
-    "zone SelfHostCompiler" \
     "zone SourceIntakeZone" \
     "zone TokenStreamZone" \
     "zone AstTreeZone" \
@@ -393,29 +397,41 @@ for term in \
     "object TestHarnessFacts" \
     "object SubprocessCapabilityEnvelope" \
     "tobject ParityVerdict" \
+    "subject slot source: SourceUnit" \
+    "object slot paths: StagePathManifest" \
+    "object slot imports: SourceBatch" \
     "subject slot lexer: LexerStage" \
+    "object slot tokens: TokenStream" \
     "subject slot parser: ParserStage" \
+    "object slot ast: AstTree" \
     "subject slot checker: SemanticStage" \
+    "object slot verdict: SemanticVerdict" \
     "subject slot lowerer: MirLowerStage" \
-    "subject slot emitter: ProgramEmitter" \
-    "object slot abi_layout: AbiLayoutFacts" \
-    "object slot target_capability: TargetCapabilityEnvelope" \
-    "object slot sandbox_capability: SandboxCapabilityFacts" \
-    "object slot compatibility: CompatibilityEvolutionFacts" \
-    "object slot air_evidence: AirEvidenceFacts" \
-    "object slot symbols: SymbolFactTable" \
-    "object slot abi_rows: AbiLayoutRows" \
-    "object slot artifacts: ArtifactEvidence" \
-    "object slot harness: TestHarnessFacts" \
-    "object slot subprocess: SubprocessCapabilityEnvelope" \
+    "object slot mir: MirFactGraph" \
+    "object slot bindings: TypeEnvironment" \
     "object slot layouts: AbiLayoutFacts" \
+    "subject slot planner: TargetProjectionPlanner" \
     "object slot envelope: TargetCapabilityEnvelope" \
+    "subject slot owner: SandboxCapabilityOwner" \
     "object slot facts: SandboxCapabilityFacts" \
+    "subject slot owner: CompatibilityEvolutionOwner" \
     "object slot facts: CompatibilityEvolutionFacts" \
+    "subject slot owner: AirEvidenceOwner" \
     "object slot facts: AirEvidenceFacts" \
+    "subject slot owner: SymbolTableOwner" \
     "object slot symbols: SymbolFactTable" \
+    "subject slot projector: AbiRowProjector" \
     "object slot rows: AbiLayoutRows" \
+    "subject slot emitter: ProgramEmitter" \
+    "object slot c_output: EmittedC" \
+    "subject slot sink: ArtifactSink" \
     "object slot evidence: ArtifactEvidence" \
+    "subject slot runner: TestHarnessRunner" \
+    "object slot facts: TestHarnessFacts" \
+    "subject slot runner: SubprocessRunner" \
+    "object slot envelope: SubprocessCapabilityEnvelope" \
+    "subject slot oracle: OraclePair" \
+    "tobject slot verdict: ParityVerdict" \
     "zone abi_layout: AbiLayoutZone" \
     "zone target_capability: TargetCapabilityZone" \
     "zone sandbox_capability: SandboxCapabilityZone" \
@@ -972,6 +988,13 @@ for term in \
 done
 
 for term in \
+    "zone SelfHostCompiler" \
+    "compiler: SelfHostCompiler" \
+    "zone compiler: SelfHostCompiler"; do
+    forbid_text "src/self_hosted/compiler/world.pgy" "$term"
+done
+
+for term in \
     "zone ProgramEmitZone" \
     "zone FunctionEmitZone" \
     "zone StmtEmitZone" \
@@ -1216,8 +1239,9 @@ grep -Fq "Intent: FrontendPipeline" "$ast_out" ||
     fail "compiler world AST missing FrontendPipeline intent"
 grep -Fq "Intent: BackendPipeline" "$ast_out" ||
     fail "compiler world AST missing BackendPipeline intent"
-grep -Fq "Zone: SelfHostCompiler" "$ast_out" ||
-    fail "compiler world AST missing SelfHostCompiler zone"
+if grep -Fq "Zone: SelfHostCompiler" "$ast_out"; then
+    fail "compiler world AST reopened the duplicate SelfHostCompiler aggregate"
+fi
 grep -Fq "Zone: TokenStreamZone" "$ast_out" ||
     fail "compiler world AST missing TokenStreamZone zone"
 grep -Fq "Zone: TypeEnvZone" "$ast_out" ||

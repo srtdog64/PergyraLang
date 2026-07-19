@@ -155,6 +155,11 @@ facts from shell scripts, emitted text, or backend-local fallbacks.
 compose existing resource zones. They are not new zones and must not hide stage
 facts or parity policy.
 
+`PgyCompilerWorld` is the sole resource topology. Do not add an aggregate
+compiler zone that repeats the actors and artifact types already owned by its
+member zones. Stage clusters preserve positional zone carriage; a shorter
+value bundle is not a substitute for a visible authority/resource boundary.
+
 ## Pergyra-Style Check
 
 A self-hosted compiler slice is accepted only when it reads as a Pergyra
