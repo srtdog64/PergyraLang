@@ -3455,16 +3455,22 @@ require_max_lines "src/self_hosted/mir/generic_specialization_owner.pgy" 220
 require_file "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy"
 require_max_lines "src/self_hosted/mir/generic_specialization_json_projection_owner.pgy" 100
 require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"generic_method_specializations"'
+reject_text "src/self_hosted/mir/json_projection_owner.pgy" \
     '"generic_specializations"'
 require_file "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy"
 require_max_lines "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" 420
+require_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
+    '"generic_method_specializations"'
+reject_text "src/self_hosted/mir_lower/generic_specialization_fact_owner.pgy" \
+    '"generic_specializations"'
 reject_file "src/self_hosted/mir/generic_method_specialization_owner.pgy"
 reject_file "src/self_hosted/mir/generic_method_specialization_json_projection_owner.pgy"
 reject_file "src/self_hosted/mir_lower/generic_method_specialization_fact_owner.pgy"
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "MirCodegenGenericSpecializationFacts("
 require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
-    '"generic_specializations_missing":'
+    '"generic_method_specializations_missing":'
 require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \
     'missing MIR generic method row was accepted'
 require_text "tests/self_hosted/parity/driver_rung2_generic_member_specialization_parity_owner.sh" \

@@ -2589,7 +2589,7 @@ machine-layer-manifest-test-smoke: $(MACHINE_LAYER_MANIFEST_TEST)
 verification-methodology-test-smoke:
 	"$(BASH)" tests/verification_methodology_smoke.sh
 
-proof-spine-test-smoke: protocol-registry-test-smoke
+proof-spine-test-smoke:
 	"$(BASH)" tests/proof_spine_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
@@ -2599,8 +2599,7 @@ sot-authority-adequacy-test-smoke:
 
 sot-authority-edge-test-smoke:
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
-
-protocol-registry-test-smoke:
+	"$(BASH)" tests/gate_sot_single_owner_smoke.sh
 	"$(BASH)" tests/protocol_registry_smoke.sh
 
 self-host-preparation-test-smoke: self-host-preparation-contract-test-smoke self-host-preparation-parity-test-smoke
@@ -2618,7 +2617,6 @@ self-host-preparation-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_substitution_velocity_smoke.sh
 	"$(BASH)" tests/sot_authority_adequacy_smoke.sh
 	"$(BASH)" tests/sot_authority_edge_smoke.sh
-	"$(BASH)" tests/protocol_registry_smoke.sh
 	"$(BASH)" tests/self_host_pergyra_likeness_smoke.sh
 	"$(BASH)" tests/self_host_text_builder_emission_smoke.sh
 	"$(BASH)" tests/self_host_source_scan_owner_smoke.sh

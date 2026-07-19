@@ -5,8 +5,25 @@ Status: `ACTIVE`
 This document is the architectural index for source-of-truth gates. It does
 not own compiler facts or executable gate rows. Fact authority remains in
 `docs/semantics/sot_owner_spine_registry.md`; executable dashboard identity,
-tier, budget, and Make targets live in the Pergyra owner
+tier, budget, and Make targets live in the **single Gate SoT**
 `src/self_hosted/compiler/gate_dashboard_owner.pgy`.
+
+## 0. Single Gate SoT rule
+
+`src/self_hosted/compiler/gate_dashboard_owner.pgy` is the only authority for
+gate identity, Make target, tier, budget, declared state, blocking policy, and
+owner-fact binding. Every other gate-related file is one of:
+
+- a validator (`scripts/sot_registry_gate.py`,
+  `scripts/protocol_registry_gate.py`);
+- an execution consumer (`Makefile`, shell smoke/parity scripts);
+- a result or golden projection (`src/self_hosted/tools/gate_dashboard/`);
+- an architectural explanation (this document and related docs).
+
+The protocol crosswalk and its single-owner check run as subchecks of
+`sot-authority-edge-test-smoke`; they must not become additional dashboard gate
+IDs or a second gate manifest. A copied gate list, status count, tier, budget,
+or current health summary is a Gate SoT violation.
 
 ## 1. Objective Card
 
@@ -40,7 +57,7 @@ coverage are compared to the registry at execution time.
 
 | Gate | Cost budget | State | What failure means |
 |---|---:|---|---|
-| `make sot-authority-edge-test-smoke` | 60 s | LANDED | duplicate producer, unclassified fact owner, stale derived row, registry/Coq drift, forbidden layer input, or a CLOSED consumer reopened a named fallback |
+| `make sot-authority-edge-test-smoke` | 60 s | LANDED | duplicate producer, unclassified fact owner, stale derived row, registry/Coq drift, single-Gate-SoT drift, protocol-crosswalk drift, forbidden layer input, or a CLOSED consumer reopened a named fallback |
 | `make sot-authority-adequacy-test-smoke` | 60 s | LANDED, bounded | current typed-expression owner/source bindings or their negative source mutations drifted; this is not whole-compiler extraction evidence |
 | `make self-host-codegen-assignment-projection-parity-test-smoke` | 5 min | LANDED, focused | semantic assignment target/expected type is missing, guessed, or differs across C/LLVM projection |
 | `make self-host-initializer-projection-parity-test-smoke` | 5 min | LANDED, focused | semantic initializer row/type is missing, a graph-owned concrete scalar tree or resolved direct/namespace/receiver target is recovered from source text, or C/LLVM MIR projection differs |
@@ -104,9 +121,11 @@ named fallback absent
 negative gate prevents reintroduction
 ```
 
-The current registry contains 36 authority rows and 11 explicitly derived
-self-host fact carriers. Status is `CLOSED=16 BRIDGE=11 ACTIVE=10` after the
-call-target identity rung changed that evidence.
+The current authority-row count and status are owned by
+`docs/semantics/sot_owner_spine_registry.md` and validated by
+`scripts/sot_registry_gate.py`. This catalog deliberately does not repeat the
+numbers; historical counts in older completion logs are not current gate
+state.
 
 `selfhost.assignment_type_verdict` reached `CLOSED` on 2026-07-15. The
 semantic body-type bundle is produced once per driver path, transferred through

@@ -77,10 +77,12 @@ This is why SoT closure stalls even when individual parity tests pass:
    driver/LSP and full semantic/MIR replacement remain partial. Therefore the
    protocol can be wired for a rung without being globally self-hosted.
 
-The registry gate checks only this crosswalk's integrity: unique IDs, explicit
-version/gap markers, valid owner references, existing source paths, and
-non-empty failure/gate references. It deliberately does not replace the
-ABI, MIR, machine-layer, LSP, or SoT authority gates named in each row.
+The registry validator checks only this crosswalk's integrity: unique IDs,
+explicit version/gap markers, valid owner references, existing source paths,
+and non-empty failure/gate references. It is a subcheck of the canonical
+`sot-authority-edge-test-smoke`; it is not a second Gate SoT or dashboard row.
+It deliberately does not replace the ABI, MIR, machine-layer, LSP, or SoT
+authority gates named in each row.
 
 Related source-of-truth and status documents:
 

@@ -17,6 +17,9 @@ The canonical manifest has no file input. Optional result input must use the
 
 - `compiler/gate_dashboard_owner.pgy` owns gate identity, Make target, tier,
   time budget, declared state, blocking policy, and related owner fact.
+- It is the only Gate SoT. No shell script, golden JSON, result TSV, or
+  architectural document may define a second gate list, status, tier, budget,
+  or current-health authority.
 - `result_owner.pgy` validates the runner artifact. Unknown IDs, duplicate IDs,
   malformed rows, and invalid durations fail closed.
 - `report_owner.pgy` owns stable JSON projection and summary derivation.

@@ -93,8 +93,8 @@ run_dashboard() {
             { echo "[$LABEL] missing Make target: $make_target" >&2; exit 1; }
         row_count=$((row_count + 1))
     done <"$manifest"
-    [[ "$row_count" -eq 12 ]] ||
-        { echo "[$LABEL] expected 12 manifest rows, got $row_count" >&2; exit 1; }
+    [[ "$row_count" -gt 0 ]] ||
+        { echo "[$LABEL] canonical manifest emitted no gate rows" >&2; exit 1; }
 
     local fixture fixture_rel diagnostic rc
     for fixture in "$UNKNOWN_RESULTS" "$DUPLICATE_RESULTS"; do

@@ -28,7 +28,7 @@ func MirGenericSpecializationTable(
 ) -> JsonArrayObjectFactTable {
     let root: JsonObjectFactTable = JsonDocumentObjectFactTable(json);
     return JsonObjectFactArrayObjectTable(
-        root, "generic_specializations"
+        root, "generic_method_specializations"
     );
 }
 

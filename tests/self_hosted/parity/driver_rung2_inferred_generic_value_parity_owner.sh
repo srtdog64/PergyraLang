@@ -25,7 +25,7 @@ pgy_selfhost_verify_driver_rung2_inferred_generic_value() {
     }
     missing_rows="${self_mir_json%.json}.missing-generic-rows.mir.json"
     pgy_replace_first_literal "$self_mir_json" "$missing_rows" \
-        '"generic_specializations":' '"generic_specializations_missing":'
+        '"generic_method_specializations":' '"generic_method_specializations_missing":'
     if (cd "$ROOT_DIR" && "$driver_bin" --mir-json \
         "$(pgy_selfhost_path_relative_to_root "$missing_rows")" \
         >"$missing_rows.out" 2>"$missing_rows.err"); then

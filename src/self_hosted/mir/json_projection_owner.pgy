@@ -589,7 +589,7 @@ func SelfMirProgramJson(facts: SelfMirProgramFacts) -> String {
         JsonEmitFieldString("schema", "pgy.mir.v1"),
         JsonEmitFieldRaw("decls", JsonEmitArray(declarations)),
         JsonEmitFieldRaw(
-            "generic_specializations",
+            "generic_method_specializations",
             JsonEmitArray(generic_specializations)
         ),
         JsonEmitFieldRaw(
