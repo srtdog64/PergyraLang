@@ -1,5 +1,15 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: `match` scrutinees now enter the parser-owned
+Atom graph lane. Statement typing consumes that root and rejects an unresolved
+scrutinee instead of calling `SemanticProjectionExpressionType`. A negative
+contract preserves `box.value` at the source/root spelling but changes the
+member-name child to `missing`; both C- and LLVM-built semantic checkers reject
+the row. Parser C/LLVM output remained byte-equal for 188 sources and semantic
+C/LLVM verdict parity passed 111 fixtures. `match_case_int` is not in the
+37-row DRV-2 producer frontier, so this delta does not claim self-produced MIR
+match substitution or whole-compiler completion.
+
 2026-07-19 executable delta: assignment target and RHS scalar typing now
 consume parser-owned expression graph handles. The target owner derives the
 binding root and, for indexed writes, the collection base and index roots from

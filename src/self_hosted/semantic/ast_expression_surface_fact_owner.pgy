@@ -98,6 +98,8 @@ func SemanticAstExpressionGraphAtomLaneRequired(
         artifact.arena, node_id, TypedAstKindBareCallStmtTag()
     ) || TypedAstArenaNodeKindIs(
         artifact.arena, node_id, TypedAstKindAssignStmtTag()
+    ) || TypedAstArenaNodeKindIs(
+        artifact.arena, node_id, TypedAstKindMatchStmtTag()
     );
 }
 

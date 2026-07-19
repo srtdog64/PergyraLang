@@ -6,7 +6,6 @@ import "ast_expression_environment_owner.pgy";
 import "ast_expression_verdict_owner.pgy";
 import "ast_initializer_type_fact_owner.pgy";
 import "ast_iteration_type_fact_owner.pgy";
-import "projection_type_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
@@ -230,18 +229,16 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     inferred = UnwrapOption(enum_type);
                 }
             }
-            if expression_verdict.ok &&
-                (inferred == "Unknown" || inferred == "") {
-                let member_type: Option<String> =
-                    SemanticProjectionExpressionType(
-                        statements.payload_texts[i], constructors,
-                        names, types, modes,
-                        function_names, function_returns, function_params
-                    );
-                if IsSome(member_type) {
-                    inferred = UnwrapOption(member_type);
-                }
-            }
+        }
+        if row_verified == 1 && kind == TypedAstKindMatchStmtTag() &&
+            (inferred == "Unknown" || inferred == "") {
+            row_verified = 0;
+            row_code = "statement_type_unresolved";
+            row_message = SemanticError2(
+                "statement_type_unresolved",
+                "node_id", ToString(statements.node_ids[i]),
+                "payload", statements.payload_texts[i]
+            );
         }
         if row_verified == 1 &&
             (kind == TypedAstKindArrayPopStmtTag() ||

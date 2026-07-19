@@ -22,7 +22,18 @@ func ParseMatchStmt(
     //       Block:                   (+4)
     //         <body stmt at +6>
     ArraySet(cursor_out, 0, i);
-    let scrut: String = ParseExpr(content, i, cursor_out);
+    let scrutinee: ParserExpressionFact = ParseExprFact(
+        content, i, cursor_out
+    );
+    if !scrutinee.ok { Exit(1); }
+    ArraySet(
+        expression_graphs, 0,
+        ParserExpressionGraphsAppend(
+            expression_graphs[0], TypedAstKindMatchStmtTag(),
+            AstExpressionLaneAtom(), scrutinee
+        )
+    );
+    let scrut: String = scrutinee.text;
     i = cursor_out[0];
     i = Expect(content, i, "{");
     if i < 0 {

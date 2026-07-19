@@ -86,7 +86,8 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/parser/stmt_collection_graph_owner.pgy` -- parser-owned
   `ArrayPush` value and `ArraySet` index/value expression-graph roots.
 - `src/self_hosted/parser/stmt_loop_owner.pgy` -- loop statements.
-- `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements.
+- `src/self_hosted/parser/stmt_match_owner.pgy` -- match statements and their
+  parser-owned scrutinee Atom graph roots.
 - `src/self_hosted/parser/stmt_owner.pgy` -- statement dispatch.
 - `src/self_hosted/parser/stmt_parallel_owner.pgy` -- parallel/async statements.
 - `src/self_hosted/parser/tree_text_owner.pgy` -- compact AST text rendering
@@ -201,9 +202,12 @@ inventory must not become a second fact-family owner registry.
 - `src/self_hosted/semantic/ast_expression_graph_view_owner.pgy` -- borrowed
   expression graph root handles over artifact-bound semantic surface facts.
 - `src/self_hosted/semantic/ast_statement_type_fact_owner.pgy` -- fail-closed
-  return, condition, call, and statement expression type verdict rows.
+  return, condition, call, match-scrutinee, and statement expression type
+  verdict rows; graph-owned statement expressions cannot reopen projection
+  text.
 - `src/self_hosted/semantic/ast_statement_type_contract_owner.pgy` -- executable
-  statement-type contracts, including graph-owned `Exit(Int)` validation.
+  statement-type contracts, including graph-owned `Exit(Int)`, collection
+  mutation, and match-scrutinee validation.
 - `src/self_hosted/semantic/ast_statement_type_query_owner.pgy` -- stable
   node-handle lookup for verified statement result-type rows.
 - `src/self_hosted/semantic/ast_body_verdict_owner.pgy` -- document-order body

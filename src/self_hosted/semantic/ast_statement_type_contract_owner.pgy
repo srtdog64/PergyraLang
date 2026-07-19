@@ -86,6 +86,66 @@ func SemanticAstCollectionStatementGraphContractReady() -> Bool {
             "call_arg_type_mismatch";
 }
 
+func SemanticAstMatchStatementGraphContractReady() -> Bool {
+    let artifact: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Struct: Box\n    Fields:\n      value: Int\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: box : Box = Box(1)\n        Match: box.value\n          Case: 1\n            Block:\n              Return: 1\n"
+    );
+    let signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(artifact);
+    let constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(artifact);
+    let locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(artifact, signatures);
+    let surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(artifact);
+    let initializers: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, surfaces
+        );
+    let statements: SemanticAstStatementFacts =
+        SemanticAstStatementFactsFromArtifact(artifact, signatures);
+    let iterations: SemanticAstIterationTypeFacts =
+        SemanticAstIterationTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, initializers,
+            statements, surfaces
+        );
+    let valid: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, initializers,
+            surfaces, iterations, statements
+        );
+    if !valid.ok || !SemanticAstStatementTypesAllVerified(valid) {
+        return false;
+    }
+    let match_node_id: Int = -1;
+    let i: Int = 0;
+    while i < ArrayLength(statements.node_ids) {
+        if statements.kind_tags[i] == TypedAstKindMatchStmtTag() {
+            match_node_id = statements.node_ids[i];
+        }
+        i = i + 1;
+    }
+    let match_root: Option<Int> = SemanticAstExpressionGraphRootForNode(
+        surfaces, match_node_id, AstExpressionLaneAtom()
+    );
+    if !IsSome(match_root) { return false; }
+    let member_name_node: Option<Int> = SemanticExpressionGraphRightChild(
+        surfaces.expression_graph, UnwrapOption(match_root)
+    );
+    if !IsSome(member_name_node) { return false; }
+    surfaces.expression_graph.arena.node_texts[
+        UnwrapOption(member_name_node)
+    ] = "missing";
+    let drifted: SemanticAstStatementTypeFacts =
+        SemanticAstStatementTypeFactsFromArtifact(
+            artifact, signatures, constructors, locals, initializers,
+            surfaces, iterations, statements
+        );
+    return drifted.ok && !SemanticAstStatementTypesAllVerified(drifted) &&
+        SemanticAstStatementFirstDiagnosticCode(drifted) ==
+            "statement_type_unresolved";
+}
+
 func SemanticAstStatementTypeFactsContractReady() -> Bool {
     let valid: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Function: Main\n    Parameters:\n    Returns: Int\n    Body:\n      Block:\n        Let: x : Int = 1\n        If: x > 0\n          Then:\n            Block:\n              Log(x)\n        Match: x\n          Case: 1\n            Block:\n              Log(x)\n        Return: x\n"
@@ -120,5 +180,6 @@ func SemanticAstStatementTypeFactsContractReady() -> Bool {
         bad_exit_facts.inferred_type_names[0] == "String" &&
         SemanticAstStatementFirstDiagnosticCode(bad_exit_facts) ==
             "call_arg_type_mismatch" &&
-        SemanticAstCollectionStatementGraphContractReady();
+        SemanticAstCollectionStatementGraphContractReady() &&
+        SemanticAstMatchStatementGraphContractReady();
 }

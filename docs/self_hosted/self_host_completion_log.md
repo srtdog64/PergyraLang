@@ -8069,3 +8069,19 @@ Released/default replacement remains 0%.
   `indexed_assignment` MIR fixture. Existing missing-target-graph rejection
   remained green. This is one assignment-type authority closure, not a claim
   of released/default or whole-compiler self-host completion.
+
+### 2026-07-19 -- Match scrutinee typing consumes the parser graph
+
+- `ParseMatchStmt` now parses the scrutinee as a `ParserExpressionFact` and
+  attaches it to the Match statement's Atom lane without changing AST text.
+- Statement typing requires that graph and treats an unresolved match
+  scrutinee as `statement_type_unresolved`. Its final
+  `SemanticProjectionExpressionType` fallback and import were deleted and are
+  blocked by the component contract.
+- A graph-only mutation keeps `box.value` as the visible expression while
+  changing the member-name child to `missing`; the C- and LLVM-built semantic
+  checkers both reject it.
+- Parser C/LLVM parity remained byte-equal across 188 sources, and semantic
+  C/LLVM parity passed 111 fixtures. `match_case_int` is not in the 37-row
+  DRV-2 producer frontier, so self-produced MIR match substitution remains
+  unclaimed.

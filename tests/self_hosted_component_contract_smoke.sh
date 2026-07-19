@@ -3019,8 +3019,16 @@ require_text "src/self_hosted/semantic/projection_type_owner.pgy" \
     "func SemanticProjectionSegmentEnd"
 require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
-require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" \
+    'import "projection_type_owner.pgy";'
+require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
+    "TypedAstKindMatchStmtTag()"
+require_text "src/self_hosted/parser/stmt_match_owner.pgy" \
+    "AstExpressionLaneAtom(), scrutinee"
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    "func SemanticAstMatchStatementGraphContractReady"
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \
     "SemanticProjectionExpressionType("
 reject_text "src/self_hosted/semantic/ast_assignment_type_fact_owner.pgy" \

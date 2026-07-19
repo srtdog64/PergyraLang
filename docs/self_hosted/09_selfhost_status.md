@@ -107,6 +107,10 @@ subset.
   target/value graphs. The assignment owner is ratcheted against reopening
   `SemanticProjectionExpressionType`; changing only an internal member-name
   graph node fails closed while source spelling remains unchanged.
+- Match scrutinees now use the parser-owned Atom graph as well. Statement
+  typing rejects an unresolved scrutinee and cannot recover member types from
+  projection text. This is parser/semantic C/LLVM evidence; match is not yet a
+  member of the hard DRV-2 source-to-MIR producer frontier.
 - MIR surface validation no longer reopens source payloads. Payload presence is
   checked through source-shape predicates, and thread-pool / intent
   observability surface-usage validation consumes MIR `expr0` / `expr1` facts.
