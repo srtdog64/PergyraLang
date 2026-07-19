@@ -25,6 +25,7 @@ not own status, decisions, or completion claims.
 | [`180_compiler_logical_spine_handles_gates.md`](180_compiler_logical_spine_handles_gates.md) | Current/target compiler graph, stable handle spine, movable ownership boundaries, migration protocol, and gate map |
 | [`184_legacy_slot_interprocedural_hash_lookup.md`](184_legacy_slot_interprocedural_hash_lookup.md) | Legacy slot interprocedural root cause, host-index and demanded-summary closure, measured self-host effect, research basis, and symbol-sparsification next rung |
 | [`185_sot_gate_catalog.md`](185_sot_gate_catalog.md) | Canonical SoT gate inventory, authority-edge rules, execution budgets, closure evidence, and next executable migrations |
+| [`191_memory_safety_adversarial_corpus.md`](191_memory_safety_adversarial_corpus.md) | UAF, dangling, stale-handle, borrow-escape, concurrency, FFI, and sandbox adversarial corpus with separated semantic and sanitizer oracle roles |
 | [`152_validation_isolation_policy.md`](152_validation_isolation_policy.md) | Validation isolation policy: owner-impact decision, CI failure classification, and when not to run unrelated gates |
 | [`133_beta_completed_closure_archive.md`](133_beta_completed_closure_archive.md) | Completed beta-closure evidence moved out of the active checklist |
 | [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |
@@ -119,6 +120,7 @@ not own status, decisions, or completion claims.
 | [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md) | Current `.inc` cleanup ledger |
 | [`known_bug_if_call_assign_then_let_then_if.md`](known_bug_if_call_assign_then_let_then_if.md) | Open lowering bug: outer call assignment inside `if` can be dropped in a narrow CFG shape |
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
+| [`191_memory_safety_adversarial_corpus.md`](191_memory_safety_adversarial_corpus.md) | Executable memory-safety corpus and hard self-host/bootstrap substitution contract |
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
 | [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |
 | [`136_abi_niche_and_explicit_layout.md`](136_abi_niche_and_explicit_layout.md) | ABI niche optimization and explicit layout policy: current tagged Option ABI, future proof gates, and raw/extern-only layout scope |

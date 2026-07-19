@@ -30,6 +30,23 @@ jobs:
         # runner into another compiler worker pool.
         run: make PGY_BACKEND_COMPARE_JOBS=1 ci-linux
 
+  sanitizers-linux:
+    runs-on: ubuntu-latest
+    # This is a separate bounded job: memory instrumentation must not lengthen
+    # the already broad build-linux critical path or turn a UAF into a 60-minute
+    # timeout. The intentional C witness first proves that ASan is actually live.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make
+
+      - name: Calibrate ASan and run the bounded compiler battery
+        run: make LLVM_ENABLED=0 PGY_ASAN_CASES=40 test-asan
+
   self-host-parity-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 40

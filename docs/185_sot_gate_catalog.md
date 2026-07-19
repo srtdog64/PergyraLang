@@ -312,9 +312,16 @@ Campaign-close status (2026-07-18):
   scope-owned `Symbol *`. `dir-resource-flow-identity-test-smoke` forbids
   the old pointer cache and requires the nested-block regression; the
   semantic ASan/UBSan battery executes the block-teardown UAF shape.
-- ✅ **ASan and `.bc`-on Linux CI** (commit `72421388`): the sanitizer unit
-  battery and a runtime-bitcode-enabled backend comparison are explicit
-  Linux steps. Missing sanitizer support fails rather than self-skipping.
+- ✅ **ASan and `.bc`-on Linux CI** (commit `72421388`, strengthened by
+  `sanitizers-linux`): the sanitizer unit battery and a runtime-bitcode-enabled
+  backend comparison are explicit Linux steps. The separate bounded sanitizer
+  job first runs an intentional heap-UAF calibration witness, so missing or
+  ineffective sanitizer support fails rather than producing false confidence.
+- ✅ **Adversarial memory corpus**: `pgy.memory-adversarial.v1` inventories
+  source rejection, MIR/runtime guards, sanitizer witnesses, and named open
+  residues. `memory-adversarial-catalog-test-smoke` forbids undefined C
+  execution from becoming a semantic oracle and rejects closure rows without a
+  live fixture and Makefile gate.
 
 Genuine residues (workstream-scale or runner-gated, not forgotten):
 

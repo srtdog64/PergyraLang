@@ -25,6 +25,13 @@ defect. Scratch batches and persistent graph objects have different lifetimes.
 The defect is an allocation whose owner, transfer point, or destruction rule
 changes outside the API that owns that lifetime class.
 
+The executable adversarial inventory is
+[`191_memory_safety_adversarial_corpus.md`](191_memory_safety_adversarial_corpus.md)
+and `tests/cases/memory_adversarial/manifest.tsv`. The manifest distinguishes
+semantic/MIR verdict owners from runtime guards and sanitizer witnesses. C
+execution is not a semantic oracle for use-after-free or other undefined
+behavior; ASan/UBSan can witness a defect but cannot define the language result.
+
 ## 1. Closed And Gated
 
 | Risk | Current contract | Gate |
@@ -272,6 +279,9 @@ When touching code that returns or stores a pointer:
 4. If it is a scratch pointer, prove it cannot be cached or returned.
 5. If it depends on pointer arithmetic, use subtract-form range checks or
    overflow-checked size arithmetic before deriving the pointer.
+6. Add a stable adversarial-corpus row when the bug class affects source,
+   compiler, runtime, FFI, or sandbox lifetime. Mark general residues `PARTIAL`
+   or `OPEN`; a clean sanitizer run alone cannot close a semantic row.
 
 ## 4. Current Priority
 

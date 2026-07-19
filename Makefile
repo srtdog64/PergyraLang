@@ -2154,7 +2154,10 @@ c-backend-tmpfile-test-smoke: $(PGY)
 #     destroy the ASTs they build -- and are not a property of the compiler.)
 # LLVM_ENABLED=0: the LLVM leg needs llvm-c headers the sanitizer host may not
 # have. The frontend and the C backend, where the allocations live, are covered.
-test-asan:
+asan-uaf-witness-test-smoke:
+	CC="$(CC)" "$(BASH)" tests/asan_uaf_witness_smoke.sh
+
+test-asan: asan-uaf-witness-test-smoke
 	@echo "=== Sanitizer gate: ASan + UBSan ($(PGY_SANITIZERS)) ==="
 	$(MAKE) SANITIZE=1 \
 	        LLVM_ENABLED=0 \
@@ -2758,6 +2761,7 @@ self-host-source-scan-owner-test-smoke:
 	"$(BASH)" tests/self_host_source_scan_owner_smoke.sh
 
 .PHONY: self-host-source-scan-owner-test-smoke
+.PHONY: asan-uaf-witness-test-smoke memory-adversarial-catalog-test-smoke
 
 self-host-driver-bootstrap-test-smoke: self-host-codegen-bootstrap-seed-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/self_hosted/parity/driver_bootstrap.sh
@@ -2997,7 +3001,11 @@ memory-string-safety-test-smoke:
 
 security-portability-contract-test-smoke: $(PGY)
 	"$(BASH)" tests/security_portability_contract_smoke.sh
+	"$(BASH)" tests/memory_adversarial_catalog_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/semantic_termination_security_smoke.sh
+
+memory-adversarial-catalog-test-smoke:
+	"$(BASH)" tests/memory_adversarial_catalog_smoke.sh
 
 llvm-campaign-projection-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
