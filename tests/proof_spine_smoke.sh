@@ -50,6 +50,9 @@ for rel in \
     docs/semantics/proofs/ProofCarryingIR.v \
     docs/semantics/proofs/VerificationMethodology.v \
     docs/semantics/proofs/SoTAuthority.v \
+    docs/semantics/proofs/ParallelSchedulingCore.v \
+    docs/semantics/proofs/ParallelReductionCore.v \
+    docs/semantics/proofs/ParallelModelCores.md \
     docs/semantics/sot_owner_spine_registry.md \
     docs/semantics/proofs/ProofSpine.v \
     docs/semantics/proofs/ProofSpine.md \
@@ -113,6 +116,13 @@ require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_spine_auth
 require_text "docs/semantics/proofs/SoTAuthority.v" "Theorem declared_owner_does_not_imply_rung_closed"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SFMachineLayerTransition"
 require_text "docs/semantics/proofs/SoTAuthority.v" "SOMachineLayer"
+require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem help_first_progress"
+require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem park_only_deadlocks"
+require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem cyclic_await_deadlocks"
+require_text "docs/semantics/proofs/ParallelSchedulingCore.v" "Theorem help_in_cyclic_wait_self_deadlocks"
+require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_schedule_invariant"
+require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem chunk_tiles"
+require_text "docs/semantics/proofs/ParallelReductionCore.v" "Theorem join_chunk_count_invariant"
 require_text "docs/semantics/sot_owner_spine_registry.md" "CLOSED=21 BRIDGE=17 ACTIVE=0"
 require_text "docs/semantics/sot_owner_spine_registry.md" "docs/semantics/proofs/ResourceMachineBridge.v"
 require_text "docs/semantics/sot_owner_spine_registry.md" "resource_identity_as_machine_address"
@@ -145,6 +155,9 @@ for term in \
     "Theorem complete_spine_connects_methodology" \
     "NodeSoTAuthority" \
     "Theorem complete_spine_connects_sot_authority" \
+    "NodeParallelSchedulingCore" \
+    "NodeParallelReductionCore" \
+    "Theorem complete_spine_connects_parallel_progress" \
     "Theorem complete_spine_is_not_whole_language_verification" \
     "Theorem whole_language_ready_requires_pin_exceptional_cleanup" \
     "Theorem whole_language_ready_requires_parser_to_ast_manifest" \

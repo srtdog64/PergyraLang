@@ -1029,7 +1029,9 @@ docs/semantics/proofs/OptionTry.v \
 docs/semantics/proofs/GenericAxisCarriage.v \
 docs/semantics/proofs/ReadingConfluence.v \
 docs/semantics/proofs/BinaryAdequacy.v \
-docs/semantics/proofs/GuardWitnessBinding.v"
+docs/semantics/proofs/GuardWitnessBinding.v \
+docs/semantics/proofs/ParallelSchedulingCore.v \
+docs/semantics/proofs/ParallelReductionCore.v"
 
 # Inventory: every proof on disk must be registered above, or it silently never
 # gets machine-checked.

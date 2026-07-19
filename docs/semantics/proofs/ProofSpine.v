@@ -41,7 +41,9 @@ Inductive ProofNode : Type :=
   | NodeAuthorityIrreducibility
   | NodeProofCarryingIR
   | NodeVerificationMethodology
-  | NodeSoTAuthority.
+  | NodeSoTAuthority
+  | NodeParallelSchedulingCore
+  | NodeParallelReductionCore.
 
 Inductive SpineClaim : Type :=
   | RuntimeSafetyConnected
@@ -54,6 +56,7 @@ Inductive SpineClaim : Type :=
   | CertificatePipelineConnected
   | VerificationMethodologyConnected
   | SoTAuthorityConnected
+  | ParallelProgressConnected
   | WholeLanguageVerified.
 
 Inductive RemainingObligation : Type :=
@@ -94,7 +97,9 @@ Definition ProofSpineComplete (s : ProofNode -> Prop) : Prop :=
   HasNode s NodeAuthorityIrreducibility /\
   HasNode s NodeProofCarryingIR /\
   HasNode s NodeVerificationMethodology /\
-  HasNode s NodeSoTAuthority.
+  HasNode s NodeSoTAuthority /\
+  HasNode s NodeParallelSchedulingCore /\
+  HasNode s NodeParallelReductionCore.
 
 Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
   match c with
@@ -145,6 +150,15 @@ Definition PermitsClaim (s : ProofNode -> Prop) (c : SpineClaim) : Prop :=
       HasNode s NodeVerificationMethodology
   | SoTAuthorityConnected =>
       HasNode s NodeSoTAuthority
+  (* Parallel execution is safe only if all three hold at once: the scheduler
+     always has a step (no deadlock), the join is schedule- and worker-count
+     invariant (no nondeterminism), and concurrent slot access is
+     aliasing-xor-mutable (no data race). Any two without the third is a
+     different, weaker claim. *)
+  | ParallelProgressConnected =>
+      HasNode s NodeParallelSchedulingCore /\
+      HasNode s NodeParallelReductionCore /\
+      HasNode s NodeWitnessDataRace
   | WholeLanguageVerified => False
   end.
 
@@ -255,6 +269,14 @@ Proof.
   intros s Hcomplete.
   unfold PermitsClaim.
   apply complete_spine_has_node. exact Hcomplete.
+Qed.
+
+Theorem complete_spine_connects_parallel_progress :
+  forall s, ProofSpineComplete s -> PermitsClaim s ParallelProgressConnected.
+Proof.
+  intros s Hcomplete.
+  unfold PermitsClaim.
+  repeat split; apply complete_spine_has_node; exact Hcomplete.
 Qed.
 
 Theorem complete_spine_is_not_whole_language_verification :

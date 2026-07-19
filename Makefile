@@ -3033,9 +3033,16 @@ formal-semantics-test-smoke: machine-layer-core-test-smoke machine-layer-pipelin
 	"$(BASH)" tests/judgment_diagnostic_adequacy_smoke.sh
 	"$(BASH)" tests/ast_to_mir_loss_contract_smoke.sh
 	"$(BASH)" tests/loss_contract_adequacy_smoke.sh
+	"$(BASH)" tests/parallel_model_adequacy_smoke.sh
 
 machine-layer-core-test-smoke:
 	"$(BASH)" tests/machine_layer_core_smoke.sh
+
+# Keeps ParallelSchedulingCore.v / ParallelReductionCore.v describing the
+# runtime they were transcribed from: coq_kernel_check.sh proves the theorems,
+# this proves they are still about our code.
+parallel-model-adequacy-test-smoke:
+	"$(BASH)" tests/parallel_model_adequacy_smoke.sh
 
 machine-layer-pipeline-test-smoke: $(PGY) machine-layer-manifest-test-smoke self-host-mir-machine-layer-test-smoke
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/machine_layer_pipeline_smoke.sh
@@ -3461,7 +3468,7 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
 .PHONY: boundary-migration-test-smoke
 .PHONY: stable-identity-test-smoke
 .PHONY: semantic-declaration-identity-test-smoke
-.PHONY: hir-routine-identity-test-smoke dir-domain-identity-test-smoke verified-projection-plan-test-smoke artifact-zone-plan-identity-test-smoke target-capability-test-smoke machine-layer-manifest-test-smoke machine-layer-core-test-smoke machine-layer-pipeline-test-smoke
+.PHONY: hir-routine-identity-test-smoke dir-domain-identity-test-smoke verified-projection-plan-test-smoke artifact-zone-plan-identity-test-smoke target-capability-test-smoke machine-layer-manifest-test-smoke machine-layer-core-test-smoke machine-layer-pipeline-test-smoke parallel-model-adequacy-test-smoke
 .PHONY: lexer-token-stream-anchor-test-smoke source-module-graph-test-smoke iteration-type-fact-test-smoke compatibility-evolution-native-test-smoke
 .PHONY: self-host-preparation-impact-test-smoke self-host-preparation-impact-changed-paths-test-smoke
 .PHONY: machine-neutral-status air-erasure-gate border-registry-test-smoke axis-carriage-probe-test-smoke generic-axis-matrix-test-smoke generic-falsification-test-smoke generic-nested-failclosed-test-smoke text-builder-owner-test-smoke axis-composition-test-smoke sandbox-symlink-nofollow-test-smoke
