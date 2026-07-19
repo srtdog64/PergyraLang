@@ -53,16 +53,32 @@ for required in \
     'self-host-bootstrap-linux:' \
     'self-host-codegen-bootstrap-linux:' \
     'timeout-minutes: 40' \
+    'timeout-minutes: 60' \
     'timeout-minutes: 30' \
     'run: make self-host-preparation-exhaustive-parity-test-smoke' \
     'run: make self-host-codegen-bootstrap-test-smoke' \
-    'run: make self-host-driver-bootstrap-test-smoke' \
+    'make self-host-driver-bootstrap-full-test-smoke' \
+    'bash tests/selfhost_bootstrap_policy_corpus_smoke.sh' \
     'cancel-in-progress: true'; do
     if ! grep -Fq "$required" "$WORKFLOW"; then
         echo "[self-host-ci-profile] dedicated Linux proof job missing: $required" >&2
         exit 1
     fi
 done
+
+bootstrap_job="$(
+    sed -n \
+        '/^  self-host-bootstrap-linux:/,/^  self-host-codegen-bootstrap-linux:/p' \
+        "$WORKFLOW"
+)"
+if grep -Fq 'make self-host-driver-bootstrap-test-smoke' <<<"$bootstrap_job"; then
+    echo "[self-host-ci-profile] bounded-only bootstrap command reopened in the full fixed-point job" >&2
+    exit 1
+fi
+if grep -Fq 'self-host-fixpoint-linux:' "$WORKFLOW"; then
+    echo "[self-host-ci-profile] duplicate full fixed-point job reintroduced" >&2
+    exit 1
+fi
 
 exhaustive_recipe="$(
     sed -n \
