@@ -149,6 +149,14 @@ partition expressions verbatim, the help-first consult-then-park shape of
 count rather than the chunk count. If any of those change, the gate fails
 instead of the proofs quietly going stale.
 
+**Adjacent, not the same thing.** `src/self_hosted/parallel/lane_policy_owner.pgy`
+owns which *lane* a concurrency site's evidence permits; this file proves what
+the await policies feeding those lanes guarantee once a task is running. The
+two meet at the spawn-tree hypothesis: the join lane satisfies it and can use
+help-first, a channel wait does not and needs compensation. That owner also
+declares which lanes codegen can currently reach, which is the honest bound on
+how much of the classification is live today.
+
 **Not established.** These are scheduling and reduction models, not a memory
 model — no atomics, no happens-before, no C11 ordering; `push` abstracts a real
 clock. Progress means "some rule applies", i.e. absence of deadlock, not
