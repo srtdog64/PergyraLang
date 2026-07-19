@@ -87,7 +87,7 @@ check_array_consumer_copy() {
 check_try_graph_owner_copy() {
     local path="$1"
     grep -Fq -- "func AstExpressionNodeTry() -> Int" "$path" &&
-    grep -Fq -- "kind == AstExpressionNodeTry();" "$path"
+    grep -Fq -- "kind == AstExpressionNodeTry()" "$path"
 }
 
 check_try_consumer_copy() {

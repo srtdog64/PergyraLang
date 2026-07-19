@@ -620,6 +620,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/function_param_flow_fact_snapshot.c \
                    $(SEMANTIC_DIR)/function_param_flow_store_destroy.c \
                    $(SEMANTIC_DIR)/iteration_type_fact.c \
+                   $(SEMANTIC_DIR)/destructure_type_fact.c \
                    $(SEMANTIC_DIR)/lifecycle_state.c \
                    $(SEMANTIC_DIR)/lifecycle_analyze.c \
                    $(SEMANTIC_DIR)/capability_analyze.c \
@@ -911,6 +912,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_hir_block_projection.c \
                    $(COMPILER_DIR)/mir_hir_fact_transfer.c \
                    $(COMPILER_DIR)/mir_iteration_type_facts.c \
+                   $(COMPILER_DIR)/mir_destructure_type_facts.c \
                    $(COMPILER_DIR)/mir_timing.c \
                    $(COMPILER_DIR)/mir_parallel_capture_facts.c \
                    $(COMPILER_DIR)/mir_generic_method_specialization.c \
@@ -995,6 +997,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_type_helpers.c \
                    $(COMPILER_DIR)/hir.c \
                    $(COMPILER_DIR)/hir_iteration_flow_facts.c \
+                   $(COMPILER_DIR)/hir_destructure_type_facts.c \
                    $(COMPILER_DIR)/hir_routines.c \
                    $(COMPILER_DIR)/hir_destroy.c \
                    $(COMPILER_DIR)/hir_public.c \
@@ -1405,8 +1408,10 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o \
                    $(BUILD_DIR)/compiler/hir_routine_cfg.o \
                    $(BUILD_DIR)/compiler/hir_callgraph.o \
+                   $(BUILD_DIR)/compiler/hir_semantic_fact_projection.o \
                    $(BUILD_DIR)/compiler/hir.o \
                    $(BUILD_DIR)/compiler/hir_iteration_flow_facts.o \
+                   $(BUILD_DIR)/compiler/hir_destructure_type_facts.o \
                    $(BUILD_DIR)/compiler/hir_routines.o \
                    $(BUILD_DIR)/compiler/hir_destroy.o \
                    $(BUILD_DIR)/compiler/hir_public.o \
@@ -1455,6 +1460,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_source_node_name.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_iteration_type_facts.o \
+                   $(BUILD_DIR)/compiler/mir_destructure_type_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_type_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_binding_facts.o \
                    $(BUILD_DIR)/compiler/mir_source_local_expr_call_facts.o \
@@ -1489,6 +1495,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_hir_block_projection.o \
                    $(BUILD_DIR)/compiler/mir_hir_fact_transfer.o \
                    $(BUILD_DIR)/compiler/mir_iteration_type_facts.o \
+                   $(BUILD_DIR)/compiler/mir_destructure_type_facts.o \
                    $(BUILD_DIR)/compiler/mir_json_dump_flow.o \
                    $(BUILD_DIR)/compiler/mir_timing.o \
                    $(BUILD_DIR)/compiler/mir_parallel_capture_facts.o \
@@ -2107,6 +2114,7 @@ test-rir: $(RIR_TEST)
 test-mir: $(MIR_TEST) $(PGY)
 	@echo "=== MIR Test ==="
 	$(call pgy_run_native,$(MIR_TEST))
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/destructure_type_fact_smoke.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/mir_speculation_fact_smoke.sh
 
 test-hir: $(HIR_TEST)

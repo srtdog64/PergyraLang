@@ -600,6 +600,7 @@ mir_json_emit_routine(FILE *out, const MIRRoutine *routine)
     mir_json_emit_resource_flow_symbols(out, routine);
     mir_json_emit_loop_flow_facts(out, routine);
     mir_json_emit_iteration_type_facts(out, routine);
+    mir_json_emit_destructure_type_facts(out, routine);
     fputs(",\"blocks\":[", out);
     for (size_t j = 0;
          j < routine->block_count && routine->blocks != NULL; j++) {

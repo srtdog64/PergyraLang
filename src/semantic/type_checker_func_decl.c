@@ -566,7 +566,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->in_async_func = prev_async;
     ctx->current_module_path = prev_module_path;
     free(param_types);
-    if (!resource_flow_universe_capture_function_facts(
+    /* Only executable functions own an HIR routine consumer.  Contract-only
+     * declarations still receive signature checking above, but their
+     * function-local ResourceFlowUniverse must not be materialized into the
+     * program snapshot: no HIR routine exists to consume that row. */
+    if (ast_func_body(node) != NULL &&
+        !resource_flow_universe_capture_function_facts(
             ctx, ast_node_stable_id(node))) {
         semantic_error(ctx, node,
             "ResourceFlowUniverse fact snapshot allocation failed");

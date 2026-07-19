@@ -137,9 +137,14 @@ hir_attach_resource_flow_facts(HIRProgram *hir,
             break;
         }
         if (!matched) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup(
-                    "ResourceFlowUniverse fact references an unknown HIR routine");
+            if (error_message != NULL) {
+                char detail[128];
+                (void) snprintf(
+                    detail, sizeof(detail),
+                    "ResourceFlowUniverse fact references an unknown HIR routine (function_syntax_id=%u)",
+                    facts[i].function_syntax_id);
+                *error_message = pergyra_strdup(detail);
+            }
             return false;
         }
     }

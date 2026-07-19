@@ -9,6 +9,7 @@
 #include "mir_decl_headers.h"
 #include "mir_source_local_expr_types.h"
 #include "mir_source_local_type_shape.h"
+#include "mir_destructure_type_facts.h"
 #include "../parser/ast_api.h"
 #include "mir_type_helpers.h"
 
@@ -377,29 +378,21 @@ mir_source_local_type_capture_node(const MIRProgram *program,
                 ast_let_initializer(node)));
     }
     case AST_LET_DESTRUCTURE: {
-        MIRSourceLocalTypeScratch scratch = { 0 };
-        char element_type[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
-        const char *initializer_type = mir_source_local_expr_type_name(
-            program, routine, &scratch,
-            ast_let_destructure_initializer(node));
         size_t name_count = ast_let_destructure_name_count(node);
-        size_t tuple_arity = 0;
+        uint32_t destructure_id = ast_node_stable_id(node);
 
-        if (initializer_type == NULL || name_count == 0)
+        if (destructure_id == 0 || name_count == 0)
             return false;
         for (size_t i = 0; i < name_count; i++) {
-            bool has_element = mir_source_local_unwrap_array_or_slice_type(
-                initializer_type, element_type, sizeof(element_type));
-            if (!has_element) {
-                has_element = mir_source_local_tuple_element_type(
-                    initializer_type, i, element_type,
-                    sizeof(element_type), &tuple_arity);
-                if (!has_element || tuple_arity != name_count)
-                    return false;
-            }
+            const MIRDestructureTypeFact *fact =
+                mir_routine_destructure_type_fact(routine, destructure_id, i);
+            if (fact == NULL || fact->binding_count != name_count
+                || fact->binding_type_name == NULL)
+                return false;
             if (!mir_source_local_type_append_name(
                     program, routine,
-                    ast_let_destructure_name(node, i), element_type)) {
+                    ast_let_destructure_name(node, i),
+                    fact->binding_type_name)) {
                 return false;
             }
         }

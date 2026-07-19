@@ -1,0 +1,195 @@
+// Routine-level semantic destructure type facts carried by self-host MIR.
+//
+// The semantic local-binding and initializer owners are the only producers of
+// these rows.  MIR records the joined fact; it never re-infers an element type
+// from initializer text or from the source AST.
+
+import "../semantic/ast_artifact_verdict_owner.pgy";
+import "../semantic/ast_initializer_type_fact_owner.pgy";
+
+struct SelfMirDestructureTypeFactRows {
+    routine_starts: Array<Int>;
+    routine_counts: Array<Int>;
+    function_syntax_ids: Array<Int>;
+    destructure_syntax_ids: Array<Int>;
+    binding_indices: Array<Int>;
+    binding_counts: Array<Int>;
+    binding_types: Array<String>;
+}
+
+func SelfMirDestructureTypeFactRowsEmpty() -> SelfMirDestructureTypeFactRows {
+    let ints: Array<Int> = [];
+    let strings: Array<String> = [];
+    return SelfMirDestructureTypeFactRows(
+        ints, ints, ints, ints, ints, ints, strings
+    );
+}
+
+func SelfMirDestructureTypeFactsReadyForRoutine(
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    function_node_id: Int
+) -> Bool {
+    let local_count: Int = SemanticAstLocalBindingCount(
+        analysis.local_bindings
+    );
+    if SemanticAstInitializerTypeCount(initializer_types) != local_count {
+        return false;
+    }
+    let i: Int = 0;
+    while i < local_count {
+        if analysis.local_bindings.function_node_ids[i] == function_node_id &&
+            analysis.local_bindings.binding_kinds[i] ==
+                SemanticAstLocalBindingKindDestructure() {
+            if initializer_types.node_ids[i] !=
+                    analysis.local_bindings.node_ids[i] ||
+                initializer_types.binding_kinds[i] !=
+                    analysis.local_bindings.binding_kinds[i] ||
+                initializer_types.binding_indices[i] !=
+                    analysis.local_bindings.binding_indices[i] ||
+                initializer_types.verified[i] != 1 ||
+                initializer_types.inferred_type_names[i] == "" ||
+                initializer_types.inferred_type_names[i] == "Unknown" ||
+                analysis.local_bindings.binding_indices[i] < 0 ||
+                analysis.local_bindings.binding_arities[i] <= 0 {
+                return false;
+            }
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func SelfMirDestructureTypeFactRowsAppendRoutine(
+    rows: SelfMirDestructureTypeFactRows,
+    analysis: SemanticAstArtifactAnalysis,
+    initializer_types: SemanticAstInitializerTypeFacts,
+    function_node_id: Int
+) -> SelfMirDestructureTypeFactRows {
+    let routine_starts: Array<Int> = rows.routine_starts;
+    let routine_counts: Array<Int> = rows.routine_counts;
+    let function_syntax_ids: Array<Int> = rows.function_syntax_ids;
+    let destructure_syntax_ids: Array<Int> = rows.destructure_syntax_ids;
+    let binding_indices: Array<Int> = rows.binding_indices;
+    let binding_counts: Array<Int> = rows.binding_counts;
+    let binding_types: Array<String> = rows.binding_types;
+    ArrayPush(routine_starts, ArrayLength(function_syntax_ids));
+    let routine_count: Int = 0;
+    let i: Int = 0;
+    while i < SemanticAstLocalBindingCount(analysis.local_bindings) {
+        if analysis.local_bindings.function_node_ids[i] == function_node_id &&
+            analysis.local_bindings.binding_kinds[i] ==
+                SemanticAstLocalBindingKindDestructure() {
+            ArrayPush(function_syntax_ids, function_node_id);
+            ArrayPush(
+                destructure_syntax_ids,
+                analysis.local_bindings.node_ids[i]
+            );
+            ArrayPush(
+                binding_indices,
+                analysis.local_bindings.binding_indices[i]
+            );
+            ArrayPush(
+                binding_counts,
+                analysis.local_bindings.binding_arities[i]
+            );
+            ArrayPush(binding_types, initializer_types.inferred_type_names[i]);
+            routine_count = routine_count + 1;
+        }
+        i = i + 1;
+    }
+    ArrayPush(routine_counts, routine_count);
+    return SelfMirDestructureTypeFactRows(
+        routine_starts, routine_counts, function_syntax_ids,
+        destructure_syntax_ids, binding_indices, binding_counts, binding_types
+    );
+}
+
+func SelfMirDestructureTypeFactRowsValidationError(
+    rows: SelfMirDestructureTypeFactRows,
+    routine_count: Int
+) -> String {
+    if routine_count < 0 ||
+        ArrayLength(rows.routine_starts) != routine_count ||
+        ArrayLength(rows.routine_counts) != routine_count ||
+        ArrayLength(rows.function_syntax_ids) !=
+            ArrayLength(rows.destructure_syntax_ids) ||
+        ArrayLength(rows.function_syntax_ids) !=
+            ArrayLength(rows.binding_indices) ||
+        ArrayLength(rows.function_syntax_ids) !=
+            ArrayLength(rows.binding_counts) ||
+        ArrayLength(rows.function_syntax_ids) !=
+            ArrayLength(rows.binding_types) {
+        return "destructure type fact parallel rows differ";
+    }
+    let cursor: Int = 0;
+    let routine_i: Int = 0;
+    while routine_i < routine_count {
+        if rows.routine_starts[routine_i] != cursor ||
+            rows.routine_counts[routine_i] < 0 ||
+            cursor + rows.routine_counts[routine_i] >
+                ArrayLength(rows.function_syntax_ids) {
+            return "destructure type fact routine range is invalid";
+        }
+        let row_i: Int = 0;
+        while row_i < rows.routine_counts[routine_i] {
+            let row: Int = cursor + row_i;
+            if rows.function_syntax_ids[row] < 0 ||
+                rows.destructure_syntax_ids[row] < 0 ||
+                rows.binding_indices[row] < 0 ||
+                rows.binding_indices[row] >= rows.binding_counts[row] ||
+                rows.binding_counts[row] <= 0 ||
+                rows.binding_types[row] == "" ||
+                rows.binding_types[row] == "Unknown" {
+                return "destructure type fact payload is invalid";
+            }
+            let prior_i: Int = 0;
+            while prior_i < row_i {
+                let prior: Int = cursor + prior_i;
+                if rows.destructure_syntax_ids[prior] ==
+                        rows.destructure_syntax_ids[row] &&
+                    rows.binding_indices[prior] == rows.binding_indices[row] {
+                    return "destructure type fact identity is duplicated";
+                }
+                prior_i = prior_i + 1;
+            }
+            row_i = row_i + 1;
+        }
+        cursor = cursor + rows.routine_counts[routine_i];
+        routine_i = routine_i + 1;
+    }
+    if cursor != ArrayLength(rows.function_syntax_ids) {
+        return "destructure type fact payload has orphan rows";
+    }
+    return "";
+}
+
+func SelfMirDestructureTypeFactRowsReady(
+    rows: SelfMirDestructureTypeFactRows,
+    routine_count: Int
+) -> Bool {
+    return SelfMirDestructureTypeFactRowsValidationError(
+        rows, routine_count
+    ) == "";
+}
+
+func SelfMirDestructureTypeFactRowsContractReady() -> Bool {
+    let valid: SelfMirDestructureTypeFactRows =
+        SelfMirDestructureTypeFactRows(
+            [0], [2], [10, 10], [20, 20], [0, 1], [2, 2],
+            ["Int", "String"]
+        );
+    let out_of_range: SelfMirDestructureTypeFactRows =
+        SelfMirDestructureTypeFactRows(
+            [0], [2], [10, 10], [20, 20], [0, 2], [2, 2],
+            ["Int", "String"]
+        );
+    let duplicate: SelfMirDestructureTypeFactRows =
+        SelfMirDestructureTypeFactRows(
+            [0], [2], [10, 10], [20, 20], [0, 0], [2, 2],
+            ["Int", "String"]
+        );
+    return SelfMirDestructureTypeFactRowsReady(valid, 1) &&
+        !SelfMirDestructureTypeFactRowsReady(out_of_range, 1) &&
+        !SelfMirDestructureTypeFactRowsReady(duplicate, 1);
+}

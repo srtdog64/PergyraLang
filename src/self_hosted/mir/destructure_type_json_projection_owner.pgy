@@ -1,0 +1,38 @@
+// Final pgy.mir.v1 JSON projection for routine-level destructure type facts.
+
+import "program_fact_owner.pgy";
+import "../lib/json_emit.pgy";
+
+func SelfMirJsonDestructureTypeFacts(
+    rows: SelfMirRoutineRows,
+    routine_index: Int
+) -> String {
+    let facts: SelfMirDestructureTypeFactRows = rows.destructure_type_facts;
+    let result: Array<String> = [];
+    let start: Int = facts.routine_starts[routine_index];
+    let i: Int = 0;
+    while i < facts.routine_counts[routine_index] {
+        let row: Int = start + i;
+        ArrayPush(result, JsonEmitObject([
+            JsonEmitFieldNumber(
+                "function_syntax_id",
+                ToString(facts.function_syntax_ids[row])
+            ),
+            JsonEmitFieldNumber(
+                "destructure_syntax_id",
+                ToString(facts.destructure_syntax_ids[row])
+            ),
+            JsonEmitFieldNumber(
+                "binding_index",
+                ToString(facts.binding_indices[row])
+            ),
+            JsonEmitFieldNumber(
+                "binding_count",
+                ToString(facts.binding_counts[row])
+            ),
+            JsonEmitFieldString("binding_type", facts.binding_types[row])
+        ]));
+        i = i + 1;
+    }
+    return JsonEmitArray(result);
+}

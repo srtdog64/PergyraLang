@@ -220,8 +220,17 @@ func SemanticAstExpressionVerdictFromGraph(
         UnwrapOption(root_kind) == AstExpressionNodeCast();
     let member_value_owned: Bool = IsSome(root_kind) &&
         UnwrapOption(root_kind) == AstExpressionNodeMemberAccess();
+    let index_value_owned: Bool = IsSome(root_kind) &&
+        UnwrapOption(root_kind) == AstExpressionNodeIndex();
+    let index_value_type: Option<String> = None;
+    if index_value_owned {
+        index_value_type = SemanticExpressionGraphIndexValueTypeName(
+            graph, root_id, constructors, names, types,
+            function_names, function_returns
+        );
+    }
     let operand_error: String = "";
-    if !concrete_scalar_value_owned {
+    if !concrete_scalar_value_owned && !index_value_owned {
         operand_error = CheckLogicalOperands(
             text, names, types, function_names, function_returns
         );
@@ -241,6 +250,10 @@ func SemanticAstExpressionVerdictFromGraph(
         inferred = generic_call.return_type_name;
     } else if graph_owned_intrinsic {
         inferred = UnwrapOption(intrinsic);
+    } else if index_value_owned {
+        if IsSome(index_value_type) {
+            inferred = UnwrapOption(index_value_type);
+        }
     } else if scalar_operator_owned || scalar_leaf_owned ||
         scalar_cast_owned {
         inferred = SemanticExpressionGraphScalarTypeName(

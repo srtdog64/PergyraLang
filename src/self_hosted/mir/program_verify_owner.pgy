@@ -459,6 +459,9 @@ func SelfMirRoutineRowsReady(
         ArrayLength(rows.param_names) != ArrayLength(rows.param_types) ||
         ArrayLength(rows.param_names) != ArrayLength(rows.param_abi_kinds) ||
         ArrayLength(rows.local_names) != ArrayLength(rows.local_types) ||
+        !SelfMirDestructureTypeFactRowsReady(
+            rows.destructure_type_facts, count
+        ) ||
         !SelfMirLoopFlowRowsReady(rows.loop_flows, count) {
         return false;
     }
@@ -498,6 +501,19 @@ func SelfMirRoutineRowsReady(
                 return false;
             }
             generic_i = generic_i + 1;
+        }
+        let destructure_i: Int = 0;
+        let destructure_start: Int =
+            rows.destructure_type_facts.routine_starts[i];
+        while destructure_i <
+            rows.destructure_type_facts.routine_counts[i] {
+            let destructure_row: Int = destructure_start + destructure_i;
+            if rows.destructure_type_facts.function_syntax_ids[
+                    destructure_row
+                ] != rows.node_ids[i] {
+                return false;
+            }
+            destructure_i = destructure_i + 1;
         }
         generic_cursor = generic_cursor + rows.generic_counts[i];
         param_cursor = param_cursor + rows.param_counts[i];

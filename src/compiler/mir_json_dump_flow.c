@@ -107,3 +107,29 @@ mir_json_emit_iteration_type_facts(FILE *out, const MIRRoutine *routine)
     }
     fputc(']', out);
 }
+
+void
+mir_json_emit_destructure_type_facts(FILE *out, const MIRRoutine *routine)
+{
+    size_t count = routine != NULL ? routine->destructure_type_fact_count : 0;
+    fprintf(out, ",\"destructure_type_fact_count\":%zu"
+                 ",\"destructure_type_facts\":[", count);
+    for (size_t i = 0; i < count; i++) {
+        const MIRDestructureTypeFact *fact =
+            &routine->destructure_type_facts[i];
+        if (i > 0)
+            fputc(',', out);
+        fprintf(out, "{\"function_syntax_id\":%u"
+                     ",\"destructure_syntax_id\":%u"
+                     ",\"binding_index\":%zu"
+                     ",\"binding_count\":%zu"
+                     ",\"binding_type\":",
+                fact->function_syntax_id,
+                fact->destructure_syntax_id,
+                fact->binding_index,
+                fact->binding_count);
+        mir_json_emit_str_or_null(out, fact->binding_type_name);
+        fputc('}', out);
+    }
+    fputc(']', out);
+}

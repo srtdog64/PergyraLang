@@ -84,7 +84,9 @@ SH_DIR="$ROOT_DIR/src/self_hosted"
 # graphs instead of rebuilding interpolation and scalar types from text.
 # 76 -> 73 (2026-07-17): merged typed owners keep three additional compiler
 # paths out of the text-to-text recovery surface.
-CORE_STRING_MUNGE_SIG_MAX=73
+# 73 -> 72 (2026-07-20): typed destructure and index owners keep one more
+# compiler-core path out of the text-to-text recovery surface.
+CORE_STRING_MUNGE_SIG_MAX=72
 AST_STRING_SURFACE_MAX=0
 SENTINEL_MAX=0
 # 249 -> 246 (2026-07-03): first '?'-adoption wave (3 sites) converted 4-line
@@ -271,7 +273,9 @@ SENTINEL_MAX=0
 # instead of an empty-string sentinel.
 # 2105 -> 2134 (2026-07-19): parser-owned match pattern graphs carry Option
 # payload bindings through one HIR fact into semantic and MIR consumers.
-RESULT_USE_MIN=2134
+# 2134 -> 2205 (2026-07-20): destructure arity and graph-owned index typing
+# preserve absence and failure as Option facts instead of sentinels.
+RESULT_USE_MIN=2205
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=18
 COMPILER_WORLD_MEMBERS_EXACT=18

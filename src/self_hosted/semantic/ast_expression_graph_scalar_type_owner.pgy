@@ -364,6 +364,43 @@ func SemanticExpressionGraphScalarTypeName(
     return "Unknown";
 }
 
+func SemanticExpressionGraphIndexValueTypeName(
+    ref graph: SemanticExpressionGraphFacts,
+    root_id: Int,
+    ref constructors: SemanticAstNominalConstructorFacts,
+    names: Array<String>,
+    types: Array<String>,
+    function_names: Array<String>,
+    function_returns: Array<String>
+) -> Option<String> {
+    let kind: Option<Int> = SemanticExpressionGraphNodeKind(graph, root_id);
+    if !IsSome(kind) || UnwrapOption(kind) != AstExpressionNodeIndex() {
+        return None;
+    }
+    let receiver: Option<Int> = SemanticExpressionGraphLeftChild(
+        graph, root_id
+    );
+    let index: Option<Int> = SemanticExpressionGraphRightChild(
+        graph, root_id
+    );
+    if !IsSome(receiver) || !IsSome(index) { return None; }
+    let collection_type: Option<String> =
+        SemanticExpressionGraphValueReceiverTypeName(
+            graph, UnwrapOption(receiver), constructors, names, types,
+            function_names, function_returns
+        );
+    if !IsSome(collection_type) { return None; }
+    let element_type: Option<String> = SemanticArrayElementType(
+        UnwrapOption(collection_type)
+    );
+    let index_type: String = SemanticExpressionGraphScalarTypeName(
+        graph, UnwrapOption(index), constructors, names, types,
+        function_names, function_returns
+    );
+    if !IsSome(element_type) || index_type != "Int" { return None; }
+    return element_type;
+}
+
 func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
     let artifact: AstTreeArtifact = AstTreeArtifactFromText(
         "Program:\n  Struct: Inner\n    Fields:\n      values: Array<Int>\n  Struct: Outer\n    Fields:\n      inner: Inner\n      root: Int\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n"
@@ -442,8 +479,51 @@ func SemanticExpressionGraphScalarTypeContractReady() -> Bool {
                 wrapper_member_fact.arena
             ), [0], 1
         );
+    let index_text: String = "stack[(ArrayLength(stack) - 1)]";
+    let index_cursor: Array<Int> = [0];
+    let index_fact: ParserExpressionFact = ParseExprFact(
+        index_text, 0, index_cursor
+    );
+    let index_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [index_fact.root],
+                index_fact.arena
+            ), [0], 1
+        );
+    let invalid_index_text: String = "stack[\"bad\"]";
+    let invalid_index_cursor: Array<Int> = [0];
+    let invalid_index_fact: ParserExpressionFact = ParseExprFact(
+        invalid_index_text, 0, invalid_index_cursor
+    );
+    let invalid_index_graph: SemanticExpressionGraphFacts =
+        SemanticExpressionGraphFactsFromAstRows(
+            AstExpressionGraphRows(
+                true, [TypedAstKindAssignStmtTag()],
+                [AstExpressionLaneAuxiliary()], [invalid_index_fact.root],
+                invalid_index_fact.arena
+            ), [0], 1
+        );
     let empty: Array<String> = [];
+    let index_functions: Array<String> = ["ArrayLength"];
+    let index_returns: Array<String> = ["Int"];
+    let index_type: Option<String> =
+        SemanticExpressionGraphIndexValueTypeName(
+            index_graph, index_fact.root, constructors,
+            ["stack"], ["Array<Int>"], index_functions, index_returns
+        );
+    let invalid_index_type: Option<String> =
+        SemanticExpressionGraphIndexValueTypeName(
+            invalid_index_graph, invalid_index_fact.root, constructors,
+            ["stack"], ["Array<Int>"], index_functions, index_returns
+        );
     return await_fact.ok && await_cursor[0] == 13 &&
+        index_fact.ok && index_cursor[0] == StringLength(index_text) &&
+        invalid_index_fact.ok && invalid_index_cursor[0] ==
+            StringLength(invalid_index_text) &&
+        IsSome(index_type) && UnwrapOption(index_type) == "Int" &&
+        !IsSome(invalid_index_type) &&
         member_fact.ok && member_cursor[0] == 28 &&
         call_member_fact.ok && call_member_cursor[0] == 16 &&
         indexed_member_fact.ok && indexed_member_cursor[0] ==

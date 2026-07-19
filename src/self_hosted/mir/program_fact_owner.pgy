@@ -10,6 +10,7 @@ import "machine_layer_projection_owner.pgy";
 import "loop_flow_rows_owner.pgy";
 import "match_fact_owner.pgy";
 import "destructure_fact_owner.pgy";
+import "destructure_type_fact_owner.pgy";
 import "routine_match_pattern_owner.pgy";
 import "generic_specialization_owner.pgy";
 
@@ -103,6 +104,7 @@ struct SelfMirRoutineRows {
     iteration_binding_types: Array<String>;
     iteration_iterable_types: Array<String>;
     iteration_collection_hoists: Array<Int>;
+    destructure_type_facts: SelfMirDestructureTypeFactRows;
     loop_flows: SelfMirLoopFlowRows;
 }
 
@@ -171,6 +173,7 @@ func SelfMirRoutineRowsEmpty() -> SelfMirRoutineRows {
         ints, ints, strings, ints, ints, strings,
         strings, ints, ints, ints, ints, ints, strings, strings,
         ints, ints, ints, strings, strings, ints,
+        SelfMirDestructureTypeFactRowsEmpty(),
         SelfMirLoopFlowRowsEmpty()
     );
 }

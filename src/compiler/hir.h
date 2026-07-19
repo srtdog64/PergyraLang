@@ -12,6 +12,7 @@
 #include "../semantic/loop_flow_fact.h"
 #include "../semantic/function_param_flow_fact.h"
 #include "../semantic/iteration_type_fact.h"
+#include "../semantic/destructure_type_fact.h"
 
 typedef struct HIRProgram HIRProgram;
 typedef struct HIRBasicBlock HIRBasicBlock;
@@ -24,6 +25,7 @@ typedef enum
     HIR_SEMANTIC_PROJECTION_LOWER,
     HIR_SEMANTIC_PROJECTION_LOOP_FLOW,
     HIR_SEMANTIC_PROJECTION_ITERATION_TYPE,
+    HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE,
     HIR_SEMANTIC_PROJECTION_VALIDATE
 } HIRSemanticProjectionFailure;
 
@@ -48,6 +50,7 @@ typedef struct
 typedef PgyLoopFlowStateFact HIRLoopFlowStateFact;
 typedef PgyLoopFlowSummaryFact HIRLoopFlowSummaryFact;
 typedef PgyIterationTypeFact HIRIterationTypeFact;
+typedef PgyDestructureTypeFact HIRDestructureTypeFact;
 
 typedef enum
 {
@@ -145,6 +148,9 @@ typedef struct
     HIRIterationTypeFact         *iteration_type_facts;
     size_t                        iteration_type_fact_count;
     size_t                        iteration_type_fact_capacity;
+    HIRDestructureTypeFact       *destructure_type_facts;
+    size_t                        destructure_type_fact_count;
+    size_t                        destructure_type_fact_capacity;
     struct {
         struct HIRBasicBlock *blocks;
         size_t                block_count;
@@ -358,6 +364,7 @@ struct HIRProgram
     bool              has_function_param_flow_facts;
     bool              has_loop_flow_facts;
     bool              has_iteration_type_facts;
+    bool              has_destructure_type_facts;
     uint32_t          source_program_syntax_id;
 };
 
@@ -388,6 +395,11 @@ bool hir_attach_loop_flow_facts(
 bool hir_attach_iteration_type_facts(
         HIRProgram *hir,
         const PgyIterationTypeFact *facts,
+        size_t fact_count,
+        char **error_message);
+bool hir_attach_destructure_type_facts(
+        HIRProgram *hir,
+        const PgyDestructureTypeFact *facts,
         size_t fact_count,
         char **error_message);
 void        hir_destroy(HIRProgram *hir);

@@ -17,6 +17,7 @@
 #include "mir_public_surface.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
+#include "mir_destructure_type_facts.h"
 #include "mir_speculation_facts.h"
 
 #include "mir_base_helpers.h"
@@ -284,6 +285,14 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
                 mir_destroy(mir);
                 return NULL;
             }
+            if (!mir_copy_destructure_type_facts(&routine, hir_routine,
+                                                 error_message)) {
+                mir_routine_signature_metadata_clear(&routine);
+                mir_free_iteration_type_facts(&routine);
+                pgy_arena_destroy(&routine.scratch);
+                mir_destroy(mir);
+                return NULL;
+            }
             double t_loc = mir_timing_now();
             bool loc_ok = mir_routine_source_local_type_names_capture(mir, &routine);
             mir_timing_add(MIR_TIMING_SOURCE_LOCAL_TYPES,
@@ -291,10 +300,12 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             if (!loc_ok) {
                 mir_routine_source_local_type_names_clear(&routine);
                 mir_free_iteration_type_facts(&routine);
+                mir_free_destructure_type_facts(&routine);
                 mir_routine_signature_metadata_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)
-                    *error_message = pergyra_strdup("out of memory");
+                    *error_message = pergyra_strdup(
+                        "missing or invalid source-local type fact");
                 mir_destroy(mir);
                 return NULL;
             }
@@ -304,6 +315,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             mir_routine_signature_metadata_clear(&routine);
             mir_routine_source_local_type_names_clear(&routine);
             mir_free_iteration_type_facts(&routine);
+            mir_free_destructure_type_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -314,6 +326,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             mir_routine_signature_metadata_clear(&routine);
             mir_routine_source_local_type_names_clear(&routine);
             mir_free_iteration_type_facts(&routine);
+            mir_free_destructure_type_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -324,6 +337,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             mir_routine_signature_metadata_clear(&routine);
             mir_routine_source_local_type_names_clear(&routine);
             mir_free_iteration_type_facts(&routine);
+            mir_free_destructure_type_facts(&routine);
             pgy_arena_destroy(&routine.scratch);
             mir_free_resource_flow_symbols(&routine);
             mir_destroy(mir);
@@ -381,6 +395,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir,
             free(routine.loop_flow_summaries);
             free(routine.loop_flow_states);
             mir_free_iteration_type_facts(&routine);
+            mir_free_destructure_type_facts(&routine);
             mir_free_resource_flow_symbols(&routine);
             mir_routine_signature_metadata_clear(&routine);
             pgy_arena_destroy(&routine.scratch);

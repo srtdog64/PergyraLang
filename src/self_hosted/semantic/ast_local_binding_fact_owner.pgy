@@ -23,6 +23,7 @@ struct SemanticAstLocalBindingFacts {
     initializer_texts: Array<String>;
     binding_kinds: Array<Int>;
     binding_indices: Array<Int>;
+    binding_arities: Array<Int>;
 }
 
 func SemanticAstLocalBindingKindNormal() -> Int { return 0; }
@@ -66,6 +67,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
     let initializer_texts: Array<String> = [];
     let binding_kinds: Array<Int> = [];
     let binding_indices: Array<Int> = [];
+    let binding_arities: Array<Int> = [];
     let function_scopes: SemanticAstFunctionScopeFacts =
         SemanticAstFunctionScopeFactsFromArtifact(artifact);
     let destructures: SemanticAstDestructureBindingFacts =
@@ -119,6 +121,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
                 ArrayPush(initializer_texts, destructures.initializer_texts[d]);
                 ArrayPush(binding_kinds, SemanticAstLocalBindingKindDestructure());
                 ArrayPush(binding_indices, destructures.binding_indices[d]);
+                ArrayPush(binding_arities, range.end - range.start);
                 d = d + 1;
             }
             node_id = node_id + 1;
@@ -198,6 +201,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
         ArrayPush(initializer_texts, UnwrapOption(initializer));
         ArrayPush(binding_kinds, SemanticAstLocalBindingKindNormal());
         ArrayPush(binding_indices, 0);
+        ArrayPush(binding_arities, 1);
         node_id = node_id + 1;
     }
     return SemanticAstLocalBindingFacts(
@@ -206,7 +210,7 @@ func SemanticAstLocalBindingFactsFromArtifact(
         artifact.count,
         node_ids, function_node_ids, scope_node_ids, names,
         declared_type_names, has_declared_types, initializer_texts,
-        binding_kinds, binding_indices
+        binding_kinds, binding_indices, binding_arities
     );
 }
 
@@ -233,7 +237,8 @@ func SemanticAstLocalBindingFactsMatchArtifact(
         ArrayLength(facts.has_declared_types) != n ||
         ArrayLength(facts.initializer_texts) != n ||
         ArrayLength(facts.binding_kinds) != n ||
-        ArrayLength(facts.binding_indices) != n {
+        ArrayLength(facts.binding_indices) != n ||
+        ArrayLength(facts.binding_arities) != n {
         return false;
     }
     let i: Int = 0;
@@ -246,7 +251,8 @@ func SemanticAstLocalBindingFactsMatchArtifact(
             facts.has_declared_types[i] != rebuilt.has_declared_types[i] ||
             facts.initializer_texts[i] != rebuilt.initializer_texts[i] ||
             facts.binding_kinds[i] != rebuilt.binding_kinds[i] ||
-            facts.binding_indices[i] != rebuilt.binding_indices[i] {
+            facts.binding_indices[i] != rebuilt.binding_indices[i] ||
+            facts.binding_arities[i] != rebuilt.binding_arities[i] {
             return false;
         }
         i = i + 1;

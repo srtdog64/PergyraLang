@@ -337,6 +337,8 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
         ctx->function_param_flow_fact_count;
     result->iteration_type_facts = ctx->iteration_type_facts;
     result->iteration_type_fact_count = ctx->iteration_type_fact_count;
+    result->destructure_type_facts = ctx->destructure_type_facts;
+    result->destructure_type_fact_count = ctx->destructure_type_fact_count;
     result->loop_flow_summary_facts = ctx->loop_flow_summary_facts;
     result->loop_flow_summary_fact_count =
         ctx->loop_flow_summary_fact_count;
@@ -372,6 +374,9 @@ semantic_analyze_ex(ASTNode *ast, bool emit_advisories)
     ctx->iteration_type_facts = NULL;
     ctx->iteration_type_fact_count = 0;
     ctx->iteration_type_fact_capacity = 0;
+    ctx->destructure_type_facts = NULL;
+    ctx->destructure_type_fact_count = 0;
+    ctx->destructure_type_fact_capacity = 0;
     ctx->loop_flow_summary_facts = NULL;
     ctx->loop_flow_summary_fact_count = 0;
     ctx->loop_flow_summary_fact_capacity = 0;
@@ -410,6 +415,9 @@ semantic_result_destroy(SemanticResult *result)
     pgy_iteration_type_facts_destroy(
         result->iteration_type_facts,
         result->iteration_type_fact_count);
+    pgy_destructure_type_facts_destroy(
+        result->destructure_type_facts,
+        result->destructure_type_fact_count);
     free(result->loop_flow_summary_facts);
     free(result->loop_flow_state_facts);
     /* Last: the IRs and the backend borrow Type* from here, and the driver

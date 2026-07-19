@@ -4,6 +4,7 @@ import "program_verify_owner.pgy";
 import "expression_graph_kind_name_owner.pgy";
 import "match_json_projection_owner.pgy";
 import "destructure_json_projection_owner.pgy";
+import "destructure_type_json_projection_owner.pgy";
 import "generic_specialization_json_projection_owner.pgy";
 import "../lib/json_emit.pgy";
 
@@ -454,6 +455,8 @@ func SelfMirJsonRoutine(
     ArrayPush(fields3, JsonEmitFieldRaw(
         "iteration_type_facts", JsonEmitArray(iteration_type_facts)
     ));
+    ArrayPush(fields3, JsonEmitFieldNumber("destructure_type_fact_count", ToString(rows.destructure_type_facts.routine_counts[routine_index])));
+    ArrayPush(fields3, JsonEmitFieldRaw("destructure_type_facts", SelfMirJsonDestructureTypeFacts(rows, routine_index)));
     ArrayPush(fields3, JsonEmitFieldRaw("blocks", JsonEmitArray(blocks)));
     ArrayPush(fields3, JsonEmitFieldRaw("source_locals", JsonEmitArray(locals)));
     return JsonEmitObject(fields3);

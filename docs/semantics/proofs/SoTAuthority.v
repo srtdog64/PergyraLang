@@ -1016,6 +1016,7 @@ Inductive SpineFact : Type :=
   | SFTokenStream
   | SFSyntaxProvenanceTree
   | SFSemanticSymbolTypeGraph
+  | SFSemanticDestructureBindingType
   | SFResourceFlowUniverse
   | SFLoopFlowSummary
   | SFFunctionParamFlowSummary
@@ -1057,6 +1058,7 @@ Inductive SpineOwner : Type :=
   | SOLexer
   | SOParserAst
   | SOSemanticAnalyzer
+  | SOSemanticDestructureType
   | SOResourceFlowUniverse
   | SOLoopFlowSummary
   | SOFunctionParamFlowSummary
@@ -1096,6 +1098,7 @@ Definition spine_authority (fact : SpineFact) : SpineOwner :=
   | SFTokenStream => SOLexer
   | SFSyntaxProvenanceTree => SOParserAst
   | SFSemanticSymbolTypeGraph => SOSemanticAnalyzer
+  | SFSemanticDestructureBindingType => SOSemanticDestructureType
   | SFResourceFlowUniverse => SOResourceFlowUniverse
   | SFLoopFlowSummary => SOLoopFlowSummary
   | SFFunctionParamFlowSummary => SOFunctionParamFlowSummary

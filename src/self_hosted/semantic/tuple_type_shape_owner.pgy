@@ -1,0 +1,54 @@
+// Canonical positional tuple type facts for destructure bindings.
+
+import "delimited_range_fact_owner.pgy";
+
+struct SemanticTupleElementTypeFact {
+    ok: Bool;
+    arity: Int;
+    element_type: String;
+}
+
+func SemanticTupleElementTypeFactFrom(
+    type_name: String,
+    element_index: Int
+) -> SemanticTupleElementTypeFact {
+    let text: String = StringTrim(type_name);
+    let n: Int = StringLength(text);
+    if element_index < 0 || n < 3 || SourceCharAt(text, 0) != "(" ||
+        SourceCharAt(text, n - 1) != ")" {
+        return SemanticTupleElementTypeFact(false, 0, "");
+    }
+    let inner: String = Substring(text, 1, n - 2);
+    let ranges: SemanticDelimitedRangeFacts =
+        SemanticNestedCommaRangeFactsFromSource(inner);
+    let arity: Int = SemanticDelimitedRangeCount(ranges);
+    if arity == 0 ||
+        SemanticDelimitedNonEmptyRangeCount(ranges) != arity ||
+        element_index >= arity {
+        return SemanticTupleElementTypeFact(false, arity, "");
+    }
+    let element_type: String =
+        SemanticDelimitedRangeText(ranges, inner, element_index);
+    if StringLength(element_type) == 0 {
+        return SemanticTupleElementTypeFact(false, arity, "");
+    }
+    return SemanticTupleElementTypeFact(true, arity, element_type);
+}
+
+func SemanticTupleTypeShapeContractReady() -> Bool {
+    let first: SemanticTupleElementTypeFact =
+        SemanticTupleElementTypeFactFrom("(Int, String)", 0);
+    let second: SemanticTupleElementTypeFact =
+        SemanticTupleElementTypeFactFrom("(Int, String)", 1);
+    let nested: SemanticTupleElementTypeFact =
+        SemanticTupleElementTypeFactFrom(
+            "(HashMap<String, Int>, (Bool, Long))", 1
+        );
+    return first.ok && first.arity == 2 && first.element_type == "Int" &&
+        second.ok && second.arity == 2 && second.element_type == "String" &&
+        nested.ok && nested.arity == 2 &&
+        nested.element_type == "(Bool, Long)" &&
+        !SemanticTupleElementTypeFactFrom("Int", 0).ok &&
+        !SemanticTupleElementTypeFactFrom("(Int,)", 1).ok &&
+        !SemanticTupleElementTypeFactFrom("(Int, String)", 2).ok;
+}

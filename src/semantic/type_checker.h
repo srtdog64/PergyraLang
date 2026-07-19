@@ -23,6 +23,7 @@
 #include "loop_flow_fact.h"
 #include "function_param_flow_fact.h"
 #include "iteration_type_fact.h"
+#include "destructure_type_fact.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -151,6 +152,9 @@ struct SemanticContext
     PgyIterationTypeFact *iteration_type_facts;
     size_t       iteration_type_fact_count;
     size_t       iteration_type_fact_capacity;
+    PgyDestructureTypeFact *destructure_type_facts;
+    size_t       destructure_type_fact_count;
+    size_t       destructure_type_fact_capacity;
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;

@@ -12,6 +12,7 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
+#include "destructure_type_fact.h"
 
 static Type *
 ownership_destructure_normalize_type(Type *type)
@@ -54,6 +55,12 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
         for (size_t i = 0; i < binds; i++) {
             const char *binding_name = ast_let_destructure_name(node, i);
             Type *elem = type_tuple_get_element(init_type, i);
+            if (!semantic_destructure_type_fact_record(ctx, node, i, binds,
+                    elem != NULL ? elem : TYPE_UNKNOWN)) {
+                semantic_error(ctx, node,
+                    "Destructure binding type fact capture failed");
+                return false;
+            }
             if (init != NULL) {
                 semantic_validate_borrowed_escape(
                     node, init, ctx, init_type, NULL,
@@ -79,6 +86,12 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
         if (type_is_constructed_named(init_type, "Array")
             || type_is_constructed_named(init_type, "Slice")) {
             elem_type = type_get_constructed_arg(init_type, 0);
+        }
+        if (!semantic_destructure_type_fact_record(ctx, node, i,
+                ast_let_destructure_name_count(node), elem_type)) {
+            semantic_error(ctx, node,
+                "Destructure binding type fact capture failed");
+            return false;
         }
         if (init != NULL) {
             semantic_validate_borrowed_escape(
@@ -138,17 +151,26 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     ast_let_destructure_name(node, 1);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     true, token_name, node->line, node->column);
+                Type *token_args[1] = { inner_type };
+                Type *token_type = type_create_constructed(TYPE_TOKEN,
+                    token_args, 1);
+                if (!semantic_destructure_type_fact_record(ctx, node, 0, 2,
+                        slot_type)
+                    || !semantic_destructure_type_fact_record(ctx, node, 1, 2,
+                        token_type)) {
+                    semantic_error(ctx, node,
+                        "Secure claim destructure type fact capture failed");
+                    symbol_destroy(slot_sym);
+                    return false;
+                }
                 symbol_mark_declaration(slot_sym,
                     ownership_destructure_binding_syntax_id(
                         node, 0), false);
                 scope_declare(ctx->scope, slot_sym);
                 Symbol *tok_sym = symbol_create_token(token_name,
                     slot_name, node->line, node->column);
-                if (tok_sym != NULL) {
-                    Type *token_args[1] = { inner_type };
-                    tok_sym->type = type_create_constructed(TYPE_TOKEN,
-                        token_args, 1);
-                }
+                if (tok_sym != NULL)
+                    tok_sym->type = token_type;
                 symbol_mark_declaration(tok_sym,
                     ownership_destructure_binding_syntax_id(
                         node, 1), false);
@@ -162,6 +184,13 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     ast_let_destructure_name(node, 0);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     false, NULL, node->line, node->column);
+                if (!semantic_destructure_type_fact_record(ctx, node, 0, 1,
+                        slot_type)) {
+                    semantic_error(ctx, node,
+                        "Slot claim destructure type fact capture failed");
+                    symbol_destroy(slot_sym);
+                    return false;
+                }
                 symbol_mark_declaration(slot_sym,
                     ownership_destructure_binding_syntax_id(
                         node, 0), false);

@@ -48,27 +48,7 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     *mir_out = NULL;
 
     if (!parser_has_error(parser) && sem != NULL && sem->success) {
-        if (sem->resource_flow_fact_count > 0
-            || sem->function_param_flow_fact_count > 0) {
-            *hir_out = hir_lower_with_resource_and_param_flow_facts(
-                sem->annotated_ast,
-                sem->resource_flow_facts,
-                sem->resource_flow_fact_count,
-                sem->function_param_flow_facts,
-                sem->function_param_flow_fact_count,
-                &hir_error);
-        } else {
-            *hir_out = hir_lower(sem->annotated_ast, &hir_error);
-        }
-        if (*hir_out != NULL
-            && !hir_attach_iteration_type_facts(
-                *hir_out,
-                sem->iteration_type_facts,
-                sem->iteration_type_fact_count,
-                &hir_error)) {
-            hir_destroy(*hir_out);
-            *hir_out = NULL;
-        }
+        *hir_out = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
             (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);

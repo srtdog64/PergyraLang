@@ -41,6 +41,7 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SemanticAstExpressionVerdictContractReady() { return "expression_verdict"; }
     if !SemanticExpressionGraphIntrinsicTypeContractReady() { return "graph_intrinsic_type"; }
     if !SemanticArrayTypeShapeContractReady() { return "array_type_shape"; }
+    if !SemanticTupleTypeShapeContractReady() { return "tuple_type_shape"; }
     if !SemanticExpressionGraphScalarTypeContractReady() { return "graph_scalar_type"; }
     if !SemanticExpressionGraphWrapperValueContractReady() { return "graph_wrapper_value"; }
     if !SemanticExpressionGraphCollectionMutationContractReady() { return "graph_collection_mutation"; }
@@ -73,6 +74,9 @@ func CompilerDriverRung2ReadinessError() -> String {
     if !SelfMirExpressionGraphRowsContractReady() { return "mir_expression_graph_rows"; }
     if !SelfMirAssignmentTargetGraphContractReady() {
         return "mir_assignment_target_graph";
+    }
+    if !SelfMirDestructureTypeFactRowsContractReady() {
+        return "mir_destructure_type_facts";
     }
     if !MirFactGraphPayloadContractReady() { return "mir_fact_graph_payload"; }
     if TypedAstNominalSubkindName(TypedAstNominalSubkindClass()) != "class" {

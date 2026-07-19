@@ -22,9 +22,13 @@ transpiler_generic_method_fact_matches_routine(
     const MIRGenericMethodSpecializationFact *fact,
     const MIRRoutine *routine)
 {
-    return mir != NULL && fact != NULL && routine != NULL
-        && fact->method_routine_index < mir->routine_count
-        && &mir->routines[fact->method_routine_index] == routine;
+    TranspilerMIRRoutineInventory inventory;
+
+    if (mir == NULL || fact == NULL || routine == NULL)
+        return false;
+    transpiler_mir_routine_inventory_from_program(mir, &inventory);
+    return transpiler_routine_inventory_get(
+        &inventory, fact->method_routine_index) == routine;
 }
 
 static bool

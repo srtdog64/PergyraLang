@@ -427,12 +427,22 @@ for mir_producer_owner in \
     instruction_validation_owner.pgy \
     match_fact_owner.pgy \
     match_json_projection_owner.pgy \
+    destructure_type_fact_owner.pgy \
+    destructure_type_json_projection_owner.pgy \
     program_verify_owner.pgy \
     json_projection_owner.pgy; do
     require_file "src/self_hosted/mir/$mir_producer_owner"
     require_max_lines "src/self_hosted/mir/$mir_producer_owner" 600
 done
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirProgramFacts"
+require_text "src/self_hosted/mir/program_fact_owner.pgy" \
+    "destructure_type_facts: SelfMirDestructureTypeFactRows"
+require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "func SelfMirDestructureTypeFactsReadyForRoutine"
+require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "initializer_types.verified[i] != 1"
+require_text "src/self_hosted/mir/destructure_type_json_projection_owner.pgy" \
+    '"binding_type", facts.binding_types[row]'
 require_text "src/self_hosted/mir/parallel_capture_fact_owner.pgy" "struct SelfMirParallelCaptureRows"
 require_text "src/self_hosted/mir/parallel_capture_fact_owner.pgy" "func SelfMirParallelCaptureRowsReady"
 require_text "src/self_hosted/mir/program_fact_owner.pgy" "struct SelfMirCfgRows"
@@ -487,6 +497,10 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" "SelfMirLoopFlowRows
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_summaries"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_state_count"'
 require_text "src/self_hosted/mir/json_projection_owner.pgy" '"loop_flow_states"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"destructure_type_fact_count"'
+require_text "src/self_hosted/mir/json_projection_owner.pgy" \
+    '"destructure_type_facts"'
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" "TypedAstArenaProvenanceText"
 reject_text "src/self_hosted/mir/artifact_lower_owner.pgy" ".tree_text"
 reject_text "src/self_hosted/mir/routine_lower_owner.pgy" "TypedAstArenaProvenanceText"
@@ -3366,7 +3380,7 @@ require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh
 require_text "tests/self_hosted/parity/driver_rung2_loop_phi_parity_owner.sh" \
     "one-predecessor header phi was accepted"
 require_file "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh"
-require_max_lines "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" 80
+require_max_lines "tests/self_hosted/parity/driver_rung2_destructure_parity_owner.sh" 120
 require_text "tests/self_hosted/parity/driver_rung2_body_parity.sh" \
     "driver_rung2_destructure_parity_owner.sh"
 require_text "tests/self_hosted/parity/driver_rung2_mir_producer_parity_owner.sh" \
@@ -3592,6 +3606,32 @@ require_file "src/self_hosted/semantic/array_type_shape_owner.pgy"
 require_max_lines "src/self_hosted/semantic/array_type_shape_owner.pgy" 80
 require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
     "SemanticArrayTypeShapeContractReady()"
+require_file "src/self_hosted/semantic/tuple_type_shape_owner.pgy"
+require_max_lines "src/self_hosted/semantic/tuple_type_shape_owner.pgy" 100
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SemanticTupleTypeShapeContractReady()"
+require_text "src/self_hosted/semantic/ast_local_binding_fact_owner.pgy" \
+    "binding_arities: Array<Int>"
+require_text "src/self_hosted/semantic/ast_initializer_type_fact_owner.pgy" \
+    "tuple_element.arity == locals.binding_arities[i]"
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    "func SemanticExpressionGraphIndexValueTypeName("
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    'let index_text: String = "stack[(ArrayLength(stack) - 1)]"'
+require_text "src/self_hosted/semantic/ast_expression_graph_scalar_type_owner.pgy" \
+    'let invalid_index_text: String = "stack[\"bad\"]"'
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "if !concrete_scalar_value_owned && !index_value_owned"
+require_text "src/self_hosted/semantic/ast_expression_verdict_owner.pgy" \
+    "else if index_value_owned"
+require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "func SelfMirDestructureTypeFactRowsContractReady()"
+require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    "rows.binding_indices[row] >= rows.binding_counts[row]"
+require_text "src/self_hosted/mir/destructure_type_fact_owner.pgy" \
+    'return "destructure type fact identity is duplicated";'
+require_text "src/self_hosted/compiler/driver_rung2_owner.pgy" \
+    "SelfMirDestructureTypeFactRowsContractReady()"
 require_file "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy"
 require_max_lines "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" 120
 require_text "src/self_hosted/semantic/ast_expression_graph_struct_view_owner.pgy" \

@@ -15,6 +15,7 @@ import "ast_expression_verdict_owner.pgy";
 import "ast_expression_graph_view_owner.pgy";
 import "ast_expression_graph_array_literal_owner.pgy";
 import "array_type_owner.pgy";
+import "tuple_type_shape_owner.pgy";
 import "ast_enum_fact_owner.pgy";
 
 struct SemanticAstInitializerTypeFacts {
@@ -159,7 +160,16 @@ func SemanticAstInitializerTypeFactsFromArtifactWithIterationRows(
             if IsSome(element_type) {
                 inferred = UnwrapOption(element_type);
             } else {
-                destructure_element_missing = true;
+                let tuple_element: SemanticTupleElementTypeFact =
+                    SemanticTupleElementTypeFactFrom(
+                        inferred, locals.binding_indices[i]
+                    );
+                if tuple_element.ok &&
+                    tuple_element.arity == locals.binding_arities[i] {
+                    inferred = tuple_element.element_type;
+                } else {
+                    destructure_element_missing = true;
+                }
             }
         } else if locals.binding_kinds[i] !=
             SemanticAstLocalBindingKindNormal() {
@@ -427,6 +437,31 @@ func SemanticAstInitializerTypeFactsContractReady() -> Bool {
         SemanticAstInitializerTypeCount(valid_facts) != 2 ||
         valid_facts.inferred_type_names[0] != "Int" ||
         valid_facts.inferred_type_names[1] != "Int" {
+        return false;
+    }
+
+    let indexed: AstTreeArtifact = AstTreeArtifactFromText(
+        "Program:\n  Function: Main\n    Parameters:\n    Returns: Void\n    Body:\n      Block:\n        Let: stack : Array<Int: Int> = []\n        Let: node : Int = stack[(ArrayLength(stack) - 1)]\n"
+    );
+    let indexed_signatures: SemanticAstFunctionSignatureFacts =
+        SemanticAstFunctionSignatureFactsFromArtifact(indexed);
+    let indexed_constructors: SemanticAstNominalConstructorFacts =
+        SemanticAstNominalConstructorFactsFromArtifact(indexed);
+    let indexed_locals: SemanticAstLocalBindingFacts =
+        SemanticAstLocalBindingFactsFromArtifact(
+            indexed, indexed_signatures
+        );
+    let indexed_surfaces: SemanticAstExpressionSurfaceFacts =
+        SemanticAstExpressionSurfaceFactsFromArtifactCompactBridge(indexed);
+    let indexed_facts: SemanticAstInitializerTypeFacts =
+        SemanticAstInitializerTypeFactsFromArtifact(
+            indexed, indexed_signatures, indexed_constructors,
+            indexed_locals, indexed_surfaces
+        );
+    if !SemanticAstInitializerTypesAllVerified(indexed_facts) ||
+        SemanticAstInitializerTypeCount(indexed_facts) != 2 ||
+        indexed_facts.inferred_type_names[0] != "Array<Int>" ||
+        indexed_facts.inferred_type_names[1] != "Int" {
         return false;
     }
 

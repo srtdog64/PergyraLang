@@ -4051,8 +4051,6 @@ require_term "src/compiler/mir_source_local_types.c" \
     "case AST_SELECT_STMT:"
 require_term "src/compiler/mir_source_local_type_shape.c" \
     "mir_source_local_unwrap_channel_type"
-require_term "src/compiler/mir_source_local_type_shape.c" \
-    "mir_source_local_tuple_element_type"
 require_term "src/compiler/mir_source_local_expr_types.c" \
     "case AST_CHANNEL_RECV:"
 require_term "src/compiler/mir_source_local_expr_types.c" \

@@ -229,6 +229,9 @@ semantic_context_destroy(SemanticContext *ctx)
     pgy_iteration_type_facts_destroy(
         ctx->iteration_type_facts,
         ctx->iteration_type_fact_count);
+    pgy_destructure_type_facts_destroy(
+        ctx->destructure_type_facts,
+        ctx->destructure_type_fact_count);
     for (size_t i = 0; i < ctx->type_resolution_stage_alias_diagnostic_name_count; i++)
         free(ctx->type_resolution_stage_alias_diagnostic_names[i]);
     free(ctx->type_resolution_stage_alias_diagnostic_names);

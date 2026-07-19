@@ -252,6 +252,9 @@ inventory must not become a second fact-family owner registry.
   direct index-access verdicts.
 - `src/self_hosted/semantic/array_type_shape_owner.pgy` -- dependency-light
   canonical `Array<T>` element projection shared by semantic and codegen views.
+- `src/self_hosted/semantic/tuple_type_shape_owner.pgy` -- canonical positional
+  tuple arity and element-type projection consumed by destructure initializer
+  typing; source-expression recovery and array-only fallback are forbidden.
 - `src/self_hosted/semantic/ast_enum_fact_owner.pgy` -- typed-arena enum
   declaration identity and variant facts for expression typing and codegen
   routing.
@@ -372,10 +375,15 @@ inventory must not become a second fact-family owner registry.
   pattern, variant, and binding facts; the scalar rung requires one pattern.
 - `src/self_hosted/mir/destructure_fact_owner.pgy` -- sparse instruction-keyed
   destructure element type and ordered binding facts.
+- `src/self_hosted/mir/destructure_type_fact_owner.pgy` -- routine-level
+  semantic destructure binding type rows joined from local-binding and
+  initializer facts; source re-inference is forbidden.
 - `src/self_hosted/mir/destructure_cfg_owner.pgy` -- typed destructure fact
   attachment to the owning MIR instruction row.
 - `src/self_hosted/mir/destructure_json_projection_owner.pgy` -- final MIR
   JSON element-type and ordered-binding projection from destructure facts.
+- `src/self_hosted/mir/destructure_type_json_projection_owner.pgy` -- final
+  MIR JSON projection of routine-level semantic destructure type rows.
 - `src/self_hosted/mir/match_json_projection_owner.pgy` -- final MIR JSON field
   projection for match facts.
 - `src/self_hosted/mir/expression_graph_kind_name_owner.pgy` -- stable MIR JSON

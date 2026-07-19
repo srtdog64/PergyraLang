@@ -64,6 +64,12 @@ hir_destroy(HIRProgram *hir)
                 free(hir->routines[i].iteration_type_facts[k].iterable_type_name);
             }
             free(hir->routines[i].iteration_type_facts);
+            for (size_t k = 0;
+                 k < hir->routines[i].destructure_type_fact_count; k++) {
+                free(hir->routines[i]
+                    .destructure_type_facts[k].binding_type_name);
+            }
+            free(hir->routines[i].destructure_type_facts);
             pgy_arena_destroy(&hir->routines[i].scratch);
         }
     }

@@ -141,6 +141,72 @@ test_mir_lowering_part_i(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR destructure local typing fails when semantic fact is missing");
+    {
+        const char *src =
+            "func Main() -> Void {\n"
+            "    let (slot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);\n"
+            "    let value: Int = Read(slot, token);\n"
+            "    Log(value);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(src);
+        Parser *parser = parser_create(lexer);
+        ASTNode *ast = parser_parse_program(parser);
+        SemanticResult *sem = semantic_analyze(ast);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        HIRRoutine *routine = NULL;
+        size_t saved_fact_count = 0;
+        char *hir_error = NULL;
+        char *rir_error = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_fact = false;
+        bool ok = !parser_has_error(parser) && sem != NULL && sem->success;
+
+        if (ok)
+            hir = hir_lower_with_semantic_facts(sem, NULL, &hir_error);
+        if (ok && hir != NULL)
+            rir = rir_lower(sem->annotated_ast, &rir_error);
+        if (ok && hir != NULL && rir != NULL)
+            (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "Main") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL) {
+            saved_fact_count = routine->destructure_type_fact_count;
+            routine->destructure_type_fact_count = 0;
+            mir = mir_lower(hir, rir, sem, &mir_error);
+            rejected_missing_fact = mir == NULL
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "missing or invalid source-local type fact") != NULL;
+            routine->destructure_type_fact_count = saved_fact_count;
+        }
+        EXPECT(ok
+               && hir != NULL
+               && rir != NULL
+               && routine != NULL
+               && saved_fact_count == 2
+               && rejected_missing_fact);
+        free(hir_error);
+        free(rir_error);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        semantic_result_destroy(sem);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("MIR assignment instruction carries expression facts without payload");
     {
         const char *src =

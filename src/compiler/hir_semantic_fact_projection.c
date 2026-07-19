@@ -57,6 +57,16 @@ hir_lower_with_semantic_facts(const SemanticResult *semantic,
         hir_destroy(hir);
         return NULL;
     }
+    if (!hir_attach_destructure_type_facts(
+            hir,
+            semantic->destructure_type_facts,
+            semantic->destructure_type_fact_count,
+            error_message)) {
+        if (failure != NULL)
+            *failure = HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE;
+        hir_destroy(hir);
+        return NULL;
+    }
     if (!hir_validate(hir, error_message)) {
         if (failure != NULL)
             *failure = HIR_SEMANTIC_PROJECTION_VALIDATE;

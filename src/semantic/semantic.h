@@ -21,6 +21,7 @@
 #include "loop_flow_fact.h"
 #include "function_param_flow_fact.h"
 #include "iteration_type_fact.h"
+#include "destructure_type_fact.h"
 #include "type_system.h"
 
 /*
@@ -73,6 +74,9 @@ typedef struct SemanticResult
      * these rows; it must not infer a binding type from AST expressions. */
     PgyIterationTypeFact *iteration_type_facts;
     size_t       iteration_type_fact_count;
+    /* Positional destructure binding types keyed by stable syntax identity. */
+    PgyDestructureTypeFact *destructure_type_facts;
+    size_t       destructure_type_fact_count;
     /* Owns every Type this analysis allocated (WO-SEC-2). Borrowed Type*
      * held by symbols, IRs, or the backend stay valid until this result is
      * destroyed, which the driver does last. */

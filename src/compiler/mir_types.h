@@ -10,6 +10,7 @@
 #include "rir.h"
 #include "../semantic/loop_flow_fact.h"
 #include "../semantic/iteration_type_fact.h"
+#include "../semantic/destructure_type_fact.h"
 
 typedef enum
 {
@@ -309,6 +310,7 @@ typedef struct
 } MIRFunctionParamFlowSummary;
 
 typedef PgyIterationTypeFact MIRIterationTypeFact;
+typedef PgyDestructureTypeFact MIRDestructureTypeFact;
 
 typedef struct
 {
@@ -353,6 +355,9 @@ typedef struct
     MIRIterationTypeFact *iteration_type_facts;
     size_t             iteration_type_fact_count;
     size_t             iteration_type_fact_capacity;
+    MIRDestructureTypeFact *destructure_type_facts;
+    size_t             destructure_type_fact_count;
+    size_t             destructure_type_fact_capacity;
     MIRBasicBlock     *blocks;
     size_t             block_count;
     size_t             block_capacity;

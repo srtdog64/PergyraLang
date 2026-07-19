@@ -316,6 +316,12 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error
                                   : "invalid iteration type facts");
         } else if (hir_projection_failure
+                   == HIR_SEMANTIC_PROJECTION_DESTRUCTURE_TYPE) {
+            driver_emit_stage_fail(flags, "hir_lower",
+                "HIR destructure type fact attachment failed",
+                hir_error != NULL ? hir_error
+                                  : "invalid destructure type facts");
+        } else if (hir_projection_failure
                    == HIR_SEMANTIC_PROJECTION_VALIDATE) {
             driver_emit_stage_fail(flags, "hir_validate",
                 "HIR validation failed",

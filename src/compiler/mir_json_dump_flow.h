@@ -10,5 +10,7 @@ void mir_json_emit_resource_flow_symbols(FILE *out,
 void mir_json_emit_loop_flow_facts(FILE *out, const MIRRoutine *routine);
 void mir_json_emit_iteration_type_facts(FILE *out,
                                         const MIRRoutine *routine);
+void mir_json_emit_destructure_type_facts(FILE *out,
+                                          const MIRRoutine *routine);
 
 #endif

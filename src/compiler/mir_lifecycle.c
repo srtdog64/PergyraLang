@@ -9,6 +9,7 @@
 #include "mir_source_local_types.h"
 #include "mir_parallel_capture_facts.h"
 #include "mir_generic_method_specialization.h"
+#include "mir_destructure_type_facts.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -95,6 +96,7 @@ mir_destroy(MIRProgram *mir)
                 free(routine->iteration_type_facts[k].iterable_type_name);
             }
             free(routine->iteration_type_facts);
+            mir_free_destructure_type_facts(routine);
             mir_routine_signature_metadata_clear(routine);
             mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);
