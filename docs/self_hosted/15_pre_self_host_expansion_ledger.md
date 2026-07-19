@@ -182,10 +182,12 @@ type from `CodegenExpressionTypeFromGraph` and cannot reopen operand text or
 `ExprKind`. Array return emission is also no longer part of that seam: literal
 and ordinary `Array<T>` returns consume one expected-value expression graph and
 cannot classify the return by trimming text or testing for a leading bracket.
-Typed array-literal initializers are no longer part of that seam either: a
-semantic-owned array-spine view walks ordered graph handles and checks declared
-element types without bracket trimming or `CallArgAt`. Assignment and statement
-array-literal checks still use the legacy projection.
+Typed array-literal initializers, assignments, and returns are no longer part
+of that seam either: a semantic-owned array-spine view walks ordered graph
+handles and checks declared element types without bracket trimming or
+`CallArgAt`. Collection statement typing likewise consumes `ArrayPush` value
+and `ArraySet` index/value graph roots; it cannot recover those types through
+the legacy projection.
 `Result<Int>` returns also consume that graph and cannot re-enter the legacy
 return-expression scanner. The DRV-2 transport now preserves the assignment
 target graph for both plain and indexed targets. Self SSA definitions carry

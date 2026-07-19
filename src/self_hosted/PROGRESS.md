@@ -1,5 +1,18 @@
 # Self-Host Progress
 
+2026-07-19 executable delta: collection statement typing now consumes the
+parser-owned expression graph for `ArrayPush` values and both `ArraySet`
+index/value arguments. The parser carries the `ArraySet` index in the value
+lane and its replacement value in the auxiliary lane; MIR preserves those as
+`expr1_graph` and `expr0_graph`, respectively. The statement type owner no
+longer calls the legacy projection for either argument. A kind-only mutation
+keeps the source spelling `0` while changing its graph identity from
+`integer_literal` to `leaf`; the hard semantic contract rejects it instead of
+recovering `Int` from text. Focused C-built and LLVM-built DRV-2 parity passed
+20 source fixtures plus `ast_node_array_set`, and deleting the secondary MIR
+graph fails closed. This is one hard substitution rung, not whole-compiler
+self-host completion.
+
 2026-07-19 executable delta: statement-return array-literal typing now consumes
 the parser-owned expression graph. The final semantic consumer of
 `SemanticProjectionArrayLiteralMatchesDeclaredType` moved to
@@ -1555,9 +1568,9 @@ beyond the lexer:
   element checks recurse over ordered element handles instead of trimming
   brackets or splitting arguments. `ast_node_array_literal` passed the focused
   C/LLVM DRV-2 source/MIR/runtime gate; the initializer owner is statically
-  forbidden from calling the legacy text projection. Assignment and statement
-  array-literal checks still use that legacy projection, so expression-result
-  classification remains a bridge.
+  forbidden from calling the legacy text projection. Later assignment and
+  return deltas closed the remaining array-literal type consumers. Broader
+  expression-result classification remains a bridge.
   Unsupported native AST shapes remain fail-closed; the named oracle bridge is
   retained only for old graph-less artifacts and is unavailable to the hard
   consumer.

@@ -368,9 +368,14 @@ require_text "src/self_hosted/mir/program_verify_owner.pgy" \
 require_text "src/self_hosted/mir/program_verify_owner.pgy" \
     "!SelfMirInstructionRowsReady(missing_member_base_use)"
 target_attach_count="$(grep -Fc -- \
-    "SelfMirRoutineAttachLastTargetExpressionGraph(" \
+    "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
     "$ROOT_DIR/src/self_hosted/mir/routine_assignment_owner.pgy")"
 [[ "$target_attach_count" -eq 1 ]] ||
     fail "routine assignment target graph must be attached exactly once"
+array_set_index_attach_count="$(grep -Fc -- \
+    "SelfMirRoutineAttachLastSecondaryExpressionGraph(" \
+    "$ROOT_DIR/src/self_hosted/mir/routine_tracked_statement_owner.pgy")"
+[[ "$array_set_index_attach_count" -eq 1 ]] ||
+    fail "ArraySet index graph must be attached exactly once"
 
 echo "[self-host-hard-contract] hard substitution contract is wired"

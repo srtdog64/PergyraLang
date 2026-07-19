@@ -26,6 +26,8 @@ pgy_selfhost_verify_driver_rung2_mir_graph_negatives() {
         cat "$missing_graph.out" "$missing_graph.err" >&2
         exit 1
     }
+    pgy_selfhost_verify_driver_rung2_array_set_graph_negative \
+        "$backend" "$base" "$self_mir_json" "$driver_bin"
     if [[ "$base" == "result_int_core" ]]; then
         if (cd "$ROOT_DIR" && "$driver_bin" --canonicalize-mir-json \
             "$(pgy_selfhost_path_relative_to_root "$missing_graph")" \

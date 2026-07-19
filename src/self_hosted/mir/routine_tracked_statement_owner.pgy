@@ -45,6 +45,14 @@ func SelfMirLowerTrackedStatementFromArtifact(
                 ), input.machine_declaration
             );
         }
+        if kind == TypedAstKindArraySetStmtTag() {
+            build = SelfMirRoutineAttachLastSecondaryExpressionGraph(
+                build, SemanticAstExpressionGraphForNode(
+                    input.analysis.expression_surfaces,
+                    node_id, AstExpressionLaneValue()
+                )
+            );
+        }
         return build;
     }
     if kind == TypedAstKindBareReturnStmtTag() ||

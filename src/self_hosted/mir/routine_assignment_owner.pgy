@@ -69,7 +69,7 @@ func SelfMirLowerAssignmentFromArtifact(
             node_id, AstExpressionLaneValue()
         ), input.machine_declaration
     );
-    build = SelfMirRoutineAttachLastTargetExpressionGraph(
+    build = SelfMirRoutineAttachLastSecondaryExpressionGraph(
         build, SemanticAstExpressionGraphForNode(
             input.analysis.expression_surfaces,
             node_id, AstExpressionLaneAtom()

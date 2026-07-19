@@ -256,7 +256,9 @@ SENTINEL_MAX=0
 # 2072 -> 2071 (2026-07-19): deleting the final dead text-reparsing array
 # literal owner removes one unreachable Option occurrence; no live error path
 # was flattened or replaced with a sentinel.
-RESULT_USE_MIN=2071
+# 2071 -> 2072 (2026-07-19): ArraySet statement typing now requires the
+# parser-owned index graph root instead of accepting a text projection.
+RESULT_USE_MIN=2072
 COMPILER_WORLD_SURFACE_MIN=1
 COMPILER_RESOURCE_ZONES_EXACT=19
 COMPILER_WORLD_MEMBERS_EXACT=19

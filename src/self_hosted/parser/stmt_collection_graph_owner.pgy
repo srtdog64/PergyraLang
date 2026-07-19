@@ -1,0 +1,30 @@
+// Parser-owned expression graph rows for collection mutation statements.
+
+import "expr_owner.pgy";
+
+func ParserCollectionStatementGraphsAppend(
+    rows: AstExpressionGraphRows,
+    owner_kind: Int,
+    expression: ParserExpressionFact
+) -> AstExpressionGraphRows {
+    if owner_kind == TypedAstKindArrayPushStmtTag() {
+        let value: ParserExpressionFact =
+            ParserExpressionNamedCallArgumentAt(expression, "ArrayPush", 1);
+        if !value.ok { Exit(1); }
+        return ParserExpressionGraphsAppend(
+            rows, owner_kind, AstExpressionLaneValue(), value
+        );
+    }
+    if owner_kind != TypedAstKindArraySetStmtTag() { Exit(1); }
+    let index: ParserExpressionFact =
+        ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 1);
+    let value2: ParserExpressionFact =
+        ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 2);
+    if !index.ok || !value2.ok { Exit(1); }
+    let with_index: AstExpressionGraphRows = ParserExpressionGraphsAppend(
+        rows, owner_kind, AstExpressionLaneValue(), index
+    );
+    return ParserExpressionGraphsAppend(
+        with_index, owner_kind, AstExpressionLaneAuxiliary(), value2
+    );
+}

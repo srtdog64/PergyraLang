@@ -37,6 +37,7 @@ func SelfMirLowerSimpleStatement(
     auxiliary_payload: String
 ) -> SelfMirRoutineBuild {
     let expression: String = payload;
+    let secondary_expression: String = "";
     let arg0: String = "";
     if kind == TypedAstKindLogStmtTag() {
         expression = Concat("Log(", Concat(payload, ")"));
@@ -45,6 +46,7 @@ func SelfMirLowerSimpleStatement(
         expression = Concat("ArrayPop(", Concat(payload, ")"));
         arg0 = "ArrayPop";
     } else if kind == TypedAstKindArraySetStmtTag() {
+        secondary_expression = value_payload;
         expression = Concat(
             "ArraySet(", Concat(payload, Concat(", ", Concat(
                 value_payload, Concat(", ", Concat(auxiliary_payload, ")"))
@@ -63,7 +65,8 @@ func SelfMirLowerSimpleStatement(
         arg0 = "Exit";
     }
     build = SelfMirRoutineAddInstruction(
-        build, "stmt", "stmt", "", arg0, "", expression, "",
+        build, "stmt", "stmt", "", arg0, "", expression,
+        secondary_expression,
         "AST_CALL", SelfMirExpressionUses(build, expression)
     );
     if kind == TypedAstKindExitStmtTag() {

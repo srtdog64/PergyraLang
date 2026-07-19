@@ -286,24 +286,25 @@ func SemanticAstStatementTypeFactsFromArtifact(
                     "actual", target_type
                 );
             } else if kind == TypedAstKindArraySetStmtTag() {
+                let index_root: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        expression_surfaces, statements.node_ids[i],
+                        AstExpressionLaneValue()
+                    );
+                if !IsSome(index_root) {
+                    return SemanticAstStatementTypeStructuralError(
+                        artifact, "array_set_index_graph"
+                    );
+                }
                 let index_verdict: SemanticAstExpressionVerdict =
-                    SemanticAstExpressionVerdictFromPayload(
-                        statements.value_texts[i], names, types, modes,
-                        function_names, function_returns, function_params
+                    SemanticAstExpressionVerdictFromGraph(
+                        statements.value_texts[i],
+                        expression_surfaces.expression_graph,
+                        UnwrapOption(index_root), constructors, signatures,
+                        names, types, modes, function_names, function_returns,
+                        function_params, member_root_names
                     );
                 let index_type: String = index_verdict.inferred_type_name;
-                if index_verdict.ok &&
-                    (index_type == "Unknown" || index_type == "") {
-                    let index_projection_type: Option<String> =
-                        SemanticProjectionExpressionType(
-                            statements.value_texts[i], constructors,
-                            names, types, modes,
-                            function_names, function_returns, function_params
-                        );
-                    if IsSome(index_projection_type) {
-                        index_type = UnwrapOption(index_projection_type);
-                    }
-                }
                 if !index_verdict.ok {
                     row_verified = 0;
                     row_code = index_verdict.diagnostic_code;
@@ -325,24 +326,29 @@ func SemanticAstStatementTypeFactsFromArtifact(
                 if kind == TypedAstKindArraySetStmtTag() {
                     value_text = statements.auxiliary_texts[i];
                 }
+                let value_lane: Int = AstExpressionLaneValue();
+                if kind == TypedAstKindArraySetStmtTag() {
+                    value_lane = AstExpressionLaneAuxiliary();
+                }
+                let value_root: Option<Int> =
+                    SemanticAstExpressionGraphRootForNode(
+                        expression_surfaces, statements.node_ids[i],
+                        value_lane
+                    );
+                if !IsSome(value_root) {
+                    return SemanticAstStatementTypeStructuralError(
+                        artifact, "collection_value_graph"
+                    );
+                }
                 let value_verdict: SemanticAstExpressionVerdict =
-                    SemanticAstExpressionVerdictFromPayload(
-                        value_text, names, types, modes,
-                        function_names, function_returns, function_params
+                    SemanticAstExpressionVerdictFromGraph(
+                        value_text, expression_surfaces.expression_graph,
+                        UnwrapOption(value_root), constructors, signatures,
+                        names, types, modes, function_names, function_returns,
+                        function_params, member_root_names
                     );
                 inferred = value_verdict.inferred_type_name;
                 expected = UnwrapOption(element_type_opt);
-                if value_verdict.ok &&
-                    (inferred == "Unknown" || inferred == "") {
-                    let value_projection_type: Option<String> =
-                        SemanticProjectionExpressionType(
-                            value_text, constructors, names, types, modes,
-                            function_names, function_returns, function_params
-                        );
-                    if IsSome(value_projection_type) {
-                        inferred = UnwrapOption(value_projection_type);
-                    }
-                }
                 if !value_verdict.ok {
                     row_verified = 0;
                     row_code = value_verdict.diagnostic_code;

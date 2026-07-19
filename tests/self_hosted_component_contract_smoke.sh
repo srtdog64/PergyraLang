@@ -2771,6 +2771,15 @@ require_max_lines "src/self_hosted/semantic/ast_statement_type_contract_owner.pg
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     "func SemanticAstStatementTypeFactsContractReady"
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    "func SemanticAstCollectionStatementGraphContractReady"
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
+    'surfaces.expression_graph.arena.node_kinds[root] ='
+require_file "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh"
+require_max_lines \
+    "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh" 100
+require_text "tests/self_hosted/parity/driver_rung2_array_set_graph_negative_owner.sh" \
+    "missing ArraySet index graph was accepted"
+require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     'Exit(\"bad\")'
 require_text "src/self_hosted/semantic/ast_statement_type_contract_owner.pgy" \
     '"call_arg_type_mismatch"'
@@ -3423,6 +3432,14 @@ require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'func MirInstructionRequiresExpr1Graph('
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'if UnwrapOption(kind) == "assign" { return true; }'
+require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
+    'UnwrapOption(arg0) == "ArraySet" {'
+require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
+    "SelfMirRoutineAttachLastSecondaryExpressionGraph("
+require_text "src/self_hosted/mir/instruction_validation_owner.pgy" \
+    'rows.arg0s[i] == "ArraySet"'
+reject_regex_under "src/self_hosted/mir" \
+    "SelfMirRoutineAttachLastTargetExpressionGraph\\("
 require_text "src/self_hosted/mir_lower/expression_graph_fact_owner.pgy" \
     'func MirExpressionGraphSequenceAppendRequired('
 require_text "src/self_hosted/codegen/runtime_abi/text_builder_runtime_owner.pgy" 'a->kind != PGY_ALLOC_RESULT || a->pool != NULL'
@@ -4563,8 +4580,22 @@ require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == Ty
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindContinueStmtTag()"
 require_text "src/self_hosted/semantic/ast_statement_fact_owner.pgy" "kind == TypedAstKindMatchDefaultStmtTag()"
 require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "SemanticArrayElementType(target_type)"
-require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let value_projection_type: Option<String> ="
-require_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let index_projection_type: Option<String> ="
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let value_projection_type: Option<String> ="
+reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "let index_projection_type: Option<String> ="
+require_file "src/self_hosted/parser/stmt_collection_graph_owner.pgy"
+require_max_lines "src/self_hosted/parser/stmt_collection_graph_owner.pgy" 100
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    "func ParserCollectionStatementGraphsAppend("
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    'ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 1);'
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    'ParserExpressionNamedCallArgumentAt(expression, "ArraySet", 2);'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'import "stmt_collection_graph_owner.pgy";'
+require_text "src/self_hosted/parser/stmt_owner.pgy" \
+    "ParserCollectionStatementGraphsAppend("
+reject_text "src/self_hosted/parser/stmt_owner.pgy" \
+    'ParserExpressionNamedCallArgumentAt('
 reject_text "src/self_hosted/semantic/ast_statement_type_fact_owner.pgy" "FindTopLevelComma(target)"
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArrayPush(", Concat('
 require_text "src/self_hosted/mir/routine_statement_owner.pgy" '"ArraySet(", Concat(payload'
@@ -4679,12 +4710,14 @@ require_text "src/self_hosted/codegen/emission/program_entry_owner.pgy" \
     "func GenerateCFromVerifiedSemanticArtifact("
 require_text "src/self_hosted/parser/stmt_owner.pgy" \
     'ParserExpressionNamedSingleCallArgument(expr_fact, "Log")'
-require_text "src/self_hosted/parser/stmt_owner.pgy" \
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
     'ParserExpressionNamedCallArgumentAt('
-require_text "src/self_hosted/parser/stmt_owner.pgy" \
-    'expr_fact, "ArrayPush", 1'
-require_text "src/self_hosted/parser/stmt_owner.pgy" \
-    'expr_fact, "ArraySet", 2'
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    'expression, "ArrayPush", 1'
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    'expression, "ArraySet", 1'
+require_text "src/self_hosted/parser/stmt_collection_graph_owner.pgy" \
+    'expression, "ArraySet", 2'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \
     'SelfMirSimpleStatementExpressionGraphLane(kind);'
 require_text "src/self_hosted/mir/routine_tracked_statement_owner.pgy" \

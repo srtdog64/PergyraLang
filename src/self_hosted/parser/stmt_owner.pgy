@@ -10,6 +10,7 @@ import "error_owner.pgy";
 import "tree_text_owner.pgy";
 import "type_name_owner.pgy";
 import "expr_owner.pgy";
+import "stmt_collection_graph_owner.pgy";
 import "stmt_if_owner.pgy";
 import "stmt_loop_owner.pgy";
 import "stmt_parallel_owner.pgy";
@@ -506,30 +507,12 @@ func ParseOneStmt(
                     AstExpressionLaneAtom(), exit_argument
                 )
             );
-        } else if owner_kind == TypedAstKindArrayPushStmtTag() {
-            let push_value: ParserExpressionFact =
-                ParserExpressionNamedCallArgumentAt(
-                    expr_fact, "ArrayPush", 1
-                );
-            if !push_value.ok { Exit(1); }
+        } else if owner_kind == TypedAstKindArrayPushStmtTag() ||
+            owner_kind == TypedAstKindArraySetStmtTag() {
             ArraySet(
                 expression_graphs, 0,
-                ParserExpressionGraphsAppend(
-                    expression_graphs[0], owner_kind,
-                    AstExpressionLaneValue(), push_value
-                )
-            );
-        } else if owner_kind == TypedAstKindArraySetStmtTag() {
-            let set_value: ParserExpressionFact =
-                ParserExpressionNamedCallArgumentAt(
-                    expr_fact, "ArraySet", 2
-                );
-            if !set_value.ok { Exit(1); }
-            ArraySet(
-                expression_graphs, 0,
-                ParserExpressionGraphsAppend(
-                    expression_graphs[0], owner_kind,
-                    AstExpressionLaneAuxiliary(), set_value
+                ParserCollectionStatementGraphsAppend(
+                    expression_graphs[0], owner_kind, expr_fact
                 )
             );
         } else if owner_kind == TypedAstKindBareCallStmtTag() {

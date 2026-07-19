@@ -8028,5 +8028,26 @@ Released/default replacement remains 0%.
   or call `SemanticProjectionArrayLiteralMatchesDeclaredType`.
 - Focused C/LLVM DRV-2 parity for `ast_node_array_literal` matched canonical
   MIR, emitted C, and runtime output. Existing array graph negatives still
-  reject missing or invalid roots. Assignment and statement array-literal
-  checks remain on the legacy projection, so the broader bridge remains open.
+  reject missing or invalid roots. Assignment and return consumers were still
+  open at this point and were closed by the subsequent executable deltas.
+
+### 2026-07-19 -- Collection statement typing consumes parser graph lanes
+
+- Split collection statement graph construction into
+  `stmt_collection_graph_owner.pgy`. `ArrayPush` contributes its value root;
+  `ArraySet` contributes index/value roots in value/auxiliary lanes.
+- Statement typing now consumes those roots through
+  `SemanticAstExpressionVerdictFromGraph`. The former index/value calls to
+  `SemanticProjectionExpressionType` were deleted and are rejected by the
+  component contract.
+- MIR carries `ArraySet` value in `expr0_graph` and index in `expr1_graph`.
+  The secondary graph attach API is no longer assignment-named, and MIR
+  validation requires both the index payload and graph.
+- A semantic mutation preserves source spelling `0` but changes its graph kind
+  from `integer_literal` to `leaf`; the type checker rejects it instead of
+  recovering `Int` from text. A second mutation removes `expr1_graph` and the
+  hard MIR consumer fails closed.
+- Focused C-built and LLVM-built DRV-2 parity passed all 20 body fixtures plus
+  the filtered `ast_node_array_set` MIR fixture. Parser C/LLVM output remained
+  byte-equal across 188 sources. This closes one collection-statement type
+  seam, not released/default or whole-compiler substitution.

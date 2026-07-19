@@ -354,10 +354,16 @@ func MirInstructionRequiresExpr1Graph(
         instruction, "expr1"
     );
     if !IsSome(kind) || !IsSome(source_type) || !IsSome(expr0) ||
-        !IsSome(expr1) || UnwrapOption(source_type) != "AST_ASSIGNMENT" ||
-        UnwrapOption(expr0) == "" || UnwrapOption(expr1) == "" {
+        !IsSome(expr1) || UnwrapOption(expr0) == "" ||
+        UnwrapOption(expr1) == "" {
         return false;
     }
+    if UnwrapOption(kind) == "stmt" &&
+        UnwrapOption(source_type) == "AST_CALL" && IsSome(arg0) &&
+        UnwrapOption(arg0) == "ArraySet" {
+        return true;
+    }
+    if UnwrapOption(source_type) != "AST_ASSIGNMENT" { return false; }
     if UnwrapOption(kind) == "assign" { return true; }
     return UnwrapOption(kind) == "def" && IsSome(arg0) &&
         UnwrapOption(arg0) != "";

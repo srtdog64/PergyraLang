@@ -94,6 +94,14 @@ func SelfMirInstructionRowsValidationError(
         if kind == "stmt" && rows.expr0s[i] == "" {
             return Concat(row_prefix, " statement payload is empty");
         }
+        if kind == "stmt" && rows.arg0s[i] == "ArraySet" &&
+            rows.source_types[i] == "AST_CALL" &&
+            (rows.expr1s[i] == "" ||
+             rows.expr1_graphs.has_roots[i] != 1) {
+            return Concat(
+                row_prefix, " ArraySet index graph is missing"
+            );
+        }
         if kind == "return" &&
             ((rows.expr0s[i] == "" &&
               rows.source_types[i] != "AST_RETURN_VOID") ||
